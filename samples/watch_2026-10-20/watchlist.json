@@ -1,0 +1,60 @@
+{
+ "selected_at": "2026-10-20T08:33:58.798430+00:00",
+ "note": "Extrait de 3 marchés, environ 30 minutes de collecte, pour essayer polyscan simulate sans collecte préalable.",
+ "markets": [
+  {
+   "condition_id": "0xdf9bf27ee5757c55b44b8b9826ddc9ec3a8809aa3278634c45edbb7fc8f1a3e3",
+   "question": "Will there be no change in Fed interest rates after the October 2026 meeting?",
+   "event": "Fed Decision in October?",
+   "slug": "will-there-be-no-change-in-fed-interest-rates-after-the-october-2026-meeting-20260617190324031",
+   "yes_token": "111061902544814266207267295505639408607400625795891618462682726460921782993748",
+   "no_token": "42038775866198212615491650114881818219665139981763207699110491615333273795415",
+   "tick": 0.01,
+   "min_order_size": 5.0,
+   "fee_rate": 0.05,
+   "reward_daily_rate": 1000.0,
+   "reward_min_size": 200.0,
+   "reward_max_spread_cents": 2.5,
+   "liquidity": 672423.0299,
+   "volume_24h": 671015.643384,
+   "end_date": "2026-10-29T03:59:00+00:00",
+   "mid_at_selection": 0.855
+  },
+  {
+   "condition_id": "0x7586a96520578acaaaa4ea84a2582f197f84255da1f3392a7aa300386c187b37",
+   "question": "Will Benjamin Netanyahu be the next Prime Minister of Israel?",
+   "event": "Prime Minister of Israel after the next election?",
+   "slug": "will-benjamin-netanyahu-be-the-next-prime-minister-of-israel",
+   "yes_token": "20006732765674855733524007935991362439352594042415161039767275461950712817548",
+   "no_token": "54533569528927082430133047556849600511985191158927477533124630301934489498530",
+   "tick": 0.01,
+   "min_order_size": 5.0,
+   "fee_rate": 0.0,
+   "reward_daily_rate": 227.0,
+   "reward_min_size": 100.0,
+   "reward_max_spread_cents": 6.5,
+   "liquidity": 505063.4021,
+   "volume_24h": 248992.91727,
+   "end_date": "2026-10-28T03:59:00+00:00",
+   "mid_at_selection": 0.275
+  },
+  {
+   "condition_id": "0x32851891e7ccfb249b1e120d77db70370fa92a13d821ce6c949de69402742aab",
+   "question": "US x Iran ceasefire continues through December 31?",
+   "event": "US-Iran ceasefire continues through...?",
+   "slug": "us-x-iran-ceasefire-continues-through-december-31-20260918",
+   "yes_token": "30473344794239220995088264915766809943868068209555159167607047748901899155342",
+   "no_token": "61904788164466355175026142226855713088283644805965360886174793900462956388813",
+   "tick": 0.01,
+   "min_order_size": 5.0,
+   "fee_rate": 0.0,
+   "reward_daily_rate": 200.0,
+   "reward_min_size": 200.0,
+   "reward_max_spread_cents": 4.5,
+   "liquidity": 59658.2564,
+   "volume_24h": 60144.61133900001,
+   "end_date": "2026-12-31T23:59:00+00:00",
+   "mid_at_selection": 0.305
+  }
+ ]
+}

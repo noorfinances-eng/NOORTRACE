@@ -73,7 +73,8 @@ polyscan watch --watchlist data/watch/watchlist.json         # reprend la même 
 Fichiers produits dans `data/watch/` :
 
 - `watchlist.json` : les marchés suivis avec jetons, tick, taux de frais, taux
-  journalier de rewards, taille minimale et spread maximal des rewards ;
+  journalier de rewards, taille minimale et spread maximal des rewards, alignés
+  sur la fiche CLOB de chaque marché ;
 - `books_AAAA-MM-JJ.jsonl` : un carnet par ligne, écrit seulement s'il a changé,
   20 niveaux par côté ;
 - `trades_AAAA-MM-JJ.jsonl` : une transaction par ligne, dédoublonnée, côté
@@ -101,6 +102,7 @@ d'un preneur est confrontée à ces cotes.
 polyscan simulate                                               # taille auto = minimum des rewards de chaque marché
 polyscan simulate --quote improve --improve-ticks 1 --size 100 --skew-ticks 1 --flatten --json data/sim.json
 polyscan simulate --market 0x12aa13b3 --csv data/equity.csv      # un marché, courbe d'équité
+polyscan simulate --data samples/watch_2026-10-20                # extrait réel de 3 marchés livré avec le dépôt
 ```
 
 Paramètres :

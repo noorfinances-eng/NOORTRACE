@@ -254,11 +254,37 @@ class Watcher:
                 remaining -= 1.0
 
 
+def enrich_from_clob(watchlist: list[dict[str, Any]], clob: ClobClient) -> list[dict[str, Any]]:
+    """Aligne tick, taille minimale et paramètres de rewards sur le CLOB, source du moteur d'appariement.
+
+    Gamma et le CLOB divergent parfois sur le taux journalier ; le CLOB fait foi.
+    """
+    for market in watchlist:
+        try:
+            info = clob.market(market["condition_id"])
+        except Exception as exc:  # noqa: BLE001 - on garde les valeurs Gamma
+            log.warning("fiche CLOB indisponible pour %s : %s", str(market["condition_id"])[:10], exc)
+            continue
+        rewards = info.get("rewards") or {}
+        rates = rewards.get("rates") or []
+        if rates:
+            market["reward_daily_rate"] = sum(_float(r.get("rewards_daily_rate")) for r in rates)
+        if rewards.get("min_size") is not None:
+            market["reward_min_size"] = _float(rewards["min_size"])
+        if rewards.get("max_spread") is not None:
+            market["reward_max_spread_cents"] = _float(rewards["max_spread"])
+        if info.get("minimum_tick_size"):
+            market["tick"] = _float(info["minimum_tick_size"], market["tick"])
+        if info.get("minimum_order_size"):
+            market["min_order_size"] = _float(info["minimum_order_size"], market["min_order_size"])
+    return watchlist
+
+
 def load_watchlist(path: Path) -> list[dict[str, Any]]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return payload["markets"] if isinstance(payload, dict) else payload
 
 
-def build_watchlist(gamma: GammaClient | None = None, **kwargs: Any) -> list[dict[str, Any]]:
+def build_watchlist(gamma: GammaClient | None = None, clob: ClobClient | None = None, **kwargs: Any) -> list[dict[str, Any]]:
     gamma = gamma or GammaClient()
-    return select_watchlist(gamma.active_events(), **kwargs)
+    return enrich_from_clob(select_watchlist(gamma.active_events(), **kwargs), clob or ClobClient())

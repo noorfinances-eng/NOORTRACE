@@ -110,6 +110,10 @@ class ClobClient:
     def book(self, token_id: str) -> dict[str, Any]:
         return self.http.get_json(f"{self.base_url}/book", params={"token_id": token_id})
 
+    def market(self, condition_id: str) -> dict[str, Any]:
+        """Fiche d'un marché côté moteur d'appariement : tick, taille minimale, paramètres de rewards."""
+        return self.http.get_json(f"{self.base_url}/markets/{condition_id}")
+
     def books(self, token_ids: list[str]) -> dict[str, dict[str, Any]]:
         out: dict[str, dict[str, Any]] = {}
         for token_id in token_ids:
