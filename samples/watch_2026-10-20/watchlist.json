@@ -1,6 +1,6 @@
 {
  "selected_at": "2026-10-20T08:33:58.798430+00:00",
- "note": "Extrait de 3 marchés, environ 30 minutes de collecte, pour essayer polyscan simulate sans collecte préalable.",
+ "note": "Extrait de 3 marchés sur environ deux heures de collecte, pour essayer polyscan simulate sans collecte préalable.",
  "markets": [
   {
    "condition_id": "0xdf9bf27ee5757c55b44b8b9826ddc9ec3a8809aa3278634c45edbb7fc8f1a3e3",
