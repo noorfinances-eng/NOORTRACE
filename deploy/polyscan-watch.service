@@ -1,0 +1,17 @@
+# Unité systemd pour la collecte continue. À copier dans /etc/systemd/system/
+# puis : systemctl daemon-reload && systemctl enable --now polyscan-watch
+[Unit]
+Description=polyscan : collecte continue des carnets et transactions Polymarket
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/polymarkets
+ExecStart=/opt/polymarkets/.venv/bin/polyscan -v watch --out /var/lib/polyscan/watch --top 30 --interval 60 --keep-days 90
+Restart=always
+RestartSec=30
+User=polyscan
+
+[Install]
+WantedBy=multi-user.target

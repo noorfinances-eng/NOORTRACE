@@ -14,6 +14,8 @@ from polyscan.api import ClobClient, GammaClient
 from polyscan.arbitrage import DEFAULT_SIZES, EventScan, depth_margins, scan_events, summarize
 from polyscan.collector import load_events, snapshot
 from polyscan.spreads import spread_stats
+from polyscan.simulate import Params, load_market, resolve_size, simulate, write_equity_csv
+from polyscan.watch import Watcher, build_watchlist, load_watchlist
 
 
 def _cents(value: float | None) -> str:
@@ -95,6 +97,76 @@ def cmd_collect(args: argparse.Namespace) -> int:
         time.sleep(args.every)
 
 
+def cmd_watch(args: argparse.Namespace) -> int:
+    out_dir = Path(args.out)
+    if args.watchlist:
+        watchlist = load_watchlist(Path(args.watchlist))
+    else:
+        watchlist = build_watchlist(
+            top=args.top, min_liquidity=args.min_liquidity, min_days=args.min_days, max_days=args.max_days
+        )
+    if not watchlist:
+        print("Aucun marché ne satisfait les critères de sélection.", file=sys.stderr)
+        return 1
+    print(f"{len(watchlist)} marchés surveillés, intervalle {args.interval}s, sortie {out_dir}")
+    for m in watchlist:
+        print(f"  {m['reward_daily_rate']:7.2f} $/j  vol24h {m['volume_24h']:10.0f}  mid {m['mid_at_selection']:.3f}  {m['question'][:60]}")
+    Watcher(out_dir, watchlist, interval=args.interval, levels=args.levels, keep_days=args.keep_days).run(args.iterations)
+    return 0
+
+
+def cmd_simulate(args: argparse.Namespace) -> int:
+    data_dir = Path(args.data)
+    watchlist = load_watchlist(data_dir / "watchlist.json")
+    if args.market:
+        watchlist = [m for m in watchlist if m["condition_id"].startswith(args.market) or m.get("slug") == args.market]
+        if not watchlist:
+            print("marché introuvable dans watchlist.json", file=sys.stderr)
+            return 1
+    results = []
+    for m in watchlist:
+        books, trades = load_market(data_dir, m["condition_id"], m.get("yes_token"))
+        if len(books) < 2:
+            continue
+        size = resolve_size(args.size, m)
+        params = Params(
+            quote=args.quote, improve_ticks=args.improve_ticks, size=size, max_inventory=max(args.max_inventory, size),
+            skew_ticks=args.skew_ticks, fill=args.fill, tick=float(m.get("tick") or 0.01),
+            reward_daily_rate=float(m.get("reward_daily_rate") or 0.0), reward_min_size=float(m.get("reward_min_size") or 0.0),
+            reward_max_spread=float(m.get("reward_max_spread_cents") or 0.0) / 100.0, fee_rate=float(m.get("fee_rate") or 0.0),
+            flatten_at_end=args.flatten,
+        )
+        result = simulate(books, trades, params, market=m["condition_id"], question=str(m.get("question") or ""))
+        results.append(result)
+        if args.csv and len(watchlist) == 1:
+            write_equity_csv(Path(args.csv), books, trades, params)
+    if not results:
+        print("aucun marché avec au moins deux carnets dans ce dossier", file=sys.stderr)
+        return 1
+    head = (f"{'heures':>6} {'carnets':>7} {'trades':>6} {'exéc.':>5} {'vol. exéc.':>10} {'inv. fin':>8} "
+            f"{'taille':>6} {'P&L $':>8} {'rewards $':>9} {'total $':>8} {'DD max $':>8} {'markout 5 min ¢':>15} | marché")
+    print(f"Paramètres : cotes={args.quote} amélioration={args.improve_ticks} tick(s) taille={args.size} "
+          f"inventaire max={args.max_inventory:g} skew={args.skew_ticks:g} remplissage={args.fill}")
+    print("Coter des deux côtés immobilise environ « taille » dollars par marché, plus l'inventaire accumulé.")
+    print(head)
+    print("-" * len(head))
+    tot = {"pnl": 0.0, "rew": 0.0, "fills": 0, "vol": 0.0}
+    for r in results:
+        mk = r.markouts_cents.get("300s")
+        note = " ! " + "; ".join(r.warnings) if r.warnings else ""
+        print(f"{r.hours:6.1f} {r.books:7d} {r.trades:6d} {r.fills:5d} {r.filled_volume:10.0f} {r.end_inventory:8.0f} "
+              f"{r.size:6.0f} {r.pnl_total:8.2f} {r.rewards_estimate:9.2f} {r.pnl_with_rewards:8.2f} {r.max_drawdown:8.2f} "
+              f"{(f'{mk:+.2f}' if mk is not None else '--'):>15} | {r.question[:50]}{note}")
+        tot["pnl"] += r.pnl_total; tot["rew"] += r.rewards_estimate; tot["fills"] += r.fills; tot["vol"] += r.filled_volume
+    print("-" * len(head))
+    print(f"TOTAL : {len(results)} marchés, {tot['fills']} exécutions, {tot['vol']:.0f} parts, "
+          f"P&L {tot['pnl']:+.2f} $, rewards estimés {tot['rew']:+.2f} $, total {tot['pnl'] + tot['rew']:+.2f} $")
+    if args.json:
+        Path(args.json).write_text(json.dumps([r.to_dict() for r in results], ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"Détail écrit dans {args.json}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="polyscan", description="Scanner d'écarts de cotation Polymarket")
     parser.add_argument("-v", "--verbose", action="store_true", help="journal détaillé")
@@ -114,6 +186,33 @@ def build_parser() -> argparse.ArgumentParser:
     collect.add_argument("--every", type=int, default=0, help="répète toutes les N secondes (0 = une fois)")
     collect.add_argument("--full", action="store_true", help="conserve tous les champs Gamma au lieu du sous-ensemble utile")
     collect.set_defaults(func=cmd_collect)
+
+    watch = sub.add_parser("watch", help="collecte continue des carnets et transactions de marchés sélectionnés")
+    watch.add_argument("--out", default="data/watch", help="dossier de sortie")
+    watch.add_argument("--watchlist", help="réutilise un watchlist.json existant au lieu de sélectionner")
+    watch.add_argument("--top", type=int, default=30, help="nombre de marchés surveillés")
+    watch.add_argument("--min-liquidity", type=float, default=10_000, help="liquidité minimale en $")
+    watch.add_argument("--min-days", type=float, default=7, help="jours minimum avant l'échéance")
+    watch.add_argument("--max-days", type=float, default=400, help="jours maximum avant l'échéance")
+    watch.add_argument("--interval", type=float, default=60, help="secondes entre deux passages")
+    watch.add_argument("--levels", type=int, default=20, help="niveaux de carnet conservés par côté")
+    watch.add_argument("--keep-days", type=int, default=0, help="rétention en jours (0 = illimitée)")
+    watch.add_argument("--iterations", type=int, default=0, help="nombre de passages (0 = sans fin)")
+    watch.set_defaults(func=cmd_watch)
+
+    sim = sub.add_parser("simulate", help="rejoue les données collectées avec une stratégie de market making")
+    sim.add_argument("--data", default="data/watch", help="dossier produit par polyscan watch")
+    sim.add_argument("--market", help="préfixe du condition id ou slug ; tous les marchés par défaut")
+    sim.add_argument("--quote", choices=["join", "improve"], default="join", help="join : au meilleur prix affiché ; improve : k ticks à l'intérieur")
+    sim.add_argument("--improve-ticks", type=int, default=1, help="ticks d'amélioration de chaque côté pour --quote improve")
+    sim.add_argument("--size", default="auto", help="taille de chaque cote en parts, ou auto = taille minimale des rewards du marché")
+    sim.add_argument("--max-inventory", type=float, default=500, help="inventaire maximal en parts, en valeur absolue (au moins la taille)")
+    sim.add_argument("--skew-ticks", type=float, default=0, help="décalage des cotes contre l'inventaire, en ticks par multiple de la taille")
+    sim.add_argument("--fill", choices=["prudent", "optimiste"], default="prudent", help="modèle de remplissage à prix égal")
+    sim.add_argument("--flatten", action="store_true", help="aplatit l'inventaire final en preneur, frais compris")
+    sim.add_argument("--csv", help="courbe d'équité (un seul marché)")
+    sim.add_argument("--json", help="résultats détaillés")
+    sim.set_defaults(func=cmd_simulate)
     return parser
 
 
