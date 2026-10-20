@@ -49,10 +49,15 @@ un régulateur ou un tribunal peuvent vérifier sans faire confiance au fourniss
 | Composant NOORCHAIN | Rôle dans NOORTRACE |
 |---|---|
 | Registre d'attestations (contrats PoSS) | Registre des lots d'empreintes et des approbations |
-| Circuits de curateurs, bornés et contestables | Moteur d'approbation humaine des actions sensibles |
+| Jeux d'approbateurs, repris des contrats de curateurs, bornés et contestables | Moteur d'approbation humaine des actions sensibles |
 | Hub et console Fondation | Base de la console de revue et d'export des dossiers |
 | Discipline de preuves, runbooks, observabilité | Exploitation et audit du service |
-| La chaîne EVM permissionnée | Registre d'exploitation interne, substituable |
+| La chaîne EVM permissionnée | Instance dédiée à NOORTRACE, distincte de la chaîne PoSS et sans jeton ; registre d'exploitation substituable |
+
+Terminologie : dans ce dépôt, « approbateur » désigne le rôle que les contrats de
+NOORCHAIN nomment curateur. La mécanique est reprise, le mot et la fonction sociale
+ne le sont pas. Décision du 20 octobre 2026 : NOORTRACE tourne sur une instance
+dédiée de noorcore, pas sur la chaîne du PoSS.
 
 ## Marché et modèle, en bref
 

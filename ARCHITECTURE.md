@@ -24,8 +24,9 @@ trois rôles.
    de l'agent, conformément aux recommandations du PFPDT sur la journalisation.
 3. **Approbation.** Les actions marquées sensibles par la politique du client sont
    suspendues jusqu'à décision d'un approbateur humain. La décision, son auteur, son
-   instant et son motif deviennent des événements du même journal. Les circuits de
-   curateurs de NOORCHAIN fournissent ce mécanisme : bornés, tracés, contestables.
+   instant et son motif deviennent des événements du même journal. Les jeux
+   d'approbateurs, repris des contrats de curateurs de NOORCHAIN, fournissent ce
+   mécanisme : bornés, tracés, contestables.
 4. **Ancrage.** Toutes les heures, la racine de Merkle des événements de la période
    est horodatée par un prestataire de confiance qualifié ZertES et eIDAS, puis
    ancrée sur un registre public gratuit. Seule la racine quitte le client.
@@ -70,6 +71,25 @@ Format d'export : spans OpenTelemetry GenAI pour l'interopérabilité, reçus SC
 - La procédure est documentée pour satisfaire l'art. 9 GeBüV : signatures, horodatage,
   conservation des journaux et des logs du système.
 
+## Instance dédiée
+
+Décision du 20 octobre 2026 : NOORTRACE tourne sur une instance dédiée de noorcore,
+distincte de la chaîne 2123 du PoSS.
+
+- Identifiant de chaîne propre, validateurs propres, aucun contrat de jeton ni de
+  récompense déployé.
+- Un seul registre pour tous les clients ; chaque client est une organisation avec
+  son jeu d'approbateurs. Aucune donnée métier sur la chaîne, seulement des racines.
+- Les validateurs sont ouverts aux partenaires : un intégrateur ou un cabinet d'audit
+  qui opère un validateur rend le registre moins dépendant du fournisseur.
+- Un incident ou une mise à jour du PoSS ne touche pas les clients NOORTRACE, et la
+  description du périmètre pour l'inventaire des externalisations reste simple.
+- Pour le pilote, une instance de développement suffit ; la chaîne de production est
+  arrêtée après le pilote.
+
+Terminologie : « approbateur » désigne le rôle que les contrats de NOORCHAIN nomment
+curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas.
+
 ## Déploiement
 
 - Enregistreur et journal chez le client : sur site, dans son tenant cloud ou chez un
@@ -94,7 +114,7 @@ Format d'export : spans OpenTelemetry GenAI pour l'interopérabilité, reçus SC
 | Dépôt noorchain-core | Usage |
 |---|---|
 | `contracts/poss/AttestationRegistry.sol` | Registre des racines de lots et des approbations |
-| `contracts/poss/CuratorSet.sol`, `CuratorSetRegistry.sol` | Gestion des approbateurs par organisation |
+| `contracts/poss/CuratorSet.sol`, `CuratorSetRegistry.sol` | Jeux d'approbateurs par client, seuil, administration reprise par le client |
 | `dapps/curators-hub` | Base de la console d'approbation et de revue |
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
@@ -103,6 +123,6 @@ Format d'export : spans OpenTelemetry GenAI pour l'interopérabilité, reçus SC
 
 1. Granularité des événements et taille des lots : coût de l'horodatage contre finesse de la preuve.
 2. Gestion des clés de l'enregistreur chez le client : HSM, TPM ou logiciel.
-3. Registre partagé entre clients ou instance par client.
-4. Politique de rédaction des paramètres sensibles avant journalisation.
-5. Version 0 du format d'export, à figer après les trois premiers entretiens avec des réviseurs.
+3. Politique de rédaction des paramètres sensibles avant journalisation.
+4. Version 0 du format d'export, à figer après les trois premiers entretiens avec des réviseurs.
+5. Identifiant de la chaîne de production et premiers validateurs partenaires, après le pilote.
