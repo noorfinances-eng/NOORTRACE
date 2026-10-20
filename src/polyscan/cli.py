@@ -144,23 +144,25 @@ def cmd_simulate(args: argparse.Namespace) -> int:
         print("aucun marché avec au moins deux carnets dans ce dossier", file=sys.stderr)
         return 1
     head = (f"{'heures':>6} {'carnets':>7} {'trades':>6} {'exéc.':>5} {'vol. exéc.':>10} {'inv. fin':>8} "
-            f"{'taille':>6} {'P&L $':>8} {'rewards $':>9} {'total $':>8} {'DD max $':>8} {'markout 5 min ¢':>15} | marché")
+            f"{'taille':>6} {'P&L $':>8} {'rewards $':>9} {'rew. $/j':>8} {'total $':>8} {'DD max $':>8} {'markout 5 min ¢':>15} | marché")
     print(f"Paramètres : cotes={args.quote} amélioration={args.improve_ticks} tick(s) taille={args.size} "
           f"inventaire max={args.max_inventory:g} skew={args.skew_ticks:g} remplissage={args.fill}")
     print("Coter des deux côtés immobilise environ « taille » dollars par marché, plus l'inventaire accumulé.")
     print(head)
     print("-" * len(head))
-    tot = {"pnl": 0.0, "rew": 0.0, "fills": 0, "vol": 0.0}
+    tot = {"pnl": 0.0, "rew": 0.0, "fills": 0, "vol": 0.0, "rew_day": 0.0}
     for r in results:
         mk = r.markouts_cents.get("300s")
         note = " ! " + "; ".join(r.warnings) if r.warnings else ""
         print(f"{r.hours:6.1f} {r.books:7d} {r.trades:6d} {r.fills:5d} {r.filled_volume:10.0f} {r.end_inventory:8.0f} "
-              f"{r.size:6.0f} {r.pnl_total:8.2f} {r.rewards_estimate:9.2f} {r.pnl_with_rewards:8.2f} {r.max_drawdown:8.2f} "
+              f"{r.size:6.0f} {r.pnl_total:8.2f} {r.rewards_estimate:9.2f} {(f'{r.rewards_per_day:8.2f}' if r.rewards_per_day is not None else '      --')} {r.pnl_with_rewards:8.2f} {r.max_drawdown:8.2f} "
               f"{(f'{mk:+.2f}' if mk is not None else '--'):>15} | {r.question[:50]}{note}")
         tot["pnl"] += r.pnl_total; tot["rew"] += r.rewards_estimate; tot["fills"] += r.fills; tot["vol"] += r.filled_volume
+        tot["rew_day"] += r.rewards_per_day or 0.0
     print("-" * len(head))
     print(f"TOTAL : {len(results)} marchés, {tot['fills']} exécutions, {tot['vol']:.0f} parts, "
-          f"P&L {tot['pnl']:+.2f} $, rewards estimés {tot['rew']:+.2f} $, total {tot['pnl'] + tot['rew']:+.2f} $")
+          f"P&L {tot['pnl']:+.2f} $, rewards estimés {tot['rew']:+.2f} $ soit {tot['rew_day']:.2f} $/jour extrapolés, "
+          f"total {tot['pnl'] + tot['rew']:+.2f} $")
     if args.json:
         Path(args.json).write_text(json.dumps([r.to_dict() for r in results], ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"Détail écrit dans {args.json}")

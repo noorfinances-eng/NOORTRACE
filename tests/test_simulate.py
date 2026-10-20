@@ -80,6 +80,8 @@ def test_rewards_echantillonnes_une_fois_par_minute():
     assert abs(r.rewards_estimate - 4 * (44.444444444 / 144.444444444)) < 1e-6
     small = simulate(books, [], Params(quote="join", size=10, reward_daily_rate=1440.0, reward_min_size=50, reward_max_spread=0.03))
     assert small.rewards_estimate == 0.0 and small.warnings
+    # extrapolation sur 24 h : 3 minutes de rejeu → × 480
+    assert abs(r.rewards_per_day - r.rewards_estimate * 480) < 1e-9
 
 
 def test_taille_auto():

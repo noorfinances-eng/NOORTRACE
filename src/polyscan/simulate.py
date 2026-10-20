@@ -131,8 +131,15 @@ class Result:
     markouts_cents: dict[str, float | None]
     warnings: list[str] = field(default_factory=list)
 
+    @property
+    def rewards_per_day(self) -> float | None:
+        """Rewards estimés ramenés à 24 h, pour lire un court rejeu ; indicatif seulement."""
+        return self.rewards_estimate / self.hours * 24.0 if self.hours > 0 else None
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data["rewards_per_day"] = self.rewards_per_day
+        return data
 
 
 # ----- Chargement ---------------------------------------------------------------------------------
