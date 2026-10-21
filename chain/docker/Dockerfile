@@ -10,8 +10,12 @@
 # `-follow-rpc`, chaîne 2121, données dans ./data), ce qui n'est jamais ce que
 # l'on veut en production.
 #
-#   docker build -t noortrace/noorcore:d3e7ec0 chain/docker
-#   docker build --build-arg NOORCORE_COMMIT=<sha> -t noortrace/noorcore:<tag> chain/docker
+#   docker build -f chain/docker/Dockerfile -t noortrace/noorcore:618fcef-noortrace chain
+#   docker build -f chain/docker/Dockerfile --build-arg NOORCORE_COMMIT=<sha> -t noortrace/noorcore:<tag> chain
+#
+# Le contexte de construction est chain/ : l'image applique sur le commit épinglé
+# les correctifs NOORTRACE de chain/patches/ (dont noor_getCommitCertificate),
+# sans qu'aucune branche n'existe dans noorchain-core.
 #
 # Voir chain/docker/README.md pour l'exécution (validateur, suiveur), les
 # volumes, les ports et les variables.
@@ -22,7 +26,7 @@
 # échouer la construction au lieu de télécharger une autre chaîne en silence.
 ARG GO_VERSION=1.26.9
 ARG NOORCORE_REPO=https://github.com/noorfinances-eng/noorchain-core.git
-ARG NOORCORE_COMMIT=d3e7ec030b4060ceb3e924d49731054cb2cc2963
+ARG NOORCORE_COMMIT=618fcef8805ef5b4cb9291a3dd97be710e489297
 
 # --- étape 1 : construction ----------------------------------------------------
 FROM golang:${GO_VERSION}-bookworm AS build
@@ -61,6 +65,13 @@ RUN --mount=type=secret,id=ca_bundle \
     tete="$(git rev-parse HEAD)"; \
     [ "$tete" = "$NOORCORE_COMMIT" ] || { echo "clone à $tete, attendu $NOORCORE_COMMIT" >&2; exit 1; }; \
     echo "noorchain-core au commit $tete, $(grep '^go ' go.mod)"
+
+# Correctifs NOORTRACE appliqués sur le commit épinglé, dans l'ordre des noms ;
+# `git apply --check` d'abord, pour qu'un correctif qui ne s'applique plus arrête
+# la construction au lieu de produire un binaire incomplet.
+COPY patches/ /patches/
+RUN set -eu; for p in /patches/*.patch; do [ -e "$p" ] || continue; \
+    git apply --check "$p"; git apply "$p"; echo "correctif appliqué : $(basename "$p")"; done
 
 # `go build ./core`, comme chain/scripts/build-noorcore.sh. -trimpath retire les
 # chemins de l'étape de construction du binaire ; les caches de modules et de

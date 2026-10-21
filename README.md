@@ -108,7 +108,8 @@ réviseur externe ait reproduit la vérification.
 21 octobre 2026 : conception technique en cours, et premier code de la chaîne :
 instance de développement, contrats du registre avec leurs tests, scripts de
 déploiement et parcours complet exécuté sur le réseau de développement, méthode RPC
-du certificat de commit dans noorchain-core et son vérificateur hors ligne ici.
+du certificat de commit portée comme correctif sur noorcore dans `chain/patches/`,
+et son vérificateur hors ligne.
 L'enregistreur, l'ancrage externe, la console et le vérificateur du dossier restent
 à écrire.
 

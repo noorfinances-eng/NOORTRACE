@@ -10,14 +10,18 @@
 #   2. sinon, il clone à profondeur 1 le commit épinglé de noorchain-core dans
 #      chain/runtime/src/noorchain-core (s'il n'y est pas déjà, auquel cas il
 #      vérifie que la copie est bien au commit attendu) ;
-#   3. puis il lance `go build ./core` et dépose le binaire dans
+#   3. il applique les correctifs NOORTRACE de chain/patches/*.patch avec
+#      `git apply`, dans l'ordre des noms ; un correctif déjà appliqué est
+#      reconnu, un correctif qui ne s'applique pas arrête la construction ;
+#      le dépôt noorchain-core lui-même n'est jamais modifié ;
+#   4. puis il lance `go build ./core` et dépose le binaire dans
 #      chain/runtime/bin/noorcore.
 #
 # Variables d'environnement (facultatives) :
 #   NOORTRACE_RUNTIME_DIR   répertoire d'exécution (défaut : chain/runtime)
 #   NOORTRACE_NOORCORE_SRC  copie de travail de noorchain-core déjà présente,
-#                           utilisée en lecture seule à la place du clone ; elle
-#                           doit être exactement au commit épinglé
+#                           utilisée à la place du clone ; elle doit être au
+#                           commit épinglé et reçoit les correctifs (git apply)
 #
 # Prérequis : git, Go (le go.mod de noorchain-core impose go 1.26.9 ; avec
 # GOTOOLCHAIN=auto, la chaîne de compilation est téléchargée si besoin).
@@ -25,7 +29,7 @@
 set -euo pipefail
 
 NOORCORE_REPO="https://github.com/noorfinances-eng/noorchain-core.git"
-NOORCORE_COMMIT="d3e7ec030b4060ceb3e924d49731054cb2cc2963"
+NOORCORE_COMMIT="618fcef8805ef5b4cb9291a3dd97be710e489297"
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 chain_dir="$(cd -- "$script_dir/.." >/dev/null 2>&1 && pwd)"
@@ -77,8 +81,24 @@ else
   [[ "$tete" == "$NOORCORE_COMMIT" ]] || { echo "build-noorcore: le clone est au commit $tete, attendu $NOORCORE_COMMIT" >&2; exit 1; }
 fi
 
+# --- correctifs NOORTRACE : chain/patches/*.patch sur le commit épinglé ---------
+PATCH_DIR="$chain_dir/patches"
+shopt -s nullglob
+for p in "$PATCH_DIR"/*.patch; do
+  if git -C "$SRC" apply --check "$p" >/dev/null 2>&1; then
+    git -C "$SRC" apply "$p"
+    echo "build-noorcore: correctif appliqué : $(basename "$p")"
+  elif git -C "$SRC" apply --check --reverse "$p" >/dev/null 2>&1; then
+    echo "build-noorcore: correctif déjà appliqué : $(basename "$p")"
+  else
+    echo "build-noorcore: le correctif $(basename "$p") ne s'applique pas sur $SRC ; refus de construire" >&2
+    exit 1
+  fi
+done
+shopt -u nullglob
+
 # --- construction ------------------------------------------------------------
 mkdir -p "$(dirname "$BIN")"
 echo "build-noorcore: go build ./core (depuis $SRC)…"
 (cd "$SRC" && go build -o "$BIN" ./core)
-echo "build-noorcore: binaire construit : $BIN ($(go -C "$SRC" version | awk '{print $3}'), commit $NOORCORE_COMMIT)"
+echo "build-noorcore: binaire construit : $BIN ($(go -C "$SRC" version | awk '{print $3}'), commit $NOORCORE_COMMIT + correctifs de chain/patches)"

@@ -21,15 +21,16 @@ est un emballage du même binaire, pas une autre chaîne.
 ## Construction
 
 ```bash
-# depuis la racine du dépôt ; commit par défaut : d3e7ec030b4060ceb3e924d49731054cb2cc2963
-# (branche noortrace-rpc-certificat-commit : porte noor_getCommitCertificate)
-docker build -t noortrace/noorcore:d3e7ec0 chain/docker
+# depuis la racine du dépôt ; commit par défaut : 618fcef8805ef5b4cb9291a3dd97be710e489297,
+# plus les correctifs de chain/patches/ (dont noor_getCommitCertificate) ; le contexte
+# de construction est chain/ pour que l'image les voie
+docker build -f chain/docker/Dockerfile -t noortrace/noorcore:618fcef-noortrace chain
 
 # un autre commit de noorchain-core
-docker build --build-arg NOORCORE_COMMIT=<sha complet> -t noortrace/noorcore:<étiquette> chain/docker
+docker build -f chain/docker/Dockerfile --build-arg NOORCORE_COMMIT=<sha complet> -t noortrace/noorcore:<étiquette> chain
 
 # vérification de la syntaxe et des règles BuildKit, sans construire
-docker build --check chain/docker
+docker build --check -f chain/docker/Dockerfile chain
 ```
 
 Ce que fait le `Dockerfile` :
@@ -62,7 +63,7 @@ Arguments de construction :
 |---|---|---|
 | `GO_VERSION` | `1.26.9` | étiquette de l'image Go ; à ne changer qu'avec le `go.mod` |
 | `NOORCORE_REPO` | `https://github.com/noorfinances-eng/noorchain-core.git` | dépôt cloné |
-| `NOORCORE_COMMIT` | `d3e7ec030b4060ceb3e924d49731054cb2cc2963` | commit construit, branche `noortrace-rpc-certificat-commit` |
+| `NOORCORE_COMMIT` | `618fcef8805ef5b4cb9291a3dd97be710e489297` | commit de noorchain-core construit, après application des correctifs de `chain/patches/` |
 
 Secrets BuildKit facultatifs, jamais écrits dans une couche :
 
@@ -79,6 +80,13 @@ Secrets BuildKit facultatifs, jamais écrits dans une couche :
 ### Construction vérifiée le 21 octobre 2026
 
 - `docker build --check chain/docker` : `Check complete, no warnings found.`
+- Variante avec correctifs (contexte `chain/`, `COPY patches/`, `git apply`), le soir du
+  21 octobre : `docker build --check -f chain/docker/Dockerfile chain` sans avertissement ;
+  la construction complète n'a pas pu être rejouée, Docker Hub ayant répondu
+  `429 Too Many Requests` à la résolution de `golang:1.26.9-bookworm` à deux reprises.
+  Le même enchaînement, clone du commit épinglé puis `git apply` puis `go build`, a été
+  rejoué avec succès par `chain/scripts/build-noorcore.sh --force` (33 s, méthode
+  présente dans le binaire). À rejouer dès que le registre répond.
 - `docker build … -t noortrace/noorcore:618fcef chain/docker` (Docker 29.8.2,
   BuildKit) : clone et vérification du commit en 2,8 s (`noorchain-core au commit
   618fcef8805ef5b4cb9291a3dd97be710e489297, go 1.26.9`), `go version go1.26.9
@@ -116,7 +124,7 @@ docker run -d --name noorcore-v1 --network host \
   -v "$PWD/chain/runtime/validators.json:/etc/noorcore/validators.json:ro" \
   -v "$PWD/chain/runtime/keys/node1.key:/etc/noorcore/validator.key:ro" \
   -v "$PWD/chain/config/alloc-dev.json:/etc/noorcore/alloc.json:ro" \
-  noortrace/noorcore:d3e7ec0 \
+  noortrace/noorcore:618fcef-noortrace \
     -chain-id noortrace-2124-dev -evm-chain-id 2124 \
     -data-dir /var/lib/noorcore \
     -role leader -consensus bft \
@@ -151,7 +159,7 @@ docker run -d --name noorcore-v1 --network host \
 # contre le réseau de développement (validateurs sur 127.0.0.1 de l'hôte)
 docker run -d --name noorcore-suiveur --network host --read-only \
   -v noorcore-suiveur:/var/lib/noorcore \
-  noortrace/noorcore:d3e7ec0 \
+  noortrace/noorcore:618fcef-noortrace \
     -chain-id noortrace-2124-dev -evm-chain-id 2124 \
     -data-dir /var/lib/noorcore \
     -role follower -follow-rpc http://127.0.0.1:8645 \
@@ -400,8 +408,8 @@ Il **ne gagne pas** :
 
 ## Ce qu'il faudrait pour une copie indépendante
 
-Estimation argumentée depuis le code au commit `618fcef…` (branche
-`noortrace-rpc-certificat-commit` pour la RPC du certificat) ; ce n'est pas un
+Estimation argumentée depuis le code au commit `618fcef…` (le correctif de
+`chain/patches/` pour la RPC du certificat) ; ce n'est pas un
 engagement. Une « copie indépendante » est un **observateur** : un nœud qui n'est
 pas validateur, qui reçoit les propositions et precommits signés, vérifie chaque
 certificat (≥ 2f+1 signatures du jeu de validateurs), ré-exécute chaque bloc sur

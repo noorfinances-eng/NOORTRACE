@@ -297,8 +297,9 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 Écrit, 21 octobre 2026 : les contrats du registre, PeriodRegistry, RecorderRegistry et
 ThresholdSignatures, avec leurs tests ; l'instance de développement dédiée dans
 `chain/` ; les scripts de déploiement et le parcours complet ; la méthode RPC
-`noor_getCommitCertificate` dans noorchain-core, branche dédiée, et le vérificateur hors
-ligne des certificats de commit. À écrire : le mandataire
+`noor_getCommitCertificate`, portée comme correctif sur noorcore dans `chain/patches/`
+et appliquée à la construction du binaire, et le vérificateur hors ligne des
+certificats de commit. À écrire : le mandataire
 MCP, le raccord au proxy de sortie, le schéma d'événements, le chaînage et l'arbre de
 Merkle, les clients RFC 3161 et OpenTimestamps, le format du dossier, le vérificateur.
 

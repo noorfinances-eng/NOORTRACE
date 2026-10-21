@@ -21,10 +21,12 @@
 services:
   noorcore-suiveur:
     build:
-      context: .
+      # contexte chain/ : le Dockerfile applique les correctifs de chain/patches/
+      context: ..
+      dockerfile: docker/Dockerfile
       args:
-        NOORCORE_COMMIT: d3e7ec030b4060ceb3e924d49731054cb2cc2963
-    image: noortrace/noorcore:d3e7ec0
+        NOORCORE_COMMIT: 618fcef8805ef5b4cb9291a3dd97be710e489297
+    image: noortrace/noorcore:618fcef-noortrace
     command:
       - -chain-id=noortrace-2124-dev
       - -evm-chain-id=2124

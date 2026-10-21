@@ -21,13 +21,14 @@ pour le développement des contrats et de l'enregistreur ; rien ici n'est destin
 | Élément | Valeur |
 |---|---|
 | Dépôt | `https://github.com/noorfinances-eng/noorchain-core` |
-| Branche | `noortrace-rpc-certificat-commit`, commit `d3e7ec030b4060ceb3e924d49731054cb2cc2963`, basée sur `618fcef` ; elle ajoute la méthode JSON-RPC `noor_getCommitCertificate` (voir plus bas) |
-| Binaire | `chain/runtime/bin/noorcore`, construit le 21 octobre 2026 depuis cette branche : `go build -o chain/runtime/bin/noorcore ./core` (Go 1.26.9) |
+| Correctif | `chain/patches/0001-noor_getCommitCertificate.patch`, appliqué sur le commit `618fcef8805ef5b4cb9291a3dd97be710e489297` à la construction ; il ajoute la méthode JSON-RPC `noor_getCommitCertificate` (voir plus bas). Le dépôt noorchain-core n'est pas modifié |
+| Binaire | `chain/runtime/bin/noorcore`, construit le 21 octobre 2026 depuis le commit épinglé plus le correctif : `bash chain/scripts/build-noorcore.sh --force` (Go 1.26.9) |
 | Binaire précédent | `chain/runtime/bin/noorcore.618fcef` : le binaire construit depuis le commit `618fcef` seul, sans la méthode, conservé pour retour arrière |
 
-Le script `chain/scripts/build-noorcore.sh` est épinglé sur le commit `d3e7ec0` de cette
-branche, poussée le 21 octobre 2026 : `build-noorcore.sh --force` reconstruit un
-binaire identique, avec `noor_getCommitCertificate`. La chaîne existante reprend sans
+Le script `chain/scripts/build-noorcore.sh` clone le commit `618fcef` de noorchain-core,
+applique les correctifs de `chain/patches/` avec `git apply`, puis construit :
+`build-noorcore.sh --force` reconstruit ainsi un binaire avec `noor_getCommitCertificate`
+sans qu'aucune branche n'existe dans noorchain-core. La chaîne existante reprend sans
 changement avec ce binaire : la méthode est additive, rien du consensus ni du format
 sur disque ne change.
 
@@ -102,7 +103,7 @@ ne changent que le routage RPC, pas le consensus.
 
 ```
 chain/runtime/
-  bin/noorcore          binaire construit depuis la branche noortrace-rpc-certificat-commit (voir « Source de noorcore »)
+  bin/noorcore          binaire construit depuis 618fcef plus le correctif de chain/patches (voir « Source de noorcore »)
   bin/noorcore.618fcef  binaire précédent, construit depuis le commit 618fcef seul
   src/noorchain-core/   clone à profondeur 1 (seulement si build-noorcore.sh a cloné)
   keys/node{1..4}.key   clés privées secp256k1 des validateurs (mode 0600)
@@ -179,8 +180,8 @@ stabilité de noorchain-core : codes stables, champs ajoutés mais jamais retir�
 canonique : le hachage d'un bloc de branche latérale répond `unknown block`) ; un
 second paramètre ou `"0x0064"` sont refusés (`-32602`). Spécification complète
 (champs, erreurs, rétention, procédure de vérification hors ligne du condensé) :
-`docs/RPC_SPEC_2.1.md` §13.1 de noorchain-core, branche
-`noortrace-rpc-certificat-commit`.
+`docs/RPC_SPEC_2.1.md` §13.1, tel que le correctif de `chain/patches/` l'ajoute à
+noorchain-core.
 
 Réponse, en résumé : `height`, `round`, `chainId` (`noortrace-2124-dev`),
 `valsetHash`, `blockHash` ; `canonical.{blockHash, matchesCertificate}` (le hachage
