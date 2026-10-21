@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-1",
+  "controles_en_echec": [
+    "E-1"
+  ],
+  "description": "code.prompt_version de voisins.next est en hexadécimal majuscule ; l'événement a été rescellé (hash et signature valides sur cette forme) : seul le schéma le refuse."
+}

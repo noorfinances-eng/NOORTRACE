@@ -1,0 +1,81 @@
+{
+  "version": 0,
+  "description": "Clés de test des vecteurs CT-1. Jetables et publiques : elles ne doivent jamais porter de valeur. Graine Ed25519 = SHA-256(UTF-8(étiquette)) ; clé publique RFC 8032 §5.1.5 ; en PKCS#8 DER, la clé privée est le préfixe 302e020100300506032b657004220420 suivi de la graine.",
+  "org": {
+    "slug": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "derivation": "keccak256(UTF-8(slug))"
+  },
+  "journal": {
+    "nom": "journal-sinistres",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "derivation": "keccak256(UTF-8(nom))"
+  },
+  "keys": [
+    {
+      "key_id": "rec-test-01",
+      "algorithm": "ed25519",
+      "seed_label": "noortrace/vecteurs/v0/cle-enregistreur/rec-test-01",
+      "seed": "0x6215c33a2801ef7f21a894e98924eba8d72e3514f5fe7929ce0b595f5d39fa79",
+      "private_key_pkcs8_der": "0x302e020100300506032b6570042204206215c33a2801ef7f21a894e98924eba8d72e3514f5fe7929ce0b595f5d39fa79",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "valid_from": "2026-11-01T00:00:00.000Z",
+      "valid_to": "2026-11-05T09:59:58.000Z"
+    },
+    {
+      "key_id": "rec-test-02",
+      "algorithm": "ed25519",
+      "seed_label": "noortrace/vecteurs/v0/cle-enregistreur/rec-test-02",
+      "seed": "0x4aa9b030b0d9dbc1eb4e2619929bb7ace43b6479678c6162ea467c84a6bda5db",
+      "private_key_pkcs8_der": "0x302e020100300506032b6570042204204aa9b030b0d9dbc1eb4e2619929bb7ace43b6479678c6162ea467c84a6bda5db",
+      "public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+      "valid_from": "2026-11-05T09:59:58.000Z",
+      "valid_to": null
+    }
+  ],
+  "approbateurs": {
+    "mnemonique": "test test test test test test test test test test test junk",
+    "chemin": "m/44'/60'/0'/0/<i>",
+    "seuil": {
+      "required": 2,
+      "size": 3
+    },
+    "comptes": [
+      {
+        "compte": 1,
+        "chemin": "m/44'/60'/0'/0/1",
+        "adresse": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "cle_privee": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+      },
+      {
+        "compte": 2,
+        "chemin": "m/44'/60'/0'/0/2",
+        "adresse": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "cle_privee": "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+      },
+      {
+        "compte": 3,
+        "chemin": "m/44'/60'/0'/0/3",
+        "adresse": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+        "cle_privee": "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+      }
+    ]
+  },
+  "nonces": [
+    {
+      "periode": 1,
+      "etiquette": "noortrace/vecteurs/v0/nonce/journal-sinistres/periode-1",
+      "nonce": "0x20043d08510abdc2f2aa983921401083affcadb38760de64856927195c818dd3"
+    },
+    {
+      "periode": 2,
+      "etiquette": "noortrace/vecteurs/v0/nonce/journal-sinistres/periode-2",
+      "nonce": "0xa57b8896278fbd10b1e209de387295d6a5d2137e6f64a1f534b0e60129be9168"
+    },
+    {
+      "periode": 3,
+      "etiquette": "noortrace/vecteurs/v0/nonce/journal-sinistres/periode-3",
+      "nonce": "0x547f937bb769c72eb8faefc6511fbb9c0fd7f7341f0c5b73ffd7bc2214114da0"
+    }
+  ]
+}

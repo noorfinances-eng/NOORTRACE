@@ -1,0 +1,15 @@
+{
+  "version": 0,
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "period_start": 1793869200,
+  "period_end": 1793872800,
+  "first_seq": 1,
+  "last_seq": 9,
+  "count": 9,
+  "root": "0xc9ba8131e890b66ad1f49018868b7ece127e32a8587c5528bd988e51ba980175",
+  "prev_period_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "recorder_key_id": "rec-test-02",
+  "nonce": "0x20043d08510abdc2f2aa983921401083affcadb38760de64856927195c818dd3",
+  "generated_at": "2026-11-05T10:00:00.300Z"
+}

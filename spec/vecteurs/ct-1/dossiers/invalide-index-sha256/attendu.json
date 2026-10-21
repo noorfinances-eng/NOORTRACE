@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "D-2",
+  "controles_en_echec": [
+    "D-2"
+  ],
+  "description": "dossier.json déclare pour chemin.json un SHA-256 qui n'est pas celui du fichier : le dossier a été modifié après l'écriture de l'index."
+}

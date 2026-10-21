@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { AbiCoder, Signature, ZeroAddress, getBytes, hashMessage, keccak256, solidityPacked, toUtf8Bytes } from "ethers";
+import { hachageManifeste } from "./journal.mjs";
 
 /** Racine du projet (le dossier qui contient hardhat.config.mjs). */
 export const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -123,6 +124,29 @@ export function revokeDigest({ chainId, registry, orgId, chainKey, registeredAt 
  */
 export function anchorFingerprint({ orgId, journalId, periodHash }) {
   return keccak256(solidityPacked(["bytes32", "bytes32", "bytes32"], [orgId, journalId, periodHash]));
+}
+
+/**
+ * PeriodMeta attendu par PeriodRegistry.submitPeriod, champ pour champ, depuis
+ * un manifeste de période v0 de CT-1 (§10.4) : periodHash est le SHA-256 du
+ * manifeste canonique préfixé (hachageManifeste de scripts/lib/journal.mjs),
+ * jamais un keccak256 ; version est celle du manifeste (0). `uri` est
+ * l'emplacement du manifeste, libre et hors du manifeste (il ne peut pas se
+ * contenir). Les bornes sont rendues en BigInt, comme le contrat les relit.
+ */
+export function periodMetaDuManifeste(manifeste, { uri = "" } = {}) {
+  return {
+    orgId: manifeste.org_id,
+    journalId: manifeste.journal_id,
+    periodHash: hachageManifeste(manifeste),
+    root: manifeste.root,
+    periodStart: BigInt(manifeste.period_start),
+    periodEnd: BigInt(manifeste.period_end),
+    firstSeq: BigInt(manifeste.first_seq),
+    lastSeq: BigInt(manifeste.last_seq),
+    version: manifeste.version,
+    uri,
+  };
 }
 
 /**

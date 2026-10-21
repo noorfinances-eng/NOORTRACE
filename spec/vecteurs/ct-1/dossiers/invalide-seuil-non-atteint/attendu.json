@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "A-3",
+  "controles_en_echec": [
+    "A-3"
+  ],
+  "description": "Journal rejoué avec une seule signature d'approbateur (compte Hardhat 1) pour un seuil déclaré de 2 sur 3 : la signature est valide, le seuil n'est pas atteint."
+}

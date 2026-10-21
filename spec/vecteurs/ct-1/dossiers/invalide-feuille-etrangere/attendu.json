@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "M-1",
+  "controles_en_echec": [
+    "M-1"
+  ],
+  "description": "chemin.json et le manifeste (re-signé) sont bâtis sur un arbre où la feuille d'indice 6 n'est pas SHA-256(0x00 || hash de seq 7) : le chemin mène à la racine (M-2), la racine est celle du manifeste (M-3), mais la feuille ne prouve pas l'événement."
+}

@@ -1,0 +1,6 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "description": "Dossier de l'appel relayé après approbation (seq 7) : voisins seq 6 et seq 8, période 1 (neuf événements, clôturée par rec-test-02 après la rotation de seq 9), approbation apr-2201 des comptes Hardhat 1 et 2. Les cinq parties réservées à CT-4 et CT-5 sont absentes avec la raison « hors périmètre CT-1 ». Le contrôle A-4 est non exécuté : l'événement de demande (seq 5) n'est pas un voisin."
+}

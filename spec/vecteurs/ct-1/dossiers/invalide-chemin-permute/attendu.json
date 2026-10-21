@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "M-2",
+  "controles_en_echec": [
+    "M-2"
+  ],
+  "description": "Les deux premiers nœuds de chemin.json sont échangés : l'algorithme d'inclusion ne retombe pas sur la racine."
+}

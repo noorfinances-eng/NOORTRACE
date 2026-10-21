@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "C-1",
+  "controles_en_echec": [
+    "C-1"
+  ],
+  "description": "voisins.next porte seq 9 au lieu de 8 et a été rescellé avec la clé de l'enregistreur : hash, signature et prev_hash sont valides, mais il n'est pas le voisin immédiat."
+}

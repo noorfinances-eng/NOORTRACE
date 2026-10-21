@@ -1,0 +1,10 @@
+{
+  "valide": false,
+  "controle": "P-4",
+  "controles_en_echec": [
+    "M-3",
+    "P-1",
+    "P-4"
+  ],
+  "description": "Racine nulle avec count = 9, manifeste re-signé : la convention de la période vide est violée (P-4), le schéma du manifeste l'interdit (P-1) et le chemin ne mène pas à cette racine (M-3)."
+}

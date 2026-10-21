@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-1",
+  "controles_en_echec": [
+    "E-1"
+  ],
+  "description": "evenement.json contient le littéral JSON null ; l'index le déclare présent avec son SHA-256 exact (D-2 passe). La partie est inexploitable : E-1 échoue, les contrôles qui en dépendent sont non exécutés sans raison admise, le dossier est invalide et le rapport ne reprend rien de l'index à la place de l'événement."
+}

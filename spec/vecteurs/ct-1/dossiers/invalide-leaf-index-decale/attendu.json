@@ -1,0 +1,9 @@
+{
+  "valide": false,
+  "controle": "M-3",
+  "controles_en_echec": [
+    "M-2",
+    "M-3"
+  ],
+  "description": "leaf_index de chemin.json vaut 7 au lieu de 6 : il ne vaut plus seq - first_seq (M-3) et le chemin, interprété à cette position, ne mène plus à la racine (M-2)."
+}

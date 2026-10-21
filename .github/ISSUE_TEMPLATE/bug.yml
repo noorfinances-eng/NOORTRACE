@@ -1,0 +1,24 @@
+name: Bug report
+description: Something verifies that should not, or fails to verify that should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Command, input (a vector or an evidence folder if possible), observed output, expected output.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [specification, JavaScript reference, Go verifier, contracts, chain instance, documentation]
+    validations:
+      required: true

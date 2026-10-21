@@ -1,0 +1,109 @@
+{
+  "version": 0,
+  "previous": {
+    "version": 0,
+    "seq": 8,
+    "ts": "2026-11-05T09:31:49.120Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Informer l'assuré du règlement",
+    "policy": {
+      "rule": "outil mail.send : envoi autorise vers l'assure",
+      "decision": "autorise",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "mail.send",
+      "arguments": {
+        "sha256": "0x6b20273257b8df1c6fb96ab5ea1745b4f27be0ec13fcc2862a61a0d4f466628f",
+        "length": 123,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x13d22006e66eaabc89b974f4e72a9904ecbd76053cfa27896c68e65ebef7a214",
+        "length": 85,
+        "redacted": false
+      },
+      "duration_ms": 902,
+      "is_error": false
+    },
+    "effects": [
+      {
+        "system": "Messagerie",
+        "action": "envoi",
+        "object": "MSG-2026-00921",
+        "amount": null,
+        "currency": null
+      }
+    ],
+    "context": [],
+    "hash": "0x74f7dd908e35792023f6238ff1bc8999a0a24a7b025d65d58a810ac5701f9eb5",
+    "sig": "0xba046969942f455e40db028261ef2f75d345ea1f4ac6833591a2fa7ece2ab26d378fc5bba1824acc0b61651670fd7cd1d0a434ffe93e462026c3b0a7a1f83909"
+  },
+  "next": {
+    "version": 0,
+    "seq": 10,
+    "ts": "2026-11-05T09:59:58.000Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xb6c72c8cc185dcd57299d7b6be057f3a32592eb43eefb0ce3042a6f09edf29c4",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Clore le dossier 2026-81044 après un complément de 900.00 CHF",
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.modele.echange",
+      "arguments": {
+        "sha256": "0xec634e1b07dd4c40c6a34e90426fa010faf2e4dedc80c943a2893f49fe1250ff",
+        "length": 161,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x4189668dccb6a44fe21889ab9a1176452c15a824a15c389adccf613796f6958d",
+        "length": 288,
+        "redacted": false
+      },
+      "duration_ms": 1640,
+      "is_error": false
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0x9a55e7ed8b5633ef4cfd1efff2838fc47c72d38f3ffdb0fa226c669793614746",
+    "sig": "0xd93f327b4d9a94d27cb1040154444007b38f5c4ed6dbb154b1d8a5ad934b26c3d56fbbab140dd9474a7ad9bcc6f32b0a5c63484a0af656ba527d638d7daad400"
+  }
+}

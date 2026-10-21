@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "C-2",
+  "controles_en_echec": [
+    "C-2"
+  ],
+  "description": "voisins.next (seq 8) porte un prev_hash qui n'est pas le hash recalculé de l'événement prouvé ; rescellé, donc hash et signature valides : la chaîne est rompue entre seq 7 et seq 8."
+}

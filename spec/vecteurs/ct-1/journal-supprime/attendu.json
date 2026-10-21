@@ -1,0 +1,24 @@
+{
+  "valide": false,
+  "description": "L'événement seq 4 a été retiré du journal : trou entre seq 3 et seq 5 (C-1), et prev_hash de seq 5 différent du hash de seq 3 qui le précède dans le fichier (C-2).",
+  "controles_en_echec": [
+    "C-1",
+    "C-2"
+  ],
+  "diagnostics": [
+    {
+      "type": "suppression",
+      "controle": "C-1",
+      "seq": 5
+    },
+    {
+      "type": "rupture",
+      "controle": "C-2",
+      "seq": 5
+    }
+  ],
+  "messages": [
+    "trou entre seq 3 et seq 5 : 1 événement(s) supprimé(s)",
+    "seq 5 (position 3) : prev_hash 0xb7029550addf2b15f8436077d6478d94ba5d5757e56179e8136b0cf91dec19a4 différent du hash recalculé de l'événement précédent dans le fichier, seq 3 (0x2bcc56e331dea29895010b31df85999b26f48fa7b8d8e4e15856ee26922aeced)"
+  ]
+}

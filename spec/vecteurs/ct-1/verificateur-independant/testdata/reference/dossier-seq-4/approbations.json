@@ -1,0 +1,89 @@
+{
+  "version": 0,
+  "ticket": "apr-1192",
+  "request_hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+  "approver_set": {
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "members": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "source": "comptes Hardhat 1 à 3 (vecteurs CT-1)"
+  },
+  "events": [
+    {
+      "version": 0,
+      "seq": 3,
+      "ts": "2026-11-03T13:52:40.511Z",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+      "recorder_key_id": "rec-test-01",
+      "prev_hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+      "delegation": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "on_behalf_of": "service-sinistres",
+        "scope": "sinistres:lecture,paiement",
+        "run_id": "run-2026-11-03-0142"
+      },
+      "code": {
+        "model": "fournisseur/modele@2026-09",
+        "prompt_version": "0xb71552443a0b6e9793dd337ab10d057b354013fba35c2c82fdbdfb6df99d6b58",
+        "policy_version": "2026-11-01",
+        "recorder": "0.1.0"
+      },
+      "intent": null,
+      "policy": {
+        "rule": null,
+        "decision": "sans_objet",
+        "ticket": "apr-1192",
+        "redaction": null
+      },
+      "approval": {
+        "decision": "approuve",
+        "ticket": "apr-1192",
+        "request_hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+        "threshold": {
+          "required": 2,
+          "size": 3
+        },
+        "approvers": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+        ],
+        "signatures": [
+          "0x9b56cadb515c1fc18cc37f5b85bc78be8c916daef1ef9017fb3067f19dbcc8585ae2b338117e554f3ec7faa77bc615c82a17a695a4f76295383d9c931d2648a01b",
+          "0xed53b07b60869c24a79d2f3db4729bdbc7ff581b1540e19e188f15ffed99d73f1f69b4e247299dcaecf9d69ad3487c313cd48fc1a7d7874f0a55a27330c074151b"
+        ],
+        "at": "2026-11-03T13:52:40.511Z",
+        "reason": "Pièces validées"
+      },
+      "execution": {
+        "tool": "noortrace.approbation.decision",
+        "arguments": {
+          "sha256": "0xc9b9e6f3ebf13147b98aa59a238979c3dc629b1b6d2ba3f623ea5f122df2a0bb",
+          "length": 287,
+          "redacted": false,
+          "value": {
+            "decision": "approuve",
+            "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "request_hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+            "ticket": "apr-1192"
+          }
+        },
+        "status": "executee",
+        "result": null,
+        "duration_ms": null,
+        "is_error": null
+      },
+      "effects": [],
+      "context": [],
+      "hash": "0xadeb42cb3a4557effbf1bf2dd0a973a1e74563cd39fbb747202d6a4a0f5ad832",
+      "sig": "0x5ba332ccd1a5eaeebd119c0a353f9ee474338edeb07c11584d00cb7145c222a9f2a3e5a792f2e7d71588aeac7543d5d7f07ea39002db3d8b6f6c425972a23006"
+    }
+  ]
+}

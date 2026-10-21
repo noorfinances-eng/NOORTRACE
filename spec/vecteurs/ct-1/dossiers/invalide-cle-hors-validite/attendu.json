@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-11",
+  "controles_en_echec": [
+    "E-11"
+  ],
+  "description": "cles.json annonce rec-test-01 valide à partir de 09:31:48.500Z : l'événement prouvé (09:31:48.006Z) et son voisin précédent sont signés avant la validité annoncée."
+}

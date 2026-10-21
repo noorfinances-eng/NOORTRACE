@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-2",
+  "controles_en_echec": [
+    "E-2"
+  ],
+  "description": "evenement.json porte duration_ms = 530.0 : même valeur entière, forme fractionnaire, interdite par JCS v0. Un analyseur strict refuse le fichier ; les contrôles qui dépendent de l'événement ne sont pas exécutés."
+}

@@ -1,0 +1,9 @@
+{
+  "valide": false,
+  "controle": "E-3",
+  "controles_en_echec": [
+    "E-1",
+    "E-3"
+  ],
+  "description": "Journal rejoué où l'échange avec le modèle (seq 1) porte result, duration_ms et is_error à null : la table 5.3 exige la référence à la réponse, la durée et le drapeau d'erreur pour noortrace.modele.echange (E-3), et le schéma la porte (E-1)."
+}

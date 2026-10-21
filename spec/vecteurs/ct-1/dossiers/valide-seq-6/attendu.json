@@ -1,0 +1,6 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "description": "Dossier de la décision d'approbation (seq 6) : voisins seq 5 (la demande, retenue) et seq 7 (l'appel relayé) ; approbations.json contient l'événement prouvé lui-même (A-2) ; A-4 est exécuté, le hash recalculé de seq 5 égale request_hash et son status vaut retenue."
+}

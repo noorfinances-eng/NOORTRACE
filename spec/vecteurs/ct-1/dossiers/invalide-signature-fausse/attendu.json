@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-8",
+  "controles_en_echec": [
+    "E-8"
+  ],
+  "description": "La signature de evenement.json est une signature Ed25519 valide, mais produite par rec-test-02 alors que recorder_key_id vaut rec-test-01."
+}

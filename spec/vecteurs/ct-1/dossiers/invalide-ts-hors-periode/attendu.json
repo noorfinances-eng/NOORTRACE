@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "P-2",
+  "controles_en_echec": [
+    "P-2"
+  ],
+  "description": "Dossier de seq 1 horodaté 08:59:59.999Z, avant period_start de la période 1 (09:00:00Z) ; seq 2 est rechaîné et rescellé, l'arbre et le manifeste sont recalculés et re-signés : tout est cohérent sauf l'appartenance de l'événement à la période."
+}

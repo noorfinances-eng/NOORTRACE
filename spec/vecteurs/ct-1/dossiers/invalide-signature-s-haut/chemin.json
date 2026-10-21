@@ -1,0 +1,13 @@
+{
+  "version": 0,
+  "tree_size": 9,
+  "leaf_index": 6,
+  "leaf_hash": "0xd1d68d02985c90009398f3d8645f18ebabe9c2c02c3957bcb61ff12483750578",
+  "path": [
+    "0xca89ada718890a27c1095bb9e0994ecefa94bbcdc3fefdc5b50d62f32cf51c43",
+    "0xc2ae62c0313bc43a95222e115cec9105b550003e918108b12f5105cb18b50817",
+    "0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d",
+    "0xb85bdb126538ada7cd19188e9f58b15aca9469828a84f50057bda8b4bc90e0ef"
+  ],
+  "root": "0x9e5984422cedbcd4be90cc75634aeb5b89d3538d499fafeb3acef1aa1b156a09"
+}

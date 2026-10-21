@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "P-3",
+  "controles_en_echec": [
+    "P-3"
+  ],
+  "description": "Le manifeste de la période 1 est refait sur huit feuilles (seq 1 à 8, last_seq = 8) et re-signé par rec-test-02 ; dossier de seq 8 dont le voisin suivant (seq 9, la rotation, 09:59:58.000Z) est hors de l'intervalle de seq mais horodaté dans la période : le manifeste a tronqué sa période."
+}

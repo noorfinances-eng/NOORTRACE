@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-3",
+  "controles_en_echec": [
+    "E-3"
+  ],
+  "description": "voisins.next (seq 8, appel d'outil mail.send) porte policy.decision = sans_objet, valeur réservée aux événements qui ne sont pas des appels d'outil ; rescellé, donc hash et signature valides : seul E-3 le refuse."
+}

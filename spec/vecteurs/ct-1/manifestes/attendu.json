@@ -1,0 +1,109 @@
+{
+  "version": 0,
+  "periodes": [
+    {
+      "fichier": "periode-1.json",
+      "count": 9,
+      "seq": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+      "canonical": "{\"count\":9,\"first_seq\":1,\"generated_at\":\"2026-11-05T10:00:00.300Z\",\"journal_id\":\"0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164\",\"last_seq\":9,\"nonce\":\"0x20043d08510abdc2f2aa983921401083affcadb38760de64856927195c818dd3\",\"org_id\":\"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\",\"period_end\":1793872800,\"period_start\":1793869200,\"prev_period_hash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"recorder_key_id\":\"rec-test-02\",\"root\":\"0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b\",\"version\":0}",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "sig": "0x310e98ea8c5b40dc44f1ac02f0ba63542708cd29d262e5649ef1f7963745d9c42ba0d0d238226eeac44d76d29787a77e48a1d21e41ef7e2c5b465674a0e15b0a",
+      "recorder_key_id": "rec-test-02",
+      "anchor_fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+      "period_meta": {
+        "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "periodHash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+        "periodStart": 1793869200,
+        "periodEnd": 1793872800,
+        "firstSeq": 1,
+        "lastSeq": 9,
+        "version": 0
+      }
+    },
+    {
+      "fichier": "periode-2.json",
+      "count": 3,
+      "seq": [
+        10,
+        11,
+        12
+      ],
+      "root": "0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26",
+      "canonical": "{\"count\":3,\"first_seq\":10,\"generated_at\":\"2026-11-05T11:00:00.212Z\",\"journal_id\":\"0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164\",\"last_seq\":12,\"nonce\":\"0xa57b8896278fbd10b1e209de387295d6a5d2137e6f64a1f534b0e60129be9168\",\"org_id\":\"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\",\"period_end\":1793876400,\"period_start\":1793872800,\"prev_period_hash\":\"0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914\",\"recorder_key_id\":\"rec-test-02\",\"root\":\"0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26\",\"version\":0}",
+      "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+      "sig": "0x6756b4df8fde08c7020bcdcdb1153fbc3f56aa5a769035a127c78e3d483f1a5783f2b939bf49276831ef6cb599886d38ec08b148adea32ef55304d7421f9d001",
+      "recorder_key_id": "rec-test-02",
+      "anchor_fingerprint": "0xb924b06ebd452df9db27c7c29305d5d1fd876bdedc1e8483a6088f006ca68ee5",
+      "period_meta": {
+        "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "periodHash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+        "root": "0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26",
+        "periodStart": 1793872800,
+        "periodEnd": 1793876400,
+        "firstSeq": 10,
+        "lastSeq": 12,
+        "version": 0
+      }
+    },
+    {
+      "fichier": "periode-3.json",
+      "count": 0,
+      "seq": [],
+      "root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "canonical": "{\"count\":0,\"first_seq\":13,\"generated_at\":\"2026-11-05T12:00:00.105Z\",\"journal_id\":\"0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164\",\"last_seq\":12,\"nonce\":\"0x547f937bb769c72eb8faefc6511fbb9c0fd7f7341f0c5b73ffd7bc2214114da0\",\"org_id\":\"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\",\"period_end\":1793880000,\"period_start\":1793876400,\"prev_period_hash\":\"0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19\",\"recorder_key_id\":\"rec-test-02\",\"root\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"version\":0}",
+      "period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+      "sig": "0x7f90d1907741ede73dbfd0551f45df7913f49a0aacfe21d07860bcd661f7c3c306c7fe10fa3d1000a1695167a1011c7b1c686ca48030a3537a264b6f69562201",
+      "recorder_key_id": "rec-test-02",
+      "anchor_fingerprint": "0xd46dec9a01a05df44217f6762249d4ea088290266ceb8046165721c9c85b21ca",
+      "period_meta": {
+        "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "periodHash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+        "root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "periodStart": 1793876400,
+        "periodEnd": 1793880000,
+        "firstSeq": 13,
+        "lastSeq": 12,
+        "version": 0
+      }
+    }
+  ],
+  "continuite": [
+    {
+      "de": "periode-1.json",
+      "a": "periode-2.json",
+      "valide": true,
+      "erreurs": []
+    },
+    {
+      "de": "periode-2.json",
+      "a": "periode-3.json",
+      "valide": true,
+      "erreurs": []
+    }
+  ],
+  "discontinu": {
+    "fichier": "discontinu.json",
+    "description": "Variante de periode-2.json qui prétend suivre periode-1.json : first_seq 11 au lieu de 10 (un événement sauté) et prev_period_hash qui n'est pas le periodHash de la période 1. Sa signature est valide : la discontinuité ne se voit qu'en tenant les deux manifestes (contrôle P-5, et PeriodRegistry « discontinuité de sequence »).",
+    "precedent": "periode-1.json",
+    "valide": false,
+    "erreurs": [
+      "discontinuité de séquence : first_seq 11 différent de last_seq précédent + 1 (10)",
+      "prev_period_hash 0xa57b8896278fbd10b1e209de387295d6a5d2137e6f64a1f534b0e60129be9168 différent du periodHash précédent 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914"
+    ]
+  }
+}

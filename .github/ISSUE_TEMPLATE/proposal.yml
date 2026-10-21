@@ -1,0 +1,18 @@
+name: Proposal
+description: A change to a format, a rule of the specification, or a new component.
+labels: [proposal]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What cannot be expressed, verified or proven today.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed change
+      description: Rule by rule. A format change comes with its test vectors and both implementations.
+    validations:
+      required: true

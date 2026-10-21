@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-10",
+  "controles_en_echec": [
+    "E-10"
+  ],
+  "description": "Dossier de l'événement de rotation (seq 9) d'un journal rejoué où counter_sig a été produite par l'ancienne clé : la contresignature ne vérifie pas sous new_public_key."
+}

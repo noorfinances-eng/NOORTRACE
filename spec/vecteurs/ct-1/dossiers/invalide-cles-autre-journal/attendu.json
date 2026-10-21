@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-8",
+  "controles_en_echec": [
+    "E-8"
+  ],
+  "description": "cles.json porte le journal_id d'un autre journal (journal-principal, celui de l'exemple de la spécification) : les clés doivent être rattachées au journal de l'événement prouvé."
+}

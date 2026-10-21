@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "P-5",
+  "controles_en_echec": [
+    "P-5"
+  ],
+  "description": "Le manifeste est signé par rec-test-01 (periodHash et signature cohérents) alors que cles.json arrête sa validité à l'instant de la rotation (09:59:58.000Z), avant generated_at (10:00:00.300Z) : la clé en vigueur à la clôture était rec-test-02."
+}

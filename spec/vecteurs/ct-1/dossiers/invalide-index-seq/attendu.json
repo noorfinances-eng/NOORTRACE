@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "D-1",
+  "controles_en_echec": [
+    "D-1"
+  ],
+  "description": "dossier.json annonce event.seq 8 alors que evenement.json porte seq 7 : l'index ne décrit pas l'événement du dossier."
+}

@@ -1,0 +1,49 @@
+{
+  "version": 0,
+  "seq": 1,
+  "ts": "2026-11-05T08:59:59.999Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "delegation": {
+    "launched_by": "u.martin@assureur-demo.example",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement,courriel",
+    "run_id": "run-2026-11-05-0007"
+  },
+  "code": {
+    "model": "fournisseur/modele@2026-09",
+    "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+    "policy_version": "2026-11-01",
+    "recorder": "0.1.0"
+  },
+  "intent": "Instruire le sinistre 2026-81044 : vérifier le contrat, les pièces, puis régler",
+  "policy": {
+    "rule": null,
+    "decision": "sans_objet",
+    "ticket": null,
+    "redaction": "pii-v1"
+  },
+  "approval": null,
+  "execution": {
+    "tool": "noortrace.modele.echange",
+    "arguments": {
+      "sha256": "0x1acdcc4dda338cced3f4f5c815ca082832e4b5e2c6e748d67895cbc785a3c544",
+      "length": 166,
+      "redacted": true
+    },
+    "status": "executee",
+    "result": {
+      "sha256": "0x3ec844b63e6e01b50c343d185492c9cdc4cad0d3be845af5f9fbb56e1f984ab0",
+      "length": 224,
+      "redacted": false
+    },
+    "duration_ms": 2210,
+    "is_error": false
+  },
+  "effects": [],
+  "context": [],
+  "hash": "0x0e7d03990ca07bc7000a9e42fd1c4a36ba2a3aeadb0e7377389d178a11570527",
+  "sig": "0xc97ec94e882bbae5a8bcae0139fad319604791d1efea646c1d050612b13c3ce8a2d346d6e1fb2550a3c739ebdf7995282e6ecd3da87a716d1bc2fea924cd0907"
+}
