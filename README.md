@@ -91,6 +91,10 @@ réviseur externe ait reproduit la vérification.
 
 ## Code
 
+Règle du dépôt : noorchain-core est une référence en lecture seule. On y lit, on en
+copie, on ne l'écrit jamais depuis ce projet ; toute adaptation de noorcore vit ici,
+sous forme de correctif dans `chain/patches/`, appliquée à la construction.
+
 - `chain/` : instance de développement dédiée de noorcore, quatre validateurs BFT en
   boucle locale, sans émission ni jeton ; voir [chain/README.md](chain/README.md).
 - `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
