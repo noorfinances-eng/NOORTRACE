@@ -1,0 +1,24 @@
+{
+  "name": "noortrace",
+  "version": "0.1.0",
+  "description": "NOORTRACE : registre d'exploitation des périodes de journal et des clés d'enregistreur, sur une instance dédiée de noorcore. Contrats Hardhat, tests et scripts de déploiement.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "npx hardhat --config hardhat.config.mjs compile",
+    "test": "npx hardhat --config hardhat.config.mjs test",
+    "deploy:dev": "npx hardhat --config hardhat.config.mjs run --network hardhat scripts/deploy/deploy-noortrace.mjs",
+    "deploy:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/deploy/deploy-noortrace.mjs",
+    "e2e:dev": "npx hardhat --config hardhat.config.mjs run --network hardhat scripts/e2e/dev-roundtrip.mjs",
+    "e2e:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/e2e/dev-roundtrip.mjs"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.3",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
+    "chai": "^6.0.1",
+    "ethers": "^6.16.0",
+    "hardhat": "^3.20.0",
+    "mocha": "^11.7.2"
+  }
+}

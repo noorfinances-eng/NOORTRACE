@@ -162,9 +162,11 @@ Chaque heure, la racine R reçoit trois ancres :
    fonction `anchor` du contrat AttestationRegistry avec R comme empreinte, un type de
    lot, l'adresse de l'enregistreur et sa signature. Le contrat émet l'événement
    `Anchored` ; `lookup` rend l'enregistrement à quiconque a un nœud suiveur. La
-   clôture de période signée par les approbateurs passe par `submitSnapshot` du
-   contrat PoSSRegistry, qui vérifie déjà des signatures au seuil ; le champ propre au
-   PoSS, le hachage des paiements, n'est pas utilisé. Le registre donne l'ordre et la
+   clôture de période signée par les approbateurs passe par `submitPeriod` du
+   contrat PeriodRegistry, dérivé de PoSSRegistry sans le hachage des paiements, avec
+   continuité par journal : chaque période commence où la précédente finit, en temps
+   et en numéro de séquence. Les clés d'enregistreur sont inscrites par organisation
+   dans RecorderRegistry, sous signatures des approbateurs au seuil. Le registre donne l'ordre et la
    consultation, pas la preuve.
 2. **Horodatage qualifié.** Une requête RFC 3161 contenant SHA-256 de R et un nonce
    part vers le prestataire reconnu. La réponse est un jeton CMS signé par lui, avec
@@ -276,14 +278,16 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 |---|---|
 | `contracts/poss/AttestationRegistry.sol` | Registre des racines de lots : `anchor`, `lookup`, `isAnchored` |
 | `contracts/poss/CuratorSet.sol`, `CuratorSetRegistry.sol` | Jeux d'approbateurs par client, seuil, administration reprise par le client |
-| `contracts/poss/PoSSRegistry.sol` | Clôture de période signée au seuil : `submitSnapshot`, champ des paiements inutilisé |
+| `contracts/poss/PoSSRegistry.sol` | Modèle de PeriodRegistry, dérivé sans le champ des paiements, avec continuité par journal ; dans `contracts/` |
 | `dapps/curators-hub` | Base de la console d'approbation et de revue, signature EIP-191, page de vérification |
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
 
-À écrire : le mandataire MCP, le raccord au proxy de sortie, le schéma d'événements,
-le chaînage et l'arbre de Merkle, les clients RFC 3161 et OpenTimestamps, le format
-du dossier, le vérificateur.
+Écrit, 21 octobre 2026 : les contrats du registre, PeriodRegistry, RecorderRegistry et
+ThresholdSignatures, avec leurs tests ; l'instance de développement dédiée dans
+`chain/` ; les scripts de déploiement et le parcours complet. À écrire : le mandataire
+MCP, le raccord au proxy de sortie, le schéma d'événements, le chaînage et l'arbre de
+Merkle, les clients RFC 3161 et OpenTimestamps, le format du dossier, le vérificateur.
 
 ## Décisions ouvertes
 

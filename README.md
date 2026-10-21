@@ -89,11 +89,22 @@ réviseur externe ait reproduit la vérification.
 - [Note juridique](docs/note-juridique.md), à faire valider par un juriste
 - `archive/polyscan/` : outil d'analyse Polymarket antérieur, sans lien avec le produit
 
+## Code
+
+- `chain/` : instance de développement dédiée de noorcore, quatre validateurs BFT en
+  boucle locale, sans émission ni jeton ; voir [chain/README.md](chain/README.md).
+- `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
+  noorchain-core sans modification ; PeriodRegistry, RecorderRegistry et la
+  bibliothèque ThresholdSignatures propres à NOORTRACE.
+- `test/` et `scripts/` : tests Hardhat, déploiement, amorçage d'une organisation,
+  parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
+
 ## Statut
 
-21 octobre 2026 : phase 1 du plan, conception technique complète, en cours. Aucun
-code produit n'existe encore ; l'architecture cible est au niveau 0.2 et les
-spécifications CT-1 à CT-9 sont à écrire.
+21 octobre 2026 : conception technique en cours, et premier code de la chaîne :
+instance de développement, contrats du registre avec leurs tests, scripts de
+déploiement et parcours complet exécuté sur le réseau de développement.
+L'enregistreur, l'ancrage externe, la console et le vérificateur restent à écrire.
 
 ## Licence
 
