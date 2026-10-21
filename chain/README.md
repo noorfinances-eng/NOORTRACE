@@ -21,7 +21,7 @@ pour le développement des contrats et de l'enregistreur ; rien ici n'est destin
 | Élément | Valeur |
 |---|---|
 | Dépôt | `https://github.com/noorfinances-eng/noorchain-core` |
-| Correctif | `chain/patches/0001-noor_getCommitCertificate.patch`, appliqué sur le commit `618fcef8805ef5b4cb9291a3dd97be710e489297` à la construction ; il ajoute la méthode JSON-RPC `noor_getCommitCertificate` (voir plus bas). Le dépôt noorchain-core n'est pas modifié |
+| Correctif | `0001-noor_getCommitCertificate.patch`, fourni hors dépôt public et déposé dans `chain/patches/` (voir son LISEZMOI), appliqué sur le commit `618fcef8805ef5b4cb9291a3dd97be710e489297` à la construction ; il ajoute la méthode JSON-RPC `noor_getCommitCertificate` (voir plus bas). Le dépôt noorchain-core n'est pas modifié |
 | Binaire | `chain/runtime/bin/noorcore`, construit le 21 octobre 2026 depuis le commit épinglé plus le correctif : `bash chain/scripts/build-noorcore.sh --force` (Go 1.26.9) |
 | Binaire précédent | `chain/runtime/bin/noorcore.618fcef` : le binaire construit depuis le commit `618fcef` seul, sans la méthode, conservé pour retour arrière |
 
@@ -103,7 +103,7 @@ ne changent que le routage RPC, pas le consensus.
 
 ```
 chain/runtime/
-  bin/noorcore          binaire construit depuis 618fcef plus le correctif de chain/patches (voir « Source de noorcore »)
+  bin/noorcore          binaire construit depuis 618fcef plus le correctif déposé dans chain/patches (voir « Source de noorcore »)
   bin/noorcore.618fcef  binaire précédent, construit depuis le commit 618fcef seul
   src/noorchain-core/   clone à profondeur 1 (seulement si build-noorcore.sh a cloné)
   keys/node{1..4}.key   clés privées secp256k1 des validateurs (mode 0600)

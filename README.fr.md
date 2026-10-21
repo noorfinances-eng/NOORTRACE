@@ -23,7 +23,7 @@ un régulateur ou un tribunal peuvent vérifier sans faire confiance au fourniss
   2 décembre 2027 pour les systèmes de l'annexe III.
 - **Personne ne vend la preuve vérifiable par un tiers.** L'observabilité débogue, la
   gouvernance documente, la sécurité prévient, les plateformes journalisent dans leurs
-  murs. Détail dans [l'étude de marché](docs/etude-de-marche-2026-10-20.md).
+  murs.
 
 ## Ce que NOORTRACE livre
 
@@ -59,41 +59,20 @@ NOORCHAIN nomment curateur. La mécanique est reprise, le mot et la fonction soc
 ne le sont pas. Décision du 20 octobre 2026 : NOORTRACE tourne sur une instance
 dédiée de noorcore, pas sur la chaîne du PoSS.
 
-## Marché et modèle, en bref
-
-| Question | Réponse |
-|---|---|
-
-
-
-
-
-Ces chiffres sont des estimations issues de l'étude de marché du 20 octobre 2026 ;
-les sources et les réserves y figurent.
-
-## Feuille de route
-
-Le [plan du projet](docs/plan.md) enchaîne quatre phases en série : conception
-technique complète, construction, validation externe, pilote et industrialisation.
-Chaque phase se termine par une porte avec des critères pour continuer ou arrêter.
-Aucun entretien de vente avant un prototype complet, aucun pilote avant qu'un
-réviseur externe ait reproduit la vérification.
-
 ## Documents
 
-- [Étude de marché](docs/etude-de-marche-2026-10-20.md) et [notes de recherche](docs/recherche/)
 - [Architecture cible](ARCHITECTURE.md)
-- [Plan du projet](docs/plan.md)
-- [Présentation « NOORTRACE sur NOORCHAIN »](docs/presentation/README.md)
-- [Offre pilote](docs/offre-pilote.md)
-- [Note juridique](docs/note-juridique.md), à faire valider par un juriste
 - `archive/polyscan/` : outil d'analyse Polymarket antérieur, sans lien avec le produit
+
+Les documents de projet, étude de marché, plan, offres et notes juridiques, ne sont pas
+dans ce dépôt.
 
 ## Code
 
 Règle du dépôt : noorchain-core est une référence en lecture seule. On y lit, on en
 copie, on ne l'écrit jamais depuis ce projet ; toute adaptation de noorcore vit ici,
-sous forme de correctif dans `chain/patches/`, appliquée à la construction.
+sous forme de correctif fourni hors dépôt et déposé dans `chain/patches/` à la
+construction.
 
 - `chain/` : instance de développement dédiée de noorcore, quatre validateurs BFT en
   boucle locale, sans émission ni jeton ; voir [chain/README.md](chain/README.md).
@@ -112,7 +91,7 @@ sous forme de correctif dans `chain/patches/`, appliquée à la construction.
 21 octobre 2026 : conception technique en cours, et premier code de la chaîne :
 instance de développement, contrats du registre avec leurs tests, scripts de
 déploiement et parcours complet exécuté sur le réseau de développement, méthode RPC
-du certificat de commit portée comme correctif sur noorcore dans `chain/patches/`,
+du certificat de commit portée comme correctif sur noorcore, fourni hors dépôt,
 et son vérificateur hors ligne.
 L'enregistreur, l'ancrage externe, la console et le vérificateur du dossier restent
 à écrire.

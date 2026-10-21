@@ -40,7 +40,6 @@ contracts and the commit-certificate verifier exist and are tested. The recorder
 | `contracts/` | Registry contracts (Solidity) |
 | `test/` | Tests and fixtures |
 | `chain/` | Dedicated development instance of the registry node, container image |
-| `docs/` | Project documents, in French: market study, plan, pilot offer, legal notes |
 | `ARCHITECTURE.md` | Target architecture, in French |
 
 The project documentation is written in French; `README.fr.md` is the French
