@@ -1,122 +1,65 @@
-# NOORTRACE
+# noortrace
 
-La boîte noire des agents IA pour les entreprises régulées suisses et européennes.
+**A verifiable flight recorder for AI agents.**
 
-Chaque action d'un agent IA est enregistrée hors de portée de l'agent, les actions
-sensibles passent par une approbation humaine tracée, l'ensemble est horodaté par un
-prestataire de confiance qualifié et restitué en dossier de preuve qu'un réviseur,
-un régulateur ou un tribunal peuvent vérifier sans faire confiance au fournisseur.
+noortrace records what an AI agent actually did, in a form a third party can verify
+years later without trusting the operator, the agent, or noortrace itself.
 
-## Pourquoi
+- **Capture outside the agent.** A recorder sits between the agent and its tools (an
+  MCP proxy, an egress proxy for model API calls, or an SDK as a last resort). Agents
+  can and do erase their own traces; a trace the agent cannot reach is the only one
+  worth keeping.
+- **An append-only, hash-chained, signed journal.** Every event carries the hash of the
+  previous one and an Ed25519 signature of the recorder. Deleting, inserting, reordering
+  or editing an event breaks the chain in a way the verifier names.
+- **Hourly Merkle periods.** Each period closes with a signed manifest and a root. Only
+  32 bytes leave the operator's perimeter.
+- **Independent anchoring.** The root is time-stamped by a qualified trust service
+  provider (RFC 3161), anchored on a public chain (OpenTimestamps) and recorded in an
+  operating registry whose block commit certificates are themselves verifiable offline.
+- **Human approval before sensitive actions.** Threshold-signed decisions are events of
+  the same journal, and the action is held until they exist.
+- **An open evidence format and an offline verifier.** One event proves itself, without
+  revealing the others, with a verifier that needs no network and no noortrace.
 
-- **Les agents effacent leurs traces.** Dans l'étude de Tübingen du 24 septembre 2026,
-  presque tous les harness testés laissent l'agent supprimer ses propres journaux,
-  certains dans 80 % des essais ([arXiv 2609.30266](https://arxiv.org/pdf/2609.30266)).
-- **Les journaux actuels ne valent pas comme preuve.** Ils sont produits et consommés
-  par la même partie, modifiables par l'opérateur, conservés 14 à 30 jours par les
-  outils d'observabilité. Un journal modifiable est une affirmation, pas une preuve.
-- **Les obligations existent déjà.** DORA exige des logs protégés contre l'altération
-  depuis le 17 janvier 2025 (RTS 2024/1774, art. 12). La FINMA évalue la traçabilité
-  et l'analyse des corrections humaines depuis la Communication 08/2024. L'art. 4 OPDo
-  révisé impose la journalisation des accès machine et un examen écrit d'ici le
-  31 décembre 2026. Le Règlement IA rend la journalisation automatique obligatoire le
-  2 décembre 2027 pour les systèmes de l'annexe III.
-- **Personne ne vend la preuve vérifiable par un tiers.** L'observabilité débogue, la
-  gouvernance documente, la sécurité prévient, les plateformes journalisent dans leurs
-  murs. Détail dans [l'étude de marché](docs/etude-de-marche-2026-10-20.md).
+## Status
 
-## Ce que NOORTRACE livre
+Early. The event model, canonical form, hashing, signing, Merkle trees, period manifests
+and evidence folders are specified with test vectors and two independent
+implementations (a JavaScript reference and a clean-room Go verifier). The registry
+contracts and the commit-certificate verifier exist and are tested. The recorder
+(MCP proxy) is the next component.
 
-1. **Un enregistreur déployé chez le client**, entre l'agent et ses outils, qui
-   consigne chaque action dans un journal chaîné que l'agent ne peut ni lire ni modifier.
-2. **L'approbation humaine des actions sensibles**, bornée, tracée et contestable,
-   avec l'identité de l'approbateur et l'instant de la décision.
-3. **L'horodatage qualifié par lots**, reconnu ZertES et eIDAS, complété par un
-   ancrage public gratuit pour la vérification sans intermédiaire.
-4. **Un dossier de preuve exportable et un vérificateur ouvert**, que le réviseur
-   exécute lui-même, sans accès à nos systèmes et sans nous faire confiance.
+## Layout
 
-## Ce que NOORTRACE n'est pas
-
-- Pas un outil d'observabilité ni de débogage.
-- Pas une plateforme de gouvernance documentaire : NOORTRACE lui fournit des preuves.
-- Pas une blockchain vendue comme telle : la chaîne est un composant d'exploitation.
-- Pas un service de journalisation externalisé : les données restent chez le client,
-  seules des empreintes en sortent.
-
-## Ce qui vient de NOORCHAIN
-
-| Composant NOORCHAIN | Rôle dans NOORTRACE |
+| Path | Content |
 |---|---|
-| Registre d'attestations (contrats PoSS) | Registre des lots d'empreintes et des approbations |
-| Jeux d'approbateurs, repris des contrats de curateurs, bornés et contestables | Moteur d'approbation humaine des actions sensibles |
-| Hub et console Fondation | Base de la console de revue et d'export des dossiers |
-| Discipline de preuves, runbooks, observabilité | Exploitation et audit du service |
-| La chaîne EVM permissionnée | Instance dédiée à NOORTRACE, distincte de la chaîne PoSS et sans jeton ; registre d'exploitation substituable |
+| `spec/` | Normative specifications, JSON schemas, test vectors |
+| `scripts/lib/` | JavaScript reference implementation |
+| `scripts/verify/` | Offline verifiers (evidence folder, commit certificate) |
+| `contracts/` | Registry contracts (Solidity) |
+| `test/` | Tests and fixtures |
+| `chain/` | Dedicated development instance of the registry node, container image |
+| `docs/` | Project documents, in French: market study, plan, pilot offer, legal notes |
+| `ARCHITECTURE.md` | Target architecture, in French |
 
-Terminologie : dans ce dépôt, « approbateur » désigne le rôle que les contrats de
-NOORCHAIN nomment curateur. La mécanique est reprise, le mot et la fonction sociale
-ne le sont pas. Décision du 20 octobre 2026 : NOORTRACE tourne sur une instance
-dédiée de noorcore, pas sur la chaîne du PoSS.
+The project documentation is written in French; `README.fr.md` is the French
+front page. Code, specifications and this file are in English or bilingual.
 
-## Marché et modèle, en bref
+## Getting started
 
-| Question | Réponse |
-|---|---|
+```bash
+npm install
+npm test
+```
 
+## What noortrace is not
 
+It is not the legal proof by itself: the presumption of date and integrity belongs to the
+qualified time-stamp. It is not a blockchain product: the registry is an operating
+component and is substitutable. It never holds business data: only hashes leave the
+operator.
 
+## License
 
-
-Ces chiffres sont des estimations issues de l'étude de marché du 20 octobre 2026 ;
-les sources et les réserves y figurent.
-
-## Feuille de route
-
-Le [plan du projet](docs/plan.md) enchaîne quatre phases en série : conception
-technique complète, construction, validation externe, pilote et industrialisation.
-Chaque phase se termine par une porte avec des critères pour continuer ou arrêter.
-Aucun entretien de vente avant un prototype complet, aucun pilote avant qu'un
-réviseur externe ait reproduit la vérification.
-
-## Documents
-
-- [Étude de marché](docs/etude-de-marche-2026-10-20.md) et [notes de recherche](docs/recherche/)
-- [Architecture cible](ARCHITECTURE.md)
-- [Plan du projet](docs/plan.md)
-- [Présentation « NOORTRACE sur NOORCHAIN »](docs/presentation/README.md)
-- [Offre pilote](docs/offre-pilote.md)
-- [Note juridique](docs/note-juridique.md), à faire valider par un juriste
-- `archive/polyscan/` : outil d'analyse Polymarket antérieur, sans lien avec le produit
-
-## Code
-
-Règle du dépôt : noorchain-core est une référence en lecture seule. On y lit, on en
-copie, on ne l'écrit jamais depuis ce projet ; toute adaptation de noorcore vit ici,
-sous forme de correctif dans `chain/patches/`, appliquée à la construction.
-
-- `chain/` : instance de développement dédiée de noorcore, quatre validateurs BFT en
-  boucle locale, sans émission ni jeton ; voir [chain/README.md](chain/README.md).
-- `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
-  noorchain-core sans modification ; PeriodRegistry, RecorderRegistry et la
-  bibliothèque ThresholdSignatures propres à NOORTRACE.
-- `test/` et `scripts/` : tests Hardhat, déploiement, amorçage d'une organisation,
-  parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
-- `scripts/verify/` : vérificateur hors ligne des certificats de commit BFT, parité
-  octet par octet avec noorcore ; voir [scripts/verify/README.md](scripts/verify/README.md).
-- `chain/docker/` : image conteneur du nœud, validateur ou relais RPC, avec l'étude
-  mesurée du mode suiveur ; voir [chain/docker/README.md](chain/docker/README.md).
-
-## Statut
-
-21 octobre 2026 : conception technique en cours, et premier code de la chaîne :
-instance de développement, contrats du registre avec leurs tests, scripts de
-déploiement et parcours complet exécuté sur le réseau de développement, méthode RPC
-du certificat de commit portée comme correctif sur noorcore dans `chain/patches/`,
-et son vérificateur hors ligne.
-L'enregistreur, l'ancrage externe, la console et le vérificateur du dossier restent
-à écrire.
-
-## Licence
-
-À définir. En attendant, tous droits réservés.
+Apache License 2.0. See `LICENSE` and `NOTICE`.
