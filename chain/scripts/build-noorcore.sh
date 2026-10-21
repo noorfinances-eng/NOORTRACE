@@ -25,7 +25,7 @@
 set -euo pipefail
 
 NOORCORE_REPO="https://github.com/noorfinances-eng/noorchain-core.git"
-NOORCORE_COMMIT="618fcef8805ef5b4cb9291a3dd97be710e489297"
+NOORCORE_COMMIT="d3e7ec030b4060ceb3e924d49731054cb2cc2963"
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 chain_dir="$(cd -- "$script_dir/.." >/dev/null 2>&1 && pwd)"

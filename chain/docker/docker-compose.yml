@@ -1,0 +1,64 @@
+# Exemple : un suiveur noorcore en conteneur, qui relaie le JSON-RPC d'un leader.
+#
+#   NOORCORE_LEADER_RPC=https://rpc.exemple.ch docker compose -f chain/docker/docker-compose.yml up -d
+#   curl -s http://127.0.0.1:8545 -H 'content-type: application/json' \
+#     -d '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}'
+#
+# Ce que ce suiveur fournit et ne fournit pas : voir README.md, sections « Ce
+# qu'un suiveur fournit aujourd'hui » et « Ce qu'il faudrait pour une copie
+# indépendante ». En deux mots : un point d'entrée RPC local qui relaie au
+# leader, pas une copie de la chaîne.
+#
+# Réseau ponté : le nœud écoute sur 0.0.0.0 À L'INTÉRIEUR du conteneur (d'où
+# -allow-public-bind), et Docker ne publie ces ports que sur la boucle locale
+# de l'hôte (127.0.0.1:8545, 8080, 9090). Le port p2p reste sur la boucle
+# locale du conteneur : un suiveur ne parle pas aux validateurs en p2p. Pour
+# suivre le réseau de développement de chain/scripts/dev-net.sh (validateurs
+# sur 127.0.0.1 de l'hôte), remplacer la section `ports` par
+# `network_mode: host`, écouter sur 127.0.0.1:8655 par exemple et viser
+# http://127.0.0.1:8645 (voir README.md).
+
+services:
+  noorcore-suiveur:
+    build:
+      context: .
+      args:
+        NOORCORE_COMMIT: d3e7ec030b4060ceb3e924d49731054cb2cc2963
+    image: noortrace/noorcore:d3e7ec0
+    command:
+      - -chain-id=noortrace-2124-dev
+      - -evm-chain-id=2124
+      - -data-dir=/var/lib/noorcore
+      - -role=follower
+      - -follow-rpc=${NOORCORE_LEADER_RPC:-http://host.docker.internal:8645}
+      - -rpc-addr=0.0.0.0:8545
+      - -health-addr=0.0.0.0:8080
+      - -metrics-addr=0.0.0.0:9090
+      - -p2p-addr=127.0.0.1:30303
+      - -allow-public-bind
+      - -network-profile=dev
+    ports:
+      - "127.0.0.1:8545:8545"
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - noorcore-donnees:/var/lib/noorcore
+    extra_hosts:
+      # Permet au conteneur d'atteindre un leader qui tourne sur l'hôte.
+      - "host.docker.internal:host-gateway"
+    # Le nœud n'écrit que sous /var/lib/noorcore : le reste du système de
+    # fichiers peut être en lecture seule.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    # Pas de healthcheck interne : l'image distroless n'a ni shell ni curl.
+    # Sonder /healthz depuis l'hôte (ou l'orchestrateur) :
+    #   curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/healthz
+    # Attention : « ok » dit que le processus répond, pas que le leader est
+    # joignable (mesuré, voir README.md).
+
+volumes:
+  noorcore-donnees:

@@ -98,13 +98,19 @@ réviseur externe ait reproduit la vérification.
   bibliothèque ThresholdSignatures propres à NOORTRACE.
 - `test/` et `scripts/` : tests Hardhat, déploiement, amorçage d'une organisation,
   parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
+- `scripts/verify/` : vérificateur hors ligne des certificats de commit BFT, parité
+  octet par octet avec noorcore ; voir [scripts/verify/README.md](scripts/verify/README.md).
+- `chain/docker/` : image conteneur du nœud, validateur ou relais RPC, avec l'étude
+  mesurée du mode suiveur ; voir [chain/docker/README.md](chain/docker/README.md).
 
 ## Statut
 
 21 octobre 2026 : conception technique en cours, et premier code de la chaîne :
 instance de développement, contrats du registre avec leurs tests, scripts de
-déploiement et parcours complet exécuté sur le réseau de développement.
-L'enregistreur, l'ancrage externe, la console et le vérificateur restent à écrire.
+déploiement et parcours complet exécuté sur le réseau de développement, méthode RPC
+du certificat de commit dans noorchain-core et son vérificateur hors ligne ici.
+L'enregistreur, l'ancrage externe, la console et le vérificateur du dossier restent
+à écrire.
 
 ## Licence
 

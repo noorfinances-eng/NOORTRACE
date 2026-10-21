@@ -10,7 +10,8 @@
     "deploy:dev": "npx hardhat --config hardhat.config.mjs run --network hardhat scripts/deploy/deploy-noortrace.mjs",
     "deploy:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/deploy/deploy-noortrace.mjs",
     "e2e:dev": "npx hardhat --config hardhat.config.mjs run --network hardhat scripts/e2e/dev-roundtrip.mjs",
-    "e2e:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/e2e/dev-roundtrip.mjs"
+    "e2e:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/e2e/dev-roundtrip.mjs",
+    "verify:certificat": "node scripts/verify/certificat-commit.mjs"
   },
   "license": "UNLICENSED",
   "devDependencies": {

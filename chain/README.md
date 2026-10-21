@@ -16,16 +16,20 @@ pour le développement des contrats et de l'enregistreur ; rien ici n'est destin
 - Aucun jeton : le NUR natif n'y sert qu'à payer le gaz ; les quatre comptes
   préchargés sont des comptes de test publics.
 
-## Commit noorcore épinglé
+## Source de noorcore et binaire
 
 | Élément | Valeur |
 |---|---|
 | Dépôt | `https://github.com/noorfinances-eng/noorchain-core` |
-| Commit | `618fcef8805ef5b4cb9291a3dd97be710e489297` |
-| Binaire | `chain/runtime/bin/noorcore` (construit par `go build ./core`) |
+| Branche | `noortrace-rpc-certificat-commit`, commit `d3e7ec030b4060ceb3e924d49731054cb2cc2963`, basée sur `618fcef` ; elle ajoute la méthode JSON-RPC `noor_getCommitCertificate` (voir plus bas) |
+| Binaire | `chain/runtime/bin/noorcore`, construit le 21 octobre 2026 depuis cette branche : `go build -o chain/runtime/bin/noorcore ./core` (Go 1.26.9) |
+| Binaire précédent | `chain/runtime/bin/noorcore.618fcef` : le binaire construit depuis le commit `618fcef` seul, sans la méthode, conservé pour retour arrière |
 
-Le script `chain/scripts/build-noorcore.sh` porte ce commit en constante et refuse
-de construire depuis une copie qui n'y est pas.
+Le script `chain/scripts/build-noorcore.sh` est épinglé sur le commit `d3e7ec0` de cette
+branche, poussée le 21 octobre 2026 : `build-noorcore.sh --force` reconstruit un
+binaire identique, avec `noor_getCommitCertificate`. La chaîne existante reprend sans
+changement avec ce binaire : la méthode est additive, rien du consensus ni du format
+sur disque ne change.
 
 ## Identifiants (à réserver)
 
@@ -98,7 +102,8 @@ ne changent que le routage RPC, pas le consensus.
 
 ```
 chain/runtime/
-  bin/noorcore          binaire construit depuis le commit épinglé
+  bin/noorcore          binaire construit depuis la branche noortrace-rpc-certificat-commit (voir « Source de noorcore »)
+  bin/noorcore.618fcef  binaire précédent, construit depuis le commit 618fcef seul
   src/noorchain-core/   clone à profondeur 1 (seulement si build-noorcore.sh a cloné)
   keys/node{1..4}.key   clés privées secp256k1 des validateurs (mode 0600)
   validators.json       { "validators": [ { "id": "v1", "pubKeyHex": "0x04…" }, … ] }
@@ -155,6 +160,103 @@ suivie de `emission params: verified against anchor` et de
 `head: restored | height: N`. Un écart entre le document et le nœud produit à la
 place `genesis rules: REFUSING TO START — this node's consensus rules do not match
 the genesis document`, avec le champ qui diffère ; le nœud ne démarre pas.
+
+## Certificat de commit BFT : `noor_getCommitCertificate`
+
+Un reçu de transaction et un hachage de bloc disent qu'**un** nœud tient la
+transaction dans un bloc ; ils ne disent pas que le jeu de validateurs a décidé ce
+bloc. Le certificat de commit le dit : la proposition signée du round décidant et
+les ≥ 2f+1 precommits signés (3 sur 4 ici) qui l'ont clos — exactement les trames
+que chaque validateur a vérifiées avant de commettre. Chaque validateur le garde
+sur disque par hauteur (`cert/v1/<hauteur>`) ; le binaire de cette instance le sert
+désormais par JSON-RPC, avec le jeu de validateurs qui permet de le vérifier sans
+nœud.
+
+Méthode : `noor_getCommitCertificate` (niveau Experimental de la politique de
+stabilité de noorchain-core : codes stables, champs ajoutés mais jamais retirés),
+**exactement un** paramètre — hauteur hexadécimale sans zéro de tête (`"0x207c"`),
+étiquette `"latest"`, ou hachage de bloc de 32 octets (résolu par la table
+canonique : le hachage d'un bloc de branche latérale répond `unknown block`) ; un
+second paramètre ou `"0x0064"` sont refusés (`-32602`). Spécification complète
+(champs, erreurs, rétention, procédure de vérification hors ligne du condensé) :
+`docs/RPC_SPEC_2.1.md` §13.1 de noorchain-core, branche
+`noortrace-rpc-certificat-commit`.
+
+Réponse, en résumé : `height`, `round`, `chainId` (`noortrace-2124-dev`),
+`valsetHash`, `blockHash` ; `canonical.{blockHash, matchesCertificate}` (le hachage
+que rend `eth_getBlockByNumber` à cette hauteur, et s'il égale celui du
+certificat) ; `proposal.{line, validatorId, bodyHash, sig}` ; `precommits[]`
+(`line` brute telle que stockée, plus les champs décodés) ;
+`quorum.{validators, required, precommits}` (N, 2f+1, signataires **distincts** —
+N et 2f+1 sont ceux du jeu **courant** du nœud) ; `validatorSet[]` dans l'ordre
+canonique (le jeu courant, clés telles que configurées), `validatorSetHash` (son
+hachage) et `validatorSetMatchesCertificate` (vrai quand ce hachage est le
+`valsetHash` du certificat ; faux si `validators.json` a changé entre deux
+exécutions du nœud : le jeu servi n'est alors pas celui qui a signé, et le
+vérificateur doit prendre le sien) ; `signing.{domain, digestPrefix, scheme}` ;
+`retention.{heights, pruned}`. Le nœud ne revérifie pas les signatures en servant :
+la réponse est faite pour être vérifiée hors ligne.
+
+Erreurs : `-32602` paramètre absent, surnuméraire ou mal formé ; `-32000 unknown
+block` (hauteur au-delà de la tête, hachage inconnu ou non canonique) ; `-32000`
+avec un message qui nomme la rétention quand le certificat est élagué ou absent ;
+`-32000 … not yet persisted … retry shortly` pour la hauteur de **tête** pendant
+les quelques millisecondes qui séparent l'écriture du bloc (reçus compris) de
+celle de son certificat — transitoire, à réessayer, jamais à archiver comme une
+absence (constaté sur cette instance : 2 réponses de ce type sur 600 appels
+`["latest"]` consécutifs). Les quatre nœuds de cette instance sont des validateurs
+et tiennent chacun leurs certificats ; la méthode répond sur les quatre ports RPC.
+Un vrai suiveur (`-follow-rpc`) relaie l'appel au leader et répond `-32603
+internal error` si la réponse du leader dépasse 2 MiB (certificat d'un très gros
+bloc : interroger le leader directement).
+
+### Rétention : extraire le certificat juste après le reçu
+
+Le nœud ne garde que les **300 000 dernières hauteurs** de certificats
+(`consensus.DefaultCertRetentionHeights`, surchargeable par
+`NOOR_BFT_CERT_RETENTION_HEIGHTS`), soit ≈ 83 h à un bloc par seconde ; à chaque
+commit, tout certificat sous `tête − 300 000` est supprimé. `retention.heights`
+donne la fenêtre effective du nœud interrogé, `retention.pruned` dit si la hauteur
+demandée est déjà sous la fenêtre.
+
+Recommandation pour l'enregistreur NOORTRACE : **dès que
+`eth_getTransactionReceipt` rend le reçu de la transaction d'ancrage, appeler
+`noor_getCommitCertificate` avec `receipt.blockNumber` (ou `receipt.blockHash`) et
+archiver la réponse à côté du reçu**, avec le `validators.json` (clés publiques)
+du réseau. Le reçu est disponible dès que le bloc est durable et le certificat
+quelques millisecondes plus tard : sur `not yet persisted`, **réessayer en boucle
+courte** (quelques tentatives espacées de quelques dizaines de millisecondes, ou
+jusqu'à ce que la tête ait dépassé le bloc) avant de conclure quoi que ce soit.
+Passée la fenêtre de rétention, le nœud répond `-32000` et l'évidence n'est plus
+récupérable auprès de lui. La vérification se fait ensuite hors ligne, sans nœud
+(§13.1 de la spécification) ; les vecteurs ci-dessous servent de référence.
+
+### Vecteurs enregistrés : test/fixtures/certificat-commit/
+
+| Fichier | Contenu |
+|---|---|
+| `certificat-8316.json` | réponse complète réelle de `noor_getCommitCertificate(["0x207c"])` sur 127.0.0.1:8645 (ré-extraite après l'ajout de `validatorSetHash` / `validatorSetMatchesCertificate` ; lignes, hachages et quorum inchangés) : bloc 8316, qui porte la transaction de déploiement d'`AttestationRegistry` (`0xc5a3c23d…9671a3`, `deployments/noorcore.json`) |
+| `bloc-8316.json` | réponse de `eth_getBlockByNumber(["0x207c", false])` : son `hash` est le `blockHash` du certificat |
+| `validators.json` | le jeu de validateurs du réseau de développement, clés **publiques** seulement (copie de `chain/runtime/validators.json`) |
+
+Preuve relevée le 21 octobre 2026, réseau relancé avec le binaire reconstruit :
+
+- `["latest"]` (hauteur 0x2170) : `canonical.matchesCertificate = true`,
+  3 precommits, `quorum = {validators: 4, required: 3, precommits: 3}`,
+  `retention = {heights: 300000, pruned: false}` ;
+- `["0x207c"]` : `blockHash = 0x8d74ec1247ecaa63a37d374b5757ef22b532577c4bd8145e2cc13f282cf2410c`,
+  égal au `hash` de `eth_getBlockByNumber("0x207c")` et au `blockHash` du reçu de
+  `0xc5a3c23d…9671a3` ; proposition signée par `v1`, precommits de `v4`, `v1`, `v3` ;
+  même réponse par le hachage de bloc, et depuis node2 (8646) ;
+- `["0x3b9aca00"]` : `-32000 unknown block` ; `["0x"]`, `[]`, `[12]` : `-32602` ;
+- la réponse 8316 vérifiée hors ligne avec `consensus.VerifyEnvelope` contre
+  `validators.json` : les quatre lignes passent, `valsetHash` recalculé égal ; un
+  octet de signature modifié fait échouer la vérification.
+
+```bash
+curl -s http://127.0.0.1:8645 -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"noor_getCommitCertificate","params":["0x207c"]}'
+```
 
 ## Comptes préchargés (développement seulement)
 
