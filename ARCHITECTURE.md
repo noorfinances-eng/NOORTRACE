@@ -161,7 +161,11 @@ Chaque heure, la racine R reçoit trois ancres :
 1. **Registre.** Une transaction vers l'instance dédiée de noorcore appelle la
    fonction `anchor` du contrat AttestationRegistry avec R comme empreinte, un type de
    lot, l'adresse de l'enregistreur et sa signature. Le contrat émet l'événement
-   `Anchored` ; `lookup` rend l'enregistrement à quiconque a un nœud suiveur. La
+   `Anchored` ; `lookup` rend l'enregistrement à quiconque interroge le RPC d'un
+   validateur, et la méthode `noor_getCommitCertificate` rend le certificat de commit
+   du bloc, signé par un quorum des validateurs, que le dossier emporte et que le
+   vérificateur contrôle hors ligne. Le mode suiveur de noorcore est un relais RPC :
+   il ne réplique ni blocs ni état, et ne donne pas de copie indépendante. La
    clôture de période signée par les approbateurs passe par `submitPeriod` du
    contrat PeriodRegistry, dérivé de PoSSRegistry sans le hachage des paiements, avec
    continuité par journal : chaque période commence où la précédente finit, en temps
@@ -187,7 +191,8 @@ Ce que les tiers voient : 32 octets par heure. Jamais un argument, jamais un doc
 
 Le dossier remis pour un événement contient : l'événement, les hachages de ses
 voisins, le chemin de Merkle jusqu'à R, R et le manifeste de période, le jeton
-RFC 3161, la preuve `.ots`, le reçu de la transaction du registre, les événements
+RFC 3161, la preuve `.ots`, le reçu de la transaction du registre avec le certificat
+de commit de son bloc et le jeu de validateurs de ce bloc, les événements
 d'approbation liés avec leurs signatures, et les clés publiques et certificats
 nécessaires. Un événement se prouve seul, sans révéler les autres.
 
@@ -200,11 +205,15 @@ Le vérificateur, binaire autonome sans réseau, refait dans l'ordre :
    égalité entre l'empreinte du jeton et SHA-256 de R ;
 5. preuve OpenTimestamps contre les en-têtes de blocs Bitcoin ;
 6. signature Ed25519 de l'enregistreur sur l'événement ;
-7. signatures des approbateurs et respect du seuil.
+7. signatures des approbateurs et respect du seuil ;
+8. inclusion de la transaction du registre dans un bloc dont le certificat de commit
+   est signé par un quorum du jeu de validateurs fourni, et égalité entre le hachage
+   du bloc et celui du certificat.
 
 Sa sortie tient en une ligne : cet événement existait sous cette forme avant telle
-heure UTC selon tel prestataire, et avant tel bloc Bitcoin, et il a été approuvé par
-les personnes nommées.
+heure UTC selon tel prestataire, et avant tel bloc Bitcoin, il a été approuvé par
+les personnes nommées, et son ancre est dans un bloc que les validateurs nommés ont
+signé.
 
 ## Ancrage et droit de la preuve
 
@@ -239,7 +248,8 @@ distincte de la chaîne 2123 du PoSS.
 - Un seul registre pour tous les clients ; chaque client est une organisation avec
   son jeu d'approbateurs. Aucune donnée métier sur la chaîne, seulement des racines.
 - Les validateurs sont ouverts aux partenaires : un intégrateur ou un cabinet d'audit
-  qui opère un validateur rend le registre moins dépendant du fournisseur.
+  qui opère un validateur rend le registre moins dépendant du fournisseur. C'est
+  aussi la seule copie complète du registre hors de nos mains.
 - Un incident ou une mise à jour du PoSS ne touche pas les clients NOORTRACE, et la
   description du périmètre pour l'inventaire des externalisations reste simple.
 - Pour le pilote, une instance de développement suffit ; la chaîne de production est
@@ -269,6 +279,7 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | L'opérateur réécrit l'historique après coup | Racines horodatées par un tiers qualifié : toute réécriture casse les preuves d'inclusion |
 | L'enregistreur lui-même est compromis | Clé en HSM, KMS ou TPM ; les ancres horaires bornent la fenêtre de réécriture ; contresignature interne à la minute en option |
 | Le fournisseur NOORTRACE triche ou disparaît | Vérification possible sans lui ; registre substituable ; format ouvert |
+| Le fournisseur sert une histoire falsifiée par son RPC | Certificat de commit du bloc vérifié hors ligne contre le jeu de validateurs ; validateurs partenaires en production |
 | Manipulation de l'horloge | Temps issu du jeton d'horodatage qualifié, pas de l'hôte |
 | Fuite de données via les empreintes | Seules des racines de Merkle sortent du périmètre du client |
 
@@ -300,3 +311,7 @@ Merkle, les clients RFC 3161 et OpenTimestamps, le format du dossier, le vérifi
    avec ticket, selon le délai de l'hôte.
 5. Version 0 du format d'export, à figer après les trois premiers entretiens avec des réviseurs.
 6. Identifiant de la chaîne de production et premiers validateurs partenaires, après le pilote.
+7. Mode observateur de noorcore : nœud non validateur qui rejoue les blocs et vérifie
+   leurs certificats chez le client, pour une copie indépendante en lecture. Chantier
+   de consensus et de réseau, à chiffrer sur le code de rattrapage BFT ; déclenché si
+   un client ou un réviseur l'exige. Le mode suiveur actuel n'en tient pas lieu.
