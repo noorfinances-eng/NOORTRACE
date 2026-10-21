@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-7",
+  "controles_en_echec": [
+    "E-7"
+  ],
+  "description": "Le champ hash de evenement.json est réécrit (contenu et signature intacts) : le hash recalculé ne correspond plus. L'index est recalculé pour que D-1 et D-2 passent ; les contrôles qui recalculent le hash (C-2, M-1) passent aussi."
+}

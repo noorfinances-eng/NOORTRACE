@@ -61,7 +61,11 @@ contract PeriodRegistry {
         bytes32 orgId;
         // Le journal de l'organisation auquel la période appartient. Jamais zéro.
         bytes32 journalId;
-        // keccak256 du manifeste canonique de la période. Jamais zéro.
+        // Empreinte du manifeste de la période : SHA-256 du manifeste canonique
+        // préfixé (CT-1 §10.2, SHA-256("noortrace/manifeste/v0\n" || JCS(manifeste))),
+        // calculée hors chaîne par scripts/lib/journal.mjs. Opaque pour le
+        // contrat, qui exige seulement qu'elle soit non nulle et unique par
+        // organisation (le nonce du manifeste y pourvoit). Jamais zéro.
         bytes32 periodHash;
         // Racine de Merkle des événements de la période (RFC 6962). Exigée NULLE
         // pour une période vide (convention fixée par le contrat), non nulle sinon.

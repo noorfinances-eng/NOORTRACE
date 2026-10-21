@@ -1,0 +1,64 @@
+{
+  "version": 0,
+  "previous": null,
+  "next": {
+    "version": 0,
+    "seq": 2,
+    "ts": "2026-11-05T09:12:04.102Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xfe463a38e14d46c13c0116acf37ca8f87be9d557c4d9c0658d4296dc5d566bc9",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Lire le dossier du sinistre 2026-81044",
+    "policy": {
+      "rule": "outil crm.claims.get : lecture autorisee",
+      "decision": "autorise",
+      "ticket": null,
+      "redaction": null
+    },
+    "approval": null,
+    "execution": {
+      "tool": "crm.claims.get",
+      "arguments": {
+        "sha256": "0x077618bb81bb1a116ed7f22967b7979021dc667b045ad5472fbdbfc959efd22b",
+        "length": 25,
+        "redacted": false,
+        "value": {
+          "claim_id": "2026-81044"
+        }
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x095c8616f875741375e21fd6d742413362af12b556e2ad358183910b557e1e6a",
+        "length": 153,
+        "redacted": false
+      },
+      "duration_ms": 184,
+      "is_error": false
+    },
+    "effects": [
+      {
+        "system": "CRM",
+        "action": "lecture",
+        "object": "CLM-2026-81044",
+        "amount": null,
+        "currency": null
+      }
+    ],
+    "context": [],
+    "hash": "0x4e33efafa178a7aa6918e41f691a284e52e01fa7dcb8ea2e77a0118e4e95fd51",
+    "sig": "0xd2f591a1dbfa027dbd7a4142e8cc9c0c35e1b4a1ddc9a1af1a8aa04f6fcaf05c8983818015a4da180b7f20f79c49722b481e793d2f5fe309a4e4140d2b91f704"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "A-2",
+  "controles_en_echec": [
+    "A-2"
+  ],
+  "description": "La décision jointe dans approbations.json porte un approval.reason différent (champ non signé par les approbateurs, rescellé par l'enregistreur) : approval n'est plus égal, clé pour clé, à celui de l'événement prouvé."
+}

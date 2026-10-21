@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-5",
+  "controles_en_echec": [
+    "E-5"
+  ],
+  "description": "Journal rejoué où approval.approvers compte deux adresses et approval.signatures une seule signature (valide, du compte Hardhat 1) : les deux tableaux doivent avoir la même longueur."
+}

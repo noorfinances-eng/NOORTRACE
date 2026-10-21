@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "M-2",
+  "controles_en_echec": [
+    "M-2"
+  ],
+  "description": "Le dernier nœud de chemin.json est retiré : le chemin n'a pas la longueur attendue pour (leaf_index, tree_size) et sn ne retombe pas à 0."
+}

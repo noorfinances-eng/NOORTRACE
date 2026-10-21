@@ -60,6 +60,10 @@ Format d'export : spans OpenTelemetry GenAI pour l'interopérabilité, reçus SC
 (RFC 9943) pour les preuves d'inclusion, compatibilité visée avec le projet IETF
 « agent audit trail ». Aucun format propriétaire.
 
+La forme normative des événements, du manifeste et du dossier, avec ses vecteurs de
+test et deux implémentations indépendantes, est la spécification CT-1 :
+`spec/CT-1-evenements-et-formats.md`.
+
 ## Chaîne de traitement
 
 ### Capture : où l'enregistreur se place
@@ -93,24 +97,30 @@ processus de l'agent n'a pas de valeur probatoire.
 
 ### Journal : comment un événement est écrit
 
-Chaque appel vu par le mandataire devient un événement JSON à huit champs. Exemple
-pour un paiement de sinistre soumis à approbation :
+Chaque appel vu par le mandataire devient un événement JSON à huit champs, dans la
+forme normative de `spec/CT-1-evenements-et-formats.md`. Exemple abrégé pour un
+paiement de sinistre approuvé, l'événement 4 de l'exemple de référence de la
+spécification, valeurs complètes dans celle-ci :
 
 ```json
 {
-  "seq": 48213,
-  "ts": "2026-11-03T13:41:07.218Z",
-  "delegation": {"launched_by": "u.martin@assureur.ch", "on_behalf_of": "service-sinistres", "scope": "sinistres:lecture,paiement"},
-  "code": {"model": "fournisseur/modele@2026-09", "prompt_version": "sha256:9f3c…", "policy_version": "2026-11-01", "recorder": "1.4.2"},
+  "version": 0,
+  "seq": 4,
+  "ts": "2026-11-03T13:52:41.090Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0xadeb42cb3a4557effbf1bf2dd0a973a1e74563cd39fbb747202d6a4a0f5ad832",
+  "delegation": {"launched_by": "u.martin@assureur-demo.example", "on_behalf_of": "service-sinistres", "scope": "sinistres:lecture,paiement", "run_id": "run-2026-11-03-0142"},
+  "code": {"model": "fournisseur/modele@2026-09", "prompt_version": "0xb715…6b58", "policy_version": "2026-11-01", "recorder": "0.1.0"},
   "intent": "Régler le sinistre 2026-77812 après validation des pièces",
-  "policy": {"rule": "paiement > 5000 CHF", "decision": "a_approuver", "ticket": "apr-1192"},
-  "approval": {"decision": "approuve", "threshold": "2/3", "approvers": ["0x5a…", "0xc1…"], "at": "2026-11-03T13:52:40Z", "sigs": ["0x…", "0x…"]},
-  "execution": {"tool": "sap.payments.create", "arguments_hash": "sha256:…", "result_hash": "sha256:…", "duration_ms": 412, "is_error": false},
-  "effects": [{"system": "SAP", "action": "write", "object": "PAY-2026-55120", "amount": 7400, "currency": "CHF"}],
-  "context": ["sha256:…piece1", "sha256:…piece2"],
-  "prev_hash": "sha256:…",
-  "hash": "sha256:…",
-  "sig": {"alg": "ed25519", "key_id": "rec-assureur-01", "value": "…"}
+  "policy": {"rule": "paiement > 5000 CHF", "decision": "a_approuver", "ticket": "apr-1192", "redaction": "pii-v1"},
+  "approval": {"decision": "approuve", "ticket": "apr-1192", "request_hash": "0xdd3b…fce0", "threshold": {"required": 2, "size": 3}, "approvers": ["0x7099…79c8", "0x3c44…93bc"], "signatures": ["0x9b56…a01b", "0xed53…151b"], "at": "2026-11-03T13:52:40.511Z", "reason": "Pièces validées"},
+  "execution": {"tool": "sap.payments.create", "arguments": {"sha256": "0x0fb2…aaf9", "length": 96, "redacted": true}, "status": "executee", "result": {"sha256": "0x8bbf…9624", "length": 85, "redacted": false}, "duration_ms": 412, "is_error": false},
+  "effects": [{"system": "SAP", "action": "ecriture", "object": "PAY-2026-55120", "amount": "7400.00", "currency": "CHF"}],
+  "context": [{"kind": "document", "sha256": "0x…", "length": 48213, "redacted": false}],
+  "hash": "0x…",
+  "sig": "0x…"
 }
 ```
 
@@ -130,8 +140,9 @@ Mécanique :
   pour la recherche. Il ne quitte jamais le périmètre du client.
 - Toutes les heures, l'enregistreur construit un arbre de Merkle sur les événements
   de l'heure, selon le schéma de RFC 6962, et obtient une racine R de 32 octets. Un
-  manifeste de période, qui porte R, le premier et le dernier `seq`, et les hachages
-  de bord, est signé par l'enregistreur. R est la seule donnée qui sort.
+  manifeste de période, qui porte R, le premier et le dernier `seq`, le nombre
+  d'événements, l'empreinte du manifeste précédent et un nonce, est signé par
+  l'enregistreur. R est la seule donnée qui sort.
 
 ### Approbation : avant l'action, pas après
 
@@ -189,8 +200,8 @@ Ce que les tiers voient : 32 octets par heure. Jamais un argument, jamais un doc
 
 ### Dossier et vérification
 
-Le dossier remis pour un événement contient : l'événement, les hachages de ses
-voisins, le chemin de Merkle jusqu'à R, R et le manifeste de période, le jeton
+Le dossier remis pour un événement contient : l'événement, ses deux voisins
+complets, dont les hachages se recalculent, le chemin de Merkle jusqu'à R, R et le manifeste de période, le jeton
 RFC 3161, la preuve `.ots`, le reçu de la transaction du registre avec le certificat
 de commit de son bloc et le jeu de validateurs de ce bloc, les événements
 d'approbation liés avec leurs signatures, et les clés publiques et certificats
@@ -294,7 +305,9 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
 
-Écrit, 21 octobre 2026 : les contrats du registre, PeriodRegistry, RecorderRegistry et
+Écrit, 21 octobre 2026 : la spécification CT-1 avec ses schémas, ses vecteurs, son
+implémentation de référence et son vérificateur Go indépendant ; le vérificateur de
+dossier ; les contrats du registre, PeriodRegistry, RecorderRegistry et
 ThresholdSignatures, avec leurs tests ; l'instance de développement dédiée dans
 `chain/` ; les scripts de déploiement et le parcours complet ; la méthode RPC
 `noor_getCommitCertificate`, portée comme correctif sur noorcore, fourni hors dépôt public et déposé dans
@@ -306,14 +319,16 @@ Merkle, les clients RFC 3161 et OpenTimestamps, le format du dossier, le vérifi
 
 ## Décisions ouvertes
 
-1. Granularité : un événement par appel d'outil ou par échange avec le modèle, un lot
-   par heure. Spécifié ci-dessus, à confirmer au prototype sur le coût et la latence.
+1. Granularité : close par CT-1. Un événement par appel d'outil, par échange avec le
+   modèle, par décision d'approbation ou par événement du journal sur lui-même ; un lot
+   par heure UTC. Coût et latence restent à mesurer au prototype.
 2. Gestion des clés de l'enregistreur chez le client : HSM, KMS ou TPM, choix par
    client selon ce qu'il possède déjà.
 3. Politique de rédaction des paramètres sensibles avant hachage.
 4. Comportement du mandataire pendant une approbation : réponse retenue ou erreur
    avec ticket, selon le délai de l'hôte.
-5. Version 0 du format d'export, à figer après les trois premiers entretiens avec des réviseurs.
+5. Format d'export : close par CT-1, version 0 spécifiée avec ses vecteurs ; révision
+   prévue après les trois premiers entretiens de réviseurs, en version 1.
 6. Identifiant de la chaîne de production et premiers validateurs partenaires, après le pilote.
 7. Mode observateur de noorcore : nœud non validateur qui rejoue les blocs et vérifie
    leurs certificats chez le client, pour une copie indépendante en lecture. Chantier

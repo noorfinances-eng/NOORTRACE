@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: contracts, journal, verifiers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  vecteurs:
+    name: CT-1 vectors, two independent implementations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: spec/vecteurs/ct-1/verificateur-independant/go.mod
+          cache-dependency-path: spec/vecteurs/ct-1/verificateur-independant/go.sum
+      - run: npm ci
+      - name: regenerate the vectors and require identical bytes
+        run: |
+          npm run vecteurs:ct1
+          git diff --exit-code -- spec/vecteurs/ct-1
+      - name: clean-room Go verifier against the JavaScript vectors
+        working-directory: spec/vecteurs/ct-1/verificateur-independant
+        run: |
+          gofmt -l . && test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          go run . ..

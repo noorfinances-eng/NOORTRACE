@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-9",
+  "controles_en_echec": [
+    "E-9"
+  ],
+  "description": "Journal rejoué où signatures[1] est produite par le compte Hardhat 3 alors que approvers[1] reste le compte 2 : l'adresse recouvrée ne correspond pas (dans l'événement prouvé, dans le voisin précédent qui est la décision, et dans approbations.json)."
+}

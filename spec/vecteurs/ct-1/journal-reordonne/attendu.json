@@ -1,0 +1,42 @@
+{
+  "valide": false,
+  "description": "Les événements seq 5 et seq 6 ont été échangés de place dans le fichier (contenus intacts) : l'ordre des seq n'est plus croissant (C-1) et aucun des trois liens autour d'eux ne tient (C-2).",
+  "controles_en_echec": [
+    "C-1",
+    "C-2"
+  ],
+  "diagnostics": [
+    {
+      "type": "reordonnancement",
+      "controle": "C-1",
+      "seq": 5
+    },
+    {
+      "type": "rupture",
+      "controle": "C-2",
+      "seq": 6
+    },
+    {
+      "type": "rupture",
+      "controle": "C-2",
+      "seq": 5
+    },
+    {
+      "type": "horodatage",
+      "controle": "C-1",
+      "seq": 5
+    },
+    {
+      "type": "rupture",
+      "controle": "C-2",
+      "seq": 7
+    }
+  ],
+  "messages": [
+    "seq 5 (position 5) après seq 6 (position 4) : ordre du journal non respecté",
+    "seq 6 (position 4) : prev_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash recalculé de l'événement précédent dans le fichier, seq 4 (0xb7029550addf2b15f8436077d6478d94ba5d5757e56179e8136b0cf91dec19a4)",
+    "seq 5 (position 5) : prev_hash 0xb7029550addf2b15f8436077d6478d94ba5d5757e56179e8136b0cf91dec19a4 différent du hash recalculé de l'événement précédent dans le fichier, seq 6 (0x097ae3f842959999b67d2ceb971d94c58279b42b04a5fca1bd47d09914080009)",
+    "seq 5 : ts 2026-11-05T09:12:09.904Z antérieur à celui de seq 6 (2026-11-05T09:31:47.250Z)",
+    "seq 7 (position 6) : prev_hash 0x097ae3f842959999b67d2ceb971d94c58279b42b04a5fca1bd47d09914080009 différent du hash recalculé de l'événement précédent dans le fichier, seq 5 (0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d)"
+  ]
+}

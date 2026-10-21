@@ -36,7 +36,7 @@
 // Le code de sortie est 1 si une relecture ne correspond pas à ce qui a été écrit.
 
 import { fileURLToPath } from "node:url";
-import { Wallet, ZeroHash, hexlify, keccak256, randomBytes, sha256, toUtf8Bytes, concat } from "ethers";
+import { Wallet, ZeroHash, hexlify, keccak256, randomBytes, sha256, toUtf8Bytes } from "ethers";
 import {
   DOC_TYPE_PERIODE,
   anchorFingerprint,
@@ -49,33 +49,17 @@ import {
   orgIdOf,
   parseArgs,
   periodDigest,
+  periodMetaDuManifeste,
   registerDigest,
   signDigest,
   signDigestBy,
   signatairesDuJeuEnPlace,
   txOverrides,
 } from "../lib/noortrace.mjs";
+import { construireManifeste } from "../lib/journal.mjs";
 
 process.env.HARDHAT_CONFIG ??= fileURLToPath(new URL("../../hardhat.config.mjs", import.meta.url));
 const hre = (await import("hardhat")).default;
-
-/**
- * Racine de Merkle RFC 6962 (SHA-256, préfixes 0x00 feuille / 0x01 nœud).
- * Une période sans événement a la racine NULLE : c'est la convention que
- * PeriodRegistry impose (et non sha256("") de l'arbre vide de la RFC).
- */
-function merkleRoot(leaves) {
-  if (leaves.length === 0) return ZeroHash;
-  if (leaves.length === 1) return sha256(concat(["0x00", leaves[0]]));
-  let k = 1;
-  while (k * 2 < leaves.length) k *= 2;
-  return sha256(concat(["0x01", merkleRoot(leaves.slice(0, k)), merkleRoot(leaves.slice(k))]));
-}
-
-/** Sérialisation canonique minimale : clés triées, sans espace. */
-function canonical(obj) {
-  return JSON.stringify(obj, (_k, v) => (v && typeof v === "object" && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v));
-}
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -159,20 +143,23 @@ async function main() {
   check("isActiveRecorder", actif === true);
   check("recorderByPubKey", (await recorderRegistry.recorderByPubKey(orgId, ed25519PubKey)).chainKey === recorder.address);
 
-  // 3. Une période d'essai : trois événements, racine RFC 6962, manifeste canonique.
-  // Le nonce d'exécution entre dans les feuilles et dans le manifeste : deux
-  // exécutions ne produisent jamais la même racine ni la même empreinte.
+  // 3. Une période d'essai : trois événements (hash d'essai), racine RFC 6962 et
+  // manifeste v0 de CT-1 (§10), dont periodHash = SHA-256 du manifeste canonique
+  // préfixé (scripts/lib/journal.mjs). Le nonce d'exécution entre dans les
+  // feuilles et dans le manifeste : deux exécutions ne produisent jamais la
+  // même racine ni la même empreinte.
   const nonceExecution = hexlify(randomBytes(32));
   const evenements = ["intention: lire le dossier 2026-77812", "execution: crm.lookup", "effets: lecture de 2 pièces"].map((e) =>
     sha256(toUtf8Bytes(`${e} | execution ${nonceExecution}`)),
   );
-  const root = merkleRoot(evenements);
   // Continuité par journal : si l'organisation a déjà une période (exécution
   // répétée avec --org sur un réseau persistant), la nouvelle commence où la
-  // précédente s'arrête ; sinon, l'heure courante et la séquence 1.
+  // précédente s'arrête, et chaîne son periodHash ; sinon, l'heure courante, la
+  // séquence 1 et un prev_period_hash nul.
   const precedentId = await periodRegistry.latestPeriodOf(orgId, journalId);
   let periodStart;
   let firstSeq;
+  let prevPeriodHash = ZeroHash;
   if (precedentId === 0n) {
     const now = BigInt(Math.floor(Date.now() / 1000));
     periodStart = now - (now % 3600n);
@@ -181,22 +168,23 @@ async function main() {
     const precedente = await periodRegistry.getPeriod(precedentId);
     periodStart = precedente.periodEnd;
     firstSeq = precedente.lastSeq + 1n;
+    prevPeriodHash = precedente.periodHash;
   }
   const periodEnd = periodStart + 3600n;
   const lastSeq = firstSeq + 2n;
-  const manifest = {
-    org: slug,
-    journal: "journal-principal",
-    root,
-    periodStart: periodStart.toString(),
-    periodEnd: periodEnd.toString(),
-    firstSeq: firstSeq.toString(),
-    lastSeq: lastSeq.toString(),
-    version: 1,
+  const manifeste = construireManifeste({
+    org_id: orgId,
+    journal_id: journalId,
+    period_start: Number(periodStart),
+    first_seq: Number(firstSeq),
+    hashes: evenements,
+    prev_period_hash: prevPeriodHash,
+    recorder_key_id: "e2e-enregistreur",
     nonce: nonceExecution,
-  };
-  const periodHash = keccak256(toUtf8Bytes(canonical(manifest)));
-  const meta = { orgId, journalId, periodHash, root, periodStart, periodEnd, firstSeq, lastSeq, version: 1, uri: `e2e://${slug}/periode/${precedentId + 1n}` };
+    generated_at: new Date().toISOString(),
+  });
+  const meta = periodMetaDuManifeste(manifeste, { uri: `e2e://${slug}/periode/${precedentId + 1n}` });
+  const { periodHash, root } = meta;
 
   // 3 bis. L'ancre de la période, signée par la clé de chaîne de l'enregistreur,
   // relayée par le déployeur. L'empreinte ancrée est celle du manifeste

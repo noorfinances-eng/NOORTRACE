@@ -1,0 +1,62 @@
+{
+  "version": 0,
+  "seq": 9,
+  "ts": "2026-11-05T09:59:58.000Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0x74f7dd908e35792023f6238ff1bc8999a0a24a7b025d65d58a810ac5701f9eb5",
+  "delegation": {
+    "launched_by": "noortrace-enregistreur",
+    "on_behalf_of": null,
+    "scope": "journal:administration",
+    "run_id": null
+  },
+  "code": {
+    "model": null,
+    "prompt_version": null,
+    "policy_version": "2026-11-01",
+    "recorder": "0.1.0"
+  },
+  "intent": null,
+  "policy": {
+    "rule": null,
+    "decision": "sans_objet",
+    "ticket": null,
+    "redaction": null
+  },
+  "approval": null,
+  "execution": {
+    "tool": "noortrace.journal.rotation-cle",
+    "arguments": {
+      "sha256": "0xb6b1b32767a345f733990683aca625ec0a42cf380a1dae905426ea3d8e5278d4",
+      "length": 488,
+      "redacted": false,
+      "value": {
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "new_key_id": "rec-test-02",
+        "new_public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+        "old_key_id": "rec-test-01",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "valid_from": "2026-11-05T09:59:58.000Z",
+        "counter_sig": "0xf04afa2ed0758d06e1c3f925a9da3120f502683653ca56cc62dd785fa5ab13aee00a13a97705825c4d865021b2f93d879068fc25d937b6af2c1a435983a9490c"
+      }
+    },
+    "status": "executee",
+    "result": null,
+    "duration_ms": null,
+    "is_error": null
+  },
+  "effects": [
+    {
+      "system": "noortrace",
+      "action": "ecriture",
+      "object": "cle:rec-test-02",
+      "amount": null,
+      "currency": null
+    }
+  ],
+  "context": [],
+  "hash": "0xb6c72c8cc185dcd57299d7b6be057f3a32592eb43eefb0ce3042a6f09edf29c4",
+  "sig": "0x83890680975e8f8bb4cec4dbdb70e8b28c990b294a0130cce235939486891f1056498069c629c26b262e6ee0a5ad9494b7a802c36dca7e588673d4b846b7df0f"
+}

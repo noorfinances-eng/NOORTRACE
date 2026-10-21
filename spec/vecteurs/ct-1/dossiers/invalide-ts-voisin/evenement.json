@@ -1,0 +1,88 @@
+{
+  "version": 0,
+  "seq": 7,
+  "ts": "2026-11-05T09:31:48.006Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0xe70898a16d7864f06dc9a3e83b6641da94a734b4a6947b3b93658299f3b6b4e2",
+  "delegation": {
+    "launched_by": "u.martin@assureur-demo.example",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement,courriel",
+    "run_id": "run-2026-11-05-0007"
+  },
+  "code": {
+    "model": "fournisseur/modele@2026-09",
+    "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+    "policy_version": "2026-11-01",
+    "recorder": "0.1.0"
+  },
+  "intent": "Régler le sinistre 2026-81044 : 12500.00 CHF au bénéficiaire du contrat",
+  "policy": {
+    "rule": "paiement > 5000 CHF",
+    "decision": "a_approuver",
+    "ticket": "apr-2201",
+    "redaction": "pii-v1"
+  },
+  "approval": {
+    "decision": "approuve",
+    "ticket": "apr-2201",
+    "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "approvers": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    ],
+    "signatures": [
+      "0x6e8fb398cce443d4b4343245ac27679e1e460c1c441c0115a21055ec4f1dba09588f3b13b0cc7a9e0d8e1f20133ea0aac9eee9b88f8626ec3a6deafaddec41cd1b",
+      "0x5635ca9bfbe1f348e2d67293766fba0d055c9c5b17ddfe2278f4da25ca772cbd79f82642a21e539a1ee256d1056255899c1e8d90938c3c3aeeb0315a4cd687591b"
+    ],
+    "at": "2026-11-05T09:31:47.250Z",
+    "reason": "Constat et facture concordants"
+  },
+  "execution": {
+    "tool": "sap.payments.create",
+    "arguments": {
+      "sha256": "0xa7f50f8522f252a345e0f06329d571bd525adba3c8e4b88035f11ce40ee1374c",
+      "length": 97,
+      "redacted": true
+    },
+    "status": "executee",
+    "result": {
+      "sha256": "0x5da4e81c9962cced479bd515cbefd913e3da4f6d63b71cbdacde8e6c08d92cc9",
+      "length": 85,
+      "redacted": false
+    },
+    "duration_ms": 530,
+    "is_error": false
+  },
+  "effects": [
+    {
+      "system": "SAP",
+      "action": "ecriture",
+      "object": "PAY-2026-61877",
+      "amount": "12500.00",
+      "currency": "CHF"
+    }
+  ],
+  "context": [
+    {
+      "sha256": "0xdfaf2094d6f01f9a1e7e77df796e44ee7a672dffca8d6fb947481d3e7b702bfa",
+      "length": 56,
+      "redacted": false,
+      "kind": "document"
+    },
+    {
+      "sha256": "0x791d7559f460761ffffd26e1ce5e93b35ecf09d2028b427500d33325db374d99",
+      "length": 58,
+      "redacted": false,
+      "kind": "document"
+    }
+  ],
+  "hash": "0x4857aecc756041d25ae465fd3f41cc7ecafd29c4af83fc42332dfdfccdc3e788",
+  "sig": "0x41b85868ab300d64618b380bfb3f9c44b273c47f01c28eb1e2d5f49dbc8ed8c455da1989ad1f0e266feafeaba7b90503b5be87124210d129ebf17cc442fa1e03"
+}

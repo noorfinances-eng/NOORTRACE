@@ -1,0 +1,128 @@
+{
+  "version": 0,
+  "previous": {
+    "version": 0,
+    "seq": 6,
+    "ts": "2026-11-05T09:31:47.250Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": null,
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": "apr-2201",
+      "redaction": null
+    },
+    "approval": {
+      "decision": "approuve",
+      "ticket": "apr-2201",
+      "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "approvers": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ],
+      "signatures": [
+        "0x6e8fb398cce443d4b4343245ac27679e1e460c1c441c0115a21055ec4f1dba09588f3b13b0cc7a9e0d8e1f20133ea0aac9eee9b88f8626ec3a6deafaddec41cd1b"
+      ],
+      "at": "2026-11-05T09:31:47.250Z",
+      "reason": "Constat et facture concordants"
+    },
+    "execution": {
+      "tool": "noortrace.approbation.decision",
+      "arguments": {
+        "sha256": "0xc16b88aa5d455fdb1611e863ebfde75a86b2af1a240f31eddff0bc6c36952f2d",
+        "length": 287,
+        "redacted": false,
+        "value": {
+          "decision": "approuve",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+          "ticket": "apr-2201"
+        }
+      },
+      "status": "executee",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0xbab72bdb446b6bdabeebdd6910c121966480c0a9a91297949f3a5c1c148db70f",
+    "sig": "0x124af295b2bb1c59185a8390905ddba972406276aa48bdf61620618e4e2680779c0aa10aafc199d57d3a0c3af5a0a9d5ca457e0f14230fead6f7e87d5d42280c"
+  },
+  "next": {
+    "version": 0,
+    "seq": 8,
+    "ts": "2026-11-05T09:31:49.120Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x54803c3a767ca2b1419b3801e83084f7c1252bfbb4bed559eef4e4d210acf898",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Informer l'assuré du règlement",
+    "policy": {
+      "rule": "outil mail.send : envoi autorise vers l'assure",
+      "decision": "autorise",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "mail.send",
+      "arguments": {
+        "sha256": "0x6b20273257b8df1c6fb96ab5ea1745b4f27be0ec13fcc2862a61a0d4f466628f",
+        "length": 123,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x13d22006e66eaabc89b974f4e72a9904ecbd76053cfa27896c68e65ebef7a214",
+        "length": 85,
+        "redacted": false
+      },
+      "duration_ms": 902,
+      "is_error": false
+    },
+    "effects": [
+      {
+        "system": "Messagerie",
+        "action": "envoi",
+        "object": "MSG-2026-00921",
+        "amount": null,
+        "currency": null
+      }
+    ],
+    "context": [],
+    "hash": "0xf2a5b6ff19ca5089a0becc8ab892d97968aece37466ef4aed416741e32d7bb30",
+    "sig": "0xdb6732f5c3fafada4211413c5696297148fe12406f6f8556afc9b05f8b238b78c546a647bab11bba876af5b48ea3a314dfde1202683e53564f7dbcf532de6805"
+  }
+}

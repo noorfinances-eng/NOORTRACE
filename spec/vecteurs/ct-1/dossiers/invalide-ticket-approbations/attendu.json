@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "A-1",
+  "controles_en_echec": [
+    "A-1"
+  ],
+  "description": "approbations.json porte le ticket apr-9999 alors que approval.ticket de l'événement vaut apr-2201."
+}

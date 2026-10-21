@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-9",
+  "controles_en_echec": [
+    "E-9"
+  ],
+  "description": "Journal rejoué où signatures[1] est mise en forme haute (s remplacé par n - s, v complémenté) : même point, même adresse pour un vérificateur laxiste, refusée comme non canonique (E-9), comme par le contrat ThresholdSignatures."
+}

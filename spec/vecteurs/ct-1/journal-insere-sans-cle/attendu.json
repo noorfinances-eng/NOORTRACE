@@ -1,0 +1,37 @@
+{
+  "valide": false,
+  "description": "Même insertion, mais l'attaquant n'a pas la clé de l'enregistreur : l'événement forgé annonce rec-test-01 et porte une signature produite par une autre clé (E-8), en plus des symptômes de chaîne (C-1, C-2).",
+  "controles_en_echec": [
+    "E-8",
+    "C-1",
+    "C-2"
+  ],
+  "diagnostics": [
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 5
+    },
+    {
+      "type": "insertion",
+      "controle": "C-1",
+      "seq": 5
+    },
+    {
+      "type": "rupture",
+      "controle": "C-2",
+      "seq": 5
+    },
+    {
+      "type": "horodatage",
+      "controle": "C-1",
+      "seq": 5
+    }
+  ],
+  "messages": [
+    "seq 5 : signature invalide sous la clé rec-test-01",
+    "seq 5 présent 2 fois (positions 4, 5) : événement inséré",
+    "seq 5 (position 5) : prev_hash 0xb7029550addf2b15f8436077d6478d94ba5d5757e56179e8136b0cf91dec19a4 différent du hash recalculé de l'événement précédent dans le fichier, seq 5 (0x8640d13024ac1dcdc51a9cd0a578cb04421daa516854201b69b307cb2bdafcb5)",
+    "seq 5 : ts 2026-11-05T09:12:09.904Z antérieur à celui de seq 5 (2026-11-05T09:12:09.950Z)"
+  ]
+}

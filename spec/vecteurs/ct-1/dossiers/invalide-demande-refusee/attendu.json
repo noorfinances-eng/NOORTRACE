@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "A-4",
+  "controles_en_echec": [
+    "A-4"
+  ],
+  "description": "Journal rejoué où seq 5 est refusé par la politique (status refusee) au lieu d'être retenu ; dossier de la décision seq 6 dont request_hash désigne bien ce voisin : son status n'est pas retenue."
+}

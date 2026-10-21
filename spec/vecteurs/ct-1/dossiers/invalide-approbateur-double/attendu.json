@@ -1,0 +1,9 @@
+{
+  "valide": false,
+  "controle": "A-3",
+  "controles_en_echec": [
+    "E-1",
+    "A-3"
+  ],
+  "description": "Journal rejoué où le compte Hardhat 1 figure deux fois dans approvers avec deux signatures valides : le schéma impose des approbateurs distincts (uniqueItems, E-1) et A-3 compte les approbateurs distincts."
+}

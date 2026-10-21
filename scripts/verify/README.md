@@ -215,3 +215,88 @@ NOOR_SIGNING_VECTORS_VALIDATORS_FILE=$PWD/test/fixtures/certificat-commit/valida
 
 Un vecteur qui change après régénération signale un changement du protocole ou
 du décodeur : la cause est à comprendre côté Go avant toute recopie.
+
+---
+
+# `dossier.mjs` — vérification hors ligne d'un dossier de preuve (CT-1)
+
+`dossier.mjs` vérifie un **dossier de preuve v0** tel que la spécification
+[CT-1](../../spec/CT-1-evenements-et-formats.md) §11 le définit : un répertoire
+qui prouve **un** événement du journal (index `dossier.json`, `evenement.json`,
+`voisins.json`, `chemin.json`, `manifeste.json`, `manifeste.sig`, `cles.json`,
+`approbations.json`, et cinq parties réservées à CT-4 et CT-5). La logique est
+dans `scripts/lib/journal.mjs` (implémentation de référence de CT-1, fonctions
+pures sur node:crypto et ethers) ; ce fichier porte la ligne de commande et le
+rapport.
+
+## Ce que le vérificateur prouve
+
+Il exécute les contrôles 1, 2, 3, 6 et 7 de l'architecture, numérotés D-1 à
+A-4 dans CT-1 §11.4 :
+
+| Groupe | Contrôles | Ce qui est établi |
+|---|---|---|
+| D | D-1, D-2 | l'index est conforme au schéma et désigne bien l'événement ; chaque fichier présent a le SHA-256 déclaré, chaque partie absente est réellement absente, avec une raison |
+| E | E-1 à E-11 | chaque événement du dossier (prouvé, voisins, décisions d'approbation) est conforme au schéma, a une forme canonique JCS v0 (aucun nombre non entier, aucune clé en double, aucun substitut isolé), est cohérent avec sa sorte, porte un `hash` recalculé égal, une signature Ed25519 valide sous la clé de `cles.json` dans sa période de validité annoncée, des signatures d'approbateur EIP-191 qui recouvrent les adresses déclarées, et, pour une rotation, une contresignature valide |
+| C | C-1 à C-3 | l'événement est chaîné à ses voisins immédiats : `seq` contigus, `ts` non décroissants, `prev_hash` égaux aux hachages **recalculés**, clé constante sauf après une rotation |
+| M | M-1 à M-3 | la feuille est `SHA-256(0x00 ‖ hash recalculé)`, le chemin d'audit mène à la racine par l'algorithme de la RFC 9162 (longueur exacte comprise), et cette racine est celle du manifeste, avec `tree_size = count` et `leaf_index = seq − first_seq` |
+| P | P-1 à P-5 | le manifeste est conforme (heure pleine, `count`, racine nulle si et seulement si période vide), couvre l'événement et ses voisins, et son `periodHash = SHA-256("noortrace/manifeste/v0\n" ‖ JCS(manifeste))` est celui que signe `manifeste.sig`, sous la clé annoncée et dans sa validité |
+| A | A-1 à A-4 | `approbations.json` est présent si et seulement si l'événement porte une approbation ; les décisions ont le même objet `approval` et le même objet signé `A` ; les approbateurs sont distincts, membres du jeu déclaré, en nombre au moins égal au seuil ; `request_hash` est le hachage recalculé de l'événement de demande quand il est dans le dossier (sinon, non exécuté et signalé) |
+
+Un contrôle dont la pièce est absente avec raison est « non exécuté », jamais
+« passé ». Le dossier est valide si tous les contrôles exécutés passent **et**
+si aucun contrôle n'est non exécuté sans raison admise (CT-1 §11.4) : les
+seules raisons admises sont la partie `approbations.json` absente avec raison
+(A-2, A-3, A-4) et l'événement de demande hors du dossier (A-4). Une partie
+déclarée présente dont le fichier n'est pas un objet JSON (littéral `null`,
+tableau, texte qui n'est pas du JSON) met en échec le contrôle qui la porte
+(`evenement.json` E-1, `voisins.json` C-1, `chemin.json` M-2, `manifeste.json`
+P-1, `manifeste.sig` P-5, `cles.json` E-8, `approbations.json` A-1 ; forme
+canonique impossible E-2) ; le rapport ne reprend alors rien de l'index à sa
+place et liste à part les contrôles non exécutés sans raison admise
+(`nonExecutesBloquants`).
+
+## Ce que le vérificateur ne prouve pas
+
+Les contrôles 4, 5 (CT-5 : jeton RFC 3161, preuve OpenTimestamps) et 8 (CT-4 :
+inclusion de la transaction du registre dans un bloc certifié) ne sont pas
+exécutés ici. Quand leurs parties sont absentes, le rapport **énonce la borne du
+verdict** : rien n'est prouvé sur la date de l'événement ni sur son ancrage, et
+`cles.json` comme `approver_set` sont déclaratifs (leur source est nommée, pas
+vérifiée). Voir CT-1 §11.3 et §15.
+
+## Usage
+
+```bash
+# dossier valide des vecteurs : code 0
+node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7
+
+# dossier invalide : code 1, le rapport nomme le contrôle en échec (ici E-7)
+node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux
+
+# rapport JSON (pour un script), schémas pris ailleurs que dans spec/schemas
+npm run verify:dossier -- mon-dossier --schemas spec/schemas --json
+```
+
+| Option | Rôle |
+|---|---|
+| `<répertoire>` | le dossier : contient `dossier.json` et les parties présentes |
+| `--schemas <dir>` | répertoire des trois schémas JSON (défaut : `spec/schemas`) |
+| `--json` | rapport en JSON : `{valide, controles:[{id, libelle, architecture, ok, execute, detail}], controlesEnEchec, nonExecutesBloquants, evenement, org_id, journal_id, partiesAbsentes, borne, repertoire, schemas}` |
+
+Codes de retour : **0** valide, **1** invalide (au moins un contrôle en échec,
+ou non exécuté sans raison admise : une affirmation sur le dossier), **2**
+entrée inutilisable (répertoire ou schémas illisibles, `dossier.json` absent ou
+qui n'est pas du JSON).
+
+## Vecteurs
+
+`spec/vecteurs/ct-1/dossiers/` (générés par `npm run vecteurs:ct1`, décrits dans
+`spec/vecteurs/ct-1/INDEX.md` et CT-1 §11.5) porte deux dossiers valides (l'appel
+relayé seq 7, la décision seq 6) et, pour chaque contrôle de CT-1 §11.4, au
+moins un dossier qui le fait échouer, chacun avec son `attendu.json` (contrôle
+visé et liste exacte des contrôles en échec, cascades comprises).
+`test/journal.test.js` rejoue chacun avec la bibliothèque et avec cette ligne de
+commande (codes 0, 1, 2) ; le vérificateur indépendant Go de
+`spec/vecteurs/ct-1/verificateur-independant` les confronte tous, en mode
+strict, sans discordance.

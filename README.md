@@ -1,5 +1,8 @@
 # noortrace
 
+[![ci](https://github.com/noorfinances-eng/NOORTRACE/actions/workflows/ci.yml/badge.svg)](https://github.com/noorfinances-eng/NOORTRACE/actions/workflows/ci.yml)
+[![licence](https://img.shields.io/badge/licence-Apache--2.0-blue.svg)](LICENSE)
+
 **A verifiable flight recorder for AI agents.**
 
 noortrace records what an AI agent actually did, in a form a third party can verify

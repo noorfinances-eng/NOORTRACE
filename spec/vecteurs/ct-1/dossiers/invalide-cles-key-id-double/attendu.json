@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-8",
+  "controles_en_echec": [
+    "E-8"
+  ],
+  "description": "cles.json porte deux entrées rec-test-01 (la seconde avec une autre clé publique) : l'identifiant doit être unique, sinon le verdict dépendrait de l'ordre de lecture."
+}

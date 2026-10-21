@@ -1,0 +1,31 @@
+{
+  "valide": false,
+  "description": "Le champ intent de seq 7 a été modifié après scellement (12500.00 devient 1250.00), hash et sig inchangés : le hash recalculé diffère (E-7), la signature ne couvre plus le contenu (E-8) et prev_hash de seq 8 ne correspond plus au hash recalculé de seq 7 (C-2).",
+  "controles_en_echec": [
+    "E-7",
+    "E-8",
+    "C-2"
+  ],
+  "diagnostics": [
+    {
+      "type": "modification",
+      "controle": "E-7",
+      "seq": 7
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 7
+    },
+    {
+      "type": "rupture",
+      "controle": "C-2",
+      "seq": 8
+    }
+  ],
+  "messages": [
+    "seq 7 : hash recalculé 0x216213eff3953c454fa5650b367074924b184027ecf3cae0e634f82e588a75c6 différent de hash 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14 (contenu modifié après scellement)",
+    "seq 7 : signature invalide sous la clé rec-test-01 (contenu modifié)",
+    "seq 8 (position 7) : prev_hash 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14 différent du hash recalculé de l'événement précédent dans le fichier, seq 7 (0x216213eff3953c454fa5650b367074924b184027ecf3cae0e634f82e588a75c6)"
+  ]
+}

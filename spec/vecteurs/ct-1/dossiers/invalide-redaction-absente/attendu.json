@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-4",
+  "controles_en_echec": [
+    "E-4"
+  ],
+  "description": "voisins.next (seq 8) porte une référence rédigée (execution.arguments, redacted: true) mais policy.redaction est null : la règle de rédaction appliquée doit être nommée."
+}

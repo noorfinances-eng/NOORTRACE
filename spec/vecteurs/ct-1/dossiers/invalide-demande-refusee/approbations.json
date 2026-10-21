@@ -1,0 +1,89 @@
+{
+  "version": 0,
+  "ticket": "apr-2201",
+  "request_hash": "0xd858d7b0147314f45323cfafd8e8d20ac2f516a5cb47813324407dc704205fc0",
+  "approver_set": {
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "members": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "source": "comptes Hardhat 1 à 3 (vecteurs CT-1)"
+  },
+  "events": [
+    {
+      "version": 0,
+      "seq": 6,
+      "ts": "2026-11-05T09:31:47.250Z",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "recorder_key_id": "rec-test-01",
+      "prev_hash": "0xd858d7b0147314f45323cfafd8e8d20ac2f516a5cb47813324407dc704205fc0",
+      "delegation": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "on_behalf_of": "service-sinistres",
+        "scope": "sinistres:lecture,paiement,courriel",
+        "run_id": "run-2026-11-05-0007"
+      },
+      "code": {
+        "model": "fournisseur/modele@2026-09",
+        "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+        "policy_version": "2026-11-01",
+        "recorder": "0.1.0"
+      },
+      "intent": null,
+      "policy": {
+        "rule": null,
+        "decision": "sans_objet",
+        "ticket": "apr-2201",
+        "redaction": null
+      },
+      "approval": {
+        "decision": "approuve",
+        "ticket": "apr-2201",
+        "request_hash": "0xd858d7b0147314f45323cfafd8e8d20ac2f516a5cb47813324407dc704205fc0",
+        "threshold": {
+          "required": 2,
+          "size": 3
+        },
+        "approvers": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+        ],
+        "signatures": [
+          "0xeb3097e7d504bc81d506a368c4c26cd6fd5f18a6bad5197eb27720f1e15ac37b2567b05feab4841f279f159f17f2e2c65ad558b6024d810dd6adcc9687287bde1b",
+          "0x63849f7973075ef787f4d6b4c78cbf03a89601b3ebffcc38b5f6ad3b4216a7d33ac39a95043ce667d4dbb80ba1e7d021a9260ccb221837c6c61eacf2a5e140db1c"
+        ],
+        "at": "2026-11-05T09:31:47.250Z",
+        "reason": "Constat et facture concordants"
+      },
+      "execution": {
+        "tool": "noortrace.approbation.decision",
+        "arguments": {
+          "sha256": "0xa09b54dbe4020efdbfae0b2a2914df20ace98ce31a5045f82ebd0a137abcd9a1",
+          "length": 287,
+          "redacted": false,
+          "value": {
+            "decision": "approuve",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "request_hash": "0xd858d7b0147314f45323cfafd8e8d20ac2f516a5cb47813324407dc704205fc0",
+            "ticket": "apr-2201"
+          }
+        },
+        "status": "executee",
+        "result": null,
+        "duration_ms": null,
+        "is_error": null
+      },
+      "effects": [],
+      "context": [],
+      "hash": "0x99641b56290a6c5add7cca2eaafd383b5e88eb304af670379c5acbf7301bbe66",
+      "sig": "0xefa21ce9e381977643bac7a3829f3579e18fc1001001eff2f60d7e0d98a0e28d881106d0ab7d046d269073475bfd109b839faef3b197e927b1f58c409c906505"
+    }
+  ]
+}

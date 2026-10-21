@@ -1,0 +1,329 @@
+[
+  {
+    "version": 0,
+    "seq": 1,
+    "ts": "2026-11-03T13:41:02.004Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-2026-11-03-0142"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xb71552443a0b6e9793dd337ab10d057b354013fba35c2c82fdbdfb6df99d6b58",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Régler le sinistre 2026-77812 après validation des pièces",
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.modele.echange",
+      "arguments": {
+        "sha256": "0xdfa3f1295a71adac1cdb0817911e6285a4c54ac0034fadbcc08a00660023e6ec",
+        "length": 164,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x06d1525814574f7becc8954bd107d8ee8b7e4cd02e76bf5ef32255e26d628da8",
+        "length": 286,
+        "redacted": false
+      },
+      "duration_ms": 1843,
+      "is_error": false
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0x64994cc38adf2e7532b2f02fae0e78086b1970c5ffd36a37dc3c78143cfe8179",
+    "sig": "0x6e67bd0e34a2411c8ad4b552951e76f924b6999195c012edddaba3a991fd9b67020e5e9407749537546d016e43422e57389aef716b2e791ae80f2698349cf307"
+  },
+  {
+    "version": 0,
+    "seq": 2,
+    "ts": "2026-11-03T13:41:07.218Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x64994cc38adf2e7532b2f02fae0e78086b1970c5ffd36a37dc3c78143cfe8179",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-2026-11-03-0142"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xb71552443a0b6e9793dd337ab10d057b354013fba35c2c82fdbdfb6df99d6b58",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Régler le sinistre 2026-77812 après validation des pièces",
+    "policy": {
+      "rule": "paiement > 5000 CHF",
+      "decision": "a_approuver",
+      "ticket": "apr-1192",
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "sap.payments.create",
+      "arguments": {
+        "sha256": "0x0fb2fc1e0625e460687315e9861347a2f0ac8680068c84582080b3f46c8faaf9",
+        "length": 96,
+        "redacted": true
+      },
+      "status": "retenue",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [
+      {
+        "sha256": "0x2aca5294d591501378fe8629f9713fdf75af93a641fb1ab58c8e231edec823a4",
+        "length": 48,
+        "redacted": false,
+        "kind": "document"
+      },
+      {
+        "sha256": "0x7a184a4b8008ea03571b17038db8e653df769bba34b014c3df866a265af9de21",
+        "length": 44,
+        "redacted": false,
+        "kind": "document"
+      }
+    ],
+    "hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+    "sig": "0x772fcce11f32137ee890e69ca3bbde90a1f97f6a5d45442430486daa3ed8268460954eb9e9cd1a675579c0b9004da5d12032946ed3d19ac50d3469cbafafb606"
+  },
+  {
+    "version": 0,
+    "seq": 3,
+    "ts": "2026-11-03T13:52:40.511Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-2026-11-03-0142"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xb71552443a0b6e9793dd337ab10d057b354013fba35c2c82fdbdfb6df99d6b58",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": null,
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": "apr-1192",
+      "redaction": null
+    },
+    "approval": {
+      "decision": "approuve",
+      "ticket": "apr-1192",
+      "request_hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "approvers": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      ],
+      "signatures": [
+        "0x9b56cadb515c1fc18cc37f5b85bc78be8c916daef1ef9017fb3067f19dbcc8585ae2b338117e554f3ec7faa77bc615c82a17a695a4f76295383d9c931d2648a01b",
+        "0xed53b07b60869c24a79d2f3db4729bdbc7ff581b1540e19e188f15ffed99d73f1f69b4e247299dcaecf9d69ad3487c313cd48fc1a7d7874f0a55a27330c074151b"
+      ],
+      "at": "2026-11-03T13:52:40.511Z",
+      "reason": "Pièces validées"
+    },
+    "execution": {
+      "tool": "noortrace.approbation.decision",
+      "arguments": {
+        "sha256": "0xc9b9e6f3ebf13147b98aa59a238979c3dc629b1b6d2ba3f623ea5f122df2a0bb",
+        "length": 287,
+        "redacted": false,
+        "value": {
+          "decision": "approuve",
+          "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "request_hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+          "ticket": "apr-1192"
+        }
+      },
+      "status": "executee",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0xadeb42cb3a4557effbf1bf2dd0a973a1e74563cd39fbb747202d6a4a0f5ad832",
+    "sig": "0x5ba332ccd1a5eaeebd119c0a353f9ee474338edeb07c11584d00cb7145c222a9f2a3e5a792f2e7d71588aeac7543d5d7f07ea39002db3d8b6f6c425972a23006"
+  },
+  {
+    "version": 0,
+    "seq": 4,
+    "ts": "2026-11-03T13:52:41.090Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xadeb42cb3a4557effbf1bf2dd0a973a1e74563cd39fbb747202d6a4a0f5ad832",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-2026-11-03-0142"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xb71552443a0b6e9793dd337ab10d057b354013fba35c2c82fdbdfb6df99d6b58",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Régler le sinistre 2026-77812 après validation des pièces",
+    "policy": {
+      "rule": "paiement > 5000 CHF",
+      "decision": "a_approuver",
+      "ticket": "apr-1192",
+      "redaction": "pii-v1"
+    },
+    "approval": {
+      "decision": "approuve",
+      "ticket": "apr-1192",
+      "request_hash": "0xdd3b7036baeca6426596377870f5982e00ac1e4de7fb344cd1b2c5fa4bbefce0",
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "approvers": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      ],
+      "signatures": [
+        "0x9b56cadb515c1fc18cc37f5b85bc78be8c916daef1ef9017fb3067f19dbcc8585ae2b338117e554f3ec7faa77bc615c82a17a695a4f76295383d9c931d2648a01b",
+        "0xed53b07b60869c24a79d2f3db4729bdbc7ff581b1540e19e188f15ffed99d73f1f69b4e247299dcaecf9d69ad3487c313cd48fc1a7d7874f0a55a27330c074151b"
+      ],
+      "at": "2026-11-03T13:52:40.511Z",
+      "reason": "Pièces validées"
+    },
+    "execution": {
+      "tool": "sap.payments.create",
+      "arguments": {
+        "sha256": "0x0fb2fc1e0625e460687315e9861347a2f0ac8680068c84582080b3f46c8faaf9",
+        "length": 96,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x8bbf8ae044c8bb12e88bf5065c9bf73bf5e2ea3222208355a24893722ab19624",
+        "length": 85,
+        "redacted": false
+      },
+      "duration_ms": 412,
+      "is_error": false
+    },
+    "effects": [
+      {
+        "system": "SAP",
+        "action": "ecriture",
+        "object": "PAY-2026-55120",
+        "amount": "7400.00",
+        "currency": "CHF"
+      }
+    ],
+    "context": [
+      {
+        "sha256": "0x2aca5294d591501378fe8629f9713fdf75af93a641fb1ab58c8e231edec823a4",
+        "length": 48,
+        "redacted": false,
+        "kind": "document"
+      },
+      {
+        "sha256": "0x7a184a4b8008ea03571b17038db8e653df769bba34b014c3df866a265af9de21",
+        "length": 44,
+        "redacted": false,
+        "kind": "document"
+      }
+    ],
+    "hash": "0x471dab56146ae2e4c678120af7faf5eed7b1f8e5db3657226de97614bde4dc00",
+    "sig": "0xcd09159db6ca010502826e1130f1415f3c07e06aa9b663bb47a8ad0bff58d5ebaae96ef204dffc490dc1684386e9d7270256b41f3f2bf4f0b75ec369276cbf00"
+  },
+  {
+    "version": 0,
+    "seq": 5,
+    "ts": "2026-11-03T13:59:59.999Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x471dab56146ae2e4c678120af7faf5eed7b1f8e5db3657226de97614bde4dc00",
+    "delegation": {
+      "launched_by": "noortrace-enregistreur",
+      "on_behalf_of": null,
+      "scope": "journal:administration",
+      "run_id": null
+    },
+    "code": {
+      "model": null,
+      "prompt_version": null,
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": null,
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": null
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.journal.rotation-cle",
+      "arguments": {
+        "sha256": "0xcdf11568d6619b72c7e8e90eb8f30f461b6732ed464694ecd04156161f8c256a",
+        "length": 488,
+        "redacted": false,
+        "value": {
+          "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+          "new_key_id": "rec-test-02",
+          "new_public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+          "old_key_id": "rec-test-01",
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "valid_from": "2026-11-03T13:59:59.999Z",
+          "counter_sig": "0xe107f72204e19597866fb4967e8c30285027f5f87af7fe865a7360c640a8926d1c9c0699e25bb1fe6c6e0fdf161fbbbe5e0edeb8e2fb153234e863ae4598ae04"
+        }
+      },
+      "status": "executee",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [
+      {
+        "system": "noortrace",
+        "action": "ecriture",
+        "object": "cle:rec-test-02",
+        "amount": null,
+        "currency": null
+      }
+    ],
+    "context": [],
+    "hash": "0x506e54e1ec35a6432114fc06947b23c753ce6d5cf4260354b7fdbed011b04f05",
+    "sig": "0x25dfd83d35cdb8a803d87531b7a7a8f75176e01327acb12ce06e9ad502cab94213f82b09f7f9b0286f4acd700f1413e4a6b46446464f26da772541cda0627608"
+  }
+]

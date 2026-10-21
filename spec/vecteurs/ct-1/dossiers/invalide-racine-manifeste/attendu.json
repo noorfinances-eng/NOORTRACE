@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "M-3",
+  "controles_en_echec": [
+    "M-3"
+  ],
+  "description": "La racine de manifeste.json est celle d'un arbre à huit feuilles (seq 1 à 8) et le manifeste a été re-signé : periodHash et signature sont cohérents entre eux (P-5), mais la racine ne correspond pas à celle du chemin."
+}

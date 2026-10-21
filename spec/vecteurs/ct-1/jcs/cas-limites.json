@@ -1,0 +1,106 @@
+{
+  "version": 0,
+  "description": "Cas limites de la forme canonique JCS v0 (CT-1 §4). input : un texte JSON ; canonical : sa forme canonique (chaîne, à encoder en UTF-8 pour hacher), ou null si le document est invalide (nombre non entier ou hors de l'intervalle sûr, substitut isolé, clé en double : contrôle E-2).",
+  "cas": [
+    {
+      "name": "tri des clés",
+      "input": "{\"b\":1,\"a\":2}",
+      "canonical": "{\"a\":2,\"b\":1}"
+    },
+    {
+      "name": "unités UTF-16 : Z < z < é",
+      "input": "{\"é\":1,\"z\":2,\"Z\":3}",
+      "canonical": "{\"Z\":3,\"z\":2,\"é\":1}"
+    },
+    {
+      "name": "clé décodée avant le tri, écrite en clair",
+      "input": "{\"\\u00e9\":1}",
+      "canonical": "{\"é\":1}"
+    },
+    {
+      "name": "paire de substituts : un caractère, quatre octets UTF-8",
+      "input": "{\"a\\ud83d\\ude00\":1}",
+      "canonical": "{\"a😀\":1}"
+    },
+    {
+      "name": "caractère de contrôle échappé en minuscules",
+      "input": "{\"a\":\"x\\u0001y\"}",
+      "canonical": "{\"a\":\"x\\u0001y\"}"
+    },
+    {
+      "name": "U+007F en clair",
+      "input": "{\"a\":\"\\u007f\"}",
+      "canonical": "{\"a\":\"\"}"
+    },
+    {
+      "name": "barre oblique en clair",
+      "input": "{\"a\":\"/\"}",
+      "canonical": "{\"a\":\"/\"}"
+    },
+    {
+      "name": "U+2028 et U+2029 en clair",
+      "input": "{\"a\":\"\\u2028\\u2029\"}",
+      "canonical": "{\"a\":\"  \"}"
+    },
+    {
+      "name": "échappements courts",
+      "input": "{\"a\":\"\\b\\t\\n\\f\\r\\\"\\\\\"}",
+      "canonical": "{\"a\":\"\\b\\t\\n\\f\\r\\\"\\\\\"}"
+    },
+    {
+      "name": "entiers de l'intervalle sûr",
+      "input": "[9007199254740991,-9007199254740991,0]",
+      "canonical": "[9007199254740991,-9007199254740991,0]"
+    },
+    {
+      "name": "zéro négatif",
+      "input": "{\"a\":-0}",
+      "canonical": "{\"a\":0}"
+    },
+    {
+      "name": "conteneurs vides",
+      "input": "{\"a\":[],\"b\":{}}",
+      "canonical": "{\"a\":[],\"b\":{}}"
+    },
+    {
+      "name": "aucune normalisation Unicode : é précomposé et e + U+0301 diffèrent",
+      "input": "{\"a\":\"\\u00e9\",\"b\":\"e\\u0301\"}",
+      "canonical": "{\"a\":\"é\",\"b\":\"é\"}"
+    },
+    {
+      "name": "exemple de structure de la RFC 8785 §3.2.3",
+      "input": "{\"1\":{\"f\":{\"f\":\"hi\",\"F\":5},\"\\n\":56},\"10\":{},\"\":\"empty\",\"a\":{},\"111\":[{\"e\":\"yes\",\"E\":\"no\"}],\"A\":{}}",
+      "canonical": "{\"\":\"empty\",\"1\":{\"\\n\":56,\"f\":{\"F\":5,\"f\":\"hi\"}},\"10\":{},\"111\":[{\"E\":\"no\",\"e\":\"yes\"}],\"A\":{},\"a\":{}}"
+    },
+    {
+      "name": "non entier (forme fractionnaire d'une valeur entière)",
+      "input": "{\"a\":1.0}",
+      "canonical": null
+    },
+    {
+      "name": "exposant",
+      "input": "{\"a\":1e3}",
+      "canonical": null
+    },
+    {
+      "name": "hors de l'intervalle sûr",
+      "input": "{\"a\":9007199254740993}",
+      "canonical": null
+    },
+    {
+      "name": "substitut isolé",
+      "input": "{\"a\":\"\\ud800\"}",
+      "canonical": null
+    },
+    {
+      "name": "clé en double",
+      "input": "{\"a\":1,\"a\":2}",
+      "canonical": null
+    },
+    {
+      "name": "clé en double après décodage",
+      "input": "{\"a\":1,\"\\u0061\":2}",
+      "canonical": null
+    }
+  ]
+}

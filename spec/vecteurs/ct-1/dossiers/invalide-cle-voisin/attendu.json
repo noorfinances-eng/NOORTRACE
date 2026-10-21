@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "C-3",
+  "controles_en_echec": [
+    "C-3"
+  ],
+  "description": "Journal rejoué où seq 10 est horodaté à l'instant exact de la rotation (seul instant où les deux clés valent, E-11) ; dossier de la rotation (seq 9) dont le voisin suivant est signé par rec-test-01, rescellé : la clé attendue après la rotation est rec-test-02."
+}

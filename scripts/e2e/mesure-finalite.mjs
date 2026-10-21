@@ -30,7 +30,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { Contract, JsonRpcProvider, Wallet, ZeroHash, concat, hexlify, keccak256, randomBytes, sha256, toUtf8Bytes } from "ethers";
+import { Contract, JsonRpcProvider, Wallet, ZeroHash, hexlify, randomBytes, sha256 } from "ethers";
 import {
   DOC_TYPE_PERIODE,
   PROJECT_ROOT,
@@ -40,11 +40,13 @@ import {
   journalIdOf,
   jsonReplacer,
   parseArgs,
+  periodMetaDuManifeste,
   readDeployment,
   readOrgs,
   signDigest,
   signDigestBy,
 } from "../lib/noortrace.mjs";
+import { construireManifeste } from "../lib/journal.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const reseau = String(args.network ?? "noorcore");
@@ -77,17 +79,6 @@ const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const arrondi = (x) => Math.round(x * 10) / 10;
 const entier = (hex) => Number(BigInt(hex));
 
-/**
- * Racine de Merkle RFC 6962 (SHA-256, préfixes 0x00 feuille / 0x01 nœud).
- * Période sans événement : racine NULLE, convention imposée par PeriodRegistry.
- */
-function merkleRoot(feuilles) {
-  if (feuilles.length === 0) return ZeroHash;
-  if (feuilles.length === 1) return sha256(concat(["0x00", feuilles[0]]));
-  let k = 1;
-  while (k * 2 < feuilles.length) k *= 2;
-  return sha256(concat(["0x01", merkleRoot(feuilles.slice(0, k)), merkleRoot(feuilles.slice(k))]));
-}
 
 async function main() {
   const cle = process.env.NOOR_PRIVATE_KEY;
@@ -235,13 +226,14 @@ async function main() {
   });
   check("isActiveRecorder", (await contrats.RecorderRegistry.isActiveRecorder(orgId, enregistreur.address)) === true);
 
-  // 2. La période suivante du journal (continuité temps/séquence) : racine de
-  // trois feuilles aléatoires et manifeste, dont l'empreinte sert d'ancre.
+  // 2. La période suivante du journal (continuité temps/séquence) : racine RFC 6962
+  // de trois feuilles aléatoires et manifeste v0 de CT-1 (§10), dont periodHash
+  // (SHA-256 du manifeste canonique préfixé, scripts/lib/journal.mjs) sert d'ancre.
   const feuilles = [0, 1, 2].map(() => sha256(randomBytes(32)));
-  const root = merkleRoot(feuilles);
   const precedentId = await contrats.PeriodRegistry.latestPeriodOf(orgId, journalId);
   let periodStart;
   let firstSeq;
+  let prevPeriodHash = ZeroHash;
   if (precedentId === 0n) {
     const maintenant = BigInt(Math.floor(Date.now() / 1000));
     periodStart = maintenant - (maintenant % 3600n);
@@ -250,22 +242,23 @@ async function main() {
     const precedente = await contrats.PeriodRegistry.getPeriod(precedentId);
     periodStart = precedente.periodEnd;
     firstSeq = precedente.lastSeq + 1n;
+    prevPeriodHash = precedente.periodHash;
   }
   const periodEnd = periodStart + 3600n;
   const lastSeq = firstSeq + 2n;
-  const manifeste = {
-    org: slug,
-    journal: journalNom,
-    root,
-    periodStart: periodStart.toString(),
-    periodEnd: periodEnd.toString(),
-    firstSeq: firstSeq.toString(),
-    lastSeq: lastSeq.toString(),
-    version: 1,
+  const manifeste = construireManifeste({
+    org_id: orgId,
+    journal_id: journalId,
+    period_start: Number(periodStart),
+    first_seq: Number(firstSeq),
+    hashes: feuilles,
+    prev_period_hash: prevPeriodHash,
+    recorder_key_id: "mesure-enregistreur",
     nonce: hexlify(randomBytes(32)),
-  };
-  const periodHash = keccak256(toUtf8Bytes(JSON.stringify(manifeste)));
-  const meta = { orgId, journalId, periodHash, root, periodStart, periodEnd, firstSeq, lastSeq, version: 1, uri: `mesure://${slug}/${journalNom}/${firstSeq}-${lastSeq}` };
+    generated_at: new Date().toISOString(),
+  });
+  const meta = periodMetaDuManifeste(manifeste, { uri: `mesure://${slug}/${journalNom}/${firstSeq}-${lastSeq}` });
+  const { periodHash, root } = meta;
 
   // 3. L'ancre de la période, signée par l'enregistreur : empreinte
   // keccak256(orgId || journalId || periodHash), pas la racine nue (une racine

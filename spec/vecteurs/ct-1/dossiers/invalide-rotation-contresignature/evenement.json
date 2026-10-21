@@ -1,0 +1,62 @@
+{
+  "version": 0,
+  "seq": 9,
+  "ts": "2026-11-05T09:59:58.000Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0x74f7dd908e35792023f6238ff1bc8999a0a24a7b025d65d58a810ac5701f9eb5",
+  "delegation": {
+    "launched_by": "noortrace-enregistreur",
+    "on_behalf_of": null,
+    "scope": "journal:administration",
+    "run_id": null
+  },
+  "code": {
+    "model": null,
+    "prompt_version": null,
+    "policy_version": "2026-11-01",
+    "recorder": "0.1.0"
+  },
+  "intent": null,
+  "policy": {
+    "rule": null,
+    "decision": "sans_objet",
+    "ticket": null,
+    "redaction": null
+  },
+  "approval": null,
+  "execution": {
+    "tool": "noortrace.journal.rotation-cle",
+    "arguments": {
+      "sha256": "0x4415fdd2d397693c202b3d76dffc8501bd7c3e8165c80bbf874514e61dbd8cf4",
+      "length": 488,
+      "redacted": false,
+      "value": {
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "new_key_id": "rec-test-02",
+        "new_public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+        "old_key_id": "rec-test-01",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "valid_from": "2026-11-05T09:59:58.000Z",
+        "counter_sig": "0x97490b9447344fdffdd50d61b128825f37a9ee75b567b3cfe7b5b59048b3ef013e0b4e78a41673555a53cc1db434381d83afc31d0b6f4054ffe719e5d532290c"
+      }
+    },
+    "status": "executee",
+    "result": null,
+    "duration_ms": null,
+    "is_error": null
+  },
+  "effects": [
+    {
+      "system": "noortrace",
+      "action": "ecriture",
+      "object": "cle:rec-test-02",
+      "amount": null,
+      "currency": null
+    }
+  ],
+  "context": [],
+  "hash": "0x4adf127389f01ba4bd90bc4f6816b2119a0c3ea74cae4547385df3997e967997",
+  "sig": "0x22e87d82c7847f20d198ce5f0d495b8eebd1b3c748212e8924c47189be6aced96b86099445db03eed8e6b4ef169e97c3615e1df72c6576362c70dccafe17930a"
+}

@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "P-1",
+  "controles_en_echec": [
+    "P-1"
+  ],
+  "description": "manifeste.json porte period_end = period_start + 7200 (deux heures), re-signé : une période est une heure UTC pleine, period_end = period_start + 3600 ; l'événement et ses voisins restent dans la fenêtre élargie (P-2, P-3 passent)."
+}

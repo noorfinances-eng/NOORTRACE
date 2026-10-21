@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-6",
+  "controles_en_echec": [
+    "E-6"
+  ],
+  "description": "Journal rejoué où la référence en ligne de la décision (execution.arguments, value = A) déclare une length supérieure de 1 à celle de JCS(value) : le sha256 est juste, la length ne l'est pas (voisin précédent et approbations.json)."
+}

@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-10",
+  "controles_en_echec": [
+    "E-10"
+  ],
+  "description": "Dossier de la rotation (seq 9) dont cles.json annonce rec-test-02 valide à partir de 09:00:00Z alors que la rotation est horodatée 09:59:58.000Z : la validité d'une clé issue d'une rotation est celle que le journal annonce (CT-1 §8, règle 3)."
+}
