@@ -22,7 +22,7 @@ est un emballage du même binaire, pas une autre chaîne.
 
 ```bash
 # depuis la racine du dépôt ; commit par défaut : 618fcef8805ef5b4cb9291a3dd97be710e489297,
-# plus les correctifs de chain/patches/ (dont noor_getCommitCertificate) ; le contexte
+# plus les correctifs déposés dans chain/patches/ (fournis hors dépôt, voir son LISEZMOI) ; le contexte
 # de construction est chain/ pour que l'image les voie
 docker build -f chain/docker/Dockerfile -t noortrace/noorcore:618fcef-noortrace chain
 
