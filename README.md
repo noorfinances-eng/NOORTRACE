@@ -73,13 +73,17 @@ les sources et les réserves y figurent.
 
 ## Feuille de route
 
-Le [plan à 90 jours](docs/plan-90-jours.md) fixe les actions, les preuves qui
-autorisent à continuer et celles qui doivent faire arrêter.
+Le [plan du projet](docs/plan.md) enchaîne quatre phases en série : conception
+technique complète, construction, validation externe, pilote et industrialisation.
+Chaque phase se termine par une porte avec des critères pour continuer ou arrêter.
+Aucun entretien de vente avant un prototype complet, aucun pilote avant qu'un
+réviseur externe ait reproduit la vérification.
 
 ## Documents
 
 - [Étude de marché](docs/etude-de-marche-2026-10-20.md) et [notes de recherche](docs/recherche/)
 - [Architecture cible](ARCHITECTURE.md)
+- [Plan du projet](docs/plan.md)
 - [Présentation « NOORTRACE sur NOORCHAIN »](docs/presentation/README.md)
 - [Offre pilote](docs/offre-pilote.md)
 - [Note juridique](docs/note-juridique.md), à faire valider par un juriste
@@ -87,8 +91,9 @@ autorisent à continuer et celles qui doivent faire arrêter.
 
 ## Statut
 
-Octobre 2026 : phase de validation. Aucun code produit n'existe encore ; les
-documents de ce dépôt sont des hypothèses à confronter aux entretiens.
+21 octobre 2026 : phase 1 du plan, conception technique complète, en cours. Aucun
+code produit n'existe encore ; l'architecture cible est au niveau 0.2 et les
+spécifications CT-1 à CT-9 sont à écrire.
 
 ## Licence
 
