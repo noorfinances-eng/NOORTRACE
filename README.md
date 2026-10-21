@@ -80,6 +80,7 @@ autorisent à continuer et celles qui doivent faire arrêter.
 
 - [Étude de marché](docs/etude-de-marche-2026-10-20.md) et [notes de recherche](docs/recherche/)
 - [Architecture cible](ARCHITECTURE.md)
+- [Présentation « NOORTRACE sur NOORCHAIN »](docs/presentation/README.md)
 - [Offre pilote](docs/offre-pilote.md)
 - [Note juridique](docs/note-juridique.md), à faire valider par un juriste
 - `archive/polyscan/` : outil d'analyse Polymarket antérieur, sans lien avec le produit
