@@ -13,7 +13,8 @@
     "e2e:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/e2e/dev-roundtrip.mjs",
     "verify:certificat": "node scripts/verify/certificat-commit.mjs",
     "verify:dossier": "node scripts/verify/dossier.mjs",
-    "vecteurs:ct1": "node scripts/vecteurs/generer-ct1.mjs"
+    "vecteurs:ct1": "node scripts/vecteurs/generer-ct1.mjs",
+    "vecteurs:ct2": "node scripts/vecteurs/generer-ct2.mjs"
   },
   "license": "Apache-2.0",
   "devDependencies": {

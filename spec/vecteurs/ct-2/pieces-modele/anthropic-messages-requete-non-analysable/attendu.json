@@ -1,0 +1,30 @@
+{
+  "format": "anthropic-messages",
+  "provider_label": "anthropic",
+  "route": "/v1/messages",
+  "status": null,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": {
+    "status": 400,
+    "reason": "corps_non_analysable",
+    "body": {
+      "type": "error",
+      "error": {
+        "type": "invalid_request_error",
+        "message": "noortrace: corps de requete non analysable"
+      }
+    }
+  },
+  "consolidated": null,
+  "pieces": null,
+  "code_model": null,
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": null,
+  "incomplete": false,
+  "note": "Corps de requête tronqué (JSON invalide) : la passerelle répond 400 avec un corps d'erreur au format du fournisseur (type invalid_request_error), ne relaie rien et n'écrit aucun événement (EX-5.7) ; requete.brut porte les octets reçus."
+}

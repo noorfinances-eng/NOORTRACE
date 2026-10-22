@@ -1,0 +1,55 @@
+{
+  "model": "modele-chat-exemple",
+  "messages": [
+    {
+      "role": "developer",
+      "content": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    {
+      "role": "user",
+      "content": "Ouvre le sinistre 2026-81044 et cherche les collisions."
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "demo__claims_get",
+        "description": "Rend le dossier d'un sinistre de démonstration",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "claim_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "claim_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "demo__claims_search",
+        "description": "Recherche des sinistres de démonstration",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      }
+    }
+  ],
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}

@@ -1,0 +1,2655 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/configuration-enregistreur.schema.json",
+  "title": "Configuration de l'enregistreur NOORTRACE, version 0",
+  "description": "Le document JSON unique qui configure un enregistreur (CT-2 §15). Les secrets y sont toujours des références (env, file, vault), jamais des valeurs. Le membre `policy` est l'ensemble de politique nommé par code.policy_version ; tout changement de ce membre produit un événement noortrace.journal.politique dont policy_sha256 = SHA-256 du JCS intégral de ce membre (CT-2 §10.6, §15.5). Les contraintes qu'un schéma n'exprime pas (unicité des alias et des noms annoncés, cohérence des références de secrets, refus de la classe D en production, bornes de taille du signataire) sont celles de la validation au démarrage (CT-2 §15.4).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "config_version",
+    "recorder",
+    "mcp",
+    "tools",
+    "limits",
+    "relay",
+    "restart",
+    "auth",
+    "clock",
+    "model",
+    "sdk",
+    "signer",
+    "storage",
+    "lease",
+    "anchoring",
+    "supervision",
+    "policy"
+  ],
+  "properties": {
+    "config_version": {
+      "const": 0
+    },
+    "recorder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "org_id",
+        "journal_id",
+        "environment"
+      ],
+      "properties": {
+        "instance_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "Nom de l'instance (hôte, conteneur) ; apparaît dans le journal d'exploitation et le bail, jamais dans l'événement."
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "environment": {
+          "enum": [
+            "production",
+            "developpement"
+          ],
+          "description": "En production, la classe de garde D et le mode local (connecteur embarquant le démon) sont refusés (CT-2 §11, EX-3.3)."
+        }
+      }
+    },
+    "mcp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "socket",
+        "connector_tcp",
+        "http",
+        "hosts",
+        "discover_timeout_ms",
+        "drain_timeout_ms",
+        "child_exit_timeout_ms"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "socket": {
+          "$ref": "#/$defs/socket_path",
+          "description": "Prise locale sur laquelle le démon reçoit les connecteurs stdio (CT-2 §4.7.1)."
+        },
+        "http": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "listen",
+                "path",
+                "allowed_origins",
+                "tls",
+                "oauth",
+                "static_tokens"
+              ],
+              "properties": {
+                "listen": {
+                  "$ref": "#/$defs/listen_address"
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9._~/-]{0,255}$",
+                  "description": "Chemin unique du point de terminaison Streamable HTTP (EX-4.34), /mcp par défaut."
+                },
+                "allowed_origins": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^https?://[^\\s/]+$"
+                  },
+                  "description": "Origines admises dans l'en-tête Origin ; vide : toute origine présente est refusée (403), l'absence d'Origin est admise."
+                },
+                "tls": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/tls_server"
+                    }
+                  ],
+                  "description": "null : TLS terminé par un mandataire inverse devant le démon."
+                },
+                "oauth": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "resource",
+                        "authorization_servers",
+                        "jwks_uri",
+                        "required_scopes"
+                      ],
+                      "properties": {
+                        "resource": {
+                          "type": "string",
+                          "pattern": "^https://[^\\s]+$",
+                          "description": "URI canonique de ressource (RFC 8707) attendue dans l'audience des jetons (EX-4.39)."
+                        },
+                        "authorization_servers": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "pattern": "^https://[^\\s]+$"
+                          }
+                        },
+                        "jwks_uri": {
+                          "type": "string",
+                          "pattern": "^https://[^\\s]+$"
+                        },
+                        "required_scopes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "static_tokens": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/static_token"
+                  }
+                }
+              }
+            }
+          ],
+          "description": "Transport Streamable HTTP vers les hôtes ; null si seul stdio est servi."
+        },
+        "hosts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/host_connection"
+          },
+          "description": "Connexions d'hôte admises, chacune avec sa délégation (EX-7.3)."
+        },
+        "discover_timeout_ms": {
+          "$ref": "#/$defs/ms",
+          "description": "Délai de la sonde server/discover vers un serveur d'outils (EX-4.6)."
+        },
+        "drain_timeout_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "child_exit_timeout_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "connector_tcp": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tcp_listen"
+            }
+          ],
+          "description": "Prise TCP locale des connecteurs stdio, à défaut de prise Unix ; jeton ou mTLS obligatoire (CT-2 EX-4.39)."
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prefix",
+        "page_size",
+        "default_ttl_ms",
+        "default_timeout_ms",
+        "definition_in_context",
+        "list_in_context",
+        "list_changed_min_interval_ms"
+      ],
+      "properties": {
+        "prefix": {
+          "type": "boolean",
+          "description": "false admis seulement avec un seul serveur d'outils (EX-4.10)."
+        },
+        "page_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "default_ttl_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "default_timeout_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "definition_in_context": {
+          "type": "boolean"
+        },
+        "list_in_context": {
+          "type": "boolean",
+          "description": "Pièce « liste annoncée » dans le contexte de chaque appel (CT-2 EX-4.45)."
+        },
+        "list_changed_min_interval_ms": {
+          "$ref": "#/$defs/ms"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_max_bytes",
+        "response_max_bytes",
+        "model_request_max_bytes",
+        "model_response_max_bytes",
+        "piece_max_bytes",
+        "json_max_depth",
+        "json_max_members",
+        "line_max_bytes",
+        "tools_list_max_pages",
+        "tools_list_max_items",
+        "pending_max_bytes",
+        "redaction_budget_ms"
+      ],
+      "properties": {
+        "request_max_bytes": {
+          "$ref": "#/$defs/bytes"
+        },
+        "response_max_bytes": {
+          "$ref": "#/$defs/bytes"
+        },
+        "model_request_max_bytes": {
+          "$ref": "#/$defs/bytes"
+        },
+        "model_response_max_bytes": {
+          "$ref": "#/$defs/bytes"
+        },
+        "piece_max_bytes": {
+          "$ref": "#/$defs/bytes",
+          "description": "Taille maximale d'une pièce stockée ; au-delà, la pièce est tronquée et marquée (CT-2 §8), jamais abandonnée."
+        },
+        "json_max_depth": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 1024,
+          "description": "Profondeur d'imbrication JSON admise (CT-2 4.4 pas 1)."
+        },
+        "json_max_members": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000,
+          "description": "Membres ou éléments par objet ou tableau (CT-2 4.4 pas 1)."
+        },
+        "line_max_bytes": {
+          "$ref": "#/$defs/bytes"
+        },
+        "tools_list_max_pages": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "tools_list_max_items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000
+        },
+        "pending_max_bytes": {
+          "$ref": "#/$defs/bytes"
+        },
+        "redaction_budget_ms": {
+          "$ref": "#/$defs/ms"
+        }
+      }
+    },
+    "relay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resources",
+        "prompts",
+        "completions",
+        "server_requests"
+      ],
+      "properties": {
+        "resources": {
+          "type": "boolean"
+        },
+        "prompts": {
+          "type": "boolean"
+        },
+        "completions": {
+          "type": "boolean"
+        },
+        "server_requests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sampling",
+            "elicitation",
+            "roots"
+          ],
+          "properties": {
+            "sampling": {
+              "type": "boolean"
+            },
+            "elicitation": {
+              "type": "boolean"
+            },
+            "roots": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "restart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_attempts",
+        "backoff_ms"
+      ],
+      "properties": {
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "backoff_ms": {
+          "$ref": "#/$defs/ms"
+        }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strip_headers"
+      ],
+      "properties": {
+        "strip_headers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/header_name"
+          },
+          "description": "En-têtes reçus de l'hôte retirés avant tout relais et jamais journalisés, en plus de Authorization et Cookie (EX-4.41)."
+        }
+      }
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_backstep_ms",
+        "warn_skew_ms",
+        "max_forward_ms",
+        "max_wait_ms"
+      ],
+      "properties": {
+        "max_backstep_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "warn_skew_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "max_forward_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "max_wait_ms": {
+          "$ref": "#/$defs/ms"
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "listen",
+        "tls",
+        "hosts",
+        "static_tokens",
+        "forward_headers",
+        "strip_headers",
+        "prompt_in_request",
+        "prompt_system",
+        "connect_timeout_ms",
+        "first_byte_timeout_ms",
+        "idle_timeout_ms",
+        "correlation_window_ms",
+        "icap",
+        "mirror"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "passerelle",
+            "icap",
+            "miroir",
+            "desactive"
+          ]
+        },
+        "listen": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/listen_address"
+            }
+          ],
+          "description": "Adresse d'écoute de la passerelle (mode passerelle)."
+        },
+        "tls": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tls_server"
+            }
+          ]
+        },
+        "strip_headers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/header_name"
+          }
+        },
+        "prompt_in_request": {
+          "enum": [
+            "reference",
+            "inline"
+          ],
+          "description": "reference : le prompt système est remplacé par [REDIGE:prompt-systeme] dans la pièce « requête » et stocké à part ; inline : il y reste, rédigé (CT-2 EX-8.5)."
+        },
+        "prompt_system": {
+          "enum": [
+            "redige",
+            "named"
+          ],
+          "description": "redige : la pièce « prompt système » est le texte rédigé ; named : la chaîne [PROMPT:<nom de version>] fournie par la connexion d'hôte (prompt_version_name) ou _meta (CT-2 EX-8.6)."
+        },
+        "connect_timeout_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "first_byte_timeout_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "idle_timeout_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "correlation_window_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "icap": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "listen",
+                "tls_listen",
+                "client_ca",
+                "allowed_sources",
+                "client_address_header"
+              ],
+              "properties": {
+                "listen": {
+                  "$ref": "#/$defs/listen_address"
+                },
+                "tls_listen": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/listen_address"
+                    }
+                  ]
+                },
+                "client_ca": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^/[^\\u0000]{1,4095}$"
+                    }
+                  ],
+                  "description": "Autorité des certificats clients ICAPS (mTLS, CT-2 EX-5.3)."
+                },
+                "allowed_sources": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/cidr"
+                  },
+                  "description": "Adresses des mandataires admis (CT-2 EX-5.3)."
+                },
+                "client_address_header": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/header_name"
+                    }
+                  ],
+                  "description": "En-tête ICAP portant l'adresse de l'hôte, posé par le mandataire (CT-2 EX-5.8)."
+                }
+              }
+            }
+          ]
+        },
+        "mirror": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "socket"
+              ],
+              "properties": {
+                "socket": {
+                  "$ref": "#/$defs/socket_path"
+                }
+              }
+            }
+          ]
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/host_connection"
+          },
+          "description": "Connexions d'hôte de la passerelle, de l'ICAP et du miroir (CT-2 EX-5.8, EX-7.3)."
+        },
+        "static_tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/static_token"
+          },
+          "description": "Jetons statiques de la passerelle (en-tête X-Noortrace-Token, CT-2 EX-5.8)."
+        },
+        "forward_headers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,128}\\*?$"
+          },
+          "description": "En-têtes supplémentaires relayés (liste autorisée, CT-2 5.3) : noms exacts, ou préfixes terminés par *."
+        }
+      }
+    },
+    "sdk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "socket",
+        "tcp_listen",
+        "hosts"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "socket": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/socket_path"
+            }
+          ]
+        },
+        "tcp_listen": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tcp_listen"
+            }
+          ]
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/host_connection"
+          }
+        }
+      }
+    },
+    "signer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "key_id",
+        "backend",
+        "verify_after_sign",
+        "max_message_bytes",
+        "timeout_ms",
+        "health_interval_ms",
+        "rotation"
+      ],
+      "properties": {
+        "class": {
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "description": "Classe de garde (CT-2 §11.2) ; doit correspondre au type du backend."
+        },
+        "key_id": {
+          "$ref": "#/$defs/key_id",
+          "description": "recorder_key_id courant (CT-1 §3)."
+        },
+        "backend": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "module",
+                "token_label",
+                "key_label",
+                "pin",
+                "mechanism"
+              ],
+              "properties": {
+                "type": {
+                  "const": "pkcs11"
+                },
+                "module": {
+                  "type": "string",
+                  "pattern": "^/[^\\u0000]{1,4095}$",
+                  "description": "Chemin de la bibliothèque PKCS#11 du fournisseur (classe A)."
+                },
+                "token_label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "key_label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "pin": {
+                  "$ref": "#/$defs/secret_reference"
+                },
+                "mechanism": {
+                  "enum": [
+                    "CKM_EDDSA",
+                    "CKM_CLOUDHSM_EDDSA"
+                  ],
+                  "description": "CKM_EDDSA (0x1057, OASIS PKCS#11 3.0/3.1) sans paramètre = Ed25519 pur ; CKM_CLOUDHSM_EDDSA = mécanisme propriétaire d'AWS CloudHSM (CT-2 §11.2, R3)."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "url",
+                "mount",
+                "key_name",
+                "token",
+                "namespace"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "vault-transit",
+                    "openbao-transit"
+                  ]
+                },
+                "url": {
+                  "type": "string",
+                  "pattern": "^https://[^\\s]+$"
+                },
+                "mount": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9._/-]{1,128}$"
+                },
+                "key_name": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9._-]{1,128}$"
+                },
+                "token": {
+                  "$ref": "#/$defs/secret_reference"
+                },
+                "namespace": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "maxLength": 128
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "key_arn",
+                "region"
+              ],
+              "properties": {
+                "type": {
+                  "const": "aws-kms"
+                },
+                "key_arn": {
+                  "type": "string",
+                  "pattern": "^arn:aws[a-z-]*:kms:[a-z0-9-]+:[0-9]{12}:key/[A-Za-z0-9-]+$"
+                },
+                "region": {
+                  "type": "string",
+                  "pattern": "^[a-z]{2}(-[a-z]+)+-[0-9]$"
+                }
+              },
+              "description": "Classe B : clé ECC_NIST_EDWARDS25519, algorithme ED25519_SHA_512, MessageType RAW, message ≤ 4096 octets (CT-2 §11.2)."
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "key_version"
+              ],
+              "properties": {
+                "type": {
+                  "const": "gcp-kms"
+                },
+                "key_version": {
+                  "type": "string",
+                  "pattern": "^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+/cryptoKeyVersions/[0-9]+$"
+                }
+              },
+              "description": "Classe B : algorithme EC_SIGN_ED25519, niveau de protection SOFTWARE seulement (CT-2 §11.2)."
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "sealed_seed_file",
+                "wrap"
+              ],
+              "properties": {
+                "type": {
+                  "const": "envelope"
+                },
+                "sealed_seed_file": {
+                  "type": "string",
+                  "pattern": "^/[^\\u0000]{1,4095}$",
+                  "description": "Fichier contenant la graine Ed25519 (32 octets) chiffrée ou scellée ; déchiffrée en mémoire du démon au démarrage (classe C)."
+                },
+                "wrap": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "key_arn",
+                        "region"
+                      ],
+                      "properties": {
+                        "type": {
+                          "const": "aws-kms"
+                        },
+                        "key_arn": {
+                          "type": "string"
+                        },
+                        "region": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "key"
+                      ],
+                      "properties": {
+                        "type": {
+                          "const": "gcp-kms"
+                        },
+                        "key": {
+                          "type": "string",
+                          "pattern": "^projects/[^/]+/locations/[^/]+/keyRings/[^/]+/cryptoKeys/[^/]+$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "vault_url",
+                        "key_name",
+                        "key_version",
+                        "algorithm"
+                      ],
+                      "properties": {
+                        "type": {
+                          "const": "azure-keyvault"
+                        },
+                        "vault_url": {
+                          "type": "string",
+                          "pattern": "^https://[^\\s]+$"
+                        },
+                        "key_name": {
+                          "type": "string"
+                        },
+                        "key_version": {
+                          "type": "string"
+                        },
+                        "algorithm": {
+                          "enum": [
+                            "RSA-OAEP-256",
+                            "A256KW",
+                            "CKM_AES_KEY_WRAP"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "type",
+                        "public_file",
+                        "private_file",
+                        "pcrs"
+                      ],
+                      "properties": {
+                        "type": {
+                          "const": "tpm2"
+                        },
+                        "public_file": {
+                          "type": "string"
+                        },
+                        "private_file": {
+                          "type": "string"
+                        },
+                        "pcrs": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9]{1,2}(,[0-9]{1,2})*$",
+                          "description": "Politique PCR du scellement (tpm2_unseal -p pcr:…)."
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "path",
+                "passphrase"
+              ],
+              "properties": {
+                "type": {
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/[^\\u0000]{1,4095}$"
+                },
+                "passphrase": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/secret_reference"
+                    }
+                  ]
+                }
+              },
+              "description": "Classe D : développement seulement ; refusée si recorder.environment = production."
+            }
+          ]
+        },
+        "verify_after_sign": {
+          "const": true,
+          "description": "Chaque signature rendue par le backend est vérifiée avec la clé publique avant d'être écrite (EX-11.6) ; non désactivable en version 0."
+        },
+        "max_message_bytes": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1024
+            }
+          ],
+          "description": "Borne du backend sur la taille du message signé (4096 pour AWS KMS, 16000 pour CloudHSM) ; null sans borne."
+        },
+        "timeout_ms": {
+          "$ref": "#/$defs/ms",
+          "description": "Délai d'un appel sign() au backend (EX-11.18)."
+        },
+        "health_interval_ms": {
+          "$ref": "#/$defs/ms",
+          "description": "Période de l'appel health() du signataire (EX-11.18)."
+        },
+        "rotation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "planned_every_days",
+            "next_key_id"
+          ],
+          "properties": {
+            "planned_every_days": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3650
+                }
+              ]
+            },
+            "next_key_id": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/key_id"
+                }
+              ],
+              "description": "Identifiant de la clé déjà générée pour la prochaine rotation, s'il est connu."
+            }
+          }
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root",
+        "segment_max_bytes",
+        "min_free_bytes",
+        "fsync",
+        "seal",
+        "retention",
+        "vault"
+      ],
+      "properties": {
+        "root": {
+          "type": "string",
+          "pattern": "^/[^\\u0000]{1,4095}$",
+          "description": "Racine locale ; un répertoire par (org_id, journal_id) (CT-2 §12.1)."
+        },
+        "segment_max_bytes": {
+          "$ref": "#/$defs/bytes"
+        },
+        "min_free_bytes": {
+          "$ref": "#/$defs/bytes",
+          "description": "Espace libre minimal du volume avant refus préventif des écritures (CT-2 §14.2, disque presque plein)."
+        },
+        "fsync": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "group_max_events",
+            "group_max_wait_ms"
+          ],
+          "properties": {
+            "group_max_events": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "group_max_wait_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          }
+        },
+        "seal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "append_only_attribute",
+            "worm"
+          ],
+          "properties": {
+            "append_only_attribute": {
+              "type": "boolean",
+              "description": "Pose de l'attribut append-only (chattr +a) sur le segment courant et immutable (+i) sur les segments clos, par une étape privilégiée (CT-2 §12.5)."
+            },
+            "worm": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "bucket",
+                    "prefix",
+                    "mode",
+                    "retain_days",
+                    "credentials"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "s3-object-lock",
+                        "azure-immutable-blob",
+                        "gcs-object-retention"
+                      ]
+                    },
+                    "bucket": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 255
+                    },
+                    "prefix": {
+                      "type": "string",
+                      "maxLength": 512
+                    },
+                    "mode": {
+                      "enum": [
+                        "compliance",
+                        "governance"
+                      ],
+                      "description": "S3 : COMPLIANCE ou GOVERNANCE ; GCS : Locked ou Unlocked ; Azure : politique verrouillée ou non (CT-2 §12.5)."
+                    },
+                    "retain_days": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 36500
+                    },
+                    "credentials": {
+                      "$ref": "#/$defs/secret_reference"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "retention": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "events_years",
+            "pieces_days"
+          ],
+          "properties": {
+            "events_years": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 100,
+              "description": "Jamais inférieur à dix ans (CO art. 958f, CT-2 §12.6)."
+            },
+            "pieces_days": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              ],
+              "description": "Purge des pièces après ce délai ; null : jamais. Les références restent dans la chaîne."
+            }
+          }
+        },
+        "vault": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "path",
+            "key"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Coffre optionnel des originaux non rédigés, chiffré, hors journal et hors dossier (CT-2 §10.7)."
+            },
+            "path": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^/[^\\u0000]{1,4095}$"
+                }
+              ]
+            },
+            "key": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/secret_reference"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "lease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "store",
+        "ttl_ms",
+        "renew_ms",
+        "acquire_wait_ms",
+        "fencing"
+      ],
+      "properties": {
+        "store": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "path"
+              ],
+              "properties": {
+                "type": {
+                  "const": "file"
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/[^\\u0000]{1,4095}$"
+                }
+              },
+              "description": "Verrou de fichier : un seul hôte (CT-2 §13.2)."
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "dsn",
+                "table"
+              ],
+              "properties": {
+                "type": {
+                  "const": "postgresql"
+                },
+                "dsn": {
+                  "$ref": "#/$defs/secret_reference"
+                },
+                "table": {
+                  "type": "string",
+                  "pattern": "^[a-z_][a-z0-9_]{0,62}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "endpoints",
+                "prefix",
+                "tls"
+              ],
+              "properties": {
+                "type": {
+                  "const": "etcd"
+                },
+                "endpoints": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^https?://[^\\s]+$"
+                  }
+                },
+                "prefix": {
+                  "type": "string",
+                  "pattern": "^/[A-Za-z0-9._/-]*$"
+                },
+                "tls": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/tls_client"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "ttl_ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 600000
+        },
+        "renew_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 300000
+        },
+        "acquire_wait_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "fencing": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "detachement",
+                "reservation"
+              ]
+            }
+          ],
+          "description": "Moyen de rendre le stockage du prédécesseur inaccessible en écriture avant la reprise (CT-2 EX-13.10) ; obligatoire avec postgresql ou etcd."
+        }
+      }
+    },
+    "anchoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registry",
+        "rfc3161",
+        "opentimestamps"
+      ],
+      "description": "Raccords vers CT-4 et CT-5 ; aucun ne bloque jamais un appel (CT-2 §14).",
+      "properties": {
+        "registry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "rpc_url",
+            "chain_key",
+            "next_chain_key"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "rpc_url": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(https?|wss?)://[^\\s]+$"
+                }
+              ]
+            },
+            "chain_key": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "class",
+                    "address",
+                    "secret",
+                    "service_url"
+                  ],
+                  "properties": {
+                    "class": {
+                      "enum": [
+                        "A",
+                        "B",
+                        "C",
+                        "D"
+                      ],
+                      "description": "Classe de garde de la clé de chaîne (CT-2 EX-11.19) ; D refusée en production."
+                    },
+                    "address": {
+                      "type": "string",
+                      "pattern": "^0x[0-9a-f]{40}$",
+                      "description": "Adresse de la clé de chaîne (chainKey de RecorderRegistry)."
+                    },
+                    "secret": {
+                      "$ref": "#/$defs/secret_reference",
+                      "description": "Matière de la clé (classes C et D) ou accès au service qui la détient (classes A et B)."
+                    },
+                    "service_url": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^https://[^\\s]+$"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "description": "Clé de chaîne courante (CT-2 EX-11.19)."
+            },
+            "next_chain_key": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "class",
+                    "address",
+                    "secret",
+                    "service_url"
+                  ],
+                  "properties": {
+                    "class": {
+                      "enum": [
+                        "A",
+                        "B",
+                        "C",
+                        "D"
+                      ],
+                      "description": "Classe de garde de la clé de chaîne (CT-2 EX-11.19) ; D refusée en production."
+                    },
+                    "address": {
+                      "type": "string",
+                      "pattern": "^0x[0-9a-f]{40}$",
+                      "description": "Adresse de la clé de chaîne (chainKey de RecorderRegistry)."
+                    },
+                    "secret": {
+                      "$ref": "#/$defs/secret_reference",
+                      "description": "Matière de la clé (classes C et D) ou accès au service qui la détient (classes A et B)."
+                    },
+                    "service_url": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^https://[^\\s]+$"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "description": "Clé de chaîne suivante, pendant une rotation (CT-2 EX-11.15) ; null sinon."
+            }
+          }
+        },
+        "rfc3161": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "url"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "url": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^https?://[^\\s]+$"
+                }
+              ]
+            }
+          }
+        },
+        "opentimestamps": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "calendars"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "calendars": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^https://[^\\s]+$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "supervision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "health_listen",
+        "metrics",
+        "ops_log"
+      ],
+      "properties": {
+        "health_listen": {
+          "$ref": "#/$defs/listen_address"
+        },
+        "metrics": {
+          "type": "boolean"
+        },
+        "ops_log": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "level",
+            "rotate_max_bytes",
+            "keep_files",
+            "child_stderr_max_bytes",
+            "child_stderr",
+            "child_stderr_lines_per_second"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/[^\\u0000]{1,4095}$"
+            },
+            "level": {
+              "enum": [
+                "debug",
+                "info",
+                "warning",
+                "error"
+              ]
+            },
+            "rotate_max_bytes": {
+              "$ref": "#/$defs/bytes"
+            },
+            "keep_files": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "child_stderr_max_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1048576,
+              "description": "Longueur maximale d'une ligne stderr d'un serveur stdio consignée (CT-2 EX-9.6)."
+            },
+            "child_stderr": {
+              "enum": [
+                "empreinte",
+                "texte"
+              ],
+              "description": "empreinte : longueur et sha256 de chaque ligne de stderr d'un serveur stdio ; texte : la ligne, rédigée et tronquée (CT-2 EX-4.32)."
+            },
+            "child_stderr_lines_per_second": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          }
+        }
+      }
+    },
+    "policy": {
+      "$ref": "#/$defs/policy_set"
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "key_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 86400000
+    },
+    "bytes": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 1099511627776
+    },
+    "listen_address": {
+      "type": "string",
+      "pattern": "^(\\[[0-9a-fA-F:]+\\]|[0-9]{1,3}(\\.[0-9]{1,3}){3}|[A-Za-z0-9.-]+):[0-9]{1,5}$"
+    },
+    "socket_path": {
+      "type": "string",
+      "pattern": "^/[^\\u0000]{1,4095}$"
+    },
+    "header_name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,128}$"
+    },
+    "secret_reference": {
+      "$ref": "https://noortrace.example/schemas/v0/politique-redaction.schema.json#/$defs/secret_reference"
+    },
+    "tls_server": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cert_file",
+        "key_file"
+      ],
+      "properties": {
+        "cert_file": {
+          "type": "string",
+          "pattern": "^/[^\\u0000]{1,4095}$"
+        },
+        "key_file": {
+          "type": "string",
+          "pattern": "^/[^\\u0000]{1,4095}$"
+        }
+      }
+    },
+    "tls_client": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ca_file",
+        "cert_file",
+        "key_file"
+      ],
+      "properties": {
+        "ca_file": {
+          "type": "string",
+          "pattern": "^/[^\\u0000]{1,4095}$"
+        },
+        "cert_file": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^/[^\\u0000]{1,4095}$"
+            }
+          ]
+        },
+        "key_file": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^/[^\\u0000]{1,4095}$"
+            }
+          ]
+        }
+      }
+    },
+    "host_connection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "match",
+        "launched_by",
+        "scope",
+        "on_behalf_of",
+        "accept_declared_delegation",
+        "tool_name_template",
+        "tool_name_sanitize",
+        "prompt_version_name",
+        "host_group",
+        "allowed_on_behalf_of",
+        "quota",
+        "alias"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+        },
+        "match": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "peer_user"
+              ],
+              "properties": {
+                "peer_user": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "description": "Utilisateur système du processus connecteur ou SDK sur la prise locale (EX-4.39)."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "oauth_subject"
+              ],
+              "properties": {
+                "oauth_subject": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "static_token"
+              ],
+              "properties": {
+                "static_token": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "description": "Identité d'un jeton statique de mcp.http.static_tokens ou de model.static_tokens."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_addresses"
+              ],
+              "properties": {
+                "source_addresses": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/cidr"
+                  },
+                  "description": "Modes icap et miroir du frontal modèle seulement : adresses sources de l'hôte (CT-2 EX-5.8)."
+                }
+              }
+            }
+          ]
+        },
+        "launched_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Valeur fixe, ou `${peer_user}`, ou `${oauth_subject}` (CT-2 §7.2)."
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "on_behalf_of": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 256
+            }
+          ]
+        },
+        "accept_declared_delegation": {
+          "type": "boolean",
+          "description": "Admettre la délégation déclarée par l'hôte (_meta[\"noortrace/delegation\"], en-têtes X-Noortrace-Run-Id et X-Noortrace-On-Behalf-Of), bornée par CT-2 EX-7.2."
+        },
+        "tool_name_template": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_{}.:/-]{1,128}$",
+          "description": "Forme du nom d'outil vu par le modèle, pour la corrélation (EX-5.22) ; {alias}, {tool} et {tool_announced} sont substitués ; défaut {tool_announced}."
+        },
+        "tool_name_sanitize": {
+          "type": "boolean",
+          "description": "true : les caractères hors A-Z a-z 0-9 _ - deviennent _ (convention de Claude Code)."
+        },
+        "prompt_version_name": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+            }
+          ],
+          "description": "Nom de version du prompt système de cette connexion, employé quand model.prompt_system vaut named (CT-2 EX-8.6) ; null sinon."
+        },
+        "host_group": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "Groupe d'hôte : relie, pour la corrélation appel ↔ échange (CT-2 EX-5.22), les connexions MCP, de passerelle et SDK d'un même agent. Fixé par le client, jamais par l'hôte."
+        },
+        "allowed_on_behalf_of": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 256,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": "Valeurs de on_behalf_of que l'hôte peut déclarer (CT-2 EX-7.2) ; vide : aucune."
+        },
+        "quota": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_concurrent",
+            "piece_bytes_per_minute"
+          ],
+          "properties": {
+            "max_concurrent": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            "piece_bytes_per_minute": {
+              "$ref": "#/$defs/bytes"
+            }
+          },
+          "description": "Quotas de la connexion d'hôte (CT-2 EX-4.47)."
+        },
+        "alias": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            }
+          ],
+          "description": "Entrées de sdk.hosts seulement : préfixe des noms d'outils déclarés par le SDK, distinct de tout alias de serveur (CT-2 EX-6.6) ; null ailleurs."
+        }
+      }
+    },
+    "effect_template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "action",
+        "object",
+        "amount",
+        "currency"
+      ],
+      "properties": {
+        "system": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "action": {
+          "enum": [
+            "lecture",
+            "ecriture",
+            "suppression",
+            "envoi",
+            "execution"
+          ]
+        },
+        "object": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Pointeur JSON RFC 6901 commençant par /arguments/ ou /result/, résolu dans les valeurs rédigées des pièces, ou chaîne fixe (CT-2 EX-7.6)."
+        },
+        "amount": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^/(arguments|result)(/([^/~]|~0|~1)*)+$"
+            }
+          ]
+        },
+        "currency": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^/(arguments|result)(/([^/~]|~0|~1)*)+$|^[A-Z]{3}$"
+            }
+          ]
+        },
+        "extract": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          ],
+          "description": "Expression régulière du sous-ensemble commun d'EX-10.6 appliquée à la valeur de object ; première correspondance ; premier groupe capturant s'il y en a un, sinon la correspondance entière (CT-2 EX-7.6). Absent : null."
+        }
+      }
+    },
+    "tool_settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "timeout_ms",
+        "effects",
+        "failure"
+      ],
+      "properties": {
+        "class": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "lecture",
+                "ecriture"
+              ]
+            }
+          ],
+          "description": "null : classe par défaut du serveur, à défaut readOnlyHint, à défaut ecriture (EX-4.17)."
+        },
+        "timeout_ms": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/ms"
+            }
+          ]
+        },
+        "effects": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/effect_template"
+              }
+            }
+          ]
+        },
+        "failure": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "bloquant",
+                "passant"
+              ]
+            }
+          ],
+          "description": "Comportement en mode dégradé pour cet outil ; null : celui de la classe (policy.failure)."
+        }
+      }
+    },
+    "tool_server": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport",
+        "protocol",
+        "class_default",
+        "timeout_ms",
+        "tools",
+        "uri_prefixes",
+        "relay"
+      ],
+      "properties": {
+        "transport": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "command",
+                "cwd",
+                "env",
+                "sandbox",
+                "user",
+                "integrity"
+              ],
+              "properties": {
+                "type": {
+                  "const": "stdio"
+                },
+                "command": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Commande exacte et arguments ; inscrite dans le journal d'exploitation au démarrage (EX-3.4)."
+                },
+                "cwd": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^/[^\\u0000]{1,4095}$"
+                    }
+                  ]
+                },
+                "env": {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^[A-Z][A-Z0-9_]{0,127}$"
+                  },
+                  "additionalProperties": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "#/$defs/secret_reference"
+                      }
+                    ]
+                  }
+                },
+                "sandbox": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Préfixe de commande d'isolement (bac à sable ou conteneur), antéposé à command."
+                    }
+                  ]
+                },
+                "user": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[a-z_][a-z0-9_-]{0,31}$"
+                    }
+                  ],
+                  "description": "Utilisateur système du serveur stdio, distinct de celui du démon (CT-2 EX-3.5) ; obligatoire en production."
+                },
+                "integrity": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "sha256"
+                      ],
+                      "properties": {
+                        "sha256": {
+                          "$ref": "#/$defs/hex32"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "package"
+                      ],
+                      "properties": {
+                        "package": {
+                          "type": "string",
+                          "pattern": "^(@[a-z0-9._-]+/)?[A-Za-z0-9._-]+@[0-9A-Za-z.+_-]+$"
+                        }
+                      }
+                    }
+                  ],
+                  "description": "Épinglage de la commande (CT-2 EX-3.5) : sha256 de l'exécutable, ou paquet et version exacte ; obligatoire en production."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "url",
+                "headers",
+                "oauth",
+                "tls"
+              ],
+              "properties": {
+                "type": {
+                  "const": "http"
+                },
+                "url": {
+                  "type": "string",
+                  "pattern": "^https?://[^\\s]+$"
+                },
+                "headers": {
+                  "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/$defs/header_name"
+                  },
+                  "additionalProperties": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "#/$defs/secret_reference"
+                      }
+                    ]
+                  }
+                },
+                "oauth": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "client_id",
+                        "client_secret",
+                        "client_id_metadata_url",
+                        "scopes",
+                        "issuer",
+                        "resource_metadata_url"
+                      ],
+                      "properties": {
+                        "client_id": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "client_secret": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "$ref": "#/$defs/secret_reference"
+                            }
+                          ]
+                        },
+                        "client_id_metadata_url": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "pattern": "^https://[^\\s]+$"
+                            }
+                          ]
+                        },
+                        "scopes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "issuer": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "pattern": "^https://[^\\s]+$"
+                            }
+                          ],
+                          "description": "Émetteur épinglé (CT-2 EX-4.40) ; obligatoire en production."
+                        },
+                        "resource_metadata_url": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "pattern": "^https://[^\\s]+$"
+                            }
+                          ],
+                          "description": "URL des métadonnées de ressource protégée épinglée (CT-2 EX-4.40) ; obligatoire en production."
+                        }
+                      }
+                    }
+                  ]
+                },
+                "tls": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/tls_client"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "protocol": {
+          "enum": [
+            "auto",
+            "2026-07-28",
+            "legacy"
+          ],
+          "description": "auto : sonde server/discover puis repli initialize (EX-4.6) ; les deux autres valeurs épinglent l'ère."
+        },
+        "class_default": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "lecture",
+                "ecriture"
+              ]
+            }
+          ]
+        },
+        "timeout_ms": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/ms"
+            }
+          ]
+        },
+        "tools": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/tool_settings"
+          },
+          "description": "Réglages par nom d'origine."
+        },
+        "uri_prefixes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "description": "Préfixes d'URI de ressources routés vers ce serveur (EX-4.26)."
+        },
+        "relay": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sampling",
+                "elicitation",
+                "roots"
+              ],
+              "properties": {
+                "sampling": {
+                  "type": "boolean"
+                },
+                "elicitation": {
+                  "type": "boolean"
+                },
+                "roots": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ],
+          "description": "Relais des requêtes serveur→client pour ce serveur (sampling, elicitation, roots) ; null : valeurs globales, false par défaut (CT-2 EX-4.28)."
+        }
+      }
+    },
+    "policy_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "approval",
+        "redaction",
+        "servers",
+        "model",
+        "failure"
+      ],
+      "description": "L'ensemble de politique nommé par code.policy_version (CT-2 §10.6, §15.5).",
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Valeur de code.policy_version (CT-1 §5.3)."
+        },
+        "approval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rules",
+            "mode",
+            "hold_timeout_ms",
+            "expire_after_ms",
+            "timeout_ms",
+            "service"
+          ],
+          "properties": {
+            "rules": {
+              "description": "Règles d'approbation dans la syntaxe de CT-3 ; opaque pour CT-2, hachée telle quelle."
+            },
+            "mode": {
+              "enum": [
+                "retenir",
+                "erreur"
+              ],
+              "description": "Attente de la décision : requête de l'hôte gardée ouverte, ou erreur -32015 avec ticket (CT-2 §4.4, décision ouverte 4 close par CT-3)."
+            },
+            "hold_timeout_ms": {
+              "$ref": "#/$defs/ms"
+            },
+            "expire_after_ms": {
+              "$ref": "#/$defs/ms",
+              "description": "Délai au-delà duquel un ticket sans décision expire (sortie expire de CT-3, CT-2 §9.1)."
+            },
+            "timeout_ms": {
+              "$ref": "#/$defs/ms",
+              "description": "Délai de réponse du service d'approbation (EX-7.4)."
+            },
+            "service": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "socket",
+                "token",
+                "peer_user"
+              ],
+              "properties": {
+                "url": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^https?://[^\\s]+$"
+                    }
+                  ]
+                },
+                "socket": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/socket_path"
+                    }
+                  ]
+                },
+                "token": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/secret_reference"
+                    }
+                  ]
+                },
+                "peer_user": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  ],
+                  "description": "Utilisateur système attendu du pair sur la prise du service d'approbation (CT-2 EX-18.8)."
+                }
+              }
+            }
+          }
+        },
+        "redaction": {
+          "$ref": "https://noortrace.example/schemas/v0/politique-redaction.schema.json"
+        },
+        "servers": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/tool_server"
+          },
+          "description": "Carte des serveurs d'outils, par alias (EX-4.9) ; l'alias noortrace est refusé à la validation."
+        },
+        "failure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ecriture",
+            "lecture",
+            "modele",
+            "approval_service",
+            "pending_max_events",
+            "pending_max_ms"
+          ],
+          "properties": {
+            "ecriture": {
+              "const": "bloquant",
+              "description": "Non réglable : une écriture sans événement durable n'est jamais relayée (CT-2 §14)."
+            },
+            "lecture": {
+              "enum": [
+                "bloquant",
+                "passant"
+              ]
+            },
+            "approval_service": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ecriture",
+                "lecture"
+              ],
+              "properties": {
+                "ecriture": {
+                  "const": "bloquant"
+                },
+                "lecture": {
+                  "enum": [
+                    "bloquant",
+                    "passant"
+                  ]
+                }
+              }
+            },
+            "pending_max_events": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "description": "Événements de lecture en attente admis en mode dégradé avant de bloquer aussi les lectures (CT-2 §14.5)."
+            },
+            "pending_max_ms": {
+              "$ref": "#/$defs/ms"
+            },
+            "modele": {
+              "enum": [
+                "bloquant",
+                "passant"
+              ],
+              "description": "Échange de modèle en mode dégradé « stockage » (CT-2 14.2) ; clé, bail, horloge : toujours bloquant."
+            }
+          }
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "routes"
+          ],
+          "properties": {
+            "routes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "format",
+                  "upstream",
+                  "provider_label",
+                  "credentials",
+                  "secret",
+                  "auth_header",
+                  "passthrough"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "pattern": "^/[A-Za-z0-9._~/-]{0,255}$",
+                    "description": "Chemin exact, comparé par égalité au chemin normalisé de la requête (CT-2 EX-5.2)."
+                  },
+                  "format": {
+                    "enum": [
+                      "anthropic-messages",
+                      "openai-chat",
+                      "openai-responses"
+                    ]
+                  },
+                  "upstream": {
+                    "type": "string",
+                    "pattern": "^https?://[^\\s]+$",
+                    "description": "URL de base du fournisseur, sans le chemin de la route."
+                  },
+                  "provider_label": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9.-]{0,31}$",
+                    "description": "Préfixe de code.model (EX-5.19)."
+                  },
+                  "credentials": {
+                    "enum": [
+                      "propre",
+                      "relayer"
+                    ],
+                    "description": "propre : clé de l'enregistreur (secret) ; relayer : seul l'en-tête auth_header de l'hôte traverse (CT-2 EX-5.8)."
+                  },
+                  "secret": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/secret_reference"
+                      }
+                    ]
+                  },
+                  "auth_header": {
+                    "enum": [
+                      "x-api-key",
+                      "authorization-bearer",
+                      "api-key"
+                    ],
+                    "description": "En-tête d'authentification du fournisseur : posé par l'enregistreur (propre) ou seul relayé (relayer)."
+                  },
+                  "passthrough": {
+                    "type": "array",
+                    "maxItems": 32,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "method",
+                        "path"
+                      ],
+                      "properties": {
+                        "method": {
+                          "enum": [
+                            "GET",
+                            "POST"
+                          ]
+                        },
+                        "path": {
+                          "type": "string",
+                          "pattern": "^/[A-Za-z0-9._~/-]{0,255}$"
+                        }
+                      }
+                    },
+                    "description": "Couples (méthode, chemin) exacts relayés sans événement avec l'amont et les identifiants de la route (CT-2 EX-5.2)."
+                  }
+                }
+              }
+            }
+          },
+          "description": "Routes du frontal modèle (CT-2 EX-5.2) : membre de l'ensemble de politique."
+        }
+      }
+    },
+    "cidr": {
+      "type": "string",
+      "pattern": "^([0-9]{1,3}(\\.[0-9]{1,3}){3}/[0-9]{1,2}|[0-9a-fA-F:]{2,39}/[0-9]{1,3})$",
+      "description": "Plage d'adresses en notation CIDR, IPv4 ou IPv6."
+    },
+    "tcp_listen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "listen",
+        "client_auth",
+        "tls"
+      ],
+      "properties": {
+        "listen": {
+          "$ref": "#/$defs/listen_address"
+        },
+        "client_auth": {
+          "enum": [
+            "jeton",
+            "mtls"
+          ],
+          "description": "Une prise TCP n'a pas d'identité de pair : jeton statique (première ligne {\"noortrace_token\": …}) ou certificat client (CT-2 EX-4.39)."
+        },
+        "tls": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tls_server"
+            }
+          ]
+        }
+      }
+    },
+    "static_token": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "token"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "Identité de connexion d'hôte que ce jeton établit ; référencée par hosts[].match.static_token."
+        },
+        "token": {
+          "$ref": "#/$defs/secret_reference"
+        }
+      }
+    }
+  }
+}

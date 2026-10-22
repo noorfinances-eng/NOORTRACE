@@ -1,0 +1,63 @@
+{
+  "format": "openai-responses",
+  "provider_label": "openai",
+  "route": "/v1/responses",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "id": "resp_exemple_0001",
+    "object": "response",
+    "created_at": 1794307000,
+    "status": "in_progress",
+    "model": "modele-responses-exemple",
+    "output": [
+      {
+        "id": "msg_exemple_r001",
+        "type": "message",
+        "status": "completed",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Je vérifie le dossier."
+          }
+        ]
+      }
+    ],
+    "usage": null,
+    "noortrace_flux_incomplet": true
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0xfc9558e86dbc7cba195b6ec304be0325f41d96530918d2971eb166bc520a680f",
+      "length": 438,
+      "redacted": true,
+      "bytes": "{\"input\":[{\"content\":\"[REDIGE:prompt-systeme]\",\"role\":\"developer\"},{\"content\":\"Vérifie le sinistre 2026-81044.\",\"role\":\"user\"}],\"instructions\":\"[REDIGE:prompt-systeme]\",\"model\":\"modele-responses-exemple\",\"stream\":true,\"tools\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"name\":\"demo__claims_get\",\"parameters\":{\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"type\":\"function\"}]}"
+    },
+    "response": {
+      "sha256": "0x3aa3cf90e61cdc4f908b913f8519f92a02fc62854c6a6d8e721597df38d79e35",
+      "length": 335,
+      "redacted": false,
+      "bytes": "{\"created_at\":1794307000,\"id\":\"resp_exemple_0001\",\"model\":\"modele-responses-exemple\",\"noortrace_flux_incomplet\":true,\"object\":\"response\",\"output\":[{\"content\":[{\"text\":\"Je vérifie le dossier.\",\"type\":\"output_text\"}],\"id\":\"msg_exemple_r001\",\"role\":\"assistant\",\"status\":\"completed\",\"type\":\"message\"}],\"status\":\"in_progress\",\"usage\":null}"
+    },
+    "system_prompt": {
+      "sha256": "0x705f99af772cb862e7a480a85152e25a854b8a4fb88ba9e5ea1b05ba6b76ef9f",
+      "length": 105,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration.\nRéponds en français, sans donnée personnelle."
+    },
+    "intent": null
+  },
+  "code_model": "openai/modele-responses-exemple",
+  "prompt_version": "0x705f99af772cb862e7a480a85152e25a854b8a4fb88ba9e5ea1b05ba6b76ef9f",
+  "intent": "Je vérifie le dossier.",
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": true,
+  "note": "Flux arrêté avant tout événement terminal : forme = response du dernier response.in_progress, noortrace_flux_incomplet: true, et output complété par les items de response.output_item.done reçus (le message ; l'appel d'outil inachevé n'y est pas) ; is_error vrai."
+}

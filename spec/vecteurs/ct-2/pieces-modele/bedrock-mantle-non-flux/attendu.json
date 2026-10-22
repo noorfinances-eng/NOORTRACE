@@ -1,0 +1,41 @@
+{
+  "format": "anthropic-messages",
+  "provider_label": "bedrock-mantle",
+  "route": "/anthropic/v1/messages",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0xca1daceaca4b81cf4b60c7980b92586eeac753bc0d4b56faf3d92417c1adced5",
+      "length": 182,
+      "redacted": true,
+      "bytes": "{\"max_tokens\":512,\"messages\":[{\"content\":\"Quel est le statut du sinistre 2026-81044 ?\",\"role\":\"user\"}],\"model\":\"anthropic.modele-messages-exemple\",\"system\":\"[REDIGE:prompt-systeme]\"}"
+    },
+    "response": {
+      "sha256": "0x9aa0a7b5135f833cfb666e1c6c2200aed3eb71caeef10e6ddb62dee0ea5fd53e",
+      "length": 270,
+      "redacted": false,
+      "bytes": "{\"content\":[{\"text\":\"Le sinistre 2026-81044 est ouvert.\",\"type\":\"text\"}],\"id\":\"msg_exemple_0006\",\"model\":\"anthropic.modele-messages-exemple\",\"role\":\"assistant\",\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"input_tokens\":90,\"output_tokens\":12}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "bedrock-mantle/anthropic.modele-messages-exemple",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": "Le sinistre 2026-81044 est ouvert.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "note": "Même corps que l'API Messages, route distincte, libellé bedrock-mantle ; le model de la réponse porte le préfixe anthropic. (F-A34) : code.model = bedrock-mantle/anthropic.modele-messages-exemple."
+}

@@ -1,0 +1,11 @@
+{
+  "model": "anthropic.modele-messages-exemple",
+  "max_tokens": 512,
+  "system": "Tu es l'agent sinistres de l'assureur de démonstration.",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Quel est le statut du sinistre 2026-81044 ?"
+    }
+  ]
+}

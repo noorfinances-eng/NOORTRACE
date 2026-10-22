@@ -1,0 +1,70 @@
+{
+  "tool_announced": "demo__claims.get",
+  "tool_original": "claims.get",
+  "server_alias": "demo",
+  "class": "lecture",
+  "rejected": false,
+  "pieces": {
+    "arguments": {
+      "sha256": "0x1dc9ca95d46b880120776dd0f20e2ce72e27174c005cc1ca38144ee84a44eae2",
+      "length": 18,
+      "redacted": false,
+      "bytes": "{\"claim_id\":81044}"
+    },
+    "result": {
+      "sha256": "0x8a96679ea595e5de08f71d05108df9e354fc6bdbbf8b65c1ac0edd7ebd35489c",
+      "length": 129,
+      "redacted": false,
+      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-32602,\"data\":{\"field\":\"claim_id\"},\"message\":\"Invalid params: claim_id doit etre une chaine\"}}"
+    },
+    "definition": {
+      "sha256": "0x67f5a0387537ec6f23759093f193a768d8a0e165d871e88098261538735b675f",
+      "length": 283,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"}"
+    },
+    "definition_current": null,
+    "list": {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"tools\":[{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend une pièce archivée d'un sinistre\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"document_id\":{\"type\":\"string\"}},\"required\":[\"document_id\"],\"type\":\"object\"},\"name\":\"archives__documents.get\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"},{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}]}"
+    }
+  },
+  "context": [
+    {
+      "sha256": "0x67f5a0387537ec6f23759093f193a768d8a0e165d871e88098261538735b675f",
+      "length": 283,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    },
+    {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    }
+  ],
+  "is_error": true,
+  "duration_ms": 17,
+  "error_rendered": {
+    "code": -32602,
+    "message": "Invalid params: claim_id doit etre une chaine",
+    "data": {
+      "field": "claim_id"
+    }
+  },
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Erreur de protocole JSON-RPC du serveur : pièce {\"noortrace_jsonrpc_error\": error}, is_error vrai ; l'erreur est rendue à l'hôte avec le même code, le même message et le même data, et l'id de l'hôte (4.4 pas 12 et 14)."
+}

@@ -1,0 +1,155 @@
+{
+  "version": 0,
+  "name": "pii-regles-test",
+  "description": "Politique de test des vecteurs CT-2 : selecteurs par pointeur JSON, detecteur champ (remplacer, supprimer), motif nomme et enchainement de regles, suivis des identifiants de pii-v1.",
+  "pseudonym_key": null,
+  "named_patterns": {
+    "numero-sinistre": {
+      "pattern": "\\b20[0-9]{2}-[0-9]{5}\\b",
+      "description": "Numero de dossier de sinistre AAAA-NNNNN de l'assureur de demonstration."
+    }
+  },
+  "rules": [
+    {
+      "id": "montant-champ",
+      "description": "Montant en centimes porte par un nombre JSON : remplace par un jeton.",
+      "scopes": [
+        "arguments"
+      ],
+      "tools": [
+        "demo__payments.create"
+      ],
+      "path": "/amount_cents",
+      "detectors": [
+        {
+          "type": "champ",
+          "label": "montant"
+        }
+      ],
+      "action": {
+        "kind": "remplacer"
+      }
+    },
+    {
+      "id": "note-interne-supprimee",
+      "description": "Note interne retiree des arguments et des resultats du serveur demo.",
+      "scopes": [
+        "arguments",
+        "resultat"
+      ],
+      "tools": [
+        "demo__*"
+      ],
+      "path": "/note_interne",
+      "detectors": [
+        {
+          "type": "champ",
+          "label": "note-interne"
+        }
+      ],
+      "action": {
+        "kind": "supprimer"
+      }
+    },
+    {
+      "id": "copie-supprimee",
+      "description": "Deuxieme destinataire d'un envoi : l'element de tableau devient un jeton.",
+      "scopes": [
+        "arguments"
+      ],
+      "tools": "*",
+      "path": "/destinataires/1",
+      "detectors": [
+        {
+          "type": "champ",
+          "label": "destinataire"
+        }
+      ],
+      "action": {
+        "kind": "supprimer"
+      }
+    },
+    {
+      "id": "numero-sinistre",
+      "description": "Numeros de dossier de sinistre dans les resultats et les reponses du modele.",
+      "scopes": [
+        "resultat",
+        "reponse"
+      ],
+      "tools": "*",
+      "detectors": [
+        {
+          "type": "regex",
+          "name": "numero-sinistre"
+        }
+      ],
+      "action": {
+        "kind": "remplacer"
+      }
+    },
+    {
+      "id": "identifiants",
+      "description": "Les cinq detecteurs de pii-v1, apres les regles precedentes.",
+      "scopes": [
+        "arguments",
+        "resultat",
+        "requete",
+        "reponse",
+        "prompt_systeme"
+      ],
+      "tools": "*",
+      "detectors": [
+        {
+          "type": "iban"
+        },
+        {
+          "type": "avs"
+        },
+        {
+          "type": "carte"
+        },
+        {
+          "type": "email"
+        },
+        {
+          "type": "telephone"
+        }
+      ],
+      "action": {
+        "kind": "remplacer"
+      }
+    },
+    {
+      "id": "telephone-contexte",
+      "description": "Contexte : le telephone d'abord, l'IBAN ensuite, pour montrer la regle des passages (EX-10.14).",
+      "scopes": [
+        "contexte"
+      ],
+      "tools": "*",
+      "detectors": [
+        {
+          "type": "telephone"
+        }
+      ],
+      "action": {
+        "kind": "remplacer"
+      }
+    },
+    {
+      "id": "iban-contexte",
+      "description": "Contexte : l'IBAN apres le telephone.",
+      "scopes": [
+        "contexte"
+      ],
+      "tools": "*",
+      "detectors": [
+        {
+          "type": "iban"
+        }
+      ],
+      "action": {
+        "kind": "remplacer"
+      }
+    }
+  ]
+}

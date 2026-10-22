@@ -1,0 +1,27 @@
+{
+  "tool_announced": null,
+  "tool_original": null,
+  "server_alias": null,
+  "class": null,
+  "rejected": true,
+  "pieces": null,
+  "context": [],
+  "is_error": null,
+  "duration_ms": null,
+  "error_rendered": {
+    "code": -32602,
+    "message": "Invalid params",
+    "data": {
+      "reason": "arguments_non_canonisables"
+    }
+  },
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Un nombre hors de la double précision (1e400) : le JCS intégral ne sait pas l'écrire ; refus -32602 data.reason arguments_non_canonisables, id null (l'analyse stricte s'arrête), sans relais, sans pièce, sans événement (EX-4.44)."
+}

@@ -1,0 +1,27 @@
+{
+  "tool_announced": null,
+  "tool_original": null,
+  "server_alias": null,
+  "class": null,
+  "rejected": true,
+  "pieces": null,
+  "context": [],
+  "is_error": null,
+  "duration_ms": null,
+  "error_rendered": {
+    "code": -32700,
+    "message": "Parse error",
+    "data": {
+      "reason": "cr_dans_la_ligne"
+    }
+  },
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Une ligne stdio qui contient un CR (U+000D, ici comme blanc après les arguments) : refus -32700 data.reason cr_dans_la_ligne, id null, sans relais (EX-4.43) ; un serveur stdio Python lirait CR comme une fin de ligne."
+}

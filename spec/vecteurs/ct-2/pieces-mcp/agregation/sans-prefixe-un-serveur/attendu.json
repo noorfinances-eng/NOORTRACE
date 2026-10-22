@@ -1,0 +1,31 @@
+{
+  "prefix": false,
+  "page_size": 100,
+  "announced": [
+    {
+      "server_alias": "demo",
+      "original": "payments.create",
+      "announced": "payments.create",
+      "class": "ecriture",
+      "definition_sha256": "0x30c2d8b10d21295c1b99e2d23750113bfaca0f67841777062eba45a88e3ab78a"
+    }
+  ],
+  "rejected": [
+    {
+      "server_alias": "demo",
+      "original": "claims.get",
+      "reason": "collision"
+    },
+    {
+      "server_alias": "demo",
+      "original": "claims.get",
+      "reason": "collision"
+    }
+  ],
+  "pages": [
+    [
+      "payments.create"
+    ]
+  ],
+  "note": "Un seul serveur, préfixe désactivé : le nom annoncé est le nom d'origine ; deux outils de même nom entrent en collision et sont tous deux rejetés (EX-4.11)."
+}

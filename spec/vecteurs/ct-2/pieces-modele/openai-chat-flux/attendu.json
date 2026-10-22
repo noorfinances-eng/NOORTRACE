@@ -1,0 +1,62 @@
+{
+  "format": "openai-chat",
+  "provider_label": "openai",
+  "route": "/v1/chat/completions",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "id": "chatcmpl-exemple-0002",
+    "created": 1794306900,
+    "model": "modele-chat-exemple",
+    "system_fingerprint": "fp_exemple",
+    "object": "chat.completion",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Le dossier 2026-81044 est complet."
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 40,
+      "completion_tokens": 7,
+      "total_tokens": 47
+    }
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x1bd1c64d36b6d7dddb5a84d701f95b66f08c9b43a7c77bf0e54aaba0d7d686bd",
+      "length": 219,
+      "redacted": true,
+      "bytes": "{\"messages\":[{\"content\":\"[REDIGE:prompt-systeme]\",\"role\":\"system\"},{\"content\":\"Le dossier 2026-81044 est-il complet ?\",\"role\":\"user\"}],\"model\":\"modele-chat-exemple\",\"stream\":true,\"stream_options\":{\"include_usage\":true}}"
+    },
+    "response": {
+      "sha256": "0xadfe92ad4c3a1508c8be35fe9b71fe74b9beb521402fd80a8cc37b91b98d760d",
+      "length": 336,
+      "redacted": false,
+      "bytes": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"content\":\"Le dossier 2026-81044 est complet.\",\"role\":\"assistant\"}}],\"created\":1794306900,\"id\":\"chatcmpl-exemple-0002\",\"model\":\"modele-chat-exemple\",\"object\":\"chat.completion\",\"system_fingerprint\":\"fp_exemple\",\"usage\":{\"completion_tokens\":7,\"prompt_tokens\":40,\"total_tokens\":47}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "openai/modele-chat-exemple",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": "Le dossier 2026-81044 est complet.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "note": "Chunks data seuls, un commentaire SSE, champ obfuscation jamais recopié, usage du dernier chunk (include_usage), fin par data: [DONE] (EX-5.16)."
+}

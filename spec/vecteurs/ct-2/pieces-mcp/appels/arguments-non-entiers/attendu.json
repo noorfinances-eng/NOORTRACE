@@ -1,0 +1,64 @@
+{
+  "tool_announced": "demo__claims.search",
+  "tool_original": "claims.search",
+  "server_alias": "demo",
+  "class": "lecture",
+  "rejected": false,
+  "pieces": {
+    "arguments": {
+      "sha256": "0xa8b42e4fd8de8cf86e33f813f2497a42594c5f6592187d4d61600e90efad12e0",
+      "length": 60,
+      "redacted": false,
+      "bytes": "{\"limite\":1,\"plafond\":1000,\"query\":\"collision\",\"seuil\":0.75}"
+    },
+    "result": {
+      "sha256": "0x31cee4f9c3048cac55f07e667a10007070882bdf4cef0181160f57c7bbf26750",
+      "length": 143,
+      "redacted": false,
+      "bytes": "{\"content\":[{\"text\":\"3 sinistres\",\"type\":\"text\"}],\"isError\":false,\"resultType\":\"complete\",\"structuredContent\":{\"score_moyen\":0.8125,\"total\":3}}"
+    },
+    "definition": {
+      "sha256": "0x7554590dd86b63e422c29b6966203d2b976987602700a6423c20ef247f0de75c",
+      "length": 414,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"}"
+    },
+    "definition_current": null,
+    "list": {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"tools\":[{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend une pièce archivée d'un sinistre\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"document_id\":{\"type\":\"string\"}},\"required\":[\"document_id\"],\"type\":\"object\"},\"name\":\"archives__documents.get\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"},{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}]}"
+    }
+  },
+  "context": [
+    {
+      "sha256": "0x7554590dd86b63e422c29b6966203d2b976987602700a6423c20ef247f0de75c",
+      "length": 414,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    },
+    {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    }
+  ],
+  "is_error": false,
+  "duration_ms": 46,
+  "error_rendered": null,
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Arguments portant des nombres non entiers exactement représentables : la pièce est en JCS intégral (1.0 → 1, 1e3 → 1000), la ligne relayée garde les octets d'origine (EX-4.20) ; les trois nombres ont la même valeur décimale que leur forme (EX-4.44). Le résultat porte aussi un nombre non entier (0.8125)."
+}

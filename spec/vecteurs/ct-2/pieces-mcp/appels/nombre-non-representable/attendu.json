@@ -1,0 +1,27 @@
+{
+  "tool_announced": null,
+  "tool_original": null,
+  "server_alias": null,
+  "class": null,
+  "rejected": true,
+  "pieces": null,
+  "context": [],
+  "is_error": null,
+  "duration_ms": null,
+  "error_rendered": {
+    "code": -32602,
+    "message": "Invalid params",
+    "data": {
+      "reason": "nombre_non_representable"
+    }
+  },
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Un entier au-delà de 2^53 dans les arguments : sa forme JCS intégral (12345678901234567000) n'a pas la valeur reçue ; refus -32602 data.reason nombre_non_representable avec l'id de la requête, sans relais, sans pièce, sans événement (EX-4.44)."
+}

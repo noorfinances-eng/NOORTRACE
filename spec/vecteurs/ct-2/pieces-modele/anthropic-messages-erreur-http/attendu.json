@@ -1,0 +1,35 @@
+{
+  "format": "anthropic-messages",
+  "provider_label": "anthropic",
+  "route": "/v1/messages",
+  "status": 529,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0xaf50e397aafdcec1a173b4c70b9bd02359c828a66894d351f04fb7739124414c",
+      "length": 130,
+      "redacted": false,
+      "bytes": "{\"max_tokens\":1024,\"messages\":[{\"content\":\"Où en est le sinistre 2026-81044 ?\",\"role\":\"user\"}],\"model\":\"modele-messages-exemple\"}"
+    },
+    "response": {
+      "sha256": "0xca3003f76cb92be09322c71f4b94c0edcef5f63bccc89bd16de7b5ac88c7d3ea",
+      "length": 188,
+      "redacted": false,
+      "bytes": "{\"noortrace_http_error\":{\"body\":{\"error\":{\"message\":\"Overloaded\",\"type\":\"overloaded_error\"},\"request_id\":\"req_exemple_0004\",\"type\":\"error\"},\"content_type\":\"application/json\",\"status\":529}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "anthropic/modele-messages-exemple",
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": false,
+  "note": "Statut 529 : pièce « réponse » {\"noortrace_http_error\": {status, content_type, body}} avec le corps d'erreur entier (F-A32), is_error vrai ; code.model tiré de la requête faute de réponse exploitable ; pas de prompt système, prompt_version null ; la requête n'est pas rédigée (redacted faux)."
+}

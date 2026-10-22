@@ -1,0 +1,1 @@
+{"id":"msg_exemple_0001","type":"message","role":"assistant","model":"modele-messages-exemple","content":[{"type":"text","text":"Je consulte le dossier du sinistre 2026-81044."},{"type":"tool_use","id":"toolu_exemple_0001","name":"demo__claims_get","input":{"claim_id":"2026-81044"}}],"stop_reason":"tool_use","stop_sequence":null,"usage":{"input_tokens":412,"output_tokens":61}}

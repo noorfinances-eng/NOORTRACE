@@ -1,0 +1,16 @@
+data: {"id":"chatcmpl-exemple-0003","object":"chat.completion.chunk","created":1794306960,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_exemple_0001","type":"function","function":{"name":"demo__claims_get","arguments":""}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-exemple-0003","object":"chat.completion.chunk","created":1794306960,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"claim_"}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-exemple-0003","object":"chat.completion.chunk","created":1794306960,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"id\":\"2026-81044\"}"}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-exemple-0003","object":"chat.completion.chunk","created":1794306960,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"id":"call_exemple_0002","type":"function","function":{"name":"demo__claims_search","arguments":""}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-exemple-0003","object":"chat.completion.chunk","created":1794306960,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"{\"query\":\"collision\"}"}}]},"logprobs":null,"finish_reason":null}],"usage":null}
+
+data: {"id":"chatcmpl-exemple-0003","object":"chat.completion.chunk","created":1794306960,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],"usage":null}
+
+data: {"id":"chatcmpl-exemple-0003","object":"chat.completion.chunk","created":1794306960,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[],"usage":{"prompt_tokens":120,"completion_tokens":31,"total_tokens":151}}
+
+data: [DONE]
+

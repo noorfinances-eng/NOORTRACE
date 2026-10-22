@@ -1,0 +1,12 @@
+{
+  "model": "modele-messages-exemple",
+  "max_tokens": 1024,
+  "system": "Tu es l'agent sinistres de l'assureur de démonstration.",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Le dossier 2026-81044 est-il complet ?"
+    }
+  ],
+  "stream": true
+}

@@ -1,0 +1,17 @@
+{
+  "model": "modele-chat-exemple",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    {
+      "role": "user",
+      "content": "Le dossier 2026-81044 est-il complet ?"
+    }
+  ],
+  "stream": true,
+  "stream_options": {
+    "include_usage": true
+  }
+}

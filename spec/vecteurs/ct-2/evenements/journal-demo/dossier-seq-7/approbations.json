@@ -1,0 +1,89 @@
+{
+  "version": 0,
+  "ticket": "apr-demo-0001",
+  "request_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+  "approver_set": {
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "members": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "source": "comptes Hardhat 1 à 3 (vecteurs CT-1 et CT-2)"
+  },
+  "events": [
+    {
+      "version": 0,
+      "seq": 6,
+      "ts": "2026-11-10T10:21:33.250Z",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+      "recorder_key_id": "rec-test-01",
+      "prev_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+      "delegation": {
+        "launched_by": "agent-demo",
+        "on_behalf_of": "service-sinistres",
+        "scope": "sinistres:lecture,paiement",
+        "run_id": "run-demo-0001"
+      },
+      "code": {
+        "model": "demo/modele-demo-1",
+        "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+        "policy_version": "demo-2026-11",
+        "recorder": "0.1.0"
+      },
+      "intent": null,
+      "policy": {
+        "rule": null,
+        "decision": "sans_objet",
+        "ticket": "apr-demo-0001",
+        "redaction": null
+      },
+      "approval": {
+        "decision": "approuve",
+        "ticket": "apr-demo-0001",
+        "request_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+        "threshold": {
+          "required": 2,
+          "size": 3
+        },
+        "approvers": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+        ],
+        "signatures": [
+          "0x9e36de49ca3fb63f8e654b10b1a348b3ed140f5061cb6e67f7f609a03ac989fe194e7890bb66ee0a424ed116786d7d9873a90a4487e192b610f72ead9e340a661c",
+          "0xabd3df3bbf022bc51b714d586dd13dd9fd2711cbb574e57f2a69a29940d0c19308ac013680bc33af79fe91157cb7d939359acb6412a72a7dff88da2f99099fce1c"
+        ],
+        "at": "2026-11-10T10:21:33.250Z",
+        "reason": "Constat et facture concordants"
+      },
+      "execution": {
+        "tool": "noortrace.approbation.decision",
+        "arguments": {
+          "sha256": "0xadb9e00e907109134f03cf86fa053a04da45d371667b82a499dc16a2e83cb634",
+          "length": 292,
+          "redacted": false,
+          "value": {
+            "decision": "approuve",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "request_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+            "ticket": "apr-demo-0001"
+          }
+        },
+        "status": "executee",
+        "result": null,
+        "duration_ms": null,
+        "is_error": null
+      },
+      "effects": [],
+      "context": [],
+      "hash": "0x405f9d441acb3f22eed81d2c8448acef5bdc6bf94ea5c09e81383a6952c3c9cc",
+      "sig": "0x1efd59cde7e192a879c7353ee19f0bce5d3a460351607401b75d6c42e3e02be0bd574afac1af1227a94c2f8ede1335efc7346f97e47abb684038eb62cf44940a"
+    }
+  ]
+}

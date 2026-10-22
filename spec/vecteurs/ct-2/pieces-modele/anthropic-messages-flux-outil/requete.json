@@ -1,0 +1,41 @@
+{
+  "model": "modele-messages-exemple",
+  "max_tokens": 1024,
+  "system": "Tu es l'agent sinistres de l'assureur de démonstration.",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Règle le sinistre 2026-81044."
+    }
+  ],
+  "tools": [
+    {
+      "name": "demo__payments_create",
+      "description": "Crée un paiement de sinistre (écriture)",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "claim_id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "beneficiary_iban": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id",
+          "amount",
+          "currency",
+          "beneficiary_iban"
+        ]
+      }
+    }
+  ],
+  "stream": true
+}

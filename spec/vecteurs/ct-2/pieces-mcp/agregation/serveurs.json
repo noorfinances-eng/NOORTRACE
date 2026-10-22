@@ -1,0 +1,738 @@
+[
+  {
+    "alias": "demo",
+    "tools": [
+      {
+        "name": "claims.get",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "claims.search",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "payments.create",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false
+        }
+      }
+    ]
+  },
+  {
+    "alias": "ged",
+    "tools": [
+      {
+        "name": "documents.search",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "documents.put",
+        "annotations": {
+          "destructiveHint": false
+        }
+      },
+      {
+        "name": "noortrace.x",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "oxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "oxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "doublon",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "doublon",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      }
+    ]
+  },
+  {
+    "alias": "volume",
+    "tools": [
+      {
+        "name": "outil-110",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-109",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-108",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-107",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-106",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-105",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-104",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-103",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-102",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-101",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-100",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-099",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-098",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-097",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-096",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-095",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-094",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-093",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-092",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-091",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-090",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-089",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-088",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-087",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-086",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-085",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-084",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-083",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-082",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-081",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-080",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-079",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-078",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-077",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-076",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-075",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-074",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-073",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-072",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-071",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-070",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-069",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-068",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-067",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-066",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-065",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-064",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-063",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-062",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-061",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-060",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-059",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-058",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-057",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-056",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-055",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-054",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-053",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-052",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-051",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-050",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-049",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-048",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-047",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-046",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-045",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-044",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-043",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-042",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-041",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-040",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-039",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-038",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-037",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-036",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-035",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-034",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-033",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-032",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-031",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-030",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-029",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-028",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-027",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-026",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-025",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-024",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-023",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-022",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-021",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-020",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-019",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-018",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-017",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-016",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-015",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-014",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-013",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-012",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-011",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-010",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-009",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-008",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-007",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-006",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-005",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-004",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-003",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      {
+        "name": "outil-002",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "outil-001",
+        "annotations": {
+          "readOnlyHint": false
+        }
+      }
+    ]
+  }
+]

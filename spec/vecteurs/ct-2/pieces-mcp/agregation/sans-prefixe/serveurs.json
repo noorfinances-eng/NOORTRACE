@@ -1,0 +1,24 @@
+[
+  {
+    "alias": "demo",
+    "tools": [
+      {
+        "name": "claims.get",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      }
+    ]
+  },
+  {
+    "alias": "ged",
+    "tools": [
+      {
+        "name": "claims.get",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      }
+    ]
+  }
+]

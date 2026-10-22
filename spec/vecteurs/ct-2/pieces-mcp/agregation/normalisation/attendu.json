@@ -1,0 +1,45 @@
+{
+  "prefix": true,
+  "page_size": 100,
+  "normalisations": [
+    {
+      "template": "mcp__noortrace__{tool_announced}",
+      "sanitize": true
+    }
+  ],
+  "announced": [
+    {
+      "server_alias": "demo",
+      "original": "payments.create",
+      "announced": "demo__payments.create",
+      "class": "ecriture",
+      "definition_sha256": "0x28ac2396539d7ec3afeb5cfd38b0d1a3f773b91557c0c3d75c044c9c3f6f7081"
+    },
+    {
+      "server_alias": "ged",
+      "original": "documents.search",
+      "announced": "ged__documents.search",
+      "class": "lecture",
+      "definition_sha256": "0x707fff606e32bf10c6c7c9939bd68ed76b838ff4e6a61eb19ef80bd6c798c448"
+    }
+  ],
+  "rejected": [
+    {
+      "server_alias": "demo",
+      "original": "claims.get",
+      "reason": "collision"
+    },
+    {
+      "server_alias": "demo",
+      "original": "claims_get",
+      "reason": "collision"
+    }
+  ],
+  "pages": [
+    [
+      "demo__payments.create",
+      "ged__documents.search"
+    ]
+  ],
+  "note": "demo__claims.get et demo__claims_get sont distincts, mais deviennent tous deux mcp__noortrace__demo__claims_get sous le gabarit et la normalisation d'une connexion d'hôte (Claude Code) : collision, les deux sont rejetés (EX-4.11, règle 3), sans quoi la corrélation (EX-5.22) ne saurait pas lequel le modèle a demandé."
+}

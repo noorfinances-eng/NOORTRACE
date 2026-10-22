@@ -1,0 +1,33 @@
+{
+  "model": "modele-responses-exemple",
+  "instructions": "Tu es l'agent sinistres de l'assureur de démonstration.",
+  "input": [
+    {
+      "role": "developer",
+      "content": "Réponds en français, sans donnée personnelle."
+    },
+    {
+      "role": "user",
+      "content": "Vérifie le sinistre 2026-81044."
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "name": "demo__claims_get",
+      "description": "Rend le dossier d'un sinistre de démonstration",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "claim_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id"
+        ]
+      }
+    }
+  ],
+  "stream": true
+}

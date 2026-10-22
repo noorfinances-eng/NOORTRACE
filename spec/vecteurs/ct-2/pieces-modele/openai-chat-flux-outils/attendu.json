@@ -1,0 +1,93 @@
+{
+  "format": "openai-chat",
+  "provider_label": "openai",
+  "route": "/v1/chat/completions",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "id": "chatcmpl-exemple-0003",
+    "created": 1794306960,
+    "model": "modele-chat-exemple",
+    "system_fingerprint": "fp_exemple",
+    "object": "chat.completion",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": null,
+          "tool_calls": [
+            {
+              "index": 0,
+              "id": "call_exemple_0001",
+              "type": "function",
+              "function": {
+                "name": "demo__claims_get",
+                "arguments": "{\"claim_id\":\"2026-81044\"}"
+              }
+            },
+            {
+              "index": 1,
+              "id": "call_exemple_0002",
+              "type": "function",
+              "function": {
+                "name": "demo__claims_search",
+                "arguments": "{\"query\":\"collision\"}"
+              }
+            }
+          ]
+        },
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 120,
+      "completion_tokens": 31,
+      "total_tokens": 151
+    }
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0xe174cda94818c0d056d25378b269b480865059f1e93f5ee69e96bf5bee4cf802",
+      "length": 684,
+      "redacted": true,
+      "bytes": "{\"messages\":[{\"content\":\"[REDIGE:prompt-systeme]\",\"role\":\"developer\"},{\"content\":\"Ouvre le sinistre 2026-81044 et cherche les collisions.\",\"role\":\"user\"}],\"model\":\"modele-chat-exemple\",\"stream\":true,\"stream_options\":{\"include_usage\":true},\"tools\":[{\"function\":{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"name\":\"demo__claims_get\",\"parameters\":{\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"}},\"type\":\"function\"},{\"function\":{\"description\":\"Recherche des sinistres de démonstration\",\"name\":\"demo__claims_search\",\"parameters\":{\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"}},\"type\":\"function\"}]}"
+    },
+    "response": {
+      "sha256": "0x3786214c2aa7611cafa5b2b7387350815d5928be018d8f8423faf97bbeb843c9",
+      "length": 603,
+      "redacted": false,
+      "bytes": "{\"choices\":[{\"finish_reason\":\"tool_calls\",\"index\":0,\"message\":{\"content\":null,\"role\":\"assistant\",\"tool_calls\":[{\"function\":{\"arguments\":\"{\\\"claim_id\\\":\\\"2026-81044\\\"}\",\"name\":\"demo__claims_get\"},\"id\":\"call_exemple_0001\",\"index\":0,\"type\":\"function\"},{\"function\":{\"arguments\":\"{\\\"query\\\":\\\"collision\\\"}\",\"name\":\"demo__claims_search\"},\"id\":\"call_exemple_0002\",\"index\":1,\"type\":\"function\"}]}}],\"created\":1794306960,\"id\":\"chatcmpl-exemple-0003\",\"model\":\"modele-chat-exemple\",\"object\":\"chat.completion\",\"system_fingerprint\":\"fp_exemple\",\"usage\":{\"completion_tokens\":31,\"prompt_tokens\":120,\"total_tokens\":151}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "openai/modele-chat-exemple",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": null,
+  "tool_calls": [
+    {
+      "id": "call_exemple_0001",
+      "name": "demo__claims_get",
+      "arguments": "{\"claim_id\":\"2026-81044\"}"
+    },
+    {
+      "id": "call_exemple_0002",
+      "name": "demo__claims_search",
+      "arguments": "{\"query\":\"collision\"}"
+    }
+  ],
+  "is_error": false,
+  "incomplete": false,
+  "note": "Deux appels d'outils accumulés par index : id, type et function.name fixés par le premier fragment qui les porte, function.arguments concaténé et gardé en chaîne, jamais analysé pour la pièce (F-O10) ; content reste null, intent null."
+}

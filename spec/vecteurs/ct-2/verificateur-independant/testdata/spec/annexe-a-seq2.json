@@ -1,0 +1,60 @@
+{
+  "version": 0,
+  "seq": 2,
+  "ts": "2026-11-03T13:41:07.218Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0x64994cc38adf2e7532b2f02fae0e78086b1970c5ffd36a37dc3c78143cfe8179",
+  "delegation": {
+    "launched_by": "u.martin@assureur-demo.example",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement",
+    "run_id": "run-2026-11-03-0142"
+  },
+  "code": {
+    "model": "fournisseur/modele@2026-09",
+    "prompt_version": "0xb71552443a0b6e9793dd337ab10d057b354013fba35c2c82fdbdfb6df99d6b58",
+    "policy_version": "2026-11-01",
+    "recorder": "0.1.0"
+  },
+  "intent": "Régler le sinistre 2026-77812 après validation des pièces",
+  "policy": {
+    "rule": "paiement > 5000 CHF",
+    "decision": "a_approuver",
+    "ticket": "apr-1192",
+    "redaction": "pii-v1"
+  },
+  "approval": null,
+  "execution": {
+    "tool": "sap.payments.create",
+    "arguments": {
+      "sha256": "0x6cfc43b54a70eee0141d2fc7d1acc06003ee23354ac76f2097ef74958d91bbb4",
+      "length": 96,
+      "redacted": true
+    },
+    "status": "retenue",
+    "result": null,
+    "duration_ms": null,
+    "is_error": null
+  },
+  "effects": [],
+  "context": [
+    {
+      "sha256": "0x7d2ffcd2cba25dbd90b54926be79c845131109b2e1bc4ccc22389fb8a26a498a",
+      "length": 406,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    },
+    {
+      "sha256": "0xbce6c768f26f72d7377fa3098262b61db83bcc740fc528be536acaa7f168033e",
+      "length": 418,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    }
+  ],
+  "hash": "0x793ab66aab9ca28f1176d8ff023ffe98f0eadb514aecb329fdffd7420e821bd6",
+  "sig": "0x1be28038daa9da9bdc0d456dfa5927d592ea798bc2e281de5fc5298b8c03cc7652548b77fda0e8424054a3da6565c90f57f482715a8880bfdd9a4340e6c8d404"
+}

@@ -1,6 +1,8 @@
 # NOORTRACE — architecture cible
 
-Version 0.2, 20 octobre 2026. Document de conception, pas d'implémentation.
+Version 0.3, 22 octobre 2026. Document de conception, pas d'implémentation. Les
+spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
+l'enregistreur.
 
 ## Principe
 
@@ -16,9 +18,11 @@ trois rôles.
 
 ## Flux
 
-1. **Capture.** L'enregistreur s'insère entre l'agent et ses outils, comme proxy MCP
-   ou comme SDK dans le runtime. Chaque appel d'outil, chaque lecture ou écriture de
-   données, chaque sortie produit un événement.
+1. **Capture.** L'enregistreur s'insère entre l'agent et ses outils, comme serveur
+   MCP mandataire, et entre l'agent et son modèle, comme passerelle d'API. Un SDK
+   dans le processus de l'agent ne sert que lorsque ni l'un ni l'autre n'est
+   possible. Chaque appel d'outil et chaque échange avec le modèle produit un
+   événement.
 2. **Chaînage.** Chaque événement porte l'empreinte du précédent et une signature
    de l'enregistreur. Le journal est en ajout seul, sur un volume séparé de celui
    de l'agent, conformément aux recommandations du PFPDT sur la journalisation.
@@ -73,7 +77,8 @@ appelle des outils. La capture se fait aux deux frontières, hors du processus d
 l'agent. L'étude « LLM Agents Can Easily Tamper With Their Own Traces »
 ([arXiv 2609.30266](https://arxiv.org/abs/2609.30266)) montre que, dans tous les
 harnais testés sauf un, l'agent peut effacer ses propres traces : une capture dans le
-processus de l'agent n'a pas de valeur probatoire.
+processus de l'agent n'a pas de valeur probatoire. Chaque chemin est décrit octet
+par octet dans `spec/CT-2-enregistreur.md`.
 
 - **Frontière des outils : un serveur MCP mandataire.** Les agents d'entreprise
   appellent leurs outils par le protocole MCP, qui est du JSON-RPC 2.0. Chaque action
@@ -83,17 +88,28 @@ processus de l'agent n'a pas de valeur probatoire.
   connecte aux vrais serveurs du client, ERP, CRM, messagerie, fichiers, bases de
   données, dont il agrège les outils et relaie les appels. Transports stdio et HTTP.
   Le pare-feu du client n'autorise que le mandataire à joindre les serveurs d'outils,
-  donc l'agent ne peut pas le contourner.
-- **Frontière du modèle : le proxy de sortie du client.** Les appels à l'API du
-  modèle sortent par un proxy HTTPS d'entreprise avec interception TLS, comme tout
-  flux surveillé. L'enregistreur y lit les messages envoyés, le texte produit, les
-  blocs d'appel d'outil et leurs résultats, la version du modèle et le prompt
-  système. L'intention de l'événement est le texte de l'assistant qui précède l'appel
-  d'outil, quand il existe.
+  donc l'agent ne peut pas le contourner. La définition de chaque outil, telle que
+  l'hôte l'a reçue, est empreintée et citée dans le contexte de l'appel (CT-2,
+  EX-4.45) : un serveur qui change la description d'un outil après coup ne peut pas
+  effacer ce que l'agent a lu.
+- **Frontière du modèle : une passerelle d'API.** L'hôte adresse ses requêtes au
+  modèle à l'enregistreur, par l'URL de base de son SDK (`ANTHROPIC_BASE_URL`,
+  `OPENAI_BASE_URL`), et l'enregistreur les relaie au fournisseur. Changer une
+  variable d'environnement suffit, les flux SSE sont relayés sans tampon, et la
+  passerelle est sur le chemin, donc elle peut bloquer. Le pare-feu de sortie
+  n'autorise qu'elle à joindre les fournisseurs. Quand l'hôte ne sait pas changer
+  d'URL de base, le mandataire HTTPS du client, qui intercepte déjà TLS, soumet
+  requêtes et réponses à l'enregistreur par ICAP (RFC 3507). Une copie passive du
+  trafic déchiffré donne une preuve en lecture seule, qui ne peut rien bloquer.
+  L'enregistreur lit les messages envoyés, le texte produit, les blocs d'appel
+  d'outil, le modèle et le prompt système, après rédaction. L'intention de
+  l'événement est le texte de l'assistant qui précède l'appel d'outil, quand il
+  existe. Formats de la version 0 : API Messages d'Anthropic, Chat Completions et
+  Responses d'OpenAI (CT-2 §5).
 - **Cas restant : un SDK.** Pour un agent sans MCP et avec modèle local, une
   bibliothèque enveloppe l'exécution des outils. Elle tourne dans le processus de
-  l'agent, donc elle est plus faible ; elle n'est acceptée que combinée au proxy
-  réseau.
+  l'agent, donc elle est plus faible ; elle n'est acceptée que combinée à un
+  pare-feu de sortie (CT-2 §6).
 
 ### Journal : comment un événement est écrit
 
@@ -129,15 +145,24 @@ Mécanique :
 - L'événement est mis en forme canonique JCS (RFC 8785), puis haché en SHA-256. Le
   champ `prev_hash` reprend le hachage de l'événement précédent et `seq` est
   strictement croissant. Toute suppression, insertion ou modification casse la chaîne.
-- L'enregistreur signe chaque événement en Ed25519 avec une clé conservée dans le HSM,
-  le KMS ou la puce TPM du client. Sa clé publique est enregistrée dans le registre au
-  moment de l'onboarding ; une rotation de clé est elle-même un événement signé par
+- L'enregistreur signe chaque événement en Ed25519, avec une clé qui ne réside
+  jamais dans le processus de l'agent. Le client choisit une classe de garde selon
+  ce qu'il possède : A, matériel qui signe en Ed25519 ; B, service de signature ;
+  C, graine chiffrée par un KMS ou scellée par un TPM ; D, fichier, en
+  développement seulement (CT-2 §11). Chaque signature est vérifiée avant
+  écriture. Sa clé publique est enregistrée dans le registre au moment de
+  l'onboarding, sous une clé de chaîne secp256k1 propre à l'enregistreur, qui
+  signe les ancres et relaie les clôtures de période (CT-2 EX-11.19) ; une rotation de clé est elle-même un événement signé par
   l'ancienne clé et la nouvelle.
-- Les arguments et résultats complets sont stockés à côté, chez le client ; seuls
-  leurs hachages entrent dans l'événement. La rédaction des champs sensibles se fait
-  avant hachage, selon la politique du client, et la règle appliquée est journalisée.
-- Le journal est en ajout seul : segments de fichiers scellés plus une base locale
-  pour la recherche. Il ne quitte jamais le périmètre du client.
+- Les arguments et résultats complets sont stockés à côté, chez le client, sous
+  leur empreinte ; seuls leurs hachages entrent dans l'événement. La rédaction se
+  fait avant hachage, selon une politique versionnée dont l'exemple `pii-v1` est
+  publié (CT-2 §10) : ni le clair ni son hachage n'entrent dans le journal, et la
+  règle appliquée est nommée dans l'événement.
+- Le journal est en ajout seul : segments NDJSON d'événements complets, écrits et
+  synchronisés sur disque avant toute réponse à l'agent, sans base locale en
+  version 0 (CT-2 §12). Un seul écrivain par journal, sous un bail à jeton de
+  clôture (CT-2 §13). Il ne quitte jamais le périmètre du client.
 - Toutes les heures, l'enregistreur construit un arbre de Merkle sur les événements
   de l'heure, selon le schéma de RFC 6962, et obtient une racine R de 32 octets. Un
   manifeste de période, qui porte R, le premier et le dernier `seq`, le nombre
@@ -201,8 +226,8 @@ Ce que les tiers voient : 32 octets par heure. Jamais un argument, jamais un doc
 ### Dossier et vérification
 
 Le dossier remis pour un événement contient : l'événement, ses deux voisins
-complets, dont les hachages se recalculent, le chemin de Merkle jusqu'à R, R et le manifeste de période, le jeton
-RFC 3161, la preuve `.ots`, le reçu de la transaction du registre avec le certificat
+complets, dont les hachages se recalculent, le chemin de Merkle jusqu'à R, R et
+le manifeste de période, le jeton RFC 3161, la preuve `.ots`, le reçu de la transaction du registre avec le certificat
 de commit de son bloc et le jeu de validateurs de ce bloc, les événements
 d'approbation liés avec leurs signatures, et les clés publiques et certificats
 nécessaires. Un événement se prouve seul, sans révéler les autres.
@@ -274,8 +299,9 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 - Enregistreur et journal chez le client : sur site, dans son tenant cloud ou chez un
   hébergeur suisse. Seules les racines de lots sortent.
 - Prérequis réseau chez le client : les serveurs d'outils ne sont joignables que par
-  le mandataire, et les appels à l'API du modèle passent par le proxy de sortie avec
-  interception TLS.
+  le mandataire, et les appels à l'API du modèle passent par la passerelle de
+  l'enregistreur, seule autorisée par le pare-feu à joindre les fournisseurs ; à
+  défaut, par le mandataire d'interception du client raccordé en ICAP.
 - Registre et console NOORTRACE : hébergés en Suisse. Rétention probatoire visée :
   10 ans, alignée sur l'art. 958f CO et l'art. 18 du Règlement IA.
 - Vérificateur : binaire autonome, sans réseau, publié avec son code et ses vecteurs
@@ -286,13 +312,13 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | Menace | Réponse |
 |---|---|
 | L'agent efface ou falsifie ses traces | Journal en ajout seul, hors de son contexte d'exécution, chaîné et signé |
-| L'agent contourne l'enregistreur | Pare-feu : seuls le mandataire et le proxy de sortie joignent les outils et l'API du modèle |
+| L'agent contourne l'enregistreur | Pare-feu : seuls le mandataire MCP et la passerelle, ou le mandataire ICAP, joignent les outils et l'API du modèle ; ce qui ne traverse pas l'enregistreur n'est pas journalisé, et le dossier ne prétend pas le contraire |
 | L'opérateur réécrit l'historique après coup | Racines horodatées par un tiers qualifié : toute réécriture casse les preuves d'inclusion |
-| L'enregistreur lui-même est compromis | Clé en HSM, KMS ou TPM ; les ancres horaires bornent la fenêtre de réécriture ; contresignature interne à la minute en option |
+| L'enregistreur lui-même est compromis | Clé selon la classe de garde, vérification de chaque signature, copies WORM, rotation d'urgence ; les ancres horaires bornent la fenêtre de réécriture ; contresignature interne à la minute en option |
 | Le fournisseur NOORTRACE triche ou disparaît | Vérification possible sans lui ; registre substituable ; format ouvert |
 | Le fournisseur sert une histoire falsifiée par son RPC | Certificat de commit du bloc vérifié hors ligne contre le jeu de validateurs ; validateurs partenaires en production |
-| Manipulation de l'horloge | Temps issu du jeton d'horodatage qualifié, pas de l'hôte |
-| Fuite de données via les empreintes | Seules des racines de Merkle sortent du périmètre du client |
+| Manipulation de l'horloge | Temps issu du jeton d'horodatage qualifié, pas de l'hôte ; `ts` jamais décroissant, et un saut en avant mesuré contre l'horloge monotone bloque l'écrivain (CT-2 EX-7.13) |
+| Fuite de données via les empreintes | Seules des racines de Merkle sortent du périmètre du client ; rédaction avant hachage, jamais de hachage du clair |
 
 ## Ce qui est réutilisé de noorchain-core
 
@@ -305,28 +331,40 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
 
-Écrit, 21 octobre 2026 : la spécification CT-1 avec ses schémas, ses vecteurs, son
-implémentation de référence et son vérificateur Go indépendant ; le vérificateur de
-dossier ; les contrats du registre, PeriodRegistry, RecorderRegistry et
-ThresholdSignatures, avec leurs tests ; l'instance de développement dédiée dans
-`chain/` ; les scripts de déploiement et le parcours complet ; la méthode RPC
-`noor_getCommitCertificate`, portée comme correctif sur noorcore, fourni hors dépôt public et déposé dans
-`chain/patches/` à la construction,
-et appliquée à la construction du binaire, et le vérificateur hors ligne des
-certificats de commit. À écrire : le mandataire
-MCP, le raccord au proxy de sortie, le schéma d'événements, le chaînage et l'arbre de
-Merkle, les clients RFC 3161 et OpenTimestamps, le format du dossier, le vérificateur.
+Écrit au 22 octobre 2026 :
+
+- la spécification CT-1 avec ses schémas, ses vecteurs, son implémentation de
+  référence et son vérificateur Go indépendant ; le vérificateur de dossier ;
+- la spécification CT-2 de l'enregistreur avec ses deux schémas et ses vecteurs ;
+  la partie calculable en JavaScript : forme canonique intégrale, rédaction, pièces
+  MCP et de modèle, réassemblage des flux, construction des événements ; un second
+  vérificateur Go indépendant ;
+- les contrats du registre, PeriodRegistry, RecorderRegistry et ThresholdSignatures,
+  avec leurs tests ; l'instance de développement dédiée dans `chain/` ; les scripts
+  de déploiement et le parcours complet ;
+- la méthode RPC `noor_getCommitCertificate`, portée comme correctif sur noorcore,
+  fourni hors dépôt public, déposé dans `chain/patches/` et appliqué à la
+  construction du binaire ; le vérificateur hors ligne des certificats de commit.
+
+À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
+les approbations, les clients RFC 3161 et OpenTimestamps, la ligne de commande du
+vérificateur, la démonstration en une commande.
 
 ## Décisions ouvertes
 
 1. Granularité : close par CT-1. Un événement par appel d'outil, par échange avec le
    modèle, par décision d'approbation ou par événement du journal sur lui-même ; un lot
    par heure UTC. Coût et latence restent à mesurer au prototype.
-2. Gestion des clés de l'enregistreur chez le client : HSM, KMS ou TPM, choix par
-   client selon ce qu'il possède déjà.
-3. Politique de rédaction des paramètres sensibles avant hachage.
-4. Comportement du mandataire pendant une approbation : réponse retenue ou erreur
-   avec ticket, selon le délai de l'hôte.
+2. Gestion des clés de l'enregistreur chez le client : close par CT-2. Quatre classes
+   de garde, de A à D. Azure Key Vault ne signe pas en Ed25519, et les outils
+   TPM 2.0 courants non plus : ils ne servent qu'à protéger une graine, en
+   classe C.
+3. Politique de rédaction des paramètres sensibles avant hachage : close par CT-2.
+   Politique versionnée avec schéma, détecteurs à somme de contrôle, exemple
+   `pii-v1` publié avec ses vecteurs.
+4. Comportement du mandataire pendant une approbation : CT-2 fixe les deux modes,
+   réponse retenue ou erreur avec ticket ; le choix et le cycle de vie du ticket
+   relèvent de CT-3.
 5. Format d'export : close par CT-1, version 0 spécifiée avec ses vecteurs ; révision
    prévue après les trois premiers entretiens de réviseurs, en version 1.
 6. Identifiant de la chaîne de production et premiers validateurs partenaires, après le pilote.

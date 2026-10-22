@@ -1,0 +1,1663 @@
+[
+  {
+    "name": "iban-compact-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "beneficiary_iban": "CH9300762011623852957"
+    },
+    "expected": {
+      "piece": "{\"beneficiary_iban\":\"[REDIGE:iban]\"}",
+      "sha256": "0x3c38fd4de136708f0fd24a6b84d2fcb988c05deddf765fc72bcfac7cef708eb3",
+      "length": 36,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN suisse de l'exemple de CT-2 §10.3.2, forme compacte : reste 1 au MOD 97-10."
+  },
+  {
+    "name": "iban-groupes-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "IBAN du bénéficiaire : CH93 0076 2011 6238 5295 7, merci."
+    },
+    "expected": {
+      "piece": "{\"note\":\"IBAN du bénéficiaire : [REDIGE:iban], merci.\"}",
+      "sha256": "0xe1923f13f93c2a195a58899e0414e030176b06709f8dbb043bfa41c2dfb252e6",
+      "length": 57,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Même IBAN en groupes de quatre séparés par des espaces : même forme normalisée, valide ; la correspondance va du C au dernier chiffre, séparateurs compris."
+  },
+  {
+    "name": "iban-compact-invalide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "beneficiary_iban": "CH9300762011623852958"
+    },
+    "expected": {
+      "piece": "{\"beneficiary_iban\":\"CH9300762011623852958\"}",
+      "sha256": "0x1ba3b4e11961897272e98697ab3acacaa6d960ccc2bb22acd5fe02ea48ece224",
+      "length": 44,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Dernier chiffre modifié : reste 28, somme de contrôle fausse, non rédigé."
+  },
+  {
+    "name": "iban-groupes-invalide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "IBAN du bénéficiaire : CH93 0076 2011 6238 5295 8, merci."
+    },
+    "expected": {
+      "piece": "{\"note\":\"IBAN du bénéficiaire : CH93 0076 2011 6238 5295 8, merci.\"}",
+      "sha256": "0x068ded269290077f50776b174d68536bd95def09861c744f32d9ebbd1f258631",
+      "length": 70,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Forme groupée à somme de contrôle fausse : non rédigée (ni comme IBAN, ni comme carte : la suite de chiffres commence après une lettre)."
+  },
+  {
+    "name": "iban-pays-ch",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte CH96 4835 0123 4567 8901 2 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN CH de 21 caractères construit par la méthode de génération (clé = 98 − reste), groupes de quatre."
+  },
+  {
+    "name": "iban-pays-li",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte LI1248350123456789012 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN LI de 21 caractères construit par la méthode de génération (clé = 98 − reste), forme compacte."
+  },
+  {
+    "name": "iban-pays-de",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte DE70483501234567890123 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN DE de 22 caractères construit par la méthode de génération (clé = 98 − reste), forme compacte."
+  },
+  {
+    "name": "iban-pays-fr",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte FR81 4835 0123 4567 8901 2345 678 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN FR de 27 caractères construit par la méthode de génération (clé = 98 − reste), groupes de quatre."
+  },
+  {
+    "name": "iban-pays-it",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte IT4848350123456789012345678 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN IT de 27 caractères construit par la méthode de génération (clé = 98 − reste), forme compacte."
+  },
+  {
+    "name": "iban-pays-at",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte AT104835012345678901 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN AT de 20 caractères construit par la méthode de génération (clé = 98 − reste), forme compacte."
+  },
+  {
+    "name": "iban-pays-es",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte ES3648350123456789012345 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN ES de 24 caractères construit par la méthode de génération (clé = 98 − reste), forme compacte."
+  },
+  {
+    "name": "iban-pays-nl",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte NL9348350123456789 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN NL de 18 caractères construit par la méthode de génération (clé = 98 − reste), forme compacte."
+  },
+  {
+    "name": "iban-pays-be",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte BE38 4835 0123 4567 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN BE de 16 caractères construit par la méthode de génération (clé = 98 − reste), groupes de quatre."
+  },
+  {
+    "name": "iban-pays-gb",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte GB20 DEMO 4835 0123 4567 89 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN GB de 22 caractères construit par la méthode de génération (clé = 98 − reste), groupes de quatre."
+  },
+  {
+    "name": "iban-pays-lu",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte LU054835012345678901 enregistré."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte [REDIGE:iban] enregistré.\"}",
+      "sha256": "0x8bcf2924279b575ea03e54d6e89ff5612f1367b4346e736d06a970ed849fb7b5",
+      "length": 44,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "IBAN LU de 20 caractères construit par la méthode de génération (clé = 98 − reste), forme compacte."
+  },
+  {
+    "name": "iban-exemple-pay-uk",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "GB19LOYD30961700709943"
+    },
+    "expected": {
+      "piece": "{\"note\":\"[REDIGE:iban]\"}",
+      "sha256": "0x6162f0794fff83fc9d157dca627123bb3651d59b00a0dd5ef2a230c362daf1fe",
+      "length": 24,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Exemple Pay.UK cité en CT-2 §10.3.2 (BBAN avec lettres)."
+  },
+  {
+    "name": "iban-hors-table",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte NO9386011117947."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte NO9386011117947.\"}",
+      "sha256": "0xc8b5d59215136b757d4b6121e062d7bc21be07f5b7943bea5ba3ea5be1224df6",
+      "length": 34,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "IBAN norvégien NO9386011117947, somme de contrôle valide, pays hors de la table de CT-2 §10.3.2 : non détecté en version 0 (§10.8)."
+  },
+  {
+    "name": "iban-minuscules",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "Compte ch9300762011623852957."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Compte ch9300762011623852957.\"}",
+      "sha256": "0xf91b85f7cdf0ec5c78071aa054c33d0006aaf7e267eaeee85d823e723256c32e",
+      "length": 40,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "IBAN en minuscules : non détecté en version 0 (CT-2 §10.8)."
+  },
+  {
+    "name": "avs-compact-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Assuré 7561234567897."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Assuré [REDIGE:avs].\"}",
+      "sha256": "0x3e4b387f4d7e600fea4a3a7c2916b4870c82bbde8f6aad46a78f8e9b373c678b",
+      "length": 32,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "avs",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Numéro AVS de l'exemple de l'ordonnance, sans séparateur : clé 7."
+  },
+  {
+    "name": "avs-points-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Assuré 756.1234.5678.97."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Assuré [REDIGE:avs].\"}",
+      "sha256": "0x3e4b387f4d7e600fea4a3a7c2916b4870c82bbde8f6aad46a78f8e9b373c678b",
+      "length": 32,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "avs",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Écriture 756.XXXX.XXXX.XX de l'OFAS."
+  },
+  {
+    "name": "avs-espaces-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Assuré 756 1234 5678 97."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Assuré [REDIGE:avs].\"}",
+      "sha256": "0x3e4b387f4d7e600fea4a3a7c2916b4870c82bbde8f6aad46a78f8e9b373c678b",
+      "length": 32,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "avs",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Séparateurs espaces, tous identiques."
+  },
+  {
+    "name": "avs-points-invalide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Assuré 756.1234.5678.90."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Assuré 756.1234.5678.90.\"}",
+      "sha256": "0x26ea8441ef0d941d697bf59c6e61b8b2cf515e17e3ba7991fc4bcba4427ab2bc",
+      "length": 36,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Clé de contrôle fausse (0 au lieu de 7) : non rédigé."
+  },
+  {
+    "name": "avs-compact-invalide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Assuré 7561234567891."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Assuré 7561234567891.\"}",
+      "sha256": "0xf5761ae4136b736ff3facddb701be8239d13b32bd218f5b1dd1f4fd6693a52c5",
+      "length": 33,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Treize chiffres sans séparateur, clé fausse : non rédigé par avs ; la suite ne passe pas non plus Luhn (carte)."
+  },
+  {
+    "name": "avs-separateurs-mixtes",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Assuré 756.1234 5678.97."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Assuré 756.1234 5678.97.\"}",
+      "sha256": "0xeea19cb892600808cb6f99db413a6bb37e9f4bae9c2a07e763b8f86bc7d58549",
+      "length": 36,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Séparateurs présents mais différents (point puis espace) : pas un candidat AVS (CT-2 §10.3.3, pas 1)."
+  },
+  {
+    "name": "carte-compacte-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Carte 378282246310005."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Carte [REDIGE:carte].\"}",
+      "sha256": "0x543f36c7915a85dd33a4a771f61c8c0b01ed00b1426b72a10161ba9005d737fc",
+      "length": 32,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "carte",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Quinze chiffres commençant par 37, passe Luhn."
+  },
+  {
+    "name": "carte-espaces-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Carte 3782 822463 10005."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Carte [REDIGE:carte].\"}",
+      "sha256": "0x543f36c7915a85dd33a4a771f61c8c0b01ed00b1426b72a10161ba9005d737fc",
+      "length": 32,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "carte",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Même numéro groupé par espaces."
+  },
+  {
+    "name": "carte-tirets-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Carte 3782-822463-10005."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Carte [REDIGE:carte].\"}",
+      "sha256": "0x543f36c7915a85dd33a4a771f61c8c0b01ed00b1426b72a10161ba9005d737fc",
+      "length": 32,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "carte",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Même numéro groupé par traits d'union."
+  },
+  {
+    "name": "carte-invalide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Carte 378282246310006."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Carte 378282246310006.\"}",
+      "sha256": "0x3fb5ba6e72413b42b59302a1b59228a48acaef4cc98431086b9997f5e9170d9f",
+      "length": 33,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Dernier chiffre modifié : ne passe pas Luhn."
+  },
+  {
+    "name": "carte-points-non-detectee",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Carte 3782.822463.10005."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Carte 3782.822463.10005.\"}",
+      "sha256": "0x54ee863911c0617e7fe27005ba159899ec82f8718022a6864c5ae7efc898e1cf",
+      "length": 35,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Numéro valide écrit avec des points : le point n'est pas un séparateur de carte (CT-2 §10.3.4, §10.8)."
+  },
+  {
+    "name": "email-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Écrire à j.dupont@example.ch ; merci."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Écrire à [REDIGE:email] ; merci.\"}",
+      "sha256": "0x1f71435427d1922b83f31865427c938782735fb3ee1784851cc7c53ca906a37c",
+      "length": 45,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "email",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Forme Dot-string@Domain."
+  },
+  {
+    "name": "email-suivi-d-un-point",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Écrire à j.dupont@example.ch."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Écrire à [REDIGE:email].\"}",
+      "sha256": "0x8fe1b6f70679e2a7a5761d013df403d8894458aefa7e4be1ea58b67e219e3b31",
+      "length": 37,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "email",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Adresse suivie du point final d'une phrase : le point n'appartient pas au domaine, l'adresse est rédigée et le point reste (CT-2 §10.3.5, pas 1)."
+  },
+  {
+    "name": "email-suivi-d-un-tiret",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Contact : j.dupont@example.ch- merci"
+    },
+    "expected": {
+      "piece": "{\"note\":\"Contact : [REDIGE:email]- merci\"}",
+      "sha256": "0x0d0179b12ce8c592cc25af1a12d9c5b8f61e58a008643cf873fb3635b1c3c9ea",
+      "length": 42,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "email",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Adresse suivie d'un trait d'union puis d'une espace : le trait d'union final n'appartient pas au domaine."
+  },
+  {
+    "name": "email-points-doubles",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Écrire à a..b@example.ch ou x@exemple sans domaine."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Écrire à a..b@example.ch ou x@exemple sans domaine.\"}",
+      "sha256": "0xc17cc0f0bb660e11d4349de44b784ac73c3ea256717f7b01c7f0eeab8b119ddb",
+      "length": 64,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Partie locale à deux points consécutifs (pas une Dot-string) et domaine à un seul label : non rédigés."
+  },
+  {
+    "name": "email-long",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "note": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@b.cc. et j.dupont@example.ch"
+    },
+    "expected": {
+      "piece": "{\"note\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@b.cc. et [REDIGE:email]\"}",
+      "sha256": "0x6189ae8b8dd0875d89a5ac1835b825e8de400c271b6c216acd152f8bb7ec7997",
+      "length": 20035,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "email",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Vecteur de coût (EX-10.23) : 20 000 caractères de partie locale avant le premier @ (au-delà de 64 : aucun candidat, lecture bornée), puis une adresse rédigée ; une recherche qui reprend « un caractère plus loin » après chaque rejet est quadratique sur ce texte, la lecture bornée à partir de chaque @ est linéaire."
+  },
+  {
+    "name": "email-dernier-label-court",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Écrire à x@exemple.c ; merci."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Écrire à x@exemple.c ; merci.\"}",
+      "sha256": "0x9b595e7b01fcda76a5c7d2a90ba4ef636602b37e2e87332a93befea922f749fd",
+      "length": 42,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Dernier label du domaine d'une seule lettre : validation refusée, non rédigé."
+  },
+  {
+    "name": "email-partie-locale-64",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Écrire à aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb@example.ch ; merci."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Écrire à [REDIGE:email] ; merci.\"}",
+      "sha256": "0x1f71435427d1922b83f31865427c938782735fb3ee1784851cc7c53ca906a37c",
+      "length": 45,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "email",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Partie locale de 64 octets : la borne de la RFC 5321 §4.5.3.1.1, rédigée."
+  },
+  {
+    "name": "email-partie-locale-65",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Écrire à aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc@example.ch ; merci."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Écrire à aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc@example.ch ; merci.\"}",
+      "sha256": "0x62589eb5de7efacd8d33d89c644fbc1a39d943ee0cb7e48fb67bf026c50aabd6",
+      "length": 107,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Partie locale de 65 octets : au-delà de la borne, non rédigée (aucune sous-adresse n'est retenue, la frontière avant l'interdit)."
+  },
+  {
+    "name": "telephone-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Joignable au +41 44 123 45 67 dès lundi."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Joignable au [REDIGE:telephone] dès lundi.\"}",
+      "sha256": "0xaf2e2368e42376cb16fc2625cb2ce8e35c9a6eae1fc3b18e05f2a92fb412a747",
+      "length": 54,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Forme internationale de l'exemple de CT-2 §10.3.6."
+  },
+  {
+    "name": "telephone-compact-valide",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Joignable au +41441234567."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Joignable au [REDIGE:telephone].\"}",
+      "sha256": "0x255e7a96a5d01de99ba78afd83772414dc8912e579cacf2a97f1813dfaf2ac7f",
+      "length": 43,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Même numéro sans séparateur."
+  },
+  {
+    "name": "telephone-trop-court",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Indicatif +41 44 123."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Indicatif +41 44 123.\"}",
+      "sha256": "0x85063c803a1454cdbaaf1ec32a15af14543e82e8eed937d35038b72d10e5fb76",
+      "length": 32,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Sept chiffres : sous la longueur minimale de 8, non rédigé."
+  },
+  {
+    "name": "telephone-quinze-chiffres",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Joignable au +41 44 123 45 67 8902."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Joignable au [REDIGE:telephone].\"}",
+      "sha256": "0x255e7a96a5d01de99ba78afd83772414dc8912e579cacf2a97f1813dfaf2ac7f",
+      "length": 43,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Quinze chiffres, la borne d'E.164 : rédigé (la suite ne passe pas Luhn, le détecteur carte qui précède ne la prend pas)."
+  },
+  {
+    "name": "telephone-seize-chiffres",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Joignable au +41 44 123 45 67 89021."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Joignable au +41 44 123 45 67 89021.\"}",
+      "sha256": "0xa7eacf154c4f7c8df08e17f3d5eb8464ef9578cc846eead908968bcc99169220",
+      "length": 47,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Seize chiffres : au-delà de la borne d'E.164, non rédigé (ni comme carte : ne passe pas Luhn)."
+  },
+  {
+    "name": "telephone-national-non-detecte",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Joignable au 044 123 45 67."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Joignable au 044 123 45 67.\"}",
+      "sha256": "0xfc804da6d57446362246e3f9a04379edb4bec3f1a3b7d19500509a0f7c414b4b",
+      "length": 38,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Forme nationale sans + : non détectée en version 0 (CT-2 §10.8)."
+  },
+  {
+    "name": "telephone-parenthese-horaire",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Appelez le +41 44 123 45 67 (9h-17h)"
+    },
+    "expected": {
+      "piece": "{\"note\":\"Appelez le [REDIGE:telephone] (9h-17h)\"}",
+      "sha256": "0x2d9470cd926d225fbfd5ebb718fbf9420b50d9909bf9b161518cbd63d7b94f85",
+      "length": 49,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Une « ( » qui ne se referme pas sur des chiffres termine le candidat avant elle : le plus long préfixe valide est rédigé (CT-2 §10.3.6)."
+  },
+  {
+    "name": "telephone-groupe-final",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "+33 1 23 45 67 89 (2)"
+    },
+    "expected": {
+      "piece": "{\"note\":\"[REDIGE:telephone] (2)\"}",
+      "sha256": "0xd07fe6c1bea32302acaa5ea715660b61c45ba97cdd6b30d7bea317f6f9d206a6",
+      "length": 33,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Un groupe (chiffres) que rien ne suit n'entre pas dans le candidat."
+  },
+  {
+    "name": "telephone-groupe-colle",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "+41 44 123 45 67(12)x"
+    },
+    "expected": {
+      "piece": "{\"note\":\"[REDIGE:telephone](12)x\"}",
+      "sha256": "0x9d13b0e4688222c180cbbec8d378ec93c581930f652ed65f9c2512c4396bd1e9",
+      "length": 34,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Groupe collé suivi d'une lettre : le candidat s'arrête avant la « ( », qui est une frontière."
+  },
+  {
+    "name": "telephone-groupe-interne",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Tél. +41 (0)44 123 45 67."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Tél. [REDIGE:telephone].\"}",
+      "sha256": "0xba3b9e8e4ac53a9fad1f25e7b9b2b7bc1beb3b9294cc7393e0f7ebde9a480d94",
+      "length": 36,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Groupe (0) suivi de chiffres : il fait partie du candidat, ses chiffres comptent (douze)."
+  },
+  {
+    "name": "telephone-colles",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "+41441234567+41441234567"
+    },
+    "expected": {
+      "piece": "{\"note\":\"[REDIGE:telephone][REDIGE:telephone]\"}",
+      "sha256": "0x6d376ccbc1d1d21dea54fcac56f71d58ed21a31497921c203c340e3b7c4b815c",
+      "length": 47,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 2
+        }
+      ]
+    },
+    "note": "Deux numéros collés : la fin de la première correspondance vaut frontière pour la seconde (EX-10.9) ; la pièce est idempotente (EX-10.15)."
+  },
+  {
+    "name": "faux-positifs",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "amount": "7400.00",
+      "currency": "CHF",
+      "date": "2026-11-10",
+      "heure": "10:14:05",
+      "claim_id": "2026-77812",
+      "reference": "PAY-2026-55120",
+      "code": "CH93",
+      "numero": "1234567890123456",
+      "identifiant": "AB378282246310005",
+      "nombre": 378282246310005
+    },
+    "expected": {
+      "piece": "{\"amount\":\"7400.00\",\"claim_id\":\"2026-77812\",\"code\":\"CH93\",\"currency\":\"CHF\",\"date\":\"2026-11-10\",\"heure\":\"10:14:05\",\"identifiant\":\"AB378282246310005\",\"nombre\":378282246310005,\"numero\":\"1234567890123456\",\"reference\":\"PAY-2026-55120\"}",
+      "sha256": "0xc45c5e442170a95120c6db6acd4352fad52a60e5c62634c84ae8af6bbf6064b5",
+      "length": 230,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Montant, date, heure, numéro de dossier, référence, code pays seul, seize chiffres qui ne passent pas Luhn, numéro de carte précédé de lettres (pas de frontière) et numéro de carte porté par un nombre JSON (jamais examiné, EX-10.5) : rien n'est rédigé."
+  },
+  {
+    "name": "exemple-10-9-arguments",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "sap.payments.create",
+    "input": {
+      "claim_id": "2026-77812",
+      "amount": "7400.00",
+      "currency": "CHF",
+      "beneficiary_iban": "CH9300762011623852957"
+    },
+    "expected": {
+      "piece": "{\"amount\":\"7400.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-77812\",\"currency\":\"CHF\"}",
+      "sha256": "0x6cfc43b54a70eee0141d2fc7d1acc06003ee23354ac76f2097ef74958d91bbb4",
+      "length": 96,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Premier exemple de CT-2 §10.9 (arguments de CT-1 §5.5) : 96 octets, valeur de l'annexe A de CT-2."
+  },
+  {
+    "name": "exemple-10-9-texte-libre",
+    "policy": "pii-v1",
+    "scope": "resultat",
+    "tool": "sap.payments.create",
+    "input": {
+      "note": "Virement au bénéficiaire CH93 0076 2011 6238 5295 7, assuré 756.1234.5678.97, joignable au +41 44 123 45 67 ou j.dupont@example.ch ; carte 3782 822463 10005."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Virement au bénéficiaire [REDIGE:iban], assuré [REDIGE:avs], joignable au [REDIGE:telephone] ou [REDIGE:email] ; carte [REDIGE:carte].\"}",
+      "sha256": "0x89a34ad286014dee1e1030caf6d50d32327a77da216dfb4a19154f15b73d5f8e",
+      "length": 148,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        },
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "avs",
+          "count": 1
+        },
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "carte",
+          "count": 1
+        },
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "email",
+          "count": 1
+        },
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Second exemple de CT-2 §10.9 : cinq détecteurs, cinq correspondances, 148 octets."
+  },
+  {
+    "name": "idempotence-piece-deja-redigee",
+    "policy": "pii-v1",
+    "scope": "arguments",
+    "tool": "sap.payments.create",
+    "input": {
+      "amount": "7400.00",
+      "beneficiary_iban": "[REDIGE:iban]",
+      "claim_id": "2026-77812",
+      "currency": "CHF"
+    },
+    "expected": {
+      "piece": "{\"amount\":\"7400.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-77812\",\"currency\":\"CHF\"}",
+      "sha256": "0x6cfc43b54a70eee0141d2fc7d1acc06003ee23354ac76f2097ef74958d91bbb4",
+      "length": 96,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "L'entrée est la pièce déjà rédigée : la politique ne la change pas, redacted faux, octets identiques (EX-10.15)."
+  },
+  {
+    "name": "portee-requete",
+    "policy": "pii-v1",
+    "scope": "requete",
+    "tool": null,
+    "input": {
+      "model": "modele-demo-1",
+      "max_tokens": 1024,
+      "messages": [
+        {
+          "role": "user",
+          "content": "Rappeler l'assuré au +41 79 765 43 21 au sujet du sinistre 2026-81044."
+        }
+      ]
+    },
+    "expected": {
+      "piece": "{\"max_tokens\":1024,\"messages\":[{\"content\":\"Rappeler l'assuré au [REDIGE:telephone] au sujet du sinistre 2026-81044.\",\"role\":\"user\"}],\"model\":\"modele-demo-1\"}",
+      "sha256": "0x3e6a721ac4df79fd6167cd0e8e6d45c9748f0bbb31d2db514148cc6faebe6ef2",
+      "length": 158,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-modele",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Portée requete : corps d'une requête de modèle, règle à tools \"*\" ; le numéro de sinistre n'est pas une donnée personnelle et reste."
+  },
+  {
+    "name": "portee-reponse",
+    "policy": "pii-v1",
+    "scope": "reponse",
+    "tool": null,
+    "input": {
+      "id": "msg_demo_0009",
+      "type": "message",
+      "role": "assistant",
+      "model": "modele-demo-1",
+      "content": [
+        {
+          "type": "text",
+          "text": "L'assuré a écrit depuis j.dupont@example.ch hier."
+        }
+      ],
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "usage": {
+        "input_tokens": 120,
+        "output_tokens": 14
+      }
+    },
+    "expected": {
+      "piece": "{\"content\":[{\"text\":\"L'assuré a écrit depuis [REDIGE:email] hier.\",\"type\":\"text\"}],\"id\":\"msg_demo_0009\",\"model\":\"modele-demo-1\",\"role\":\"assistant\",\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"input_tokens\":120,\"output_tokens\":14}}",
+      "sha256": "0xd4c3ebb50fa887c121e5b4287b340ba19e53b2dc65bf88a6f0312778941ba9a9",
+      "length": 260,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-modele",
+          "detector": "email",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Portée reponse : une réponse de l'API Messages."
+  },
+  {
+    "name": "portee-prompt-systeme",
+    "policy": "pii-v1",
+    "scope": "prompt_systeme",
+    "tool": null,
+    "input": "Tu es l'agent sinistres de l'assureur de démonstration. Contact interne : support@assureur-demo.example (jamais communiqué).",
+    "expected": {
+      "piece": "Tu es l'agent sinistres de l'assureur de démonstration. Contact interne : [REDIGE:email] (jamais communiqué).",
+      "sha256": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+      "length": 111,
+      "redacted": true,
+      "media_type": "text/plain",
+      "matches": [
+        {
+          "rule": "identifiants-modele",
+          "detector": "email",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Portée prompt_systeme : la pièce est le texte UTF-8 (text/plain), la racine est la chaîne (EX-10.19)."
+  },
+  {
+    "name": "portee-prompt-systeme-intact",
+    "policy": "pii-v1",
+    "scope": "prompt_systeme",
+    "tool": null,
+    "input": "Tu es l'agent sinistres de l'assureur de démonstration.",
+    "expected": {
+      "piece": "Tu es l'agent sinistres de l'assureur de démonstration.",
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "matches": []
+    },
+    "note": "Prompt sans donnée détectée : stocké en clair, redacted faux (CT-1 §15 : risque de confirmation par dictionnaire, EX-10.19)."
+  },
+  {
+    "name": "portee-contexte-json",
+    "policy": "pii-v1",
+    "scope": "contexte",
+    "tool": null,
+    "input": {
+      "titre": "Constat amiable",
+      "contenu": "Conducteur B : IBAN DE89370400440532013000, tél. +49 30 1234 5678."
+    },
+    "expected": {
+      "piece": "{\"contenu\":\"Conducteur B : IBAN [REDIGE:iban], tél. [REDIGE:telephone].\",\"titre\":\"Constat amiable\"}",
+      "sha256": "0x59e0636368dbfb6d972bf39b296a773f3308eabf23437dc65bc9e4b369ebf7f6",
+      "length": 100,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-contexte",
+          "detector": "iban",
+          "count": 1
+        },
+        {
+          "rule": "identifiants-contexte",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Portée contexte : document JSON remis par le SDK."
+  },
+  {
+    "name": "portee-contexte-texte",
+    "policy": "pii-v1",
+    "scope": "contexte",
+    "tool": null,
+    "input": "Facture du garage : règlement sur CH93 0076 2011 6238 5295 7.",
+    "expected": {
+      "piece": "Facture du garage : règlement sur [REDIGE:iban].",
+      "sha256": "0x19c06d8461ce8f4ba911f6c1a04b53a770641a8d71a2688f7c916d07b039715f",
+      "length": 49,
+      "redacted": true,
+      "media_type": "text/plain",
+      "matches": [
+        {
+          "rule": "identifiants-contexte",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Portée contexte : document text/plain, racine = la chaîne."
+  },
+  {
+    "name": "champ-sur-nombre",
+    "policy": "pii-regles-test",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "claim_id": "2026-77812",
+      "amount_cents": 740000,
+      "currency": "CHF"
+    },
+    "expected": {
+      "piece": "{\"amount_cents\":\"[REDIGE:montant]\",\"claim_id\":\"2026-77812\",\"currency\":\"CHF\"}",
+      "sha256": "0xbf38fbf1512ca68704977a24cdf3994eb9e9f91222d8ed833bc6228b0f6fcbc7",
+      "length": 76,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "montant-champ",
+          "detector": "champ",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Sélecteur path + détecteur champ, action remplacer : le nombre JSON désigné devient la chaîne jeton (EX-10.11)."
+  },
+  {
+    "name": "champ-outil-non-vise",
+    "policy": "pii-regles-test",
+    "scope": "arguments",
+    "tool": "demo__claims.get",
+    "input": {
+      "claim_id": "2026-77812",
+      "amount_cents": 740000
+    },
+    "expected": {
+      "piece": "{\"amount_cents\":740000,\"claim_id\":\"2026-77812\"}",
+      "sha256": "0x6ca968d6aaea43d4db2b8171cb69694d7404d1d452b4b677b53fba895397f63d",
+      "length": 47,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "La règle montant-champ vise demo__payments.create seulement : pour demo__claims.get elle ne s'applique pas."
+  },
+  {
+    "name": "supprimer-membre",
+    "policy": "pii-regles-test",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Dossier ouvert"
+        }
+      ],
+      "isError": false,
+      "note_interne": "Assuré difficile, voir avec le service juridique."
+    },
+    "expected": {
+      "piece": "{\"content\":[{\"text\":\"Dossier ouvert\",\"type\":\"text\"}],\"isError\":false}",
+      "sha256": "0x5268ed4f256a514a0973db7ba8c862f3ffcc4b7163637f50090b8433265c11c6",
+      "length": 69,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "note-interne-supprimee",
+          "detector": "champ",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Action supprimer sur un membre (tools demo__*) : le membre est retiré de son objet parent."
+  },
+  {
+    "name": "supprimer-element",
+    "policy": "pii-regles-test",
+    "scope": "arguments",
+    "tool": "mail__send",
+    "input": {
+      "destinataires": [
+        "service-sinistres",
+        "copie-externe",
+        "archives"
+      ],
+      "objet": "Règlement"
+    },
+    "expected": {
+      "piece": "{\"destinataires\":[\"service-sinistres\",\"[REDIGE:destinataire]\",\"archives\"],\"objet\":\"Règlement\"}",
+      "sha256": "0x49357c3c86a05c116af4e6a7ab76bf0d867bef0fc394482b8daeab89a084517f",
+      "length": 95,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "copie-supprimee",
+          "detector": "champ",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Action supprimer sur un élément de tableau : remplacé par le jeton, les indices ne bougent pas (CT-2 §10.2.3)."
+  },
+  {
+    "name": "motif-nomme",
+    "policy": "pii-regles-test",
+    "scope": "resultat",
+    "tool": "demo__claims.search",
+    "input": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Sinistres 2026-81044 et 2026-81045 ouverts."
+        }
+      ],
+      "isError": false
+    },
+    "expected": {
+      "piece": "{\"content\":[{\"text\":\"Sinistres [REDIGE:numero-sinistre] et [REDIGE:numero-sinistre] ouverts.\",\"type\":\"text\"}],\"isError\":false}",
+      "sha256": "0xd279b31812c61348960d18b130828952a067280692c6275198b64da1c3357f74",
+      "length": 126,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "numero-sinistre",
+          "detector": "regex",
+          "count": 2
+        }
+      ]
+    },
+    "note": "Motif nommé numero-sinistre (RE2 \\b20[0-9]{2}-[0-9]{5}\\b) : deux correspondances."
+  },
+  {
+    "name": "passages-multiples",
+    "policy": "pii-regles-test",
+    "scope": "contexte",
+    "tool": null,
+    "input": "Rappeler CH9300762011623852957+41441234567 demain.",
+    "expected": {
+      "piece": "Rappeler [REDIGE:iban][REDIGE:telephone] demain.",
+      "sha256": "0x12989174beb6e4e3c55d44464c5067d75ced71a6887491ba8eb02138e83539c4",
+      "length": 48,
+      "redacted": true,
+      "media_type": "text/plain",
+      "matches": [
+        {
+          "rule": "iban-contexte",
+          "detector": "iban",
+          "count": 1
+        },
+        {
+          "rule": "telephone-contexte",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Règles telephone-contexte puis iban-contexte : au premier passage, le « + » suit un chiffre et n'est pas une frontière ; l'IBAN rédigé, son jeton en fait une ; le second passage rédige le téléphone (EX-10.14)."
+  },
+  {
+    "name": "jeton-opaque",
+    "policy": "pii-v1",
+    "scope": "contexte",
+    "tool": null,
+    "input": "Référence [PSEUDO:iban:378282246313] conservée.",
+    "expected": {
+      "piece": "Référence [PSEUDO:iban:378282246313] conservée.",
+      "sha256": "0xd6e557b0963625e8584dc558719399422554ac39cde71ca0af7fdacabfee43a9",
+      "length": 50,
+      "redacted": false,
+      "media_type": "text/plain",
+      "matches": []
+    },
+    "note": "Un jeton de pseudonyme dont les douze chiffres (378282246313) passent Luhn n'est pas une carte : les détecteurs ne voient pas l'intérieur d'un jeton (EX-10.9)."
+  },
+  {
+    "name": "regles-enchainees",
+    "policy": "pii-regles-test",
+    "scope": "resultat",
+    "tool": "demo__claims.get",
+    "input": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Sinistre 2026-81044 : verser sur CH93 0076 2011 6238 5295 7."
+        }
+      ],
+      "isError": false,
+      "note_interne": "à vérifier"
+    },
+    "expected": {
+      "piece": "{\"content\":[{\"text\":\"Sinistre [REDIGE:numero-sinistre] : verser sur [REDIGE:iban].\",\"type\":\"text\"}],\"isError\":false}",
+      "sha256": "0x71c78f5e05aa9dd08f414b4f0d6cee64e22ef0fa697f402a56e072074a58a17e",
+      "length": 116,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "note-interne-supprimee",
+          "detector": "champ",
+          "count": 1
+        },
+        {
+          "rule": "numero-sinistre",
+          "detector": "regex",
+          "count": 1
+        },
+        {
+          "rule": "identifiants",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Trois règles modifient la même pièce, dans l'ordre : note-interne-supprimee, numero-sinistre puis identifiants ; montant-champ et copie-supprimee ne s'appliquent pas (portée), sans erreur."
+  },
+  {
+    "name": "pointeur-non-resolu",
+    "policy": "pii-regles-test",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "claim_id": "2026-77812",
+      "amount": "7400.00"
+    },
+    "expected": {
+      "piece": "{\"amount\":\"7400.00\",\"claim_id\":\"2026-77812\"}",
+      "sha256": "0x88a438bd020c1876b745eaf14c36d9be90a2588278f11d01e0bfd2eabc948e16",
+      "length": 44,
+      "redacted": false,
+      "matches": []
+    },
+    "note": "Le pointeur /amount_cents ne résout pas : la règle est sans effet pour cette pièce, sans erreur (note du journal d'exploitation)."
+  },
+  {
+    "name": "pseudonyme-iban",
+    "policy": "pii-pseudo-test",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "beneficiary_iban": "CH93 0076 2011 6238 5295 7"
+    },
+    "expected": {
+      "piece": "{\"beneficiary_iban\":\"[PSEUDO:iban:50d46ea9a82b]\"}",
+      "sha256": "0x298b9e24b8570ea2600b2530abbc89b9d5f52c72307f088fb12b25ad8718a718",
+      "length": 49,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Valeur normalisée CH9300762011623852957 : le jeton de CT-2 §10.9 ; la forme groupée et la forme compacte donnent le même pseudonyme."
+  },
+  {
+    "name": "pseudonyme-avs",
+    "policy": "pii-pseudo-test",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Assuré 756.1234.5678.97."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Assuré [PSEUDO:avs:abebd4a6e249].\"}",
+      "sha256": "0xcc8657ad4b45b105e00bf4e21183982b378c2fcea5d3c7e885f6558bdf638195",
+      "length": 45,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "avs",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Valeur normalisée : les treize chiffres."
+  },
+  {
+    "name": "pseudonyme-carte",
+    "policy": "pii-pseudo-test",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Carte 3782 822463 10005."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Carte [PSEUDO:carte:4ad761633b97].\"}",
+      "sha256": "0x8a154ff11a50966876de18a04de6b0c0b938e9bacc609b0c8288d2904ee62725",
+      "length": 45,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "carte",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Valeur normalisée : les chiffres seuls."
+  },
+  {
+    "name": "pseudonyme-email",
+    "policy": "pii-pseudo-test",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Écrire à j.dupont@Example.CH ; merci."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Écrire à [PSEUDO:email:b8ac789204a6] ; merci.\"}",
+      "sha256": "0x909afc91449dd39deffdede78a71ad0ac06f6e8701c49a633d1ff3ad2031e4b9",
+      "length": 58,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "email",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Domaine ramené en minuscules ASCII, partie locale telle quelle : même jeton que j.dupont@example.ch (CT-2 §10.9)."
+  },
+  {
+    "name": "pseudonyme-telephone",
+    "policy": "pii-pseudo-test",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "note": "Joignable au +41 44 123 45 67."
+    },
+    "expected": {
+      "piece": "{\"note\":\"Joignable au [PSEUDO:telephone:cf261789c9b7].\"}",
+      "sha256": "0x839fa5a634ec9a9c56a0e6608bb75df19bf6b05ed6fa12f5e1a904c3f13de7c0",
+      "length": 56,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "telephone",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Valeur normalisée : + suivi des chiffres."
+  },
+  {
+    "name": "pseudonyme-champ-chaine",
+    "policy": "pii-pseudo-test",
+    "scope": "arguments",
+    "tool": "demo__payments.create",
+    "input": {
+      "iban_beneficiaire": "CH9300762011623852957",
+      "note": "Virement sur CH9300762011623852957."
+    },
+    "expected": {
+      "piece": "{\"iban_beneficiaire\":\"[PSEUDO:iban:50d46ea9a82b]\",\"note\":\"Virement sur [PSEUDO:iban:50d46ea9a82b].\"}",
+      "sha256": "0xd6a880f3fc6f1c24482253cbdb38040a3013b9cdcfe002c6ae1761c817899fda",
+      "length": 100,
+      "redacted": true,
+      "matches": [
+        {
+          "rule": "iban-champ",
+          "detector": "champ",
+          "count": 1
+        },
+        {
+          "rule": "identifiants-arguments-resultat",
+          "detector": "iban",
+          "count": 1
+        }
+      ]
+    },
+    "note": "Règle champ (étiquette iban) sur une chaîne et détecteur iban dans le texte : le pseudonyme de champ est calculé sur la chaîne elle-même, d'où le même jeton (EX-10.11, EX-10.13)."
+  }
+]

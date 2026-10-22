@@ -1,0 +1,424 @@
+{
+  "config_version": 0,
+  "recorder": {
+    "instance_id": "enregistreur-sinistres-1",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "environment": "production"
+  },
+  "mcp": {
+    "enabled": true,
+    "socket": "/run/noortrace/mcp.sock",
+    "connector_tcp": null,
+    "http": {
+      "listen": "127.0.0.1:8300",
+      "path": "/mcp",
+      "allowed_origins": [],
+      "tls": null,
+      "oauth": null,
+      "static_tokens": [{"id": "cursor-postes", "token": {"env": "NOORTRACE_TOKEN_CURSOR"}}]
+    },
+    "hosts": [
+      {
+        "id": "agent-sinistres-stdio",
+        "match": { "peer_user": "agent-sinistres" },
+        "launched_by": "${peer_user}",
+        "scope": "sinistres:lecture,paiement",
+        "on_behalf_of": "service-sinistres",
+        "accept_declared_delegation": true,
+        "allowed_on_behalf_of": ["service-sinistres"],
+        "tool_name_template": "{tool_announced}",
+        "tool_name_sanitize": false,
+        "prompt_version_name": null,
+        "host_group": "agent-sinistres",
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "alias": null
+      },
+      {
+        "id": "cursor-postes",
+        "match": { "static_token": "cursor-postes" },
+        "launched_by": "poste-cursor",
+        "scope": "sinistres:lecture",
+        "on_behalf_of": null,
+        "accept_declared_delegation": false,
+        "allowed_on_behalf_of": [],
+        "tool_name_template": "{tool_announced}",
+        "tool_name_sanitize": false,
+        "prompt_version_name": null,
+        "host_group": "cursor-postes",
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "alias": null
+      }
+    ],
+    "discover_timeout_ms": 3000,
+    "drain_timeout_ms": 10000,
+    "child_exit_timeout_ms": 5000
+  },
+  "tools": {
+    "prefix": true,
+    "page_size": 100,
+    "default_ttl_ms": 300000,
+    "default_timeout_ms": 120000,
+    "definition_in_context": true,
+    "list_in_context": true,
+    "list_changed_min_interval_ms": 1000
+  },
+  "limits": {
+    "request_max_bytes": 16777216,
+    "response_max_bytes": 16777216,
+    "model_request_max_bytes": 33554432,
+    "model_response_max_bytes": 33554432,
+    "piece_max_bytes": 67108864,
+    "json_max_depth": 128,
+    "json_max_members": 100000,
+    "line_max_bytes": 16842752,
+    "tools_list_max_pages": 100,
+    "tools_list_max_items": 10000,
+    "pending_max_bytes": 268435456,
+    "redaction_budget_ms": 1000
+  },
+  "relay": {
+    "resources": false,
+    "prompts": false,
+    "completions": false,
+    "server_requests": { "sampling": false, "elicitation": false, "roots": false }
+  },
+  "restart": { "max_attempts": 3, "backoff_ms": 1000 },
+  "auth": { "strip_headers": ["X-Forwarded-Authorization"] },
+  "clock": {
+    "max_backstep_ms": 5000,
+    "warn_skew_ms": 1000,
+    "max_forward_ms": 60000,
+    "max_wait_ms": 3600000
+  },
+  "model": {
+    "mode": "passerelle",
+    "listen": "127.0.0.1:8400",
+    "tls": null,
+    "hosts": [
+      {
+        "id": "agent-sinistres-passerelle",
+        "match": { "static_token": "agent-sinistres-passerelle" },
+        "launched_by": "agent-sinistres",
+        "scope": "sinistres:lecture,paiement",
+        "on_behalf_of": "service-sinistres",
+        "accept_declared_delegation": true,
+        "allowed_on_behalf_of": ["service-sinistres"],
+        "tool_name_template": "{tool_announced}",
+        "tool_name_sanitize": false,
+        "prompt_version_name": null,
+        "host_group": "agent-sinistres",
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "alias": null
+      }
+    ],
+    "static_tokens": [
+      { "id": "agent-sinistres-passerelle", "token": {"env": "NOORTRACE_TOKEN_PASSERELLE"} }
+    ],
+    "forward_headers": [],
+    "strip_headers": [],
+    "prompt_in_request": "reference",
+    "prompt_system": "redige",
+    "connect_timeout_ms": 10000,
+    "first_byte_timeout_ms": 120000,
+    "idle_timeout_ms": 120000,
+    "correlation_window_ms": 600000,
+    "icap": null,
+    "mirror": null
+  },
+  "sdk": { "enabled": false, "socket": null, "tcp_listen": null, "hosts": [] },
+  "signer": {
+    "class": "A",
+    "key_id": "rec-sinistres-2026-01",
+    "backend": {
+      "type": "pkcs11",
+      "module": "/opt/hsm-fabricant/lib/libpkcs11-fabricant.so",
+      "token_label": "noortrace",
+      "key_label": "rec-sinistres-2026-01",
+      "pin": { "env": "NOORTRACE_PKCS11_PIN" },
+      "mechanism": "CKM_EDDSA"
+    },
+    "verify_after_sign": true,
+    "max_message_bytes": null,
+    "timeout_ms": 5000,
+    "health_interval_ms": 10000,
+    "rotation": { "planned_every_days": 365, "next_key_id": null }
+  },
+  "storage": {
+    "root": "/var/lib/noortrace",
+    "segment_max_bytes": 268435456,
+    "min_free_bytes": 1073741824,
+    "fsync": { "group_max_events": 64, "group_max_wait_ms": 5 },
+    "seal": {
+      "append_only_attribute": true,
+      "worm": {
+        "type": "s3-object-lock",
+        "bucket": "noortrace-sinistres-worm",
+        "prefix": "journal-sinistres/",
+        "mode": "compliance",
+        "retain_days": 4018,
+        "credentials": { "file": "/run/secrets/sos-worm" }
+      }
+    },
+    "retention": { "events_years": 11, "pieces_days": null },
+    "vault": { "enabled": false, "path": null, "key": null }
+  },
+  "lease": {
+    "store": {
+      "type": "postgresql",
+      "dsn": { "env": "NOORTRACE_LEASE_DSN" },
+      "table": "noortrace_lease"
+    },
+    "ttl_ms": 10000,
+    "renew_ms": 3000,
+    "acquire_wait_ms": 30000,
+    "fencing": "detachement"
+  },
+  "anchoring": {
+    "registry": {
+      "enabled": true,
+      "rpc_url": "https://registre-dev.example/rpc",
+      "chain_key": {
+        "class": "C",
+        "address": "0x1111111111111111111111111111111111111111",
+        "secret": { "file": "/run/secrets/cle-chaine-enveloppe" },
+        "service_url": null
+      },
+      "next_chain_key": null
+    },
+    "rfc3161": { "enabled": false, "url": null },
+    "opentimestamps": {
+      "enabled": true,
+      "calendars": ["https://a.pool.opentimestamps.org", "https://b.pool.opentimestamps.org"]
+    }
+  },
+  "supervision": {
+    "health_listen": "127.0.0.1:8500",
+    "metrics": true,
+    "ops_log": {
+      "path": "/var/log/noortrace/exploitation.ndjson",
+      "level": "info",
+      "rotate_max_bytes": 104857600,
+      "keep_files": 30,
+      "child_stderr_max_bytes": 4096,
+      "child_stderr": "empreinte",
+      "child_stderr_lines_per_second": 20
+    }
+  },
+  "policy": {
+    "version": "2026-11-01",
+    "approval": {
+      "rules": [
+        {
+          "tool": "sap__payments.create",
+          "when": "amount > 5000 CHF",
+          "decision": "a_approuver",
+          "note": "syntaxe CT-3, opaque pour CT-2"
+        }
+      ],
+      "mode": "retenir",
+      "hold_timeout_ms": 50000,
+      "expire_after_ms": 3600000,
+      "timeout_ms": 2000,
+      "service": { "url": null, "socket": "/run/noortrace/approbation.sock", "token": null, "peer_user": "noortrace-approbation" }
+    },
+    "redaction": {
+      "version": 0,
+      "name": "pii-v1",
+      "description": "Politique de redaction publiee avec CT-2 : identifiants personnels et financiers courants (IBAN, numero AVS, adresse electronique, numero de telephone international, numero de carte de paiement) remplaces par un jeton type dans toutes les pieces.",
+      "pseudonym_key": null,
+      "named_patterns": {
+        "numero-sinistre": {
+          "pattern": "\\b20[0-9]{2}-[0-9]{5}\\b",
+          "description": "Numero de dossier de sinistre AAAA-NNNNN de l'assureur de demonstration ; n'est pas une donnee personnelle, declare ici pour montrer une regex nommee et laisse hors de toute regle."
+        }
+      },
+      "rules": [
+        {
+          "id": "identifiants-arguments-resultat",
+          "description": "Arguments et resultats de tout appel d'outil : tout texte.",
+          "scopes": ["arguments", "resultat"],
+          "tools": "*",
+          "detectors": [
+            { "type": "iban" },
+            { "type": "avs" },
+            { "type": "carte" },
+            { "type": "email" },
+            { "type": "telephone" }
+          ],
+          "action": { "kind": "remplacer" }
+        },
+        {
+          "id": "identifiants-modele",
+          "description": "Requetes, reponses et prompt systeme des echanges de modele : tout texte.",
+          "scopes": ["requete", "reponse", "prompt_systeme"],
+          "tools": "*",
+          "detectors": [
+            { "type": "iban" },
+            { "type": "avs" },
+            { "type": "carte" },
+            { "type": "email" },
+            { "type": "telephone" }
+          ],
+          "action": { "kind": "remplacer" }
+        },
+        {
+          "id": "identifiants-contexte",
+          "description": "Documents de contexte remis par le SDK : tout texte.",
+          "scopes": ["contexte"],
+          "tools": "*",
+          "detectors": [
+            { "type": "iban" },
+            { "type": "avs" },
+            { "type": "carte" },
+            { "type": "email" },
+            { "type": "telephone" }
+          ],
+          "action": { "kind": "remplacer" }
+        }
+      ]
+    },
+    "servers": {
+      "sap": {
+        "transport": {
+          "type": "http",
+          "url": "https://sap-mcp.interne.example/mcp",
+          "headers": { "Authorization": {"env": "NOORTRACE_SAP_BEARER"} },
+          "oauth": null,
+          "tls": null
+        },
+        "protocol": "auto",
+        "class_default": "ecriture",
+        "timeout_ms": 60000,
+        "tools": {
+          "payments.create": {
+            "class": "ecriture",
+            "timeout_ms": null,
+            "effects": [
+              {
+                "system": "SAP",
+                "action": "ecriture",
+                "object": "/result/structuredContent/payment_id",
+                "amount": "/arguments/amount",
+                "currency": "/arguments/currency"
+              }
+            ],
+            "failure": null
+          },
+          "claims.get": {
+            "class": "lecture",
+            "timeout_ms": null,
+            "effects": null,
+            "failure": "passant"
+          }
+        },
+        "uri_prefixes": [],
+        "relay": null
+      },
+      "fichiers": {
+        "transport": {
+          "type": "stdio",
+          "command": ["/opt/mcp/server-filesystem/bin/server-filesystem", "/srv/sinistres/pieces"],
+          "cwd": "/srv/sinistres",
+          "env": {},
+          "sandbox": [
+            "bwrap",
+            "--unshare-all",
+            "--die-with-parent",
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--symlink",
+            "usr/lib",
+            "/lib",
+            "--symlink",
+            "usr/lib64",
+            "/lib64",
+            "--symlink",
+            "usr/bin",
+            "/bin",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--ro-bind",
+            "/opt/mcp/server-filesystem",
+            "/opt/mcp/server-filesystem",
+            "--bind",
+            "/srv/sinistres/pieces",
+            "/srv/sinistres/pieces"
+          ],
+          "user": "mcp-fichiers",
+          "integrity": {
+            "sha256": "0x9d5f0e3b1c7a4e2f8b6d0c9a7e5f3b1d2c4e6a8b0d2f4e6a8c0b2d4f6e8a0c2e"
+          }
+        },
+        "protocol": "legacy",
+        "class_default": "ecriture",
+        "timeout_ms": null,
+        "tools": {
+          "list_directory": {
+            "class": "lecture",
+            "timeout_ms": null,
+            "effects": null,
+            "failure": null
+          },
+          "read_file": { "class": "lecture", "timeout_ms": null, "effects": null, "failure": null },
+          "write_file": {
+            "class": "ecriture",
+            "timeout_ms": null,
+            "effects": null,
+            "failure": null
+          }
+        },
+        "uri_prefixes": ["file:///srv/sinistres/"],
+        "relay": { "sampling": false, "elicitation": false, "roots": false }
+      }
+    },
+    "model": {
+      "routes": [
+        {
+          "path": "/v1/messages",
+          "format": "anthropic-messages",
+          "upstream": "https://api.anthropic.com",
+          "provider_label": "anthropic",
+          "credentials": "propre",
+          "secret": { "file": "/run/secrets/cle-anthropic" },
+          "auth_header": "x-api-key",
+          "passthrough": [
+            { "method": "POST", "path": "/v1/messages/count_tokens" },
+            { "method": "GET", "path": "/v1/models" }
+          ]
+        },
+        {
+          "path": "/v1/chat/completions",
+          "format": "openai-chat",
+          "upstream": "https://api.openai.com",
+          "provider_label": "openai",
+          "credentials": "propre",
+          "secret": { "file": "/run/secrets/cle-openai" },
+          "auth_header": "authorization-bearer",
+          "passthrough": []
+        },
+        {
+          "path": "/v1/responses",
+          "format": "openai-responses",
+          "upstream": "https://api.openai.com",
+          "provider_label": "openai",
+          "credentials": "propre",
+          "secret": { "file": "/run/secrets/cle-openai" },
+          "auth_header": "authorization-bearer",
+          "passthrough": []
+        }
+      ]
+    },
+    "failure": {
+      "ecriture": "bloquant",
+      "lecture": "passant",
+      "modele": "bloquant",
+      "approval_service": { "ecriture": "bloquant", "lecture": "passant" },
+      "pending_max_events": 10000,
+      "pending_max_ms": 300000
+    }
+  }
+}

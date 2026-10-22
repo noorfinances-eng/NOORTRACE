@@ -1,0 +1,12 @@
+{
+  "model": "modele-messages-exemple",
+  "max_tokens": 1024,
+  "system": "Tu es l'agent sinistres de l'assureur de démonstration.",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Résume le sinistre 2026-81044."
+    }
+  ],
+  "stream": true
+}
