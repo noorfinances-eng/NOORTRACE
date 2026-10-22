@@ -1,0 +1,114 @@
+[
+  {
+    "sha256": "0x310e81a9764658f3d2580d2611b55e211581104a0f786b252fed29e3d84fa80f",
+    "length": 3006,
+    "redacted": false,
+    "media_type": "application/json",
+    "bytes": "{\"approval\":{\"expire_after_ms\":3600000,\"hold_timeout_ms\":50000,\"mode\":\"erreur\",\"rules\":[{\"decision\":\"a_approuver\",\"note\":\"syntaxe CT-3, opaque pour CT-2\",\"tool\":\"demo__payments.create\",\"when\":\"amount > 5000 CHF\"}],\"service\":{\"peer_user\":\"approbateur-demo\",\"socket\":\"/run/noortrace/approbation.sock\",\"token\":null,\"url\":null},\"timeout_ms\":2000},\"failure\":{\"approval_service\":{\"ecriture\":\"bloquant\",\"lecture\":\"passant\"},\"ecriture\":\"bloquant\",\"lecture\":\"passant\",\"modele\":\"bloquant\",\"pending_max_events\":10000,\"pending_max_ms\":300000},\"model\":{\"routes\":[{\"auth_header\":\"x-api-key\",\"credentials\":\"propre\",\"format\":\"anthropic-messages\",\"passthrough\":[],\"path\":\"/v1/messages\",\"provider_label\":\"demo\",\"secret\":{\"file\":\"/run/secrets/cle-modele-demo\"},\"upstream\":\"http://modele-demo:8080\"}]},\"redaction\":{\"description\":\"Politique de redaction publiee avec CT-2 : identifiants personnels et financiers courants (IBAN, numero AVS, adresse electronique, numero de telephone international, numero de carte de paiement) remplaces par un jeton type dans toutes les pieces.\",\"name\":\"pii-v1\",\"named_patterns\":{\"numero-sinistre\":{\"description\":\"Numero de dossier de sinistre AAAA-NNNNN de l'assureur de demonstration ; n'est pas une donnee personnelle, declare ici pour montrer une regex nommee et laisse hors de toute regle.\",\"pattern\":\"\\\\b20[0-9]{2}-[0-9]{5}\\\\b\"}},\"pseudonym_key\":null,\"rules\":[{\"action\":{\"kind\":\"remplacer\"},\"description\":\"Arguments et resultats de tout appel d'outil : tout texte.\",\"detectors\":[{\"type\":\"iban\"},{\"type\":\"avs\"},{\"type\":\"carte\"},{\"type\":\"email\"},{\"type\":\"telephone\"}],\"id\":\"identifiants-arguments-resultat\",\"scopes\":[\"arguments\",\"resultat\"],\"tools\":\"*\"},{\"action\":{\"kind\":\"remplacer\"},\"description\":\"Requetes, reponses et prompt systeme des echanges de modele : tout texte.\",\"detectors\":[{\"type\":\"iban\"},{\"type\":\"avs\"},{\"type\":\"carte\"},{\"type\":\"email\"},{\"type\":\"telephone\"}],\"id\":\"identifiants-modele\",\"scopes\":[\"requete\",\"reponse\",\"prompt_systeme\"],\"tools\":\"*\"},{\"action\":{\"kind\":\"remplacer\"},\"description\":\"Documents de contexte remis par le SDK : tout texte.\",\"detectors\":[{\"type\":\"iban\"},{\"type\":\"avs\"},{\"type\":\"carte\"},{\"type\":\"email\"},{\"type\":\"telephone\"}],\"id\":\"identifiants-contexte\",\"scopes\":[\"contexte\"],\"tools\":\"*\"}],\"version\":0},\"servers\":{\"demo\":{\"class_default\":null,\"protocol\":\"2026-07-28\",\"relay\":null,\"timeout_ms\":null,\"tools\":{\"claims.get\":{\"class\":\"lecture\",\"effects\":[{\"action\":\"lecture\",\"amount\":null,\"currency\":null,\"object\":\"/arguments/claim_id\",\"system\":\"demo\"}],\"failure\":null,\"timeout_ms\":null},\"claims.search\":{\"class\":\"lecture\",\"effects\":null,\"failure\":\"passant\",\"timeout_ms\":30000},\"payments.create\":{\"class\":\"ecriture\",\"effects\":[{\"action\":\"ecriture\",\"amount\":\"/arguments/amount\",\"currency\":\"/arguments/currency\",\"object\":\"/result/structuredContent/payment_id\",\"system\":\"demo\"}],\"failure\":null,\"timeout_ms\":null}},\"transport\":{\"headers\":{},\"oauth\":null,\"tls\":null,\"type\":\"http\",\"url\":\"http://outils-demo:8000/mcp\"},\"uri_prefixes\":[]}},\"version\":\"demo-2026-11\"}"
+  },
+  {
+    "sha256": "0x02abbfd81d96abf4e2946d05acd5a8a9ddbfac5d2e12b3af2061fe11720a7b8a",
+    "length": 877,
+    "redacted": true,
+    "media_type": null,
+    "bytes": "{\"max_tokens\":1024,\"messages\":[{\"content\":\"Traite le sinistre 2026-81044.\",\"role\":\"user\"}],\"model\":\"modele-demo-1\",\"system\":\"[REDIGE:prompt-systeme]\",\"tools\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"input_schema\":{\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims_get\"},{\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"input_schema\":{\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims_search\"},{\"description\":\"Crée un paiement de sinistre (écriture)\",\"input_schema\":{\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments_create\"}]}"
+  },
+  {
+    "sha256": "0x391bc36699c90b5662b02d7546bbad96a1d58c03c73e1cad34c24eb8a570f928",
+    "length": 395,
+    "redacted": false,
+    "media_type": null,
+    "bytes": "{\"content\":[{\"text\":\"Je consulte le dossier du sinistre 2026-81044 avant de proposer un règlement.\",\"type\":\"text\"},{\"id\":\"toolu_demo_0001\",\"input\":{\"claim_id\":\"2026-81044\"},\"name\":\"demo__claims_get\",\"type\":\"tool_use\"}],\"id\":\"msg_demo_0001\",\"model\":\"modele-demo-1\",\"role\":\"assistant\",\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"input_tokens\":512,\"output_tokens\":48}}"
+  },
+  {
+    "sha256": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+    "length": 111,
+    "redacted": true,
+    "media_type": "text/plain",
+    "bytes": "Tu es l'agent sinistres de l'assureur de démonstration. Contact interne : [REDIGE:email] (jamais communiqué)."
+  },
+  {
+    "sha256": "0x077618bb81bb1a116ed7f22967b7979021dc667b045ad5472fbdbfc959efd22b",
+    "length": 25,
+    "redacted": false,
+    "media_type": null,
+    "bytes": "{\"claim_id\":\"2026-81044\"}"
+  },
+  {
+    "sha256": "0x7966e0e600e81adde9d4215737a2e10d9ba30e5355330b8a80321a3594820ff0",
+    "length": 308,
+    "redacted": true,
+    "media_type": null,
+    "bytes": "{\"content\":[{\"text\":\"Sinistre 2026-81044 : collision du 2026-11-02, dommages 7400.00 CHF, assuré joignable à [REDIGE:email] ou au [REDIGE:telephone]\",\"type\":\"text\"}],\"isError\":false,\"resultType\":\"complete\",\"structuredContent\":{\"amount\":\"7400.00\",\"claim_id\":\"2026-81044\",\"currency\":\"CHF\",\"status\":\"ouvert\"}}"
+  },
+  {
+    "sha256": "0x67f5a0387537ec6f23759093f193a768d8a0e165d871e88098261538735b675f",
+    "length": 283,
+    "redacted": false,
+    "media_type": "application/json",
+    "bytes": "{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"}"
+  },
+  {
+    "sha256": "0x6d1c5d587f22cc24a0523e42af6425bbb98a70e3c231f4ddcc041268a99f2490",
+    "length": 1286,
+    "redacted": false,
+    "media_type": "application/json",
+    "bytes": "{\"tools\":[{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"},{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}]}"
+  },
+  {
+    "sha256": "0x98c5c8c002f7d36af81150bc592d489c88ef8dcf6a7bf2702cb7bd064a277110",
+    "length": 1356,
+    "redacted": true,
+    "media_type": null,
+    "bytes": "{\"max_tokens\":1024,\"messages\":[{\"content\":\"Traite le sinistre 2026-81044.\",\"role\":\"user\"},{\"content\":[{\"text\":\"Je consulte le dossier du sinistre 2026-81044 avant de proposer un règlement.\",\"type\":\"text\"},{\"id\":\"toolu_demo_0001\",\"input\":{\"claim_id\":\"2026-81044\"},\"name\":\"demo__claims_get\",\"type\":\"tool_use\"}],\"role\":\"assistant\"},{\"content\":[{\"content\":\"Sinistre 2026-81044 : collision du 2026-11-02, dommages 7400.00 CHF, assuré joignable à [REDIGE:email] ou au [REDIGE:telephone]\",\"tool_use_id\":\"toolu_demo_0001\",\"type\":\"tool_result\"}],\"role\":\"user\"}],\"model\":\"modele-demo-1\",\"stream\":true,\"system\":\"[REDIGE:prompt-systeme]\",\"tools\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"input_schema\":{\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims_get\"},{\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"input_schema\":{\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims_search\"},{\"description\":\"Crée un paiement de sinistre (écriture)\",\"input_schema\":{\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments_create\"}]}"
+  },
+  {
+    "sha256": "0xf99220168bc49af09f6c33eb2ccacc8989b1f04fefc40e3e29c40a7e4e8890fb",
+    "length": 495,
+    "redacted": true,
+    "media_type": null,
+    "bytes": "{\"content\":[{\"text\":\"Le dossier est complet : je propose de régler 7400.00 CHF sur l'IBAN [REDIGE:iban] du bénéficiaire.\",\"type\":\"text\"},{\"id\":\"toolu_demo_0002\",\"input\":{\"amount\":\"7400.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-81044\",\"currency\":\"CHF\"},\"name\":\"demo__payments_create\",\"type\":\"tool_use\"}],\"id\":\"msg_demo_0002\",\"model\":\"modele-demo-1\",\"role\":\"assistant\",\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"input_tokens\":690,\"output_tokens\":97}}"
+  },
+  {
+    "sha256": "0xb8d7eda1bfa33a52aad9815e2761f3d74680d312b15c5177a296d985a7d7f030",
+    "length": 102,
+    "redacted": true,
+    "media_type": "text/plain",
+    "bytes": "Le dossier est complet : je propose de régler 7400.00 CHF sur l'IBAN [REDIGE:iban] du bénéficiaire."
+  },
+  {
+    "sha256": "0xa403b6995342db8f84c6ffa1b6e6332cb6708a4d7ee190c7193aa129b06414a5",
+    "length": 96,
+    "redacted": true,
+    "media_type": null,
+    "bytes": "{\"amount\":\"7400.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-81044\",\"currency\":\"CHF\"}"
+  },
+  {
+    "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
+    "length": 575,
+    "redacted": false,
+    "media_type": "application/json",
+    "bytes": "{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}"
+  },
+  {
+    "sha256": "0x033f45a4bcfc8035e5b5c3d7a598a250d745c7f79df16a542cc91613be87dead",
+    "length": 189,
+    "redacted": false,
+    "media_type": null,
+    "bytes": "{\"content\":[{\"text\":\"Paiement PAY-2026-90417 créé pour le sinistre 2026-81044\",\"type\":\"text\"}],\"isError\":false,\"resultType\":\"complete\",\"structuredContent\":{\"payment_id\":\"PAY-2026-90417\"}}"
+  },
+  {
+    "sha256": "0x21ec0638807fe7195181c1ebac4003e1617adfd0cd2e3cf6ae7c71e3d4171abf",
+    "length": 1371,
+    "redacted": true,
+    "media_type": null,
+    "bytes": "{\"max_tokens\":1024,\"messages\":[{\"content\":\"Traite le sinistre 2026-81044.\",\"role\":\"user\"},{\"content\":[{\"text\":\"Le dossier est complet : je propose de régler 7400.00 CHF sur l'IBAN [REDIGE:iban] du bénéficiaire.\",\"type\":\"text\"},{\"id\":\"toolu_demo_0002\",\"input\":{\"amount\":\"7400.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-81044\",\"currency\":\"CHF\"},\"name\":\"demo__payments_create\",\"type\":\"tool_use\"}],\"role\":\"assistant\"},{\"content\":[{\"content\":\"Paiement PAY-2026-90417 créé pour le sinistre 2026-81044\",\"tool_use_id\":\"toolu_demo_0002\",\"type\":\"tool_result\"}],\"role\":\"user\"}],\"model\":\"modele-demo-1\",\"system\":\"[REDIGE:prompt-systeme]\",\"tools\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"input_schema\":{\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims_get\"},{\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"input_schema\":{\"properties\":{\"query\":{\"type\":\"string\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims_search\"},{\"description\":\"Crée un paiement de sinistre (écriture)\",\"input_schema\":{\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments_create\"}]}"
+  },
+  {
+    "sha256": "0xebcd0c92e5e5447990b08d020f949549b73a3cafe33a9aa0ec7f35456754c7fa",
+    "length": 304,
+    "redacted": false,
+    "media_type": null,
+    "bytes": "{\"content\":[{\"text\":\"Le paiement PAY-2026-90417 de 7400.00 CHF est créé ; le sinistre 2026-81044 est réglé.\",\"type\":\"text\"}],\"id\":\"msg_demo_0003\",\"model\":\"modele-demo-1\",\"role\":\"assistant\",\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"input_tokens\":830,\"output_tokens\":31}}"
+  }
+]

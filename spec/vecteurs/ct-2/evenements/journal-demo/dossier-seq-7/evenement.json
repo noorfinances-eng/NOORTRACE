@@ -1,0 +1,95 @@
+{
+  "version": 0,
+  "seq": 7,
+  "ts": "2026-11-10T10:21:35.431Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0x405f9d441acb3f22eed81d2c8448acef5bdc6bf94ea5c09e81383a6952c3c9cc",
+  "delegation": {
+    "launched_by": "agent-demo",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement",
+    "run_id": "run-demo-0001"
+  },
+  "code": {
+    "model": "demo/modele-demo-1",
+    "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+    "policy_version": "demo-2026-11",
+    "recorder": "0.1.0"
+  },
+  "intent": {
+    "sha256": "0xb8d7eda1bfa33a52aad9815e2761f3d74680d312b15c5177a296d985a7d7f030",
+    "length": 102,
+    "redacted": true,
+    "media_type": "text/plain"
+  },
+  "policy": {
+    "rule": "amount > 5000 CHF",
+    "decision": "a_approuver",
+    "ticket": "apr-demo-0001",
+    "redaction": "pii-v1"
+  },
+  "approval": {
+    "decision": "approuve",
+    "ticket": "apr-demo-0001",
+    "request_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "approvers": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    ],
+    "signatures": [
+      "0x9e36de49ca3fb63f8e654b10b1a348b3ed140f5061cb6e67f7f609a03ac989fe194e7890bb66ee0a424ed116786d7d9873a90a4487e192b610f72ead9e340a661c",
+      "0xabd3df3bbf022bc51b714d586dd13dd9fd2711cbb574e57f2a69a29940d0c19308ac013680bc33af79fe91157cb7d939359acb6412a72a7dff88da2f99099fce1c"
+    ],
+    "at": "2026-11-10T10:21:33.250Z",
+    "reason": "Constat et facture concordants"
+  },
+  "execution": {
+    "tool": "demo__payments.create",
+    "arguments": {
+      "sha256": "0xa403b6995342db8f84c6ffa1b6e6332cb6708a4d7ee190c7193aa129b06414a5",
+      "length": 96,
+      "redacted": true
+    },
+    "status": "executee",
+    "result": {
+      "sha256": "0x033f45a4bcfc8035e5b5c3d7a598a250d745c7f79df16a542cc91613be87dead",
+      "length": 189,
+      "redacted": false
+    },
+    "duration_ms": 412,
+    "is_error": false
+  },
+  "effects": [
+    {
+      "system": "demo",
+      "action": "ecriture",
+      "object": "PAY-2026-90417",
+      "amount": "7400.00",
+      "currency": "CHF"
+    }
+  ],
+  "context": [
+    {
+      "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
+      "length": 575,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    },
+    {
+      "sha256": "0x6d1c5d587f22cc24a0523e42af6425bbb98a70e3c231f4ddcc041268a99f2490",
+      "length": 1286,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    }
+  ],
+  "hash": "0xfec51c4d6cad5f6689ddee02c5ac6c674f9ad6bf2597334adad1d9fddcb8fc85",
+  "sig": "0x9752f78f7dcf16c1a54e675bf83ca2014a2faac88fd611957812f38f4b8e7243875d689281e5f43734e75a43e4d70eb88fc2ac0511c0aed2e507d5949c756004"
+}

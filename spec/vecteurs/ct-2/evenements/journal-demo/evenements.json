@@ -1,0 +1,513 @@
+[
+  {
+    "version": 0,
+    "seq": 1,
+    "ts": "2026-11-10T10:14:02.115Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "delegation": {
+      "launched_by": "noortrace-enregistreur",
+      "on_behalf_of": null,
+      "scope": "journal:administration",
+      "run_id": null
+    },
+    "code": {
+      "model": null,
+      "prompt_version": null,
+      "policy_version": "demo-2026-11",
+      "recorder": "0.1.0"
+    },
+    "intent": null,
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": null
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.journal.politique",
+      "arguments": {
+        "sha256": "0x0b07640cab6d38090c0f51d4e3df3613cae807ee3d19a6b06b12598a710638ea",
+        "length": 118,
+        "redacted": false,
+        "value": {
+          "policy_version": "demo-2026-11",
+          "policy_sha256": "0x310e81a9764658f3d2580d2611b55e211581104a0f786b252fed29e3d84fa80f"
+        }
+      },
+      "status": "executee",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [
+      {
+        "system": "noortrace",
+        "action": "ecriture",
+        "object": "politique:demo-2026-11",
+        "amount": null,
+        "currency": null
+      }
+    ],
+    "context": [],
+    "hash": "0x5e537eda63b8cc8a7594d12ada66d9390121497aee3b28179cf483153c2be9bb",
+    "sig": "0x1568d0e1c1ac94df86e04c68d6221b0c2e872572070a73738b92c3d78c3cb8b8d029282be5494a51c4f34f8a899e81270d1215c40ee62f032683e4bc622fe909"
+  },
+  {
+    "version": 0,
+    "seq": 2,
+    "ts": "2026-11-10T10:14:05.906Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x5e537eda63b8cc8a7594d12ada66d9390121497aee3b28179cf483153c2be9bb",
+    "delegation": {
+      "launched_by": "agent-demo",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-demo-0001"
+    },
+    "code": {
+      "model": "demo/modele-demo-1",
+      "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+      "policy_version": "demo-2026-11",
+      "recorder": "0.1.0"
+    },
+    "intent": "Je consulte le dossier du sinistre 2026-81044 avant de proposer un règlement.",
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.modele.echange",
+      "arguments": {
+        "sha256": "0x02abbfd81d96abf4e2946d05acd5a8a9ddbfac5d2e12b3af2061fe11720a7b8a",
+        "length": 877,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x391bc36699c90b5662b02d7546bbad96a1d58c03c73e1cad34c24eb8a570f928",
+        "length": 395,
+        "redacted": false
+      },
+      "duration_ms": 690,
+      "is_error": false
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0x380d228a5d2f42111eeeb66176f7cbad439797617faf52d04e5ed9c61a95bd1a",
+    "sig": "0xd28c0d8af98d989ec2d976a87cbf6752862e245428c28461886e34d922593e8e0b50fbdda764f62dd9203de52b41f0f069d5049de2833c441eba3e3613f82f01"
+  },
+  {
+    "version": 0,
+    "seq": 3,
+    "ts": "2026-11-10T10:14:06.209Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x380d228a5d2f42111eeeb66176f7cbad439797617faf52d04e5ed9c61a95bd1a",
+    "delegation": {
+      "launched_by": "agent-demo",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-demo-0001"
+    },
+    "code": {
+      "model": "demo/modele-demo-1",
+      "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+      "policy_version": "demo-2026-11",
+      "recorder": "0.1.0"
+    },
+    "intent": "Je consulte le dossier du sinistre 2026-81044 avant de proposer un règlement.",
+    "policy": {
+      "rule": null,
+      "decision": "autorise",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "demo__claims.get",
+      "arguments": {
+        "sha256": "0x077618bb81bb1a116ed7f22967b7979021dc667b045ad5472fbdbfc959efd22b",
+        "length": 25,
+        "redacted": false
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x7966e0e600e81adde9d4215737a2e10d9ba30e5355330b8a80321a3594820ff0",
+        "length": 308,
+        "redacted": true
+      },
+      "duration_ms": 184,
+      "is_error": false
+    },
+    "effects": [
+      {
+        "system": "demo",
+        "action": "lecture",
+        "object": "2026-81044",
+        "amount": null,
+        "currency": null
+      }
+    ],
+    "context": [
+      {
+        "sha256": "0x67f5a0387537ec6f23759093f193a768d8a0e165d871e88098261538735b675f",
+        "length": 283,
+        "redacted": false,
+        "media_type": "application/json",
+        "kind": "autre"
+      },
+      {
+        "sha256": "0x6d1c5d587f22cc24a0523e42af6425bbb98a70e3c231f4ddcc041268a99f2490",
+        "length": 1286,
+        "redacted": false,
+        "media_type": "application/json",
+        "kind": "autre"
+      }
+    ],
+    "hash": "0xdcd1599fc1e60bbb6d1500c3b8fd46f0c36cf4c72460ee803ee1fdc070409766",
+    "sig": "0xb716e5a7b05f7c06834ff48bd1fe0678f37ed502dcdd3d8e521fa75cd5f47394c6c66996423b5d0fa707f26d2514dc66f931bb7b6f117d1d25757db4c92b870c"
+  },
+  {
+    "version": 0,
+    "seq": 4,
+    "ts": "2026-11-10T10:14:07.657Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xdcd1599fc1e60bbb6d1500c3b8fd46f0c36cf4c72460ee803ee1fdc070409766",
+    "delegation": {
+      "launched_by": "agent-demo",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-demo-0001"
+    },
+    "code": {
+      "model": "demo/modele-demo-1",
+      "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+      "policy_version": "demo-2026-11",
+      "recorder": "0.1.0"
+    },
+    "intent": {
+      "sha256": "0xb8d7eda1bfa33a52aad9815e2761f3d74680d312b15c5177a296d985a7d7f030",
+      "length": 102,
+      "redacted": true,
+      "media_type": "text/plain"
+    },
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.modele.echange",
+      "arguments": {
+        "sha256": "0x98c5c8c002f7d36af81150bc592d489c88ef8dcf6a7bf2702cb7bd064a277110",
+        "length": 1356,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0xf99220168bc49af09f6c33eb2ccacc8989b1f04fefc40e3e29c40a7e4e8890fb",
+        "length": 495,
+        "redacted": true
+      },
+      "duration_ms": 1245,
+      "is_error": false
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0xa41a64abac691ea1a366fced46372bfa27108af6f74a2d46f019102211470711",
+    "sig": "0x066aa338984d7ad5d0a374110b980d0037cd405c00e768bcb753bb885ad8b7e4806d9aa5fb58a7a0fd681b9c096822576090f5cb6badfc0f71c2840c74e34403"
+  },
+  {
+    "version": 0,
+    "seq": 5,
+    "ts": "2026-11-10T10:14:07.805Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xa41a64abac691ea1a366fced46372bfa27108af6f74a2d46f019102211470711",
+    "delegation": {
+      "launched_by": "agent-demo",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-demo-0001"
+    },
+    "code": {
+      "model": "demo/modele-demo-1",
+      "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+      "policy_version": "demo-2026-11",
+      "recorder": "0.1.0"
+    },
+    "intent": {
+      "sha256": "0xb8d7eda1bfa33a52aad9815e2761f3d74680d312b15c5177a296d985a7d7f030",
+      "length": 102,
+      "redacted": true,
+      "media_type": "text/plain"
+    },
+    "policy": {
+      "rule": "amount > 5000 CHF",
+      "decision": "a_approuver",
+      "ticket": "apr-demo-0001",
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "demo__payments.create",
+      "arguments": {
+        "sha256": "0xa403b6995342db8f84c6ffa1b6e6332cb6708a4d7ee190c7193aa129b06414a5",
+        "length": 96,
+        "redacted": true
+      },
+      "status": "retenue",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [
+      {
+        "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
+        "length": 575,
+        "redacted": false,
+        "media_type": "application/json",
+        "kind": "autre"
+      },
+      {
+        "sha256": "0x6d1c5d587f22cc24a0523e42af6425bbb98a70e3c231f4ddcc041268a99f2490",
+        "length": 1286,
+        "redacted": false,
+        "media_type": "application/json",
+        "kind": "autre"
+      }
+    ],
+    "hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+    "sig": "0x1fa45a2313308e88699ca5663db8f32f7c67b18572a04902fbf8516dd7be6c9ed19ea34cce690982ebb21d77e988222bfa737feaa9d92c41d4ba6d1c48c61703"
+  },
+  {
+    "version": 0,
+    "seq": 6,
+    "ts": "2026-11-10T10:21:33.250Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+    "delegation": {
+      "launched_by": "agent-demo",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-demo-0001"
+    },
+    "code": {
+      "model": "demo/modele-demo-1",
+      "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+      "policy_version": "demo-2026-11",
+      "recorder": "0.1.0"
+    },
+    "intent": null,
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": "apr-demo-0001",
+      "redaction": null
+    },
+    "approval": {
+      "decision": "approuve",
+      "ticket": "apr-demo-0001",
+      "request_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "approvers": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      ],
+      "signatures": [
+        "0x9e36de49ca3fb63f8e654b10b1a348b3ed140f5061cb6e67f7f609a03ac989fe194e7890bb66ee0a424ed116786d7d9873a90a4487e192b610f72ead9e340a661c",
+        "0xabd3df3bbf022bc51b714d586dd13dd9fd2711cbb574e57f2a69a29940d0c19308ac013680bc33af79fe91157cb7d939359acb6412a72a7dff88da2f99099fce1c"
+      ],
+      "at": "2026-11-10T10:21:33.250Z",
+      "reason": "Constat et facture concordants"
+    },
+    "execution": {
+      "tool": "noortrace.approbation.decision",
+      "arguments": {
+        "sha256": "0xadb9e00e907109134f03cf86fa053a04da45d371667b82a499dc16a2e83cb634",
+        "length": 292,
+        "redacted": false,
+        "value": {
+          "decision": "approuve",
+          "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "request_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+          "ticket": "apr-demo-0001"
+        }
+      },
+      "status": "executee",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0x405f9d441acb3f22eed81d2c8448acef5bdc6bf94ea5c09e81383a6952c3c9cc",
+    "sig": "0x1efd59cde7e192a879c7353ee19f0bce5d3a460351607401b75d6c42e3e02be0bd574afac1af1227a94c2f8ede1335efc7346f97e47abb684038eb62cf44940a"
+  },
+  {
+    "version": 0,
+    "seq": 7,
+    "ts": "2026-11-10T10:21:35.431Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x405f9d441acb3f22eed81d2c8448acef5bdc6bf94ea5c09e81383a6952c3c9cc",
+    "delegation": {
+      "launched_by": "agent-demo",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-demo-0001"
+    },
+    "code": {
+      "model": "demo/modele-demo-1",
+      "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+      "policy_version": "demo-2026-11",
+      "recorder": "0.1.0"
+    },
+    "intent": {
+      "sha256": "0xb8d7eda1bfa33a52aad9815e2761f3d74680d312b15c5177a296d985a7d7f030",
+      "length": 102,
+      "redacted": true,
+      "media_type": "text/plain"
+    },
+    "policy": {
+      "rule": "amount > 5000 CHF",
+      "decision": "a_approuver",
+      "ticket": "apr-demo-0001",
+      "redaction": "pii-v1"
+    },
+    "approval": {
+      "decision": "approuve",
+      "ticket": "apr-demo-0001",
+      "request_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "approvers": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      ],
+      "signatures": [
+        "0x9e36de49ca3fb63f8e654b10b1a348b3ed140f5061cb6e67f7f609a03ac989fe194e7890bb66ee0a424ed116786d7d9873a90a4487e192b610f72ead9e340a661c",
+        "0xabd3df3bbf022bc51b714d586dd13dd9fd2711cbb574e57f2a69a29940d0c19308ac013680bc33af79fe91157cb7d939359acb6412a72a7dff88da2f99099fce1c"
+      ],
+      "at": "2026-11-10T10:21:33.250Z",
+      "reason": "Constat et facture concordants"
+    },
+    "execution": {
+      "tool": "demo__payments.create",
+      "arguments": {
+        "sha256": "0xa403b6995342db8f84c6ffa1b6e6332cb6708a4d7ee190c7193aa129b06414a5",
+        "length": 96,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x033f45a4bcfc8035e5b5c3d7a598a250d745c7f79df16a542cc91613be87dead",
+        "length": 189,
+        "redacted": false
+      },
+      "duration_ms": 412,
+      "is_error": false
+    },
+    "effects": [
+      {
+        "system": "demo",
+        "action": "ecriture",
+        "object": "PAY-2026-90417",
+        "amount": "7400.00",
+        "currency": "CHF"
+      }
+    ],
+    "context": [
+      {
+        "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
+        "length": 575,
+        "redacted": false,
+        "media_type": "application/json",
+        "kind": "autre"
+      },
+      {
+        "sha256": "0x6d1c5d587f22cc24a0523e42af6425bbb98a70e3c231f4ddcc041268a99f2490",
+        "length": 1286,
+        "redacted": false,
+        "media_type": "application/json",
+        "kind": "autre"
+      }
+    ],
+    "hash": "0xfec51c4d6cad5f6689ddee02c5ac6c674f9ad6bf2597334adad1d9fddcb8fc85",
+    "sig": "0x9752f78f7dcf16c1a54e675bf83ca2014a2faac88fd611957812f38f4b8e7243875d689281e5f43734e75a43e4d70eb88fc2ac0511c0aed2e507d5949c756004"
+  },
+  {
+    "version": 0,
+    "seq": 8,
+    "ts": "2026-11-10T10:21:36.322Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xfec51c4d6cad5f6689ddee02c5ac6c674f9ad6bf2597334adad1d9fddcb8fc85",
+    "delegation": {
+      "launched_by": "agent-demo",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-demo-0001"
+    },
+    "code": {
+      "model": "demo/modele-demo-1",
+      "prompt_version": "0xf057cc214940d67187ee527250a5d5900988d61b7f37e4be845e9c6534965a8f",
+      "policy_version": "demo-2026-11",
+      "recorder": "0.1.0"
+    },
+    "intent": "Le paiement PAY-2026-90417 de 7400.00 CHF est créé ; le sinistre 2026-81044 est réglé.",
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.modele.echange",
+      "arguments": {
+        "sha256": "0x21ec0638807fe7195181c1ebac4003e1617adfd0cd2e3cf6ae7c71e3d4171abf",
+        "length": 1371,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0xebcd0c92e5e5447990b08d020f949549b73a3cafe33a9aa0ec7f35456754c7fa",
+        "length": 304,
+        "redacted": false
+      },
+      "duration_ms": 620,
+      "is_error": false
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0x0f6586838c44f405c571b117e190646720ff1a99a25a7741abf7649b9a679030",
+    "sig": "0xf5fbdccd8706948785b3dd3aca9146bc4263c5b513e291679bbe51b742754b016482280547924409d3838484395e5f49a479b88edd5aa5b383efdf6a8e601b08"
+  }
+]

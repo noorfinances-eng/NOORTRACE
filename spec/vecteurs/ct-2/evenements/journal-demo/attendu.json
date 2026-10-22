@@ -1,0 +1,134 @@
+{
+  "valide": true,
+  "diagnostics": [],
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+  "first_seq": 1,
+  "last_seq": 8,
+  "events": [
+    {
+      "seq": 1,
+      "tool": "noortrace.journal.politique",
+      "prev_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "0x5e537eda63b8cc8a7594d12ada66d9390121497aee3b28179cf483153c2be9bb",
+      "sig": "0x1568d0e1c1ac94df86e04c68d6221b0c2e872572070a73738b92c3d78c3cb8b8d029282be5494a51c4f34f8a899e81270d1215c40ee62f032683e4bc622fe909",
+      "canonical_length": 1151
+    },
+    {
+      "seq": 2,
+      "tool": "noortrace.modele.echange",
+      "prev_hash": "0x5e537eda63b8cc8a7594d12ada66d9390121497aee3b28179cf483153c2be9bb",
+      "hash": "0x380d228a5d2f42111eeeb66176f7cbad439797617faf52d04e5ed9c61a95bd1a",
+      "sig": "0xd28c0d8af98d989ec2d976a87cbf6752862e245428c28461886e34d922593e8e0b50fbdda764f62dd9203de52b41f0f069d5049de2833c441eba3e3613f82f01",
+      "canonical_length": 1197
+    },
+    {
+      "seq": 3,
+      "tool": "demo__claims.get",
+      "prev_hash": "0x380d228a5d2f42111eeeb66176f7cbad439797617faf52d04e5ed9c61a95bd1a",
+      "hash": "0xdcd1599fc1e60bbb6d1500c3b8fd46f0c36cf4c72460ee803ee1fdc070409766",
+      "sig": "0xb716e5a7b05f7c06834ff48bd1fe0678f37ed502dcdd3d8e521fa75cd5f47394c6c66996423b5d0fa707f26d2514dc66f931bb7b6f117d1d25757db4c92b870c",
+      "canonical_length": 1588
+    },
+    {
+      "seq": 4,
+      "tool": "noortrace.modele.echange",
+      "prev_hash": "0xdcd1599fc1e60bbb6d1500c3b8fd46f0c36cf4c72460ee803ee1fdc070409766",
+      "hash": "0xa41a64abac691ea1a366fced46372bfa27108af6f74a2d46f019102211470711",
+      "sig": "0x066aa338984d7ad5d0a374110b980d0037cd405c00e768bcb753bb885ad8b7e4806d9aa5fb58a7a0fd681b9c096822576090f5cb6badfc0f71c2840c74e34403",
+      "canonical_length": 1252
+    },
+    {
+      "seq": 5,
+      "tool": "demo__payments.create",
+      "prev_hash": "0xa41a64abac691ea1a366fced46372bfa27108af6f74a2d46f019102211470711",
+      "hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+      "sig": "0x1fa45a2313308e88699ca5663db8f32f7c67b18572a04902fbf8516dd7be6c9ed19ea34cce690982ebb21d77e988222bfa737feaa9d92c41d4ba6d1c48c61703",
+      "canonical_length": 1482
+    },
+    {
+      "seq": 6,
+      "tool": "noortrace.approbation.decision",
+      "prev_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+      "hash": "0x405f9d441acb3f22eed81d2c8448acef5bdc6bf94ea5c09e81383a6952c3c9cc",
+      "sig": "0x1efd59cde7e192a879c7353ee19f0bce5d3a460351607401b75d6c42e3e02be0bd574afac1af1227a94c2f8ede1335efc7346f97e47abb684038eb62cf44940a",
+      "canonical_length": 1958
+    },
+    {
+      "seq": 7,
+      "tool": "demo__payments.create",
+      "prev_hash": "0x405f9d441acb3f22eed81d2c8448acef5bdc6bf94ea5c09e81383a6952c3c9cc",
+      "hash": "0xfec51c4d6cad5f6689ddee02c5ac6c674f9ad6bf2597334adad1d9fddcb8fc85",
+      "sig": "0x9752f78f7dcf16c1a54e675bf83ca2014a2faac88fd611957812f38f4b8e7243875d689281e5f43734e75a43e4d70eb88fc2ac0511c0aed2e507d5949c756004",
+      "canonical_length": 2314
+    },
+    {
+      "seq": 8,
+      "tool": "noortrace.modele.echange",
+      "prev_hash": "0xfec51c4d6cad5f6689ddee02c5ac6c674f9ad6bf2597334adad1d9fddcb8fc85",
+      "hash": "0x0f6586838c44f405c571b117e190646720ff1a99a25a7741abf7649b9a679030",
+      "sig": "0xf5fbdccd8706948785b3dd3aca9146bc4263c5b513e291679bbe51b742754b016482280547924409d3838484395e5f49a479b88edd5aa5b383efdf6a8e601b08",
+      "canonical_length": 1210
+    }
+  ],
+  "A": {
+    "decision": "approuve",
+    "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "request_hash": "0x7cfe6351df89a865292782d733fe1296f99e659d5627f3314ec8753801d15caf",
+    "ticket": "apr-demo-0001"
+  },
+  "D_A": "0x6cf0678577dff295aed786a10eeb816022bf78c413e827d6cfddf8168b7e9ee6",
+  "policy_version": "demo-2026-11",
+  "policy_sha256": "0x310e81a9764658f3d2580d2611b55e211581104a0f786b252fed29e3d84fa80f",
+  "policy_length": 3006,
+  "intention_sha256": "0x2356a6e054a37c96c9bbdb5b0ae3269670457526680dcb82f92f8e0907207203",
+  "segment_sha256": "0x8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
+  "segment_length": 14293,
+  "error_rendered_seq_5": {
+    "code": -32015,
+    "message": "noortrace: approbation requise",
+    "data": {
+      "ticket": "apr-demo-0001",
+      "state": "en_attente"
+    }
+  },
+  "correlation": {
+    "host_group": "demo",
+    "run_id": "run-demo-0001",
+    "window_ms": 600000,
+    "tool_name_template": "{tool_announced}",
+    "tool_name_sanitize": true,
+    "calls": [
+      {
+        "seq": 3,
+        "exchange_seq": 2,
+        "tool_call_id": "toolu_demo_0001",
+        "inherits_from_seq": null,
+        "intent": "chaîne : texte de la réponse rédigée avant le bloc tool_use"
+      },
+      {
+        "seq": 5,
+        "exchange_seq": 4,
+        "tool_call_id": "toolu_demo_0002",
+        "inherits_from_seq": null,
+        "intent": "référence text/plain : le texte porte un IBAN, rédigé"
+      },
+      {
+        "seq": 7,
+        "exchange_seq": null,
+        "tool_call_id": null,
+        "inherits_from_seq": 5,
+        "intent": "repris de seq 5 avec code et policy : ré-émission après approbation, sans corrélation (4.4 pas 3, EX-7.12)"
+      }
+    ]
+  },
+  "intent_id": "i-00000000000000000001-000000000001",
+  "period": {
+    "period_start": 1794304800,
+    "period_end": 1794308400,
+    "nonce": "0x45af944ecd7f0ca63796707debb5045347d8a12212a044c5d3a0f1c4be941283",
+    "root": "0x3c2defdd84b249d5d9ca59920994bf05d0b16110a2108f7be0ed37a9f01c6dff",
+    "period_hash": "0xe414435ae794a00adf9a531438b22f7b82a7ae1bef18e8fb8f16192b73203df9"
+  }
+}

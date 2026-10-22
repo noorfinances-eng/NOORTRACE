@@ -1,0 +1,963 @@
+{
+  "prefix": true,
+  "page_size": 100,
+  "announced": [
+    {
+      "server_alias": "demo",
+      "original": "claims.get",
+      "announced": "demo__claims.get",
+      "class": "lecture",
+      "definition_sha256": "0xcbe7ad9fecb6d7c744c0436e1d5a5938cbc5bc135b0b56571d2531726adcf200"
+    },
+    {
+      "server_alias": "demo",
+      "original": "claims.search",
+      "announced": "demo__claims.search",
+      "class": "lecture",
+      "definition_sha256": "0x55d451802cd99e700af9f5b7b4ab2a7efcf3d559b9e51d4179c04fbd2e63bdf7"
+    },
+    {
+      "server_alias": "demo",
+      "original": "payments.create",
+      "announced": "demo__payments.create",
+      "class": "ecriture",
+      "definition_sha256": "0xe66e7e2f7f4f3d3eac2325733deb383a470b9a3c05bae800a709981f534d6834"
+    },
+    {
+      "server_alias": "ged",
+      "original": "documents.put",
+      "announced": "ged__documents.put",
+      "class": "ecriture",
+      "definition_sha256": "0x12555560c0b4e9b12c46109905fceb4aa208cb3cf2529ab82d2f6fab134b2828"
+    },
+    {
+      "server_alias": "ged",
+      "original": "documents.search",
+      "announced": "ged__documents.search",
+      "class": "lecture",
+      "definition_sha256": "0x707fff606e32bf10c6c7c9939bd68ed76b838ff4e6a61eb19ef80bd6c798c448"
+    },
+    {
+      "server_alias": "ged",
+      "original": "oxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz",
+      "announced": "ged__oxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz",
+      "class": "lecture",
+      "definition_sha256": "0xf992bc8a4822e0afc0af42b1c39366d76ddb8dd8f58ca53168d9ab35599a84ac"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-001",
+      "announced": "volume__outil-001",
+      "class": "ecriture",
+      "definition_sha256": "0x50d005098c325251ab9795894a3fb0ab45ad7145544f379ab9f1e953e0c9b8df"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-002",
+      "announced": "volume__outil-002",
+      "class": "lecture",
+      "definition_sha256": "0x5549c2fde73595a6cc9e2658d8ea8bc4cbb8ccf2051b3a6576fc38c2b3de66fc"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-003",
+      "announced": "volume__outil-003",
+      "class": "ecriture",
+      "definition_sha256": "0x14b4c1f37c16dc9b024a1478493d4b89f8937eb11956b85146185ed32c944fc2"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-004",
+      "announced": "volume__outil-004",
+      "class": "lecture",
+      "definition_sha256": "0x2926515fa9d62e5db1ad16d62259c2b8792d3dc9dc6999fcd12891ba9318de24"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-005",
+      "announced": "volume__outil-005",
+      "class": "ecriture",
+      "definition_sha256": "0xff3d4c9e5e8190b43f45981386b961c59c1514d8bdf4a10da44cab7e9c3fb6d3"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-006",
+      "announced": "volume__outil-006",
+      "class": "lecture",
+      "definition_sha256": "0xdbe87503474d2b915a9f59300c8667593657ad3a9ec69fe8f807d7470ee7213a"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-007",
+      "announced": "volume__outil-007",
+      "class": "ecriture",
+      "definition_sha256": "0x8f4ceab1829c5338e044bc3fb86c7d7cf7840e339cc44bbd1e70f63b35f61bcc"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-008",
+      "announced": "volume__outil-008",
+      "class": "lecture",
+      "definition_sha256": "0x56c8988a40911edd4c1a291f67b0c3d5b53d44b76a3ee3b6bd6ad618a3bd46a1"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-009",
+      "announced": "volume__outil-009",
+      "class": "ecriture",
+      "definition_sha256": "0xe68a35cc0e51d55c6a9660dbd518a82364cdfa867b53a6b04216f81487ac4aaa"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-010",
+      "announced": "volume__outil-010",
+      "class": "lecture",
+      "definition_sha256": "0x2a95a240d1fb83fafec23f7ba3554ab927d35d08d9b3dac911db98b09d87b4ce"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-011",
+      "announced": "volume__outil-011",
+      "class": "ecriture",
+      "definition_sha256": "0x0de86d4b8159981e0abb89281c7478ad28b4e4d2e9830cabc07f07428eaf4b0e"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-012",
+      "announced": "volume__outil-012",
+      "class": "lecture",
+      "definition_sha256": "0x206befdf0eeab6a28008f94c7ee2a5f1ed882f4e7907837153ee92195d7e0c06"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-013",
+      "announced": "volume__outil-013",
+      "class": "ecriture",
+      "definition_sha256": "0x2a2bc9d1c2b971bf98fd9e69336ca8590053c5b23736d7c1d9f440aa5dbb22d0"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-014",
+      "announced": "volume__outil-014",
+      "class": "lecture",
+      "definition_sha256": "0x4da4dd6bbdece8d344f8c6fe087932e95d972004074e1b1acd54c2cc7933afeb"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-015",
+      "announced": "volume__outil-015",
+      "class": "ecriture",
+      "definition_sha256": "0xfde0d63e2c18ada8ddc562ecfc379bef8708a2108e6489e591f35d0121719382"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-016",
+      "announced": "volume__outil-016",
+      "class": "lecture",
+      "definition_sha256": "0xdcecf98cc7d9bed20e77bbf452a7a8c0a274e2ebce1277c2a1f0f97cdb7aa235"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-017",
+      "announced": "volume__outil-017",
+      "class": "ecriture",
+      "definition_sha256": "0x6c280e17e1c0247d1b6f420cdb632c9364b03bd0ea872a12b0a6b1ddf7cf117c"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-018",
+      "announced": "volume__outil-018",
+      "class": "lecture",
+      "definition_sha256": "0x7826b6c060a1073104db612d7a56b11c5e7137e149941eb710c60f4a500d690b"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-019",
+      "announced": "volume__outil-019",
+      "class": "ecriture",
+      "definition_sha256": "0xe5f5c48cc47a62173da737f6e097141b0509a0e3417cf6900acb990e8f109546"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-020",
+      "announced": "volume__outil-020",
+      "class": "lecture",
+      "definition_sha256": "0xc30bec6e66f8015eca94861c8a5c499a60db5882f93bf6d5f46e122effe3910f"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-021",
+      "announced": "volume__outil-021",
+      "class": "ecriture",
+      "definition_sha256": "0x3de57b7bf639ad4f9ba418f2d5b7c8b53e5e345c9e42cac43544b7c587f35639"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-022",
+      "announced": "volume__outil-022",
+      "class": "lecture",
+      "definition_sha256": "0x16c28a781d3e3dd8518c5a61866e740e1d507074c876f14f64d7899ef5709b14"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-023",
+      "announced": "volume__outil-023",
+      "class": "ecriture",
+      "definition_sha256": "0x246b27a0544ec64d2f86f6401121f4a5c88dad2c5267d3953261625add63e2d0"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-024",
+      "announced": "volume__outil-024",
+      "class": "lecture",
+      "definition_sha256": "0x3201b1f698bee9c8c62fe7530cf0d6b4b90e5b1771b906f70202479701a8ff37"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-025",
+      "announced": "volume__outil-025",
+      "class": "ecriture",
+      "definition_sha256": "0x05d0bd116b5dbc064ac0435834b0b6ce79312359d091d7c970f5ccc58676f0b6"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-026",
+      "announced": "volume__outil-026",
+      "class": "lecture",
+      "definition_sha256": "0x664c469d0bcaedb322eb855c663f5f75ba8a16e85291e650b670e072dab3ea0b"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-027",
+      "announced": "volume__outil-027",
+      "class": "ecriture",
+      "definition_sha256": "0xfc940e6961a4404b8a78754c17a040781080896fc8f752ac8f19c0457f5b1bd2"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-028",
+      "announced": "volume__outil-028",
+      "class": "lecture",
+      "definition_sha256": "0xa47b47832e89a0e1259c20128a30b0e3b84823ff4b25a9518f235e6977eee054"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-029",
+      "announced": "volume__outil-029",
+      "class": "ecriture",
+      "definition_sha256": "0x90d7d99d496ebe351c750c49ca33ba8bf340a15dc84d082da3a60b3eb3d112e8"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-030",
+      "announced": "volume__outil-030",
+      "class": "lecture",
+      "definition_sha256": "0x466c055ccb3ce236006e93dcd8ae045699d0f919084fa9100d288f1d59e145bf"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-031",
+      "announced": "volume__outil-031",
+      "class": "ecriture",
+      "definition_sha256": "0xde543243168242ebc306b1980e08a78759b515b7af41c26e6266bc0155f7d051"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-032",
+      "announced": "volume__outil-032",
+      "class": "lecture",
+      "definition_sha256": "0x756599cf65d728da4e04366958f1a8d0fe784b122bafec3c851799c27322b347"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-033",
+      "announced": "volume__outil-033",
+      "class": "ecriture",
+      "definition_sha256": "0xdcc6adc986aace68905b2a2e8dfff4b10486dcd49c512986cafb82d363750b87"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-034",
+      "announced": "volume__outil-034",
+      "class": "lecture",
+      "definition_sha256": "0x30817ff97da5c7d72cc68449943ec9909c0464bf562e5e72ead5dd77c683cfbc"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-035",
+      "announced": "volume__outil-035",
+      "class": "ecriture",
+      "definition_sha256": "0xb76a8245c7c5accb4efbac3b8f1e3307defb1df5615b5ac3784ef07161e516c7"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-036",
+      "announced": "volume__outil-036",
+      "class": "lecture",
+      "definition_sha256": "0xb3a9cca0ba46bc249bd41819fcc60e9de3aa4e25851c02df469ccaef36f7f97f"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-037",
+      "announced": "volume__outil-037",
+      "class": "ecriture",
+      "definition_sha256": "0xdb7e58e7a04fbb6ed63e30a31e65d0d21679462fb5a15ef8fca6fdebca98b883"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-038",
+      "announced": "volume__outil-038",
+      "class": "lecture",
+      "definition_sha256": "0xb93f754dcd3c6cdea2be4ff284d141e25223dfd8ce702b66a6d447a3a7bc7bdb"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-039",
+      "announced": "volume__outil-039",
+      "class": "ecriture",
+      "definition_sha256": "0x88b2fb8fe7021750b5c3ba37f51f965ea20e5a8d4521c727b37de4db20b22bd9"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-040",
+      "announced": "volume__outil-040",
+      "class": "lecture",
+      "definition_sha256": "0x911e4af509320b87a863bd48a85254ed603337fbc47786a78073405a865c7665"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-041",
+      "announced": "volume__outil-041",
+      "class": "ecriture",
+      "definition_sha256": "0xf1c12e7e3887a635f01e63549e6c5e40dba9e4ff8a564f6eb2a2c15f6fbd2ecd"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-042",
+      "announced": "volume__outil-042",
+      "class": "lecture",
+      "definition_sha256": "0xac60449d78d4b611fe73ebf4c3acfec81fc45f5d84c0eb7e5dcdf5e7b5fafc87"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-043",
+      "announced": "volume__outil-043",
+      "class": "ecriture",
+      "definition_sha256": "0x74388f4bd647d8bc3046285102711a1d4869ab7ddd164417d0cf8ccb5720a38e"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-044",
+      "announced": "volume__outil-044",
+      "class": "lecture",
+      "definition_sha256": "0x360b0102c6118afac5423ee970ff0e7d2abe8f2d3d4075c2bd5a8d274b3831db"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-045",
+      "announced": "volume__outil-045",
+      "class": "ecriture",
+      "definition_sha256": "0xdc7ed6573422854b29f2868f0259d11c34ed3ba96544bb6efb1cd0abc9c039be"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-046",
+      "announced": "volume__outil-046",
+      "class": "lecture",
+      "definition_sha256": "0xcc4ad71fa0a46bfec8d7f18f9feb939cb340105dc6481eae2bd9ecc0d98c3814"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-047",
+      "announced": "volume__outil-047",
+      "class": "ecriture",
+      "definition_sha256": "0x7b33c5b2a6b7e0e77a7466c98553595b1bb74188fad7ec79dd83bff797e2ab3d"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-048",
+      "announced": "volume__outil-048",
+      "class": "lecture",
+      "definition_sha256": "0xf6c706b799647c322a667e29e0125d1a87deb86e31705386b46a6073121c4b8d"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-049",
+      "announced": "volume__outil-049",
+      "class": "ecriture",
+      "definition_sha256": "0xa46014201691cf2ba05cbcc65ab9ffc144770edaa941ce6c47a7ea09ef23a890"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-050",
+      "announced": "volume__outil-050",
+      "class": "lecture",
+      "definition_sha256": "0x72fcece16700319fd0702b4df9af4b949c6ee0c896a7a6ed7ee9b513a8f3dee6"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-051",
+      "announced": "volume__outil-051",
+      "class": "ecriture",
+      "definition_sha256": "0x57bb4dce60f89b99aba5b798af9c691f0b15dbfc3d38b3929893f95eb13d8525"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-052",
+      "announced": "volume__outil-052",
+      "class": "lecture",
+      "definition_sha256": "0x066b6b3f2ed65f914f337aaa372c0c59e55cbb0a54f1d612407405209ef044ff"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-053",
+      "announced": "volume__outil-053",
+      "class": "ecriture",
+      "definition_sha256": "0xb1aa5a46953204cd63d8b6b5d4d310fcd45ba787211a45995c1624ca21f0c6d4"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-054",
+      "announced": "volume__outil-054",
+      "class": "lecture",
+      "definition_sha256": "0x40974e6acc1802615696151d2087ab53849bda44ea520b454ab4a6080ab886e7"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-055",
+      "announced": "volume__outil-055",
+      "class": "ecriture",
+      "definition_sha256": "0x451f3a9835b6c1544bd3a6d0ce1ee8bd7954f15dddf569d8ef0eb86c0cd42866"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-056",
+      "announced": "volume__outil-056",
+      "class": "lecture",
+      "definition_sha256": "0x23d6e34c74caeb1bc8aff633fa26cc29bb908d46a3d648fb608cb37f66c3cae0"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-057",
+      "announced": "volume__outil-057",
+      "class": "ecriture",
+      "definition_sha256": "0x5dc74e64bb2b2c92b7e86ff7b7e964ce33dd83d40499972c433449343aa3dae5"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-058",
+      "announced": "volume__outil-058",
+      "class": "lecture",
+      "definition_sha256": "0x4afed31e85010c2944c70252943016e521240c360cb83f332aae4c603a9bc253"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-059",
+      "announced": "volume__outil-059",
+      "class": "ecriture",
+      "definition_sha256": "0x53770630776853d234613944a7d1c33d6d794f52b396d90e740f20bd609101ae"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-060",
+      "announced": "volume__outil-060",
+      "class": "lecture",
+      "definition_sha256": "0xe5cdbbe6bba855cf3ff99760842a99e295e87308b171fbd6e48fef934225b857"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-061",
+      "announced": "volume__outil-061",
+      "class": "ecriture",
+      "definition_sha256": "0xcc52646019d4953bfbd7dc49bf8bd9ef241789c20fc65d2592ec7bc802369bc9"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-062",
+      "announced": "volume__outil-062",
+      "class": "lecture",
+      "definition_sha256": "0xde6563a194f173c6015b4663e3fb9472b618aa1779f5f31471204a1c8ab2ed88"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-063",
+      "announced": "volume__outil-063",
+      "class": "ecriture",
+      "definition_sha256": "0x10cf81960d2184e85f31600b8386361a82ec848aa8b77e5e4ab3144c49bab1d7"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-064",
+      "announced": "volume__outil-064",
+      "class": "lecture",
+      "definition_sha256": "0xf9b5189be22b03ae8ace917ada32bcd19f2c463c01826f606a6b1e232a1eb19c"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-065",
+      "announced": "volume__outil-065",
+      "class": "ecriture",
+      "definition_sha256": "0xbc43ed6657c4add2d046b1518640c84cfca1621ef84605d81b84ceee8b0116f2"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-066",
+      "announced": "volume__outil-066",
+      "class": "lecture",
+      "definition_sha256": "0xa59298b42cabf0801fbb86911089422a43dee5eb7ef47fe50119c4f156f7f8e7"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-067",
+      "announced": "volume__outil-067",
+      "class": "ecriture",
+      "definition_sha256": "0x3adb999864fb37e49d0302f5af31293ecc5ede811a3988a0f79ef8f63ddd5891"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-068",
+      "announced": "volume__outil-068",
+      "class": "lecture",
+      "definition_sha256": "0x1477eb9c69ea132f4349e4d79a1fff79c20b00d0097289b7cc7eb3936322423b"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-069",
+      "announced": "volume__outil-069",
+      "class": "ecriture",
+      "definition_sha256": "0x48d4a44fae4446e8978d8c8814569d70db1f8ce279543c8eb1cca86bb2fa1d97"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-070",
+      "announced": "volume__outil-070",
+      "class": "lecture",
+      "definition_sha256": "0x2bd01e6af16df757bd75676c588f330a96e2682ba26f14ff79c9efdde914a4f7"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-071",
+      "announced": "volume__outil-071",
+      "class": "ecriture",
+      "definition_sha256": "0x6648e32f085724f31d28eb8cc4373387e8128a36b917f0fe2bb0db3617ea8291"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-072",
+      "announced": "volume__outil-072",
+      "class": "lecture",
+      "definition_sha256": "0xd77da15ac7e8faae3d2502ad066d05150357e567fee6e2c7547dd9c6bce12942"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-073",
+      "announced": "volume__outil-073",
+      "class": "ecriture",
+      "definition_sha256": "0xd11616d10222efff706a6b903abf5f03d3d88eccbcf8c0df30cb0504d23c11c7"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-074",
+      "announced": "volume__outil-074",
+      "class": "lecture",
+      "definition_sha256": "0xe4be1e8aa4c50a846e9b5dbe0f9424597111c064969fce56aa416f6647f0db46"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-075",
+      "announced": "volume__outil-075",
+      "class": "ecriture",
+      "definition_sha256": "0x0d2c67f75700e44b9dccd4968a36c92b90d75aba9aeae9856664715ea5c9a298"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-076",
+      "announced": "volume__outil-076",
+      "class": "lecture",
+      "definition_sha256": "0x17b65f69bc3ad5235689b1d9e19ac4a588b933aaed77cbfba822bed21ee345b5"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-077",
+      "announced": "volume__outil-077",
+      "class": "ecriture",
+      "definition_sha256": "0x662142fe0a2b8f5be1bc0f8547241900a0cf1990160bd69e362c61ef1c007321"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-078",
+      "announced": "volume__outil-078",
+      "class": "lecture",
+      "definition_sha256": "0x8f938b05b7a46dcbd7eeb29940ccddd4265c489cc04420c09c29540391731c9e"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-079",
+      "announced": "volume__outil-079",
+      "class": "ecriture",
+      "definition_sha256": "0x805c60ef326ca74d9299282150c920b934f3361156dc9ada8fb8e159235b23bf"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-080",
+      "announced": "volume__outil-080",
+      "class": "lecture",
+      "definition_sha256": "0xc42d6d030c8d2f7faa020c9dd3d9fb2b9c724b946fdf8761e7aea4ea07b60c9e"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-081",
+      "announced": "volume__outil-081",
+      "class": "ecriture",
+      "definition_sha256": "0x32d45e791e412deacdda78030a8c2e2e9e3f71f5a9601114a186fc28810a3f56"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-082",
+      "announced": "volume__outil-082",
+      "class": "lecture",
+      "definition_sha256": "0x82f73c9d4b33b4009873bc3f35abb52b8361daff9827edb78098139302c64f00"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-083",
+      "announced": "volume__outil-083",
+      "class": "ecriture",
+      "definition_sha256": "0x5be7f17b76f0304eed6cef5f058395cb64ca7d560919f502c193c8020d9c2e07"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-084",
+      "announced": "volume__outil-084",
+      "class": "lecture",
+      "definition_sha256": "0x129689883c10877fee70f5294ac3356ef8a368dcbb3d64dbfd4a10ac23d210d8"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-085",
+      "announced": "volume__outil-085",
+      "class": "ecriture",
+      "definition_sha256": "0x4eb040228479a68702c27b4f26f19388b33d337e7f988fc3e5205c07c0d59732"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-086",
+      "announced": "volume__outil-086",
+      "class": "lecture",
+      "definition_sha256": "0x05d01e70da6f9a02ac1c7aaa5dcb03ba05cad72a64bc86b1c3a9eba1ffce9884"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-087",
+      "announced": "volume__outil-087",
+      "class": "ecriture",
+      "definition_sha256": "0x0597b168f4cfea4768f4339f04f92590bb2ea880d7fb833941dd523f55c4eed2"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-088",
+      "announced": "volume__outil-088",
+      "class": "lecture",
+      "definition_sha256": "0xd6a76a8a4e27fcc4d0122aed6834591c9add125e3e85ab0a147b9ad7cae183c6"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-089",
+      "announced": "volume__outil-089",
+      "class": "ecriture",
+      "definition_sha256": "0x11a959635459c945f75243b3d6678e9792ae7386cf53f917d2f3449a1525ca93"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-090",
+      "announced": "volume__outil-090",
+      "class": "lecture",
+      "definition_sha256": "0xa5f18f5fcdb8ac229a844749d8aa0c00aa655ca17d045dc50fd6b9c2e2139545"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-091",
+      "announced": "volume__outil-091",
+      "class": "ecriture",
+      "definition_sha256": "0x9e3e2d5e9ed632bafc98fb02ce45f297fcaaf7ab87232a0308ca1b11fe2eaf6b"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-092",
+      "announced": "volume__outil-092",
+      "class": "lecture",
+      "definition_sha256": "0xf6e9a8419a4214ebf4ae454cfadf3825eb1f4f5b0cc014738ce3d6f11fa95202"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-093",
+      "announced": "volume__outil-093",
+      "class": "ecriture",
+      "definition_sha256": "0xa1ac7fc81eedc7d899e4a9f0fa9d2f27980a0b1d895b2698a7b11c67a95842ee"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-094",
+      "announced": "volume__outil-094",
+      "class": "lecture",
+      "definition_sha256": "0x8dfee0f4cb6e6e0ce06f82636483bd6b762cd0f7f34067956a1a2811ead0dd56"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-095",
+      "announced": "volume__outil-095",
+      "class": "ecriture",
+      "definition_sha256": "0xadbfb267d4c5f4f3b4077fe6e2a4542126b47640501fe78a2df2b117b22dd6a4"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-096",
+      "announced": "volume__outil-096",
+      "class": "lecture",
+      "definition_sha256": "0x66f48844187d14d720d11e746ff21c4a117c42836b9db10f6c3733200114718d"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-097",
+      "announced": "volume__outil-097",
+      "class": "ecriture",
+      "definition_sha256": "0xa2fa0997e83f76f7235c1641823f06efd141d2c1e52d78d383b2cd8b5e796cdc"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-098",
+      "announced": "volume__outil-098",
+      "class": "lecture",
+      "definition_sha256": "0x9b23a6f8b1ef6d50a5f0c6699505db4d2e88f12e547c50fea448c334a475db3c"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-099",
+      "announced": "volume__outil-099",
+      "class": "ecriture",
+      "definition_sha256": "0xbe18b08d8fe3be9f9907f45e7a2e454a0b568355b57f275804016bf551c38a69"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-100",
+      "announced": "volume__outil-100",
+      "class": "lecture",
+      "definition_sha256": "0xda3de704998b023a1b23319589670f13f35692014cf2d2975f09496f5d7aa7a4"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-101",
+      "announced": "volume__outil-101",
+      "class": "ecriture",
+      "definition_sha256": "0xe98f2c4ea8dad43d42b291243511fe6fc90b329b21394b47301ac52c20e62614"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-102",
+      "announced": "volume__outil-102",
+      "class": "lecture",
+      "definition_sha256": "0x8e47b9b80c9da56d60980f92fbfed823be837110434a59e99a92abdfb24aaac5"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-103",
+      "announced": "volume__outil-103",
+      "class": "ecriture",
+      "definition_sha256": "0x5749f74bfbbc76764f588531a5ffa106a729094c23c981579b5377ed0da709cf"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-104",
+      "announced": "volume__outil-104",
+      "class": "lecture",
+      "definition_sha256": "0x12b13efa452c2ddd7e2ebfd1a749aae6cb8e3b4618210bb91599fa51f310ffbc"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-105",
+      "announced": "volume__outil-105",
+      "class": "ecriture",
+      "definition_sha256": "0xa4b29886777a903fea5c3e17b3d231d114449f649823f87b54ce5daf5bfb06a2"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-106",
+      "announced": "volume__outil-106",
+      "class": "lecture",
+      "definition_sha256": "0xef1f1f2f2608d5dfcff24ae2eb33ccfa7cd3ec21490f6edc154109f6eb29be1a"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-107",
+      "announced": "volume__outil-107",
+      "class": "ecriture",
+      "definition_sha256": "0x42a70c54b867e42fb5dcc7aea2dbb046643ef552e17e0997ba5681875eb23599"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-108",
+      "announced": "volume__outil-108",
+      "class": "lecture",
+      "definition_sha256": "0x04128260b1c12a922be3e26c19b08f1afea7443d3288ac767091b2697268548e"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-109",
+      "announced": "volume__outil-109",
+      "class": "ecriture",
+      "definition_sha256": "0x3b88105606b639f54a32ce8006a99429634584e5a3fcad79ea78d0cfacf189de"
+    },
+    {
+      "server_alias": "volume",
+      "original": "outil-110",
+      "announced": "volume__outil-110",
+      "class": "lecture",
+      "definition_sha256": "0xffa4d89b65b1da78c362f46dd76edb189f0fafead9dc5fe1b6f2b26365de3b03"
+    }
+  ],
+  "rejected": [
+    {
+      "server_alias": "ged",
+      "original": "doublon",
+      "reason": "collision"
+    },
+    {
+      "server_alias": "ged",
+      "original": "doublon",
+      "reason": "collision"
+    },
+    {
+      "server_alias": "ged",
+      "original": "noortrace.x",
+      "reason": "nom_reserve"
+    },
+    {
+      "server_alias": "ged",
+      "original": "oxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz",
+      "reason": "nom_invalide"
+    }
+  ],
+  "pages": [
+    [
+      "demo__claims.get",
+      "demo__claims.search",
+      "demo__payments.create",
+      "ged__documents.put",
+      "ged__documents.search",
+      "ged__oxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz",
+      "volume__outil-001",
+      "volume__outil-002",
+      "volume__outil-003",
+      "volume__outil-004",
+      "volume__outil-005",
+      "volume__outil-006",
+      "volume__outil-007",
+      "volume__outil-008",
+      "volume__outil-009",
+      "volume__outil-010",
+      "volume__outil-011",
+      "volume__outil-012",
+      "volume__outil-013",
+      "volume__outil-014",
+      "volume__outil-015",
+      "volume__outil-016",
+      "volume__outil-017",
+      "volume__outil-018",
+      "volume__outil-019",
+      "volume__outil-020",
+      "volume__outil-021",
+      "volume__outil-022",
+      "volume__outil-023",
+      "volume__outil-024",
+      "volume__outil-025",
+      "volume__outil-026",
+      "volume__outil-027",
+      "volume__outil-028",
+      "volume__outil-029",
+      "volume__outil-030",
+      "volume__outil-031",
+      "volume__outil-032",
+      "volume__outil-033",
+      "volume__outil-034",
+      "volume__outil-035",
+      "volume__outil-036",
+      "volume__outil-037",
+      "volume__outil-038",
+      "volume__outil-039",
+      "volume__outil-040",
+      "volume__outil-041",
+      "volume__outil-042",
+      "volume__outil-043",
+      "volume__outil-044",
+      "volume__outil-045",
+      "volume__outil-046",
+      "volume__outil-047",
+      "volume__outil-048",
+      "volume__outil-049",
+      "volume__outil-050",
+      "volume__outil-051",
+      "volume__outil-052",
+      "volume__outil-053",
+      "volume__outil-054",
+      "volume__outil-055",
+      "volume__outil-056",
+      "volume__outil-057",
+      "volume__outil-058",
+      "volume__outil-059",
+      "volume__outil-060",
+      "volume__outil-061",
+      "volume__outil-062",
+      "volume__outil-063",
+      "volume__outil-064",
+      "volume__outil-065",
+      "volume__outil-066",
+      "volume__outil-067",
+      "volume__outil-068",
+      "volume__outil-069",
+      "volume__outil-070",
+      "volume__outil-071",
+      "volume__outil-072",
+      "volume__outil-073",
+      "volume__outil-074",
+      "volume__outil-075",
+      "volume__outil-076",
+      "volume__outil-077",
+      "volume__outil-078",
+      "volume__outil-079",
+      "volume__outil-080",
+      "volume__outil-081",
+      "volume__outil-082",
+      "volume__outil-083",
+      "volume__outil-084",
+      "volume__outil-085",
+      "volume__outil-086",
+      "volume__outil-087",
+      "volume__outil-088",
+      "volume__outil-089",
+      "volume__outil-090",
+      "volume__outil-091",
+      "volume__outil-092",
+      "volume__outil-093",
+      "volume__outil-094"
+    ],
+    [
+      "volume__outil-095",
+      "volume__outil-096",
+      "volume__outil-097",
+      "volume__outil-098",
+      "volume__outil-099",
+      "volume__outil-100",
+      "volume__outil-101",
+      "volume__outil-102",
+      "volume__outil-103",
+      "volume__outil-104",
+      "volume__outil-105",
+      "volume__outil-106",
+      "volume__outil-107",
+      "volume__outil-108",
+      "volume__outil-109",
+      "volume__outil-110"
+    ]
+  ],
+  "note": "Nom annoncé <alias>__<nom d'origine> (EX-4.10) ; noms avec point annoncés tels quels (EX-4.12) ; rejets (EX-4.11) : nom_reserve (préfixe noortrace.), nom_invalide (nom annoncé de 129 caractères ; celui de 128 est accepté), collision (les deux outils « doublon » du même serveur) ; classe par readOnlyHint faute de configuration (EX-14.1) ; ordre par alias puis nom d'origine, unités UTF-16 ; pages de 100 (EX-4.13). definition_sha256 : SHA-256 du JCS intégral de la définition annoncée (EX-4.16)."
+}

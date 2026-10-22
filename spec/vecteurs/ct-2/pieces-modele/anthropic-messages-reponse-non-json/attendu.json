@@ -1,0 +1,36 @@
+{
+  "format": "anthropic-messages",
+  "provider_label": "anthropic",
+  "route": "/v1/messages",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x86ff62059903d7f3a7c8b4dd44bfec984bd8cd157d70241711d2a2c30596a2ac",
+      "length": 129,
+      "redacted": false,
+      "bytes": "{\"max_tokens\":256,\"messages\":[{\"content\":\"Où en est le sinistre 2026-81044 ?\",\"role\":\"user\"}],\"model\":\"modele-messages-exemple\"}"
+    },
+    "response": {
+      "sha256": "0xef7f5b0b3d12d17429f2285e3a5c69623799ebf60e5220dfd25af53f00bab797",
+      "length": 74,
+      "redacted": true,
+      "media_type": "text/html",
+      "bytes": "<html><body>Service indisponible, écrire à [REDIGE:email]</body></html>\n"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "anthropic/modele-messages-exemple",
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": false,
+  "note": "Statut 200 dont le corps n'est pas du JSON (Content-Type Text/HTML avec paramètre) : media_type text/html (minuscules, sans paramètre) ; le texte UTF-8 est rédigé par les règles de portée reponse (adresse → [REDIGE:email]), pièce redacted ; aucune forme exploitable, is_error vrai, intent null, code.model tiré de la requête (5.3.1, EX-8.7)."
+}

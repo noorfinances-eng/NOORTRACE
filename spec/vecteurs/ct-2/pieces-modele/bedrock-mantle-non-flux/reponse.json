@@ -1,0 +1,1 @@
+{"id":"msg_exemple_0006","type":"message","role":"assistant","model":"anthropic.modele-messages-exemple","content":[{"type":"text","text":"Le sinistre 2026-81044 est ouvert."}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":90,"output_tokens":12}}

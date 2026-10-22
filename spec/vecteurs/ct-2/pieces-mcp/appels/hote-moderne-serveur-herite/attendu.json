@@ -1,0 +1,64 @@
+{
+  "tool_announced": "archives__documents.get",
+  "tool_original": "documents.get",
+  "server_alias": "archives",
+  "class": "lecture",
+  "rejected": false,
+  "pieces": {
+    "arguments": {
+      "sha256": "0x57bb9229ddc9039f898172542a31f73c3369c537bf01ca2163da82117f0ae6c2",
+      "length": 24,
+      "redacted": false,
+      "bytes": "{\"document_id\":\"DOC-31\"}"
+    },
+    "result": {
+      "sha256": "0x06512cddbb70b765330854787c1e1becdf7d0a066231c7ed9aefc72ec95cdaac",
+      "length": 93,
+      "redacted": false,
+      "bytes": "{\"content\":[{\"text\":\"DOC-31 : constat amiable du 2026-11-02\",\"type\":\"text\"}],\"isError\":false}"
+    },
+    "definition": {
+      "sha256": "0x665f3ec0e89b63f79d23d6eac198ec9066b6da8466a72330737559a4907a052e",
+      "length": 261,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend une pièce archivée d'un sinistre\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"document_id\":{\"type\":\"string\"}},\"required\":[\"document_id\"],\"type\":\"object\"},\"name\":\"archives__documents.get\"}"
+    },
+    "definition_current": null,
+    "list": {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"tools\":[{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend une pièce archivée d'un sinistre\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"document_id\":{\"type\":\"string\"}},\"required\":[\"document_id\"],\"type\":\"object\"},\"name\":\"archives__documents.get\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"},{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}]}"
+    }
+  },
+  "context": [
+    {
+      "sha256": "0x665f3ec0e89b63f79d23d6eac198ec9066b6da8466a72330737559a4907a052e",
+      "length": 261,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    },
+    {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    }
+  ],
+  "is_error": false,
+  "duration_ms": 55,
+  "error_rendered": null,
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2025-11-25"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Hôte moderne vers un serveur hérité : sonde server/discover refusée (-32601, erreur non moderne), bascule en initialize (EX-4.6), puis tools/call avec la version négociée avec ce serveur ; le résultat reçu n'a pas de resultType : la pièce le garde tel quel (avant réécriture), la réponse rendue à l'hôte moderne reçoit resultType complete en tête et serverInfo (4.4 pas 14)."
+}

@@ -1,0 +1,41 @@
+{
+  "format": "openai-chat",
+  "provider_label": "openai",
+  "route": "/v1/chat/completions",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "inline",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x7d0c76d3d5030846bb2be0bbc2baf925c158529698ec1d8f4eecef401c020101",
+      "length": 296,
+      "redacted": true,
+      "bytes": "{\"messages\":[{\"content\":[{\"text\":\"Tu es l'agent sinistres de l'assureur de démonstration.\",\"type\":\"text\"},{\"text\":\"Contact interne : [REDIGE:email] (jamais communiqué).\",\"type\":\"text\"}],\"role\":\"system\"},{\"content\":\"Résume le sinistre 2026-81044.\",\"role\":\"user\"}],\"model\":\"modele-chat-exemple\"}"
+    },
+    "response": {
+      "sha256": "0x893b842c41be6fa3f67fb01ae69f55287f824213805e9a8ac600808ca351b59b",
+      "length": 300,
+      "redacted": false,
+      "bytes": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"logprobs\":null,\"message\":{\"content\":\"Sinistre ouvert.\",\"role\":\"assistant\"}}],\"created\":1794307100,\"id\":\"chatcmpl-exemple-0004\",\"model\":\"modele-chat-exemple\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":4,\"prompt_tokens\":50,\"total_tokens\":54}}"
+    },
+    "system_prompt": {
+      "sha256": "0xe7f62b6bb14440e11e0bb5d5474e4b479f443376cbca46edeff643e960a9eab7",
+      "length": 111,
+      "redacted": true,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration.\nContact interne : [REDIGE:email] (jamais communiqué)."
+    },
+    "intent": null
+  },
+  "code_model": "openai/modele-chat-exemple",
+  "prompt_version": "0xe7f62b6bb14440e11e0bb5d5474e4b479f443376cbca46edeff643e960a9eab7",
+  "intent": "Sinistre ouvert.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "note": "prompt_in_request: inline : le prompt système reste dans la pièce « requête », chaque partie text rédigée par les règles de portée prompt_systeme (l'adresse devient [REDIGE:email]) ; la pièce « prompt système » (parties jointes par \\n, rédigée) donne toujours code.prompt_version (EX-8.5)."
+}

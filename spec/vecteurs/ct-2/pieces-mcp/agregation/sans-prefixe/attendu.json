@@ -1,0 +1,8 @@
+{
+  "prefix": false,
+  "configuration_refusee": true,
+  "erreurs": [
+    "tools.prefix: false exige un seul serveur d'outils (2 configurés)"
+  ],
+  "note": "tools.prefix: false avec deux serveurs d'outils : refus de configuration (EX-4.10, 15.4) ; aucune liste n'est servie."
+}

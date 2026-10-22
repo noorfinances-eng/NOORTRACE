@@ -76,27 +76,36 @@ construction.
 
 - `chain/` : instance de développement dédiée de noorcore, quatre validateurs BFT en
   boucle locale, sans émission ni jeton ; voir [chain/README.md](chain/README.md).
+- `spec/` : spécifications normatives, schémas JSON et vecteurs de test ; CT-1 pour
+  les formats, CT-2 pour l'enregistreur. Chacune est confrontée à un vérificateur Go
+  écrit depuis la seule spécification ; voir [spec/README.md](spec/README.md).
 - `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
-  noorchain-core sans modification ; PeriodRegistry, RecorderRegistry et la
-  bibliothèque ThresholdSignatures propres à NOORTRACE.
+  noorchain-core sans modification ; PeriodRegistry, dérivé de PoSSRegistry de
+  noorchain-core, RecorderRegistry, et la bibliothèque ThresholdSignatures, dont la
+  boucle de signatures reprend celle de PoSSRegistry, écrits pour NOORTRACE.
 - `test/` et `scripts/` : tests Hardhat, déploiement, amorçage d'une organisation,
   parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
-- `scripts/verify/` : vérificateur hors ligne des certificats de commit BFT, parité
-  octet par octet avec noorcore ; voir [scripts/verify/README.md](scripts/verify/README.md).
+- `scripts/lib/` : implémentation de référence de CT-1 et de la partie calculable de
+  CT-2.
+- `scripts/verify/` : vérificateur hors ligne des dossiers de preuve, et vérificateur
+  hors ligne des certificats de commit BFT, en parité octet par octet avec noorcore ;
+  voir [scripts/verify/README.md](scripts/verify/README.md).
 - `chain/docker/` : image conteneur du nœud, validateur ou relais RPC, avec l'étude
   mesurée du mode suiveur ; voir [chain/docker/README.md](chain/docker/README.md).
 
 ## Statut
 
-21 octobre 2026 : conception technique en cours, et premier code de la chaîne :
-instance de développement, contrats du registre avec leurs tests, scripts de
-déploiement et parcours complet exécuté sur le réseau de développement, méthode RPC
-du certificat de commit portée comme correctif sur noorcore, fourni hors dépôt,
-et son vérificateur hors ligne.
-L'enregistreur, l'ancrage externe, la console et le vérificateur du dossier restent
-à écrire.
+22 octobre 2026 : conception technique en cours. Écrits : la spécification CT-1 des
+formats et la spécification CT-2 de l'enregistreur, avec leurs vecteurs, leur
+implémentation de référence et leurs vérificateurs Go indépendants ; le vérificateur
+de dossier ; l'instance de développement, les contrats du registre avec leurs tests,
+le parcours complet exécuté sur le réseau de développement ; la méthode RPC du
+certificat de commit, portée comme correctif sur noorcore fourni hors dépôt, et son
+vérificateur hors ligne. À construire : l'enregistreur lui-même, les approbations,
+l'ancrage externe et la console.
 
 ## Licence
 
-Apache License 2.0, voir `LICENSE` et `NOTICE`. Les contrats repris de noorchain-core
-gardent leur en-tête MIT, compatible. La version anglaise de cette page est `README.md`.
+Apache License 2.0, voir `LICENSE` et `NOTICE`. Les contrats Solidity portent un
+en-tête MIT, ceux repris de noorchain-core comme ceux écrits ici ; la MIT est
+compatible avec Apache-2.0. La version anglaise de cette page est `README.md`.

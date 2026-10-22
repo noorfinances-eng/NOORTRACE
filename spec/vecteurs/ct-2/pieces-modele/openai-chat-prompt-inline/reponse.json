@@ -1,0 +1,1 @@
+{"id":"chatcmpl-exemple-0004","object":"chat.completion","created":1794307100,"model":"modele-chat-exemple","choices":[{"index":0,"message":{"role":"assistant","content":"Sinistre ouvert."},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":50,"completion_tokens":4,"total_tokens":54}}

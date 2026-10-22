@@ -1,0 +1,52 @@
+{
+  "format": "anthropic-messages",
+  "provider_label": "anthropic",
+  "route": "/v1/messages",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "id": "msg_exemple_0007",
+    "type": "message",
+    "role": "assistant",
+    "model": "modele-messages-exemple",
+    "content": [
+      {
+        "type": "text",
+        "text": "Ouvert."
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 40,
+      "output_tokens": 3
+    }
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x9860bab2dc3436b81608ca5bf8e8070e89a3225f035f6ede9bf5c0cf59801f26",
+      "length": 139,
+      "redacted": false,
+      "bytes": "{\"max_tokens\":256,\"messages\":[{\"content\":\"Statut du sinistre 2026-81044 ?\",\"role\":\"user\"}],\"model\":\"modele-messages-exemple\",\"stream\":true}"
+    },
+    "response": {
+      "sha256": "0xed6b89403d18a50e53babeb6f98181c92285f1f014b434f4d4585b4b64c9a5d2",
+      "length": 232,
+      "redacted": false,
+      "bytes": "{\"content\":[{\"text\":\"Ouvert.\",\"type\":\"text\"}],\"id\":\"msg_exemple_0007\",\"model\":\"modele-messages-exemple\",\"role\":\"assistant\",\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"input_tokens\":40,\"output_tokens\":3}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "anthropic/modele-messages-exemple",
+  "prompt_version": null,
+  "intent": "Ouvert.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "note": "Transcription précédée d'une marque d'ordre d'octets (EF BB BF) : l'analyseur la retire avant la première ligne (HTML Living Standard, « Parsing an event stream »), le premier événement est message_start."
+}

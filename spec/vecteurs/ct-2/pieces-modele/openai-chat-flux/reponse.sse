@@ -1,0 +1,14 @@
+data: {"id":"chatcmpl-exemple-0002","object":"chat.completion.chunk","created":1794306900,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}],"usage":null,"obfuscation":"xxxx"}
+
+data: {"id":"chatcmpl-exemple-0002","object":"chat.completion.chunk","created":1794306900,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{"content":"Le dossier 2026-81044 "},"logprobs":null,"finish_reason":null}],"usage":null,"obfuscation":"xx"}
+
+: maintien de la connexion
+
+data: {"id":"chatcmpl-exemple-0002","object":"chat.completion.chunk","created":1794306900,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{"content":"est complet."},"logprobs":null,"finish_reason":null}],"usage":null,"obfuscation":"xxxxxxx"}
+
+data: {"id":"chatcmpl-exemple-0002","object":"chat.completion.chunk","created":1794306900,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],"usage":null,"obfuscation":"xxxxxxxxx"}
+
+data: {"id":"chatcmpl-exemple-0002","object":"chat.completion.chunk","created":1794306900,"model":"modele-chat-exemple","system_fingerprint":"fp_exemple","choices":[],"usage":{"prompt_tokens":40,"completion_tokens":7,"total_tokens":47}}
+
+data: [DONE]
+

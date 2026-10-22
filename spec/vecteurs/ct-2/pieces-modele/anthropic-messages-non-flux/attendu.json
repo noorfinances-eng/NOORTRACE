@@ -1,0 +1,49 @@
+{
+  "format": "anthropic-messages",
+  "provider_label": "anthropic",
+  "route": "/v1/messages",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x0da3ec421cb044b35dcf5b020d1d90eac4743468c94f86cf6c3b940e972bdcc1",
+      "length": 409,
+      "redacted": true,
+      "bytes": "{\"max_tokens\":1024,\"messages\":[{\"content\":\"Où en est le sinistre 2026-81044 ?\",\"role\":\"user\"}],\"metadata\":{\"user_id\":\"agent-demo-0001\"},\"model\":\"modele-messages-exemple\",\"system\":\"[REDIGE:prompt-systeme]\",\"tools\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"input_schema\":{\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims_get\"}]}"
+    },
+    "response": {
+      "sha256": "0xbe6921a79c6e590a1b81f0dad2e2d84f9caf19e0e73babd1666e796c2f82a17f",
+      "length": 379,
+      "redacted": false,
+      "bytes": "{\"content\":[{\"text\":\"Je consulte le dossier du sinistre 2026-81044.\",\"type\":\"text\"},{\"id\":\"toolu_exemple_0001\",\"input\":{\"claim_id\":\"2026-81044\"},\"name\":\"demo__claims_get\",\"type\":\"tool_use\"}],\"id\":\"msg_exemple_0001\",\"model\":\"modele-messages-exemple\",\"role\":\"assistant\",\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"input_tokens\":412,\"output_tokens\":61}}"
+    },
+    "system_prompt": {
+      "sha256": "0xe7f62b6bb14440e11e0bb5d5474e4b479f443376cbca46edeff643e960a9eab7",
+      "length": 111,
+      "redacted": true,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration.\nContact interne : [REDIGE:email] (jamais communiqué)."
+    },
+    "intent": null
+  },
+  "code_model": "anthropic/modele-messages-exemple",
+  "prompt_version": "0xe7f62b6bb14440e11e0bb5d5474e4b479f443376cbca46edeff643e960a9eab7",
+  "intent": "Je consulte le dossier du sinistre 2026-81044.",
+  "tool_calls": [
+    {
+      "id": "toolu_exemple_0001",
+      "name": "demo__claims_get",
+      "arguments": {
+        "claim_id": "2026-81044"
+      }
+    }
+  ],
+  "is_error": false,
+  "incomplete": false,
+  "note": "Réponse hors flux : la pièce « réponse » est le JCS intégral du corps reçu. Prompt système en deux blocs TextBlockParam joints par \\n, rédigé (adresse) : pièce text/plain dont le SHA-256 est code.prompt_version ; dans la pièce « requête », system devient [REDIGE:prompt-systeme] (EX-8.5), ce qui la marque redacted."
+}

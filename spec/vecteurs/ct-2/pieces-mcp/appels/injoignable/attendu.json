@@ -1,0 +1,70 @@
+{
+  "tool_announced": "demo__payments.create",
+  "tool_original": "payments.create",
+  "server_alias": "demo",
+  "class": "ecriture",
+  "rejected": false,
+  "pieces": {
+    "arguments": {
+      "sha256": "0xb5204d7fa6b8f650890cefeeffa0ee8e08b70e202a8d90637828d28947d422c1",
+      "length": 95,
+      "redacted": true,
+      "bytes": "{\"amount\":\"300.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-81045\",\"currency\":\"CHF\"}"
+    },
+    "result": {
+      "sha256": "0x13b2cf6b6fcf2334c22e34e96f592f8886c83d3d1d91851ad2e6dc84d9922ddf",
+      "length": 120,
+      "redacted": false,
+      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-32014,\"data\":{\"server\":\"demo\"},\"message\":\"noortrace: serveur d'outils injoignable\"}}"
+    },
+    "definition": {
+      "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
+      "length": 575,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}"
+    },
+    "definition_current": null,
+    "list": {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"tools\":[{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend une pièce archivée d'un sinistre\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"document_id\":{\"type\":\"string\"}},\"required\":[\"document_id\"],\"type\":\"object\"},\"name\":\"archives__documents.get\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"},{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}]}"
+    }
+  },
+  "context": [
+    {
+      "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
+      "length": 575,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    },
+    {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    }
+  ],
+  "is_error": true,
+  "duration_ms": 15,
+  "error_rendered": {
+    "code": -32014,
+    "message": "noortrace: serveur d'outils injoignable",
+    "data": {
+      "server": "demo"
+    }
+  },
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Le processus du serveur stdio se termine après l'envoi, avant toute réponse : l'enveloppe {\"dir\":\"in\",\"t\":…,\"eof\":true} marque la fin de fichier sur sa sortie standard, instant qui est t_reponse (EX-4.48). Appel d'écriture déjà relayé (son intention existait), événement is_error vrai avec la pièce -32014, erreur -32014 rendue (EX-4.33, matrice de 14.2)."
+}

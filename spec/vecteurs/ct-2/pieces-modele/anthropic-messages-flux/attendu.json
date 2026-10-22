@@ -1,0 +1,69 @@
+{
+  "format": "anthropic-messages",
+  "provider_label": "anthropic",
+  "route": "/v1/messages",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "id": "msg_exemple_0002",
+    "type": "message",
+    "role": "assistant",
+    "model": "modele-messages-exemple",
+    "content": [
+      {
+        "type": "text",
+        "text": "Le dossier 2026-81044 est presque complet ; l'assuré est joignable à j.dupont@example.ch pour la facture manquante."
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 380,
+      "output_tokens": 38
+    }
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x9886393bc148316b3367a17675db4fc3ef8b980edabbbbc37b8b8153943c0c3a",
+      "length": 182,
+      "redacted": true,
+      "bytes": "{\"max_tokens\":1024,\"messages\":[{\"content\":\"Le dossier 2026-81044 est-il complet ?\",\"role\":\"user\"}],\"model\":\"modele-messages-exemple\",\"stream\":true,\"system\":\"[REDIGE:prompt-systeme]\"}"
+    },
+    "response": {
+      "sha256": "0x0c2f135bb7209ce59c2e4da7de08baac157ac9d016de165cf1fe2602b3d7cef5",
+      "length": 339,
+      "redacted": true,
+      "bytes": "{\"content\":[{\"text\":\"Le dossier 2026-81044 est presque complet ; l'assuré est joignable à [REDIGE:email] pour la facture manquante.\",\"type\":\"text\"}],\"id\":\"msg_exemple_0002\",\"model\":\"modele-messages-exemple\",\"role\":\"assistant\",\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"input_tokens\":380,\"output_tokens\":38}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": {
+      "sha256": "0xa7a741e167b0708157e5429f2eba118756fbaa94d018db1f379544ebe05c1334",
+      "length": 112,
+      "redacted": true,
+      "media_type": "text/plain",
+      "bytes": "Le dossier 2026-81044 est presque complet ; l'assuré est joignable à [REDIGE:email] pour la facture manquante."
+    }
+  },
+  "code_model": "anthropic/modele-messages-exemple",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": {
+    "sha256": "0xa7a741e167b0708157e5429f2eba118756fbaa94d018db1f379544ebe05c1334",
+    "length": 112,
+    "redacted": true,
+    "media_type": "text/plain"
+  },
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "note": "Flux SSE texte seul, avec un ping : forme consolidée = message de message_start, texte accumulé, stop_reason et usage cumulatif de message_delta (output_tokens remplacé, input_tokens conservé). L'intention contient une adresse : rédigée, elle devient une référence text/plain (EX-5.21)."
+}

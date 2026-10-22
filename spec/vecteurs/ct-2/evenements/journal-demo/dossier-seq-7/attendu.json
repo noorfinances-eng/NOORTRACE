@@ -1,0 +1,6 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "description": "Dossier CT-1 v0 de l'appel d'écriture relayé après approbation (seq 7), assemblé par scripts/lib/journal.mjs : voisins seq 6 (la décision) et seq 8, période de démonstration close par un manifeste signé par rec-test-01, approbation apr-demo-0001 des comptes Hardhat 1 et 2. Les parties réservées à CT-4 et CT-5 sont absentes avec la raison « hors périmètre CT-1 » ; A-4 est non exécuté (la demande, seq 5, n'est pas un voisin)."
+}

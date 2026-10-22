@@ -8,10 +8,11 @@
 noortrace records what an AI agent actually did, in a form a third party can verify
 years later without trusting the operator, the agent, or noortrace itself.
 
-- **Capture outside the agent.** A recorder sits between the agent and its tools (an
-  MCP proxy, an egress proxy for model API calls, or an SDK as a last resort). Agents
-  can and do erase their own traces; a trace the agent cannot reach is the only one
-  worth keeping.
+- **Capture outside the agent.** A recorder sits between the agent and its tools as
+  an MCP proxy, and between the agent and its model as an API gateway reached through
+  the SDK's base URL; an ICAP hook into an existing intercepting proxy is the
+  fallback, and an in-process SDK the last resort. Agents can and do erase their own
+  traces; a trace the agent cannot reach is the only one worth keeping.
 - **An append-only, hash-chained, signed journal.** Every event carries the hash of the
   previous one and an Ed25519 signature of the recorder. Deleting, inserting, reordering
   or editing an event breaks the chain in a way the verifier names.
@@ -27,11 +28,20 @@ years later without trusting the operator, the agent, or noortrace itself.
 
 ## Status
 
-Early. The event model, canonical form, hashing, signing, Merkle trees, period manifests
-and evidence folders are specified with test vectors and two independent
-implementations (a JavaScript reference and a clean-room Go verifier). The registry
-contracts and the commit-certificate verifier exist and are tested. The recorder
-(MCP proxy) is the next component.
+Early. Two specifications are written, each with test vectors and two
+implementations developed separately inside this project: a JavaScript reference,
+and a Go verifier written from the specification alone, without reading the
+JavaScript.
+
+- **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
+  period manifests and evidence folders.
+- **CT-2, the recorder**: MCP proxy, model API gateway, redaction before hashing,
+  key custody classes, append-only storage, single-writer lease and behaviour under
+  failure. The computable parts (full canonical form, redaction, MCP and model
+  payloads, stream reassembly, event construction) are implemented and checked.
+
+The registry contracts and the commit-certificate verifier exist and are tested. The
+recorder itself is specified, not built yet; it is the next component.
 
 ## Layout
 
@@ -45,8 +55,9 @@ contracts and the commit-certificate verifier exist and are tested. The recorder
 | `chain/` | Dedicated development instance of the registry node, container image |
 | `ARCHITECTURE.md` | Target architecture, in French |
 
-The project documentation is written in French; `README.fr.md` is the French
-front page. Code, specifications and this file are in English or bilingual.
+The specifications, code comments and project documentation are written in French;
+`README.fr.md` is the French front page. JSON keys, schemas and this file are in
+English.
 
 ## Getting started
 
@@ -60,7 +71,9 @@ npm test
 It is not the legal proof by itself: the presumption of date and integrity belongs to the
 qualified time-stamp. It is not a blockchain product: the registry is an operating
 component and is substitutable. It never holds business data: only hashes leave the
-operator.
+operator. It does not see what bypasses it: an action taken through a channel that is
+neither MCP nor a configured model API is not recorded, and no evidence folder can
+prove it or its absence.
 
 ## License
 

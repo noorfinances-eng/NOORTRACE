@@ -1,0 +1,27 @@
+{
+  "tool_announced": null,
+  "tool_original": null,
+  "server_alias": null,
+  "class": null,
+  "rejected": true,
+  "pieces": null,
+  "context": [],
+  "is_error": null,
+  "duration_ms": null,
+  "error_rendered": {
+    "code": -32600,
+    "message": "Invalid Request",
+    "data": {
+      "reason": "lot_non_pris_en_charge"
+    }
+  },
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Un lot JSON-RPC (tableau) reçu de l'hôte : une seule erreur -32600, id null, data.reason lot_non_pris_en_charge, aucun élément relayé (EX-4.3)."
+}

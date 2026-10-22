@@ -1,0 +1,23 @@
+[
+  {
+    "alias": "demo",
+    "tools": [
+      {
+        "name": "claims.get",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "claims.get",
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "payments.create",
+        "annotations": {}
+      }
+    ]
+  }
+]

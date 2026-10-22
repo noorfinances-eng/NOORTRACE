@@ -1,0 +1,18 @@
+data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_exemple_0001","object":"response","created_at":1794307000,"status":"in_progress","model":"modele-responses-exemple","output":[],"usage":null}}
+
+data: {"type":"response.in_progress","sequence_number":1,"response":{"id":"resp_exemple_0001","object":"response","created_at":1794307000,"status":"in_progress","model":"modele-responses-exemple","output":[],"usage":null}}
+
+data: {"type":"response.output_item.added","sequence_number":2,"output_index":0,"item":{"id":"msg_exemple_r001","type":"message","status":"in_progress","role":"assistant","content":[]}}
+
+data: {"type":"response.output_text.delta","sequence_number":3,"item_id":"msg_exemple_r001","output_index":0,"content_index":0,"delta":"Je vérifie "}
+
+data: {"type":"response.output_text.delta","sequence_number":4,"item_id":"msg_exemple_r001","output_index":0,"content_index":0,"delta":"le dossier."}
+
+data: {"type":"response.output_item.done","sequence_number":5,"output_index":0,"item":{"id":"msg_exemple_r001","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Je vérifie le dossier."}]}}
+
+data: {"type":"response.output_item.added","sequence_number":6,"output_index":1,"item":{"id":"fc_exemple_r001","type":"function_call","status":"in_progress","call_id":"call_exemple_r001","name":"demo__claims_get","arguments":""}}
+
+data: {"type":"response.function_call_arguments.delta","sequence_number":7,"item_id":"fc_exemple_r001","output_index":1,"delta":"{\"claim_id\":"}
+
+data: {"type":"response.function_call_arguments.delta","sequence_number":8,"item_id":"fc_exemple_r001","output_index":1,"delta":"\"2026-81044\"}"}
+

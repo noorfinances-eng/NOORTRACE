@@ -1,0 +1,107 @@
+[
+  {
+    "pattern": "\\b20[0-9]{2}-[0-9]{5}\\b",
+    "admis": true,
+    "note": "le motif numero-sinistre de pii-v1"
+  },
+  {
+    "pattern": "[^\\n]+",
+    "admis": true,
+    "note": "ce qui remplace « . »"
+  },
+  {
+    "pattern": "[ \\t\\n\\r\\f\\v]",
+    "admis": true,
+    "note": "ce qui remplace « \\s »"
+  },
+  {
+    "pattern": "\\x41\\d\\w\\W\\D",
+    "admis": true,
+    "note": "échappements admis"
+  },
+  {
+    "pattern": "(?P<a>x)|(?<b>y)|(?:z)",
+    "admis": true,
+    "note": "groupes nommés et non capturants"
+  },
+  {
+    "pattern": "a{2,1000}?",
+    "admis": true,
+    "note": "quantificateur borné et paresseux"
+  },
+  {
+    "pattern": "[-a-z\\-]",
+    "admis": true,
+    "note": "trait d'union littéral en tête et échappé"
+  },
+  {
+    "pattern": "IBAN\\s[A-Z]+",
+    "admis": false,
+    "note": "\\s : U+00A0 et U+202F en ECMAScript, pas en RE2"
+  },
+  {
+    "pattern": ".",
+    "admis": false,
+    "note": "« . » : \\r en RE2, pas en ECMAScript"
+  },
+  {
+    "pattern": "\\u0041",
+    "admis": false,
+    "note": "\\u : ECMAScript seulement"
+  },
+  {
+    "pattern": "\\x{41}",
+    "admis": false,
+    "note": "\\x{…} : RE2 seulement"
+  },
+  {
+    "pattern": "\\p{L}",
+    "admis": false,
+    "note": "classe Unicode"
+  },
+  {
+    "pattern": "\\A",
+    "admis": false,
+    "note": "\\A : RE2 seulement"
+  },
+  {
+    "pattern": "[[:alpha:]]",
+    "admis": false,
+    "note": "classe POSIX : RE2 seulement"
+  },
+  {
+    "pattern": "(?=a)",
+    "admis": false,
+    "note": "recherche avant"
+  },
+  {
+    "pattern": "(?i)a",
+    "admis": false,
+    "note": "drapeau en ligne"
+  },
+  {
+    "pattern": "a*+",
+    "admis": false,
+    "note": "quantificateur possessif"
+  },
+  {
+    "pattern": "(a)\\1",
+    "admis": false,
+    "note": "référence arrière"
+  },
+  {
+    "pattern": "a{1001}",
+    "admis": false,
+    "note": "répétition au-delà de 1000"
+  },
+  {
+    "pattern": "[]",
+    "admis": false,
+    "note": "classe vide"
+  },
+  {
+    "pattern": "\\bx\\b*",
+    "admis": false,
+    "note": "quantificateur sur une frontière"
+  }
+]

@@ -1,0 +1,40 @@
+{
+  "model": "modele-messages-exemple",
+  "max_tokens": 1024,
+  "system": [
+    {
+      "type": "text",
+      "text": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    {
+      "type": "text",
+      "text": "Contact interne : support@assureur-demo.example (jamais communiqué)."
+    }
+  ],
+  "messages": [
+    {
+      "role": "user",
+      "content": "Où en est le sinistre 2026-81044 ?"
+    }
+  ],
+  "tools": [
+    {
+      "name": "demo__claims_get",
+      "description": "Rend le dossier d'un sinistre de démonstration",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "claim_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id"
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "user_id": "agent-demo-0001"
+  }
+}

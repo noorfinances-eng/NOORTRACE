@@ -1,0 +1,56 @@
+{
+  "version": 0,
+  "name": "pii-v1",
+  "description": "Politique de redaction publiee avec CT-2 : identifiants personnels et financiers courants (IBAN, numero AVS, adresse electronique, numero de telephone international, numero de carte de paiement) remplaces par un jeton type dans toutes les pieces.",
+  "pseudonym_key": null,
+  "named_patterns": {
+    "numero-sinistre": {
+      "pattern": "\\b20[0-9]{2}-[0-9]{5}\\b",
+      "description": "Numero de dossier de sinistre AAAA-NNNNN de l'assureur de demonstration ; n'est pas une donnee personnelle, declare ici pour montrer une regex nommee et laisse hors de toute regle."
+    }
+  },
+  "rules": [
+    {
+      "id": "identifiants-arguments-resultat",
+      "description": "Arguments et resultats de tout appel d'outil : tout texte.",
+      "scopes": ["arguments", "resultat"],
+      "tools": "*",
+      "detectors": [
+        { "type": "iban" },
+        { "type": "avs" },
+        { "type": "carte" },
+        { "type": "email" },
+        { "type": "telephone" }
+      ],
+      "action": { "kind": "remplacer" }
+    },
+    {
+      "id": "identifiants-modele",
+      "description": "Requetes, reponses et prompt systeme des echanges de modele : tout texte.",
+      "scopes": ["requete", "reponse", "prompt_systeme"],
+      "tools": "*",
+      "detectors": [
+        { "type": "iban" },
+        { "type": "avs" },
+        { "type": "carte" },
+        { "type": "email" },
+        { "type": "telephone" }
+      ],
+      "action": { "kind": "remplacer" }
+    },
+    {
+      "id": "identifiants-contexte",
+      "description": "Documents de contexte remis par le SDK : tout texte.",
+      "scopes": ["contexte"],
+      "tools": "*",
+      "detectors": [
+        { "type": "iban" },
+        { "type": "avs" },
+        { "type": "carte" },
+        { "type": "email" },
+        { "type": "telephone" }
+      ],
+      "action": { "kind": "remplacer" }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "model": "modele-chat-exemple",
+  "messages": [
+    {
+      "role": "system",
+      "content": [
+        {
+          "type": "text",
+          "text": "Tu es l'agent sinistres de l'assureur de démonstration."
+        },
+        {
+          "type": "text",
+          "text": "Contact interne : support@assureur-demo.example (jamais communiqué)."
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Résume le sinistre 2026-81044."
+    }
+  ]
+}

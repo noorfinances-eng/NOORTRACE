@@ -1,0 +1,41 @@
+{
+  "format": "openai-chat",
+  "provider_label": "openai",
+  "route": "/v1/chat/completions",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x2312bc67d4fb27735fdec9592f26d5d0db9f1eefbdaa5532982128ff315bb5d6",
+      "length": 215,
+      "redacted": true,
+      "bytes": "{\"messages\":[{\"content\":\"[REDIGE:prompt-systeme]\",\"role\":\"developer\"},{\"content\":\"[REDIGE:prompt-systeme]\",\"role\":\"system\"},{\"content\":\"Résume le sinistre 2026-81044.\",\"role\":\"user\"}],\"model\":\"modele-chat-exemple\"}"
+    },
+    "response": {
+      "sha256": "0xef90d584996bd75004569e4768a614bdb77f6e4b7b78e88af10ac0fe1bba6404",
+      "length": 394,
+      "redacted": false,
+      "bytes": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"logprobs\":null,\"message\":{\"content\":\"Collision du 2026-11-02, dommages estimés à 7400.00 CHF, dossier ouvert.\",\"role\":\"assistant\"}}],\"created\":1794306845,\"id\":\"chatcmpl-exemple-0001\",\"model\":\"modele-chat-exemple\",\"object\":\"chat.completion\",\"system_fingerprint\":\"fp_exemple\",\"usage\":{\"completion_tokens\":24,\"prompt_tokens\":96,\"total_tokens\":120}}"
+    },
+    "system_prompt": {
+      "sha256": "0xe7f62b6bb14440e11e0bb5d5474e4b479f443376cbca46edeff643e960a9eab7",
+      "length": 111,
+      "redacted": true,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration.\nContact interne : [REDIGE:email] (jamais communiqué)."
+    },
+    "intent": null
+  },
+  "code_model": "openai/modele-chat-exemple",
+  "prompt_version": "0xe7f62b6bb14440e11e0bb5d5474e4b479f443376cbca46edeff643e960a9eab7",
+  "intent": "Collision du 2026-11-02, dommages estimés à 7400.00 CHF, dossier ouvert.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "note": "Prompt système = contenus des messages developer et system dans l'ordre (chaîne, ou text des parties), joints par \\n ; chacun est remplacé par [REDIGE:prompt-systeme] dans la pièce « requête ». intent = choices[0].message.content."
+}

@@ -1,0 +1,404 @@
+[
+  {
+    "name": "rfc8785-b-01-0000000000000000",
+    "input": "0.0",
+    "canonical": "0",
+    "note": "RFC 8785, annexe B, ligne 1 (IEEE 754 0000000000000000, zéro) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-02-8000000000000000",
+    "input": "-0.0",
+    "canonical": "0",
+    "note": "RFC 8785, annexe B, ligne 2 (IEEE 754 8000000000000000, zéro négatif) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-03-0000000000000001",
+    "input": "4.9406564584124654E-324",
+    "canonical": "5e-324",
+    "note": "RFC 8785, annexe B, ligne 3 (IEEE 754 0000000000000001, plus petit nombre positif (dénormalisé)) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-04-8000000000000001",
+    "input": "-5e-324",
+    "canonical": "-5e-324",
+    "note": "RFC 8785, annexe B, ligne 4 (IEEE 754 8000000000000001, plus petit nombre négatif) ; entrée canonique."
+  },
+  {
+    "name": "rfc8785-b-05-7fefffffffffffff",
+    "input": "1.7976931348623157E308",
+    "canonical": "1.7976931348623157e+308",
+    "note": "RFC 8785, annexe B, ligne 5 (IEEE 754 7fefffffffffffff, plus grand nombre positif) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-06-ffefffffffffffff",
+    "input": "-1.7976931348623157e308",
+    "canonical": "-1.7976931348623157e+308",
+    "note": "RFC 8785, annexe B, ligne 6 (IEEE 754 ffefffffffffffff, plus grand nombre négatif) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-07-4340000000000000",
+    "input": "9007199254740992.0",
+    "canonical": "9007199254740992",
+    "note": "RFC 8785, annexe B, ligne 7 (IEEE 754 4340000000000000, plus grand entier exact positif, note (1)) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-08-c340000000000000",
+    "input": "-9.007199254740992e15",
+    "canonical": "-9007199254740992",
+    "note": "RFC 8785, annexe B, ligne 8 (IEEE 754 c340000000000000, plus grand entier exact négatif, note (1)) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-09-4430000000000000",
+    "input": "295147905179352825856",
+    "canonical": "295147905179352830000",
+    "note": "RFC 8785, annexe B, ligne 9 (IEEE 754 4430000000000000, environ 2**68, note (2) : la sérialisation ne garde pas la précision étendue) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-10-7fffffffffffffff",
+    "input": "NaN",
+    "canonical": null,
+    "note": "RFC 8785, annexe B, ligne 10 (IEEE 754 7fffffffffffffff, NaN : pas de représentation JSON, note (3)) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-11-7ff0000000000000",
+    "input": "Infinity",
+    "canonical": null,
+    "note": "RFC 8785, annexe B, ligne 11 (IEEE 754 7ff0000000000000, Infinity : pas de représentation JSON, note (3)) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-12-44b52d02c7e14af5",
+    "input": "9.999999999999997E22",
+    "canonical": "9.999999999999997e+22",
+    "note": "RFC 8785, annexe B, ligne 12 (IEEE 754 44b52d02c7e14af5) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-13-44b52d02c7e14af6",
+    "input": "1E23",
+    "canonical": "1e+23",
+    "note": "RFC 8785, annexe B, ligne 13 (IEEE 754 44b52d02c7e14af6) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-14-44b52d02c7e14af7",
+    "input": "100000000000000010000000",
+    "canonical": "1.0000000000000001e+23",
+    "note": "RFC 8785, annexe B, ligne 14 (IEEE 754 44b52d02c7e14af7) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-15-444b1ae4d6e2ef4e",
+    "input": "999999999999999700000.0",
+    "canonical": "999999999999999700000",
+    "note": "RFC 8785, annexe B, ligne 15 (IEEE 754 444b1ae4d6e2ef4e) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-16-444b1ae4d6e2ef4f",
+    "input": "9.999999999999999e20",
+    "canonical": "999999999999999900000",
+    "note": "RFC 8785, annexe B, ligne 16 (IEEE 754 444b1ae4d6e2ef4f) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-17-444b1ae4d6e2ef50",
+    "input": "1E+21",
+    "canonical": "1e+21",
+    "note": "RFC 8785, annexe B, ligne 17 (IEEE 754 444b1ae4d6e2ef50, seuil de la notation exponentielle) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-18-3eb0c6f7a0b5ed8c",
+    "input": "0.0000009999999999999997",
+    "canonical": "9.999999999999997e-7",
+    "note": "RFC 8785, annexe B, ligne 18 (IEEE 754 3eb0c6f7a0b5ed8c) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-19-3eb0c6f7a0b5ed8d",
+    "input": "0.000001000",
+    "canonical": "0.000001",
+    "note": "RFC 8785, annexe B, ligne 19 (IEEE 754 3eb0c6f7a0b5ed8d) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-20-41b3de4355555553",
+    "input": "333333333.33333320",
+    "canonical": "333333333.3333332",
+    "note": "RFC 8785, annexe B, ligne 20 (IEEE 754 41b3de4355555553) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-21-41b3de4355555554",
+    "input": "3.3333333333333325e8",
+    "canonical": "333333333.33333325",
+    "note": "RFC 8785, annexe B, ligne 21 (IEEE 754 41b3de4355555554) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-22-41b3de4355555555",
+    "input": "333333333.33333329",
+    "canonical": "333333333.3333333",
+    "note": "RFC 8785, annexe B, ligne 22 (IEEE 754 41b3de4355555555, le nombre de l'exemple de la RFC 8785 §3.2.2) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-23-41b3de4355555556",
+    "input": "333333333.3333334",
+    "canonical": "333333333.3333334",
+    "note": "RFC 8785, annexe B, ligne 23 (IEEE 754 41b3de4355555556) ; entrée canonique."
+  },
+  {
+    "name": "rfc8785-b-24-41b3de4355555557",
+    "input": "333333333.333333430",
+    "canonical": "333333333.33333343",
+    "note": "RFC 8785, annexe B, ligne 24 (IEEE 754 41b3de4355555557) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-25-becbf647612f3696",
+    "input": "-3.3333333333333333e-6",
+    "canonical": "-0.0000033333333333333333",
+    "note": "RFC 8785, annexe B, ligne 25 (IEEE 754 becbf647612f3696) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-26-43143ff3c1cb0959",
+    "input": "1424953923781206.25",
+    "canonical": "1424953923781206.2",
+    "note": "RFC 8785, annexe B, ligne 26 (IEEE 754 43143ff3c1cb0959, arrondi au pair, note (4)) ; entrée non canonique équivalente."
+  },
+  {
+    "name": "rfc8785-b-infini-par-debordement",
+    "input": "1e400",
+    "canonical": null,
+    "note": "Texte JSON syntaxiquement valide dont la valeur déborde la double précision (Infinity) : refusé."
+  },
+  {
+    "name": "rfc8785-exemple-3-2-2",
+    "input": "{\n  \"numbers\": [333333333.33333329, 1E30, 4.50,\n              2e-3, 0.000000000000000000000000001],\n  \"string\": \"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\",\n  \"literals\": [null, true, false]\n}",
+    "canonical": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
+    "note": "L'objet de la RFC 8785 §3.2.2 ; forme canonique de §3.2.3, octets UTF-8 de §3.2.4."
+  },
+  {
+    "name": "rfc8785-tri-3-2-3",
+    "input": "{\n  \"\\u20ac\": \"Euro Sign\",\n  \"\\r\": \"Carriage Return\",\n  \"\\ufb33\": \"Hebrew Letter Dalet With Dagesh\",\n  \"1\": \"One\",\n  \"\\ud83d\\ude00\": \"Emoji: Grinning Face\",\n  \"\\u0080\": \"Control\",\n  \"\\u00f6\": \"Latin Small Letter O With Diaeresis\"\n}",
+    "canonical": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+    "note": "Données de tri de la RFC 8785 §3.2.3 : membres triés par unités de code UTF-16, valeurs dans l'ordre Carriage Return, One, Control, Latin Small Letter O With Diaeresis, Euro Sign, Emoji: Grinning Face, Hebrew Letter Dalet With Dagesh."
+  },
+  {
+    "name": "ct2-8-1-un",
+    "input": "1",
+    "canonical": "1",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-un-virgule-zero",
+    "input": "1.0",
+    "canonical": "1",
+    "note": "CT-2 §8.1 : la valeur, pas le texte"
+  },
+  {
+    "name": "ct2-8-1-un-cinquante",
+    "input": "1.50",
+    "canonical": "1.5",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-exposant",
+    "input": "1e3",
+    "canonical": "1000",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-exposant-majuscule",
+    "input": "1E+2",
+    "canonical": "100",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-1e21",
+    "input": "1e21",
+    "canonical": "1e+21",
+    "note": "CT-2 §8.1 : seuil de la notation exponentielle en ES6"
+  },
+  {
+    "name": "ct2-8-1-1e20",
+    "input": "1e20",
+    "canonical": "100000000000000000000",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-moins-zero",
+    "input": "-0",
+    "canonical": "0",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-moins-zero-virgule",
+    "input": "-0.0",
+    "canonical": "0",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-un-millionieme",
+    "input": "0.000001",
+    "canonical": "0.000001",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-un-dix-millionieme",
+    "input": "0.0000001",
+    "canonical": "1e-7",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-plus-petit-denormalise",
+    "input": "5e-324",
+    "canonical": "5e-324",
+    "note": "CT-2 §8.1"
+  },
+  {
+    "name": "ct2-8-1-perte-2-53",
+    "input": "9007199254740993",
+    "canonical": "9007199254740992",
+    "note": "CT-2 §8.1 : perte au-delà de 2^53 (RFC 7493 §2.2)"
+  },
+  {
+    "name": "ct2-8-1-perte-grand-entier",
+    "input": "123456789012345678901234567890",
+    "canonical": "1.2345678901234568e+29",
+    "note": "CT-2 §8.1 : perte"
+  },
+  {
+    "name": "ct2-8-1-perte-decimales",
+    "input": "3.141592653589793238462643383279",
+    "canonical": "3.141592653589793",
+    "note": "CT-2 §8.1 : perte de décimales"
+  },
+  {
+    "name": "ct1-4-tri-des-cles",
+    "input": "{\"b\":1,\"a\":2}",
+    "canonical": "{\"a\":2,\"b\":1}",
+    "note": "CT-1 §4 : tri des clés"
+  },
+  {
+    "name": "ct1-4-tri-utf16",
+    "input": "{\"é\":1,\"z\":2,\"Z\":3}",
+    "canonical": "{\"Z\":3,\"z\":2,\"é\":1}",
+    "note": "CT-1 §4 : unités UTF-16, Z (0x5A) < z (0x7A) < é (0xE9)"
+  },
+  {
+    "name": "ct1-4-cle-echappee",
+    "input": "{\"\\u00e9\":1}",
+    "canonical": "{\"é\":1}",
+    "note": "CT-1 §4 : la clé est décodée avant le tri, puis écrite en clair"
+  },
+  {
+    "name": "ct1-4-paire-de-substituts",
+    "input": "{\"a\\ud83d\\ude00\":1}",
+    "canonical": "{\"a😀\":1}",
+    "note": "CT-1 §4 : un caractère, quatre octets UTF-8"
+  },
+  {
+    "name": "ct1-4-controle-minuscules",
+    "input": "{\"a\":\"x\\u0001y\"}",
+    "canonical": "{\"a\":\"x\\u0001y\"}",
+    "note": "CT-1 §4 : contrôle échappé en minuscules"
+  },
+  {
+    "name": "ct1-4-controle-majuscules-en-entree",
+    "input": "{\"a\":\"\\u001F\\u000B\"}",
+    "canonical": "{\"a\":\"\\u001f\\u000b\"}",
+    "note": "Contrôles échappés en majuscules à l'entrée, en minuscules à la sortie"
+  },
+  {
+    "name": "ct1-4-echappements-courts",
+    "input": "{\"a\":\"\\b\\t\\n\\f\\r\\\"\\\\\\/\"}",
+    "canonical": "{\"a\":\"\\b\\t\\n\\f\\r\\\"\\\\/\"}",
+    "note": "Échappement minimal : formes courtes, / en clair"
+  },
+  {
+    "name": "ct1-4-u007f-en-clair",
+    "input": "{\"a\":\"\\u007f\"}",
+    "canonical": "{\"a\":\"\"}",
+    "note": "CT-1 §4 : U+007F n'est pas échappé"
+  },
+  {
+    "name": "ct1-4-u2028-u2029-en-clair",
+    "input": "{\"a\":\"\\u2028\\u2029\"}",
+    "canonical": "{\"a\":\"  \"}",
+    "note": "U+2028 et U+2029 en clair"
+  },
+  {
+    "name": "ct1-4-zero-negatif",
+    "input": "{\"a\":-0}",
+    "canonical": "{\"a\":0}",
+    "note": "CT-1 §4 : zéro négatif"
+  },
+  {
+    "name": "ct1-4-conteneurs-vides",
+    "input": "{\"a\":[],\"b\":{}}",
+    "canonical": "{\"a\":[],\"b\":{}}",
+    "note": "CT-1 §4"
+  },
+  {
+    "name": "ct1-4-non-entier-valide-en-integral",
+    "input": "{\"a\":1.0}",
+    "canonical": "{\"a\":1}",
+    "note": "Invalide en JCS v0 (CT-1 §4), valide en JCS intégral : la valeur 1"
+  },
+  {
+    "name": "ct1-4-exposant-valide-en-integral",
+    "input": "{\"a\":1e3}",
+    "canonical": "{\"a\":1000}",
+    "note": "Invalide en JCS v0, valide en JCS intégral"
+  },
+  {
+    "name": "ct1-4-hors-intervalle-sur-perte",
+    "input": "{\"a\":9007199254740993}",
+    "canonical": "{\"a\":9007199254740992}",
+    "note": "Invalide en JCS v0 ; en JCS intégral la forme canonique n'est PAS l'entrée : perte au-delà de 2^53 (RFC 7493 §2.2)"
+  },
+  {
+    "name": "ct1-4-cle-en-double",
+    "input": "{\"a\":1,\"a\":2}",
+    "canonical": null,
+    "note": "CT-1 §4 : clé en double, invalide"
+  },
+  {
+    "name": "ct1-4-cle-en-double-apres-decodage",
+    "input": "{\"a\":1,\"\\u0061\":2}",
+    "canonical": null,
+    "note": "Clé en double après décodage, invalide"
+  },
+  {
+    "name": "ct1-4-substitut-haut-isole",
+    "input": "{\"a\":\"\\ud800\"}",
+    "canonical": null,
+    "note": "CT-1 §4 : substitut isolé, invalide"
+  },
+  {
+    "name": "ct1-4-substitut-bas-isole",
+    "input": "{\"a\":\"\\udc00x\"}",
+    "canonical": null,
+    "note": "Substitut bas isolé, invalide"
+  },
+  {
+    "name": "nombres-dans-une-structure",
+    "input": "{\"z\":[1.10,-2.5e-3,{\"y\":1E2,\"x\":-0.0}],\"a\":0.1}",
+    "canonical": "{\"a\":0.1,\"z\":[1.1,-0.0025,{\"x\":0,\"y\":100}]}",
+    "note": "Nombres non entiers dans des objets et tableaux imbriqués"
+  },
+  {
+    "name": "nan-dans-un-objet",
+    "input": "{\"a\":NaN}",
+    "canonical": null,
+    "note": "NaN n'est pas du JSON"
+  },
+  {
+    "name": "zero-de-tete",
+    "input": "01",
+    "canonical": null,
+    "note": "Zéro de tête : pas du JSON (RFC 8259)"
+  },
+  {
+    "name": "point-final",
+    "input": "1.",
+    "canonical": null,
+    "note": "Partie fractionnaire vide : pas du JSON"
+  },
+  {
+    "name": "signe-plus",
+    "input": "+1",
+    "canonical": null,
+    "note": "Signe + : pas du JSON"
+  }
+]

@@ -3,3 +3,9 @@ Copyright 2026 noorfinances-eng
 
 Licensed under the Apache License, Version 2.0 (the "License").
 See the LICENSE file for the full text.
+
+The Solidity contracts in contracts/ carry an MIT SPDX header.
+AttestationRegistry, CuratorSet and CuratorSetRegistry are copied unchanged
+from noorchain-core, by the same copyright holder. PeriodRegistry is derived
+from noorchain-core's PoSSRegistry, and the signature loop of
+ThresholdSignatures follows the one in PoSSRegistry.

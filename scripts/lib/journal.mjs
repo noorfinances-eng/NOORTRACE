@@ -313,6 +313,46 @@ export function octetsJCS(valeur) {
 }
 
 /**
+ * Forme canonique JCS intégral d'une valeur JSON (CT-2 §8.1, EX-8.1) : la
+ * RFC 8785 appliquée telle quelle, pour les pièces (arguments, résultat,
+ * requête, réponse, documents de politique), jamais pour les structures que
+ * CT-1 hache (événement, manifeste, valeur en ligne), qui restent en JCS v0
+ * (canonicaliserJCS). Clés triées par unités de code UTF-16, chaînes échappées
+ * comme JSON.stringify d'ECMAScript (échappement minimal, contrôles en
+ * minuscules), nombres sérialisés par la règle ES6 Number::toString sur la
+ * valeur double précision (-0 donne 0), aucun espace. Lève ErreurFormat sur
+ * NaN, Infinity, un substitut isolé ou une valeur qui n'est pas du JSON. La
+ * forme canonique porte la valeur, pas le texte reçu : un nombre au-delà de
+ * la double précision IEEE 754 n'y est pas conservé exactement (RFC 7493).
+ */
+export function canonicaliserJCSIntegral(valeur, chemin = "") {
+  if (valeur === null) return "null";
+  switch (typeof valeur) {
+    case "boolean":
+      return valeur ? "true" : "false";
+    case "number":
+      if (!Number.isFinite(valeur)) throw new ErreurFormat(`nombre non fini (NaN ou Infinity) à ${chemin || "/"} : interdit par la RFC 8785 §3.2.2.3`);
+      return valeur === 0 ? "0" : String(valeur);
+    case "string":
+      if (!chaineBienFormee(valeur)) throw new ErreurFormat(`substitut isolé dans la chaîne à ${chemin || "/"}`);
+      return JSON.stringify(valeur);
+    case "object": {
+      if (Array.isArray(valeur)) return "[" + valeur.map((v, i) => canonicaliserJCSIntegral(v, `${chemin}/${i}`)).join(",") + "]";
+      const cles = Object.keys(valeur).sort();
+      const membres = [];
+      for (const k of cles) {
+        if (!chaineBienFormee(k)) throw new ErreurFormat(`substitut isolé dans un nom de membre à ${chemin || "/"}`);
+        if (valeur[k] === undefined) continue;
+        membres.push(JSON.stringify(k) + ":" + canonicaliserJCSIntegral(valeur[k], `${chemin}/${k}`));
+      }
+      return "{" + membres.join(",") + "}";
+    }
+    default:
+      throw new ErreurFormat(`valeur non JSON (${typeof valeur}) à ${chemin || "/"}`);
+  }
+}
+
+/**
  * Analyse stricte d'un texte JSON (chaîne ou octets UTF-8) : refuse ce que la
  * forme canonique v0 ne sait pas représenter et que JSON.parse accepterait en
  * silence — nombre à partie fractionnaire ou exposant (412.0, 1e3), entier hors
@@ -1202,6 +1242,9 @@ function validerContre(v, s, racine, chemin, erreurs, registre) {
   }
   if (typeJSON(v, "object")) {
     if (Array.isArray(s.required)) for (const k of s.required) if (!Object.hasOwn(v, k)) erreurs.push({ chemin: ou, message: `membre obligatoire absent : ${k}` });
+    // propertyNames et minProperties : employés par les schémas de CT-2 (configuration, politique de rédaction).
+    if (typeof s.minProperties === "number" && Object.keys(v).length < s.minProperties) erreurs.push({ chemin: ou, message: `moins de ${s.minProperties} membre(s)` });
+    if (s.propertyNames !== undefined) for (const k of Object.keys(v)) validerContre(k, s.propertyNames, racine, `${chemin}/${k}`, erreurs, registre);
     const proprietes = s.properties && typeof s.properties === "object" ? s.properties : {};
     for (const k of Object.keys(v)) {
       if (Object.hasOwn(proprietes, k)) validerContre(v[k], proprietes[k], racine, `${chemin}/${k}`, erreurs, registre);

@@ -1,0 +1,71 @@
+{
+  "tool_announced": "demo__claims.search",
+  "tool_original": "claims.search",
+  "server_alias": "demo",
+  "class": "lecture",
+  "rejected": false,
+  "pieces": {
+    "arguments": {
+      "sha256": "0x45576e839a25da53e44c9a177e4cbe7c2ca2b20c7e182ab9a5b1386a44d90870",
+      "length": 30,
+      "redacted": false,
+      "bytes": "{\"query\":\"collision novembre\"}"
+    },
+    "result": {
+      "sha256": "0x99b3211b373fd85f577c9cb850180180481602fcb2d2eca06c774f8aa19063bc",
+      "length": 128,
+      "redacted": false,
+      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-32011,\"data\":{\"timeout_ms\":30000},\"message\":\"noortrace: delai du serveur d'outils depasse\"}}"
+    },
+    "definition": {
+      "sha256": "0x7554590dd86b63e422c29b6966203d2b976987602700a6423c20ef247f0de75c",
+      "length": 414,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"}"
+    },
+    "definition_current": null,
+    "list": {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"tools\":[{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend une pièce archivée d'un sinistre\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"document_id\":{\"type\":\"string\"}},\"required\":[\"document_id\"],\"type\":\"object\"},\"name\":\"archives__documents.get\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"},{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}]}"
+    }
+  },
+  "context": [
+    {
+      "sha256": "0x7554590dd86b63e422c29b6966203d2b976987602700a6423c20ef247f0de75c",
+      "length": 414,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    },
+    {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    }
+  ],
+  "is_error": true,
+  "duration_ms": 30000,
+  "error_rendered": {
+    "code": -32011,
+    "message": "noortrace: delai du serveur d'outils depasse",
+    "data": {
+      "timeout_ms": 30000
+    }
+  },
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "timeout_ms": 30000,
+  "note": "Délai de l'outil (policy.servers.demo.tools[\"claims.search\"].timeout_ms = 30000) écoulé : t_reponse = t_envoi + timeout_ms (EX-4.48), annulation amont à cet instant (stdio : notifications/cancelled avec le requestId amont), événement is_error vrai avec la pièce -32011, erreur -32011 rendue ; la réponse amont tardive est ignorée (EX-4.22)."
+}

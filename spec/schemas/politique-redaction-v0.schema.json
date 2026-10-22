@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/politique-redaction.schema.json",
+  "title": "Politique de rédaction NOORTRACE, version 0",
+  "description": "Règles ordonnées de rédaction appliquées par l'enregistreur aux pièces avant hachage (CT-2 §10). Le document est inclus dans l'ensemble de politique de la configuration (CT-2 §15) ; son nom (`name`) est la valeur de policy.redaction des événements CT-1. Les contraintes qu'un schéma n'exprime pas (un détecteur `champ` exige un `path`, une action `supprimer` exige `path` et le seul détecteur `champ`, une action `pseudonyme` exige `pseudonym_key`, une regex nommée ne doit pas faire correspondre un jeton de remplacement, la syntaxe des regex limitée au sous-ensemble commun ECMAScript/RE2) sont celles de la validation au démarrage (CT-2 EX-10.6, §10.2.1, et §15.4).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "name",
+    "rules"
+  ],
+  "properties": {
+    "version": {
+      "const": 0,
+      "description": "Version du format de politique de rédaction."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]{0,127}$",
+      "description": "Nom et version des règles de rédaction, repris tel quel dans policy.redaction de chaque événement dont une pièce a été rédigée (CT-1 §5.3, E-4). Exemple : pii-v1."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1024,
+      "description": "Texte libre, hors hachage de l'événement (mais dans celui de l'ensemble de politique)."
+    },
+    "pseudonym_key": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/secret_reference"
+            },
+            {
+              "type": "object",
+              "required": [
+                "encoding"
+              ]
+            }
+          ]
+        }
+      ],
+      "description": "Référence du secret HMAC-SHA-256 de l'action `pseudonyme`, avec `encoding` obligatoire ; au moins 32 octets après décodage (CT-2 EX-10.12) ; null si aucune règle n'emploie cette action. Jamais la valeur du secret."
+    },
+    "named_patterns": {
+      "type": "object",
+      "description": "Expressions régulières nommées, référencées par les détecteurs de type `regex`. Syntaxe : le sous-ensemble commun ECMAScript/RE2 de CT-2 EX-10.6 (liste autorisée), pour que deux implémentations concordent.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pattern"
+        ],
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Expression régulière du sous-ensemble commun d'EX-10.6, appliquée sur le texte tel qu'il est, sans normalisation (EX-10.8), sans drapeau (sensible à la casse)."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 512
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "description": "Règles appliquées dans l'ordre du tableau (CT-2 §10.4).",
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    }
+  },
+  "$defs": {
+    "secret_reference": {
+      "type": "object",
+      "description": "Désignation d'un secret par son emplacement, jamais sa valeur (CT-2 §15.2) : exactement une des trois clés env, file, vault, et éventuellement encoding.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "env"
+          ],
+          "properties": {
+            "env": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]{0,127}$"
+            },
+            "encoding": {
+              "enum": [
+                "hex",
+                "base64",
+                "utf8"
+              ],
+              "description": "Décodage de la valeur résolue en octets (CT-2 §15.2) : hex (avec ou sans préfixe 0x, longueur paire), base64 (RFC 4648 §4, avec remplissage), utf8 (octets UTF-8 de la chaîne). Obligatoire pour pseudonym_key."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "file"
+          ],
+          "properties": {
+            "file": {
+              "type": "string",
+              "pattern": "^/[^\\u0000]{1,4095}$"
+            },
+            "encoding": {
+              "enum": [
+                "hex",
+                "base64",
+                "utf8"
+              ],
+              "description": "Décodage de la valeur résolue en octets (CT-2 §15.2) : hex (avec ou sans préfixe 0x, longueur paire), base64 (RFC 4648 §4, avec remplissage), utf8 (octets UTF-8 de la chaîne). Obligatoire pour pseudonym_key."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vault"
+          ],
+          "properties": {
+            "vault": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "field"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            },
+            "encoding": {
+              "enum": [
+                "hex",
+                "base64",
+                "utf8"
+              ],
+              "description": "Décodage de la valeur résolue en octets (CT-2 §15.2) : hex (avec ou sans préfixe 0x, longueur paire), base64 (RFC 4648 §4, avec remplissage), utf8 (octets UTF-8 de la chaîne). Obligatoire pour pseudonym_key."
+            }
+          }
+        }
+      ]
+    },
+    "json_pointer": {
+      "type": "string",
+      "maxLength": 1024,
+      "pattern": "^(/([^/~]|~0|~1)*)*$",
+      "description": "Pointeur JSON RFC 6901, relatif à la racine de la pièce (valeur JSON avant sérialisation). La chaîne vide désigne la racine."
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "arguments",
+        "resultat",
+        "requete",
+        "reponse",
+        "prompt_systeme",
+        "contexte"
+      ],
+      "description": "Portée : la pièce à laquelle la règle s'applique (CT-2 §10.2)."
+    },
+    "tool_selector": {
+      "description": "Outils visés : \"*\" (tous), ou une liste de noms annoncés exacts ou de préfixes d'alias `<alias>__*`. Pour les portées requete, reponse et prompt_systeme, seule la valeur \"*\" rend la règle applicable.",
+      "oneOf": [
+        {
+          "const": "*"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$|^[a-z0-9][a-z0-9-]{0,31}__\\*$"
+          }
+        }
+      ]
+    },
+    "detector": {
+      "description": "Un détecteur (CT-2 §10.3). Le jeton de remplacement est [REDIGE:<type>] ou, pour regex et champ, [REDIGE:<name>] et [REDIGE:<label>].",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "iban",
+                "avs",
+                "email",
+                "telephone",
+                "carte"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "name"
+          ],
+          "properties": {
+            "type": {
+              "const": "regex"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
+              "description": "Clé de named_patterns."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "label"
+          ],
+          "properties": {
+            "type": {
+              "const": "champ"
+            },
+            "label": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
+              "description": "Étiquette du jeton [REDIGE:<label>] ou [PSEUDO:<label>:…]."
+            }
+          }
+        }
+      ]
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "remplacer",
+            "pseudonyme",
+            "supprimer"
+          ],
+          "description": "remplacer : jeton [REDIGE:<type>] (défaut recommandé) ; pseudonyme : [PSEUDO:<type>:<12 hex>] = HMAC-SHA-256 tronqué, option explicite avec son risque (CT-2 §10.3.9) ; supprimer : retrait du membre désigné par path (détecteur champ seulement)."
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "scopes",
+        "tools",
+        "detectors",
+        "action"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "Identifiant unique de la règle dans la politique, repris dans le journal d'exploitation."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "scopes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/scope"
+          }
+        },
+        "tools": {
+          "$ref": "#/$defs/tool_selector"
+        },
+        "path": {
+          "$ref": "#/$defs/json_pointer",
+          "description": "Si présent, la règle ne porte que sur la valeur désignée (et, pour les détecteurs de texte, sur toutes les chaînes qu'elle contient) ; si absent, sur toutes les chaînes de la pièce."
+        },
+        "detectors": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/detector"
+          }
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        }
+      }
+    }
+  }
+}

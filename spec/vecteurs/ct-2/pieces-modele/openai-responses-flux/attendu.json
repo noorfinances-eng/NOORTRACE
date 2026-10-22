@@ -1,0 +1,80 @@
+{
+  "format": "openai-responses",
+  "provider_label": "openai",
+  "route": "/v1/responses",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "id": "resp_exemple_0001",
+    "object": "response",
+    "created_at": 1794307000,
+    "status": "completed",
+    "model": "modele-responses-exemple",
+    "output": [
+      {
+        "id": "msg_exemple_r001",
+        "type": "message",
+        "status": "completed",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Je vérifie le dossier."
+          }
+        ]
+      },
+      {
+        "id": "fc_exemple_r001",
+        "type": "function_call",
+        "status": "completed",
+        "call_id": "call_exemple_r001",
+        "name": "demo__claims_get",
+        "arguments": "{\"claim_id\":\"2026-81044\"}"
+      }
+    ],
+    "usage": {
+      "input_tokens": 150,
+      "output_tokens": 30,
+      "total_tokens": 180
+    }
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0xfc9558e86dbc7cba195b6ec304be0325f41d96530918d2971eb166bc520a680f",
+      "length": 438,
+      "redacted": true,
+      "bytes": "{\"input\":[{\"content\":\"[REDIGE:prompt-systeme]\",\"role\":\"developer\"},{\"content\":\"Vérifie le sinistre 2026-81044.\",\"role\":\"user\"}],\"instructions\":\"[REDIGE:prompt-systeme]\",\"model\":\"modele-responses-exemple\",\"stream\":true,\"tools\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"name\":\"demo__claims_get\",\"parameters\":{\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"type\":\"function\"}]}"
+    },
+    "response": {
+      "sha256": "0x30bee7f7303cb6e1684e8991a7bf94ecb72f4c09a5b7ab4bcac4832004284613",
+      "length": 524,
+      "redacted": false,
+      "bytes": "{\"created_at\":1794307000,\"id\":\"resp_exemple_0001\",\"model\":\"modele-responses-exemple\",\"object\":\"response\",\"output\":[{\"content\":[{\"text\":\"Je vérifie le dossier.\",\"type\":\"output_text\"}],\"id\":\"msg_exemple_r001\",\"role\":\"assistant\",\"status\":\"completed\",\"type\":\"message\"},{\"arguments\":\"{\\\"claim_id\\\":\\\"2026-81044\\\"}\",\"call_id\":\"call_exemple_r001\",\"id\":\"fc_exemple_r001\",\"name\":\"demo__claims_get\",\"status\":\"completed\",\"type\":\"function_call\"}],\"status\":\"completed\",\"usage\":{\"input_tokens\":150,\"output_tokens\":30,\"total_tokens\":180}}"
+    },
+    "system_prompt": {
+      "sha256": "0x705f99af772cb862e7a480a85152e25a854b8a4fb88ba9e5ea1b05ba6b76ef9f",
+      "length": 105,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration.\nRéponds en français, sans donnée personnelle."
+    },
+    "intent": null
+  },
+  "code_model": "openai/modele-responses-exemple",
+  "prompt_version": "0x705f99af772cb862e7a480a85152e25a854b8a4fb88ba9e5ea1b05ba6b76ef9f",
+  "intent": "Je vérifie le dossier.",
+  "tool_calls": [
+    {
+      "id": "call_exemple_r001",
+      "name": "demo__claims_get",
+      "arguments": "{\"claim_id\":\"2026-81044\"}"
+    }
+  ],
+  "is_error": false,
+  "incomplete": false,
+  "note": "Événements typés (data seules) jusqu'à response.completed : la forme consolidée est l'objet response de ce dernier événement, les deltas ne sont pas accumulés (EX-5.17). Prompt système = instructions puis l'item developer de input, joints par \\n."
+}

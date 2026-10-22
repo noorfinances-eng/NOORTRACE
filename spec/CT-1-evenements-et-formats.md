@@ -3,7 +3,7 @@
 Version 0.2, 21 octobre 2026 (révision après la confrontation de l'implémentation
 de référence `scripts/lib/journal.mjs` et du vérificateur indépendant Go de
 `spec/vecteurs/ct-1/verificateur-independant`). Spécification normative, soumise
-à la revue de la porte 1 du [plan](../docs/plan.md). Elle met en œuvre la section « Modèle
+à la revue de la porte 1 du plan de projet (document interne). Elle met en œuvre la section « Modèle
 d'événement » et la chaîne de traitement de l'[architecture cible](../ARCHITECTURE.md)
 et clôt ses décisions ouvertes 1 et 5 (section 14).
 
@@ -427,6 +427,13 @@ texte, sans saut de ligne final) :
 | pièce 1 | `piece 1 (contenu fictif) : constat du 2026-10-28` | 48 | `0x2aca5294d591501378fe8629f9713fdf75af93a641fb1ab58c8e231edec823a4` |
 | pièce 2 | `piece 2 (contenu fictif) : facture du garage` | 44 | `0x7a184a4b8008ea03571b17038db8e653df769bba34b014c3df866a265af9de21` |
 | `code.prompt_version` | `prompt systeme fictif v3` | 24 | `0xb71552443a0b6e9793dd337ab10d057b354013fba35c2c82fdbdfb6df99d6b58` |
+
+Les octets de la pièce « arguments » sont ici dans l'ordre des clés du
+réseau. CT-1 n'impose que l'égalité entre la pièce stockée et la pièce hachée ;
+l'enregistreur de CT-2 sérialise les pièces JSON en forme canonique intégrale
+après rédaction (CT-2 §8), si bien que le même appel y produit une autre
+empreinte, de même longueur (CT-2, annexe A). Les vecteurs de CT-1 ne changent
+pas.
 
 ## 6. Hachage et signature
 
@@ -1441,9 +1448,9 @@ Points du dépôt que cette spécification a rendus caducs, avec leur état :
 |---|---|---|---|
 | `contracts/PeriodRegistry.sol`, commentaire de `PeriodMeta.periodHash` | « keccak256 du manifeste canonique » | « SHA-256 du manifeste canonique préfixé (CT-1 §10.2) ; opaque pour le contrat » | fait |
 | `scripts/e2e/dev-roundtrip.mjs`, calcul d'essai | `keccak256(canonical(manifest))`, `version: 1`, manifeste d'essai | `periodHash` de la section 10.2 (`scripts/lib/journal.mjs`), `version: 0`, manifeste conforme au schéma | fait |
-| `ARCHITECTURE.md`, exemple d'événement | `sha256:…`, `sig: {alg, key_id, value}`, `arguments_hash` | Forme de la section 5 (`0x…`, `recorder_key_id` + `sig`, références) | à aligner (orchestrateur) |
-| `ARCHITECTURE.md`, « Modèle d'événement » : le manifeste porte « les hachages de bord » | hachages de bord dans le manifeste | la version 0 n'en porte pas (section 15) : le manifeste porte la racine, `first_seq` et `last_seq` | à aligner (orchestrateur) |
-| `ARCHITECTURE.md`, « Dossier et vérification » : le dossier contient « les hachages de ses voisins » | hachages des voisins | les voisins complets (`voisins.json`, section 11.2), dont les hachages se recalculent (C-2) | à aligner (orchestrateur) |
+| `ARCHITECTURE.md`, exemple d'événement | `sha256:…`, `sig: {alg, key_id, value}`, `arguments_hash` | Forme de la section 5 (`0x…`, `recorder_key_id` + `sig`, références) | fait |
+| `ARCHITECTURE.md`, « Modèle d'événement » : le manifeste porte « les hachages de bord » | hachages de bord dans le manifeste | la version 0 n'en porte pas (section 15) : le manifeste porte la racine, `first_seq` et `last_seq` | fait |
+| `ARCHITECTURE.md`, « Dossier et vérification » : le dossier contient « les hachages de ses voisins » | hachages des voisins | les voisins complets (`voisins.json`, section 11.2), dont les hachages se recalculent (C-2) | fait |
 | `spec/README.md`, disposition des vecteurs | `jcs/`, `evenements/`, `chaines/`, `arbres/` (n = 0, 1, 2, 3, 5, 8) | la disposition publiée (section 13 et `spec/vecteurs/ct-1/INDEX.md`) | fait |
 
 `scripts/lib/noortrace.mjs` ne calcule pas `periodHash` (c'est
