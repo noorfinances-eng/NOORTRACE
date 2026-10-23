@@ -11,11 +11,23 @@
         "seq": 5,
         "ticket": "apr-2201",
         "hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
-        "ts": "2026-11-05T09:12:09.904Z"
+        "ts": "2026-11-05T09:12:09.904Z",
+        "launched_by": "u.martin@assureur-demo.example"
       }
     ],
     "decided": [],
     "expire_after_ms": 3600000,
+    "separation": {
+      "self_approval": "interdite",
+      "identities": [
+        {
+          "launched_by": "u.martin@assureur-demo.example",
+          "addresses": [
+            "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+          ]
+        }
+      ]
+    },
     "write_at": "2026-11-05T09:31:47.250Z"
   },
   "remise": {

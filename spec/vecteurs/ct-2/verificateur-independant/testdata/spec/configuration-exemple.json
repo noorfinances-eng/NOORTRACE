@@ -31,7 +31,7 @@
         "tool_name_sanitize": false,
         "prompt_version_name": null,
         "host_group": "agent-sinistres",
-        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
         "alias": null
       },
       {
@@ -46,7 +46,7 @@
         "tool_name_sanitize": false,
         "prompt_version_name": null,
         "host_group": "cursor-postes",
-        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
         "alias": null
       }
     ],
@@ -108,7 +108,7 @@
         "tool_name_sanitize": false,
         "prompt_version_name": null,
         "host_group": "agent-sinistres",
-        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
         "alias": null
       }
     ],
@@ -161,7 +161,8 @@
       }
     },
     "retention": { "events_years": 11, "pieces_days": null },
-    "vault": { "enabled": false, "path": null, "key": null }
+    "vault": { "enabled": false, "path": null, "key": null },
+    "relay_mac_key": { "file": "/run/secrets/cle-mac-relais", "encoding": "hex" }
   },
   "lease": {
     "store": {
@@ -208,15 +209,84 @@
   "policy": {
     "version": "2026-11-01",
     "approval": {
-      "rules": [
-        {
-          "tool": "sap__payments.create",
-          "when": "amount > 5000 CHF",
-          "decision": "a_approuver",
-          "note": "syntaxe CT-3, opaque pour CT-2"
+      "rules": {
+        "version": 0,
+        "default": {
+          "name": "defaut : revue",
+          "description": "Tout appel qu'aucune règle ne couvre est soumis aux approbateurs.",
+          "level": "revue",
+          "decision": null,
+          "contest_ms": 0
+        },
+        "rules": [
+          {
+            "name": "lectures autorisees",
+            "description": null,
+            "tools": ["sap__claims.get", "fichiers__list_directory", "fichiers__read_file"],
+            "when": null,
+            "level": "automatique",
+            "decision": "autorise",
+            "window": null,
+            "contest_ms": null
+          },
+          {
+            "name": "paiement hors CHF",
+            "description": "Les paiements de sinistre se font en francs suisses.",
+            "tools": ["sap__payments.create"],
+            "when": { "none": [{ "path": "/arguments/currency", "op": "egal", "value": "CHF" }] },
+            "level": "automatique",
+            "decision": "refuse",
+            "window": null,
+            "contest_ms": null
+          },
+          {
+            "name": "paiement <= 5000 CHF",
+            "description": null,
+            "tools": ["sap__payments.create"],
+            "when": {
+              "all": [
+                { "path": "/arguments/currency", "op": "egal", "value": "CHF" },
+                { "path": "/arguments/amount", "op": "inferieur_ou_egal", "value": "5000" }
+              ]
+            },
+            "level": "automatique",
+            "decision": "autorise",
+            "window": null,
+            "contest_ms": null
+          },
+          {
+            "name": "paiement > 5000 CHF",
+            "description": "Chaque paiement est approuvé au seuil du jeu d'approbateurs.",
+            "tools": ["sap__payments.create"],
+            "when": {
+              "all": [
+                { "path": "/arguments/currency", "op": "egal", "value": "CHF" },
+                { "path": "/arguments/amount", "op": "strictement_superieur", "value": "5000" }
+              ]
+            },
+            "level": "revue",
+            "decision": null,
+            "window": null,
+            "contest_ms": 0
+          }
+        ],
+        "approver_set": {
+          "source": "registre",
+          "chain_id": 2124,
+          "registry": "0x172076e0166d1f9cc711c77adf8488051744980c",
+          "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+          "members": null,
+          "threshold": null
+        },
+        "separation": {
+          "self_approval": "interdite",
+          "identities": [
+            { "launched_by": "agent-sinistres", "addresses": ["0x90f79bf6eb2c4f870365e785982e1f101e93b906"] },
+            { "launched_by": "poste-cursor", "addresses": ["0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"] }
+          ]
         }
-      ],
-      "mode": "retenir",
+      },
+      "mode": "erreur",
       "hold_timeout_ms": 50000,
       "expire_after_ms": 3600000,
       "timeout_ms": 2000,

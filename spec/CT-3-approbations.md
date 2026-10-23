@@ -1,13 +1,14 @@
 # CT-3 — Approbations
 
-Version 0.1, 2026-10-23. Spécification normative, soumise à la revue de la
-porte 1 du plan de projet (document interne). Elle met en œuvre la section
-« Approbation : avant l'action, pas après » de l'[architecture
-cible](../ARCHITECTURE.md). Elle s'appuie sur les formats v0 de
-[CT-1](CT-1-evenements-et-formats.md) sans les modifier, sur le point d'appel
-de [CT-2](CT-2-enregistreur.md) sans en changer les codes, et laisse
-[CT-6](CT-6-verificateur.md) inchangé. Elle clôt la décision ouverte 4 de
-l'architecture (sections 11 et 15).
+Version 0.2, 2026-10-23. Spécification normative, soumise à la revue de la
+porte 1 du plan de projet (document interne). La version 0.2 aligne CT-3 sur
+la version 0.3 de CT-2 ; la fin de la section 0 dit ce qu'elle change. Elle met
+en œuvre la section « Approbation : avant l'action, pas après » de
+l'[architecture cible](../ARCHITECTURE.md). Elle s'appuie sur les formats v0 de
+[CT-1](CT-1-evenements-et-formats.md) sans les modifier, sur le point d'appel de
+[CT-2](CT-2-enregistreur.md) (version 0.3, qui applique l'alignement de la
+section 15) sans créer de code d'erreur, et laisse [CT-6](CT-6-verificateur.md)
+inchangé. Elle clôt la décision ouverte 4 de l'architecture (sections 11 et 15).
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit qui
 agit, ce qui est signé et journalisé, comment une règle s'écrit, ce que
@@ -72,6 +73,38 @@ pointeurs, types, comparaisons exactes, chaînes, prédicats, logique à trois
 valeurs, ordre des règles, algorithme, issues et chaîne `policy.rule`) ; un
 développeur lit les sections 4 et 6 en entier.
 
+**Révisions.** La version 0.1 est datée du 2026-10-23. La version 0.2, de la
+même date, aligne CT-3 sur la version 0.3 de CT-2, qui adopte chaque
+proposition de CT-3 §15.2 : le signal d'approbation est un résultat d'outil
+`isError: true` et non plus l'erreur `-32015` (section 11) ; la remise est
+vérifiée par SG-1 à SG-7, SG-7 étant la séparation des tâches vérifiée par
+le noyau (EX-9.11, EX-9.12, 12.8) ; `charger` porte `requesters` (12.2) ;
+une réponse d'`evaluer` a ses six membres dans un ordre quelconque et un jeu
+exploitable pour `nouveau` (EX-12.6), dont le noyau tire seul une expiration
+conforme à A-3 de CT-1 (EX-12.11) ; un `consommer` reçu après la fin du délai
+de reconnaissance d'une approbation servie est admis sans changer l'état
+(transition T22, EX-7.8, EX-12.10) ; une continuation MRTR n'hérite d'une
+décision qu'avec les mêmes arguments en clair et un `requestState` à usage
+unique (3.2, EX-11.10, 14.2, 14.5, 14.7) ; une liste blanche est `egal` ou
+`dans` sous un nombre impair de `none` (EX-4.14) ; la conduite de l'agent
+après un refus par la politique (EX-11.9).
+
+- Règles ajoutées : aucune ; transition ajoutée : T22 (7.5).
+- Règles modifiées : EX-4.1, EX-4.11, EX-4.13, EX-4.14, EX-7.2, EX-7.8,
+  EX-7.16, EX-8.9, EX-9.11, EX-9.12, EX-9.14, EX-11.2 à EX-11.10, EX-12.6,
+  EX-12.9 à EX-12.11, EX-14.1, EX-A.7, EX-A.8 ; sections 1, 3.2, 3.5, 4.12,
+  6.1, 7.1, 7.4 à 7.6, 7.9, 8.4, 9.4, 9.5, 10.4, 10.5, 12.2 à 12.8, 14.2,
+  14.5 à 14.7, 15.1, 15.2 ; annexes A.6, A.7 et B (les lignes de CT-2 citées
+  sont celles de sa version 0.2).
+- Règles retirées : aucune.
+- Schémas : `ticket-v0` admet `SG-7` dans `$defs/cas_remise`, dont le
+  contexte porte `separation` et le `launched_by` des `retenue` ;
+  descriptions alignées dans `politique-approbation-v0`. Vecteurs
+  `spec/vecteurs/ct-3` : cas SG-7 de `decisions/` (le cas
+  `separation-non-verifiee-par-le-noyau` devient
+  `invalides/sg7-auto-approbation.json`), trace
+  `tickets/consommation-tardive.json`.
+
 ## 1. Objet, périmètre et relations
 
 CT-3 fixe, pour la version 0 des approbations :
@@ -123,7 +156,7 @@ Relations avec les autres spécifications :
 | Spécification | Ce que CT-3 en reprend | Ce que CT-3 lui fournit |
 |---|---|---|
 | CT-1 | `policy` et `approval` (§5.3), l'objet `A` et sa signature EIP-191 (§6.3), `approbations.json` (§11.2), E-5, E-9, A-1 à A-4 : tels quels | La syntaxe de `policy.rule` (6.4) ; la sémantique des règles et des tickets que CT-1 §15 renvoie à CT-3 ; la source du jeu déclaré (section 8) ; les champs signés supplémentaires, comme propositions pour une version 1 (section 16) |
-| CT-2 | Le point d'appel avant relais (§4.4 pas 3 à 8, EX-7.4), la vérification avant scellement (EX-7.5), `approval.at` (EX-7.11), l'appel relayé après approbation (EX-7.12), le code `-32015` et `data.state`, `policy.approval` (`mode`, `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`), la matrice de panne (§14.2), les arguments en double précision exacte (EX-4.44) | Le contenu de `/policy/approval/rules` (4.1) ; la réponse au pas 3 (6.1) ; la liste des outils susceptibles d'approbation (4.12) ; le service, son interface et la remise des décisions (section 12) ; le mode d'attente par défaut (section 11) |
+| CT-2 | Le point d'appel avant relais (§4.4 pas 3 à 8, EX-7.4), les échanges du noyau avec le service (§7.5), la vérification avant scellement (SG-1 à SG-7, EX-7.5), les vérifications de relais (RL-1 à RL-4, EX-7.21), `approval.at` (EX-7.11), l'appel relayé et le `refusee` d'un ticket décidé (EX-7.12), le signal d'approbation, résultat `isError` qui porte `ticket` et `state` (EX-4.49), `policy.approval` (`mode`, `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`), la matrice de panne (§14.2), les arguments en double précision exacte (EX-4.44) | Le contenu de `/policy/approval/rules` (4.1) ; la réponse au pas 3 (6.1) ; la liste des outils susceptibles d'approbation (4.12) ; le service, son interface et la remise des décisions (section 12) ; le mode d'attente par défaut (section 11) |
 | CT-4 | `CuratorSetRegistry` et `CuratorSet`, lus sans écriture | Rien de nouveau ; ce qu'un registre pourrait un jour prouver d'une décision (section 16) |
 | CT-6 | Le contrôle 7 et la provenance « déclaré par le dossier » du jeu (CT-6 EX-3.6), inchangés | Ce que chaque niveau prouve (5.7) ; ce qu'un futur contrôle pourrait recouper : réévaluation de la règle (6.8), séparation des tâches (section 10), jeu au registre (section 8) |
 | CT-7 | — | La surface du service et de la console (3.5, section 14) ; la garde des clés d'approbateur (EX-3.4, sections 9 et 13) |
@@ -218,8 +251,13 @@ d'approbation). S'y ajoutent :
     `retenue` plus `/policy/approval/expire_after_ms`, EX-7.10), la décision
     est `expire`, scellée de même (CT-2 EX-9.4, section 7).
 
-Une ré-émission MRTR hérite de l'évaluation de l'appel d'origine : le
-service n'est pas rappelé (CT-2 EX-4.21).
+Une ré-émission MRTR (continuation d'un résultat `input_required` relayé)
+hérite de l'évaluation de l'appel d'origine, et le service n'est pas rappelé,
+seulement si ses arguments en clair sont ceux de l'appel d'origine (MAC de
+relais), si son `requestState` n'a pas encore servi et, sous un ticket
+approuvé, si les vérifications de relais passent (CT-2 EX-4.21, EX-7.21) ;
+sinon elle repasse par l'évaluation, et une approbation déjà servie ne la
+couvre pas (EX-7.17).
 
 **EX-3.1** Le service NE DOIT PAS rendre `autorise` pour une demande liée à
 un ticket tant que le noyau n'a pas accusé réception du scellement d'une
@@ -296,7 +334,7 @@ entre, avec ses signatures.
 | **Approbateur malveillant** | Il signe ce qu'il veut avec sa clé. | Décider seul : il faut `required` signatures d'adresses distinctes (CT-1 A-3). Approuver sa propre demande, si la séparation l'interdit (section 10). | Une collusion d'au moins `required` membres décide ce qu'elle veut ; la décision est signée, donc attribuable (contrôle 7). |
 | **Approbateur contraint** | On le force à signer. | — | La version 0 n'a pas de signal de contrainte ; la fenêtre de contestation laisse à un autre membre le temps de s'opposer (5.6). |
 | **Console compromise** | Elle affiche une demande et fait signer autre chose ; elle émet sur le canal console → service avec des identifiants valides (EX-12.4). | Une signature vaut pour une seule demande retenue, celle de `request_hash` (CT-1 §6.3) ; la console recalcule `D_A` et l'affiche en entier (section 9). Effacer un refus par une récusation forgée : la récusation retire le vote `approuve` du membre, jamais son vote `refuse`, qui reste compté (EX-10.4). | Faire signer une autre demande réellement retenue sans que l'approbateur s'en aperçoive, si son portefeuille n'affiche que 32 octets en hexadécimal (R2-F53 à R2-F56, section 9). Faire signer `approuve` à qui voulait refuser la même demande : les deux objets `A` ne diffèrent que par `decision` (9.3) ; seuls l'outil hors ligne de recalcul de `D_A` et la notification de chaque vote inscrit par un canal indépendant (EX-13.3) le rendent visible. Ne pas transmettre un refus, forger une récusation ou un retrait : non signés en v0 (section 16). |
-| **Service d'approbation compromis** | Il répond ce qu'il veut, sauf des signatures. | Une décision `approuve` sans signatures valides au seuil du jeu que le service déclare : refusée par le noyau (CT-2 EX-7.5). S'aligner sur la décision scellée d'une autre demande sous un identifiant réattribué : T14 n'aligne que sur la même demande (`request_hash`), sinon T20 clôt le ticket (12.5). Afficher à l'approbateur d'autres arguments que ceux de la demande retenue : la console vérifie l'événement `retenue` et la pièce « arguments » (EX-9.6). Rendre une réponse hors des sept combinaisons d'EX-12.6 : le noyau la traite comme une indisponibilité. | Rendre `autorise` pour un appel que la politique soumet à approbation : la réponse n'est pas signée (CT-2 EX-18.8) ; visible à la réévaluation (6.8). Bloquer ou retarder. Annoncer un jeu d'approbateurs qui n'est pas celui du registre (sections 8 et 14). Blanchir une approbation : faire relayer, sous une décision `approuve` scellée, un autre appel ou le même deux fois ; en v0 le noyau ne compare pas l'appel relayé à la demande retenue (vérifications RL-1 à RL-4 proposées à CT-2, 15.2), et la chaîne ne montre rien si seul un champ rédigé change (14.5). Substituer une valeur rédigée dans l'affichage (14.5). |
+| **Service d'approbation compromis** | Il répond ce qu'il veut, sauf des signatures. | Une décision `approuve` sans signatures valides au seuil du jeu que le service déclare : refusée par le noyau (CT-2 EX-7.5). S'aligner sur la décision scellée d'une autre demande sous un identifiant réattribué : T14 n'aligne que sur la même demande (`request_hash`), sinon T20 clôt le ticket (12.5). Afficher à l'approbateur d'autres arguments que ceux de la demande retenue : la console vérifie l'événement `retenue` et la pièce « arguments » (EX-9.6). Rendre une réponse hors des sept combinaisons d'EX-12.6 : le noyau la traite comme une indisponibilité. Blanchir une approbation, en faisant relayer sous une décision `approuve` scellée un autre appel ou le même deux fois : le noyau compare l'appel relayé à la demande retenue, MAC à clé des arguments en clair compris, et refuse un second relais (RL-1 à RL-4, CT-2 EX-7.21). Faire compter la signature du demandeur : le noyau vérifie la séparation déclarée (SG-7, CT-2 EX-7.5). | Rendre `autorise` pour un appel que la politique soumet à approbation : la réponse n'est pas signée (CT-2 EX-18.8) ; visible à la réévaluation (6.8). Bloquer ou retarder. Annoncer un jeu d'approbateurs qui n'est pas celui du registre (sections 8 et 14). Substituer une valeur rédigée dans l'affichage (14.5). Ignorer la fenêtre de contestation (EX-9.12). |
 
 ## 4. Langage de règles
 
@@ -310,19 +348,22 @@ différentiels (R2-F69).
 
 ### 4.1 Place du document
 
-**EX-4.1** Le membre `/policy/approval/rules` de l'ensemble de politique
-(CT-2 §15.1, opaque pour CT-2) DOIT être un document `politique-approbation-v0`
-et rien d'autre. Il est haché avec l'ensemble (CT-2 EX-10.21) ; le changer
-exige une nouvelle `policy.version` et produit un événement
-`noortrace.journal.politique` (4.13). Les réglages d'attente et de délai
-(`mode`, `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`) restent
-les membres de `/policy/approval` que CT-2 définit.
+**EX-4.1** Le membre `/policy/approval/rules` de l'ensemble de politique (CT-2
+§15.1 ; CT-2 le valide sans l'évaluer, CT-2 EX-15.4) DOIT être un document
+`politique-approbation-v0` et rien d'autre. Il est haché avec l'ensemble (CT-2
+EX-10.21) ; le changer exige une nouvelle `policy.version` et produit un
+événement `noortrace.journal.politique` (4.13). Les réglages d'attente et de
+délai (`mode`, `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`)
+restent les membres de `/policy/approval` que CT-2 définit.
 
-Les exemples de CT-2 (§15.3 et
-`spec/vecteurs/ct-2/evenements/journal-demo/politique.json`) portent sous
-`rules` un tableau illustratif, marqué « syntaxe CT-3, opaque pour CT-2 », qui
-n'est pas un document `politique-approbation-v0` ; ces vecteurs restent
-inchangés (section 15).
+Le schéma de configuration de CT-2 désigne ce membre par un `$ref` vers
+`politique-approbation-v0`, et l'exemple de CT-2 §15.3 porte, depuis la
+version 0.3 de CT-2, un document conforme. Le vecteur
+`spec/vecteurs/ct-2/evenements/journal-demo/politique.json`, antérieur à
+CT-3, garde sous `rules` un tableau illustratif, marqué « syntaxe CT-3,
+opaque pour CT-2 », qui n'est pas un document `politique-approbation-v0` : il
+reste figé, parce que le changer changerait les événements du vecteur, et il
+est validé hors de ce membre (CT-2 annexe B.6).
 
 ### 4.2 Forme du document
 
@@ -794,8 +835,8 @@ retiendrait (condition jamais vraie) : la liste est un sur-ensemble sûr.
 Entre un changement de la liste agrégée et la réponse au `charger` qui le
 suit, un nom absent de la liste `L` du dernier `charger` réussi est tenu
 pour susceptible d'approbation (bloquant pendant une indisponibilité) : la
-liste rendue ne vaut que pour les noms qu'elle a reçus (alignement de CT-2
-en 15.2).
+liste rendue ne vaut que pour les noms qu'elle a reçus (CT-2 EX-7.4,
+EX-7.15).
 
 CT-3 y range aussi les outils qu'une règle peut **refuser**. Pour CT-2, la
 conséquence est la même que pour un outil à approuver : bloquant pendant une
@@ -834,19 +875,23 @@ l'instant d'évaluation et à l'état des fenêtres. Une évaluation termine
 toujours, en un temps borné par la taille de la politique et des arguments
 (6.6).
 
-Pas d'expression régulière : le moteur natif de JavaScript procède par
-retour arrière et peut exploser exponentiellement (R2-F79) ; mesuré sur
-Node v22.22.0, `/^(a+)+$/` prend 472,6 ms pour 26 caractères et quadruple
-tous les deux caractères (R2-F80) ; le moteur linéaire de V8 reste
-expérimental (R2-F79, R2-F80), alors que le paquet `regexp` de Go et RE2
-sont linéaires (R2-F78, R2-F82) : deux implémentations n'auraient pas la
-même complexité. Le sous-ensemble « interopérable » des motifs de JSON Schema
-contient lui-même des motifs dangereux (R2-F81), et la borne de temps que
-CT-2 prévoit pour la rédaction (EX-10.23) donne une sortie sûre à la
-rédaction, pas à une décision : à l'échéance, une politique devrait refuser
-(R2-F83, R2-F84). Les besoins courants (devise, liste blanche, préfixe d'un
-compte, domaine d'une adresse) s'écrivent avec `egal`, `dans`,
-`commence_par` et `finit_par`, qui se testent en temps linéaire.
+Pas d'expression régulière : le moteur natif de JavaScript procède par retour
+arrière et peut exploser exponentiellement (R2-F79) ; mesuré sur Node v22.22.0,
+`/^(a+)+$/` prend 472,6 ms pour 26 caractères et quadruple tous les deux
+caractères (R2-F80) ; le moteur linéaire de V8 reste expérimental (R2-F79,
+R2-F80), alors que le paquet `regexp` de Go et RE2 sont linéaires (R2-F78,
+R2-F82) : deux implémentations n'auraient pas la même complexité. Le
+sous-ensemble « interopérable » des motifs de JSON Schema contient lui-même des
+motifs dangereux (R2-F81), et la borne de temps que CT-2 prévoit pour la
+rédaction (EX-10.23) donne une sortie sûre à la rédaction, pas à une décision :
+à l'échéance, une politique devrait refuser (R2-F83, R2-F84). CT-2 version 0.3
+a ajouté à son sous-ensemble des règles de structure et de taille, qui écartent
+les formes exponentielles connues, et applique la borne de temps à tout ce que
+ses motifs examinent (CT-2 EX-10.6, EX-10.23) ; un retour arrière polynomial
+reste possible en ECMAScript, et la borne reste nécessaire. Les besoins
+courants (devise, liste blanche, préfixe d'un compte, domaine d'une adresse)
+s'écrivent avec `egal`, `dans`, `commence_par` et `finit_par`, qui se testent
+en temps linéaire.
 
 **EX-4.14** À la validation, le service DEVRAIT avertir, sans refuser :
 
@@ -859,12 +904,15 @@ compte, domaine d'une adresse) s'écrivent avec `egal`, `dans`,
   sa propre portée, EX-5.2, mais l'approbateur doit voir lesquels sa
   décision couvre, EX-9.4), dont `same_arguments` est vide ou dont `when`
   est nul (la fenêtre couvre alors toute valeur que la condition admet) ;
-- d'un prédicat `egal` ou `dans` dans la condition d'une règle `automatique`
-  `refuse` : une liste d'exclusion à égalité exacte laisse passer une autre
-  écriture de la même valeur (4.8) ; une liste blanche (`none` sur `dans`)
-  ne le permet pas ;
-- d'un demandeur configuré (`launched_by` que le noyau transmet à `charger`,
-  12.2) sans entrée dans `separation.identities` quand `self_approval` vaut
+- d'un prédicat `egal` ou `dans` placé sous un nombre pair (zéro compris)
+  de `none` dans la condition d'une règle `automatique` `refuse` (liste
+  d'exclusion) : une liste d'exclusion à égalité exacte laisse passer une
+  autre écriture de la même valeur (4.8). Sous un nombre impair de `none`, le
+  prédicat forme une liste blanche (`none` sur `egal` ou `dans`), qui ne
+  laisse rien passer d'autre que les valeurs écrites, et n'est pas signalé ;
+- d'un demandeur configuré (`launched_by` fixe que le noyau transmet dans
+  `requesters` de `charger`, 12.2) sans entrée dans `separation.identities`
+  quand `self_approval` vaut
   `interdite` : la séparation des tâches ne peut pas être vérifiée pour lui
   (10.5).
 
@@ -1172,15 +1220,16 @@ ne lit que (EX-3.5) :
 | `t` | Instant de réception de la demande, horloge du service, UTC, milliseconde |
 | `F` | Les fenêtres ouvertes (5.3) |
 
-La sortie est la réponse de CT-2 EX-7.4, `{ "rule", "decision", "ticket" }`,
-dans les formes de CT-1 §5.3 : `rule` est la chaîne de 6.4, `decision` est
+La sortie d'`EVALUER` est `{ "rule", "decision", "ticket" }`, dans les
+formes de CT-1 §5.3 : `rule` est la chaîne de 6.4, `decision` est
 `autorise`, `a_approuver` ou `refuse`, `ticket` est l'identifiant du ticket
 créé pour `a_approuver`, `null` sinon. Pour une ré-émission reconnue, la
 section 7 fixe la réponse ; celle d'un ticket décidé `approuve` est
 `autorise` avec, en plus, l'objet `approval` de la décision scellée, que le
-noyau recopie (CT-2 §4.4 pas 3, EX-7.12). La forme exacte des messages est
-en section 12 ; la réponse à `evaluer` porte en plus `ticket_state`,
-`approval` et `approver_set` (12.3).
+noyau compare à la sienne et recopie (CT-2 §4.4 pas 3, EX-7.12, EX-7.21). La
+forme exacte des messages est en section 12 ; la réponse à `evaluer`, que
+CT-2 EX-7.4 reçoit, porte en plus `ticket_state`, `approval` et
+`approver_set` (12.3).
 
 **EX-6.1** Pour une demande qui n'est pas une ré-émission reconnue
 (EX-7.6), le service DOIT rendre exactement le résultat de l'algorithme
@@ -1412,8 +1461,9 @@ scellée d'une autre demande (T20, 12.5). Les tickets des vecteurs de CT-1 et
 CT-2 (`apr-1192`, `apr-2201`, `apr-demo-0001`) respectent ce motif.
 
 **EX-7.2** L'identifiant NE DOIT PAS être dérivé des arguments ni d'aucune
-donnée de la demande : il est rendu à l'agent (`data.ticket` de `-32015`,
-section 11), écrit dans la chaîne et dans les notifications. Sa forme est
+donnée de la demande : il est rendu à l'agent (texte et
+`_meta["noortrace/approval"]` du signal d'approbation, CT-2 EX-4.49, section
+11), écrit dans la chaîne et dans les notifications. Sa forme est
 libre au-delà du motif et d'EX-7.1 ; les traces de l'annexe A, qui partent
 d'un service vide sans perte d'état, emploient un compteur décimal sans
 époque.
@@ -1522,7 +1572,8 @@ table 12.8. Une entrée mal formée (hors de `$defs/entree`) est refusée
 ligne de la table 7.5 n'admet dans l'état du ticket, et pour laquelle la
 table 12.8 ne nomme pas de raison propre, est refusée avec
 `requete_invalide` : `ouvrir` dont `request_ts` est postérieur à `at`,
-`consommer` hors `approuve`, `acquitter` `scelle` d'une remise inconnue,
+`consommer` hors `approuve` et hors T22 (ticket `clos` dont l'approbation a
+été servie et n'est pas consommée), `acquitter` `scelle` d'une remise inconnue,
 `acquitter` ou `expiration` sur un ticket décidé avec d'autres données que
 celles de la décision scellée.
 
@@ -1555,12 +1606,13 @@ l'instant de l'entrée.
 | T19 | `approuve`, `refuse`, `expire` | fin de reconnaissance | — | `clos` | `approuve` non consommé : consigné (`approbation_non_consommee`) |
 | T20 | `a_remettre` | `acquitter` `refuse`, `ticket_deja_decide` | `remise_id` courant ; `approval` de ce ticket, de cette décision et de `at` ; `approval.request_hash` différent de celui du ticket | `clos` | aucun alignement : la décision scellée est celle d'une autre demande sous le même identifiant ; alerte `identifiant_en_collision` ; aucune réponse servie ; une ré-émission est une nouvelle demande |
 | T21 | `approuve` | `evaluer` (ré-émission reconnue) | approbation non servie (`served_at` nul) | `approuve` | `served_at = at`, persisté avant la réponse `autorise` (EX-7.17, EX-7.22) |
+| T22 | `clos` | `consommer` | approbation servie (`served_at` non nul) et non consommée (`consumed` nul) | `clos` | **consommation tardive** : `consumed = { seq, hash }`, inscrit dans la trace ; alerte `consommation_tardive` ; réponse `{ ticket, state: "clos" }`. Le relais d'une approbation servie peut être scellé après la fin du délai de reconnaissance (appel long, événement en attente scellé à la sortie d'un mode dégradé, événement de reprise, CT-2 EX-7.20) : le service, qui a consigné `approbation_non_consommee` à T19 sans savoir qu'un `consommer` viendrait, en garde la trace |
 
 Un `acquitter` d'une remise qui n'est plus la remise courante, autre que
 `scelle`, est accepté sans effet ; un `acquitter` identique à un `acquitter`
-déjà accepté pour ce ticket, un `consommer`, un `ouvrir` (même
-`request_hash`) ou une `expiration` répétés sont sans effet et rendent
-l'état courant (EX-7.20).
+déjà accepté pour ce ticket, un `consommer` (y compris après T22), un
+`ouvrir` (même `request_hash`) ou une `expiration` répétés sont sans effet
+et rendent l'état courant (EX-7.20).
 
 **EX-7.9** Une implémentation conforme DOIT réaliser exactement les
 transitions de la table 7.5 et aucune autre ; toute entrée hors table est
@@ -1579,7 +1631,7 @@ transitions entrée par entrée (vérifications TK-, 7.12).
 | Fenêtre ouverte | `approval.at` + `window.duration_ms` | ≤ 24 heures (5.3) | retirée (EX-5.6) |
 | Escalade | étapes de la configuration du service (7.7) | chacune `< E` | notification |
 | Expiration de repli du noyau | échéance + `timeout_ms` | — | le noyau scelle `expire` seul (12.6) |
-| Requête retenue (mode `retenir`) | `/policy/approval/hold_timeout_ms` | sous le délai de l'hôte (section 11) | `-32015`, `state: "en_attente"` ; le ticket continue |
+| Requête retenue (mode `retenir`) | `/policy/approval/hold_timeout_ms` | sous le délai de l'hôte (section 11) | signal d'approbation `state: "en_attente"` (CT-2 EX-4.49) ; le ticket continue |
 
 **EX-7.10** L'échéance d'un ticket DOIT être `request_ts + E`, où
 `request_ts` est le `ts` de l'événement `retenue` remis par `ouvrir` et `E`
@@ -1702,10 +1754,10 @@ est une proposition pour une version 1 (section 16).
 | aucun ; `EVALUER` rend `refuse` | `refuse`, `null`, `null` | celle d'`EVALUER` | événement `refusee`, résultat `isError: true` (EX-11.8) |
 | aucun ; `EVALUER` rend `a_approuver` (nouveau ticket, T1) | `a_approuver`, `nouveau`, `null` | celle d'`EVALUER` | événement `retenue`, puis `ouvrir` |
 | `reserve` | `a_approuver`, `nouveau`, `null` ; **même** ticket | celle du ticket | événement `retenue`, puis `ouvrir` (idempotent, 12.4) |
-| `ouvert`, `seuil_atteint`, `verification`, `a_remettre` | `a_approuver`, `en_attente`, `null` ; même ticket | celle du ticket | aucun événement ; `-32015`, `state: "en_attente"` |
-| `approuve`, approbation non servie (T21) | `autorise`, `approuve`, objet `approval` scellé | celle du ticket | relais selon CT-2 EX-7.12, puis `consommer` |
-| `approuve`, approbation déjà servie | `a_approuver`, `en_attente`, `null` | celle du ticket | aucun événement ; `-32015`, `state: "en_attente"` (EX-7.17) |
-| `refuse` ou `expire` | `refuse`, `refuse` ou `expire`, objet `approval` scellé | celle du ticket | événement `refusee` qui reprend la `policy` de l'événement `retenue` et porte `approval` ; `-32015` avec `state` |
+| `ouvert`, `seuil_atteint`, `verification`, `a_remettre` | `a_approuver`, `en_attente`, `null` ; même ticket | celle du ticket | aucun événement ; signal d'approbation, `state: "en_attente"` |
+| `approuve`, approbation non servie (T21) | `autorise`, `approuve`, objet `approval` scellé | celle du ticket | vérifications RL-1 à RL-4 (CT-2 EX-7.21), relais selon CT-2 EX-7.12, puis `consommer` |
+| `approuve`, approbation déjà servie | `a_approuver`, `en_attente`, `null` | celle du ticket | aucun événement ; signal d'approbation, `state: "en_attente"` (EX-7.17) |
+| `refuse` ou `expire` | `refuse`, `refuse` ou `expire`, objet `approval` scellé | celle du ticket | événement `refusee` qui reprend la `policy` de l'événement `retenue` et porte `approval` ; signal d'approbation de même `state` |
 
 Le membre `approver_set` de la réponse est non nul pour `nouveau` seulement
 (EX-12.6) ; `approval` n'est non nul que pour une décision scellée du même
@@ -2104,7 +2156,7 @@ lecture. Un jeu `statique` a la `source`
 (et non le seuil effectif d'EX-8.6) ; ce sont les valeurs que A-3 compare
 (CT-1 §11.4). Le noyau conserve `approver_set` avec la décision
 scellée, hors chaîne, pour l'exportateur de dossier, qui l'écrit tel quel
-dans `approbations.json` (alignement CT-2, section 15).
+dans `approbations.json` (CT-2 EX-12.23).
 
 Exemple (valeurs synthétiques des vecteurs, annexe A.2) :
 
@@ -2355,17 +2407,19 @@ l'indisponibilité du noyau (mode dégradé, CT-2 §14.2) donne un refus
 | SG-4 | Pour `approuve` et `refuse` : l'instant d'écriture de la décision, qui sera `approval.at` (CT-2 EX-7.11), est strictement antérieur à l'échéance `request_ts + E` (EX-7.10 ; `request_ts` est le `ts` de l'événement `retenue` dont le `hash` est `request_hash`) | `echeance_depassee` |
 | SG-5 | E-5 et E-9 de CT-1 : même longueur, chaque signature canonique recouvre `approvers[i]` sur `D_A` du `A` de la remise, avec l'`org_id` et le `journal_id` du journal | `signature_invalide` |
 | SG-6 | A-3 de CT-1 : approbateurs distincts, membres de `approver_set.members`, `threshold` égal à `approver_set.threshold`, `required ≤ size` et `size` égal au nombre de membres (sinon `seuil_different_du_jeu`), aucun approbateur pour `expire`, au moins `required` pour `approuve` et `refuse` | `approbateur_double`, `approbateur_hors_jeu`, `seuil_different_du_jeu`, `expire_avec_signatures`, `seuil_non_atteint` |
+| SG-7 | Séparation des tâches : quand la politique d'approbation de la version de l'événement `retenue` (son `code.policy_version`) a `separation.self_approval: "interdite"`, aucune adresse de `approvers` n'est une adresse du demandeur, c'est-à-dire de l'entrée de `separation.identities` dont `launched_by` est égal, octet pour octet, au `delegation.launched_by` de cet événement (EX-10.1, EX-10.2) | `auto_approbation` |
 
-**EX-9.12** Le noyau ne vérifie ni la séparation des tâches ni la fenêtre
-de contestation : CT-2 EX-7.5 ne lit pas la politique d'approbation, opaque
-pour CT-2, et le noyau ne voit pas les votes. Elles sont du ressort du
-service (section 10), et une remise qui les viole n'est pas détectée par
-SG-1 à SG-6. C'est l'une des raisons pour lesquelles le canal entre le noyau
-et le service est authentifié (12.1). La séparation, elle, pourrait l'être :
-le noyau a la politique et l'événement `retenue` ; une vérification SG-7
-(« aucune adresse de `approvers` n'est une adresse du demandeur quand
-`self_approval` vaut `interdite` ») est proposée pour une révision de CT-2
-(section 15).
+**EX-9.12** Le noyau ne vérifie pas la fenêtre de contestation : il ne
+voit pas les votes, qui restent dans le service (section 10), et une remise
+qui la viole n'est pas détectée par SG-1 à SG-7. C'est l'une des raisons
+pour lesquelles le canal entre le noyau et le service est authentifié
+(12.1). La séparation des tâches, elle, est vérifiée par le noyau (SG-7) :
+il a la politique d'approbation de chaque version, pièce de l'ensemble de
+politique, et l'événement `retenue`. SG-7, proposée par la section 15, est
+adoptée par CT-2 version 0.3 (CT-2 EX-7.5) ; une remise d'un service
+conforme ne l'échoue jamais, puisque le service écarte déjà ces votes
+(EX-10.2), et elle ne voit que les adresses que la politique déclare
+(EX-10.5).
 
 ### 9.5 Refus et motif
 
@@ -2383,7 +2437,8 @@ motif est une valeur en ligne, dans la chaîne signée, qui ne peut pas être
 purgée : la console DOIT avertir qu'il ne doit contenir aucune donnée
 personnelle, et le noyau DEVRAIT lui appliquer les détecteurs de texte de la
 politique de rédaction avant de le sceller, comme aux autres valeurs en ligne
-(CT-2 EX-10.2 ; alignement, section 15).
+(CT-2 EX-10.2) ; CT-2 version 0.3 en fait une obligation du noyau (CT-2
+EX-10.24).
 
 ## 10. Séparation des tâches et fenêtre de contestation
 
@@ -2567,7 +2622,7 @@ la chaîne.
 | Chaîne : décision | `approval` : décision, `request_hash`, `threshold`, `approvers`, `signatures`, `at`, `reason` ; délégation du demandeur (comme seq 3 de CT-1 annexe A et seq 6 des vecteurs CT-2) | signatures des approbateurs (E-9), le reste attesté par l'enregistreur |
 | Chaîne : appel relayé ou `refusee` | l'`approval` scellé, la `policy` de la demande (EX-7.18 ; CT-2 EX-7.12) | idem |
 | Dossier : `approbations.json` | `approver_set` (`threshold`, `members`, `source`) | déclaratif (CT-6 EX-3.6) |
-| Journal d'exploitation de l'enregistreur | `approval_pending`, `approval_deferred`, `approval_expired_deferred`, refus de remise | aucune (CT-2 §9.2) |
+| Journal d'exploitation de l'enregistreur | `approval_pending`, `approval_deferred`, `approval_expired_deferred`, refus de remise (`approval_remise_refused`), refus de relais (`approval_relay_refused`) | aucune (CT-2 §9.2, §17.3) |
 | Trace du ticket (`ticket-v0`, service) | votes acceptés, refusés et remplacés avec leur raison et leur instant, objections et levées, fenêtres de contestation ouvertes et annulées, récusations, éligibles, lectures du jeu, escalades, retrait, remises et acquittements | interne au client ; non signée en v0 |
 
 ### 10.5 Ce que CT-6 vérifie et ce qu'un réviseur peut établir
@@ -2578,7 +2633,7 @@ la chaîne.
 | La décision précède l'appel relayé | `seq` et `approval.at` (A-2) | oui | — |
 | Une demande expirée ne porte aucune signature | `approval` (A-3) | oui | — |
 | Le jeu déclaré était celui de l'organisation à la décision | `source` (8.4) | non : « déclaré par le dossier » (CT-6 EX-3.6) | relecture du registre (8.5), selon un nœud |
-| Le demandeur n'a pas approuvé sa demande | `launched_by` de la demande et `approvers` de la décision | non | oui, avec la pièce de politique (`separation`, authentifiée par `policy_sha256`) : aucune adresse de `approvers` n'est une adresse du demandeur ; cela ne vaut que pour les adresses déclarées (EX-10.5) |
+| Le demandeur n'a pas approuvé sa demande | `launched_by` de la demande et `approvers` de la décision | non ; le noyau l'a vérifié avant de sceller (SG-7, CT-2 EX-7.5) | oui, avec la pièce de politique (`separation`, authentifiée par `policy_sha256`) : aucune adresse de `approvers` n'est une adresse du demandeur ; cela ne vaut que pour les adresses déclarées (EX-10.5) |
 | La séparation pouvait s'appliquer à ce demandeur | `launched_by` de la demande | non | oui, avec la pièce de politique : `separation.identities` a une entrée pour `launched_by` ; sinon la séparation était vide pour lui (EX-10.5) |
 | Une personne n'a qu'une voix | adresses distinctes seulement | non | non (EX-8.11) |
 | La fenêtre de contestation a été respectée, aucune objection n'est restée | rien | non | seulement par la trace du ticket, déclarative |
@@ -2593,12 +2648,16 @@ dans `A`, trace signée) est une proposition pour une version 1
 
 ## 11. Comportement du mandataire pendant l'attente
 
-CT-2 fixe deux modes d'attente (`policy.approval.mode`), le code `-32015`
-(`noortrace: approbation requise`, `data: { "ticket", "state" }`, `state` ∈
-{`en_attente`, `refuse`, `expire`}) et laisse à CT-3 le choix et l'usage
-(CT-2 §4.4 pas 5 et 6, table des codes, R1-F34, R1-F35, R1-F39). Cette
-section ferme la décision ouverte 4 de l'architecture (section 15) sans
-changer un code.
+CT-2 fixe deux modes d'attente (`policy.approval.mode`) et laisse à CT-3 le
+choix et l'usage (CT-2 §4.4 pas 5 et 6, R1-F34, R1-F35). La version 0.2 de
+CT-2 signalait l'attente par le code `-32015` (`noortrace: approbation
+requise`, `data: { "ticket", "state" }`, R1-F39) ; sa version 0.3, qui
+applique la section 15, la signale par le **signal d'approbation** : un
+résultat d'outil `isError: true`, de texte fixe, qui porte le ticket et son
+état dans le texte et dans `_meta["noortrace/approval"] = { "ticket",
+"state" }`, `state` ∈ {`en_attente`, `refuse`, `expire`} (CT-2 EX-4.49).
+Cette section ferme la décision ouverte 4 de l'architecture (section 15) ;
+elle ne crée aucun code d'erreur.
 
 ### 11.1 Décision : le mode `erreur` par défaut
 
@@ -2610,7 +2669,7 @@ l'enregistreur (CT-2 §15.6) DOIT avertir quand `mode` vaut `retenir`.
 **EX-11.2** Le mode `retenir` n'est admis que si `hold_timeout_ms` est
 inférieur au plus petit délai par appel de **tous** les hôtes raccordés (table
 11.2), d'au moins une seconde, et si la décision est attendue dans ce délai.
-Il ne change rien au ticket : à `hold_timeout_ms`, l'hôte reçoit `-32015`
+Il ne change rien au ticket : à `hold_timeout_ms`, l'hôte reçoit le signal
 `en_attente` et le ticket continue (EX-7.14).
 
 ### 11.2 Justification
@@ -2644,14 +2703,16 @@ LangGraph hors de l'adaptateur (R2 NV-3). Claude Code fait en outre passer en
 arrière-plan un appel qui dure plus de deux minutes (R2-F32,
 https://code.claude.com/docs/en/mcp.md). Le plus petit délai par défaut est
 de 5 secondes, et quatre des dix lignes coupent à 60 secondes ou moins : une
-requête retenue jusqu'à la décision échoue chez presque tous ; une erreur
-immédiate parvient à tous les hôtes avant leur délai. Sa transmission au
-modèle n'est, elle, qu'une faculté : `-32015` est une erreur de protocole
-(« returned as standard JSON-RPC errors », R2-F8, `server/tools.mdx`
-L742-L747), que les clients PEUVENT transmettre au modèle (« Clients **MAY**
-provide protocol errors to language models », L784), alors qu'ils DEVRAIENT
-transmettre une erreur d'exécution `isError: true` (L785,
-https://github.com/modelcontextprotocol/modelcontextprotocol/blob/80041ab0a139a8f4fb3adbc99f7ae9113ea59671/docs/specification/2026-07-28/server/tools.mdx#L742-L785).
+requête retenue jusqu'à la décision échoue chez presque tous ; une réponse
+immédiate parvient à tous les hôtes avant leur délai. Elle doit aussi
+parvenir au modèle : une erreur de protocole (« returned as standard
+JSON-RPC errors », R2-F8, `server/tools.mdx` L742-L747), comme le `-32015`
+de CT-2 version 0.2, n'est transmise au modèle qu'en faculté (« Clients
+**MAY** provide protocol errors to language models », L784), alors que les
+clients DEVRAIENT transmettre une erreur d'exécution `isError: true` (L785,
+https://github.com/modelcontextprotocol/modelcontextprotocol/blob/80041ab0a139a8f4fb3adbc99f7ae9113ea59671/docs/specification/2026-07-28/server/tools.mdx#L742-L785) :
+c'est pourquoi le signal d'approbation de CT-2 version 0.3 est un résultat
+`isError: true` (CT-2 EX-4.49).
 
 **La spécification MCP.** Elle demande à chaque client de fixer un délai à
 toute requête et de toujours appliquer un délai maximal, même si une
@@ -2680,7 +2741,7 @@ avec `ttlMs` et un statut `completed` même pour un résultat `isError: true`
 tenue par la communauté, n'a pas de colonne « Tasks » : aucun hôte n'y
 déclare la prise en charge (R2-F28,
 https://github.com/modelcontextprotocol/modelcontextprotocol/blob/80041ab0a139a8f4fb3adbc99f7ae9113ea59671/docs/extensions/client-matrix.mdx#L26-L50 ;
-R2 NV-4, non vérifié hôte par hôte). CT-2 v0 rend `-32016` pour un résultat
+R2 NV-4, non vérifié hôte par hôte). CT-2 v0 rend `-31016` pour un résultat
 `task` et laisse l'extension hors de sa version (CT-2 §4.4, §21). Les tâches
 ne peuvent donc pas être le chemin de la version 0 (11.6). Les tâches
 expérimentales du cœur de la révision `2025-11-25` (R2-F21), révision que
@@ -2709,18 +2770,19 @@ l'hôte MCP.
 
 | Moment | Ce que reçoit l'hôte | Événement de la chaîne | Ticket |
 |---|---|---|---|
-| Premier appel, sortie `a_approuver` | `-32015`, `data: { "ticket": "apr-…", "state": "en_attente" }`, aussitôt | `retenue` | `reserve` puis `ouvert` |
-| Ré-émission pendant l'attente | `-32015` `en_attente`, même ticket | aucun (EX-7.19) | inchangé |
+| Premier appel, sortie `a_approuver` | signal d'approbation, `_meta["noortrace/approval"]: { "ticket": "apr-…", "state": "en_attente" }`, aussitôt | `retenue` | `reserve` puis `ouvert` |
+| Ré-émission pendant l'attente | signal `en_attente`, même ticket | aucun (EX-7.19) | inchangé |
 | Ré-émission après `approuve` | le résultat du serveur d'outils, comme pour tout appel relayé | appel relayé `executee` portant `approval` et la `policy` de la demande (CT-2 EX-7.12) | `consomme` |
-| Ré-émission après `refuse` ou `expire`, dans le délai de reconnaissance | `-32015`, `state: "refuse"` ou `"expire"` | `refusee` portant `approval` et la `policy` de la demande (EX-7.18) | inchangé |
+| Ré-émission après `refuse` ou `expire`, dans le délai de reconnaissance | signal, `state: "refuse"` ou `"expire"` | `refusee` portant `approval` et la `policy` de la demande (EX-7.18) | inchangé |
 | Ré-émission après le délai de reconnaissance ou après consommation | comme un premier appel | `retenue` d'un nouveau ticket | nouveau |
 | Appel refusé par la politique (sans ticket) | résultat `isError: true` (11.5) | `refusee`, `policy.decision = "refuse"` | aucun |
 
-**EX-11.3** En mode `erreur`, l'enregistreur rend `-32015` `en_attente` dès que
-l'événement `retenue` est durable (CT-2 EX-4.19) ; il ne retient aucune
-requête. Selon la révision `2026-07-28`, le récepteur ne donne aucun sens au
-code `-32015`, de la plage héritée : seuls `message` et `data` peuvent
-guider l'agent, si l'hôte les lui transmet (EX-11.9).
+**EX-11.3** En mode `erreur`, l'enregistreur rend le signal `en_attente`
+dès que l'événement `retenue` est durable (CT-2 EX-4.19, §4.4 pas 6) ; il ne
+retient aucune requête. Le signal est un résultat d'outil : il ne dépend
+d'aucun code d'erreur, et un hôte qui transmet au modèle les erreurs
+d'exécution, comme la spécification le demande (DEVRAIT), lui en transmet
+le texte (EX-11.9).
 
 ### 11.4 Comportement observable, mode `retenir`
 
@@ -2728,7 +2790,7 @@ guider l'agent, si l'hôte les lui transmet (EX-11.9).
 requête de l'hôte par ticket : la requête qui a créé le ticket, ou, si
 elle a pris fin (délai, annulation), la première ré-émission reconnue qui
 suit. Toute autre ré-émission reconnue pendant l'attente reçoit aussitôt
-`-32015` `en_attente`, sans événement. Une ré-émission reconnue après le
+le signal `en_attente`, sans événement. Une ré-émission reconnue après le
 scellement d'une décision `approuve` dont le noyau relaie la requête
 retenue reçoit aussi `en_attente` : le noyau l'a annoncé au service par
 `held` (EX-11.5, T11), et le service ne sert l'approbation qu'une fois
@@ -2736,28 +2798,30 @@ retenue reçoit aussi `en_attente` : le noyau l'a annoncé au service par
 
 **EX-11.5** Quand la décision du ticket est scellée pendant qu'une requête est
 retenue : `approuve` → le noyau acquitte le scellement avec `held: true`
-(12.5), ce qui marque l'approbation servie, puis l'appel est relayé (CT-2
-§4.4, pas 7 et suivants, sans nouvelle évaluation, CT-2 EX-15.5) et le noyau
-envoie `consommer` ;
-`refuse` ou `expire` → l'enregistreur scelle un événement `refusee` qui
-reprend la `policy` de la demande et porte `approval`, et rend `-32015` avec
-`state`. La réponse finale à une demande soumise à approbation est ainsi,
-dans les deux modes, un événement qui porte `approval` : `executee` ou
-`refusee`.
+(12.5), ce qui marque l'approbation servie, puis l'appel est relayé (CT-2 §4.4,
+pas 7 et suivants, sans nouvelle évaluation, CT-2 EX-15.5) et le noyau envoie
+`consommer` ; `refuse` ou `expire` → l'enregistreur scelle un événement
+`refusee` qui reprend la `policy` de la demande et porte `approval`, et rend le
+signal d'approbation de même `state` (CT-2 EX-4.50). La réponse finale à une
+demande soumise à approbation est ainsi, dans les deux modes, un événement qui
+porte `approval` : `executee` ou `refusee`.
 
 **EX-11.6** Pendant la rétention, l'enregistreur PEUT envoyer à l'hôte des
 `notifications/progress` si la requête porte un `progressToken` (R2-F14,
 https://github.com/modelcontextprotocol/modelcontextprotocol/blob/80041ab0a139a8f4fb3adbc99f7ae9113ea59671/docs/specification/2026-07-28/basic/patterns/progress.mdx) ;
 cela remet à zéro le délai d'inactivité de Claude Code (R2-F31) mais pas le
 délai de 60 secondes du SDK TypeScript par défaut (R2-F36), ni une limite
-d'horloge. Ce n'est pas une raison de choisir `retenir` (EX-11.2), et c'est
-un ajout à CT-2 (section 15).
+d'horloge. Ce n'est pas une raison de choisir `retenir` (EX-11.2) ; CT-2
+l'admet, à valeurs strictement croissantes et hors chaîne (CT-2 EX-4.50).
 
 ### 11.5 Ce que l'agent lit
 
-**EX-11.7** `-32015` est rendu pour toute réponse `a_approuver` ou `refuse`
-qui porte un ticket (une réponse `autorise` d'un ticket `approuve` est
-relayée) ; `data` est exactement `{ "ticket", "state" }` (CT-2 EX-4.24),
+**EX-11.7** Le signal d'approbation (CT-2 EX-4.49) est rendu pour toute
+réponse `a_approuver` ou `refuse` qui porte un ticket (une réponse `autorise`
+d'un ticket `approuve` est relayée) ; c'est un résultat d'outil
+`isError: true` dont le texte fixe porte le ticket et l'état
+(`noortrace: appel soumis a approbation ; ticket=<ticket> ; state=<state>`)
+et dont `_meta["noortrace/approval"]` est exactement `{ "ticket", "state" }`,
 avec :
 
 | `state` | Quand |
@@ -2766,13 +2830,13 @@ avec :
 | `refuse` | décision `refuse` scellée |
 | `expire` | décision `expire` scellée |
 
-Le `state` n'est lu par l'agent que si l'hôte lui transmet l'erreur, et le
-code `-32015` lui-même n'a pas de sens pour un récepteur de la révision
-`2026-07-28` (EX-11.9).
+Le texte n'est lu par l'agent que si l'hôte lui transmet le résultat, ce
+que la spécification demande (DEVRAIT) pour une erreur d'exécution
+(EX-11.9) ; `_meta` sert aux programmes de l'hôte.
 
 **EX-11.8** Un appel refusé par la politique sans ticket (sortie `refuse` de
 l'évaluation) reçoit un **résultat** d'outil
-`isError: true`, choix que CT-2 §4.4 pas 5 laisse à CT-3. Comme tout
+`isError: true` (CT-2 §4.4 pas 5, EX-4.49). Comme tout
 résultat que rend le frontal, il porte
 `_meta["io.modelcontextprotocol/serverInfo"]`, l'identité de l'enregistreur
 de version `code.recorder` (CT-2 EX-4.4, §4.4 pas 14). Pour la version
@@ -2787,19 +2851,23 @@ quel seuil contourner (14.1).
 
 **EX-11.9** Les fichiers d'intégration des hôtes (CT-2 §19.5) DEVRAIENT
 donner à l'agent la conduite suivante, que rien ne peut lui imposer : après
-`-32015` `en_attente`, dire à l'utilisateur que l'appel attend une
+le signal `en_attente`, dire à l'utilisateur que l'appel attend une
 approbation et ne pas le répéter plus d'une fois par minute ; après `refuse`
-ou `expire`, ne pas le répéter. La spécification permet seulement aux
-clients de transmettre une erreur de protocole au modèle (« **MAY** »,
-R2-F8, `server/tools.mdx` L784) : l'agent ne lit le `message` et le `data`
-de `-32015` que si l'hôte les lui transmet, et que chaque hôte le fasse n'a
-pas été vérifié (non vérifié, à tester en phase 2 avec les intégrations de
-CT-2 §19.5). De plus, la révision `2026-07-28` range `-32000` à `-32019`
-dans une plage héritée, dont le récepteur NE DOIT supposer aucun sens
-(sauf `-32002`) : un hôte de cette révision ne donne aucun sens au code
-`-32015` lui-même, seuls son `message` et son `data` peuvent guider l'agent
-(15.2). Un signal d'attente hors de cette plage est une proposition pour
-une révision de CT-2 (15.2).
+ou `expire`, ne pas le répéter ; après le refus par la politique sans ticket
+(EX-11.8), ne pas répéter l'appel, ne pas le fractionner ni le reformuler
+(autre écriture d'un montant, d'une devise ou d'un identifiant), et dire à
+l'utilisateur que la politique l'a refusé. Un résultat `isError` se
+présente au modèle comme une erreur d'exécution qu'il peut corriger en
+changeant ses arguments : sans cette conduite, il ferait de lui-même le
+sondage et le fractionnement de 14.1 et 14.5. Le texte d'EX-11.8 reste fixe
+et ne nomme pas la règle. Le signal est une erreur d'exécution, que
+les clients DEVRAIENT transmettre au modèle (« **SHOULD** », R2-F8,
+`server/tools.mdx` L785) ; que chaque hôte le fasse n'a pas été vérifié
+(non vérifié, à tester en phase 2 avec les intégrations de CT-2 §19.5).
+Le signal ne dépend d'aucun code d'erreur : la révision `2026-07-28` range
+`-32000` à `-32019` dans une plage héritée, dont le récepteur NE DOIT
+supposer aucun sens (sauf `-32002`, R2-F10), et c'est pourquoi CT-2
+version 0.3 a retiré le code `-32015` de sa version 0.2 (15.2).
 
 ### 11.6 Tâches MCP et MRTR : hors de la version 0
 
@@ -2815,7 +2883,10 @@ un hôte déclarera l'extension : si la requête déclare
 `tasks/cancel` annule la tâche, pas le ticket. Une élicitation en mode
 « url » (R2-F17, R2-F19) pourrait conduire l'opérateur à la console ; elle
 n'y vaudrait pas approbation (11.2), et son `requestState` ne garantit pas
-l'usage unique, qu'assure la consommation du ticket (R2-F16,
+l'usage unique, qu'assure la consommation du ticket ; pour une continuation
+MRTR d'un résultat `input_required` venu du serveur d'outils, c'est le noyau
+qui l'impose, en inscrivant et en consommant chaque `requestState` hérité
+(CT-2 EX-4.21) (R2-F16,
 https://github.com/modelcontextprotocol/modelcontextprotocol/blob/80041ab0a139a8f4fb3adbc99f7ae9113ea59671/docs/specification/2026-07-28/basic/patterns/mrtr.mdx#L231-L243).
 
 ## 12. Interface du service d'approbation
@@ -2866,8 +2937,8 @@ et un retrait signés sont proposés pour une version 1 (section 16).
 ### 12.2 `charger` : politique et outils susceptibles d'approbation
 
 Envoyé par le noyau au démarrage et à chaque rechargement de l'ensemble de
-politique (CT-2 EX-7.4, §15.4 pas 6), **et** à chaque changement de la liste
-agrégée des outils (CT-2 EX-4.15 ; alignement, section 15).
+politique (CT-2 EX-7.15, §15.4 pas 6), **et** à chaque changement de la liste
+agrégée des outils (CT-2 EX-4.15).
 
 Requête (abrégée : « … » marque une valeur omise) :
 
@@ -2881,7 +2952,8 @@ Requête (abrégée : « … » marque une valeur omise) :
   "approval": { "rules": { "…": "document politique-approbation-v0 (section 4)" }, "mode": "erreur", "hold_timeout_ms": 50000, "expire_after_ms": 3600000, "timeout_ms": 2000 },
   "tools": [
     { "tool_announced": "sap__payments.create", "tool_original": "payments.create", "server_alias": "sap", "class": "ecriture", "effects": [ { "system": "SAP", "action": "ecriture", "object": "/arguments/claim_id", "extract": null, "amount": "/arguments/amount", "currency": "/arguments/currency" } ] }
-  ]
+  ],
+  "requesters": [ "poste-cursor", "u.martin@assureur-demo.example" ]
 }
 ```
 
@@ -2892,12 +2964,10 @@ Requête (abrégée : « … » marque une valeur omise) :
 | `policy_version`, `policy_sha256` | ceux de l'événement `noortrace.journal.politique` qui annonce l'ensemble (CT-2 EX-8.11) |
 | `approval` | le membre `/policy/approval` de l'ensemble, **sans** `service` (qui porte des références de secrets) |
 | `tools` | la liste agrégée, triée par `tool_announced` ; `effects` est le gabarit d'effets de l'outil (CT-2 EX-7.6) ou `null` |
+| `requesters` | les valeurs fixes de `launched_by` des connexions d'hôte de CT-2 (`mcp.hosts`, `sdk.hosts`), triées (unités UTF-16), sans doublon ; les gabarits `${peer_user}` et `${oauth_subject}` n'y figurent pas (CT-2 EX-7.15) ; elles servent au cinquième avertissement d'EX-4.14, que le service écrit dans son journal |
 
 Réponse : `{ "policy_version", "policy_sha256", "approval_candidates": [noms
-annoncés, triés] }`.
-Une révision de CT-2 transmettra aussi les `launched_by` configurés des
-connexions d'hôte, pour l'avertissement d'EX-4.14 sur un demandeur sans
-identité (15.2).
+annoncés, triés] }` ; elle ne porte aucun avertissement.
 
 **EX-12.5** Le service DOIT appliquer à `approval.rules` les vérifications
 d'EX-4.2 (schéma `politique-approbation-v0`, règles que le schéma n'exprime
@@ -2934,22 +3004,26 @@ Réponse :
 (`decision`, `ticket_state`, `approval`) de la table d'EX-7.16, avec, pour
 une décision scellée, `approval.ticket` égal à `ticket` et
 `approval.decision` égal à `ticket_state`, et `approver_set` non nul pour
-`nouveau` seulement. Le noyau traite toute autre réponse comme invalide,
-donc comme une indisponibilité du service (CT-2 §14.2) : le mandataire rend
-`-32010`, raison `approbation`, jamais un relais ; il la consigne. Une
-réponse dont l'`approval` diffère de la décision que le noyau a lui-même
-scellée pour ce ticket est aussi invalide (RL-1, proposée à CT-2, 15.2).
-Les trois premiers membres reprennent la forme de CT-2 EX-7.4 ;
-`ticket_state` et `approval` sont ceux que CT-2 §4.4 pas 3 annonce (« rend
-`autorise` avec l'objet `approval` ») et qu'il ne nommait pas ;
-`approver_set` est l'ajout d'EX-12.11 (alignement, 15.2).
+`nouveau` seulement. La réponse a exactement les six membres de la table
+ci-dessus, dans un ordre quelconque ; `rule` est non nul pour `a_approuver`
+(CT-1 §5.3) ; l'`approver_set` d'une réponse `nouveau` est exploitable :
+forme de `$defs/approver_set` (SG-1), `source` d'EX-8.8, membres distincts,
+`threshold.size` égal au nombre de membres et `threshold.required` au plus
+`size` (la cohérence de SG-6), puisque le noyau peut avoir à en tirer seul
+une décision `expire` (EX-12.11). Le noyau traite toute autre réponse comme
+invalide, donc comme une indisponibilité du service (CT-2 §14.2) : le mandataire
+rend `-31010`, raison `approbation`, jamais un relais ; il la consigne. Une
+réponse dont l'`approval` diffère de la décision que le noyau a lui-même scellée
+pour ce ticket est aussi invalide (RL-1, CT-2 EX-7.16, EX-7.21). CT-2 version
+0.3 reçoit et applique les six membres (CT-2 EX-7.4, EX-7.16) ; `approver_set`
+sert au noyau à sceller seul une expiration (EX-12.11).
 
 Le service peut aussi répondre par une erreur (12.8) : `non_pret`
 (EX-8.3), `politique_inconnue`, ou `plafond_atteint` quand l'évaluation
 rendrait `a_approuver` et que le demandeur a déjà `max_open_tickets` tickets
 non décidés (14.6). Après la reprise de `politique_inconnue` (12.8), le
 noyau traite toute erreur d'`evaluer` comme une indisponibilité du service,
-selon la matrice de CT-2 §14.2 : `-32010`, raison `approbation`, pour toute
+selon la matrice de CT-2 §14.2 : `-31010`, raison `approbation`, pour toute
 écriture et tout outil susceptible d'approbation. `plafond_atteint` ne
 survient que pour une sortie `a_approuver`, donc pour un outil susceptible :
 l'appel n'est jamais relayé.
@@ -2962,8 +3036,8 @@ registre n'a lieu pendant `evaluer` (8.2).
 ### 12.4 `ouvrir`
 
 Envoyé par le noyau après le scellement durable de l'événement `retenue`
-(CT-2 §4.4 pas 6), et de nouveau au redémarrage pour tout `retenue` sans
-décision (EX-7.25).
+(CT-2 §4.4 pas 6, EX-7.18), et de nouveau au redémarrage pour tout `retenue`
+sans décision (EX-7.25).
 
 Requête : `{ "ticket", "request_hash", "request_seq", "request_ts",
 "request_event", "arguments_piece" }` : identifiant, `hash`, `seq` et `ts`
@@ -2971,8 +3045,9 @@ de l'événement `retenue` ; l'événement lui-même, tel que scellé ; les octe
 de la pièce « arguments » rédigée, en base64, ou `null` quand la référence
 est en ligne (`value`). Le service garde l'événement et la pièce tant que le
 ticket est actif, pour la console (EX-9.6), et les efface avec les
-arguments (EX-7.24). Les traces de l'annexe A.6 omettent ces deux membres :
-le service n'en fait aucun autre usage (alignement de CT-2, 15.2).
+arguments (EX-7.24) ; dans `ticket-v0`, ils sont `request.retained_event` et
+`request.arguments_piece`. Les traces de l'annexe A.6 omettent ces deux
+membres : le service n'en fait aucun autre usage.
 
 Réponse : `{ "ticket", "state", "deadline" }`, `deadline` = `request_ts + E`
 (EX-7.10). Un `ouvrir` répété avec le même `request_hash` est sans effet et
@@ -3036,8 +3111,8 @@ de l'annexe A.7).
 remises du ticket à partir de 1 ; une remise re-présentée garde son
 `remise_id`, une décision remplacée (T13) en prend un nouveau.
 
-**EX-12.9** Pour chaque remise, le noyau applique SG-1 à SG-6 (9.4) puis
-répond par `acquitter` :
+**EX-12.9** Pour chaque remise, le noyau applique SG-1 à SG-7 (9.4) puis
+répond par `acquitter` (CT-2 EX-7.19) :
 
 | `result` | Quand | Membres | Suite côté service |
 |---|---|---|---|
@@ -3051,14 +3126,19 @@ Requête `acquitter` : `{ "remise_id", "ticket", "result", "reason", "seq",
 seule source de l'objet que le service rend ensuite aux ré-émissions
 (EX-7.16) : le service le garde tel quel (`sealed.approval`), sans le
 reconstruire, même quand il diffère de sa remise (motif rédigé par le noyau,
-EX-9.14 ; décision différente, T14). Le noyau peut aussi prendre cet objet
-dans son propre journal (RL-1, 15.2).
+EX-9.14 ; décision différente, T14). Le noyau, lui, relaie l'objet de sa
+propre décision scellée (RL-1, CT-2 EX-7.21).
 
 ### 12.6 `consommer` et expiration par le noyau
 
 **EX-12.10** Après le scellement de l'appel relayé qui consomme une
 approbation (EX-7.17, EX-11.5), le noyau envoie `consommer` : `{ "ticket",
-"seq", "hash" }` ; réponse `{ "ticket", "state": "consomme" }` (T18).
+"seq", "hash" }` ; réponse `{ "ticket", "state": "consomme" }` (T18), ou
+`{ "ticket", "state": "clos" }` pour une consommation tardive (T22). Le noyau
+tient pour finales ces deux réponses et les erreurs `requete_invalide` et
+`ticket_inconnu`, et cesse alors ses essais (CT-2 EX-7.20) ; seul le premier
+appel relayé sous l'approbation l'envoie, pas les continuations MRTR qui en
+héritent (CT-2 EX-4.21).
 
 **EX-12.11** Si, à l'échéance d'un ticket plus `timeout_ms`, aucune décision
 n'est scellée (service muet, `ticket_inconnu`, ou remise `expire` refusée,
@@ -3066,12 +3146,16 @@ T16), le noyau scelle lui-même `expire`, comme CT-2 EX-9.4 le prévoit, avec
 la raison `expire par l'enregistreur, service d'approbation sans reponse`,
 et l'annonce au service par `expiration` : `{ "ticket", "seq", "hash", "at",
 "approval" }` (T17), `approval` étant l'objet scellé, avec `at` et
-`request_hash`. Le `threshold` et l'`approver_set` de cette décision sont
-ceux de la dernière remise reçue pour ce ticket, sinon ceux de la réponse
-`nouveau` de ce ticket (12.3), que le noyau conserve durablement avec
-l'événement `retenue` (alignement CT-2, 15.2) ; pour une politique
+`request_hash`. L'`approver_set` de cette décision est celui de la dernière
+remise reçue pour ce ticket dont le jeu est exploitable (EX-12.6), quelle
+que soit sa décision, sinon celui de la réponse `nouveau` de ce ticket
+(12.3), que le noyau conserve durablement avec l'événement `retenue` (CT-2
+EX-12.23) ; son `threshold` est toujours le `threshold` de cet
+`approver_set`, de sorte que la décision vérifie A-3 de CT-1 même quand la
+remise reçue a été refusée par SG-1 ou SG-6 ; pour une politique
 `statique`, il peut aussi les prendre dans `approval.rules`. EX-8.3
-garantit qu'une réponse `nouveau` porte toujours un jeu : le noyau a donc
+garantit qu'une réponse `nouveau` porte toujours un jeu, et le noyau refuse
+une réponse dont le jeu n'est pas exploitable (EX-12.6) : il a donc
 toujours de quoi former `approval`.
 
 ### 12.7 Délais et indisponibilité
@@ -3079,7 +3163,7 @@ toujours de quoi former `approval`.
 | Message | Délai | Sans réponse |
 |---|---|---|
 | `charger` | `timeout_ms` | tout outil susceptible d'approbation (CT-2 EX-7.4) ; nouvel essai |
-| `evaluer` | `timeout_ms` | service indisponible : bloquant (`-32010`, raison `approbation`) pour toute écriture et tout outil susceptible, passant pour les autres lectures si la configuration le dit (CT-2 §14.2, R1-F52) |
+| `evaluer` | `timeout_ms` | service indisponible : bloquant (`-31010`, raison `approbation`) pour toute écriture et tout outil susceptible, passant pour les autres lectures si la configuration le dit (CT-2 §14.2, R1-F52) |
 | `ouvrir` | `timeout_ms` | nouvel essai jusqu'à succès ; la requête de l'hôte a déjà sa réponse (mode `erreur`) ou reste retenue |
 | `decisions` | `wait_ms + timeout_ms` | nouvel essai ; les décisions attendent dans le service |
 | `acquitter`, `consommer`, `expiration` | `timeout_ms` | nouvel essai, idempotent (EX-7.20) |
@@ -3099,7 +3183,7 @@ de ticket (EX-7.8) sont prises dans la même liste fermée :
 
 | Raison | Émise par | Sens |
 |---|---|---|
-| `requete_invalide` | service | corps non conforme (12.1) ; entrée bien formée qu'aucune transition n'admet et pour laquelle la table ne nomme pas de raison propre (EX-7.8) : `ouvrir` dont `request_ts` est postérieur à `at`, `consommer` hors `approuve`, `acquitter` `scelle` d'une remise inconnue, `acquitter` ou `expiration` sur un ticket décidé avec d'autres données |
+| `requete_invalide` | service | corps non conforme (12.1) ; entrée bien formée qu'aucune transition n'admet et pour laquelle la table ne nomme pas de raison propre (EX-7.8) : `ouvrir` dont `request_ts` est postérieur à `at`, `consommer` hors `approuve` et hors T22, `acquitter` `scelle` d'une remise inconnue, `acquitter` ou `expiration` sur un ticket décidé avec d'autres données |
 | `non_pret` | service | jeu de l'organisation jamais lu (EX-8.3) |
 | `politique_invalide` | service | `approval.rules` refusé par EX-4.2 ou EX-8.2 ; `data.errors` les donne toutes (EX-12.5) |
 | `politique_inconnue` | service | `code.policy_version` non chargée ; le noyau renvoie `charger` puis réessaie une fois |
@@ -3109,7 +3193,8 @@ de ticket (EX-7.8) sont prises dans la même liste fermée :
 | `jeu_non_fige` | service | vote avant le gel (EX-8.4) |
 | `signature_invalide` | service, noyau | forme, recouvrement ou canonicité (EX-9.3, SG-5) |
 | `hors_jeu`, `approbateur_hors_jeu` | service, noyau | adresse hors du jeu figé, ou hors `members` (SG-6) |
-| `auto_approbation`, `recuse` | service | séparation des tâches et récusation (10.1, EX-9.10) |
+| `auto_approbation` | service, noyau | séparation des tâches (10.1, EX-9.10 ; SG-7) |
+| `recuse` | service | récusation (10.1, EX-9.10) |
 | `motif_trop_long` | service | motif de plus de 1 024 caractères (EX-9.10) |
 | `plafond_atteint` | service | `max_open_tickets` atteint pour ce demandeur (14.6) |
 | `vote_identique` | service | vote égal au vote courant, sans effet |
@@ -3221,10 +3306,10 @@ version 1 (section 16).
 | Signature d'un ticket présentée pour un autre ticket, un autre journal, une autre organisation | `A` porte `ticket`, `journal_id`, `org_id` et `request_hash` (CT-1 §6.3) : `D_A` diffère, SG-5 échoue |
 | Signature `approuve` présentée comme `refuse`, ou l'inverse | `decision` est dans `A` (EX-9.1) |
 | Seconde décision pour un ticket décidé | SG-3 ; le noyau est le seul scelleur |
-| Approbation scellée relayée deux fois | consommation unique tenue par le service (EX-7.17), y compris en mode `retenir` (`held`, T11) ; le noyau ne la vérifie pas lui-même en v0 : RL-3 proposée à CT-2 (15.2) |
-| Approbation scellée relayée pour un autre appel que la demande retenue (« blanchiment ») | en v0, rien côté noyau, qui ne compare pas l'appel relayé à la demande retenue ; RL-1 et RL-2 proposées à CT-2 (15.2) |
-| Approbation scellée réutilisée des semaines plus tard | délai de reconnaissance (7.6) : après lui, une même demande ouvre un nouveau ticket ; RL-4 (relais refusé à partir de `approval.at + E`, `E` de la version de la demande) proposée à CT-2 (15.2) |
-| Décision d'une autre demande sous un identifiant réattribué après une perte d'état | identifiant unique malgré la perte d'état (EX-7.1) ; T14 exige le même `request_hash`, sinon T20 ; proposition à CT-2 : refuser de sceller une `retenue` dont le ticket a déjà une décision scellée (15.2) |
+| Approbation scellée relayée deux fois | consommation unique tenue par le service (EX-7.17), y compris en mode `retenir` (`held`, T11), et vérifiée par le noyau : aucun appel `executee` ni intention ouverte ne porte déjà l'approbation (RL-3, CT-2 EX-7.21) ; une continuation MRTR, qui hérite de l'approbation, n'est relayée qu'une fois par `requestState`, inscrit et consommé par le noyau, puisque le protocole ne garantit pas l'usage unique d'un `requestState` (RL-3 en mode continuation, CT-2 EX-4.21, EX-12.23) |
+| Approbation scellée relayée pour un autre appel que la demande retenue (« blanchiment ») | le noyau relaie l'objet de sa propre décision (RL-1) et compare l'appel à la demande retenue : outil, délégation, référence de la pièce « arguments » et MAC à clé du JCS intégral des arguments en clair (RL-2, CT-2 EX-7.21, EX-7.22) |
+| Approbation scellée réutilisée des semaines plus tard | délai de reconnaissance (7.6) : après lui, une même demande ouvre un nouveau ticket ; et le noyau refuse tout relais à partir de `approval.at + E`, `E` de la version de la demande (RL-4, CT-2 EX-7.21) |
+| Décision d'une autre demande sous un identifiant réattribué après une perte d'état | identifiant unique malgré la perte d'état (EX-7.1) ; T14 exige le même `request_hash`, sinon T20 ; le noyau refuse de sceller une `retenue` dont le ticket a déjà une décision scellée (CT-2 EX-7.17) |
 | Signature non canonique (`s` haut) | refusée par le noyau (SG-5), normalisée par le service à la réception (EX-9.3) |
 | Signature EIP-191 rejouée comme transaction | impossible : préfixe `0x19` (R2-F44) |
 
@@ -3258,9 +3343,9 @@ EX-7.10) ; seul le noyau tranche (SG-4).
 | La politique et le serveur d'outils lisent des valeurs différentes (grands entiers, décimaux) | CT-2 EX-4.44 refuse un nombre que la double précision ne représente pas exactement ; les montants sont des chaînes décimales (CT-1 §3) ; la section 4 compare des décimaux exacts |
 | Clés en double, JSON ambigu, second message caché dans les arguments | analyse stricte et retrait des blancs (CT-2 §4.4 pas 1 et CT-2 EX-4.43) |
 | L'approbateur voit un champ, le serveur en lit un autre (champ inconnu de la règle) | la console affiche tous les arguments (EX-9.4) ; la section 4 dit le sort d'un argument absent ou d'un autre type ; un prédicat qui borne les membres d'un objet (`membres_parmi`) est proposé (section 16) |
-| Liste d'exclusion à égalité exacte (`egal`, `dans` sous un refus) contournée par une autre écriture de la valeur | avertissement d'EX-4.14 ; une liste blanche (`none` sur `dans`) ne laisse rien passer |
+| Liste d'exclusion à égalité exacte (`egal`, `dans` sous un refus) contournée par une autre écriture de la valeur | avertissement d'EX-4.14 ; une liste blanche (`egal` ou `dans` sous un nombre impair de `none`) ne laisse rien passer |
 | Le service affiche d'autres arguments que ceux de la demande retenue | la console vérifie l'événement `retenue` et la pièce « arguments » (EX-9.6 c et d) ; reste une valeur rédigée (`beneficiary_iban` sous `pii-v1`), qu'un service compromis peut substituer sans que la signature le révèle |
-| Arguments modifiés entre la demande et le relais | la clé de rapprochement exige les mêmes arguments en clair (EX-7.3) ; le relais reprend les octets de la ré-émission, de même valeur. Le noyau, lui, ne compare pas en v0 l'appel relayé à la demande retenue : RL-2 (outil, délégation, référence de la pièce et MAC à clé du JCS intégral en clair) est proposée à CT-2 (15.2) ; tant qu'elle manque, la chaîne ne montre rien si seul un champ rédigé change |
+| Arguments modifiés entre la demande et le relais | la clé de rapprochement exige les mêmes arguments en clair (EX-7.3) ; le relais reprend les octets de la ré-émission, de même valeur. Le noyau compare l'appel relayé à la demande retenue : outil, délégation, référence de la pièce et MAC à clé du JCS intégral en clair (RL-2, CT-2 EX-7.21, EX-7.22), de sorte qu'un changement d'un seul champ rédigé est refusé avant le relais ; une continuation MRTR, qui n'est pas réévaluée, n'hérite d'une décision qu'avec le même MAC que l'appel d'origine (CT-2 EX-4.21) |
 | La pièce rédigée ne montre pas le clair : `request_hash` ne lie que la forme rédigée | limite de v0 (CT-1 §5.4) ; la clé de rapprochement lie le clair dans le service |
 
 ### 14.6 Déni de service par tickets
@@ -3272,7 +3357,7 @@ aussi ce plafond : la configuration de CT-2 DEVRAIT donner un `launched_by`
 par personne (`${oauth_subject}`, `${peer_user}`). Au-delà,
 une demande que l'évaluation retiendrait (`a_approuver`) ne crée pas de
 ticket : le service rend l'erreur `plafond_atteint` (12.3, 12.8), que le
-noyau traite comme une indisponibilité du service (`-32010`, raison
+noyau traite comme une indisponibilité du service (`-31010`, raison
 `approbation`, CT-2 §14.2) : l'appel n'est pas relayé, le défaut est
 consigné au journal d'exploitation, et l'administrateur est notifié. Une
 ré-émission reconnue d'un ticket existant n'est pas concernée. Le plafond
@@ -3294,11 +3379,11 @@ quotas par connexion d'hôte de CT-2 (EX-4.47 de CT-2) bornent le reste.
 
 | Adversaire (section 3) | Ce que CT-3 l'empêche de faire | Ce qu'il peut encore faire |
 |---|---|---|
-| Agent | relayer un appel retenu sans décision ; réutiliser une approbation pour d'autres arguments ou deux fois (EX-7.17) ; rouvrir aussitôt une demande refusée en la répétant à l'identique (EX-7.18) ; profiter de la fenêtre d'un autre outil (EX-5.2) | fractionner et sonder les seuils (14.1) ; rouvrir une demande refusée par une variation cosmétique des arguments, qui est une nouvelle demande soumise aux approbateurs (EX-13.3, EX-14.2) ; harceler les approbateurs dans la limite du plafond (14.6) |
+| Agent | relayer un appel retenu sans décision ; réutiliser une approbation pour d'autres arguments ou deux fois (EX-7.17), y compris par une continuation MRTR à champ rédigé changé ou par un `requestState` rejoué (CT-2 EX-4.21) ; rouvrir aussitôt une demande refusée en la répétant à l'identique (EX-7.18) ; profiter de la fenêtre d'un autre outil (EX-5.2) | fractionner et sonder les seuils (14.1) ; rouvrir une demande refusée par une variation cosmétique des arguments, qui est une nouvelle demande soumise aux approbateurs (EX-13.3, EX-14.2) ; harceler les approbateurs dans la limite du plafond (14.6) |
 | Opérateur de l'agent (demandeur) | approuver sa propre demande avec une adresse déclarée pour lui (`self_approval: "interdite"`, EX-10.2) | se faire approuver par un complice du jeu ; voter avec une adresse non déclarée pour lui (EX-10.5) ; choisir `permise` s'il administre la politique (le changement est journalisé) |
 | Approbateur malveillant ou contraint | décider seul quand `t ≥ 2` ; approuver hors délai | approuver avec un complice ; bloquer par une objection (fenêtre) jusqu'à l'expiration |
 | Console compromise, ou émetteur sur le canal console → service | signer à la place de l'approbateur (EX-13.1) ; émettre sans identifiants valides (EX-12.4) ; effacer un refus par une récusation (EX-10.4) | faire signer un autre `D_A` que celui qu'elle affiche, ou `approuve` pour qui voulait refuser (9.3, limite de v0 ; parades : outil hors ligne et notification indépendante, EX-13.3) ; forger une récusation, qui ne retire qu'une approbation, ou un retrait, qui fait expirer le ticket (non signés en v0, section 16) ; ne pas transmettre un refus |
-| Service d'approbation compromis | faire sceller une décision `approuve` ou `refuse` sans signatures valides au seuil du jeu qu'il déclare (SG-5, SG-6) ; s'aligner sur la décision d'une autre demande (T14, T20) ; afficher d'autres arguments que ceux de la demande retenue, hors champs rédigés (EX-9.6) | rendre `autorise` à tort, y compris pour une demande déjà retenue (non signé, EX-12.2 ; la chaîne le montre après coup : un appel relayé `autorise` après un `retenue` du même outil) ; blanchir une approbation en faisant relayer un autre appel sous elle, sans trace si seul un champ rédigé change (14.2, 14.5 ; RL-1 à RL-4 proposées, 15.2) ; déclarer un faux jeu (14.4) ; ignorer la séparation des tâches et la fenêtre (EX-9.12) |
+| Service d'approbation compromis | faire sceller une décision `approuve` ou `refuse` sans signatures valides au seuil du jeu qu'il déclare (SG-5, SG-6), ou signée par une adresse déclarée du demandeur (SG-7) ; s'aligner sur la décision d'une autre demande (T14, T20, CT-2 EX-7.17) ; blanchir une approbation en faisant relayer un autre appel sous elle, ou le même deux fois (RL-1 à RL-4, CT-2 EX-7.21) ; afficher d'autres arguments que ceux de la demande retenue, hors champs rédigés (EX-9.6) | rendre `autorise` à tort, y compris pour une demande déjà retenue (non signé, EX-12.2 ; la chaîne le montre après coup : un appel relayé `autorise` après un `retenue` du même outil) ; déclarer un faux jeu (14.4) ; ignorer la fenêtre de contestation (EX-9.12) |
 | Administrateur du jeu | abaisser le nombre de signatures d'un ticket en attente (seuil effectif, EX-8.6) | changer les membres ou le seuil : visible sur la chaîne, et pris en compte par les tickets ouverts (8.3) ; ajouter des membres qu'il contrôle, signalés |
 | Administrateur du registre | faire décider un ticket par un jeu réassigné (jeu épinglé, EX-8.1, EX-8.6) | bloquer les approbations jusqu'à une nouvelle version de politique (14.4) |
 | Exploitant du nœud RPC | — | servir un état faux du registre ou du jeu : aucune preuve d'état en v0 (14.4) |
@@ -3308,8 +3393,9 @@ quotas par connexion d'hôte de CT-2 (EX-4.47 de CT-2) bornent le reste.
 ### 15.1 Décision 4 — comportement du mandataire pendant une approbation
 
 **Close.** Le mode d'attente par défaut est `erreur` : l'appel soumis à
-approbation est scellé `retenue`, l'hôte reçoit aussitôt `-32015` avec le
-ticket et `state: "en_attente"`, l'agent ré-émet l'appel, et seule une
+approbation est scellé `retenue`, l'hôte reçoit aussitôt le signal
+d'approbation, un résultat d'outil `isError: true` qui porte le ticket et
+`state: "en_attente"` (CT-2 EX-4.49), l'agent ré-émet l'appel, et seule une
 ré-émission reconnue d'un ticket décidé `approuve` est relayée, une fois
 (sections 7 et 11). Le mode `retenir` reste admis quand la décision est
 attendue sous le délai de tous les hôtes raccordés (EX-11.2). L'approbation
@@ -3331,28 +3417,34 @@ décision signée au seuil, et le délai écoulé est un refus journalisé
 (`expire`, EX-7.10).
 
 Ce que la décision ne règle pas : la conduite de chaque hôte quand il reçoit
-`-32015` (à tester en phase 2, EX-11.9), et les tâches MCP quand un hôte les
-prendra en charge (EX-11.10). Elle ne règle pas non plus une asymétrie :
-`-32015` est une erreur de protocole, que les clients PEUVENT transmettre au
-modèle sans y être tenus (R2-F8), alors qu'ils DEVRAIENT lui transmettre une
-erreur d'exécution `isError: true` ; et la révision `2026-07-28` range ce
-code dans une plage héritée dont le récepteur ne suppose aucun sens
-(R2-F10). Signaler l'attente par un résultat `isError: true` qui porte le
-ticket, ou par un code hors de `-32768` à `-32000`, est proposé à une
-révision de CT-2 (15.2) ; la version 0 garde `-32015` (CT-2 §4.4 pas 6,
-EX-4.24).
+le signal (à tester en phase 2, EX-11.9), et les tâches MCP quand un hôte les
+prendra en charge (EX-11.10). L'asymétrie que laissait la version 0.2 de
+CT-2, où l'attente était l'erreur de protocole `-32015`, que les clients
+PEUVENT transmettre au modèle sans y être tenus (R2-F8), d'une plage que la
+révision `2026-07-28` dit héritée et dont le récepteur ne suppose aucun sens
+(R2-F10), est levée par sa version 0.3 : le signal est une erreur
+d'exécution `isError: true`, que les clients DEVRAIENT transmettre au
+modèle, et les codes propres de l'enregistreur sont pris hors de `-32768` à
+`-32000` (CT-2 §4.4, EX-4.24, EX-4.49).
 
 ### 15.2 Alignement avec le dépôt
 
 Points du dépôt que CT-3 rend caducs ou complète. Les fichiers racine de
 documentation (`README.md`, `README.fr.md`, `ARCHITECTURE.md`,
 `CHANGELOG.md`), `package.json`, `.github/workflows/ci.yml` et le renvoi de
-CT-1 §8 sont alignés avec CT-3 (« fait »). CT-2 ne l'est pas encore : ses
-lignes restent « à faire » ou « à proposer », pour une révision de CT-2.
+CT-1 §8 sont alignés avec CT-3 (« fait »), y compris le signal
+d'approbation de la version 0.3 de CT-2, qui remplace l'erreur avec ticket.
+CT-2 l'est
+par sa version 0.3 (2026-10-23) : chaque ligne qui la concerne est « fait »,
+avec la règle de CT-2 qui l'applique, et chaque proposition de CT-3 y est
+adoptée et normative ; aucune n'est écartée. Les règles de CT-3 qui décrivaient
+CT-2 (EX-9.11, EX-9.12, 12.2, 12.8, section 11) sont alignées dans la même
+livraison ; le code, les générateurs, les vecteurs et les vérificateurs Go qui
+en dépendent le sont aussi (CT-2 §22).
 
 | Emplacement | Avant CT-3 | Attendu par CT-3 | État |
 |---|---|---|---|
-| `ARCHITECTURE.md`, « Approbation : avant l'action, pas après », dernier paragraphe | « Le mandataire retient la réponse jusqu'à la décision ou jusqu'au délai de l'hôte ; au-delà, il renvoie une erreur qui porte le numéro de ticket […] Le choix entre les deux comportements est une décision ouverte, à régler au prototype. » | « Le mandataire répond aussitôt par une erreur qui porte le numéro de ticket (mode `erreur`, défaut, CT-3 §11) ; l'agent ré-émet l'appel, relayé seulement après la décision signée au seuil, une fois. L'approbation se signe dans la console, hors de l'hôte MCP. » | fait |
+| `ARCHITECTURE.md`, « Approbation : avant l'action, pas après », dernier paragraphe | « Le mandataire retient la réponse jusqu'à la décision ou jusqu'au délai de l'hôte ; au-delà, il renvoie une erreur qui porte le numéro de ticket […] Le choix entre les deux comportements est une décision ouverte, à régler au prototype. » | « Le mandataire répond aussitôt par un résultat d'erreur d'outil (`isError`) qui porte le numéro de ticket et son état (mode `erreur`, par défaut, CT-3 §11 ; CT-2 EX-4.49) ; l'agent ré-émet l'appel, relayé seulement après la décision signée au seuil, une fois. L'approbation se signe dans la console, hors de l'hôte MCP. » | fait |
 | `ARCHITECTURE.md`, « Décisions ouvertes », point 4 | « CT-2 fixe les deux modes […] ; le choix et le cycle de vie du ticket relèvent de CT-3. » | « Close par CT-3 : mode `erreur` par défaut, `retenir` sous le délai des hôtes ; cycle de vie du ticket, jeu figé à l'ouverture et reconfirmé avant la décision (CT-3 §7, §8, §11). » | fait |
 | `ARCHITECTURE.md`, même section, point 2 du déroulé | « Le seuil […] est celui du jeu d'approbateurs du client dans le contrat CuratorSet. » | ajouter « jeu épinglé par la politique, lu à l'ouverture du ticket, reconfirmé avant la décision ; un seuil abaissé pendant l'attente ne réduit pas les signatures exigées (CT-3 §8) » | fait |
 | `ARCHITECTURE.md`, même point 2 | « Chaque approbateur signe sa décision avec sa clé, en EIP-191, comme les curateurs de NOORCHAIN signent aujourd'hui. » | « Chaque approbateur signe sa décision avec sa clé, en EIP-191, dans son portefeuille ; la console reprise du hub ne garde aucune clé (CT-3 §13). » (les curateurs de curators-hub signent aujourd'hui côté serveur, R1-F83) | fait |
@@ -3361,29 +3453,31 @@ lignes restent « à faire » ou « à proposer », pour une révision de CT-2.
 | `ARCHITECTURE.md`, en-tête | « CT-1 pour les formats, CT-2 pour l'enregistreur, CT-6 pour le vérificateur » | ajouter « CT-3 pour les approbations » | fait |
 | `ARCHITECTURE.md`, « Ce qui est réutilisé de noorchain-core », listes « Écrit au … » et « À construire » | CT-3 absent de « Écrit » ; « les approbations » à construire | « Écrit » : la spécification CT-3 et ses schémas ; « À construire » : le service et la console d'approbation (phase 2, sections 12 et 13) | fait |
 | `README.md`, `README.fr.md` | listes des spécifications écrites : CT-1, CT-2, CT-6 | ajouter CT-3 (langage de règles, ticket, décision ouverte 4 close) | fait |
-| CT-2 §4.4 pas 3 et EX-7.4 | réponse `{ rule, decision, ticket }` | réponse de 12.3, avec `ticket_state`, `approval` et, pour `nouveau`, `approver_set`, que le noyau conserve durablement avec l'événement `retenue` (EX-12.11) ; une réponse hors des sept combinaisons d'EX-12.6 est une indisponibilité (`-32010`) ; requête inchangée | à faire (révision de CT-2) |
-| CT-2 §4.4 pas 6, scellement d'une `retenue` | toute sortie `a_approuver` est scellée | le noyau refuse de sceller une `retenue` dont `policy.ticket` a déjà une décision scellée dans le journal, quelle que soit la demande, et traite ce cas comme un défaut du service (`-32010`, raison `approbation`) ; deux `retenue` sans décision pour un même ticket restent admises (course d'EX-7.19) | à proposer (révision de CT-2) |
-| CT-2 §4.4 pas 6, message `ouvrir` | `{ ticket, request_hash, request_seq, request_ts }` | ajouter `request_event` (l'événement `retenue` scellé) et `arguments_piece` (octets de la pièce « arguments » rédigée, en base64, ou `null`), pour la vérification de la console (EX-9.6, 12.4) | à faire |
-| CT-2 §4.4 pas 7 et EX-7.12, relais d'un appel qui porte un ticket | le noyau relaie avec l'`approval` que rend le service | vérifications de relais RL-1 à RL-4, chaque échec donnant `-32010`, raison `approbation`, et une alerte : RL-1, prendre l'`approval` de sa propre décision scellée pour ce ticket, et refuser s'il n'y en a pas ou si elle n'est pas `approuve` ; RL-2, égalité de `execution.tool`, de la délégation (`launched_by`, `on_behalf_of`, `scope`, jamais `run_id`), de la référence de la pièce « arguments » et d'un MAC à clé du JCS intégral des arguments en clair (clé propre au noyau, hors chaîne, MAC calculé et persisté au scellement de la `retenue` et gardé jusqu'à `approval.at + E`) avec ceux de la `retenue` de `request_hash` ; RL-3, aucun événement `executee` ne porte déjà cette approbation ; RL-4, `ts < approval.at + E`, `E` de la version de politique de la `retenue` (EX-7.10) | à proposer (révision de CT-2) |
-| CT-2, messages `acquitter` et `expiration` | `acquitter` : `seq`, `hash`, `at`, `decision` ; `expiration` : `seq`, `hash`, `at` | `acquitter` porte en plus l'objet `approval` scellé (avec `at` et `request_hash`) pour `scelle` et `ticket_deja_decide`, et `held` pour `scelle` (EX-11.5) ; `expiration` porte l'objet `approval` scellé (12.5, 12.6) | à faire |
-| CT-2 §15.4 pas 6, message `charger` | liste des outils et ensemble de politique | transmettre aussi les `launched_by` fixes des connexions d'hôte, pour l'avertissement d'EX-4.14 (10.5) | à proposer |
-| CT-2 §4.4 pas 5 | « `-32015` […] ou un résultat `isError: true` selon le mode choisi par CT-3 » | refus sans ticket : résultat `isError: true` au texte fixe d'EX-11.8 ; refus d'un ticket : `-32015` et événement `refusee` qui reprend la `policy` de la demande (EX-7.16) | à faire |
-| CT-2 §4.4 pas 6 | chaque sortie `a_approuver` scelle un `retenue` | `ticket_state: "en_attente"` : aucun événement (EX-7.19) ; au plus une requête retenue par ticket (EX-11.4) ; `refusee` à la décision `refuse` ou `expire` d'une requête retenue (EX-11.5) ; progression permise pendant la rétention (EX-11.6) | à faire |
-| CT-2 EX-7.4 et §15.4 pas 6 | liste des noms annoncés, rendue au chargement ; outils « qu'une règle peut soumettre à approbation » | liste `CANDIDATS` d'EX-4.11, qui comprend aussi les outils qu'une règle peut refuser (4.12) ; un nom absent de la liste du dernier `charger` réussi est tenu pour susceptible ; message `charger` de 12.2 (membre `approval` sans `service`, `recorder.environment`, outils avec gabarits d'effets), renvoyé aussi à chaque changement de la liste agrégée (CT-2 EX-4.15) ; messages `ouvrir`, `decisions`, `acquitter`, `consommer`, `expiration` de 12.4 à 12.6 | à faire |
-| CT-2 EX-7.12 | appel relayé après `approuve` | même reprise de la `policy` de la demande pour l'événement `refusee` d'une ré-émission reconnue après `refuse` ou `expire` (EX-7.18) | à faire |
-| CT-2 EX-9.4 | « une nouvelle tentative de l'agent est un nouvel appel » ; expiration du noyau « à `approval.expire_after_ms` » | une tentative reconnue reçoit le refus scellé pendant le délai de reconnaissance (EX-7.18), puis devient un nouvel appel ; l'échéance part du `ts` de l'événement `retenue`, avec l'`expire_after_ms` de la version de politique de cet événement (EX-7.10) ; le noyau expire seul à l'échéance plus `timeout_ms`, avec la raison, le `threshold` et l'`approver_set` d'EX-12.11 (dernière remise du ticket, sinon jeu de la réponse `nouveau`) | à faire |
-| CT-2 EX-7.5 | vérification de la décision avant scellement (E-5, E-9, A-3) | SG-1 à SG-6 dans l'ordre d'EX-9.11, avec les raisons de 12.8 ; SG-4 compare l'instant d'écriture (`approval.at`) à l'échéance ; proposition SG-7 : séparation des tâches vérifiée par le noyau avec la politique et l'événement `retenue` (EX-9.12) | à faire ; SG-7 à proposer |
-| CT-2 §15.3, exemple de configuration ; schéma de configuration, `policy.approval.rules` | `"mode": "retenir"` ; `rules` « opaque », tableau d'exemple `{ tool, when, decision, note }` | `"mode": "erreur"` (EX-11.1) ; `rules` = document `politique-approbation-v0` (section 4), désigné par `$ref` dans le schéma de configuration et validé par la commande de 15.6 de CT-2 ; les vecteurs `spec/vecteurs/ct-2/evenements/journal-demo/politique.json`, figés, gardent leur tableau illustratif (4.1) | à faire |
-| CT-2 EX-15.4 pas 3 et 6, EX-15.5 | l'événement de politique est scellé (pas 6) avant que le service valide `policy.approval.rules` (EX-4.2) | appliquer EX-4.2 et EX-8.2 à `rules` dès le pas 3 et dans la commande de validation de CT-2 §15.6, pour qu'un document invalide soit refusé avant d'être annoncé ; sinon il est annoncé, puis bloque tout outil susceptible d'approbation (EX-4.2) | à proposer |
-| CT-2 §15.4 pas 3 | avertissement sur `signer.max_message_bytes` d'après `threshold.size` | la remise porte exactement le seuil effectif de signatures (EX-7.28), qui ne dépasse pas le plus grand `threshold.size` lu : l'avertissement d'après `size` reste prudent ; avertissement quand `mode` vaut `retenir` (EX-11.1) | à faire |
-| CT-2 §12 (stockage) et exportateur | `approver_set` sans origine nommée | le noyau garde l'`approver_set` de chaque décision scellée, hors chaîne, et l'exportateur l'écrit tel quel dans `approbations.json` (EX-8.9) | à faire |
-| CT-2 EX-10.2 | valeurs en ligne tirées des valeurs rédigées | y soumettre `approval.reason` (EX-9.14) | à faire |
-| CT-2 §0.3 et table des codes de §4.4 | « La révision 2026-07-28 réserve `-32000` à `-32019` aux implémentations » | la révision `2026-07-28` qualifie `-32000` à `-32019` d'hérités : aucune nouvelle allocation (MUST NOT), aucun usage par une nouvelle implémentation (SHOULD NOT), aucun sens supposé par le récepteur (MUST NOT), sauf `-32002` (`basic/index.mdx` L117-L121) ; un nouveau code DEVRAIT être pris hors de `-32768` à `-32000` (L153-L155) ; tous les codes `-32010` à `-32019` de CT-2 sont concernés, pour un hôte qui négocie cette révision (R2-F10). Proposition : signaler l'attente par un résultat `isError: true` qui porte le ticket, ou par des codes hors de la plage réservée (15.1). CT-3 ne crée aucun code | écart constaté ; à faire (révision de CT-2) |
+| `README.md`, ligne CT-3 | « an immediate error carrying the ticket by default » | « an immediate tool error result (`isError`) carrying the ticket and its state by default » (CT-2 EX-4.49) ; `README.fr.md` ne décrit pas l'attente | fait |
+| CT-2 §4.4 pas 3 et EX-7.4 | réponse `{ rule, decision, ticket }` | réponse de 12.3, avec `ticket_state`, `approval` et, pour `nouveau`, `approver_set`, que le noyau conserve durablement avec l'événement `retenue` (EX-12.11) ; une réponse hors des sept combinaisons d'EX-12.6 est une indisponibilité (`-31010`) ; requête inchangée | fait (CT-2 0.3 : EX-7.4, EX-7.16, conservation par EX-12.23 ; `-31010` au lieu de `-32010`) |
+| CT-2 §4.4 pas 6, scellement d'une `retenue` | toute sortie `a_approuver` est scellée | le noyau refuse de sceller une `retenue` dont `policy.ticket` a déjà une décision scellée dans le journal, quelle que soit la demande, et traite ce cas comme un défaut du service (`-31010`, raison `approbation`) ; deux `retenue` sans décision pour un même ticket restent admises (course d'EX-7.19) | adopté, normatif (CT-2 0.3, EX-7.17 ; `-31010`) |
+| CT-2 §4.4 pas 6, message `ouvrir` | `{ ticket, request_hash, request_seq, request_ts }` | ajouter `request_event` (l'événement `retenue` scellé) et `arguments_piece` (octets de la pièce « arguments » rédigée, en base64, ou `null`), pour la vérification de la console (EX-9.6, 12.4) | fait (CT-2 0.3, EX-7.18) |
+| CT-2 §4.4 pas 7 et EX-7.12, relais d'un appel qui porte un ticket | le noyau relaie avec l'`approval` que rend le service | vérifications de relais RL-1 à RL-4, chaque échec donnant `-31010`, raison `approbation`, et une alerte : RL-1, prendre l'`approval` de sa propre décision scellée pour ce ticket, et refuser s'il n'y en a pas ou si elle n'est pas `approuve` ; RL-2, égalité de `execution.tool`, de la délégation (`launched_by`, `on_behalf_of`, `scope`, jamais `run_id`), de la référence de la pièce « arguments » et d'un MAC à clé du JCS intégral des arguments en clair (clé propre au noyau, hors chaîne, MAC calculé et persisté au scellement de la `retenue` et gardé jusqu'à `approval.at + E`) avec ceux de la `retenue` de `request_hash` ; RL-3, aucun événement `executee` ne porte déjà cette approbation ; RL-4, `ts < approval.at + E`, `E` de la version de politique de la `retenue` (EX-7.10) | adopté, normatif (CT-2 0.3 : RL-1 à RL-4, EX-7.21, RL-4 tenant à l'instant de la vérification plus le `timeout_ms` de l'outil, strictement avant `approval.at + E`, et RL-3 aux continuations MRTR, une fois par `requestState`, EX-4.21 ; MAC de relais, clé `storage.relay_mac_key`, la même pour toutes les instances, EX-7.22 ; fichiers des approbations, EX-12.23 ; `-31010`) |
+| CT-2, messages `acquitter` et `expiration` | `acquitter` : `seq`, `hash`, `at`, `decision` ; `expiration` : `seq`, `hash`, `at` | `acquitter` porte en plus l'objet `approval` scellé (avec `at` et `request_hash`) pour `scelle` et `ticket_deja_decide`, et `held` pour `scelle` (EX-11.5) ; `expiration` porte l'objet `approval` scellé (12.5, 12.6) | fait (CT-2 0.3 : EX-7.19, EX-7.20, EX-9.4) |
+| CT-2 §15.4 pas 6, message `charger` | liste des outils et ensemble de politique | transmettre aussi les `launched_by` fixes des connexions d'hôte, pour l'avertissement d'EX-4.14 (10.5) | adopté, normatif (CT-2 0.3, EX-7.15 : membre `requesters`, ajouté à 12.2) |
+| CT-2 §4.4 pas 5 | « `-32015` […] ou un résultat `isError: true` selon le mode choisi par CT-3 » | refus sans ticket : résultat `isError: true` au texte fixe d'EX-11.8 ; refus d'un ticket : signal d'approbation (CT-2 EX-4.49) et événement `refusee` qui reprend la `policy` de la demande (EX-7.16) | fait (CT-2 0.3 : §4.4 pas 5, EX-4.49 ; refus d'un ticket rendu par le signal d'approbation, résultat `isError`, au lieu de `-32015`) |
+| CT-2 §4.4 pas 6 | chaque sortie `a_approuver` scelle un `retenue` | `ticket_state: "en_attente"` : aucun événement (EX-7.19) ; au plus une requête retenue par ticket (EX-11.4) ; `refusee` à la décision `refuse` ou `expire` d'une requête retenue (EX-11.5) ; progression permise pendant la rétention (EX-11.6) | fait (CT-2 0.3 : §4.4 pas 6, EX-4.50) |
+| CT-2 EX-7.4 et §15.4 pas 6 | liste des noms annoncés, rendue au chargement ; outils « qu'une règle peut soumettre à approbation » | liste `CANDIDATS` d'EX-4.11, qui comprend aussi les outils qu'une règle peut refuser (4.12) ; un nom absent de la liste du dernier `charger` réussi est tenu pour susceptible ; message `charger` de 12.2 (membre `approval` sans `service`, `recorder.environment`, outils avec gabarits d'effets), renvoyé aussi à chaque changement de la liste agrégée (CT-2 EX-4.15) ; messages `ouvrir`, `decisions`, `acquitter`, `consommer`, `expiration` de 12.4 à 12.6 | fait (CT-2 0.3 : EX-7.4, EX-7.14 à EX-7.20, EX-4.15, EX-15.4 pas 6) |
+| CT-2 EX-7.12 | appel relayé après `approuve` | même reprise de la `policy` de la demande pour l'événement `refusee` d'une ré-émission reconnue après `refuse` ou `expire` (EX-7.18) | fait (CT-2 0.3, EX-7.12) |
+| CT-2 EX-9.4 | « une nouvelle tentative de l'agent est un nouvel appel » ; expiration du noyau « à `approval.expire_after_ms` » | une tentative reconnue reçoit le refus scellé pendant le délai de reconnaissance (EX-7.18), puis devient un nouvel appel ; l'échéance part du `ts` de l'événement `retenue`, avec l'`expire_after_ms` de la version de politique de cet événement (EX-7.10) ; le noyau expire seul à l'échéance plus `timeout_ms`, avec la raison, le `threshold` et l'`approver_set` d'EX-12.11 (dernière remise du ticket au jeu exploitable, sinon jeu de la réponse `nouveau` ; `threshold` celui du jeu) | fait (CT-2 0.3, EX-9.4) |
+| CT-2 EX-7.5 | vérification de la décision avant scellement (E-5, E-9, A-3) | SG-1 à SG-6 dans l'ordre d'EX-9.11, avec les raisons de 12.8 ; SG-4 compare l'instant d'écriture (`approval.at`) à l'échéance ; proposition SG-7 : séparation des tâches vérifiée par le noyau avec la politique et l'événement `retenue` (EX-9.12) | fait ; SG-7 adoptée, normative (CT-2 0.3, EX-7.5 ; EX-9.11, EX-9.12 et 12.8 alignés) |
+| CT-2 §15.3, exemple de configuration ; schéma de configuration, `policy.approval.rules` | `"mode": "retenir"` ; `rules` « opaque », tableau d'exemple `{ tool, when, decision, note }` | `"mode": "erreur"` (EX-11.1) ; `rules` = document `politique-approbation-v0` (section 4), désigné par `$ref` dans le schéma de configuration et validé par la commande de 15.6 de CT-2 ; les vecteurs `spec/vecteurs/ct-2/evenements/journal-demo/politique.json`, figés, gardent leur tableau illustratif (4.1) | fait (CT-2 0.3 : exemple de §15.3, EX-10.21, schéma de configuration ; `journal-demo/politique.json` figé, CT-2 annexe B.6) |
+| CT-2 EX-15.4 pas 3 et 6, EX-15.5 | l'événement de politique est scellé (pas 6) avant que le service valide `policy.approval.rules` (EX-4.2) | appliquer EX-4.2 et EX-8.2 à `rules` dès le pas 3 et dans la commande de validation de CT-2 §15.6, pour qu'un document invalide soit refusé avant d'être annoncé ; sinon il est annoncé, puis bloque tout outil susceptible d'approbation (EX-4.2) | adopté, normatif (CT-2 0.3 : EX-15.4 pas 3, EX-15.5, EX-15.7) |
+| CT-2 §15.4 pas 3 | avertissement sur `signer.max_message_bytes` d'après `threshold.size` | la remise porte exactement le seuil effectif de signatures (EX-7.28), qui ne dépasse pas le plus grand `threshold.size` lu : l'avertissement d'après `size` reste prudent ; avertissement quand `mode` vaut `retenir` (EX-11.1) | fait (CT-2 0.3, EX-15.4 pas 3) |
+| CT-2 §12 (stockage) et exportateur | `approver_set` sans origine nommée | le noyau garde l'`approver_set` de chaque décision scellée, hors chaîne, et l'exportateur l'écrit tel quel dans `approbations.json` (EX-8.9) | fait (CT-2 0.3, EX-12.23) |
+| CT-2 EX-10.2 | valeurs en ligne tirées des valeurs rédigées | y soumettre `approval.reason` (EX-9.14) | fait (CT-2 0.3 : EX-10.2, EX-10.24, obligation du noyau) |
+| CT-2 §4.4, « Codes d'erreur de l'enregistreur », table des codes et EX-4.24 (la version 0.2 n'en parlait pas en §0.3) | « La révision 2026-07-28 réserve `-32000` à `-32019` aux implémentations » | la révision `2026-07-28` qualifie `-32000` à `-32019` d'hérités : aucune nouvelle allocation (MUST NOT), aucun usage par une nouvelle implémentation (SHOULD NOT), aucun sens supposé par le récepteur (MUST NOT), sauf `-32002` (`basic/index.mdx` L117-L121) ; un nouveau code DEVRAIT être pris hors de `-32768` à `-32000` (L153-L155) ; tous les codes `-32010` à `-32019` de CT-2 version 0.2 sont concernés, pour un hôte qui négocie cette révision (R2-F10). Proposition : signaler l'attente par un résultat `isError: true` qui porte le ticket, ou par des codes hors de la plage réservée (15.1). CT-3 ne crée aucun code | fait (CT-2 0.3 : issues d'approbation en résultat `isError`, EX-4.49 ; codes de l'enregistreur `-31010` à `-31017`, hors de `-32768` à `-32000` et de `100` à `599`, `-32015` retiré sans successeur, EX-4.24 ; §0.3 de CT-2 rappelle la politique) |
 | CT-1 §8, changement de politique : « SHA-256 des octets de la politique, CT-3 » | renvoi à CT-3 | `policy_sha256` est défini par CT-2 EX-8.11 sur tout l'ensemble de politique ; CT-3 n'en donne pas d'autre (R1-C31) ; format inchangé | fait |
 | `spec/README.md` | CT-3 « à écrire » ; dix schémas de CT-1, CT-2 et CT-6 | ligne CT-3 ; schémas `politique-approbation-v0` et `ticket-v0` ; vecteurs `vecteurs/ct-3/` | fait avec CT-3 |
 | `CHANGELOG.md` | aucune entrée CT-3 | entrée CT-3 : spécification, schémas `politique-approbation-v0` et `ticket-v0`, implémentation de référence, vecteurs et vérificateur Go | fait |
+| `CHANGELOG.md`, entrée CT-3 | « the proxy answers at once with an error carrying the ticket (`erreur` mode) by default » ; décompte du vérificateur Go de la version 0.1 | « the proxy answers at once with a tool error result (`isError`) carrying the ticket and its state (`erreur` mode) by default » ; décompte de la version 0.2 de CT-3 (annexe A.9) | fait |
 | `package.json`, `.github/workflows/ci.yml` | `vecteurs:ct1`, `ct2`, `ct6` | `vecteurs:ct3` ; régénération de `spec/vecteurs/ct-3` exigée à l'identique ; vérificateur Go de `ct-3` (`gofmt`, `go vet`, `go test`, `go run . ..`), étape sans condition (annexe A.9) | fait avec CT-3 |
-| `scripts/lib/capture.mjs`, `erreursMotifRE2` (CT-2 EX-10.6, EX-10.23) | admet les quatre motifs à retour arrière exponentiel d'OWASP ; `limits.redaction_budget_ms` absent du code | hors de CT-3, signalé à CT-2 (R2-F84) | à faire (CT-2) |
+| `scripts/lib/capture.mjs`, `erreursMotifRE2` (CT-2 EX-10.6, EX-10.23) | admet les quatre motifs à retour arrière exponentiel d'OWASP ; `limits.redaction_budget_ms` absent du code | hors de CT-3, signalé à CT-2 (R2-F84) | fait avec CT-2 0.3 (règles de structure et de taille d'EX-10.6, budget d'EX-10.23 ; code, vecteurs et vérificateur Go alignés dans la même livraison, CT-2 §22) |
 
 ## 16. Ce que cette version ne couvre pas
 
@@ -3751,6 +3845,7 @@ entrées `voter` sont de vraies signatures EIP-191 des comptes de A.2 sur
 | `acquittements-noyau.json` | T16 (votes écartés, retour en `ouvert`) et acquittement répété sans effet ; T14 avec une décision différente de la remise ; scellement contraire refusé ; T15, T13 et ancienne remise sans effet |
 | `expiration-noyau.json` | T16 sur une remise `expire` puis T17 ; T17 depuis `reserve` (ouvrir tardif sans effet) et depuis `abandonne` |
 | `retenir-double-reemission.json` | mode `retenir` : `acquitter` `scelle` avec `held`, ré-émission avant `consommer` : `en_attente` ; après : nouvelle demande |
+| `consommation-tardive.json` | approbation servie, ticket `clos` à la fin du délai de reconnaissance (T19) ; `consommer` tardif admis sans changer l'état (T22) ; répété : sans effet ; d'un autre événement : `requete_invalide` |
 | `reservation-abandonnee.json` | réservation sans `ouvrir` : `abandonne` ; `ouvrir` tardif : `a_remettre`, décision `expire` (`reservation abandonnee avant l'ouverture`) |
 | `plafond.json` | `max_open_tickets` atteint : erreur `plafond_atteint`, aucun ticket ; une ré-émission reconnue reste servie ; sorties `autorise` et `refuse` non concernées |
 | `fenetre-ouvrante.json` | tickets ouvrants approuvés : fenêtre ouverte à l'acquittement du scellement, `debut = approval.at`, remplacée par une fenêtre de même portée, épuisée puis retirée, une autre retirée à sa fin (TK-13) ; ticket non ouvrant approuvé : aucune fenêtre |
@@ -3761,12 +3856,15 @@ entrées `voter` sont de vraies signatures EIP-191 des comptes de A.2 sur
 
 Un cas par fichier, au format `ticket-v0.schema.json#/$defs/cas_remise` :
 `{ "version": 0, "id", "description", "check", "context": { "org_id",
-"journal_id", "retained": [ { "seq", "ticket", "hash", "ts" } ], "decided":
-[ { "ticket", "decision", "seq", "hash", "at" } ], "expire_after_ms",
-"write_at" }, "remise", "expected": { "result", "reason" } }`.
-`retained` et `decided` sont les événements `retenue` et les décisions déjà
-scellées du journal, `expire_after_ms` celui de la version de politique du
-ticket, `write_at` l'instant d'écriture que le noyau poserait (SG-4) ;
+"journal_id", "retained": [ { "seq", "ticket", "hash", "ts", "launched_by"
+} ], "decided": [ { "ticket", "decision", "seq", "hash", "at" } ],
+"expire_after_ms", "separation", "write_at" }, "remise", "expected": {
+"result", "reason" } }`.
+`retained` et `decided` sont les événements `retenue` (avec leur
+`delegation.launched_by`) et les décisions déjà scellées du journal,
+`expire_after_ms` et `separation` ceux de la politique de la version du
+ticket (SG-4, SG-7), `write_at` l'instant d'écriture que le noyau poserait
+(SG-4) ;
 `check` est la vérification SG- visée (`null` pour un cas valide) ;
 `expected.result` vaut `scelle` ou `refuse` et `expected.reason` est la
 raison de la première vérification en échec dans l'ordre de 9.4 (EX-9.11).
@@ -3781,15 +3879,23 @@ celui de `spec/vecteurs/ct-1/journal-valide/evenements.json`, seq 6.
 de la table 12.8 (`remise_mal_formee`, `ticket_inconnu`,
 `request_hash_different`, `ticket_deja_decide`, `echeance_depassee`,
 `signature_invalide`, `approbateur_hors_jeu`, `approbateur_double`,
-`seuil_different_du_jeu`, `expire_avec_signatures`, `seuil_non_atteint`), et
+`seuil_different_du_jeu`, `expire_avec_signatures`, `seuil_non_atteint`,
+`auto_approbation`), et
 en particulier : une signature produite sur la chaîne `"0x…"` de `D_A` au lieu
 de ses octets (EX-9.7) ; une signature `approuve` présentée dans une remise
 `refuse` ; une signature d'un autre journal ; une signature à `s` haut ;
 une remise dont `write_at` est égal à l'échéance (`echeance_depassee`) ; un
 `remise_id` d'un autre ticket (SG-1) ; un jeu déclaré dont `size` diffère
-du nombre de membres (SG-6). Il contient aussi, pour l'ordre d'EX-9.11, un
+du nombre de membres (SG-6) ; une approbation signée par une adresse du
+demandeur sous `self_approval: "interdite"` (`auto_approbation`, SG-7 :
+`invalides/sg7-auto-approbation.json`, qui remplace le cas
+`valides/separation-non-verifiee-par-le-noyau`, valide avant la version 0.3
+de CT-2) ; le même refus signé par le demandeur
+(`invalides/sg7-refus-par-le-demandeur.json` : SG-7 vaut aussi pour
+`refuse`) ; la même approbation sous `permise`, dans
+`valides/separation-permise.json`. Il contient aussi, pour l'ordre d'EX-9.11, un
 cas pour chaque paire de vérifications voisines en échec (`ordre-sg1-sg2` à
-`ordre-sg5-sg6`) et pour les raisons de SG-6 dans leur ordre
+`ordre-sg6-sg7`) et pour les raisons de SG-6 dans leur ordre
 (`approbateur_double` avant `approbateur_hors_jeu`, `approbateur_hors_jeu`
 avant `seuil_different_du_jeu`, `seuil_different_du_jeu` avant
 `expire_avec_signatures` et `seuil_non_atteint`).
@@ -3852,6 +3958,8 @@ Conventions, reprises de CT-6 annexe B :
   pour un point non vérifié, « R1-C23 » pour une conséquence de la note) ;
 - « présent dépôt » désigne un fichier de ce dépôt public, cité par son
   chemin et ses lignes au commit `d3ac808` : source publique, recoupable ;
+  les lignes de CT-2 y sont celles de sa version 0.2, que la version 0.3 a
+  déplacées et, pour les codes d'erreur et l'attente, remplacées ;
 - « noorchain-core » désigne le dépôt de référence, privé, au commit
   `618fcef` : un fait qui en est tiré n'est pas recoupable publiquement ;
 - « expérience de la note » désigne une manipulation faite par la note (réseau
@@ -3872,15 +3980,15 @@ Conventions, reprises de CT-6 annexe B :
 | R1-F20 | vérifications A-1 à A-4 | présent dépôt, CT-1 L1186-L1189 | 2026-10-23 |
 | R1-F26 | schéma d'`approbations.json` (`source` de 1 à 256 caractères) | présent dépôt, `spec/schemas/dossier-v0.schema.json` L141-L176 | 2026-10-23 |
 | R1-F27 | fonctions de référence de `A`, `D_A` et E-9 | présent dépôt, `scripts/lib/journal.mjs` L721-L772 | 2026-10-23 |
-| R1-F34 | CT-2 §4.4 pas 5 (refus) | présent dépôt, `spec/CT-2-enregistreur.md` L690-L694 | 2026-10-23 |
-| R1-F35 | CT-2 §4.4 pas 6 (modes `retenir` et `erreur`) | présent dépôt, CT-2 L695-L715 | 2026-10-23 |
-| R1-F39 | code `-32015` et `data.state` ; codes fixes | présent dépôt, CT-2 L984, L988-L991 | 2026-10-23 |
-| R1-F45 | `approval.at` posé par l'écrivain (CT-2 EX-7.11) | présent dépôt, CT-2 L2321-L2325, L2376-L2385 | 2026-10-23 |
-| R1-F50 | 176 octets par couple adresse-signature ; borne du signataire | présent dépôt, CT-2 L3959-L3972 | 2026-10-23 |
-| R1-F52 | lignes de la matrice de panne qui concernent CT-3 | présent dépôt, CT-2 L4929-L4932 | 2026-10-23 |
-| R1-F53 | membre `policy.approval` et son exemple | présent dépôt, CT-2 L5082, L5351-L5365, L5560 | 2026-10-23 |
+| R1-F34 | CT-2 §4.4 pas 5 (refus) | présent dépôt, CT-2 version 0.2, L690-L694 | 2026-10-23 |
+| R1-F35 | CT-2 §4.4 pas 6 (modes `retenir` et `erreur`) | présent dépôt, CT-2 version 0.2, L695-L715 | 2026-10-23 |
+| R1-F39 | code `-32015` et `data.state` ; codes fixes | présent dépôt, CT-2 version 0.2, L984, L988-L991 | 2026-10-23 |
+| R1-F45 | `approval.at` posé par l'écrivain (CT-2 EX-7.11) | présent dépôt, CT-2 version 0.2, L2321-L2325, L2376-L2385 | 2026-10-23 |
+| R1-F50 | 176 octets par couple adresse-signature ; borne du signataire | présent dépôt, CT-2 version 0.2, L3959-L3972 | 2026-10-23 |
+| R1-F52 | lignes de la matrice de panne qui concernent CT-3 | présent dépôt, CT-2 version 0.2, L4929-L4932 | 2026-10-23 |
+| R1-F53 | membre `policy.approval` et son exemple | présent dépôt, CT-2 version 0.2, L5082, L5351-L5365, L5560 | 2026-10-23 |
 | R1-F54 | schéma de `policy.approval` ; délais en millisecondes bornés à 86 400 000 | présent dépôt, `spec/schemas/configuration-enregistreur-v0.schema.json` L1578-L1582, L2333-L2423 | 2026-10-23 |
-| R1-F56 | canal authentifié du service d'approbation ; surfaces d'écoute et sortante | présent dépôt, CT-2 L5925-L5928, L6000-L6010 | 2026-10-23 |
+| R1-F56 | canal authentifié du service d'approbation ; surfaces d'écoute et sortante | présent dépôt, CT-2 version 0.2, L5925-L5928, L6000-L6010 | 2026-10-23 |
 | R1-F59 | jeu d'approbateurs déclaré par le dossier (CT-6) | présent dépôt, `spec/CT-6-verificateur.md` L247, L270, L273-L278 | 2026-10-23 |
 | R1-F61 | énoncés du contrôle 7 | présent dépôt, CT-6 L698-L700 | 2026-10-23 |
 | R1-F62 | ce que CT-6 ne prouve pas des approbateurs | présent dépôt, CT-6 L104-L107, L1168-L1171, L4010-L4012 | 2026-10-23 |
@@ -3907,7 +4015,7 @@ Conventions, reprises de CT-6 annexe B :
 | R1-F90 | ethers : `hashMessage` d'une chaîne en UTF-8, `getBytes` pour des octets | paquet npm `ethers` 6.17.0, `src.ts/hash/message.ts` L7-L15, L35-L42 (installé dans le présent dépôt) | 2026-10-23 |
 | R1-F91 | MetaMask : `personal_sign` présente un défi en hexadécimal ; données binaires déconseillées | https://docs.metamask.io/wallet/reference/personal_sign ; https://docs.metamask.io/wallet/how-to/sign-data/ | 2026-10-23 |
 | R1-F92 | exemple de référence de CT-1, ticket `apr-1192` | présent dépôt, CT-1 L329-L418, L1530-L1668 | 2026-10-23 |
-| R1-F93 | annexe A de CT-2, mode `retenir`, 693 s de rétention (calcul) | présent dépôt, CT-2 L2795-L2797, L2888-L2908, L3122-L3125 | 2026-10-23 |
+| R1-F93 | annexe A de CT-2, mode `retenir`, 693 s de rétention (calcul) | présent dépôt, CT-2 version 0.2, L2795-L2797, L2888-L2908, L3122-L3125 | 2026-10-23 |
 | R1-F94 | vecteurs CT-1, ticket `apr-2201` : `retenue` seq 5, décision seq 6, appel relayé seq 7 | présent dépôt, `spec/vecteurs/ct-1/journal-valide/evenements.json` | 2026-10-23 |
 | R1-F95 | démonstration CT-2, ré-émission sans ticket | présent dépôt, `spec/vecteurs/ct-2/evenements/journal-demo/` | 2026-10-23 |
 | R1-NV2 | affichage réel d'un défi `personal_sign` binaire : non observé | https://docs.metamask.io/wallet/reference/personal_sign | 2026-10-23 |
@@ -3915,7 +4023,7 @@ Conventions, reprises de CT-6 annexe B :
 | R1-NV4 | `eth_call` sur un état élagué : non provoqué | noorchain-core, `docs/RPC_SPEC_2.1.md` §8.0 ; non recoupable publiquement | 2026-10-23 |
 | R1-C23 | conséquence : reprendre la garde de curators-hub viderait le contrôle 7 | sources de R1-F82 à R1-F87 | 2026-10-23 |
 | R1-C24 | conséquence : aucune échéance signée dans `A` | sources de R1-F11 et R1-F72 (`contracts/CuratorSet.sol` L49-L53, L101-L117) | 2026-10-23 |
-| R1-C31 | conséquence : `policy_sha256` défini par CT-2 EX-8.11 | présent dépôt, CT-1 L639-L641, CT-2 L2587-L2592, L3709-L3724 | 2026-10-23 |
+| R1-C31 | conséquence : `policy_sha256` défini par CT-2 EX-8.11 | présent dépôt, CT-1 L639-L641, CT-2 version 0.2, L2587-L2592, L3709-L3724 | 2026-10-23 |
 
 ### B.2 R2 — Protocoles et signature
 
@@ -3992,7 +4100,7 @@ Conventions, reprises de CT-6 annexe B :
 | R2-F80 | mesure : `/^(a+)+$/` sur Node v22.22.0, 472,6 ms pour 26 caractères | expérience de la note (Node v22.22.0) | 2026-10-23 |
 | R2-F81 | JSON Schema 2020-12 : motifs ECMA-262, sous-ensemble interopérable | https://www.ietf.org/archive/id/draft-bhutton-json-schema-01.txt (L677-L712) ; https://www.ietf.org/archive/id/draft-bhutton-json-schema-validation-01.txt (L409-L417) | 2026-10-23 |
 | R2-F82 | Go `regexp` : syntaxe RE2, temps linéaire | bibliothèque standard de Go 1.24.7, `src/regexp/regexp.go` L5-L14 (installation de la note) | 2026-10-23 |
-| R2-F83 | CT-2 : sous-ensemble ECMAScript/RE2, borne `limits.redaction_budget_ms` | présent dépôt, CT-2 L3217-L3263, L3673-L3684 | 2026-10-23 |
+| R2-F83 | CT-2 : sous-ensemble ECMAScript/RE2, borne `limits.redaction_budget_ms` | présent dépôt, CT-2 version 0.2, L3217-L3263, L3673-L3684 | 2026-10-23 |
 | R2-F84 | mesure : `erreursMotifRE2` admet les motifs à retour arrière exponentiel | présent dépôt, `scripts/lib/capture.mjs` L794 ; expérience de la note | 2026-10-23 |
 | R2-F85 | RFC 8259 : forme des nombres, entiers interopérables dans ±(2^53 − 1) | https://www.rfc-editor.org/rfc/rfc8259.txt (L364-L377, L405-L422) | 2026-10-23 |
 | R2-F86 | RFC 8785 : nombres en double IEEE 754, montants en chaînes | https://www.rfc-editor.org/rfc/rfc8785.txt (L189-L193, L711-L728) | 2026-10-23 |

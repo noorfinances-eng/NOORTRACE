@@ -855,6 +855,19 @@ function traces() {
     [X.ev("09:20:00.000", R1, EV_REVUE), { e: "apr-0001:consomme apr-0002:reserve", rep: { ticket: "apr-0002", ticket_state: "nouveau" } }],
   ]);
 
+  trace("consommation-tardive", "Approbation servie à la ré-émission de 09:16 ; le relais (appel long, sortie du mode dégradé ou reprise) n'est scellé qu'après la fin du délai de reconnaissance (09:15:01.900 + 1 h) : le ticket est clos (T19) ; le consommer qui arrive ensuite est admis sans changer l'état (T22) : consumed inscrit, réponse clos ; répété à l'identique, sans effet ; pour un autre événement, requete_invalide (CT-2 EX-7.20 : réponse finale, fin des essais).", ["TK-3", "TK-9", "TK-10"], [
+    ...prelude(),
+    [X.vote("09:10:00.000", "apr-0001", 1, 1, "approuve", "Pièces vérifiées"), { e: "apr-0001:ouvert" }],
+    [X.vote("09:15:00.000", "apr-0001", 1, 2, "approuve", "Constat et facture concordants"), { e: "apr-0001:verification" }],
+    [X.lu("09:15:01.000", J1(1214)), { e: "apr-0001:a_remettre", rem: [["approuve", [1, 2], "Constat et facture concordants", SRC(1, 1200, 1214)]] }],
+    [X.acq("09:15:02.000", "apr-0001/1", "scelle", { seq: 6, scelle: "09:15:01.900", decision: "approuve" }), { e: "apr-0001:approuve", rep: { ticket: "apr-0001", state: "approuve" } }],
+    [X.ev("09:16:00.000", R1, EV_REVUE), { e: "apr-0001:approuve", rep: { decision: "autorise", ticket: "apr-0001", ticket_state: "approuve", approver_set: null } }],
+    [X.hor("10:15:01.900"), { e: "apr-0001:clos" }],
+    [X.con("10:15:20.000", "apr-0001", 7), { e: "apr-0001:clos", rep: { ticket: "apr-0001", state: "clos" } }],
+    [X.con("10:15:21.000", "apr-0001", 7), { e: "apr-0001:clos", rep: { ticket: "apr-0001", state: "clos" } }],
+    [X.con("10:15:22.000", "apr-0001", 8), { e: "apr-0001:clos", r: "requete_invalide" }],
+  ]);
+
   trace("refuse-seuil", "Deux votes refuse des comptes 1 et 2 : décision refuse au seuil ; la ré-émission reçoit le refus scellé ; au terme du délai de reconnaissance, clos, et la même demande ouvre un nouveau ticket.", ["TK-3", "TK-6", "TK-9"], [
     ...prelude(),
     [X.vote("09:05:00.000", "apr-0001", 1, 1, "refuse", "Bénéficiaire inconnu"), { e: "apr-0001:ouvert" }],
@@ -1351,7 +1364,10 @@ function fichierTrace(c, schemas) {
 // ---------------------------------------------------------------------------
 
 const TS_DEMANDE = T("09:00:00.200");
-const CONTEXTE = (o = {}) => ({ org_id: ORG_ID, journal_id: JOURNAL_ID, retained: [{ seq: 5, ticket: "apr-0001", hash: DEMANDE(1), ts: TS_DEMANDE }], decided: [], expire_after_ms: E, write_at: T("09:15:01.900"), ...o });
+/** Un événement retenue du contexte (A.7) : avec le delegation.launched_by de la demande (SG-7). */
+const RETENUE = (o = {}) => ({ seq: 5, ticket: "apr-0001", hash: DEMANDE(1), ts: TS_DEMANDE, launched_by: DEMANDEUR, ...o });
+/** Contexte d'une remise (A.7) : expire_after_ms et separation de la politique de la version du ticket (SG-4, SG-7). */
+const CONTEXTE = (o = {}) => ({ org_id: ORG_ID, journal_id: JOURNAL_ID, retained: [RETENUE()], decided: [], expire_after_ms: E, separation: copie(SEPARATION), write_at: T("09:15:01.900"), ...o });
 const JEU_DECLARE = (o = {}) => ({ threshold: { required: 2, size: 3 }, members: A.trierAdresses([ADR(1), ADR(2), ADR(3)]), source: SRC(1, 1200, 1214), ...o });
 const sigA = (compte, decision = "approuve", o = {}) => sigSur(compte, { decision, request_hash: DEMANDE(1), ticket: "apr-0001", ...o });
 const REMISE = ({ decision = "approuve", comptes = [1, 2], signatures = null, reason = "Constat et facture concordants", threshold = { required: 2, size: 3 }, jeu = {}, ticket = "apr-0001", approvalTicket = ticket, remise_id = `${ticket}/1`, extra = {} } = {}) => ({
@@ -1370,7 +1386,7 @@ function conceptionDecisions() {
   const demande = ct1.find((e) => e.seq === 5);
   const { at, ...approvalCt1 } = dec.approval;
   const remiseCt1 = { remise_id: "apr-2201/1", ticket: "apr-2201", approval: approvalCt1, approver_set: JEU_DECLARE() };
-  const contexteCt1 = { org_id: dec.org_id, journal_id: dec.journal_id, retained: [{ seq: demande.seq, ticket: "apr-2201", hash: demande.hash, ts: demande.ts }], decided: [], expire_after_ms: E, write_at: at };
+  const contexteCt1 = { org_id: dec.org_id, journal_id: dec.journal_id, retained: [{ seq: demande.seq, ticket: "apr-2201", hash: demande.hash, ts: demande.ts, launched_by: demande.delegation.launched_by }], decided: [], expire_after_ms: E, separation: copie(SEPARATION), write_at: at };
   const expire = (o = {}) => REMISE({ decision: "expire", comptes: [], reason: "echeance atteinte sans decision", ...o });
   return [
     v("approbation-2-sur-3", "Approbation des comptes 1 et 2 sur le jeu 1 (2 sur 3), écrite avant l'échéance.", CONTEXTE(), REMISE()),
@@ -1378,13 +1394,13 @@ function conceptionDecisions() {
     v("expiration-sans-signature", "Expiration sans signature, écrite à l'échéance : SG-4 ne vise que approuve et refuse.", CONTEXTE({ write_at: T("10:00:00.200") }), expire()),
     v("jeu-statique", "Approbation sur un jeu statique : source « jeu statique de la politique vecteurs-ct3-1 ».", CONTEXTE(), REMISE({ jeu: { source: SRC_STATIQUE } })),
     v("ct1-apr-2201", "La décision du ticket apr-2201 des vecteurs de CT-1 (journal-sinistres, seq 6) : approval augmenté de at = l'approval de l'événement, clé pour clé (exemple de CT-3 §12.5).", contexteCt1, remiseCt1),
-    v("separation-non-verifiee-par-le-noyau", "Le compte 3, adresse du demandeur, signe avec le compte 1 : le noyau scelle, il ne vérifie pas la séparation des tâches (EX-9.12).", CONTEXTE(), REMISE({ comptes: [3, 1] })),
+    v("separation-permise", "Le compte 3, adresse du demandeur, signe avec le compte 1 sous self_approval permise : SG-7 ne s'applique pas, le noyau scelle.", CONTEXTE({ separation: { ...copie(SEPARATION), self_approval: "permise" } }), REMISE({ comptes: [3, 1] })),
     iv("sg1-at-present", "SG-1", "approval porte at, que l'écrivain pose.", CONTEXTE(), REMISE({ extra: { at: T("09:15:01.900") } }), "remise_mal_formee"),
     iv("sg1-ticket-different", "SG-1", "approval.ticket (apr-0002) différent du ticket de la remise.", CONTEXTE(), REMISE({ approvalTicket: "apr-0002" }), "remise_mal_formee"),
     iv("sg1-source-libre", "SG-1", "source en texte libre, hors d'EX-8.8.", CONTEXTE(), REMISE({ jeu: { source: "comptes Hardhat 1 à 3 (vecteurs CT-1)" } }), "remise_mal_formee"),
     iv("sg1-signature-courte", "SG-1", "Signature de 64 octets.", CONTEXTE(), REMISE({ signatures: [sigA(1), sigA(2).slice(0, 130)] }), "remise_mal_formee"),
-    iv("sg2-ticket-inconnu", "SG-2", "Aucun événement retenue ne porte ce ticket.", CONTEXTE({ retained: [{ seq: 5, ticket: "apr-0002", hash: DEMANDE(1), ts: TS_DEMANDE }] }), REMISE(), "ticket_inconnu"),
-    iv("sg2-request-hash-different", "SG-2", "L'événement retenue du ticket a un autre hash.", CONTEXTE({ retained: [{ seq: 5, ticket: "apr-0001", hash: DEMANDE(2), ts: TS_DEMANDE }] }), REMISE(), "request_hash_different"),
+    iv("sg2-ticket-inconnu", "SG-2", "Aucun événement retenue ne porte ce ticket.", CONTEXTE({ retained: [RETENUE({ ticket: "apr-0002" })] }), REMISE(), "ticket_inconnu"),
+    iv("sg2-request-hash-different", "SG-2", "L'événement retenue du ticket a un autre hash.", CONTEXTE({ retained: [RETENUE({ hash: DEMANDE(2) })] }), REMISE(), "request_hash_different"),
     iv("sg3-deja-decide", "SG-3", "Une décision est déjà scellée pour ce ticket.", CONTEXTE({ decided: [{ ticket: "apr-0001", decision: "approuve", seq: 6, hash: EVENEMENT(6), at: T("09:15:00.900") }] }), REMISE(), "ticket_deja_decide"),
     iv("sg4-ecriture-a-l-echeance", "SG-4", "Écriture à l'instant exact de l'échéance (ts + 1 h) : non strictement antérieure.", CONTEXTE({ write_at: T("10:00:00.200") }), REMISE(), "echeance_depassee"),
     iv("sg4-ecriture-apres-l-echeance", "SG-4", "Refus écrit après l'échéance.", CONTEXTE({ write_at: T("10:05:00.000") }), REMISE({ decision: "refuse" }), "echeance_depassee"),
@@ -1403,9 +1419,11 @@ function conceptionDecisions() {
     iv("sg6-refus-seuil-non-atteint", "SG-6", "Un seul refus pour un seuil de 2 (EX-9.13).", CONTEXTE(), REMISE({ decision: "refuse", comptes: [1] }), "seuil_non_atteint"),
     iv("sg1-remise-id-autre-ticket", "SG-1", "remise_id apr-0002/1 pour une remise du ticket apr-0001 : remise_id doit commencer par « <ticket>/ ».", CONTEXTE(), REMISE({ remise_id: "apr-0002/1" }), "remise_mal_formee"),
     iv("sg6-taille-differente-des-membres", "SG-6", "approval.threshold et jeu déclarés 2 sur 4, mais le jeu déclaré n'a que trois membres : size doit égaler le nombre de membres.", CONTEXTE(), REMISE({ threshold: { required: 2, size: 4 }, jeu: { threshold: { required: 2, size: 4 } } }), "seuil_different_du_jeu"),
+    iv("sg7-auto-approbation", "SG-7", "Le compte 3, adresse du demandeur (separation.identities), signe avec le compte 1 sous self_approval interdite : auto_approbation (CT-2 EX-7.5). C'est le cas separation-non-verifiee-par-le-noyau, valide avant la version 0.3 de CT-2.", CONTEXTE(), REMISE({ comptes: [3, 1] }), "auto_approbation"),
+    iv("sg7-refus-par-le-demandeur", "SG-7", "Refus signé par le compte 3, adresse du demandeur, et le compte 1 sous self_approval interdite : SG-7 vaut pour refuse comme pour approuve.", CONTEXTE(), REMISE({ decision: "refuse", comptes: [3, 1], reason: "IBAN non conforme" }), "auto_approbation"),
     // Ordre des vérifications (EX-9.11) : deux vérifications en échec, la première l'emporte.
-    iv("ordre-sg1-sg2", "SG-1", "SG-1 (approval porte at) et SG-2 (ticket sans événement retenue) en échec : SG-1 l'emporte.", CONTEXTE({ retained: [{ seq: 5, ticket: "apr-0002", hash: DEMANDE(1), ts: TS_DEMANDE }] }), REMISE({ extra: { at: T("09:15:01.900") } }), "remise_mal_formee"),
-    iv("ordre-sg2-sg3", "SG-2", "SG-2 (autre hash) et SG-3 (décision déjà scellée) en échec : SG-2 l'emporte.", CONTEXTE({ retained: [{ seq: 5, ticket: "apr-0001", hash: DEMANDE(2), ts: TS_DEMANDE }], decided: [{ ticket: "apr-0001", decision: "approuve", seq: 6, hash: EVENEMENT(6), at: T("09:15:00.900") }] }), REMISE(), "request_hash_different"),
+    iv("ordre-sg1-sg2", "SG-1", "SG-1 (approval porte at) et SG-2 (ticket sans événement retenue) en échec : SG-1 l'emporte.", CONTEXTE({ retained: [RETENUE({ ticket: "apr-0002" })] }), REMISE({ extra: { at: T("09:15:01.900") } }), "remise_mal_formee"),
+    iv("ordre-sg2-sg3", "SG-2", "SG-2 (autre hash) et SG-3 (décision déjà scellée) en échec : SG-2 l'emporte.", CONTEXTE({ retained: [RETENUE({ hash: DEMANDE(2) })], decided: [{ ticket: "apr-0001", decision: "approuve", seq: 6, hash: EVENEMENT(6), at: T("09:15:00.900") }] }), REMISE(), "request_hash_different"),
     iv("ordre-sg3-sg4", "SG-3", "SG-3 (décision déjà scellée) et SG-4 (écriture à l'échéance) en échec : SG-3 l'emporte.", CONTEXTE({ write_at: T("10:00:00.200"), decided: [{ ticket: "apr-0001", decision: "approuve", seq: 6, hash: EVENEMENT(6), at: T("09:15:00.900") }] }), REMISE(), "ticket_deja_decide"),
     iv("ordre-sg4-sg5", "SG-4", "SG-4 (écriture après l'échéance) et SG-5 (signatures inversées) en échec : SG-4 l'emporte.", CONTEXTE({ write_at: T("10:05:00.000") }), REMISE({ signatures: [sigA(2), sigA(1)] }), "echeance_depassee"),
     iv("ordre-sg5-sg6", "SG-5", "SG-5 (signatures inversées) et SG-6 (compte 4 hors jeu) en échec : SG-5 l'emporte.", CONTEXTE(), REMISE({ comptes: [1, 4], signatures: [sigA(4), sigA(1)] }), "signature_invalide"),
@@ -1413,6 +1431,7 @@ function conceptionDecisions() {
     iv("ordre-sg6-hors-jeu-seuil", "SG-6", "Le compte 4 hors jeu, et un jeu déclaré 3 sur 3 pour approval.threshold 2 sur 3 : approbateur_hors_jeu précède seuil_different_du_jeu.", CONTEXTE(), REMISE({ comptes: [1, 4], jeu: { threshold: { required: 3, size: 3 } } }), "approbateur_hors_jeu"),
     iv("ordre-sg6-seuil-expire", "SG-6", "Expiration signée par le compte 1, et un jeu déclaré 3 sur 3 pour approval.threshold 2 sur 3 : seuil_different_du_jeu précède expire_avec_signatures.", CONTEXTE(), expire({ comptes: [1], jeu: { threshold: { required: 3, size: 3 } } }), "seuil_different_du_jeu"),
     iv("ordre-sg6-seuil-non-atteint", "SG-6", "Une seule approbation, et un jeu déclaré 3 sur 3 pour approval.threshold 2 sur 3 : seuil_different_du_jeu précède seuil_non_atteint.", CONTEXTE(), REMISE({ comptes: [1], jeu: { threshold: { required: 3, size: 3 } } }), "seuil_different_du_jeu"),
+    iv("ordre-sg6-sg7", "SG-6", "SG-6 (compte 4 hors jeu) et SG-7 (compte 3, adresse du demandeur, sous self_approval interdite) en échec : SG-6 l'emporte.", CONTEXTE(), REMISE({ comptes: [3, 4] }), "approbateur_hors_jeu"),
   ];
 }
 
@@ -1527,7 +1546,7 @@ function index({ constantes, politiques, invalides, evaluations, candidats, acce
     });
     L.push("");
   }
-  L.push("## decisions/ (A.7, SG-1 à SG-6)");
+  L.push("## decisions/ (A.7, SG-1 à SG-7)");
   L.push("");
   L.push("| Cas | Vérification visée | Résultat attendu | Ce qu'il exerce |");
   L.push("|---|---|---|---|");

@@ -93,6 +93,34 @@ func TestSousEnsembleCommun(t *testing.T) {
 	}
 }
 
+// EX-10.6, règles de structure et de taille (version 0.3) : chaque exemple
+// du texte est refusé par la règle qu'il illustre, ou admis.
+func TestReglesStructureEtTaille(t *testing.T) {
+	for _, c := range []struct{ motif, regle string }{
+		{`^(a+)+$`, "règle a)"}, {`([a-zA-Z]+)*$`, "règle a)"}, {`(a|aa)+$`, "règle a)"},
+		{`(a|a?)+$`, "règle a)"}, {`(a|aa){1,1000}$`, "règle a)"}, {`(a{1,1000}){1,1000}$`, "règle a)"},
+		{`(\w|\d)+$`, "règle a)"}, {`(?:[0-9]{4} ?){3}`, "règle a)"}, {`(?:a(?:b|c))+`, "règle a)"},
+		{`(?:a(?:b+))?`, "règle a)"}, {`(?:a+)*?`, "règle a)"},
+		{`(?:\b)+x`, "règle b)"}, {`()*`, "règle b)"}, {`(?:^$)?x`, "règle b)"}, {`(?:(?:\B))+`, "règle b)"},
+		{`[0-9]{1000}x`, "règle c)"}, {`a{1000}b`, "règle c)"}, {`(?:ab){500,}`, "règle c)"}, {`a{999}|bc`, "règle c)"},
+	} {
+		if r := ErreurMotifCommun(c.motif); !strings.HasPrefix(r, c.regle) {
+			t.Errorf("%s : %q, attendu %s", c.motif, r, c.regle)
+		}
+	}
+	for _, m := range []string{`[0-9]+$`, `[a-z]*[a-z]*[a-z]*!`, `(?P<nom>[0-9]{4})`, `(?:ab)+`, `(?:\b[0-9])+`, `a{1000}`, `(?:ab){499,}`, `a{998}|b`, `(?:x){0}`, `(?:(?:a)b)*`} {
+		if r := ErreurMotifCommun(m); r != "" {
+			t.Errorf("%s : refusé (%s)", m, r)
+		}
+	}
+	// tailles développées (règle c)
+	for m, n := range map[string]int64{`[0-9]{1000}x`: 1001, `(a|aa){1,1000}$`: 3001, `a{0}`: 1, `(?:ab){3,}`: 8, `(?:)`: 0, `\b^a$`: 4, `a?b*c+d{2,5}`: 8} {
+		if got := TailleDeveloppee(m); got != n {
+			t.Errorf("%s : taille %d, attendue %d", m, got, n)
+		}
+	}
+}
+
 // EX-4.11 : collision après gabarit et normalisation d'une connexion d'hôte.
 func TestCollisionApresNormalisation(t *testing.T) {
 	s, _ := ParseJSON([]byte(`[{"alias":"demo","tools":[{"name":"a.b"},{"name":"a_b"},{"name":"c"}]}]`))

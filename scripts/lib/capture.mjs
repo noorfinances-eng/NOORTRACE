@@ -20,11 +20,16 @@
 //
 // Fonctions pures : node:crypto seulement (et scripts/lib/journal.mjs pour
 // tout ce qui relève de CT-1 : JCS v0, scellement, chaîne, schémas), aucun
-// accès au système de fichiers, aucune horloge : les instants sont des
-// paramètres. Les scripts (scripts/vecteurs/generer-ct2.mjs) lisent et
-// écrivent les fichiers.
+// accès au système de fichiers, aucune lecture d'horloge : les instants sont
+// des paramètres. Seule exception, la borne de temps d'EX-10.23 : ce qui
+// exécute des motifs (rédaction d'une pièce, extract d'un gabarit d'effets,
+// examen d'une valeur en ligne) tourne dans un contexte node:vm avec l'option
+// timeout, qui interrompt une recherche en cours ; hors dépassement, le
+// résultat ne dépend pas de la machine. Les scripts
+// (scripts/vecteurs/generer-ct2.mjs) lisent et écrivent les fichiers.
 
 import { createHmac } from "node:crypto";
+import vm from "node:vm";
 import * as J from "./journal.mjs";
 
 // ---------------------------------------------------------------------------
@@ -61,17 +66,38 @@ export const RE_ALIAS = /^[a-z0-9][a-z0-9-]{0,31}$/;
 /** Séparateur entre l'alias et le nom d'origine (EX-4.10). */
 export const SEPARATEUR_ALIAS = "__";
 
-/** Codes et messages des erreurs JSON-RPC de l'enregistreur (CT-2 §4.4, EX-4.24). */
-export const ERREURS = {
-  MODE_DEGRADE: { code: -32010, message: "noortrace: appel bloque, enregistreur en mode degrade" },
-  DELAI: { code: -32011, message: "noortrace: delai du serveur d'outils depasse" },
-  ANNULE: { code: -32012, message: "noortrace: appel annule par l'hote" },
-  TAILLE: { code: -32013, message: "noortrace: taille maximale depassee" },
-  INJOIGNABLE: { code: -32014, message: "noortrace: serveur d'outils injoignable" },
-  APPROBATION: { code: -32015, message: "noortrace: approbation requise" },
-  NON_RELAYABLE: { code: -32016, message: "noortrace: resultat ou requete non relayable par la configuration" },
-  NON_DURABLE: { code: -32017, message: "noortrace: appel execute, evenement non durable" },
-};
+/**
+ * Codes et messages des erreurs JSON-RPC de l'enregistreur (CT-2 §4.4,
+ * EX-4.24) : hors de la plage -32768 à -32000 que JSON-RPC 2.0 réserve, dont
+ * MCP 2026-07-28 dit les vingt premiers codes (à partir de -32000) hérités ;
+ * les deux derniers chiffres sont ceux de la version 0.2. -31015 n'est pas
+ * attribué : l'issue d'une politique d'approbation est un résultat isError
+ * (EX-4.49), pas une erreur.
+ */
+export const ERREURS = Object.freeze({
+  MODE_DEGRADE: Object.freeze({ code: -31010, message: "noortrace: appel bloque, enregistreur en mode degrade" }),
+  DELAI: Object.freeze({ code: -31011, message: "noortrace: delai du serveur d'outils depasse" }),
+  ANNULE: Object.freeze({ code: -31012, message: "noortrace: appel annule par l'hote" }),
+  TAILLE: Object.freeze({ code: -31013, message: "noortrace: taille maximale depassee" }),
+  INJOIGNABLE: Object.freeze({ code: -31014, message: "noortrace: serveur d'outils injoignable" }),
+  NON_RELAYABLE: Object.freeze({ code: -31016, message: "noortrace: resultat ou requete non relayable par la configuration" }),
+  NON_DURABLE: Object.freeze({ code: -31017, message: "noortrace: appel execute, evenement non durable" }),
+});
+
+/**
+ * Vrai si l'enregistreur peut émettre ce code (EX-4.24) : un code de la table
+ * de 4.4, un code JSON-RPC standard, ou -32020, -32021, -32022 de MCP ; jamais
+ * la plage héritée de MCP (les vingt premiers codes à partir de -32000), ni le
+ * reste de -32020 à -32099, ni -32002, -32042, ni 100 à 599.
+ */
+export function codeEmissible(code) {
+  if (!Number.isSafeInteger(code)) return false;
+  if (Object.values(ERREURS).some((e) => e.code === code)) return true;
+  return [-32700, -32600, -32601, -32602, -32603, -32020, -32021, -32022].includes(code);
+}
+
+/** Budget de rédaction par défaut, en millisecondes (limits.redaction_budget_ms, EX-10.23). */
+export const BUDGET_REDACTION_MS = 1000;
 
 /** Bornes par défaut de l'analyse JSON (CT-2 4.4 pas 1 : limits.json_max_depth, limits.json_max_members). */
 export const PROFONDEUR_JSON_MAX = 128;
@@ -98,7 +124,7 @@ export class ErreurConfiguration extends Error {
   }
 }
 
-/** Mode dégradé (CT-2 §14) : `raison` est la valeur de data.reason de l'erreur -32010. */
+/** Mode dégradé (CT-2 §14) : `raison` est la valeur de data.reason de l'erreur -31010. */
 export class ErreurModeDegrade extends Error {
   constructor(raison, message) {
     super(message ?? `mode degrade : ${raison}`);
@@ -779,20 +805,119 @@ export function correspondances(type, s, motif) {
 }
 
 // ---------------------------------------------------------------------------
+// Borne de temps des motifs (EX-10.23)
+// ---------------------------------------------------------------------------
+
+/** Contexte node:vm où s'exécute une opération bornée, et le script qui appelle la fonction de l'opération. */
+const CONTEXTE_BUDGET = vm.createContext(Object.create(null));
+const SCRIPT_BUDGET = new vm.Script("operation()", { filename: "noortrace-budget-redaction" });
+
+/** Règle de rédaction en cours d'application, pour la note d'un dépassement (EX-10.23 : opération, portée, règle, sans valeur). */
+let regleEnCours = null;
+
+/**
+ * Exécute `fn` sous la borne de temps d'EX-10.23 : `budgetMs` millisecondes
+ * (entier ≥ 1, défaut limits.redaction_budget_ms = 1000) mesurées depuis le
+ * début de l'opération ; l'exécution est interrompue au dépassement, même au
+ * milieu d'une recherche d'expression régulière (contexte node:vm, option
+ * timeout). `budgetMs` null ou Infinity : sans borne propre, pour une partie
+ * d'une opération que l'appelant borne déjà (aucune imbrication). Rend
+ * { ok: true, valeur } ou { ok: false } au dépassement ; seule l'erreur
+ * ERR_SCRIPT_EXECUTION_TIMEOUT est interceptée.
+ */
+export function sousBudget(fn, budgetMs = BUDGET_REDACTION_MS) {
+  if (budgetMs === null || budgetMs === Infinity) return { ok: true, valeur: fn() };
+  if (!Number.isSafeInteger(budgetMs) || budgetMs < 1) throw new Error(`budget de rédaction invalide : ${budgetMs}`);
+  const precedente = CONTEXTE_BUDGET.operation;
+  CONTEXTE_BUDGET.operation = fn;
+  try {
+    return { ok: true, valeur: SCRIPT_BUDGET.runInContext(CONTEXTE_BUDGET, { timeout: budgetMs }) };
+  } catch (e) {
+    if (e?.code === "ERR_SCRIPT_EXECUTION_TIMEOUT") return { ok: false };
+    throw e;
+  } finally {
+    CONTEXTE_BUDGET.operation = precedente;
+  }
+}
+
+/** Note d'un dépassement (journal d'exploitation redaction_budget_exceeded, compteur noortrace_redaction_budget_exceeded_total{operation,scope}) : jamais de valeur. */
+function noterDepassement(onDepassement, operation, scope, rule = null) {
+  const note = { event: "redaction_budget_exceeded", operation, scope, rule };
+  if (typeof onDepassement === "function") onDepassement(note);
+  return note;
+}
+
+// ---------------------------------------------------------------------------
 // Politique de rédaction (CT-2 §10.2, §10.4)
 // ---------------------------------------------------------------------------
+
+/** Taille développée maximale d'un motif (EX-10.6, règle c). */
+export const TAILLE_DEVELOPPEE_MAX = 1000;
 
 /**
  * Vérifie qu'une expression régulière est du sous-ensemble commun
  * ECMAScript/RE2 d'EX-10.6 (liste autorisée : littéraux, échappements
  * nommés, `\xHH`, `\d \D \w \W \b \B`, classes non vides sans classe POSIX,
- * groupes simples, non capturants et nommés, quantificateurs bornés à 1000,
- * paresseux admis, ancres `^ $`, alternative) et qu'elle se compile en
- * ECMAScript (drapeau « u »). Rend la liste des erreurs, vide si le motif est
- * admis.
+ * groupes simples, non capturants et nommés, quantificateurs bornés à 1000
+ * et écrits sans zéro non significatif, paresseux admis, ancres `^ $`,
+ * alternative), puis, sur l'arbre du motif,
+ * les règles de structure et de taille d'EX-10.6, dans cet ordre :
+ *   a) aucun quantificateur sur un groupe dont le corps contient, à quelque
+ *      profondeur que ce soit, un quantificateur ou une alternative ;
+ *   b) le corps d'un groupe quantifié contient au moins un littéral, un
+ *      échappement de caractère ou une classe ;
+ *   c) taille développée d'au plus 1000 ;
+ * et enfin qu'elle se compile en ECMAScript (drapeau « u », seules les
+ * ouvertures de groupe nommé `(?P<nom>` reconnues par l'analyse étant écrites
+ * `(?<nom>`, sourceECMAScript). Rend la liste des erreurs, vide si le motif est
+ * admis ; un motif refusé par une règle de structure ou de taille porte une
+ * seule erreur, celle de la première règle en échec.
  */
 export function erreursMotifRE2(motif) {
+  if (typeof motif !== "string") return ["motif : chaîne attendue"];
+  const { erreurs, arbre, ouverturesP } = analyserMotif(motif);
+  if (erreurs.length) return erreurs;
+  const structure = erreurStructureMotif(arbre);
+  if (structure) return [structure];
+  try {
+    new RegExp(reecrireOuverturesP(motif, ouverturesP), "u");
+  } catch (e) {
+    return [`expression invalide en ECMAScript : ${e.message}`];
+  }
+  return [];
+}
+
+/** Écrit `(?<` à chacune des positions (en points de code) d'une ouverture `(?P<` reconnue par l'analyse, et ne change rien d'autre (EX-10.6). */
+function reecrireOuverturesP(motif, ouverturesP) {
+  if (!ouverturesP.length) return motif;
+  const cps = [...motif];
+  for (const i of ouverturesP) cps[i + 2] = "";
+  return cps.join("");
+}
+
+/**
+ * Source ECMAScript d'un motif admis (EX-10.6) : chaque ouverture de groupe
+ * nommé `(?P<nom>` reconnue par l'analyse (parenthèse non échappée, hors
+ * classe) est écrite `(?<nom>`, seule forme qu'ECMAScript admet ; aucune autre
+ * suite n'est modifiée (une suite « (?P< » dans une classe ou après une
+ * parenthèse échappée garde son sens). Lève une erreur pour un motif hors du
+ * sous-ensemble commun.
+ */
+export function sourceECMAScript(motif) {
+  const { erreurs, ouverturesP } = analyserMotif(String(motif));
+  if (erreurs.length) throw new Error(`motif hors du sous-ensemble commun : ${erreurs.join(", ")}`);
+  return reecrireOuverturesP(String(motif), ouverturesP);
+}
+
+/**
+ * Analyse lexicale et syntaxique d'un motif selon la liste autorisée
+ * d'EX-10.6 : rend { erreurs, arbre, ouverturesP } (arbre null si le motif
+ * est refusé ; ouverturesP : positions, en points de code, de la parenthèse
+ * de chaque ouverture de groupe nommé écrite `(?P<nom>`).
+ */
+function analyserMotif(motif) {
   const erreurs = [];
+  const ouverturesP = [];
   const META = new Set(["\\", "^", "$", ".", "|", "?", "*", "+", "(", ")", "[", "]", "{", "}"]);
   const ECH_LITTERAL = new Set(["\\", "^", "$", ".", "|", "?", "*", "+", "(", ")", "[", "]", "{", "}", "/"]);
   const ECH_CONTROLE = new Set(["t", "n", "r", "f", "v"]);
@@ -866,87 +991,164 @@ export function erreursMotifRE2(motif) {
     if (elements === 0) err("classe vide");
     i++; // ]
   };
+  // Quantificateur à la position courante : rend null, ou { min, max } (max null : non borné).
   const quantificateur = () => {
     const c = cps[i];
-    if (c === "*" || c === "+" || c === "?") i++;
+    let q;
+    if (c === "*") q = { min: 0, max: null };
+    else if (c === "+") q = { min: 1, max: null };
+    else if (c === "?") q = { min: 0, max: 1 };
+    if (q) i++;
     else if (c === "{") {
       const reste = cps.slice(i).join("");
-      const m = /^\{(\d{1,4})(,(\d{0,4}))?\}/.exec(reste);
+      // n et m de la forme 0|[1-9][0-9]{0,3} : Go et RE2 refusent un zéro non significatif et lisent alors « { » comme un littéral.
+      const m = /^\{(0|[1-9][0-9]{0,3})(,((?:0|[1-9][0-9]{0,3})?))?\}/.exec(reste);
+      if (!m && /^\{[0-9]{1,4}(,[0-9]{0,4})?\}/.test(reste)) err("zéro non significatif dans un quantificateur");
       if (!m) err("« { » qui n'ouvre pas un quantificateur (à échapper)");
       const n = Number(m[1]);
       const mm = m[2] === undefined ? n : m[3] === "" ? null : Number(m[3]);
       if (n > 1000 || (mm !== null && (mm > 1000 || mm < n))) err("quantificateur hors de 0 ≤ n ≤ m ≤ 1000");
+      q = { min: n, max: mm, borne: m[2] === undefined ? "exacte" : mm === null ? "ouverte" : "intervalle" };
       i += [...m[0]].length;
-    } else return false;
+    } else return null;
     if (cps[i] === "?") i++;
     if (cps[i] === "*" || cps[i] === "+" || cps[i] === "?" || cps[i] === "{") err("quantificateur répété ou possessif");
-    return true;
+    return q;
   };
+  // Arbre : { t: "atome", consomme }, { t: "groupe", corps }, { t: "alt", branches }, { t: "seq", elements }, { t: "quant", sous, min, max, borne, pos }.
   const alternative = (profondeur) => {
+    const branches = [];
     for (;;) {
-      sequence(profondeur);
+      branches.push(sequence(profondeur));
       if (cps[i] === "|") {
         i++;
         continue;
       }
-      return;
+      return { t: "alt", branches };
     }
   };
   const sequence = (profondeur) => {
+    const elements = [];
     for (;;) {
       const c = cps[i];
       if (c === undefined || c === "|" || c === ")") {
         if (c === ")" && profondeur === 0) err("« ) » sans « ( »");
-        return;
+        return { t: "seq", elements };
       }
-      let quantifiable = true;
+      let noeud;
       if (c === "^" || c === "$") {
         i++;
-        quantifiable = false;
+        noeud = { t: "atome", consomme: false };
       } else if (c === "\\") {
         const e = echappement(false);
-        if (e.genre === "assertion") quantifiable = false;
-      } else if (c === "[") classe();
-      else if (c === "(") {
+        noeud = { t: "atome", consomme: e.genre !== "assertion" };
+      } else if (c === "[") {
+        classe();
+        noeud = { t: "atome", consomme: true };
+      } else if (c === "(") {
+        const ouverture = i;
         i++;
         if (cps[i] === "?") {
           const reste = cps.slice(i).join("");
           const m = /^\?(?::|P?<([A-Za-z][A-Za-z0-9_]{0,31})>)/.exec(reste);
           if (!m) err("construction (?…) hors du sous-ensemble commun (recherches avant ou arrière, groupes atomiques, drapeaux)");
+          if (m[0].startsWith("?P<")) ouverturesP.push(ouverture);
           if (m[1] !== undefined) {
             if (noms.has(m[1])) err(`nom de groupe en double : ${m[1]}`);
             noms.add(m[1]);
           }
           i += [...m[0]].length;
         }
-        alternative(profondeur + 1);
+        const corps = alternative(profondeur + 1);
         if (cps[i] !== ")") err("groupe non fermé");
         i++;
-      } else if (c === "." ) err("« . » refusé (son sens diffère entre ECMAScript et RE2 ; écrire [^\\n])");
+        noeud = { t: "groupe", corps };
+      } else if (c === ".") err("« . » refusé (son sens diffère entre ECMAScript et RE2 ; écrire [^\\n])");
       else if (META.has(c)) err(`« ${c} » non échappé`);
-      else i++;
-      if (quantificateur() && !quantifiable) err("quantificateur sur une ancre ou une frontière");
+      else {
+        i++;
+        noeud = { t: "atome", consomme: true };
+      }
+      const pos = i;
+      const q = quantificateur();
+      if (q) {
+        if (noeud.t === "atome" && !noeud.consomme) err("quantificateur sur une ancre ou une frontière");
+        noeud = { t: "quant", sous: noeud, ...q, pos };
+      }
+      elements.push(noeud);
     }
   };
+  let arbre = null;
   try {
-    alternative(0);
+    arbre = alternative(0);
     if (i < cps.length) err("« ) » sans « ( »");
   } catch (e) {
     if (e.message !== "arrêt") throw e;
   }
-  if (erreurs.length === 0) {
-    try {
-      new RegExp(motif.replace(/\(\?P</g, "(?<"), "u");
-    } catch (e) {
-      erreurs.push(`expression invalide en ECMAScript : ${e.message}`);
-    }
-  }
-  return erreurs;
+  return { erreurs, arbre: erreurs.length ? null : arbre, ouverturesP: erreurs.length ? [] : ouverturesP };
 }
 
-/** Compile un motif nommé (RE2, sans drapeau) en expression ECMAScript globale à points de code. */
+/** Les nœuds d'un arbre de motif, en profondeur d'abord, dans l'ordre du motif. */
+function* noeudsMotif(n) {
+  yield n;
+  if (n.t === "groupe") yield* noeudsMotif(n.corps);
+  else if (n.t === "alt") for (const b of n.branches) yield* noeudsMotif(b);
+  else if (n.t === "seq") for (const e of n.elements) yield* noeudsMotif(e);
+  else if (n.t === "quant") yield* noeudsMotif(n.sous);
+}
+
+/** Taille développée d'un nœud (EX-10.6, règle c). */
+function tailleDeveloppee(n) {
+  switch (n.t) {
+    case "atome":
+      return 1;
+    case "groupe":
+      return tailleDeveloppee(n.corps);
+    case "alt":
+      return n.branches.reduce((s, b) => s + tailleDeveloppee(b), 0);
+    case "seq":
+      return n.elements.reduce((s, e) => s + tailleDeveloppee(e), 0);
+    case "quant": {
+      const facteur = n.borne === "exacte" ? Math.max(n.min, 1) : n.borne === "ouverte" ? n.min + 1 : n.borne === "intervalle" ? Math.max(n.max, 1) : 1;
+      return tailleDeveloppee(n.sous) * facteur;
+    }
+    default:
+      throw new Error(`nœud de motif inconnu : ${n.t}`);
+  }
+}
+
+/** Règles a) à c) d'EX-10.6 sur l'arbre d'un motif : la première en échec, ou null. */
+function erreurStructureMotif(arbre) {
+  const groupesQuantifies = [...noeudsMotif(arbre)].filter((n) => n.t === "quant" && n.sous.t === "groupe");
+  // a) Aucune répétition imbriquée ou ambiguë.
+  for (const q of groupesQuantifies) {
+    const interieur = [...noeudsMotif(q.sous.corps)];
+    if (interieur.some((n) => n.t === "quant" || (n.t === "alt" && n.branches.length > 1))) return `répétition imbriquée ou ambiguë (EX-10.6 a) (position ${q.pos})`;
+  }
+  // b) Aucun groupe quantifié qui peut être vide.
+  for (const q of groupesQuantifies) {
+    if (![...noeudsMotif(q.sous.corps)].some((n) => n.t === "atome" && n.consomme)) return `groupe quantifié qui peut être vide (EX-10.6 b) (position ${q.pos})`;
+  }
+  // c) Taille développée d'au plus 1000.
+  const taille = tailleDeveloppee(arbre);
+  if (taille > TAILLE_DEVELOPPEE_MAX) return `taille développée ${taille} au-delà de ${TAILLE_DEVELOPPEE_MAX} (EX-10.6 c)`;
+  return null;
+}
+
+/** Taille développée d'un motif (EX-10.6, règle c), ou null s'il n'est pas fait des constructions de la liste autorisée. */
+export function tailleDeveloppeeMotif(motif) {
+  const { arbre } = analyserMotif(String(motif));
+  return arbre === null ? null : tailleDeveloppee(arbre);
+}
+
+/** Compile un motif nommé (RE2, sans drapeau) en expression ECMAScript globale à points de code (sourceECMAScript, EX-10.6). */
 function compilerMotif(motif) {
-  return new RegExp(motif.replace(/\(\?P</g, "(?<"), "gu");
+  return new RegExp(sourceECMAScript(motif), "gu");
+}
+
+/** Compile un `extract` de gabarit d'effets comme un motif nommé, sans le drapeau g : la première correspondance depuis le début (EX-7.6, EX-10.6). */
+export function compilerExtract(motif) {
+  return new RegExp(sourceECMAScript(motif), "u");
 }
 
 /** Les types de jetons qu'une politique peut produire : les cinq détecteurs nommés, les motifs et les étiquettes employés. */
@@ -963,10 +1165,14 @@ function typesDeJetons(doc) {
 /**
  * Valide une politique de rédaction : schéma (`schemas` : registre qui
  * contient le schéma de la politique), puis les règles qu'il n'exprime pas
- * (EX-10.6). Rend la liste des erreurs (chaînes), vide si la politique est
+ * (EX-10.6). Le contrôle des jetons (aucun motif nommé ne fait correspondre
+ * un jeton de la politique) exécute chaque motif : il tient, motif par motif,
+ * dans `budgetMs` (limits.redaction_budget_ms, EX-10.23, quatrième
+ * opération) ; au-delà, le motif est refusé (« motif trop coûteux sur les
+ * jetons »). Rend la liste des erreurs (chaînes), vide si la politique est
  * recevable.
  */
-export function erreursPolitiqueRedaction(doc, { schemas } = {}) {
+export function erreursPolitiqueRedaction(doc, { schemas, budgetMs = BUDGET_REDACTION_MS } = {}) {
   const erreurs = [];
   if (schemas?.[ID_SCHEMA_POLITIQUE_REDACTION]) {
     for (const e of J.validerSchema(doc, schemas[ID_SCHEMA_POLITIQUE_REDACTION], { registre: schemas })) erreurs.push(`schéma ${e.chemin} : ${e.message}`);
@@ -992,11 +1198,13 @@ export function erreursPolitiqueRedaction(doc, { schemas } = {}) {
       continue;
     }
     const re = compilerMotif(def.pattern);
-    for (const t of types) {
-      for (const jeton of [`[REDIGE:${t}]`, `[PSEUDO:${t}:000000000000]`]) {
-        if (trouverRegex(re, jeton, 0)) erreurs.push(`named_patterns.${nom} : fait correspondre le jeton ${jeton} (idempotence, EX-10.6)`);
-      }
+    const jetons = types.flatMap((t) => [`[REDIGE:${t}]`, `[PSEUDO:${t}:000000000000]`]);
+    const b = sousBudget(() => jetons.filter((jeton) => trouverRegex(re, jeton, 0)), budgetMs);
+    if (!b.ok) {
+      erreurs.push(`named_patterns.${nom} : motif trop coûteux sur les jetons (EX-10.23)`);
+      continue;
     }
+    for (const jeton of b.valeur) erreurs.push(`named_patterns.${nom} : fait correspondre le jeton ${jeton} (idempotence, EX-10.6)`);
   }
   return erreurs;
 }
@@ -1005,10 +1213,11 @@ export function erreursPolitiqueRedaction(doc, { schemas } = {}) {
  * Charge une politique de rédaction : la valide (lève ErreurConfiguration si
  * elle est refusée), compile ses motifs. `clePseudonyme` : la valeur du secret
  * `pseudonym_key` (Buffer), résolue par l'appelant ; requise si une règle
- * emploie l'action pseudonyme.
+ * emploie l'action pseudonyme. `budgetMs` : limits.redaction_budget_ms,
+ * qui borne le contrôle des jetons (EX-10.23).
  */
-export function chargerPolitique(doc, { schemas, clePseudonyme = null } = {}) {
-  const erreurs = erreursPolitiqueRedaction(doc, { schemas });
+export function chargerPolitique(doc, { schemas, clePseudonyme = null, budgetMs = BUDGET_REDACTION_MS } = {}) {
+  const erreurs = erreursPolitiqueRedaction(doc, { schemas, budgetMs });
   if (erreurs.length) throw new ErreurConfiguration(`politique de rédaction ${doc?.name ?? "?"} refusée`, erreurs);
   if (doc.rules.some((r) => r.action.kind === "pseudonyme") && !clePseudonyme) throw new ErreurConfiguration(`politique ${doc.name} : la clé de pseudonymisation n'est pas résolue`);
   const motifs = new Map(Object.entries(doc.named_patterns ?? {}).map(([nom, def]) => [nom, compilerMotif(def.pattern)]));
@@ -1088,6 +1297,7 @@ function passageRedaction(politique, v, { portee, outil, alias }) {
   let change = false;
   for (const regle of politique.doc.rules) {
     if (!regleApplicable(regle, portee, outil, alias)) continue;
+    regleEnCours = regle.id;
     const pointeur = regle.path ?? "";
     const r = resoudrePointeur(v, pointeur);
     if (!r.trouve) {
@@ -1138,6 +1348,26 @@ function passageRedaction(politique, v, { portee, outil, alias }) {
   return { valeur: v, change, comptes, notes };
 }
 
+/** Les passages d'EX-10.14 sur une copie de la valeur, sans borne de temps : { valeur, correspondances, notes }. */
+function passagesRedaction(politique, valeur, { portee, outil, alias }) {
+  let v = copieJSON(valeur);
+  let notes = [];
+  const cumul = new Map();
+  for (let passage = 0; ; passage++) {
+    if (passage > 64) throw new Error("rédaction : la règle des passages ne converge pas (bogue)");
+    const r = passageRedaction(politique, v, { portee, outil, alias });
+    v = r.valeur;
+    if (passage === 0) notes = r.notes;
+    for (const c of r.comptes) {
+      const cle = `${c.rule}\u0000${c.rang}`;
+      if (cumul.has(cle)) cumul.get(cle).count += c.count;
+      else cumul.set(cle, { rule: c.rule, detector: c.detector, count: c.count });
+    }
+    if (!r.change) break;
+  }
+  return { valeur: v, correspondances: [...cumul.values()], notes };
+}
+
 /**
  * Applique une politique chargée (chargerPolitique) à la valeur d'une pièce
  * (EX-10.14) : passages successifs (règles dans l'ordre, celles dont la portée
@@ -1145,30 +1375,110 @@ function passageRedaction(politique, v, { portee, outil, alias }) {
  * jusqu'à ce qu'un passage ne change plus rien. `texte` : la pièce est une
  * chaîne (prompt système, intention, contexte text/plain), dont la racine est
  * la chaîne elle-même. Rend { valeur, redacted, correspondances: [{ rule,
- * detector, count }] (additionnées sur les passages), notes } ; `valeur`
- * d'entrée n'est pas modifiée.
+ * detector, count }] (additionnées sur les passages), notes, depasse } ;
+ * `valeur` d'entrée n'est pas modifiée. Toute la rédaction (tous passages,
+ * toutes règles) tient dans `budgetMs` (EX-10.23, défaut 1000) : au-delà,
+ * `depasse` est vrai, `valeur` est null et la copie partielle est jetée ;
+ * l'appelant remplace la pièce par la pièce « non rédigeable »
+ * (`budget_redaction`, EX-8.7) ; `onDepassement` reçoit la note
+ * redaction_budget_exceeded (opération `piece`, portée, règle).
+ * La sérialisation de la valeur en clair (EX-10.16) est calculée une fois,
+ * avant la rédaction : elle sert à `redacted` et, au-delà du budget, à la
+ * longueur de la pièce non rédigeable (`longueurClair`, octets UTF-8, EX-8.7).
  */
-export function rediger(politique, valeur, { portee, outil = null, alias = null } = {}) {
+export function rediger(politique, valeur, { portee, outil = null, alias = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null } = {}) {
   if (!PORTEES.includes(portee)) throw new Error(`portée inconnue : ${portee}`);
-  let v = copieJSON(valeur);
-  let notes = [];
-  const cumul = new Map();
-  if (politique) {
-    for (let passage = 0; ; passage++) {
-      if (passage > 64) throw new Error("rédaction : la règle des passages ne converge pas (bogue)");
-      const r = passageRedaction(politique, v, { portee, outil, alias });
-      v = r.valeur;
-      if (passage === 0) notes = r.notes;
-      for (const c of r.comptes) {
-        const cle = `${c.rule}\u0000${c.rang}`;
-        if (cumul.has(cle)) cumul.get(cle).count += c.count;
-        else cumul.set(cle, { rule: c.rule, detector: c.detector, count: c.count });
-      }
-      if (!r.change) break;
-    }
+  if (!politique) return { valeur: copieJSON(valeur), redacted: false, correspondances: [], notes: [], depasse: false };
+  const clair = serialisationPiece(valeur);
+  regleEnCours = null;
+  const r = sousBudget(() => passagesRedaction(politique, valeur, { portee, outil, alias }), budgetMs);
+  if (!r.ok) {
+    const note = noterDepassement(onDepassement, "piece", portee, regleEnCours);
+    return { valeur: null, redacted: true, correspondances: [], notes: [`budget_redaction : règle ${note.rule ?? "?"}, portée ${portee}`], depasse: true, longueurClair: Buffer.byteLength(clair, "utf8") };
   }
-  const redacted = serialisationPiece(v) !== serialisationPiece(valeur);
-  return { valeur: v, redacted, correspondances: [...cumul.values()], notes };
+  const { valeur: v, correspondances, notes } = r.valeur;
+  const redacted = serialisationPiece(v) !== clair;
+  return { valeur: v, redacted, correspondances, notes, depasse: false };
+}
+
+/** Les détecteurs de texte d'une règle (EX-10.6 : iban, avs, carte, email, telephone, regex), sans le détecteur champ. */
+const detecteursTexte = (regle) => (regle.detectors ?? []).filter((d) => d.type !== "champ");
+
+/**
+ * Applique à une chaîne les détecteurs de texte des règles données, chacune
+ * avec son action (remplacer ou pseudonyme ; supprimer, qui n'a que le
+ * détecteur champ, ne joue pas), dans l'ordre, par passages jusqu'au point
+ * fixe comme EX-10.14. La chaîne est la racine : `path` ne s'applique pas à
+ * une valeur en ligne. Sans borne de temps : l'appelant l'exécute sous
+ * sousBudget. Rend { texte, correspondances: [{ rule, detector, count }] }.
+ */
+function redigerChaineParDetecteurs(politique, chaine, regles) {
+  let texte = chaine;
+  const cumul = new Map();
+  for (let passage = 0; ; passage++) {
+    if (passage > 64) throw new Error("rédaction : la règle des passages ne converge pas (bogue)");
+    let change = false;
+    for (const regle of regles) {
+      regleEnCours = regle.id;
+      const action = regle.action?.kind;
+      if (action !== "remplacer" && action !== "pseudonyme") continue;
+      detecteursTexte(regle).forEach((d, rang) => {
+        const type = d.type === "regex" ? d.name : d.type;
+        const trouveur = d.type === "regex" ? (x, i) => trouverRegex(politique.motifs.get(d.name), x, i) : TROUVEURS[d.type];
+        const jeton = action === "pseudonyme" ? (val) => pseudonyme(politique.clePseudonyme, type, val) : () => `[REDIGE:${type}]`;
+        const res = appliquerDetecteurTexte(texte, trouveur, jeton, politique.reJetons);
+        if (res.nombre > 0) {
+          change = true;
+          texte = res.texte;
+          const cle = `${regle.id}\u0000${rang}`;
+          if (cumul.has(cle)) cumul.get(cle).count += res.nombre;
+          else cumul.set(cle, { rule: regle.id, detector: d.type, count: res.nombre });
+        }
+      });
+    }
+    if (!change) break;
+  }
+  return { texte, correspondances: [...cumul.values()] };
+}
+
+/**
+ * Examen d'une valeur déclarée qui entre en ligne dans la chaîne (`run_id`,
+ * EX-7.2 ; nom de prompt, EX-8.6) par les détecteurs de texte de **toutes**
+ * les règles de la politique, quelle que soit leur portée. Tient dans
+ * `budgetMs` (EX-10.23, opération `valeur`) : au-delà, la valeur est traitée
+ * comme une valeur où un détecteur a trouvé une correspondance. Rend
+ * { correspondance, depasse }.
+ */
+export function examinerValeurEnLigne(politique, valeur, { budgetMs = BUDGET_REDACTION_MS, onDepassement = null, scope = null } = {}) {
+  if (!politique || typeof valeur !== "string") return { correspondance: false, depasse: false };
+  const regles = politique.doc.rules.filter((r) => detecteursTexte(r).length > 0).map((r) => ({ ...r, action: { kind: "remplacer" } }));
+  regleEnCours = null;
+  const b = sousBudget(() => redigerChaineParDetecteurs(politique, valeur, regles).correspondances.length > 0, budgetMs);
+  if (!b.ok) {
+    noterDepassement(onDepassement, "valeur", scope, regleEnCours);
+    return { correspondance: true, depasse: true };
+  }
+  return { correspondance: b.valeur, depasse: false };
+}
+
+/**
+ * Rédaction d'une chaîne en ligne par les détecteurs de texte de toutes les
+ * règles dont les détecteurs sont des détecteurs de texte, quelles que soient
+ * leur portée et leurs outils, avec leur action (EX-10.24 : motif d'une
+ * décision) ; `champ` et `supprimer` ne s'y appliquent pas. Tient dans
+ * `budgetMs` (EX-10.23) : au-delà, rend { texte: null, depasse: true }.
+ * Rend { texte, redacted, correspondances, depasse }.
+ */
+export function redigerTexteEnLigne(politique, chaine, { budgetMs = BUDGET_REDACTION_MS, onDepassement = null, scope = null } = {}) {
+  if (!politique || typeof chaine !== "string") return { texte: chaine, redacted: false, correspondances: [], depasse: false };
+  const regles = politique.doc.rules.filter((r) => detecteursTexte(r).length > 0);
+  regleEnCours = null;
+  const b = sousBudget(() => redigerChaineParDetecteurs(politique, chaine, regles), budgetMs);
+  if (!b.ok) {
+    noterDepassement(onDepassement, "valeur", scope, regleEnCours);
+    return { texte: null, redacted: false, correspondances: [], depasse: true };
+  }
+  return { texte: b.valeur.texte, redacted: b.valeur.texte !== chaine, correspondances: b.valeur.correspondances, depasse: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -1187,17 +1497,23 @@ export function referencePiece(octets, { redacted = false, media_type } = {}) {
  * Pièce JSON (EX-8.1, EX-10.1) : la valeur est rédigée par les règles de la
  * portée, puis sérialisée en JCS intégral ; les octets stockés sont
  * exactement ceux qui sont hachés. Rend { valeur, octets, reference,
- * correspondances, notes }.
+ * correspondances, notes }. Au-delà du budget, la pièce « non rédigeable »
+ * (EX-8.7 règle 3) : `length` est `longueurRecue`, les octets du corps reçu
+ * (échange de modèle, corps HTTP), ou, pour une pièce tirée d'un message
+ * JSON-RPC (arguments, résultat d'outil), la longueur du JCS intégral de la
+ * valeur en clair, la sérialisation qu'EX-10.16 calcule déjà.
  */
-export function pieceJSON(valeur, { politique = null, portee = null, outil = null, alias = null, media_type } = {}) {
-  const r = portee ? rediger(politique, valeur, { portee, outil, alias }) : { valeur: copieJSON(valeur), redacted: false, correspondances: [], notes: [] };
+export function pieceJSON(valeur, { politique = null, portee = null, outil = null, alias = null, media_type, budgetMs = BUDGET_REDACTION_MS, onDepassement = null, contentType = null, longueurRecue = null } = {}) {
+  const r = portee ? rediger(politique, valeur, { portee, outil, alias, budgetMs, onDepassement }) : { valeur: copieJSON(valeur), redacted: false, correspondances: [], notes: [] };
+  if (r.depasse) return pieceNonRedigeable({ content_type: contentType, length: longueurRecue ?? r.longueurClair, reason: "budget_redaction" }, r.notes);
   const octets = octetsJCSIntegral(r.valeur);
   return { valeur: r.valeur, octets, reference: referencePiece(octets, { redacted: r.redacted, media_type }), correspondances: r.correspondances, notes: r.notes };
 }
 
-/** Pièce texte (prompt système, intention, contexte text/plain) : la chaîne rédigée, en octets UTF-8, media_type text/plain (EX-8.6, EX-10.18). */
-export function pieceTexte(texte, { politique = null, portee = null, outil = null, alias = null, media_type = "text/plain" } = {}) {
-  const r = portee ? rediger(politique, texte, { portee, outil, alias }) : { valeur: texte, redacted: false, correspondances: [], notes: [] };
+/** Pièce texte (prompt système, intention, contexte text/plain) : la chaîne rédigée, en octets UTF-8, media_type text/plain (EX-8.6, EX-10.18) ; pièce « non rédigeable » au-delà du budget (EX-10.23). */
+export function pieceTexte(texte, { politique = null, portee = null, outil = null, alias = null, media_type = "text/plain", budgetMs = BUDGET_REDACTION_MS, onDepassement = null, contentType = null } = {}) {
+  const r = portee ? rediger(politique, texte, { portee, outil, alias, budgetMs, onDepassement }) : { valeur: texte, redacted: false, correspondances: [], notes: [] };
+  if (r.depasse) return pieceNonRedigeable({ content_type: contentType, length: r.longueurClair, reason: "budget_redaction" }, r.notes);
   const octets = Buffer.from(r.valeur, "utf8");
   return { valeur: r.valeur, octets, reference: referencePiece(octets, { redacted: r.redacted, media_type }), correspondances: r.correspondances, notes: r.notes };
 }
@@ -1227,6 +1543,37 @@ function reglesApplicables(politique, portee, outil = null, alias = null) {
 /** Objet de la pièce « non rédigeable » (EX-8.7). */
 export const formeNonRedigeable = ({ content_type = null, length, reason }) => ({ noortrace_non_redigeable: { content_type, length, reason } });
 
+/** Pièce « non rédigeable » (EX-8.7 règle 3, EX-10.23) : JCS intégral de l'objet, redacted: true, sans media_type ; `nonRedigeable` porte la raison. */
+export function pieceNonRedigeable({ content_type = null, length, reason }, notes = []) {
+  const valeur = formeNonRedigeable({ content_type, length, reason });
+  const octets = octetsJCSIntegral(valeur);
+  return { valeur, octets, reference: referencePiece(octets, { redacted: true }), correspondances: [], notes, nonRedigeable: reason };
+}
+
+/** Vrai si une valeur rédigée est la forme « non rédigeable » d'EX-8.7 (objet au seul membre noortrace_non_redigeable). */
+export function estNonRedigeable(v) {
+  return v !== null && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 1 && Object.hasOwn(v, "noortrace_non_redigeable");
+}
+
+/**
+ * Refus avant relais d'un appel dont la pièce « arguments » est devenue la
+ * pièce non rédigeable au-delà du budget (EX-10.23, 4.4 pas 4, debutAppel) :
+ * pour un outil de classe `ecriture` ou susceptible d'approbation, quand la
+ * réponse d'evaluer mène à un relais (autorise) ou à un événement retenue
+ * (a_approuver, ticket nouveau), l'appel est refusé par -31010, raison
+ * `redaction`, sans intention ni événement : un appel d'écriture ne part
+ * jamais sans ses arguments dans la preuve, et les approbateurs ne voient
+ * jamais une demande vide. Une réponse refuse (événement refusee, rien n'est
+ * relayé) ou en_attente (aucun événement), ou un outil de lecture, suit son
+ * cours. Rend null ou { error }.
+ */
+export function refusArgumentsNonRedigeables(piece, { classe, susceptible = false, reponse = null } = {}) {
+  if (piece?.nonRedigeable !== "budget_redaction") return null;
+  if (classe !== "ecriture" && !susceptible) return null;
+  if (reponse && (reponse.decision === "refuse" || reponse.ticket_state === "en_attente")) return null;
+  return { error: erreurEnregistreur("MODE_DEGRADE", { reason: "redaction" }) };
+}
+
 /**
  * Pièce non JSON (EX-8.7) : si les octets sont de l'UTF-8 valide (une marque
  * d'ordre d'octets est gardée comme caractère), les règles de la portée
@@ -1235,7 +1582,7 @@ export const formeNonRedigeable = ({ content_type = null, length, reason }) => (
  * règle s'applique à la portée, la pièce est l'objet « non rédigeable »
  * (redacted: true, sans media_type) ; sinon les octets tels quels.
  */
-export function pieceBrute(octets, { contentType = null, politique = null, portee = null, outil = null, alias = null, raison = "non_utf8" } = {}) {
+export function pieceBrute(octets, { contentType = null, politique = null, portee = null, outil = null, alias = null, raison = "non_utf8", budgetMs = BUDGET_REDACTION_MS, onDepassement = null } = {}) {
   const media_type = typeDeMedia(contentType);
   const o = Buffer.from(octets);
   let texte = null;
@@ -1245,18 +1592,68 @@ export function pieceBrute(octets, { contentType = null, politique = null, porte
     texte = null;
   }
   if (portee && texte !== null) {
-    const r = rediger(politique, texte, { portee, outil, alias });
+    const r = rediger(politique, texte, { portee, outil, alias, budgetMs, onDepassement });
+    if (r.depasse) return { ...pieceNonRedigeable({ content_type: contentType ?? null, length: o.length, reason: "budget_redaction" }, r.notes), valeur: null };
     const out = r.redacted ? Buffer.from(r.valeur, "utf8") : o;
     return { valeur: null, octets: out, reference: referencePiece(out, { redacted: r.redacted, media_type }), correspondances: r.correspondances, notes: r.notes };
   }
   if (portee && texte === null && reglesApplicables(politique, portee, outil, alias)) {
-    const p = pieceJSON(formeNonRedigeable({ content_type: contentType ?? null, length: o.length, reason: raison }));
-    return { ...p, reference: { ...p.reference, redacted: true } };
+    return pieceNonRedigeable({ content_type: contentType ?? null, length: o.length, reason: raison });
   }
   return { valeur: null, octets: o, reference: referencePiece(o, { redacted: false, media_type }), correspondances: [], notes: [] };
 }
 
-/** Objet error JSON-RPC d'une erreur de l'enregistreur (table de 4.4) ; `data` absent pour -32012. */
+/** Fenêtre glissante des quotas d'une connexion d'hôte (EX-4.47) : une minute. */
+export const FENETRE_QUOTA_MS = 60000;
+
+/**
+ * Quotas d'une connexion d'hôte (EX-4.47), sur une minute glissante de
+ * l'horloge monotone : requêtes en cours (`max_concurrent`), octets reçus
+ * (`received_bytes_per_minute`), octets de pièces écrits
+ * (`piece_bytes_per_minute`) et temps de capture (`redaction_ms_per_minute` :
+ * analyse JSON, rédaction et sérialisation des pièces de ses requêtes, borne
+ * de temps comprise ou non). `admettre(t, octetsRecus)` est appelé au pas 1,
+ * quand la requête est lue : il rend null (la requête entre, comptée en
+ * cours) ou l'erreur -31013 de direction `quota` (`limit_requests`,
+ * `limit_bytes` ou `limit_ms`), sans relais ni pièce. `noter(t, { octetsPieces,
+ * msCapture })` ajoute ce que la requête a écrit et coûté ; `terminer()` la
+ * retire des requêtes en cours. Un hôte ne peut ainsi ni remplir le volume,
+ * ni occuper le calcul de l'enregistreur par la seule taille de ses requêtes.
+ */
+export class QuotaConnexion {
+  constructor({ max_concurrent, piece_bytes_per_minute, received_bytes_per_minute, redaction_ms_per_minute }) {
+    this.quota = { max_concurrent, piece_bytes_per_minute, received_bytes_per_minute, redaction_ms_per_minute };
+    this.enCours = 0;
+    this.entrees = [];
+  }
+
+  somme(t, cle) {
+    this.entrees = this.entrees.filter((e) => e.t > t - FENETRE_QUOTA_MS);
+    return this.entrees.reduce((s, e) => s + (e[cle] ?? 0), 0);
+  }
+
+  admettre(t, octetsRecus) {
+    const q = this.quota;
+    const refus = (data) => erreurEnregistreur("TAILLE", { ...data, direction: "quota" });
+    if (this.enCours >= q.max_concurrent) return refus({ limit_requests: q.max_concurrent });
+    if (this.somme(t, "recus") + octetsRecus > q.received_bytes_per_minute) return refus({ limit_bytes: q.received_bytes_per_minute });
+    if (this.somme(t, "pieces") >= q.piece_bytes_per_minute) return refus({ limit_bytes: q.piece_bytes_per_minute });
+    if (this.somme(t, "ms") >= q.redaction_ms_per_minute) return refus({ limit_ms: q.redaction_ms_per_minute });
+    this.entrees.push({ t, recus: octetsRecus });
+    this.enCours++;
+    return null;
+  }
+
+  noter(t, { octetsPieces = 0, msCapture = 0 } = {}) {
+    this.entrees.push({ t, pieces: octetsPieces, ms: msCapture });
+  }
+
+  terminer() {
+    if (this.enCours > 0) this.enCours--;
+  }
+}
+
+/** Objet error JSON-RPC d'une erreur de l'enregistreur (table de 4.4) ; `data` absent pour -31012. */
 export function erreurEnregistreur(cle, data) {
   const e = ERREURS[cle];
   if (!e) throw new Error(`erreur inconnue : ${cle}`);
@@ -1270,10 +1667,15 @@ export function formeErreurJsonRpc(error) {
   return { noortrace_jsonrpc_error: copieJSON(error) };
 }
 
-/** Pièce « arguments » d'un tools/call : `params.arguments`, `{}` si absent, rédigée (portée arguments), JCS intégral (CT-2 §8.2). */
-export function pieceArguments(params, { politique = null, outil = null, alias = null } = {}) {
+/**
+ * Pièce « arguments » d'un tools/call : `params.arguments`, `{}` si absent,
+ * rédigée (portée arguments), JCS intégral (CT-2 §8.2) ; pièce « non
+ * rédigeable » au-delà du budget (EX-10.23), dont `length` est la longueur du
+ * JCS intégral des arguments en clair (EX-8.7).
+ */
+export function pieceArguments(params, { politique = null, outil = null, alias = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null } = {}) {
   const v = params && Object.hasOwn(params, "arguments") ? params.arguments : {};
-  return pieceJSON(v, { politique, portee: "arguments", outil, alias });
+  return pieceJSON(v, { politique, portee: "arguments", outil, alias, budgetMs, onDepassement });
 }
 
 /**
@@ -1281,26 +1683,27 @@ export function pieceArguments(params, { politique = null, outil = null, alias =
  * reçu du serveur d'outils : le membre `result` entier, ou
  * `{"noortrace_jsonrpc_error": error}`. Rend la pièce et `is_error`.
  */
-export function pieceResultatMCP(message, { politique = null, outil = null, alias = null } = {}) {
+export function pieceResultatMCP(message, { politique = null, outil = null, alias = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null } = {}) {
+  const options = { politique, portee: "resultat", outil, alias, budgetMs, onDepassement };
   if (message && Object.hasOwn(message, "result")) {
     const r = message.result;
     if (r === null || typeof r !== "object" || Array.isArray(r)) {
-      const p = pieceJSON(formeErreurJsonRpc(erreurResultatInvalide(r)), { politique, portee: "resultat", outil, alias });
+      const p = pieceJSON(formeErreurJsonRpc(erreurResultatInvalide(r)), options);
       return { ...p, is_error: true };
     }
-    const p = pieceJSON(r, { politique, portee: "resultat", outil, alias });
+    const p = pieceJSON(r, options);
     return { ...p, is_error: r.isError === true };
   }
   if (message && Object.hasOwn(message, "error")) {
-    const p = pieceJSON(formeErreurJsonRpc(message.error), { politique, portee: "resultat", outil, alias });
+    const p = pieceJSON(formeErreurJsonRpc(message.error), options);
     return { ...p, is_error: true };
   }
   throw new Error("réponse JSON-RPC sans result ni error");
 }
 
 /** Pièce « résultat » d'une erreur de l'enregistreur (délai, annulation, taille, injoignable) : is_error vrai. */
-export function pieceErreurEnregistreur(cle, data, { politique = null, outil = null, alias = null } = {}) {
-  const p = pieceJSON(formeErreurJsonRpc(erreurEnregistreur(cle, data)), { politique, portee: "resultat", outil, alias });
+export function pieceErreurEnregistreur(cle, data, { politique = null, outil = null, alias = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null } = {}) {
+  const p = pieceJSON(formeErreurJsonRpc(erreurEnregistreur(cle, data)), { politique, portee: "resultat", outil, alias, budgetMs, onDepassement });
   return { ...p, is_error: true };
 }
 
@@ -1448,6 +1851,17 @@ export function ligneHoteReponse(texteAmont, { idHote, idHoteTexte = null, hoteM
 export function ligneHoteErreur(idHote, error, { idHoteTexte = null } = {}) {
   if (idHoteTexte !== null) return `{"jsonrpc":"2.0","id":${idHoteTexte},"error":${JSON.stringify(error)}}`;
   return JSON.stringify({ jsonrpc: "2.0", id: idHote, error });
+}
+
+/**
+ * Résultat rendu à l'hôte par l'enregistreur lui-même (4.4 pas 5 et 6,
+ * EX-4.49) : refus par la politique ou signal d'approbation, objet
+ * CallToolResult sérialisé tel quel (ordre de ses membres) ; `idHoteTexte` :
+ * l'id recopié depuis le texte de l'hôte (4.4 pas 14).
+ */
+export function ligneHoteResultatEnregistreur(idHote, result, { idHoteTexte = null } = {}) {
+  const id = idHoteTexte ?? JSON.stringify(idHote);
+  return `{"jsonrpc":"2.0","id":${id},"result":${JSON.stringify(result)}}`;
 }
 
 /** Texte brut de l'id d'une requête JSON-RPC (4.4 pas 14), ou null s'il n'y en a pas. */
@@ -2094,17 +2508,22 @@ export function intentionRedigee(texteRedige, texteClair) {
  * d'au plus 4096 caractères, sinon une référence à une pièce text/plain. Rend
  * { intent, piece (ou null), correspondances }.
  */
-export function intentionDepuisTexte(texte, { politique = null, portee = "arguments" } = {}) {
+export function intentionDepuisTexte(texte, { politique = null, portee = "arguments", budgetMs = BUDGET_REDACTION_MS, onDepassement = null } = {}) {
   if (texte === null || texte === undefined) return { intent: null, piece: null, correspondances: [] };
-  const p = pieceTexte(texte, { politique, portee, media_type: "text/plain" });
+  const p = pieceTexte(texte, { politique, portee, media_type: "text/plain", budgetMs, onDepassement });
   if (!p.reference.redacted && longueurPointsDeCode(p.valeur) <= 4096) return { intent: p.valeur, piece: null, correspondances: p.correspondances };
   return { intent: p.reference, piece: p, correspondances: p.correspondances };
 }
 
-/** Le prompt laissé dans la requête et rédigé chaîne par chaîne par les règles prompt_systeme (EX-8.5, mode inline). */
+/**
+ * Le prompt laissé dans la requête et rédigé chaîne par chaîne par les règles
+ * prompt_systeme (EX-8.5, mode inline). Sans borne de temps propre : c'est une
+ * partie de la rédaction de la pièce « requête », qu'echangeModele exécute
+ * sous un seul budget (EX-10.23).
+ */
 export function redigerPromptEnPlace(format, corps, politique) {
   const c = copieJSON(corps);
-  const r = (s) => (typeof s === "string" ? rediger(politique, s, { portee: "prompt_systeme" }).valeur : s);
+  const r = (s) => (typeof s === "string" ? rediger(politique, s, { portee: "prompt_systeme", budgetMs: null }).valeur : s);
   const parties = (contenu, types) => {
     if (typeof contenu === "string") return r(contenu);
     if (Array.isArray(contenu)) for (const p of contenu) if (p && types.includes(p.type) && typeof p.text === "string") p.text = r(p.text);
@@ -2140,7 +2559,7 @@ export function corpsErreurPasserelle(format, { type, message, code = null }) {
  * réponse en clair, pour la seule corrélation), forme_redigee, code_model,
  * prompt_version, intent, tool_calls, is_error, incomplete, correspondances }.
  */
-export function echangeModele({ format, provider_label, requete, reponse, politique = null, prompt_in_request = "reference", prompt_system = "redige", prompt_version_name = null }) {
+export function echangeModele({ format, provider_label, requete, reponse, politique = null, prompt_in_request = "reference", prompt_system = "redige", prompt_version_name = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null }) {
   const correspondancesTotales = [];
   const noter = (p, piece) => {
     for (const c of p.correspondances ?? []) correspondancesTotales.push({ piece, ...c });
@@ -2157,21 +2576,29 @@ export function echangeModele({ format, provider_label, requete, reponse, politi
   }
   let pieceRequete;
   let piecePrompt = null;
+  const longueurRequete = Buffer.from(requete.corps ?? []).length;
   const deForme = requeteDeForme(format, corpsRequete);
   if (!deForme) {
-    pieceRequete = pieceJSON(corpsRequete, { politique, portee: "requete" });
+    pieceRequete = pieceJSON(corpsRequete, { politique, portee: "requete", budgetMs, onDepassement, contentType: requete.content_type ?? null, longueurRecue: longueurRequete });
   } else {
     const prompt = extrairePromptSysteme(format, corpsRequete);
-    let valeurRequete = corpsRequete;
     if (prompt !== null) {
-      piecePrompt = prompt_system === "named" ? pieceTexte(`[PROMPT:${prompt_version_name}]`) : pieceTexte(prompt, { politique, portee: "prompt_systeme" });
+      piecePrompt = prompt_system === "named" ? pieceTexte(`[PROMPT:${prompt_version_name}]`) : pieceTexte(prompt, { politique, portee: "prompt_systeme", budgetMs, onDepassement });
       noter(piecePrompt, "prompt_systeme");
-      valeurRequete = prompt_in_request === "reference" ? remplacerPromptSysteme(format, corpsRequete) : redigerPromptEnPlace(format, corpsRequete, politique);
     }
-    const r = rediger(politique, valeurRequete, { portee: "requete" });
-    const octets = octetsJCSIntegral(r.valeur);
-    const redacted = J.canonicaliserJCSIntegral(r.valeur) !== J.canonicaliserJCSIntegral(corpsRequete);
-    pieceRequete = { valeur: r.valeur, octets, reference: referencePiece(octets, { redacted }), correspondances: r.correspondances, notes: r.notes };
+    // La pièce « requête » est une seule opération sous le budget (EX-10.23), rédaction du prompt laissé en place comprise.
+    const preparer = () => (prompt === null ? corpsRequete : prompt_in_request === "reference" ? remplacerPromptSysteme(format, corpsRequete) : redigerPromptEnPlace(format, corpsRequete, politique));
+    regleEnCours = null;
+    const b = politique ? sousBudget(() => passagesRedaction(politique, preparer(), { portee: "requete", outil: null, alias: null }), budgetMs) : { ok: true, valeur: { valeur: copieJSON(preparer()), correspondances: [], notes: [] } };
+    if (!b.ok) {
+      const note = noterDepassement(onDepassement, "piece", "requete", regleEnCours);
+      pieceRequete = pieceNonRedigeable({ content_type: requete.content_type ?? null, length: longueurRequete, reason: "budget_redaction" }, [`budget_redaction : règle ${note.rule ?? "?"}, portée requete`]);
+    } else {
+      const r = b.valeur;
+      const octets = octetsJCSIntegral(r.valeur);
+      const redacted = J.canonicaliserJCSIntegral(r.valeur) !== J.canonicaliserJCSIntegral(corpsRequete);
+      pieceRequete = { valeur: r.valeur, octets, reference: referencePiece(octets, { redacted }), correspondances: r.correspondances, notes: r.notes };
+    }
   }
   noter(pieceRequete, "requete");
 
@@ -2202,18 +2629,18 @@ export function echangeModele({ format, provider_label, requete, reponse, politi
         }
       } else body = texte;
     }
-    pieceReponse = pieceJSON({ noortrace_http_error: { status, content_type: reponse.content_type ?? null, body } }, { politique, portee: "reponse" });
+    pieceReponse = pieceJSON({ noortrace_http_error: { status, content_type: reponse.content_type ?? null, body } }, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: o.length });
     is_error = true;
   } else if (mediaReponse === "text/event-stream") {
     const c = consoliderFlux(format, reponse.corps);
     incomplete = c.incomplet;
     is_error = c.is_error;
     if (c.forme === null) {
-      pieceReponse = pieceBrute(reponse.corps, { contentType: "text/event-stream", politique, portee: "reponse" });
+      pieceReponse = pieceBrute(reponse.corps, { contentType: "text/event-stream", politique, portee: "reponse", budgetMs, onDepassement });
     } else {
       forme = c.forme;
       consolidated = c.forme;
-      pieceReponse = pieceJSON(c.forme, { politique, portee: "reponse" });
+      pieceReponse = pieceJSON(c.forme, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: Buffer.from(reponse.corps ?? []).length });
     }
   } else {
     let analysee = false;
@@ -2225,9 +2652,9 @@ export function echangeModele({ format, provider_label, requete, reponse, politi
         forme = null;
       }
     }
-    if (analysee) pieceReponse = pieceJSON(forme, { politique, portee: "reponse" });
+    if (analysee) pieceReponse = pieceJSON(forme, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: Buffer.from(reponse.corps ?? []).length });
     else {
-      pieceReponse = pieceBrute(reponse.corps, { contentType: reponse.content_type, politique, portee: "reponse" });
+      pieceReponse = pieceBrute(reponse.corps, { contentType: reponse.content_type, politique, portee: "reponse", budgetMs, onDepassement });
       is_error = true;
     }
   }
@@ -2256,9 +2683,9 @@ export function echangeModele({ format, provider_label, requete, reponse, politi
  * CreateMessageRequest, réponse = CreateMessageResult, code.model =
  * « hote/ » + model, is_error faux.
  */
-export function echangeSampling({ params, resultat, politique = null }) {
-  const requete = pieceJSON(params, { politique, portee: "requete" });
-  const reponse = pieceJSON(resultat, { politique, portee: "reponse" });
+export function echangeSampling({ params, resultat, politique = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null }) {
+  const requete = pieceJSON(params, { politique, portee: "requete", budgetMs, onDepassement });
+  const reponse = pieceJSON(resultat, { politique, portee: "reponse", budgetMs, onDepassement });
   return { pieces: { requete, reponse }, code_model: typeof resultat?.model === "string" ? tronquer(`hote/${resultat.model}`, 256) : null, is_error: false };
 }
 
@@ -2342,25 +2769,59 @@ function valeurGabarit(pointeur, source) {
 }
 
 /**
+ * Contrôle de démarrage des gabarits d'effets (EX-7.6, EX-15.4 pas 3) :
+ * chaque `extract` non nul est du sous-ensemble commun d'EX-10.6, règles de
+ * structure et de taille comprises, et d'au plus 1 024 caractères. Rend la
+ * liste des erreurs (chaînes), vide si les gabarits sont recevables.
+ */
+export function erreursGabaritsEffets(gabarits, { ou = "effects" } = {}) {
+  const erreurs = [];
+  (gabarits ?? []).forEach((g, i) => {
+    if (g?.extract === null || g?.extract === undefined) return;
+    if (typeof g.extract !== "string" || longueurPointsDeCode(g.extract) > 1024) return erreurs.push(`${ou}[${i}].extract : chaîne de 1 024 caractères au plus attendue`);
+    const e = erreursMotifRE2(g.extract);
+    if (e.length) erreurs.push(`${ou}[${i}].extract : ${e.join(", ")}`);
+  });
+  return erreurs;
+}
+
+/**
  * Évalue les gabarits d'effets d'un outil (EX-7.6) sur les valeurs
  * **rédigées** des pièces « arguments » et « résultat » (l'appelant les
  * passe) : `object` est un pointeur (s'il commence par « / ») ou
  * une chaîne fixe, `extract` une expression régulière optionnelle (première
- * capture, sinon la correspondance entière), `amount` un pointeur ou null,
- * `currency` un pointeur, trois majuscules ou null. Un pointeur qui ne résout
- * pas, une expression qui ne correspond pas, un montant qui n'est pas une
- * chaîne décimale de CT-1 ou un couple montant/devise incomplet donnent un
- * effet omis et une note. Rend { effects, notes }.
+ * correspondance, leftmost-first : premier groupe capturant s'il a participé,
+ * sinon la correspondance entière ; `(?P<` réécrit en `(?<` comme pour un
+ * motif nommé, EX-10.6), `amount` un pointeur ou null, `currency` un
+ * pointeur, trois majuscules ou null. Un pointeur qui ne résout pas, une
+ * expression qui ne correspond pas, un montant qui n'est pas une chaîne
+ * décimale de CT-1 ou un couple montant/devise incomplet donnent un effet omis
+ * et une note. L'évaluation de chaque gabarit tient dans `budgetMs`
+ * (EX-10.23) : au-delà, l'effet est omis avec la raison budget_redaction.
+ * `defaut` : les effets par défaut de l'outil (effetsParDefaut ; un effet
+ * pour une classe ecriture) : quand aucun effet n'est produit alors qu'une
+ * pièce source est la pièce non rédigeable (EX-8.7) ou qu'un extract a
+ * dépassé le budget, ce sont eux qui sont déclarés (EX-7.6, EX-10.23), pour
+ * qu'une écriture exécutée ne reste jamais sans effet déclaré par la seule
+ * taille ou forme de ses données. Rend { effects, notes }.
  */
-export function evaluerGabaritsEffets(gabarits, { arguments: args = null, result = null } = {}) {
+export function evaluerGabaritsEffets(gabarits, { arguments: args = null, result = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null, defaut = null } = {}) {
   const source = { arguments: args, result };
   const effects = [];
   const notes = [];
+  let horsBudget = estNonRedigeable(args) || estNonRedigeable(result);
   (gabarits ?? []).forEach((g, i) => {
     let object = g.object.startsWith("/") ? valeurGabarit(g.object, source) : g.object;
     if (object === undefined) return notes.push(`effet ${i} : pointeur ${g.object} non résolu`);
     if (g.extract) {
-      const m = new RegExp(g.extract, "u").exec(object);
+      const re = compilerExtract(g.extract);
+      const b = sousBudget(() => re.exec(object), budgetMs);
+      if (!b.ok) {
+        noterDepassement(onDepassement, "extract", null, null);
+        horsBudget = true;
+        return notes.push(`effet ${i} : effect_omitted, budget_redaction`);
+      }
+      const m = b.valeur;
       if (!m) return notes.push(`effet ${i} : extraction sans correspondance`);
       object = m[1] ?? m[0];
     }
@@ -2380,6 +2841,47 @@ export function evaluerGabaritsEffets(gabarits, { arguments: args = null, result
     }
     if ((amount === null) !== (currency === null)) return notes.push(`effet ${i} : montant et devise doivent être tous deux renseignés ou tous deux nuls`);
     effects.push({ system: tronquer(g.system, 128), action: g.action, object, amount, currency });
+  });
+  if (effects.length === 0 && horsBudget && defaut?.length) {
+    notes.push("effets par défaut : pièce non rédigeable ou extract au-delà du budget (EX-7.6, EX-10.23)");
+    return { effects: copieJSON(defaut), notes };
+  }
+  return { effects, notes };
+}
+
+/**
+ * Effets déclarés par le SDK (EX-6.6, EX-7.6) : les chaînes `system` et
+ * `object` passent par les détecteurs de texte des règles de portée
+ * `arguments` de l'outil, avec leur action (remplacement par le jeton), puis
+ * les pas 2 et 4 d'EX-7.6 (troncature, montant, devise). L'examen des
+ * chaînes d'un effet tient dans `budgetMs` (EX-10.23) : au-delà, l'effet est
+ * omis. Rend { effects, notes }.
+ */
+export function effetsDeclares(effets, { politique = null, outil = null, alias = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null } = {}) {
+  const effects = [];
+  const notes = [];
+  const regles = politique ? politique.doc.rules.filter((r) => regleApplicable(r, "arguments", outil, alias)) : [];
+  (effets ?? []).forEach((e, i) => {
+    let system = e.system;
+    let object = e.object;
+    if (regles.length) {
+      regleEnCours = null;
+      const b = sousBudget(() => [redigerChaineParDetecteurs(politique, system, regles).texte, redigerChaineParDetecteurs(politique, object, regles).texte], budgetMs);
+      if (!b.ok) {
+        noterDepassement(onDepassement, "valeur", "arguments", regleEnCours);
+        return notes.push(`effet ${i} : effect_omitted, budget_redaction`);
+      }
+      [system, object] = b.valeur;
+    }
+    system = tronquer(system, 128);
+    object = tronquer(object, 512);
+    if (system === "" || object === "") return notes.push(`effet ${i} : system ou objet vide`);
+    const amount = e.amount ?? null;
+    const currency = e.currency ?? null;
+    if (amount !== null && (typeof amount !== "string" || !RE_MONTANT.test(amount))) return notes.push(`effet ${i} : montant hors du format décimal de CT-1`);
+    if (currency !== null && (typeof currency !== "string" || !/^[A-Z]{3}$/.test(currency))) return notes.push(`effet ${i} : devise hors du format ISO 4217`);
+    if ((amount === null) !== (currency === null)) return notes.push(`effet ${i} : montant et devise doivent être tous deux renseignés ou tous deux nuls`);
+    effects.push({ system, action: e.action, object, amount, currency });
   });
   return { effects, notes };
 }

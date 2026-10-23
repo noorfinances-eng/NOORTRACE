@@ -7,9 +7,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
+)
+
+var (
+	// reRegleNote reconnaît la règle a), b) ou c) d'EX-10.6 en tête d'une
+	// note ou d'une raison de refus.
+	reRegleNote = regexp.MustCompile(`^règle ([abc])\)`)
+	// reGroupeNommeP reconnaît un groupe nommé de la forme (?P<nom>…).
+	reGroupeNommeP = regexp.MustCompile(`\(\?P<[A-Za-z][A-Za-z0-9_]{0,31}>`)
 )
 
 func unixUTC(s int64) time.Time { return time.Unix(s, 0).UTC() }
@@ -95,6 +104,7 @@ func familleRedaction(rap *Rapport, ctx *contexteCT2) {
 
 	// motifs.json : sous-ensemble commun ECMAScript/RE2 (EX-10.6)
 	if mv := lireFichierJSON(rap, filepath.Join(dir, "motifs.json")); mv != nil && EstTableau(mv) {
+		vus := map[string]string{}
 		for i, m := range mv.Arr {
 			motif := chaineDe(m, "pattern")
 			admis := m.Get("admis")
@@ -108,7 +118,68 @@ func familleRedaction(rap *Rapport, ctx *contexteCT2) {
 				att = "admis"
 			}
 			rap.ComparerAvecNote(f, fmt.Sprintf("motifs.json[%d] %s", i, motif), "sous-ensemble commun (EX-10.6)", att, obt, (raison == "") == (att == "admis"), chaineDe(m, "note"))
+			// B.3 : un motif refusé par les règles de structure et de taille
+			// porte dans note la règle a), b) ou c) qui le refuse.
+			if r := reRegleNote.FindStringSubmatch(chaineDe(m, "note")); r != nil && att == "refusé" {
+				regle := "(aucune règle : " + obt + ")"
+				if o := reRegleNote.FindStringSubmatch(raison); o != nil {
+					regle = o[1]
+				}
+				rap.Comparer(f, fmt.Sprintf("motifs.json[%d] %s", i, motif), "règle de structure et de taille qui refuse le motif (EX-10.6, B.3 : note)", r[1], regle)
+			}
+			if EstChaine(m.Get("pattern")) {
+				vus[motif] = att
+			}
+			// B.3 : matches donne, pour un motif admis, la première
+			// correspondance (leftmost-first, correspondance entière) de
+			// chaque texte, ou null : le paquet regexp de Go compile le motif
+			// tel quel (EX-10.6).
+			if ms := m.Get("matches"); ms != nil {
+				re, err := regexp.Compile(motif)
+				if err != nil || att != "admis" || !EstTableau(ms) {
+					rap.Comparer(f, fmt.Sprintf("motifs.json[%d] %s", i, motif), "matches d'un motif admis que Go compile (B.3)", "compilé", fmt.Sprint(err))
+				} else {
+					for j, c := range ms.Arr {
+						entree := chaineDe(c, "input")
+						premiere := "null"
+						if p := c.Get("first"); p != nil && EstChaine(p) {
+							premiere = p.Str
+						}
+						trouvee := "null"
+						if loc := re.FindStringIndex(entree); loc != nil {
+							trouvee = entree[loc[0]:loc[1]]
+						}
+						rap.Comparer(f, fmt.Sprintf("motifs.json[%d] %s matches[%d] %q", i, motif, j, entree), "première correspondance (EX-10.6)", premiere, trouvee)
+					}
+				}
+			}
+			for _, k := range []string{"duration_ms", "max_ms", "temps_ms", "duree_ms"} {
+				if m.Get(k) != nil {
+					rap.Comparer(f, fmt.Sprintf("motifs.json[%d] %s", i, motif), "aucun attendu de durée (B.3, EX-10.4)", "absent", k)
+				}
+			}
 		}
+		// B.3 : motifs exigés depuis la version 0.3
+		for _, e := range []struct{ motif, admis string }{
+			{`^(a+)+$`, "refusé"}, {`([a-zA-Z]+)*$`, "refusé"}, {`(a|aa)+$`, "refusé"}, {`(a|a?)+$`, "refusé"},
+			{`(a|aa){1,1000}$`, "refusé"}, {`(a{1,1000}){1,1000}$`, "refusé"}, {`(\w|\d)+$`, "refusé"},
+			{`(?:[0-9]{4} ?){3}`, "refusé"}, {`(?:\b)+x`, "refusé"}, {`[0-9]{1000}x`, "refusé"}, {`[0-9]+$`, "admis"},
+			{`[(?P<]x`, "admis"}, {`a\(?P<b`, "admis"}, {`\(?P<x>`, "admis"}, {`\\(?P<x>a)`, "admis"},
+			{`a{01}`, "refusé"}, {`[0-9]{04}`, "refusé"}, {`a{0,01}`, "refusé"},
+		} {
+			obt := vus[e.motif]
+			if obt == "" {
+				obt = "absent"
+			}
+			rap.Comparer(f, "motifs.json", "motif exigé "+e.motif+" (B.3)", e.admis, obt)
+		}
+		nomP := "absent"
+		for m, a := range vus {
+			if reGroupeNommeP.MatchString(m) {
+				nomP = a
+			}
+		}
+		rap.Comparer(f, "motifs.json", "un motif admis avec un groupe nommé (?P<nom>…) (B.3)", "admis", nomP)
 	}
 
 	// cas.json

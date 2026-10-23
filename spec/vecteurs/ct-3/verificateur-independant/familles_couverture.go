@@ -166,13 +166,29 @@ func couvertureTK(c *Contexte) {
 // couvertureRemisesValides vérifie la liste d'EX-A.8 pour decisions/valides/.
 func couvertureRemisesValides(c *Contexte) {
 	k := c.Consts
-	var a23, r23, exp, stat, ct1 bool
+	var a23, r23, exp, stat, ct1, permise bool
 	for _, fic := range c.fichiers("decisions/valides/*.json") {
 		cas, ok := c.lire(fic)
 		if !ok {
 			continue
 		}
 		rem := cas.Get("remise")
+		// approbation signée par une adresse du demandeur sous
+		// self_approval « permise » (SG-7 ne s'applique pas)
+		if ctx, err := LireContexteNoyau(cas.Get("context")); err == nil && ctx.Separation != nil && ctx.Separation.AutoApprobation == "permise" {
+			if r := retenueDeLaDemande(ctx, rem); r != nil {
+				for _, id := range ctx.Separation.Identites {
+					if id.LaunchedBy != r.LaunchedBy {
+						continue
+					}
+					for _, x := range chaines(rem.Get("approval").Get("approvers")) {
+						if contient(id.Adresses, x) && rem.Get("approval").Get("decision").S() == "approuve" {
+							permise = true
+						}
+					}
+				}
+			}
+		}
 		ap := rem.Get("approval")
 		dec := ap.Get("decision").S()
 		appr := chaines(ap.Get("approvers"))
@@ -200,4 +216,6 @@ func couvertureRemisesValides(c *Contexte) {
 	c.R.Exiger(FamDecisions, "decisions/valides", "une expiration sans signature", exp, "absente", fond)
 	c.R.Exiger(FamDecisions, "decisions/valides", "une approbation sur un jeu statique", stat, "absente", fond)
 	c.R.Exiger(FamDecisions, "decisions/valides", "la décision du ticket apr-2201 de CT-1", ct1, "absente", fond)
+	c.R.Exiger(FamDecisions, "decisions/valides", "une approbation signée par une adresse du demandeur sous self_approval « permise » (SG-7 ne s'applique pas)", permise, "absente",
+		"CT-3 EX-A.8 : « une approbation signée par une adresse du demandeur sous self_approval: \"interdite\" (auto_approbation, SG-7 […]), la même sous permise restant dans valides/ »")
 }

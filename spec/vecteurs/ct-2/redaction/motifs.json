@@ -103,5 +103,135 @@
     "pattern": "\\bx\\b*",
     "admis": false,
     "note": "quantificateur sur une frontière"
+  },
+  {
+    "pattern": "[0-9]+$",
+    "admis": true,
+    "note": "retour arrière polynomial (4,7 s sur 80 000 chiffres suivis de x en ECMAScript), admis par les règles a) à c) : borné par le budget d'EX-10.23"
+  },
+  {
+    "pattern": "^(a+)+$",
+    "admis": false,
+    "note": "règle a) : répétition imbriquée (motif à retour arrière exponentiel d'OWASP)"
+  },
+  {
+    "pattern": "([a-zA-Z]+)*$",
+    "admis": false,
+    "note": "règle a) : répétition imbriquée (motif d'OWASP)"
+  },
+  {
+    "pattern": "(a|aa)+$",
+    "admis": false,
+    "note": "règle a) : alternative qui se recouvre sous répétition (motif d'OWASP)"
+  },
+  {
+    "pattern": "(a|a?)+$",
+    "admis": false,
+    "note": "règle a) : alternative sous répétition (motif d'OWASP)"
+  },
+  {
+    "pattern": "(a|aa){1,1000}$",
+    "admis": false,
+    "note": "règle a) : alternative sous un quantificateur borné (aussi règle c, taille 3 001)"
+  },
+  {
+    "pattern": "(a{1,1000}){1,1000}$",
+    "admis": false,
+    "note": "règle a) : répétition imbriquée bornée (aussi règle c, taille 1 000 001 ; refusée par RE2)"
+  },
+  {
+    "pattern": "(\\w|\\d)+$",
+    "admis": false,
+    "note": "règle a) : alternative qui se recouvre sous répétition"
+  },
+  {
+    "pattern": "(?:[0-9]{4} ?){3}",
+    "admis": false,
+    "note": "règle a) : forme bénigne refusée, à écrire déroulée"
+  },
+  {
+    "pattern": "(?:\\b)+x",
+    "admis": false,
+    "note": "règle b) : groupe quantifié qui peut être vide"
+  },
+  {
+    "pattern": "[0-9]{1000}x",
+    "admis": false,
+    "note": "règle c) : taille développée 1 001"
+  },
+  {
+    "pattern": "[(?P<]x",
+    "admis": true,
+    "note": "« (?P< » dans une classe : pas un groupe nommé, non réécrit",
+    "matches": [
+      {
+        "input": "Px",
+        "first": "Px"
+      },
+      {
+        "input": "<x",
+        "first": "<x"
+      }
+    ]
+  },
+  {
+    "pattern": "a\\(?P<b",
+    "admis": true,
+    "note": "parenthèse échappée et optionnelle suivie de « P<b » : pas un groupe nommé, non réécrit",
+    "matches": [
+      {
+        "input": "aP<b",
+        "first": "aP<b"
+      },
+      {
+        "input": "a(P<b",
+        "first": "a(P<b"
+      },
+      {
+        "input": "a<b",
+        "first": null
+      }
+    ]
+  },
+  {
+    "pattern": "\\(?P<x>",
+    "admis": true,
+    "note": "parenthèse échappée et optionnelle suivie de « P<x> » : pas un groupe nommé, non réécrit",
+    "matches": [
+      {
+        "input": "P<x>",
+        "first": "P<x>"
+      }
+    ]
+  },
+  {
+    "pattern": "\\\\(?P<x>a)",
+    "admis": true,
+    "note": "barre oblique inverse échappée suivie d'un vrai groupe nommé, réécrit (?<x>",
+    "matches": [
+      {
+        "input": "\\a",
+        "first": "\\a"
+      },
+      {
+        "input": "a",
+        "first": null
+      }
+    ]
+  },
+  {
+    "pattern": "a{01}",
+    "admis": false,
+    "note": "zéro non significatif dans un quantificateur : RE2 et Go lisent « { » comme un littéral"
+  },
+  {
+    "pattern": "[0-9]{04}",
+    "admis": false,
+    "note": "zéro non significatif dans un quantificateur"
+  },
+  {
+    "pattern": "a{0,01}",
+    "admis": false,
+    "note": "zéro non significatif dans un quantificateur"
   }
 ]

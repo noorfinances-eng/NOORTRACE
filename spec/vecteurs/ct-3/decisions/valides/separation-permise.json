@@ -1,0 +1,71 @@
+{
+  "version": 0,
+  "id": "separation-permise",
+  "description": "Le compte 3, adresse du demandeur, signe avec le compte 1 sous self_approval permise : SG-7 ne s'applique pas, le noyau scelle.",
+  "check": null,
+  "context": {
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+    "retained": [
+      {
+        "seq": 5,
+        "ticket": "apr-0001",
+        "hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+        "ts": "2026-11-12T09:00:00.200Z",
+        "launched_by": "u.martin@assureur-demo.example"
+      }
+    ],
+    "decided": [],
+    "expire_after_ms": 3600000,
+    "separation": {
+      "self_approval": "permise",
+      "identities": [
+        {
+          "launched_by": "u.martin@assureur-demo.example",
+          "addresses": [
+            "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+          ]
+        }
+      ]
+    },
+    "write_at": "2026-11-12T09:15:01.900Z"
+  },
+  "remise": {
+    "remise_id": "apr-0001/1",
+    "ticket": "apr-0001",
+    "approval": {
+      "decision": "approuve",
+      "ticket": "apr-0001",
+      "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "approvers": [
+        "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ],
+      "signatures": [
+        "0x87ca98f57b6b10e0699b8e3ab9fdd06f4b890777b5de0acde93fca391a16474a30686c49b7d3f99b8ffb6b96e0221325b8bf57951b2eaa73c0fbbfb012502e8e1c",
+        "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c"
+      ],
+      "reason": "Constat et facture concordants"
+    },
+    "approver_set": {
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "members": [
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+      ],
+      "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1214 b=0xbbdda14682d88cba1356b88a3fa30ecf233920d3a15f4caf97dcff023d21fbca"
+    }
+  },
+  "expected": {
+    "result": "scelle",
+    "reason": null
+  }
+}

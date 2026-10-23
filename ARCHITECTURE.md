@@ -198,11 +198,12 @@ Quand la sortie est « à approuver » :
    refusé. Délai écoulé sans décision : refus, journalisé.
 
 MCP n'a pas d'état « en attente » pour un appel d'outil. Le mandataire répond
-aussitôt par une erreur qui porte le numéro de ticket (mode `erreur`, par défaut,
-CT-3 §11) ; l'agent ré-émet l'appel, qui n'est relayé qu'après la décision signée
-au seuil, et une seule fois. Le mode `retenir`, qui garde la requête ouverte, n'est
-admis que sous le délai de tous les hôtes raccordés. L'approbation se signe dans la
-console, hors de l'hôte MCP.
+aussitôt par un résultat d'erreur d'outil (`isError`) qui porte le numéro de
+ticket et son état (mode `erreur`, par défaut, CT-3 §11 ; CT-2 EX-4.49) ; l'agent
+ré-émet l'appel, qui n'est relayé qu'après la décision signée au seuil, et une
+seule fois. Le mode `retenir`, qui garde la requête ouverte, n'est admis que sous
+le délai de tous les hôtes raccordés. L'approbation se signe dans la console, hors
+de l'hôte MCP.
 
 ### Ancrage : trois ancres indépendantes pour une période
 

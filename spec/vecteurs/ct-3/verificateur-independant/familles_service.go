@@ -256,6 +256,7 @@ var verifParRaison = map[string]string{
 	"ticket_deja_decide": "SG-3", "echeance_depassee": "SG-4", "signature_invalide": "SG-5",
 	"approbateur_double": "SG-6", "approbateur_hors_jeu": "SG-6", "seuil_different_du_jeu": "SG-6",
 	"expire_avec_signatures": "SG-6", "seuil_non_atteint": "SG-6",
+	"auto_approbation": "SG-7",
 }
 
 func familleDecisions(c *Contexte) []signatureConnue {
@@ -263,6 +264,7 @@ func familleDecisions(c *Contexte) []signatureConnue {
 	var connues []signatureConnue
 	raisons := map[string]bool{}
 	var parChaine, approuvePourRefuse, sHaut, ecritureEcheance, autreJournal bool
+	paires := map[string]bool{} // paires de vérifications voisines en échec (EX-A.8)
 	valides := c.fichiers("decisions/valides/*.json")
 	invalides := c.fichiers("decisions/invalides/*.json")
 	for _, fic := range append(valides, invalides...) {
@@ -278,7 +280,7 @@ func familleDecisions(c *Contexte) []signatureConnue {
 		rem := cas.Get("remise")
 		res, raison := VerifierRemise(c.Sch, ctx, rem)
 		exp := cas.Get("expected")
-		c.R.Comparer(f, fic, "expected.result", exp.Get("result").S(), res, "CT-3 EX-9.11 (SG-1 à SG-6, dans l'ordre)")
+		c.R.Comparer(f, fic, "expected.result", exp.Get("result").S(), res, "CT-3 EX-9.11 (SG-1 à SG-7, dans l'ordre) ; CT-2 EX-7.5")
 		c.R.Comparer(f, fic, "expected.reason", Compact(exp.Get("reason")), Compact(chaineOuNulle(raison)), "CT-3 EX-9.11 : « la raison de la première vérification en échec » ; table de 9.4")
 		chk := Nul()
 		if raison != "" {
@@ -286,6 +288,15 @@ func familleDecisions(c *Contexte) []signatureConnue {
 		}
 		c.R.Comparer(f, fic, "check", Compact(cas.Get("check")), Compact(chk), "CT-3 A.7 : « check est la vérification SG- visée (null pour un cas valide) »")
 		raisons[raison] = true
+		if res == "refuse" {
+			echecs := EchecsRemise(c.Sch, ctx, rem)
+			for i := 0; i+1 < len(VerificationsSG); i++ {
+				a, b := VerificationsSG[i].ID, VerificationsSG[i+1].ID
+				if echecs[a] != "" && echecs[b] != "" && verifParRaison[raison] == a {
+					paires[a+"/"+b] = true
+				}
+			}
+		}
 		ap := rem.Get("approval")
 		if ap == nil || ap.Kind != KindObject {
 			continue
@@ -345,8 +356,13 @@ func familleDecisions(c *Contexte) []signatureConnue {
 		}
 	}
 	fond := "CT-3 EX-A.8"
-	for _, r := range []string{"remise_mal_formee", "ticket_inconnu", "request_hash_different", "ticket_deja_decide", "echeance_depassee", "signature_invalide", "approbateur_hors_jeu", "approbateur_double", "seuil_different_du_jeu", "expire_avec_signatures", "seuil_non_atteint"} {
+	for _, r := range []string{"remise_mal_formee", "ticket_inconnu", "request_hash_different", "ticket_deja_decide", "echeance_depassee", "signature_invalide", "approbateur_hors_jeu", "approbateur_double", "seuil_different_du_jeu", "expire_avec_signatures", "seuil_non_atteint", "auto_approbation"} {
 		c.R.Exiger(f, "decisions/invalides", "au moins un cas de raison "+r, raisons[r], "aucun", fond)
+	}
+	for i := 0; i+1 < len(VerificationsSG); i++ {
+		a, b := VerificationsSG[i].ID, VerificationsSG[i+1].ID
+		c.R.Exiger(f, "decisions/invalides", "un cas où "+a+" et "+b+" échouent, refusé par "+a+" (ordre d'EX-9.11)", paires[a+"/"+b], "aucun",
+			fond+" : « un cas pour chaque paire de vérifications voisines en échec (ordre-sg1-sg2 à ordre-sg6-sg7) »")
 	}
 	c.R.Exiger(f, "decisions/invalides", "signature produite sur la chaîne « 0x… » de D_A (EX-9.7)", parChaine, "aucune", fond)
 	c.R.Exiger(f, "decisions/invalides", "signature approuve présentée dans une remise refuse", approuvePourRefuse, "aucune", fond)

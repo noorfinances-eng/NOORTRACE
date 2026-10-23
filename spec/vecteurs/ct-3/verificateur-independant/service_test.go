@@ -62,21 +62,41 @@ func TestServiceScenarioStatique(t *testing.T) {
 	if rem.ID != "apr-0001/1" || listeChaines(rem.Approbateurs) != listeChaines([]string{k.Comptes[2], k.Comptes[1]}) || rem.Motif.S() != "motif 1" || rem.Source != "jeu statique de la politique p1" {
 		t.Errorf("remise : %s", Compact(rem.JSON()))
 	}
-	// Le noyau accepte la remise (SG-1 à SG-6).
+	// Le noyau accepte la remise (SG-1 à SG-7).
 	sch := schemasTest(t)
 	ctx := &ContexteNoyau{OrgID: k.OrgID, JournalID: k.JournalID, Decides: map[string]bool{}, ExpireAfterMs: 3600000, EcritureA: at(6)}
-	ctx.Retenues = append(ctx.Retenues, struct {
-		Seq    int64
-		Ticket string
-		Hash   string
-		Ts     Instant
-	}{5, "apr-0001", rh, at(1)})
+	ctx.Retenues = append(ctx.Retenues, RetenueNoyau{Seq: 5, Ticket: "apr-0001", Hash: rh, Ts: at(1), LaunchedBy: "dem"})
 	if r, raison := VerifierRemise(sch, ctx, rem.JSON()); r != "scelle" {
 		t.Errorf("remise refusée : %s", raison)
 	}
+	// SG-7 (CT-2 EX-7.5) : le compte 1, déclaré pour le demandeur « dem »,
+	// a signé ; refus sous « interdite », scellement sous « permise » ou
+	// quand l'adresse est déclarée pour un autre demandeur.
+	ctx.Separation = &Separation{AutoApprobation: "interdite", Identites: []Identite{{LaunchedBy: "dem", Adresses: []string{k.Comptes[1]}}}}
+	if r, raison := VerifierRemise(sch, ctx, rem.JSON()); r != "refuse" || raison != "auto_approbation" {
+		t.Errorf("SG-7 sous interdite : %s %s", r, raison)
+	}
+	ctx.Separation.AutoApprobation = "permise"
+	if r, raison := VerifierRemise(sch, ctx, rem.JSON()); r != "scelle" {
+		t.Errorf("SG-7 sous permise : %s", raison)
+	}
+	ctx.Separation = &Separation{AutoApprobation: "interdite", Identites: []Identite{{LaunchedBy: "dem ", Adresses: []string{k.Comptes[1]}}}}
+	if r, raison := VerifierRemise(sch, ctx, rem.JSON()); r != "scelle" {
+		t.Errorf("SG-7, launched_by différent d'un octet : %s", raison)
+	}
+	ctx.Separation = nil
 	ctx.EcritureA = at(61) // échéance : request_ts + E (SG-4, inégalité stricte)
 	if _, raison := VerifierRemise(sch, ctx, rem.JSON()); raison != "echeance_depassee" {
 		t.Errorf("écriture à l'échéance : %s", raison)
+	}
+	// SG-4 et SG-7 en échec : SG-4 l'emporte (ordre d'EX-9.11), et
+	// EchecsRemise les rend toutes deux.
+	ctx.Separation = &Separation{AutoApprobation: "interdite", Identites: []Identite{{LaunchedBy: "dem", Adresses: []string{k.Comptes[1]}}}}
+	if _, raison := VerifierRemise(sch, ctx, rem.JSON()); raison != "echeance_depassee" {
+		t.Errorf("SG-4 avant SG-7 : %s", raison)
+	}
+	if e := EchecsRemise(sch, ctx, rem.JSON()); e["SG-4"] != "echeance_depassee" || e["SG-7"] != "auto_approbation" || len(e) != 2 {
+		t.Errorf("échecs : %v", e)
 	}
 	res = s.Traiter("acquitter", at(6), valeur(t, fmt.Sprintf(`{"remise_id":"apr-0001/1","ticket":"apr-0001","result":"scelle","reason":null,"seq":6,"hash":%q,"at":%q,"decision":"approuve","held":false,"approval":%s}`, rh, at(6).String(), Compact(rem.Approval(at(6))))))
 	if res.Reponse.Get("state").S() != "approuve" {

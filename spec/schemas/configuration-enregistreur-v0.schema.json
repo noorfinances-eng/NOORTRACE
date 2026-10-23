@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://noortrace.example/schemas/v0/configuration-enregistreur.schema.json",
   "title": "Configuration de l'enregistreur NOORTRACE, version 0",
-  "description": "Le document JSON unique qui configure un enregistreur (CT-2 §15). Les secrets y sont toujours des références (env, file, vault), jamais des valeurs. Le membre `policy` est l'ensemble de politique nommé par code.policy_version ; tout changement de ce membre produit un événement noortrace.journal.politique dont policy_sha256 = SHA-256 du JCS intégral de ce membre (CT-2 §10.6, §15.5). Les contraintes qu'un schéma n'exprime pas (unicité des alias et des noms annoncés, cohérence des références de secrets, refus de la classe D en production, bornes de taille du signataire) sont celles de la validation au démarrage (CT-2 §15.4).",
+  "description": "Le document JSON unique qui configure un enregistreur (CT-2 §15). Les secrets y sont toujours des références (env, file, vault), jamais des valeurs. Le membre `policy` est l'ensemble de politique nommé par code.policy_version ; tout changement de ce membre produit un événement noortrace.journal.politique dont policy_sha256 = SHA-256 du JCS intégral de ce membre (CT-2 §10.6, §15.5). Le schéma référence ceux de la politique de rédaction et de la politique d'approbation (CT-3 §4), à charger avec lui. Les contraintes qu'un schéma n'exprime pas (unicité des alias et des noms annoncés, cohérence des références de secrets, refus de la classe D en production, bornes de taille du signataire, règles de la politique d'approbation que son schéma n'exprime pas, CT-3 EX-4.2 et EX-8.2) sont celles de la validation au démarrage (CT-2 §15.4).",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -312,7 +312,10 @@
           "$ref": "#/$defs/bytes"
         },
         "redaction_budget_ms": {
-          "$ref": "#/$defs/ms"
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400000,
+          "description": "Borne de temps de chaque opération qui exécute un motif ou rédige une pièce, en millisecondes, entier d'au moins 1 (CT-2 EX-10.23)."
         }
       }
     },
@@ -1025,7 +1028,8 @@
         "fsync",
         "seal",
         "retention",
-        "vault"
+        "vault",
+        "relay_mac_key"
       ],
       "properties": {
         "root": {
@@ -1189,6 +1193,20 @@
               ]
             }
           }
+        },
+        "relay_mac_key": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/secret_reference"
+            },
+            {
+              "type": "object",
+              "required": [
+                "encoding"
+              ]
+            }
+          ],
+          "description": "Référence de la clé du MAC de relais, avec encoding obligatoire ; au moins 32 octets après décodage, distincte de toute autre clé (CT-2 EX-7.22, vérifiée au pas 4 de §15.4). Le MAC lie l'appel relayé aux arguments en clair de la demande approuvée (vérification RL-2, CT-2 EX-7.21). Jamais la valeur."
         }
       }
     },
@@ -1811,7 +1829,9 @@
           "additionalProperties": false,
           "required": [
             "max_concurrent",
-            "piece_bytes_per_minute"
+            "piece_bytes_per_minute",
+            "received_bytes_per_minute",
+            "redaction_ms_per_minute"
           ],
           "properties": {
             "max_concurrent": {
@@ -1821,6 +1841,16 @@
             },
             "piece_bytes_per_minute": {
               "$ref": "#/$defs/bytes"
+            },
+            "received_bytes_per_minute": {
+              "$ref": "#/$defs/bytes",
+              "description": "Octets reçus de l'hôte par minute glissante, requêtes refusées comprises (CT-2 EX-4.47)."
+            },
+            "redaction_ms_per_minute": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400000,
+              "description": "Temps de capture consommé pour l'hôte par minute glissante, en millisecondes : analyse JSON, rédaction et sérialisation des pièces de ses requêtes (CT-2 EX-4.47)."
             }
           },
           "description": "Quotas de la connexion d'hôte (CT-2 EX-4.47)."
@@ -2343,14 +2373,15 @@
           ],
           "properties": {
             "rules": {
-              "description": "Règles d'approbation dans la syntaxe de CT-3 ; opaque pour CT-2, hachée telle quelle."
+              "$ref": "https://noortrace.example/schemas/v0/politique-approbation.schema.json",
+              "description": "Politique d'approbation : un document politique-approbation-v0 (CT-3 §4), haché avec l'ensemble de politique ; CT-2 le valide au démarrage, au rechargement et dans la commande de validation (CT-2 EX-15.4 pas 3), sans l'évaluer (CT-3 §6)."
             },
             "mode": {
               "enum": [
                 "retenir",
                 "erreur"
               ],
-              "description": "Attente de la décision : requête de l'hôte gardée ouverte, ou erreur -32015 avec ticket (CT-2 §4.4, décision ouverte 4 close par CT-3)."
+              "description": "Attente de la décision, requis : erreur (valeur de la configuration de référence, de la démonstration et des outils du projet, CT-3 EX-11.1), le signal d'approbation, résultat isError qui porte le ticket et son état, est rendu aussitôt ; retenir, la requête de l'hôte reste ouverte jusqu'à la décision ou hold_timeout_ms, une seule par ticket (CT-2 §4.4, EX-4.49, EX-4.50). La commande de validation avertit pour retenir."
             },
             "hold_timeout_ms": {
               "$ref": "#/$defs/ms"

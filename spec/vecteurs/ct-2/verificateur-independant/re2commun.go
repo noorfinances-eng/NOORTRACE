@@ -1,6 +1,10 @@
 // Sous-ensemble commun ECMAScript/RE2 des motifs nommés et des expressions
 // d'extraction (CT-2 EX-10.6, EX-7.6) : liste autorisée, vérifiée par une
-// analyse descendante du motif, point de code par point de code.
+// analyse descendante du motif, point de code par point de code, puis les
+// règles de structure et de taille de la version 0.3 : a) aucun
+// quantificateur sur un groupe dont le corps contient un quantificateur ou
+// une alternative ; b) aucun groupe quantifié dont le corps ne consomme
+// rien ; c) taille développée d'au plus 1 000.
 
 package main
 
@@ -17,6 +21,8 @@ type analyseMotif struct {
 	i      int
 	noms   map[string]bool
 	erreur string
+	// sansRegles désactive les règles a) et b) (calcul de la seule taille).
+	sansRegles bool
 }
 
 func (a *analyseMotif) refuser(format string, args ...any) {
@@ -134,14 +140,48 @@ func (a *analyseMotif) classe() {
 	a.i++ // ]
 }
 
-var reQuantificateur = regexp.MustCompile(`^\{([0-9]{1,4})(,([0-9]{0,4}))?\}`)
+var reQuantificateur = regexp.MustCompile(`^\{(0|[1-9][0-9]{0,3})(,((?:0|[1-9][0-9]{0,3})?))?\}`)
 
-func (a *analyseMotif) quantificateur() bool {
+// reQuantificateurZero reconnaît un quantificateur dont n ou m a un zéro non
+// significatif : EX-10.6, point 5, exige n et m de la forme 0|[1-9][0-9]{0,3}
+// (RE2 et Go lisent sinon « { » comme un littéral).
+var reQuantificateurZero = regexp.MustCompile(`^\{[0-9]{1,4}(,[0-9]{0,4})?\}`)
+
+// TailleMaxMotif est la borne de la règle c) d'EX-10.6.
+const TailleMaxMotif = 1000
+
+// infoMotif résume une suite, une alternative ou un groupe pour les règles
+// a) à c) : taille développée, présence d'un quantificateur ou d'une
+// alternative à quelque profondeur que ce soit, présence d'un élément qui
+// consomme un caractère (littéral, échappement de caractère, classe).
+type infoMotif struct {
+	taille     int64
+	quantOuAlt bool
+	consomme   bool
+}
+
+// plafond borne une taille développée pour éviter tout débordement : au-delà
+// de la borne de la règle c), la valeur exacte n'importe plus.
+func plafond(n int64) int64 {
+	if n > 1<<40 {
+		return 1 << 40
+	}
+	return n
+}
+
+// quantificateur lit un quantificateur éventuel ; rend s'il y en a un et son
+// facteur de taille (règle c) : 1 pour *, + et ? ; max(n, 1) pour {n} ;
+// n + 1 pour {n,} ; max(m, 1) pour {n,m}.
+func (a *analyseMotif) quantificateur() (bool, int64) {
+	facteur := int64(1)
 	switch c := a.car(0); {
 	case c == '*' || c == '+' || c == '?':
 		a.i++
 	case c == '{':
 		m := reQuantificateur.FindStringSubmatch(string(a.r[a.i:]))
+		if m == nil && reQuantificateurZero.MatchString(string(a.r[a.i:])) {
+			a.refuser("zéro non significatif dans un quantificateur")
+		}
 		if m == nil {
 			a.refuser("« { » qui n'ouvre pas un quantificateur")
 		}
@@ -157,9 +197,17 @@ func (a *analyseMotif) quantificateur() bool {
 		if n > 1000 || (mx != -1 && (mx > 1000 || mx < n)) {
 			a.refuser("quantificateur hors de 0 ≤ n ≤ m ≤ 1000")
 		}
+		switch {
+		case m[2] == "":
+			facteur = int64(max(n, 1))
+		case mx == -1:
+			facteur = int64(n) + 1
+		default:
+			facteur = int64(max(mx, 1))
+		}
 		a.i += len([]rune(m[0]))
 	default:
-		return false
+		return false, 1
 	}
 	if a.car(0) == '?' {
 		a.i++
@@ -167,39 +215,54 @@ func (a *analyseMotif) quantificateur() bool {
 	if c := a.car(0); c == '*' || c == '+' || c == '?' || c == '{' {
 		a.refuser("quantificateur répété ou possessif")
 	}
-	return true
+	return true, facteur
 }
 
-func (a *analyseMotif) alternative(profondeur int) {
+// alternative lit des suites séparées par « | » ; la taille est la somme de
+// celles des suites (règle c).
+func (a *analyseMotif) alternative(profondeur int) infoMotif {
+	var out infoMotif
 	for {
-		a.sequence(profondeur)
+		s := a.sequence(profondeur)
+		out.taille = plafond(out.taille + s.taille)
+		out.quantOuAlt = out.quantOuAlt || s.quantOuAlt
+		out.consomme = out.consomme || s.consomme
 		if a.car(0) != '|' {
-			return
+			return out
 		}
+		out.quantOuAlt = true
 		a.i++
 	}
 }
 
-func (a *analyseMotif) sequence(profondeur int) {
+// sequence lit une suite d'éléments éventuellement quantifiés et applique
+// les règles a) et b) à chaque groupe quantifié.
+func (a *analyseMotif) sequence(profondeur int) infoMotif {
+	var out infoMotif
 	for {
 		c := a.car(0)
 		if c == -1 || c == '|' || c == ')' {
 			if c == ')' && profondeur == 0 {
 				a.refuser("« ) » sans « ( »")
 			}
-			return
+			return out
 		}
 		quantifiable := true
+		groupe := false
+		elt := infoMotif{taille: 1}
 		switch {
 		case c == '^' || c == '$':
 			a.i++
 			quantifiable = false
 		case c == '\\':
 			if estCar, v := a.echappement(false); !estCar && v == -1 {
-				quantifiable = false
+				quantifiable = false // frontière \b, \B : ne consomme rien
+			} else {
+				elt.consomme = true // échappement de caractère, ou \d \D \w \W
 			}
 		case c == '[':
 			a.classe()
+			elt.consomme = true
 		case c == '(':
 			a.i++
 			if a.car(0) == '?' {
@@ -219,7 +282,8 @@ func (a *analyseMotif) sequence(profondeur int) {
 				}
 				a.i += len([]rune(m[0]))
 			}
-			a.alternative(profondeur + 1)
+			elt = a.alternative(profondeur + 1)
+			groupe = true
 			if a.car(0) != ')' {
 				a.refuser("groupe non fermé")
 			}
@@ -230,15 +294,50 @@ func (a *analyseMotif) sequence(profondeur int) {
 			a.refuser("« %c » non échappé", c)
 		default:
 			a.i++
+			elt.consomme = true
 		}
-		if a.quantificateur() && !quantifiable {
-			a.refuser("quantificateur sur une ancre ou une frontière")
+		if q, facteur := a.quantificateur(); q {
+			if !quantifiable {
+				a.refuser("quantificateur sur une ancre ou une frontière")
+			}
+			if groupe && elt.quantOuAlt && !a.sansRegles {
+				a.refuser("règle a) : quantificateur sur un groupe dont le corps contient un quantificateur ou une alternative")
+			}
+			if groupe && !elt.consomme && !a.sansRegles {
+				a.refuser("règle b) : groupe quantifié dont le corps ne consomme aucun caractère")
+			}
+			elt.taille = plafond(elt.taille * facteur)
+			elt.quantOuAlt = true
 		}
+		out.taille = plafond(out.taille + elt.taille)
+		out.quantOuAlt = out.quantOuAlt || elt.quantOuAlt
+		out.consomme = out.consomme || elt.consomme
 	}
 }
 
+// TailleDeveloppee rend la taille développée d'un motif fait des
+// constructions du sous-ensemble (règle c d'EX-10.6), qu'il respecte ou non
+// les règles a) et b), ou -1 s'il n'est pas dans le sous-ensemble.
+func TailleDeveloppee(motif string) (taille int64) {
+	a := &analyseMotif{r: []rune(motif), noms: map[string]bool{}, sansRegles: true}
+	defer func() {
+		if x := recover(); x != nil {
+			if x != a {
+				panic(x)
+			}
+			taille = -1
+		}
+	}()
+	info := a.alternative(0)
+	if a.i < len(a.r) {
+		return -1
+	}
+	return info.taille
+}
+
 // ErreurMotifCommun rend "" si le motif est dans le sous-ensemble commun
-// d'EX-10.6 et se compile en RE2, sinon la raison du refus.
+// d'EX-10.6, respecte les règles de structure et de taille a) à c) et se
+// compile en RE2 (en Go, tel quel), sinon la raison du refus.
 func ErreurMotifCommun(motif string) (raison string) {
 	a := &analyseMotif{r: []rune(motif), noms: map[string]bool{}}
 	defer func() {
@@ -249,9 +348,12 @@ func ErreurMotifCommun(motif string) (raison string) {
 			raison = a.erreur
 		}
 	}()
-	a.alternative(0)
+	info := a.alternative(0)
 	if a.i < len(a.r) {
 		a.refuser("« ) » sans « ( »")
+	}
+	if info.taille > TailleMaxMotif {
+		return fmt.Sprintf("règle c) : taille développée %d, au-delà de %d", info.taille, TailleMaxMotif)
 	}
 	if _, err := regexp.Compile(motif); err != nil {
 		return "motif invalide en RE2 : " + err.Error()

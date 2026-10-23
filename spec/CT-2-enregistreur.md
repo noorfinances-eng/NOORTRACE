@@ -1,12 +1,16 @@
 # CT-2 — Enregistreur
 
-Version 0.2, 2026-10-22. Spécification normative, soumise à revue. Elle met
+Version 0.3, 2026-10-23. Spécification normative, soumise à revue. Elle met
 en œuvre la section
 « Capture : où l'enregistreur se place » et la section « Journal : comment un
 événement est écrit » de l'[architecture cible](../ARCHITECTURE.md), s'appuie
 sur le format d'événement de [CT-1](CT-1-evenements-et-formats.md) sans le
 modifier, et clôt les décisions ouvertes 2 (clés de l'enregistreur) et 3
-(rédaction avant hachage) de l'architecture (section 20).
+(rédaction avant hachage) de l'architecture (section 20). La révision 0.3
+l'aligne sur [CT-3](CT-3-approbations.md) (interface du service
+d'approbation), retire les codes d'erreur de la plage que la révision MCP
+`2026-07-28` dit héritée et borne le coût des motifs de rédaction ; la
+section 0.4 dit ce qu'elle change.
 
 ## 0. En-tête, conventions, lecture
 
@@ -23,21 +27,26 @@ EX-4.3 : troisième règle de la section 4), stable, auquel le plan de tests
 dans l'ordre du texte à l'intérieur de chaque section de premier niveau,
 sous-sections comprises. Une règle ajoutée par une révision reçoit le numéro
 qui suit le plus grand de sa section, quel que soit l'endroit où elle est
-insérée (la version 0.2 ajoute ainsi EX-4.43 et suivants) ; aucun numéro
-n'est jamais réattribué. Une règle retirée garde son numéro, marqué
-« retiré ».
+insérée (la version 0.2 ajoute ainsi EX-4.43 et suivants, la version 0.3
+EX-4.49 et suivants) ; aucun numéro n'est jamais réattribué. Une règle
+retirée garde son numéro, marqué « retiré ». Les règles ajoutées, modifiées
+ou retirées par chaque révision sont listées en 0.4.
 
 Les faits externes (révision du protocole MCP, formats d'API, variables des
 SDK, comportement des mandataires et des pare-feu) viennent des digests de
-recherche du lot CT-2, notes internes toutes relues le 2026-10-22 sur les
-pages officielles ou les fichiers de code qu'elles citent. Chaque fait porte
-un renvoi court (R1 à R9, suivi le plus souvent du numéro de question, de
-fait, de point non vérifié, de conséquence ou de section, par exemple
-« R1 Q2 » ou « R7 F-25 » ; sans numéro, le renvoi vise la note entière) ; ces
-digests ne sont pas publiés. L'annexe C résout chaque renvoi : elle donne
-l'objet du fait et la ou les sources primaires publiques consultées, avec leur
-date de consultation, de sorte que le lecteur peut recouper le fait sans le
-digest. Quand le texte nomme une page officielle, l'annexe C en donne l'URL
+recherche du lot CT-2, notes internes toutes relues le 2026-10-22 sur les pages
+officielles ou les fichiers de code qu'elles citent. Chaque fait porte un
+renvoi court (R1 à R9, suivi le plus souvent du numéro de question, de fait, de
+point non vérifié, de conséquence ou de section, par exemple « R1 Q2 » ou « R7
+F-25 » ; sans numéro, le renvoi vise la note entière) ; ces digests ne sont pas
+publiés. La révision 0.3 s'appuie en outre sur une dixième note, **R10**
+(politique des codes d'erreur de MCP, traitement des erreurs par les SDK et les
+hôtes, motifs à retour arrière, exécution bornée dans Node.js), relue le
+2026-10-23 sur ses sources primaires ; ses faits portent la forme « R10 F-2 »
+et ses points non vérifiés « R10 NV-3 ». L'annexe C résout chaque renvoi : elle
+donne l'objet du fait et la ou les sources primaires publiques consultées, avec
+leur date de consultation, de sorte que le lecteur peut recouper le fait sans
+le digest. Quand le texte nomme une page officielle, l'annexe C en donne l'URL
 sous le renvoi qui l'accompagne ; certaines de ces URL figurent aussi dans le
 texte. Ce qui n'a pas pu être vérifié est écrit comme tel, dans le texte comme
 dans l'annexe C ; l'annexe C signale aussi ce que la note n'appuie sur aucune
@@ -99,6 +108,101 @@ et l'Inspector MCP démarre par défaut en ère héritée
 La spécification nomme « dual-era » une implémentation qui gère les deux ères
 (R1 Q2). L'enregistreur est dual-era (section 4.2).
 
+La révision `2026-07-28` partage aussi la plage `-32000` à `-32099` que
+JSON-RPC 2.0 laisse aux erreurs définies par l'implémentation : `-32000` à
+`-32019` sont dits hérités (aucun code nouveau n'y est alloué, MUST NOT ;
+une implémentation nouvelle ne les emploie pas, SHOULD NOT ; le récepteur ne
+leur suppose aucun sens, MUST NOT, sauf `-32002`) ; `-32020` à `-32099` sont
+réservés à la spécification ; un code nouveau est pris hors de `-32768` à
+`-32000` (SHOULD) (page Overview, section « Error Codes », R10 F-2 à F-4).
+La version 0.2 prenait ses codes dans `-32010` à `-32019` sur la foi du
+journal des modifications de la révision, plus souple que le texte
+normatif (R10 F-5, F-15). La version 0.3 prend les codes de l'enregistreur
+hors de la plage réservée et rend les issues d'approbation comme des
+résultats d'outil (4.4, « Codes d'erreur de l'enregistreur »).
+
+### 0.4 Révisions
+
+La version 0.2 est datée du 2026-10-22 ; elle a ajouté EX-4.43 et suivants
+aux identifiants de la version 0.1 (0.1). La version 0.3 est datée du
+2026-10-23 : elle applique les lignes de CT-3 §15.2 dont l'emplacement est
+CT-2, la politique des codes d'erreur de la révision MCP `2026-07-28` (0.3)
+et un contrôle des motifs de rédaction dont le coût est borné.
+
+**Révision 0.3.** Interface du service d'approbation (section 7.5,
+nouvelle) : messages `charger`, `evaluer`, `ouvrir`, `decisions`,
+`acquitter`, `consommer` et `expiration` de CT-3 §12, réponse d'`evaluer`
+avec `ticket_state`, `approval` et `approver_set`, liste `CANDIDATS` de
+CT-3 EX-4.11. Propositions de CT-3 §15.2, toutes adoptées et normatives :
+refus de sceller une `retenue` d'un ticket déjà décidé (EX-7.17) ;
+vérifications de relais RL-1 à RL-4 et MAC de relais (EX-7.21, EX-7.22) ;
+envoi des `launched_by` fixes dans `charger` (EX-7.15) ; validation de
+`policy.approval.rules` avant le scellement (EX-15.4 pas 3) ; vérification
+SG-7 de la séparation des tâches (EX-7.5). Signal d'approbation en résultat
+d'outil `isError: true` (EX-4.49) ; codes de l'enregistreur `-31010` à
+`-31017` au lieu de `-32010` à `-32017`, `-32015` retiré sans successeur
+(4.4, EX-4.24). Contrôle des motifs (EX-10.6 : règles de structure et de
+taille) et budget de rédaction appliqué à tout ce que les motifs examinent
+(EX-10.23). Conservation de l'`approver_set` des décisions et export dans
+`approbations.json` (EX-12.23). Motif d'approbation soumis à la rédaction
+(EX-10.24). Mode d'attente `erreur`, requis, dans l'exemple de
+configuration, et `rules` désigné par `$ref` vers `politique-approbation-v0`
+dans le schéma de configuration (15.3).
+
+La relecture de la révision 0.3 l'a complétée, à la même date, sur les
+points suivants. Une continuation MRTR n'hérite d'une décision qu'avec les
+mêmes arguments en clair (MAC de relais), un `requestState` à usage unique
+et, sous un ticket, RL-1 à RL-4, RL-3 en mode continuation (EX-4.21,
+EX-7.21) ; seul le premier `executee` d'un ticket donne `consommer`, dont
+certaines réponses sont finales (EX-7.20, CT-3 T22) ; RL-4 a la marge du
+délai de l'outil. Une réponse d'`evaluer` a ses six membres dans un ordre
+quelconque et, pour `nouveau`, un jeu exploitable ; l'expiration par le
+noyau seul prend le dernier jeu exploitable et son seuil (EX-7.16, EX-9.4).
+Les lignes `retenue`, `mac` et `decision` des fichiers des approbations sont
+écrites avant l'ajout de leur événement au segment ; les continuations y
+sont inscrites ; chaque fichier `mac-*` commence par une ligne de contrôle de
+la clé, la même pour toutes les instances (EX-12.23, EX-7.22, 13.4). Le
+noyau ne scelle pas une seconde `retenue` d'un ticket dont une `retenue`
+est durable (4.4 pas 6, EX-7.17) ; en mode dégradé, une remise n'est pas
+inscrite (EX-7.19). EX-10.6 ne réécrit que les ouvertures de groupe nommé
+reconnues par l'analyse et refuse un quantificateur à zéro non
+significatif ; EX-10.23 borne aussi le contrôle des jetons au démarrage,
+refuse avant relais un appel d'écriture ou susceptible d'approbation dont la
+pièce « arguments » dépasse la borne, remplace un gabarit d'effets sans effet
+par l'effet par défaut, et tient pour levé R10 NV-4 ; la borne est un entier
+d'au moins 1. Les quotas d'une connexion d'hôte comptent aussi les octets
+reçus et le temps de capture (EX-4.47), et la capture s'exécute hors des
+fils d'entrée-sortie (EX-3.6). La longueur d'une pièce non rédigeable est
+définie (EX-8.7) ; le `path` des règles n'est pas résolu pour une valeur en
+ligne (EX-6.6, EX-7.2, EX-8.6, EX-10.18, EX-10.24). L'exemple de 15.3 donne
+une identité de séparation au demandeur `poste-cursor` et les quatre quotas
+(EX-10.21 change de valeurs) ; la démonstration de la version 0.3 porte une
+politique d'approbation conforme, et `journal-demo` reste celle de la
+version 0.2 (19.1, 19.2, 19.4, B.6).
+
+- Règles ajoutées : EX-3.6, EX-4.49, EX-4.50, EX-6.7, EX-7.14 à EX-7.22,
+  EX-10.24, EX-12.23.
+- Règles modifiées : EX-4.8, EX-4.15, EX-4.18, EX-4.21, EX-4.22, EX-4.23,
+  EX-4.24, EX-4.28, EX-4.31, EX-4.33, EX-4.46, EX-4.47, EX-4.48, EX-6.4,
+  EX-6.6, EX-7.2, EX-7.4, EX-7.5, EX-7.12, EX-8.6, EX-8.7, EX-9.4, EX-10.2,
+  EX-10.4, EX-10.6, EX-10.18, EX-10.21, EX-10.23, EX-12.1, EX-12.8, EX-13.6,
+  EX-13.10, EX-14.5, EX-14.9, EX-15.1, EX-15.3, EX-15.4, EX-15.5, EX-15.7,
+  EX-17.2, EX-19.4 ; pas 1 à 7, 11, 13 et 14 de 4.4 ; paragraphe des fils de
+  3.4, rétabli ; tables de 1, 2, 3.2, 3.3, 4.4, 6.2 (résultat de
+  `debutAppel` : `ticket_state`, `call` nul hors `autorise`), 9.1, 14.2,
+  17.2 et 17.4 ; 13.4 ; 15.3 ; 19.1, 19.2, 19.4 et 19.5 ; section 21 ;
+  annexes A, B et C.
+- Règles retirées : aucune.
+- Vecteurs `spec/vecteurs/ct-2` qui changent : les codes des cas
+  `pieces-mcp/appels/{delai,injoignable,taille-depassee}`, les membres
+  `approval` et `result_rendered` de tous les `attendu.json` de
+  `pieces-mcp`, les cas d'approbation ajoutés à `pieces-mcp`, le signal
+  rendu de `journal-demo` (`result_rendered_seq_5`), `redaction/motifs.json`
+  (motifs refusés par les règles a) à c) et par le zéro non significatif,
+  motifs à « (?P< » avec leur membre `matches`), `INDEX.md` (annexe B). Les
+  événements de `journal-demo`, les vecteurs de CT-1 et de CT-6 et les
+  formats v0 de CT-1 ne changent pas.
+
 ## 1. Objet et périmètre
 
 CT-2 fixe, pour la version 0 de l'enregistreur :
@@ -124,8 +228,8 @@ CT-2 fixe, pour la version 0 de l'enregistreur :
    sorte par sorte, les règles de `ts` et de `seq`, l'horloge (section 7) ;
 6. la **sérialisation des pièces** : JCS intégral après rédaction, pièce par
    pièce, pièces non JSON, `media_type`, stockage par `sha256` (section 8) ;
-7. le **journal sur lui-même** : ce qui déclenche les quatre événements réservés,
-   et le journal d'exploitation hors chaîne (section 9) ;
+7. le **journal sur lui-même** : ce qui déclenche les quatre événements
+   réservés, et le journal d'exploitation hors chaîne (section 9) ;
 8. la **rédaction avant hachage**, politique versionnée, détecteurs exacts,
    politique `pii-v1` publiée (section 10, décision ouverte 3) ;
 9. les **clés de l'enregistreur**, classes de garde A à D, rotation,
@@ -145,22 +249,24 @@ CT-2 fixe, pour la version 0 de l'enregistreur :
     l'alignement avec le dépôt (section 22) ;
 18. la **disposition des vecteurs** `spec/vecteurs/ct-2` (annexe B).
 
-Hors périmètre : le langage des règles d'approbation, le cycle de vie des
-tickets et le choix entre réponse retenue et erreur avec ticket (CT-3, décision
-ouverte 4 ; CT-2 fixe seulement le point d'appel et ce que l'enregistreur fait
-de chaque sortie) ; le registre, l'inscription et la révocation des clés
-(CT-4 ; CT-2 fixe ce que l'enregistreur envoie et attend) ; les ancres RFC 3161
-et OpenTimestamps (CT-5) ; la ligne de commande et la sortie du vérificateur
-(CT-6) ; la cérémonie des clés, l'analyse de conformité et la revue de sécurité
-(CT-7) ; le déploiement, la sauvegarde et l'exploitation du service (CT-8) ; le
-plan de tests (CT-9).
+Hors périmètre : le langage des règles d'approbation, leur évaluation, le cycle
+de vie des tickets et le mode d'attente par défaut (CT-3, qui clôt la décision
+ouverte 4 ; CT-2 fixe le point d'appel, les messages que le noyau échange avec
+le service d'approbation, les vérifications qu'il fait avant de sceller une
+décision ou de relayer un appel approuvé, et ce que l'enregistreur fait de
+chaque réponse, section 7.5) ; le registre, l'inscription et la révocation des
+clés (CT-4 ; CT-2 fixe ce que l'enregistreur envoie et attend) ; les ancres RFC
+3161 et OpenTimestamps (CT-5) ; la ligne de commande et la sortie du
+vérificateur (CT-6) ; la cérémonie des clés, l'analyse de conformité et la
+revue de sécurité (CT-7) ; le déploiement, la sauvegarde et l'exploitation du
+service (CT-8) ; le plan de tests (CT-9).
 
 Relations avec les autres spécifications :
 
 | Spécification | Ce que CT-2 lui fournit | Ce que CT-2 attend d'elle |
 |---|---|---|
 | CT-1 | Des événements, manifestes et dossiers conformes ; les vecteurs CT-2 sont vérifiables par les outils de CT-1 | Le format, inchangé |
-| CT-3 | Le point d'appel de la politique avant relais (7.2), la classification des outils (4.3, 14), l'objet `approval` recopié dans l'appel relayé, les deux comportements d'attente (4.4) | Les règles, l'évaluation `rule`/`decision`/`ticket`, la décision signée, la sortie `expire` |
+| CT-3 | Le point d'appel de la politique avant relais (7.2), les messages du noyau au service (7.5), la vérification des remises SG-1 à SG-7 (EX-7.5) et des relais RL-1 à RL-4 (EX-7.21), la classification des outils (4.3, 14), l'objet `approval` recopié dans l'appel relayé et dans le `refusee` d'un ticket décidé (EX-7.12), le signal d'approbation (EX-4.49), les deux comportements d'attente (4.4, EX-4.50), la validation de `policy.approval.rules` (EX-15.4) | Le document `politique-approbation-v0` et son évaluation, la réponse d'`evaluer` (CT-3 §12.3 : `rule`, `decision`, `ticket`, `ticket_state`, `approval`, `approver_set`), les remises signées, la sortie `expire`, la liste des outils susceptibles d'approbation, le mode d'attente par défaut (`erreur`) |
 | CT-4 | La clé publique à inscrire, l'événement de rotation (9.1), la racine à enregistrer | L'inscription et la révocation ; jamais un blocage d'appel (14) |
 | CT-5 | La racine horaire et le manifeste signé (CT-1 §10) | Les jetons et preuves ; jamais un blocage d'appel (14) |
 | CT-6 | Les pièces sous leur `sha256` (8.4) et le journal en segments lisibles sans l'enregistreur (12) | Le vérificateur hors ligne |
@@ -212,6 +318,10 @@ S'y ajoutent, fixés pour toute la spécification :
 | Ensemble de politique | Le document JSON unique nommé par `code.policy_version` : règles d'approbation (CT-3), règles de rédaction, carte des serveurs d'outils et réglages de panne (7.2, 9.1, 15). |
 | Référence de secret | Désignation d'un secret par son emplacement (variable d'environnement, fichier, coffre), jamais sa valeur, dans la configuration (15). |
 | Service d'approbation | Le composant de CT-3 que l'enregistreur appelle avant relais et qui lui rend les décisions. |
+| Remise | Une décision d'un ticket que le service remet au noyau (message `decisions`, CT-3 §12.5) ; le noyau la vérifie (SG-1 à SG-7, EX-7.5) avant de la sceller. |
+| Signal d'approbation | Le résultat d'outil `isError: true`, de texte fixe, que le frontal rend pour un appel dont le ticket est en attente, refusé ou expiré (EX-4.49) ; ce n'est pas une erreur JSON-RPC. |
+| MAC de relais | HMAC-SHA-256, sous une clé propre au noyau, du JCS intégral des arguments en clair d'un appel retenu ; il permet de comparer l'appel relayé à la demande approuvée sans garder le clair (EX-7.22). |
+| Fichiers des approbations | Fichiers hors chaîne, en ajout seul, où le noyau garde les jeux d'approbateurs reçus du service et les MAC de relais (EX-12.23). |
 
 ## 3. Architecture interne de l'enregistreur
 
@@ -222,7 +332,7 @@ S'y ajoutent, fixés pour toute la spécification :
 | Frontal MCP | Serveur MCP pour l'hôte, client MCP pour chaque serveur d'outils ; agrège `tools/list`, relaie `tools/call`, relaie hors chaîne les autres méthodes. | 4 |
 | Frontal modèle | Reçoit (passerelle), lit (ICAP) ou observe (miroir) les requêtes d'API de modèle et leurs réponses ; réassemble les flux. | 5 |
 | Point d'entrée SDK | Reçoit du SDK, par une prise locale, les appels d'outils et échanges de modèle que l'agent exécute lui-même. | 6 |
-| Moteur de politique (point d'appel de CT-3) | Classe l'outil, évalue la règle, rend `autorise`, `a_approuver` ou `refuse`, gère l'attente de la décision. | 7.2, 14, CT-3 |
+| Moteur de politique (point d'appel de CT-3) | Classe l'outil, soumet la demande au service d'approbation, qui évalue la règle, applique sa réponse (`autorise`, `a_approuver` ou `refuse`, état du ticket), gère l'attente de la décision, vérifie les remises et les relais d'appels approuvés. | 7.2, 7.5, 14, CT-3 |
 | Rédacteur | Applique les règles de rédaction de l'ensemble de politique aux pièces, avant hachage. | 10 |
 | Noyau | Construit l'événement CT-1, sérialise les pièces (JCS intégral) et l'événement (JCS v0), hache, fait signer, chaîne. | 7, 8 |
 | Signataire | Détient la clé Ed25519 ; classes de garde A (matériel), B (service de signature), C (enveloppe), D (fichier, développement). | 11 |
@@ -242,14 +352,18 @@ Un appel d'outil par le frontal MCP, dans l'ordre :
 2. Le frontal MCP résout le nom annoncé en (alias de serveur, nom d'origine)
    et retrouve la définition d'outil servie à cette connexion d'hôte et la
    définition courante (EX-4.45).
-3. Le moteur de politique classe l'outil et évalue la règle sur les arguments
-   **en clair**, en mémoire ; sortie `autorise`, `a_approuver` ou `refuse`.
+3. Le moteur de politique classe l'outil et soumet la demande, arguments
+   **en clair**, en mémoire, au service d'approbation, qui évalue la règle ;
+   sortie `autorise`, `a_approuver` ou `refuse`, et état du ticket (7.5).
 4. Le rédacteur produit les arguments rédigés ; le noyau les sérialise en JCS
    intégral : c'est la pièce « arguments », stockée et hachée.
-5. Si la sortie est `a_approuver`, le noyau scelle et stocke un événement
-   `retenue`, puis le moteur de politique attend la décision de CT-3 ; si la
-   sortie est `refuse`, un événement `refusee` est scellé et l'hôte reçoit une
-   erreur ; sinon, suite.
+5. Pour un ticket nouveau (`a_approuver`), le noyau scelle et stocke un
+   événement `retenue`, remet le ticket au service, puis applique le mode
+   d'attente ; pour un ticket en attente, aucun événement, et l'hôte reçoit
+   le signal d'approbation ; pour un refus (sans ticket, ou ticket refusé ou
+   expiré), un événement `refusee` est scellé et l'hôte reçoit un résultat
+   d'outil `isError: true` ; pour `autorise`, suite (après les vérifications
+   de relais si le ticket est approuvé).
 6. Pour un outil de classe `ecriture`, le stockage inscrit l'intention et la
    force sur disque (`fsync`) avant tout relais.
 7. Le frontal MCP envoie l'appel au serveur d'outils ; il relaie à l'hôte, au
@@ -283,7 +397,7 @@ pas 1, 7 et 10 n'existent pas.
 | Enregistreur ↔ fournisseur de modèle | HTTP, identifiants du client ou de l'enregistreur | Partielle : le contenu produit par le modèle est une donnée, jamais une instruction pour l'enregistreur. |
 | Enregistreur ↔ signataire | Messages à signer, signatures | Pleine, authentifiée (section 11) : le signataire ne signe que pour l'enregistreur qui détient le bail. |
 | Enregistreur ↔ stockage | Segments, pièces, intentions | Pleine : volume dédié, hors d'atteinte de l'agent (section 12, 18). |
-| Enregistreur ↔ CT-3, CT-4, CT-5 | Décisions, inscriptions, racines, jetons | Pleine mais non bloquante pour CT-4 et CT-5 (section 14) ; CT-3 rend une décision ou un délai, jamais un appel relayé sans décision. |
+| Enregistreur ↔ CT-3, CT-4, CT-5 | Décisions, inscriptions, racines, jetons | Pleine mais non bloquante pour CT-4 et CT-5 (section 14) ; CT-3 rend une décision ou un délai, jamais un appel relayé sans décision ; ses réponses sont vérifiées (forme, EX-7.16 ; remises, SG-1 à SG-7 ; relais, RL-1 à RL-4), parce que celles qui disent `autorise` ou `refuse` ne sont pas signées (EX-18.8). |
 
 **EX-3.1** L'enregistreur NE DOIT PAS tirer d'un message de l'hôte, du serveur
 d'outils ou du modèle une décision de sécurité autre que celles que cette
@@ -348,13 +462,33 @@ lancement, soit, pour un lanceur de paquets (`npx`, `uvx`, `pipx`), le nom et
 la version exacte du paquet (`"package": "<nom>@<version>"`), que la commande
 DOIT contenir tels quels ; `npx -y <paquet>` sans version télécharge un code
 nouveau à chaque lancement et est refusé.
+
+Fils du démon : un fil (ou une tâche d'entrée-sortie asynchrone) par
 connexion d'hôte et par connexion de serveur d'outils pour l'entrée-sortie ; un
 **unique écrivain** par journal pour le noyau et le stockage, qui sérialise
 `seq`, `prev_hash`, l'ajout au segment et le `fsync` (section 12 : validation
 groupée possible, un `fsync` pour plusieurs événements, sans jamais répondre à
 l'hôte avant que l'événement de son appel soit durable) ; un fil pour le bail
-(renouvellement) ; un fil pour la clôture horaire ; un fil pour la supervision.
+(renouvellement) ; un fil pour la clôture horaire ; un fil pour la supervision ;
+un groupe de fils de calcul pour la capture (EX-3.6).
 Aucune décision de `seq` n'est prise hors de l'écrivain.
+
+**EX-3.6** La rédaction des pièces, l'exécution des motifs sous la borne de
+temps d'EX-10.23 et les autres opérations de capture dont le coût suit la
+taille des données reçues (analyse JSON, sérialisation des pièces) DOIVENT
+s'exécuter hors des fils d'entrée-sortie, de l'écrivain et du bail : sur un
+groupe de fils de calcul de taille bornée (par exemple, avec Node.js, des
+`Worker` dont un dépassement de la borne arrête l'opération), de sorte
+qu'une requête coûteuse d'un hôte ne retarde ni les autres hôtes, ni
+l'écriture des événements, ni le renouvellement du bail. Une exécution
+synchrone sous `node:vm` (EX-10.23) occupe en effet le fil qui l'appelle
+jusqu'à la borne, et au-delà pour la sérialisation : sur un même fil, la
+pièce « arguments » de quatre requêtes de 15 Mio sous `pii-v1`, chacune
+au-delà d'une borne de 1 000 ms et réduite à la pièce non rédigeable de
+96 octets, a pris 5 039 ms, pendant lesquelles un minuteur de 50 ms n'a pas
+pu s'exécuter (mesure sous Node.js v22.22.0, le 2026-10-23, avec
+`scripts/lib/capture.mjs`). Le temps que consomme chaque hôte est en outre
+borné par son quota (EX-4.47).
 
 ### 3.5 Dans et hors du processus de l'agent
 
@@ -475,7 +609,7 @@ true }` toujours ; `resources`, `prompts`, `completions` seulement si la
 configuration autorise leur relais (section 4.5) et si au moins un serveur les
 annonce ; `extensions` : aucune en version 0 (l'extension `tasks`
 `io.modelcontextprotocol/tasks` n'est pas relayée : un serveur qui rendrait un
-`resultType: "task"` provoque l'erreur `-32016`, section 4.4, parce que le
+`resultType: "task"` provoque l'erreur `-31016`, section 4.4, parce que le
 frontal n'a pas déclaré l'extension à l'hôte).
 
 Arrêt : à la fermeture de son entrée standard, un connecteur stdio ferme la
@@ -584,7 +718,9 @@ serveur hérité y figure, et `cacheScope: "private"` si un serveur a répondu
 **`list_changed`.** **EX-4.15** Vers chaque serveur moderne, le frontal ouvre
 `subscriptions/listen` avec `toolsListChanged: true` dès la connexion ; vers un
 serveur hérité, il reçoit `notifications/tools/list_changed` sur le flux de la
-connexion. À réception, il relit la liste du serveur, applique EX-4.11, puis
+connexion. À réception, il relit la liste du serveur, applique EX-4.11, et,
+si la liste agrégée a changé, renvoie au service d'approbation le message
+`charger` (EX-7.15) ; puis il
 notifie l'hôte : `notifications/tools/list_changed` sur le flux
 `subscriptions/listen` ouvert par un hôte moderne qui a demandé
 `toolsListChanged`, sur le flux GET ou `stdout` d'un hôte hérité. Sur stdio,
@@ -633,10 +769,10 @@ result »,
 https://developers.cloudflare.com/cloudflare-one/access-controls/ai-controls/mcp-portals/,
 R9 F-82), l'omission est consignée, la santé passe à `degraded` (section
 17). Ses outils reviennent au rafraîchissement suivant, avec `list_changed`.
-Le relais d'un `tools/call` vers un serveur injoignable est, lui, une erreur
-: le pas 2 de 4.4 résout le nom sur la **dernière liste reçue avec succès de
+Le relais d'un `tools/call` vers un serveur injoignable est, lui, une erreur :
+le pas 2 de 4.4 résout le nom sur la **dernière liste reçue avec succès de
 chaque serveur**, de sorte qu'un outil omis parce que son serveur est
-injoignable rend `-32014` (section 4.4), et non `-32602` « Unknown tool ».
+injoignable rend `-31014` (section 4.4), et non `-32602` « Unknown tool ».
 
 ### 4.4 Relais de `tools/call`
 
@@ -661,67 +797,102 @@ Séquence pour un appel reçu d'un hôte moderne, relayé à un serveur moderne
    pas représenter exactement, `-32602` (EX-4.44). Aucune de ces erreurs ne
    produit de pièce, d'intention ni d'événement. Taille : au-delà de
    `limits.request_max_bytes` (défaut 16 777 216), la lecture s'arrête et le
-   frontal rend `-32013` sans relayer ; aucune pièce n'est écrite, le
+   frontal rend `-31013` sans relayer ; aucune pièce n'est écrite, le
    journal d'exploitation note la taille reçue. Les quotas de la connexion
-   d'hôte (EX-4.47) sont vérifiés ici.
+   d'hôte (EX-4.47 : requêtes en cours, octets reçus, octets de pièces, temps
+   de capture) sont vérifiés ici ; les octets reçus sont comptés même pour
+   une requête refusée.
 2. **Résolution.** `params.name` est découpé au premier `__` (ou pris tel quel
    sans préfixe) et cherché dans la dernière liste reçue avec succès de
    chaque serveur (EX-4.18) ; un nom qui n'y est pas rend
    `{"code": -32602, "message": "Unknown tool: <nom>"}`, la forme exacte de
-   la page Tools (R1 Q3) ; un nom d'un serveur injoignable rend `-32014`. La
+   la page Tools (R1 Q3) ; un nom d'un serveur injoignable rend `-31014`. La
    définition servie à cette connexion d'hôte et la définition courante
    donnent les pièces de contexte (EX-4.45) ; la définition courante donne
    la classe (EX-14.1).
-3. **Politique.** Le moteur de politique reçoit le nom annoncé, le nom
-   d'origine, l'alias, les arguments **en clair** (valeur JSON analysée), la
-   classe, la délégation de la connexion d'hôte, l'intention corrélée
-   (section 5.6) et rend `{ rule, decision, ticket }` (section 7.2, CT-3).
-   Quand CT-3 reconnaît la ré-émission d'un appel dont le ticket est décidé
-   `approuve` (pas 6) et rend `autorise` avec l'objet `approval`, l'appel
-   relayé reprend de l'événement `retenue` de ce ticket, clé pour clé,
-   `policy.decision` (`a_approuver`), `policy.rule`, `policy.ticket`,
-   `intent`, `code.model` et `code.prompt_version`, quel que soit le mode
-   d'attente (EX-7.12) ; la corrélation de 5.6 n'est pas refaite.
+3. **Politique.** Le moteur de politique soumet au service d'approbation
+   (message `evaluer`, EX-7.4) le nom annoncé, le nom d'origine, l'alias, les
+   arguments **en clair** (valeur JSON analysée), la classe, la délégation de
+   la connexion d'hôte et l'intention corrélée (section 5.6), et reçoit la
+   réponse de CT-3 §12.3 : `rule`, `decision`, `ticket`, `ticket_state`,
+   `approval`, `approver_set`. Une réponse hors des combinaisons d'EX-7.16,
+   ou une erreur du service, est une indisponibilité du service (14.2). Le
+   pas 5 traite un refus, le pas 6 un ticket nouveau ou en attente ; une
+   réponse `autorise` sans ticket poursuit au pas 4. Une réponse `autorise`
+   d'un ticket `approuve` (ré-émission reconnue d'un appel approuvé, CT-3
+   EX-7.16) poursuit au pas 4, avec les vérifications de relais RL-1 à RL-4
+   au pas 7 (EX-7.21) ; l'appel relayé reprend de l'événement `retenue` de
+   ce ticket, clé pour clé, `policy.decision` (`a_approuver`), `policy.rule`,
+   `policy.ticket`, `intent`, `code.model` et `code.prompt_version`, quel que
+   soit le mode d'attente (EX-7.12) ; la corrélation de 5.6 n'est pas
+   refaite. Pour un ticket `nouveau` ou `approuve`, pour une ré-émission
+   `en_attente` que le mode `retenir` retient (EX-4.50), et pour tout appel
+   relayé (son résultat peut être `input_required` et ouvrir une
+   continuation MRTR, EX-4.21), le noyau calcule ici, sur les arguments en
+   clair, le MAC de relais (EX-7.22).
 4. **Pièce « arguments ».** Le rédacteur applique les règles de portée
    `arguments` de l'ensemble de politique à la valeur analysée ; le noyau
    sérialise le résultat en JCS intégral (section 8) ; la pièce est écrite
    sous son `sha256` et forcée sur disque. La valeur en clair ne quitte pas la
-   mémoire.
-5. **Sortie `refuse`.** Le noyau scelle un événement `status: "refusee"`
-   (section 7.2), le stockage l'ajoute et `fsync` ; le frontal rend à l'hôte
-   l'erreur que CT-3 prescrit (`-32015` avec `data.ticket` s'il y a un
-   ticket, ou un résultat `isError: true` selon le mode choisi par CT-3) ;
-   fin.
-6. **Sortie `a_approuver`.** Le noyau scelle un événement `status: "retenue"`
-   (son `hash` devient le `request_hash` du ticket), `fsync` ; le frontal
-   remet le ticket à CT-3 et applique le mode d'attente de la configuration :
+   mémoire. Si la rédaction dépasse la borne de temps (EX-10.23) pour un
+   outil de classe `ecriture` ou susceptible d'approbation, et que la réponse
+   du pas 3 mène à un relais ou à un événement `retenue`, le frontal rend
+   `-31010`, raison `redaction`, sans intention ni événement : un appel
+   d'écriture ne part jamais sans ses arguments dans la preuve, et les
+   approbateurs ne voient jamais une demande vide (EX-10.23).
+5. **Refus.** Pour une réponse `refuse` sans ticket, le noyau scelle un
+   événement `status: "refusee"` (`policy.decision: "refuse"`, `rule` de la
+   réponse, `ticket: null`, `approval: null`, section 7.2), le stockage
+   l'ajoute et `fsync` ; le frontal rend à l'hôte le résultat `isError: true`
+   au texte fixe `noortrace: appel refuse par la politique` (EX-4.49, CT-3
+   EX-11.8) ; fin. Pour une réponse `refuse` d'un ticket décidé
+   (`ticket_state` `refuse` ou `expire` : ré-émission reconnue pendant le
+   délai de reconnaissance, CT-3 EX-7.18), l'événement `refusee` reprend la
+   `policy` de l'événement `retenue` du ticket et porte l'`approval` de la
+   décision que le noyau a scellée pour lui (EX-7.12, EX-7.16) ; le frontal
+   rend le signal d'approbation dont `state` est `ticket_state` (EX-4.49) ;
+   fin. Chaque tentative refusée est un événement (EX-14.3).
+6. **Ticket nouveau ou en attente.** Pour `ticket_state: "nouveau"`, le noyau
+   vérifie qu'aucune décision n'est scellée pour ce ticket (EX-7.17) et
+   qu'aucun événement `retenue` sans décision de ce ticket n'est déjà durable
+   (sinon, le service garde le ticket en `reserve` faute d'avoir reçu
+   `ouvrir` : le noyau ne scelle rien, renvoie `ouvrir` pour la `retenue`
+   durable, consigne `approval_pending` et répond comme pour `en_attente`
+   ci-dessous) ; puis il scelle un événement `status: "retenue"` (son `hash`
+   devient le `request_hash` du ticket) : l'écrivain, après l'avoir signé et
+   avant de l'ajouter au segment, inscrit dans les fichiers des approbations
+   l'`approver_set` de la réponse et le MAC de relais, `fdatasync`
+   (EX-12.23), puis l'ajoute, `fsync` ; le frontal répond à l'hôte selon le
+   mode d'attente de la configuration et le noyau remet le ticket au service
+   (`ouvrir`, EX-7.18), sans attendre la réponse d'`ouvrir` pour répondre à
+   l'hôte. `approval.mode: "erreur"` (la valeur de la configuration de
+   référence, CT-3 EX-11.1) rend aussitôt le signal d'approbation `en_attente`
+   (EX-4.49), et l'agent ré-émet l'appel, qui repasse par le pas 3 ;
    `approval.mode: "retenir"` garde la requête de l'hôte ouverte jusqu'à la
-   décision ou jusqu'à `approval.hold_timeout_ms`, puis rend `-32015` avec
-   `data.ticket` si le délai tombe ; `approval.mode: "erreur"` rend `-32015`
-   avec `data.ticket` immédiatement, et l'agent réessaie : la nouvelle requête
-   repasse par le pas 3, où CT-3 reconnaît le ticket décidé et rend
-   `autorise` avec l'objet `approval`. Dans les deux modes, l'appel relayé
-   porte la `policy` de l'événement `retenue` (`decision: "a_approuver"`,
-   `rule`, `ticket`), son `intent` et son `code` (pas 3, EX-7.12), comme
-   l'exemple de CT-1 §5.5. Le choix entre les deux modes est la décision
-   ouverte 4, close par CT-3 ; en mode `retenir`, la configuration DOIT fixer
-   `hold_timeout_ms` sous le délai de l'hôte (Claude Code : en HTTP, 60 s par
-   défaut jusqu'au premier octet de la réponse ; en stdio, aucun minuteur par
-   requête ; dans les deux cas, abandon après
-   `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` sans réponse ni progression, 300 000 ms
-   en réseau et 1 800 000 ms en stdio par défaut,
-   https://code.claude.com/docs/en/mcp, https://code.claude.com/docs/en/env-vars,
-   R7 F-25). La décision elle-même devient un événement
-   `noortrace.approbation.decision` (section 9.1) avant tout relais.
-7. **Préconditions de relais.** Pour un outil de classe `ecriture` ou soumis
-   à approbation : le bail est détenu, le signataire répond, le stockage
-   accepte une écriture ; sinon, comportement de la section 14 (`-32010`).
+   décision ou jusqu'à `approval.hold_timeout_ms` (EX-4.50). Pour
+   `ticket_state: "en_attente"`, aucun événement n'est produit (CT-3
+   EX-7.19) : le frontal rend aussitôt le signal `en_attente` et consigne
+   `approval_pending`, sauf en mode `retenir` quand aucune requête n'est
+   retenue pour ce ticket, où cette requête est retenue (EX-4.50). Dans les
+   deux modes, l'appel relayé après une décision `approuve` porte la
+   `policy` de l'événement `retenue` (`decision: "a_approuver"`, `rule`,
+   `ticket`), son `intent` et son `code` (pas 3, EX-7.12), comme l'exemple
+   de CT-1 §5.5. La décision elle-même devient un événement
+   `noortrace.approbation.decision` (section 9.1, EX-7.19) avant tout
+   relais.
+7. **Préconditions de relais.** Pour un appel qui porte un ticket approuvé
+   (pas 3, ou continuation MRTR qui en hérite, EX-4.21), les vérifications
+   de relais RL-1 à RL-4 (EX-7.21) sont faites d'abord ; un échec rend
+   `-31010`, raison `approbation`, sans intention ni événement. Pour un outil
+   de classe `ecriture` ou soumis à approbation : le bail est détenu, le
+   signataire répond, le stockage accepte une écriture ; sinon, comportement
+   de la section 14 (`-31010`).
    Pour un outil de classe `lecture`, une indisponibilité du **stockage**
    rend le relais `passant` : l'appel est relayé, l'événement est mis en
    attente (section 14) ; une clé ou un bail indisponible bloque tout
    (EX-14.4). Pour toute classe, la connexion au serveur d'outils est
    établie (processus stdio vivant, connexion HTTP ouverte) **avant** le pas
-   8 : une connexion impossible rend `-32014` sans intention ni événement,
+   8 : une connexion impossible rend `-31014` sans intention ni événement,
    puisque rien n'est parti.
 8. **Intention.** Pour un outil de classe `ecriture` ou soumis à approbation,
    le stockage ajoute au journal d'intention les **deux lignes** de la
@@ -755,7 +926,7 @@ Séquence pour un appel reçu d'un hôte moderne, relayé à un serveur moderne
     t_envoi`, arrondi à l'entier inférieur. Au-delà de
     `limits.response_max_bytes` (défaut 16 777 216), la lecture s'arrête, la
     connexion amont est fermée (ce qui vaut annulation en HTTP), et l'appel
-    est traité comme une erreur `-32013`. Une ligne amont qui contient un CR,
+    est traité comme une erreur `-31013`. Une ligne amont qui contient un CR,
     n'est pas du JSON strict ou est un lot est ignorée et consignée
     (`invalid_line`) : l'appel en vol finit par délai. **Issues sans
     réponse** (EX-4.48) : `t_reponse` vaut `t_envoi + timeout_ms` pour un
@@ -763,7 +934,7 @@ Séquence pour un appel reçu d'un hôte moderne, relayé à un serveur moderne
     annulation par l'hôte (EX-4.23), l'instant où la perte est constatée
     (fin de fichier sur la sortie standard, fin du processus, erreur ou
     fermeture de la connexion) pour un serveur qui meurt ou une connexion
-    coupée (`-32014`), et l'instant où la borne est atteinte pour une taille
+    coupée (`-31014`), et l'instant où la borne est atteinte pour une taille
     dépassée.
 12. **Pièce « résultat ».** Si la réponse porte `result` et que `result` est
     un objet JSON : le rédacteur
@@ -789,8 +960,13 @@ Séquence pour un appel reçu d'un hôte moderne, relayé à un serveur moderne
     plusieurs événements partagent un `fsync`, mais le pas 14 n'a lieu
     qu'après celui qui couvre cet événement. Une panne entre le pas 9 et la
     fin de ce pas (stockage, signataire, signature invalide, bail perdu,
-    événement qui échoue E-1 à E-7) suit EX-4.46 : l'hôte reçoit `-32017`,
-    jamais `-32010`.
+    événement qui échoue E-1 à E-7) suit EX-4.46 : l'hôte reçoit `-31017`,
+    jamais `-31010`. Quand l'événement est le premier `executee` qui porte
+    l'approbation de son ticket, le noyau envoie ensuite `consommer` au
+    service (EX-7.20), sans retarder le pas 14 ; une continuation MRTR qui en
+    hérite (EX-4.21) n'en envoie pas. Quand le résultat est `input_required`,
+    le noyau garde, avant le pas 14, l'enregistrement de continuation
+    d'EX-4.21.
 14. **Réponse à l'hôte.** Le frontal rend `{"jsonrpc":"2.0","id": <id reçu au
     pas 1>, "result": …}` où l'`id` est **les octets de l'`id` reçu au pas 1**,
     recopiés depuis le texte de l'hôte (un entier au-delà de 2^53 n'est pas
@@ -801,7 +977,8 @@ Séquence pour un appel reçu d'un hôte moderne, relayé à un serveur moderne
     et que l'hôte est moderne (« All results now carry a required
     `resultType` field », changelog 2026-07-28, R1 Q1). Une erreur JSON-RPC
     du serveur est rendue avec le même `code`, le même `message` et le même
-    `data`, l'`id` de l'hôte.
+    `data`, l'`id` de l'hôte. Un résultat que l'enregistreur rend lui-même
+    (refus par la politique, signal d'approbation) a la forme d'EX-4.49.
 
 **EX-4.19** Les pas 1 à 14 DOIVENT s'exécuter dans cet ordre ; en particulier
 le pas 4 précède le pas 9 (aucun relais sans pièce « arguments » durable) et
@@ -853,11 +1030,12 @@ décimale exacte différente de celle de sa forme JCS intégral (par exemple
 décimale. La réponse d'erreur porte l'`id` de la requête, recopié depuis son
 texte, pour `nombre_non_representable` ; pour `arguments_non_canonisables`,
 elle porte `id: null`, l'analyse stricte s'arrêtant sur le nombre (un nombre
-hors de la double précision ailleurs dans la requête donne la même erreur). Motif : la politique (CT-3) et la pièce voient la valeur en double
-précision, le serveur les octets ; un identifiant au-delà de 2^53 serait vu
-par la politique comme un autre identifiant que celui sur lequel le serveur
-agit. Un client qui a besoin de tels nombres les passe en chaînes, comme CT-1
-§3 le demande pour les montants.
+hors de la double précision ailleurs dans la requête donne la même erreur).
+Motif : la politique (CT-3) et la pièce voient la valeur en double précision, le
+serveur les octets ; un identifiant au-delà de 2^53 serait vu par la politique
+comme un autre identifiant que celui sur lequel le serveur agit. Un client qui a
+besoin de tels nombres les passe en chaînes, comme CT-1 §3 le demande pour les
+montants.
 
 **EX-4.45** **Définition servie et liste servie.** Le frontal DOIT tenir, par
 connexion d'hôte, la **liste servie** : les définitions d'outils qu'il lui a
@@ -882,7 +1060,7 @@ définition, `tools.list_in_context: false` la pièce de liste.
 pour un appel déjà envoyé au serveur (stockage en erreur, signataire en
 erreur ou signature invalide, bail perdu, horloge hors seuil, événement qui
 échoue E-1 à E-7), le résultat est connu mais l'événement n'est pas
-durable. Le frontal DOIT alors : rendre à l'hôte `-32017` (`noortrace: appel
+durable. Le frontal DOIT alors : rendre à l'hôte `-31017` (`noortrace: appel
 execute, evenement non durable`, `data: {"intent_id": <intent_id ou null>,
 "reason": <raison de la matrice de 14.2>}`), que l'agent ne peut pas lire
 comme un refus ni comme une invitation à réessayer ; garder l'événement
@@ -890,35 +1068,78 @@ complet (résultat compris) comme **événement en attente** (14.5), en mémoire
 et, au mieux, dans le fichier d'attente ; le sceller à la sortie du mode
 dégradé à la place d'un événement de reprise, et lever alors l'intention. Si
 l'enregistreur s'arrête avant, l'intention restée ouverte donne l'événement
-de reprise de 12.5 : c'est la perte admise (13.5). Le code `-32010`
+de reprise de 12.5 : c'est la perte admise (13.5). Le code `-31010`
 (« appel bloque ») est réservé aux appels qui n'ont pas été relayés.
 
 **EX-4.47** **Quotas par connexion d'hôte.** Chaque entrée de connexion
-d'hôte porte `quota.max_concurrent` (requêtes en cours, défaut 32) et
-`quota.piece_bytes_per_minute` (octets de pièces écrits pour elle par minute
-glissante, défaut 268 435 456) ; au-delà, la requête est refusée par
-`-32013` (`data.direction: "quota"`) sans relais ni pièce, et consignée. Un
+d'hôte porte, toutes requises par le schéma (valeurs de la configuration de
+référence entre parenthèses), `quota.max_concurrent` (requêtes en cours,
+32), `quota.piece_bytes_per_minute` (octets de pièces écrits pour elle par
+minute glissante, 268 435 456), `quota.received_bytes_per_minute` (octets
+reçus d'elle par minute glissante, requêtes refusées comprises,
+268 435 456) et `quota.redaction_ms_per_minute` (temps de capture consommé
+pour elle par minute glissante de l'horloge monotone, en millisecondes :
+analyse JSON, rédaction sous la borne d'EX-10.23 et sérialisation des pièces
+de ses requêtes, 30 000) ; au-delà, la requête est refusée au pas 1 par
+`-31013` (`data.direction: "quota"`, avec `limit_requests`, `limit_bytes` ou
+`limit_ms` selon le quota atteint) sans relais ni pièce, et consignée. Un
 hôte ne peut ainsi ni remplir le volume du journal, ni faire entrer
-l'enregistreur entier en mode dégradé « stockage » pour les autres hôtes.
+l'enregistreur entier en mode dégradé « stockage » pour les autres hôtes, ni
+occuper le calcul de l'enregistreur par la seule taille de ses requêtes :
+une pièce réduite à la pièce non rédigeable (EX-10.23) n'écrit que
+96 octets, mais son temps de capture est compté.
 
 **EX-4.48** **Événement des issues sans réponse.** Dès que le pas 9 a commencé
 (un octet est parti vers le serveur), **tout** appel, quelle que soit sa
 classe, donne un événement `executee`, `is_error: true`, dont `duration_ms`
 suit le pas 11 et dont la pièce « résultat » est la forme
-`noortrace_jsonrpc_error` du code rendu (`-32011`, `-32012`, `-32013`,
-`-32014`) ; une connexion impossible avant le pas 8 n'en donne aucun (pas 7).
+`noortrace_jsonrpc_error` du code rendu (`-31011`, `-31012`, `-31013`,
+`-31014`) ; une connexion impossible avant le pas 8 n'en donne aucun (pas 7).
 
 **EX-4.21** `resultType: "input_required"` (MRTR, R1 Q5) : le résultat
 intermédiaire est relayé tel quel au pas 14 et donne un événement comme tout
 autre (pas 12 et 13, `is_error: false`) ; la ré-émission de l'hôte, avec un
 nouvel `id`, `inputResponses` et `requestState`, est une nouvelle requête qui
-repasse par le pas 1 et donne un second événement. Une ré-émission de même
-nom annoncé, de même pièce « arguments » et dont le `requestState` est celui
-d'un `input_required` relayé à la même connexion d'hôte **hérite** de
-l'appel d'origine sa `policy`, son `approval`, son `intent` et son `code` :
-CT-3 n'est pas rappelé et aucun nouvel événement `retenue` n'est produit
-(l'approbation porte sur l'appel, pas sur chaque aller-retour MRTR) ; toute
-autre ré-émission repasse par le pas 3. `inputResponses` et
+repasse par le pas 1 et donne un second événement. Avant de relayer au pas 14
+un résultat `input_required` qui porte un `requestState`, le noyau garde un
+**enregistrement de continuation** : la connexion d'hôte, le nom annoncé, le
+`sha256` du `requestState`, le MAC de relais des arguments en clair de
+l'appel (EX-7.22), sa `policy`, son `approval`, son `intent` et son `code` ;
+pour un appel qui porte l'approbation d'un ticket, il inscrit en outre dans
+les fichiers des approbations la ligne `continuation` (ticket, `seq` et
+`hash` de l'événement `executee` du pas 13, `sha256` du `requestState`) et
+`fdatasync` avant le pas 14 (EX-12.23) : à la reprise ou après une bascule,
+l'enregistrement d'un tel appel se reconstruit depuis cette ligne,
+l'événement `executee` qu'elle désigne (`policy`, `approval`, `intent`,
+`code`, nom) et la ligne `mac` de la `retenue` du ticket, égale au MAC de
+l'appel puisqu'il a passé RL-2 ; celui d'un appel sans ticket est perdu.
+Une ré-émission **hérite** de
+l'appel d'origine sa `policy`, son `approval`, son `intent` et son `code` (CT-3
+n'est pas rappelé, aucun nouvel événement `retenue` n'est produit :
+l'approbation porte sur l'appel, pas sur chaque aller-retour MRTR) si et
+seulement si :
+
+1. son `requestState` a un enregistrement de continuation de la même
+   connexion d'hôte et du même nom annoncé ;
+2. le MAC de relais de ses arguments en clair est égal à celui de
+   l'enregistrement : l'égalité des pièces « arguments » rédigées ne suffit
+   pas, puisqu'un champ rédigé peut changer sans changer la pièce (deux IBAN
+   différents donnent tous deux `[REDIGE:iban]`) ;
+3. ce `requestState` n'a pas encore servi : chaque `requestState` hérite une
+   fois, et l'usage est inscrit avant le relais (pour un ticket, ligne
+   `continuation_consommee` et `fdatasync` avant le pas 8, sous la même
+   exclusion que RL-3) — la spécification MCP ne garantit pas qu'un serveur
+   refuse un `requestState` rejoué (CT-3 EX-11.10) ;
+4. pour un appel qui porte un ticket approuvé, RL-1, RL-2, RL-3 en mode
+   continuation et RL-4 passent (EX-7.21).
+
+Toute autre ré-émission repasse par le pas 3, y compris celle dont
+l'enregistrement a été perdu (redémarrage, pour un appel sans ticket) : la
+politique voit alors ses arguments en clair, et une approbation déjà servie
+ne la couvre pas (CT-3 EX-7.17) ; l'échec est fermé. Un `requestState` rejoué
+N fois ne donne donc qu'un relais sous l'approbation, et un champ rédigé
+changé n'hérite jamais d'une décision `autorise` ou `approuve` prise pour
+d'autres arguments. `inputResponses` et
 `requestState` n'entrent pas dans la pièce « arguments » (qui est
 `params.arguments` seulement) ; le frontal ne les interprète pas, ne les
 journalise pas en clair, et consigne leur `sha256` dans le journal
@@ -939,8 +1160,8 @@ héritée : `notifications/cancelled` **puis** fermeture du flux, puisque la
 révision 2025-11-25 ne tient pas la déconnexion pour une annulation,
 EX-4.23), scelle l'événement avec `is_error: true`, `duration_ms =
 timeout_ms` (`t_reponse = t_envoi + timeout_ms`, pas 11) et la pièce
-`{"noortrace_jsonrpc_error": {"code": -32011, "message": "noortrace: delai du
-serveur d'outils depasse", "data": {"timeout_ms": N}}}`, et rend `-32011` à
+`{"noortrace_jsonrpc_error": {"code": -31011, "message": "noortrace: delai du
+serveur d'outils depasse", "data": {"timeout_ms": N}}}`, et rend `-31011` à
 l'hôte. Une réponse amont qui arrive après est ignorée et
 notée. « Implementations SHOULD always enforce a maximum timeout, regardless of
 progress notifications » (même page) : une progression ne prolonge pas le
@@ -953,60 +1174,175 @@ spécification 2025-11-25 ne tient pas la déconnexion pour une annulation
 Transports 2025-11-25, R1 Q4) : pour un hôte hérité en HTTP, seule la
 notification explicite annule. L'événement est scellé avec `is_error: true`,
 `t_reponse` = l'instant d'envoi de l'annulation amont (pas 11),
-et la pièce `{"noortrace_jsonrpc_error": {"code": -32012, "message":
+et la pièce `{"noortrace_jsonrpc_error": {"code": -31012, "message":
 "noortrace: appel annule par l'hote"}}` ; un appel de classe `ecriture` déjà
 envoyé au serveur peut avoir produit son effet : l'événement le dit par
 `effects` déclarés et `is_error: true`, et la réponse amont tardive, si elle
 arrive, est consignée dans le journal d'exploitation avec son `sha256`.
 
-**Codes d'erreur de l'enregistreur.** La révision 2026-07-28 réserve
-`-32000` à `-32019` aux implémentations et `-32020` à `-32099` à la
-spécification (page Overview, politique d'allocation, R1 Q9). Les codes
-définis par des révisions antérieures, `-32002` (`resource not found`,
-2025-11-25 et antérieures, remplacé par `-32602`) et `-32042` (`URL
-elicitation required`, 2025-11-25 seulement), restent réservés et ne sont
-jamais réemployés (`schema.ts` 2026-07-28,
-https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/schema/2026-07-28/schema.ts,
-R1 Q9) ; `-32001`, `-32003` et `-32004` n'ont existé que dans le brouillon de
+**Codes d'erreur de l'enregistreur.** JSON-RPC 2.0 réserve `-32768` à
+`-32000` aux erreurs prédéfinies et laisse le reste de l'espace des entiers
+aux erreurs de l'application (https://www.jsonrpc.org/specification, §5.1,
+R10 F-7). La révision `2026-07-28` partage `-32000` à `-32099` : `-32000` à
+`-32019` sont hérités (aucun code nouveau n'y est alloué, une implémentation
+nouvelle ne les emploie pas, et le récepteur ne leur suppose aucun sens, sauf
+`-32002`) ; `-32020` à `-32099` sont réservés à la spécification, qui y
+définit `-32020` (`HeaderMismatch`), `-32021`
+(`MissingRequiredClientCapability`) et `-32022`
+(`UnsupportedProtocolVersion`) ; `-32002` (`resource not found`, 2025-11-25
+et antérieures, remplacé par `-32602`) et `-32042` (`URL elicitation
+required`, 2025-11-25 seulement) restent réservés et ne sont plus émis ; un
+code nouveau, pour un usage que la spécification ne définit pas, est pris
+hors de `-32768` à `-32000` (page Overview, section « Error Codes »,
+`docs/specification/2026-07-28/basic/index.mdx` L109-L155, R10 F-2 à F-4).
+`-32001`, `-32003` et `-32004` n'ont existé que dans le brouillon de
 2026-07-28 avant renumérotation (« HeaderMismatch -32001 → -32020,
 MissingRequiredClientCapability -32003 → -32021, UnsupportedProtocolVersion
 -32004 → -32022 »,
-https://modelcontextprotocol.io/specification/2026-07-28/changelog). Les
-codes de l'enregistreur sont pris dans `-32010` à `-32019`.
+https://modelcontextprotocol.io/specification/2026-07-28/changelog, R1 Q9).
+
+La spécification range les erreurs d'un appel d'outil en deux familles : les
+erreurs de protocole (outil inconnu, requête mal formée, erreurs du serveur),
+rendues comme des erreurs JSON-RPC, que les clients PEUVENT transmettre au
+modèle ; les erreurs d'exécution (défaillance d'une API, validation des entrées,
+logique métier), rendues dans un résultat `isError: true`, que les clients
+DEVRAIENT transmettre au modèle (`server/tools.mdx` L738-L785, R10 F-9) ; le
+schéma ajoute que toute autre « condition exceptionnelle » est une erreur MCP
+(`schema.ts`, `CallToolResult.isError`, L1823-L1837, R10 F-10). CT-2 en
+tire deux formes :
+
+- l'issue d'une **politique d'approbation** (refus par la politique, ticket
+  en attente, refusé ou expiré) est une erreur de logique métier de l'outil
+  gardé, que le modèle doit voir pour ne pas répéter l'appel : c'est un
+  **résultat** `isError: true` de texte fixe (EX-4.49), jamais une erreur
+  JSON-RPC. Le `data` d'une erreur JSON-RPC n'atteint pas le modèle dans
+  openai-agents 0.24.0 ni dans langchain-mcp-adapters 0.3.2, alors que le
+  texte d'un résultat `isError` l'atteint dans ces deux bibliothèques et dans
+  Claude Code (R10 F-22 à F-24) ; ce que Claude Code et les autres hôtes
+  montrent au modèle d'une erreur JSON-RPC n'est pas vérifié (R10 F-24,
+  NV-1) ;
+- une **défaillance de l'enregistreur ou de l'amont** (mode dégradé, délai,
+  annulation, taille, serveur injoignable, résultat non relayable, appel
+  exécuté sans événement durable) est une condition exceptionnelle du
+  mandataire : c'est une **erreur JSON-RPC**, de code pris hors de `-32768`
+  à `-32000`. En faire un résultat `isError` la présenterait au modèle
+  comme une erreur qu'il corrige en changeant ses arguments, alors que
+  l'effet d'un appel d'écriture peut être incertain (EX-14.3). Un code de
+  `-32000` à `-32019` n'aurait aucun sens pour le récepteur, sauf celui qu'on
+  ne veut pas : un hôte relance l'appel sur `-32000` et `-32001`, et sur
+  `408`, code local du SDK Python 1.x (R10 F-21, F-22).
+
+Les codes de l'enregistreur gardent les deux derniers chiffres de la
+version 0.2.
 
 | Code | `message` (ASCII, fixe) | `data` | Émis quand |
 |---|---|---|---|
-| `-32010` | `noortrace: appel bloque, enregistreur en mode degrade` | `{"reason": …}` | Section 14 : stockage, clé ou bail indisponible pour un appel `ecriture` ou à approuver, horloge hors seuil |
-| `-32011` | `noortrace: delai du serveur d'outils depasse` | `{"timeout_ms": N}` | EX-4.22 |
-| `-32012` | `noortrace: appel annule par l'hote` | — | EX-4.23 (rendu seulement si l'hôte attend encore) |
-| `-32013` | `noortrace: taille maximale depassee` | `{"limit_bytes": N, "direction": "requete" ou "reponse"}` | Pas 1 et 11 |
-| `-32014` | `noortrace: serveur d'outils injoignable` | `{"server": "<alias>"}` | Connexion amont impossible (pas 7, sans événement) ou perdue avant réponse (événement, EX-4.48) |
-| `-32015` | `noortrace: approbation requise` | `{"ticket": "…", "state": "en_attente" ou "refuse" ou "expire"}` | Pas 5 et 6 (CT-3 fixe l'usage) |
-| `-32016` | `noortrace: resultat ou requete non relayable par la configuration` | `{"what": …}` | `resultType` inconnu ou `"task"`, requête serveur→client interdite (section 4.6) |
-| `-32017` | `noortrace: appel execute, evenement non durable` | `{"intent_id": "…" ou null, "reason": …}` | Panne après le relais d'un appel (EX-4.46) |
+| `-31010` | `noortrace: appel bloque, enregistreur en mode degrade` | `{"reason": …}` | Section 14 : stockage, clé ou bail indisponible pour un appel `ecriture` ou à approuver, horloge hors seuil, service d'approbation indisponible ou en défaut (raison `approbation`, EX-7.16, EX-7.17, EX-7.21), pièce « arguments » d'un appel `ecriture` ou susceptible d'approbation au-delà de la borne de temps (raison `redaction`, 4.4 pas 4, EX-10.23) |
+| `-31011` | `noortrace: delai du serveur d'outils depasse` | `{"timeout_ms": N}` | EX-4.22 |
+| `-31012` | `noortrace: appel annule par l'hote` | — | EX-4.23 (rendu seulement si l'hôte attend encore) |
+| `-31013` | `noortrace: taille maximale depassee` | `{"limit_bytes": N, "direction": "requete" ou "reponse" ou "quota"}` ; pour un quota de temps ou de requêtes en cours, `{"limit_ms": N, "direction": "quota"}` ou `{"limit_requests": N, "direction": "quota"}` | Pas 1 et 11, EX-4.31, EX-4.47 |
+| `-31014` | `noortrace: serveur d'outils injoignable` | `{"server": "<alias>"}` | Connexion amont impossible (pas 7, sans événement) ou perdue avant réponse (événement, EX-4.48) |
+| `-31015` | non attribué | — | Jamais émis ni réattribué : l'ancien `-32015` (« approbation requise », version 0.2) est remplacé par le signal d'approbation (EX-4.49), qui n'est pas une erreur |
+| `-31016` | `noortrace: resultat ou requete non relayable par la configuration` | `{"what": …}` | `resultType` inconnu ou `"task"`, requête serveur→client interdite (section 4.6) |
+| `-31017` | `noortrace: appel execute, evenement non durable` | `{"intent_id": "…" ou null, "reason": …}` | Panne après le relais d'un appel (EX-4.46) |
 
 **EX-4.24** Ces codes et messages sont fixes ; la section 14 et CT-3 les
-réutilisent sans en créer d'autres dans la plage `-32010` à `-32019` sans
-mise à jour de cette table. Toute erreur rendue par l'enregistreur lui-même à
-l'hôte DOIT être l'un de ces codes, ou un code JSON-RPC standard (`-32700`,
-`-32600`, `-32601`, `-32602`, `-32603`) ou de la spécification MCP (`-32020`,
-`-32021`, `-32022`) dans les cas que la spécification prescrit. Une erreur
-reçue d'un serveur d'outils, y compris `-32002` ou `-32042` d'un serveur
-d'ère héritée, est relayée telle quelle (pas 14) : ces codes ne sont pas
-ceux de l'enregistreur.
+réutilisent sans en créer d'autres sans mise à jour de cette table. Toute
+erreur rendue par l'enregistreur lui-même DOIT être l'un de ces codes, ou un
+code JSON-RPC standard (`-32700`, `-32600`, `-32601`, `-32602`, `-32603`) ou
+de la spécification MCP (`-32020`, `-32021`, `-32022`) dans les cas que la
+spécification prescrit. L'enregistreur NE DOIT émettre ni un code de
+`-32000` à `-32019`, ni un code de `-32020` à `-32099` autre que ces trois,
+ni `-32002`, ni `-32042`, ni un code de `100` à `599`. Une erreur reçue d'un
+serveur d'outils, y compris un code hérité, ou `-32002` et `-32042` d'un
+serveur d'ère héritée, est relayée telle quelle (pas 14) : ces codes ne sont
+pas ceux de l'enregistreur. Le préfixe `noortrace:` de `message` distingue
+une erreur de l'enregistreur d'une erreur relayée de même code ; qu'aucun
+autre logiciel n'emploie `-31010` à `-31017` n'est pas vérifié (aucun
+registre des codes d'application n'a été trouvé, R10 NV-3).
+
+**EX-4.49** **Résultats rendus par l'enregistreur.** Deux résultats d'outil
+sont produits par l'enregistreur lui-même, et non relayés d'un serveur : le
+refus par la politique sans ticket (pas 5) et le **signal d'approbation**
+(pas 5 et 6, EX-4.50). Chacun est un objet `CallToolResult` dont `content`
+est un seul bloc `text` de texte ASCII fixe, avec `isError: true`, sans
+`structuredContent` (qui devrait suivre l'`outputSchema` de l'outil gardé,
+et que le SDK TypeScript 1.32.1 valide même pour une erreur, R10 F-12,
+F-18), avec `_meta["io.modelcontextprotocol/serverInfo"]` (EX-4.4) et, pour
+un hôte de l'ère moderne seulement, `resultType: "complete"`. Les membres
+sont dans l'ordre des exemples ci-dessous. Le texte ne nomme jamais la règle
+(CT-3 EX-11.8, 14.1). Pour la version `0.1.0` et un hôte de l'ère moderne,
+le refus par la politique est exactement l'objet de CT-3 EX-11.8 :
+
+```text
+{"resultType":"complete","content":[{"type":"text","text":"noortrace: appel refuse par la politique"}],"isError":true,"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"noortrace-enregistreur","version":"0.1.0"}}}
+```
+
+et le signal d'approbation du ticket `apr-1192` en attente est exactement :
+
+```text
+{"resultType":"complete","content":[{"type":"text","text":"noortrace: appel soumis a approbation ; ticket=apr-1192 ; state=en_attente"}],"isError":true,"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"noortrace-enregistreur","version":"0.1.0"},"noortrace/approval":{"ticket":"apr-1192","state":"en_attente"}}}
+```
+
+Le texte du signal est, sur une ligne, avec une espace de part et d'autre de
+chaque `;` :
+
+```text
+noortrace: appel soumis a approbation ; ticket=<ticket> ; state=<state>
+```
+
+et `_meta["noortrace/approval"]` est exactement `{ "ticket", "state" }`,
+avec `state` ∈ {`en_attente`, `refuse`, `expire`} selon la table de CT-3
+EX-11.7 : le texte sert au modèle, la clé `_meta` aux programmes de l'hôte.
+L'identifiant d'un ticket ne contient ni espace ni `;` (CT-3 EX-7.1). La clé
+`noortrace/approval` suit la règle des clés `_meta` comme
+`noortrace/delegation` (EX-7.2 ; un préfixe dont le second label est `mcp`
+ou `modelcontextprotocol` est réservé, R10 F-13). Pour un hôte de l'ère
+héritée, l'objet est le même sans `resultType`. Ces résultats ne sont pas
+journalisés : l'événement `retenue` ou `refusee` de l'appel a `result: null`
+(CT-1 §5.3). Le signal ne change pas le ticket ; la conduite qu'il appelle
+de l'agent est celle de CT-3 EX-11.9.
+
+**EX-4.50** **Mode `retenir`.** En mode `approval.mode: "retenir"`,
+l'enregistreur retient **au plus une** requête de l'hôte par ticket : celle
+qui a créé le ticket, ou, si elle a pris fin (délai, annulation par l'hôte),
+la première ré-émission reconnue qui suit, dont le noyau calcule alors le MAC
+de relais des arguments en clair (pas 3), que RL-2 compare à celui de la
+`retenue` (EX-7.22) ; toute autre ré-émission reconnue
+reçoit aussitôt le signal `en_attente`, sans événement (CT-3 EX-11.4). La
+configuration DOIT fixer `hold_timeout_ms` inférieur d'au moins une seconde
+au plus petit délai par appel de **tous** les hôtes raccordés, et ne choisir
+ce mode que si la décision est attendue dans ce délai (CT-3 EX-11.2 ; pour
+Claude Code, par exemple : en HTTP, 60 s par défaut jusqu'au premier octet
+de la réponse ; en stdio, aucun minuteur par requête ; dans les deux cas,
+abandon après `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` sans réponse ni
+progression, 300 000 ms en réseau et 1 800 000 ms en stdio par défaut,
+https://code.claude.com/docs/en/mcp, https://code.claude.com/docs/en/env-vars,
+R7 F-25). À `hold_timeout_ms`, la requête reçoit le signal `en_attente` et le
+ticket continue. Quand la décision du ticket est scellée pendant la
+rétention (EX-7.19) : `approuve` → le noyau l'acquitte avec `held: true`,
+relaie la requête retenue (pas 7 à 14, vérifications RL-1 à RL-4 comprises,
+sans nouvelle évaluation) et envoie `consommer` (EX-7.20) ; `refuse` ou
+`expire` → il scelle un événement `refusee` qui reprend la `policy` de
+l'événement `retenue` et porte l'`approval` scellé (EX-7.12), et rend le
+signal de même `state` (CT-3 EX-11.5). Pendant la rétention, l'enregistreur
+PEUT envoyer à l'hôte des `notifications/progress` si la requête porte un
+`progressToken`, à valeurs `progress` strictement croissantes, hors chaîne
+(CT-3 EX-11.6) ; elles ne prolongent ni `hold_timeout_ms` ni l'échéance du
+ticket.
 
 **Différences d'ère.** Hôte hérité vers serveur moderne : le frontal ajoute
 les `_meta` requis ; un `resultType: "input_required"` reçu du serveur ne peut
 pas être rendu à un hôte hérité (qui ne connaît pas MRTR) : le frontal rend
-`-32016` et consigne. Hôte moderne vers serveur hérité : le frontal fait
+`-31016` et consigne. Hôte moderne vers serveur hérité : le frontal fait
 `initialize` à la connexion ; une requête du serveur vers le client
 (`sampling/createMessage`, `elicitation/create`, `roots/list`) arrive comme
 vraie requête JSON-RPC sur le flux amont ; le frontal ne peut pas la convertir
 en MRTR pour l'hôte (il faudrait répondre `input_required` à une requête déjà
-partie), il la sert donc en répondant au serveur une erreur `-32601` et consigne,
-sauf `roots/list` qu'il sert depuis la configuration (`roots` statiques) si
-elle en donne. Hôte hérité vers serveur hérité : les requêtes serveur→client
-sont relayées dans les deux sens (section 4.6).
+partie), il la sert donc en répondant au serveur une erreur `-32601` et
+consigne, sauf `roots/list` qu'il sert depuis la configuration (`roots`
+statiques) si elle en donne. Hôte hérité vers serveur hérité : les requêtes
+serveur→client sont relayées dans les deux sens (section 4.6).
 
 ### 4.5 Autres méthodes, relayées hors chaîne
 
@@ -1059,7 +1395,7 @@ préfixé par `[<alias>] ` (alias du serveur qui l'émet), pour que
 l'utilisateur sache quel serveur demande. Une capacité non relayable n'est pas
 déclarée au serveur (EX-4.7) ; si le serveur l'emploie quand même (« Servers
 MUST NOT send an `inputRequests` that the client has not declared support
-for », page MRTR, R1 Q5), le frontal rend `-32016` à l'hôte, répond `-32601`
+for », page MRTR, R1 Q5), le frontal rend `-31016` à l'hôte, répond `-32601`
 au serveur en ère héritée, et consigne.
 
 **EX-4.29** Un `sampling/createMessage` relayé est un **échange de modèle** :
@@ -1096,7 +1432,7 @@ Le connecteur et le démon n'acceptent **que** ce cadrage ; une entrée cadrée
 par `Content-Length` (rencontrée chez certains mandataires, R9 F-111) est
 refusée et consignée ; une ligne qui contient un CR est rejetée (EX-4.43) ;
 une ligne de plus de `limits.line_max_bytes` octets (défaut
-`limits.request_max_bytes` + 65 536) est refusée par `-32013` et la lecture
+`limits.request_max_bytes` + 65 536) est refusée par `-31013` et la lecture
 reprend après le `\n` suivant. Le même cadrage est employé entre le
 connecteur et le démon, sur une prise de domaine Unix ou une prise TCP locale
 (« The wire format […] works unchanged over Unix domain sockets, TCP
@@ -1122,7 +1458,7 @@ trace comme `tool_definition_changed`.
 
 **EX-4.33** Si un serveur d'outils stdio se termine, le frontal le relance
 selon `restart.max_attempts` et `restart.backoff_ms` ; les appels en vol vers
-lui, de **toute classe**, reçoivent `-32014` et leur événement `is_error:
+lui, de **toute classe**, reçoivent `-31014` et leur événement `is_error:
 true` (EX-4.48 ; `t_reponse` = instant où la fin du processus ou de sa sortie
 standard est constatée) ; en ère moderne « any in-flight requests are simply
 lost and the client can retry them » (page stdio 2026-07-28, R1 Q2).
@@ -1471,10 +1807,10 @@ l'événement comme en passerelle, avec `is_error` selon le statut HTTP
 observé ; la connexion d'hôte est celle de `model.hosts` dont
 `match.source_addresses` contient l'adresse source (EX-5.8). Rien n'est
 bloqué, rien n'est
-retenu ; une réponse tronquée dans la copie est marquée `noortrace_flux_incomplet`
-(5.4). Le réassemblage HTTP/2 n'est pas couvert par la version 0 : la
-documentation d'intégration le dit, et le mode miroir n'est construit que si
-un client l'exige (section 21).
+retenu ; une réponse tronquée dans la copie est marquée
+`noortrace_flux_incomplet` (5.4). Le réassemblage HTTP/2 n'est pas couvert par
+la version 0 : la documentation d'intégration le dit, et le mode miroir n'est
+construit que si un client l'exige (section 21).
 
 ### 5.2 Formats de la version 0 et de la version 1
 
@@ -2048,7 +2384,7 @@ sémantique. Les valeurs sont celles de CT-1.
 |---|---|---|---|
 | `noortrace/sdk/ouvrir` | `{ "run_id": chaîne ou null, "on_behalf_of": chaîne ou null }` | `{ "session": chaîne, "org_id", "journal_id", "policy_version" }` | Ouvre une session SDK ; `launched_by` et `scope` viennent de la configuration de la connexion d'hôte (EX-7.3), `run_id` et `on_behalf_of` sont déclarés par l'agent (déclaratif) |
 | `noortrace/sdk/declarerContexte` | `{ "session", "kind": "document" ou "donnees" ou "memoire" ou "autre", "media_type": chaîne ou null, "bytes_base64": chaîne }` | `{ "sha256", "length", "redacted" }` | Le démon rédige si la politique le prévoit (portée `contexte`), stocke la pièce, rend la référence ; l'agent la cite ensuite par `sha256`, dans la même session seulement |
-| `noortrace/sdk/debutAppel` | `{ "session", "tool": nom court (motif CT-1, sans `__`, hors `noortrace.`), "arguments": valeur JSON, "class": "lecture" ou "ecriture" ou null, "context": [sha256…], "intent": chaîne ou null, "effects": [effets déclarés] ou null }` | `{ "call": chaîne, "decision": "autorise" ou "a_approuver" ou "refuse", "ticket": chaîne ou null }` | Pas 2 à 8 de 4.4 : nom annoncé `<alias SDK>__<tool>` (EX-6.6), classe (déclarée, à défaut configuration, à défaut `ecriture`), politique, pièce « arguments », événement `retenue` ou `refusee` s'il y a lieu, intention écrite et `fsync` pour `ecriture` ; le SDK n'exécute l'outil que si `decision = "autorise"` |
+| `noortrace/sdk/debutAppel` | `{ "session", "tool": nom court (motif CT-1, sans `__`, hors `noortrace.`), "arguments": valeur JSON, "class": "lecture" ou "ecriture" ou null, "context": [sha256…], "intent": chaîne ou null, "effects": [effets déclarés] ou null }` | `{ "call": chaîne ou null, "decision": "autorise" ou "a_approuver" ou "refuse", "ticket": chaîne ou null, "ticket_state": "nouveau" ou "en_attente" ou "approuve" ou "refuse" ou "expire" ou null }` | Pas 2 à 8 de 4.4 : nom annoncé `<alias SDK>__<tool>` (EX-6.6), classe (déclarée, à défaut configuration, à défaut `ecriture`), politique (réponse d'`evaluer`, EX-7.16), pièce « arguments », événement `retenue` ou `refusee` s'il y a lieu, vérifications de relais pour un ticket approuvé (EX-7.21), intention écrite et `fsync` pour `ecriture` ; le SDK n'exécute l'outil que si `decision = "autorise"` (EX-6.7) ; `call` est nul sauf pour `autorise` |
 | `noortrace/sdk/finAppel` | `{ "call", "result": valeur JSON ou null, "is_error": booléen, "duration_ms": entier }` | `{ "seq", "hash" }` | Pas 12 et 13 : pièce « résultat », événement `executee` scellé et durable ; le résultat est rendu après `fsync` |
 | `noortrace/sdk/echangeModele` | `{ "session", "format": "anthropic-messages" ou "openai-chat" ou "openai-responses" ou "autre", "provider_label", "request": valeur JSON, "response": valeur JSON, "status": entier HTTP ou null, "duration_ms": entier, "is_error": booléen }` | `{ "seq", "hash" }` | Événement `noortrace.modele.echange` ; pour un format v0, l'extraction de 5.5 s'applique ; pour `autre`, `code.model = provider_label + "/" + request.model` si présent, `intent = null`, `prompt_version = null` |
 | `noortrace/sdk/fermer` | `{ "session" }` | `{}` | Clôt la session ; un `debutAppel` sans `finAppel` à la fermeture donne l'événement de reprise de la section 12 (l'agent a disparu pendant l'appel) |
@@ -2060,8 +2396,11 @@ qu'après le `fsync` de l'intention (EX-4.19 appliqué au SDK). Un `finAppel`
 sans `debutAppel` connu est refusé (`-32602`).
 
 **EX-6.4** Les erreurs rendues au SDK sont les codes de la table de 4.4
-(`-32010` en mode dégradé pour une écriture, `-32015` pour une approbation)
-et les codes JSON-RPC standard.
+(`-31010` en mode dégradé pour une écriture ou pour un service
+d'approbation indisponible ou en défaut) et les codes JSON-RPC standard,
+dans les limites d'EX-4.24. L'issue d'une politique d'approbation n'est pas
+une erreur : elle est dans le résultat de `debutAppel` (`decision`,
+`ticket`, `ticket_state`, EX-6.7).
 
 **EX-6.6** **Espace de noms et validation des entrées du SDK.** Chaque entrée
 de `sdk.hosts` porte un `alias` (motif d'EX-4.9, distinct de tout alias de
@@ -2075,9 +2414,34 @@ sans événement et sans mode dégradé : un `tool` hors motif ; une valeur de
 par `declarerContexte` **dans la même session** ; un `intent` de plus de
 1 048 576 caractères ; un effet déclaré qui ne respecte pas la forme de CT-1
 §5.3. Les chaînes `system` et `object` des effets déclarés sont soumises aux
-détecteurs de texte de la portée `arguments` avant d'entrer dans
-l'événement (EX-7.6). Une donnée d'entrée invalide n'atteint ainsi jamais la
-construction de l'événement (EX-7.1).
+détecteurs de texte des règles de portée `arguments` applicables à l'outil
+`<alias>__<tool>` (sélecteur `tools`), avec leur action, avant d'entrer dans
+l'événement (EX-7.6) ; leur `path` n'est pas résolu : la chaîne est la
+racine. Une donnée d'entrée invalide n'atteint ainsi jamais la construction
+de l'événement (EX-7.1).
+
+**EX-6.7** **Approbation par le SDK.** `debutAppel` applique la réponse
+d'`evaluer` comme le frontal MCP (EX-7.16), sans jamais retenir de requête
+(l'agent n'attend pas sur une connexion ouverte) ; il rend :
+
+| Réponse d'`evaluer` | Effet côté démon | Résultat de `debutAppel` |
+|---|---|---|
+| `autorise`, sans ticket | intention pour `ecriture` (EX-6.3) | `{ "call", "decision": "autorise", "ticket": null, "ticket_state": null }` |
+| `refuse`, sans ticket | événement `refusee` | `{ "call": null, "decision": "refuse", "ticket": null, "ticket_state": null }` |
+| `a_approuver`, `nouveau` | EX-7.17, événement `retenue`, fichiers des approbations, `ouvrir` | `{ "call": null, "decision": "a_approuver", "ticket", "ticket_state": "nouveau" }` |
+| `a_approuver`, `en_attente` | aucun événement, `approval_pending` consigné | `{ "call": null, "decision": "a_approuver", "ticket", "ticket_state": "en_attente" }` |
+| `autorise`, `approuve` | RL-1 à RL-4 (EX-7.21 ; RL-2 compare le nom `<alias SDK>__<tool>`, la délégation de la session et le MAC des arguments déclarés), puis intention | `{ "call", "decision": "autorise", "ticket", "ticket_state": "approuve" }` |
+| `refuse`, `refuse` ou `expire` | événement `refusee` qui reprend la `policy` de la `retenue` et porte l'`approval` scellé (EX-7.12) | `{ "call": null, "decision": "refuse", "ticket", "ticket_state" }` |
+
+Le SDK n'exécute l'outil que pour `decision: "autorise"` ; l'événement
+`executee` de `finAppel` porte alors l'approbation (EX-7.12), et le noyau
+envoie `consommer` après lui (EX-7.20). Un `debutAppel` approuvé sans
+`finAppel` donne l'événement de reprise de 12.5, qui porte aussi
+l'approbation et la consomme. Une réponse qui n'est pas applicable (EX-7.16)
+rend `-31010`, raison `approbation` ; une pièce « arguments » au-delà de la
+borne de temps, pour un outil de classe `ecriture` ou susceptible
+d'approbation, rend `-31010`, raison `redaction`, avant l'intention ou
+l'événement `retenue` (4.4 pas 4, EX-10.23).
 
 ### 6.3 Limites
 
@@ -2151,7 +2515,9 @@ chaque événement, donc dans la chaîne signée et dans tout dossier, et ne
 peut pas être purgée : elle est donc **bornée avant d'y entrer**. Un `run_id`
 déclaré n'est admis que s'il respecte `^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`
 et si aucun détecteur de texte de la politique de rédaction (ceux de toutes
-ses règles, quelle que soit leur portée) n'y trouve de correspondance ; un
+ses règles, quels que soient leur portée, leurs outils et leur `path` : la
+chaîne est la racine et `path` n'est pas résolu) n'y trouve de
+correspondance ; un
 `on_behalf_of` déclaré n'est admis que s'il figure, octet pour octet, dans
 `allowed_on_behalf_of` de l'entrée de connexion d'hôte (une liste fixée par
 le client : aucune valeur libre de l'hôte n'entre dans la chaîne). Une
@@ -2190,47 +2556,82 @@ d'une entrée de `mcp.hosts` ; les deux restent deux entrées, reliées par leur
 **`policy` — point d'appel de CT-3.**
 
 **EX-7.4** Avant tout relais d'un appel d'outil (pas 3 de 4.4 ; `debutAppel`
-du SDK), le noyau appelle le service d'approbation avec l'objet
+du SDK), le noyau envoie au service d'approbation le message `evaluer` (CT-3
+§12.3), dont le corps est exactement l'objet
 `{ "tool_announced", "tool_original", "server_alias", "arguments" (valeur en
 clair), "class", "delegation", "intent", "code", "context": [références] }`
-et reçoit `{ "rule": chaîne ou null, "decision": "autorise" ou "a_approuver"
-ou "refuse", "ticket": chaîne ou null }` (formes de CT-1 §5.3 : `rule` et
-`ticket` non nuls quand `decision = "a_approuver"`). Le service répond dans
-`policy.timeout_ms` (défaut 2 000) ; sans réponse, l'appel est traité selon la
-section 14 (service d'approbation indisponible : bloquant pour `ecriture`
-**et pour tout outil susceptible d'approbation**, passant pour les autres
-lectures avec `decision: "autorise"` et `rule: null`, le défaut étant
-consigné). Les règles d'approbation étant opaques pour CT-2 (syntaxe de
-CT-3), l'ensemble des **outils susceptibles d'approbation** est fourni par
-CT-3 : au chargement de l'ensemble de politique (démarrage, rechargement), le
-noyau envoie au service la liste des noms annoncés et reçoit la liste de
-ceux qu'une règle peut soumettre à approbation, quels que soient leurs
-arguments ; cette liste est consignée (`approval_candidates`) et tenue en
-mémoire avec la politique. Tant qu'elle n'a pas été obtenue (service
-indisponible au chargement), **tout** outil est tenu pour susceptible
-d'approbation. Le service d'approbation NE DOIT PAS recevoir la clé du
+(`$defs/requete_evaluer` de `ticket-v0`), et reçoit
+`{ "rule", "decision", "ticket", "ticket_state", "approval", "approver_set" }`
+(`$defs/reponse_evaluer` ; `rule` et `ticket` dans les formes de CT-1 §5.3,
+`decision` ∈ {`autorise`, `a_approuver`, `refuse`}, `ticket_state` ∈
+{`nouveau`, `en_attente`, `approuve`, `refuse`, `expire`} ou `null`,
+`approval` objet de CT-1 §5.3 scellé ou `null`, `approver_set` jeu déclaré
+ou `null`). Le noyau applique la réponse selon EX-7.16. Le service répond
+dans `policy.timeout_ms` (défaut 2 000) ; sans réponse, avec une réponse
+invalide ou avec une erreur, l'appel est traité selon la section 14
+(service d'approbation indisponible : bloquant pour `ecriture` **et pour
+tout outil susceptible d'approbation**, passant pour les autres lectures
+avec `decision: "autorise"` et `rule: null`, le défaut étant consigné).
+CT-2 n'évalue pas les règles d'approbation (CT-3 §6) : il les valide au
+chargement (EX-15.4 pas 3), et l'ensemble des **outils susceptibles
+d'approbation** est fourni par le service au message `charger` (EX-7.15) :
+c'est la liste `CANDIDATS` de CT-3 EX-4.11, qui comprend les outils qu'une
+règle peut soumettre à approbation **ou refuser**, quels que soient leurs
+arguments ; elle est consignée (`approval_candidates`) et tenue en mémoire
+avec la politique. Tant qu'elle n'a pas été obtenue (service indisponible
+au chargement), **tout** outil est tenu pour susceptible d'approbation, et
+un nom annoncé absent de la liste `tools` du dernier `charger` réussi l'est
+aussi (CT-3 4.12). Le service d'approbation NE DOIT PAS recevoir la clé du
 journal ni écrire d'événement : il rend des décisions, le noyau les scelle.
 
 | Sous-champ | Appel d'outil | Échange de modèle, décision, rotation, politique |
 |---|---|---|
 | `rule` | celle rendue par CT-3 | `null` |
 | `decision` | celle rendue par CT-3 | `"sans_objet"` |
-| `ticket` | celui rendu par CT-3 ; recopié dans l'appel relayé après approbation, avec `decision: "a_approuver"` et `rule` de l'appel retenu (EX-7.12) | décision d'approbation : le ticket décidé ; autres : `null` |
+| `ticket` | celui rendu par CT-3 ; recopié dans l'appel relayé après approbation et dans le `refusee` d'un ticket décidé `refuse` ou `expire`, avec `decision: "a_approuver"` et `rule` de l'appel retenu (EX-7.12) | décision d'approbation : le ticket décidé ; autres : `null` |
 | `redaction` | nom de la version des règles de rédaction de l'ensemble de politique (`"pii-v1"`) si au moins une référence de l'événement a `redacted: true`, sinon `null` (CT-1 E-4) | idem |
 
 **`approval`.** `null` sauf : décision d'approbation (l'objet construit par
 CT-3 et validé par le noyau : `decision`, `ticket`, `request_hash` = `hash`
-de l'événement `retenue`, `threshold` lu dans le jeu d'approbateurs, `approvers`,
-`signatures` vérifiées par le noyau selon CT-1 §6.3 avant scellement,
-`reason`, et `at` **fixé par l'écrivain** égal au `ts` qu'il attribue à
-l'événement de décision, EX-7.11 ; `at` n'entre pas dans l'objet `A` que les
-approbateurs signent, CT-1 §6.3) ; appel relayé après approbation (l'objet de
-l'événement de décision scellé, clé pour clé, CT-1 A-2).
+de l'événement `retenue`, `threshold` lu dans le jeu d'approbateurs,
+`approvers`, `signatures` vérifiées par le noyau selon CT-1 §6.3 avant
+scellement, `reason` rédigé selon EX-10.24, et `at` **fixé par l'écrivain** égal
+au `ts` qu'il attribue à l'événement de décision, EX-7.11 ; `at` n'entre pas
+dans l'objet `A` que les approbateurs signent, CT-1 §6.3) ; appel relayé
+après approbation, et `refusee` d'un ticket décidé `refuse` ou `expire`
+(l'objet de l'événement de décision scellé, clé pour clé, CT-1 A-2).
 
-**EX-7.5** Le noyau DOIT vérifier chaque signature d'approbateur (E-9), le
-seuil (A-3) et l'égalité `request_hash = hash` de l'événement `retenue` (A-4)
-avant de sceller la décision ; une décision invalide est refusée à CT-3 et
-consignée, jamais scellée.
+**EX-7.5** **Vérification d'une remise (SG-).** Le noyau DOIT vérifier
+chaque remise (EX-7.19) avant de la sceller, par les vérifications
+ci-dessous, dans cet ordre, qui sont celles de CT-3 EX-9.11 et la
+vérification SG-7 que la version 0.3 adopte ; à l'intérieur d'une
+vérification, les raisons sont essayées dans l'ordre où la dernière colonne
+les donne. Un échec refuse la remise (`acquitter` `refuse`, avec la raison
+de la première vérification en échec, table de CT-3 §12.8), la consigne
+(`approval_remise_refused`, ticket, vérification, raison) et lève l'alerte
+de 17.4 ; la décision n'est jamais scellée. Le noyau ne normalise rien : une
+signature non canonique est refusée (SG-5), quand le service, lui, la
+normalise à la réception d'un vote (CT-3 EX-9.3).
+
+| Id | Vérification | Raison de refus |
+|---|---|---|
+| SG-1 | La remise a la forme de `ticket-v0` (`$defs/remise`) : `approval` sans `at`, `approval.ticket` égal au ticket de la remise, `remise_id` de la forme `<ticket>/<n>` pour ce ticket, `approver_set` dont la `source` respecte CT-3 EX-8.8 (forme seulement) | `remise_mal_formee` |
+| SG-2 | Un événement `retenue` du journal porte `policy.ticket = ticket`, et l'un d'eux a pour `hash` `approval.request_hash` | `ticket_inconnu`, `request_hash_different` |
+| SG-3 | Aucune décision n'est scellée pour ce ticket | `ticket_deja_decide` (l'acquittement donne la décision scellée) |
+| SG-4 | Pour `approuve` et `refuse` : l'instant d'écriture de la décision, qui sera `approval.at` (EX-7.11), est strictement antérieur à l'échéance `request_ts + E`, où `request_ts` est le `ts` de l'événement `retenue` de `hash` `request_hash` et `E` l'`expire_after_ms` de la version de politique de cet événement (`code.policy_version`, CT-3 EX-7.10) | `echeance_depassee` |
+| SG-5 | E-5 et E-9 de CT-1 : même longueur, chaque signature canonique recouvre `approvers[i]` sur `D_A` du `A` de la remise, avec l'`org_id` et le `journal_id` du journal | `signature_invalide` |
+| SG-6 | A-3 de CT-1 : approbateurs distincts, membres de `approver_set.members`, `threshold` égal à `approver_set.threshold`, `required ≤ size` et `size` égal au nombre de membres (sinon `seuil_different_du_jeu`), aucun approbateur pour `expire`, au moins `required` pour `approuve` et `refuse` | `approbateur_double`, `approbateur_hors_jeu`, `seuil_different_du_jeu`, `expire_avec_signatures`, `seuil_non_atteint` |
+| SG-7 | Séparation des tâches : quand la politique d'approbation de la version de l'événement `retenue` a `separation.self_approval: "interdite"`, aucune adresse de `approvers` n'est une adresse de l'entrée de `separation.identities` dont `launched_by` est égal, octet pour octet, au `delegation.launched_by` de cet événement (CT-3 EX-10.1, EX-10.2) | `auto_approbation` |
+
+SG-7 est normative depuis la version 0.3. Le noyau a ce qu'il faut pour la
+faire : la politique de chaque version, pièce de l'ensemble (EX-8.11), et
+l'événement `retenue`. Une remise d'un service conforme ne l'échoue jamais,
+puisque le service refuse déjà ces votes (CT-3 EX-10.2) ; elle ferme le cas
+d'un service compromis qui ferait compter la signature du demandeur, que la
+chaîne ne montrerait pas (CT-3 §10.5). Comme la séparation de CT-3, elle ne
+voit que les adresses que la politique déclare (CT-3 EX-10.5). Le noyau ne
+vérifie pas la fenêtre de contestation, qu'il ne peut pas voir (les votes
+restent dans le service, CT-3 EX-9.12).
 
 **`execution`.**
 
@@ -2392,14 +2793,269 @@ ticket d'un appel retenu dont la décision est `approuve` reprend de
 l'événement `retenue` de ce ticket, clé pour clé : `policy.decision`
 (`"a_approuver"`), `policy.rule`, `policy.ticket`, `intent`, `code.model` et
 `code.prompt_version` ; `approval` est l'objet de l'événement de décision
-scellé (EX-7.11) ; `code.policy_version` est la version en vigueur au
-relais. La règle vaut quel que soit le mode d'attente (`retenir` ou
+que le noyau a scellé pour ce ticket (EX-7.11 ; RL-1, EX-7.21), jamais celui
+de la réponse du service ; `code.policy_version` est la version en vigueur
+au relais. La règle vaut quel que soit le mode d'attente (`retenir` ou
 `erreur`, 4.4 pas 6) : en mode `erreur`, la ré-émission de l'agent ne
 repasse pas par la corrélation (le bloc `tool_use` a été consommé par
 l'appel retenu) et l'appel qui agit garde l'intention de la demande
 approuvée. C'est la forme de l'exemple de CT-1 §5.5 (appel relayé `seq 4` :
 `decision: "a_approuver"`, `rule` et `ticket` de la demande, `approval`
-recopié).
+recopié). La même reprise vaut pour l'événement `refusee` d'un ticket décidé
+`refuse` ou `expire` : celui d'une ré-émission reconnue pendant le délai de
+reconnaissance (CT-3 EX-7.18) et celui de la décision d'une requête retenue
+(EX-4.50) ; il porte l'`approval` de la décision scellée par le noyau,
+`effects: []` et `result: null`. C'est la forme que publient les vecteurs de
+CT-6 (`valide-decision-refusee`, `valide-decision-expiree`, seq 7).
+
+### 7.5 Échanges avec le service d'approbation
+
+Le noyau échange avec le service d'approbation les messages de CT-3 §12.
+Cette section fixe ce qu'il envoie, ce qu'il vérifie avant de sceller une
+décision ou de relayer un appel approuvé, et ce qu'il garde. Les formes des
+messages sont celles de CT-3 §12 ; le schéma `ticket-v0`
+(`spec/schemas/ticket-v0.schema.json`) définit la remise
+(`$defs/remise`), la requête et la réponse d'`evaluer`
+(`$defs/requete_evaluer`, `$defs/reponse_evaluer`).
+
+**EX-7.14** **Canal.** Le noyau est toujours le client du service : chaque
+message est une requête HTTP/1.1 `POST <base>/v0/<méthode>` dont le corps et
+la réponse sont un objet JSON (CT-3 EX-12.1), `<base>` étant
+`policy.approval.service.url`, ou, quand `url` est nul, la prise
+`policy.approval.service.socket` avec la base `http://localhost` ; le canal
+est authentifié selon EX-18.8. Le noyau analyse chaque réponse en JSON strict
+(4.4 pas 1) ; une réponse illisible ou hors des formes de CT-3 §12 vaut une
+erreur du service. Seule l'instance qui détient le bail (section 13) échange
+avec le service ; après une bascule ou un redémarrage, elle relit les
+fichiers des approbations (EX-12.23), renvoie `charger` (EX-7.15) et
+`ouvrir` (EX-7.18), puis ouvre `decisions` (EX-7.19). Chaque message a le
+délai `policy.approval.timeout_ms`, `decisions` le délai `wait_ms +
+timeout_ms` ; un message sans réponse est réessayé selon la table de CT-3
+§12.7, et un `acquitter`, `consommer` ou `expiration` réessayé porte les
+mêmes données (CT-3 EX-7.20).
+
+**EX-7.15** **`charger`.** Au démarrage (EX-15.4 pas 6), à chaque
+rechargement de l'ensemble de politique (EX-15.5) et à chaque changement de
+la liste agrégée des outils (EX-4.15), le noyau envoie `charger` :
+`{ "org_id", "journal_id", "environment", "policy_version",
+"policy_sha256", "approval", "tools", "requesters" }`, avec les identifiants
+du journal, `recorder.environment`, la version et l'empreinte de
+l'événement de politique qui annonce l'ensemble (EX-8.11), le membre
+`/policy/approval` **sans** `service` (qui porte des références de secrets),
+la liste agrégée, triée par `tool_announced` (unités UTF-16, CT-1 §4),
+d'objets `{ "tool_announced", "tool_original", "server_alias", "class",
+"effects" }` (`effects` : le gabarit d'effets de l'outil, EX-7.6, ou `null`),
+et `requesters`, la liste triée de la même façon, sans doublon, des valeurs
+**fixes** de `launched_by` des entrées de `mcp.hosts` et de `sdk.hosts` (les
+gabarits `${peer_user}` et `${oauth_subject}` ne sont pas transmis). Avec
+`requesters`, adopté par la version 0.3, le service peut avertir d'un
+demandeur configuré sans entrée dans `separation.identities` (CT-3 EX-4.14,
+cinquième point) ; ses avertissements vont dans son propre journal, la
+réponse n'en porte pas. Réponse : `{ "policy_version", "policy_sha256",
+"approval_candidates" }` ; le noyau vérifie que la version et l'empreinte
+sont celles qu'il a envoyées, consigne `approval_candidates` et la tient pour
+la liste des outils susceptibles d'approbation parmi les noms envoyés
+(EX-7.4). Un nom déclaré par le SDK (`<alias>__<tool>`, EX-6.6) n'est jamais
+dans `tools` : il est toujours tenu pour susceptible. L'erreur
+`politique_invalide` (`data.errors`) est consignée et lève l'alerte de 17.4 ;
+tout outil reste susceptible (CT-3 EX-4.2) ; elle ne devrait pas survenir
+après la validation d'EX-15.4 pas 3.
+
+**EX-7.16** **Réponse d'`evaluer`.** Le noyau DOIT vérifier que la réponse
+a exactement les six membres de CT-3 §12.3, dans un ordre quelconque (l'ordre
+des membres d'un objet JSON n'a pas de sens : un service qui sérialise en JCS
+les écrit dans l'ordre alphabétique), `rule` étant une chaîne ou `null`, non
+nul pour `a_approuver` (CT-1 §5.3), et qu'elle est l'une des combinaisons de
+la table ci-dessous (CT-3 EX-7.16, EX-12.6), avec `ticket` non nul si et
+seulement si `ticket_state` l'est, `approver_set` non nul pour `nouveau`
+seulement et alors **exploitable** (la forme de `$defs/approver_set` que
+vérifie SG-1, `source` de la forme de CT-3 EX-8.8, membres distincts et la
+cohérence que vérifie SG-6 : `threshold.size` égal au nombre de membres,
+`threshold.required` au plus `size`), et, pour une décision scellée,
+`approval.ticket = ticket` et `approval.decision = ticket_state` ; pour une
+décision scellée encore, l'`approval` de la réponse DOIT être égal, clé pour
+clé, à celui de la décision que le noyau a lui-même scellée pour ce ticket,
+et le noyau DOIT en avoir scellé une (RL-1). Un jeu exploitable est ce qui
+permet au noyau d'expirer seul le ticket par une décision conforme à A-3 de
+CT-1 (EX-9.4). Il l'applique ainsi :
+
+| `decision` | `ticket_state` | `approval` | Le noyau |
+|---|---|---|---|
+| `autorise` | `null` | `null` | relais (4.4 pas 4, 7 à 14), `policy.decision: "autorise"` |
+| `refuse` | `null` | `null` | événement `refusee` ; refus par la politique (EX-4.49) |
+| `a_approuver` | `nouveau` | `null` | EX-7.17, événement `retenue` (sauf `retenue` sans décision déjà durable pour ce ticket, 4.4 pas 6), fichiers des approbations (EX-12.23), `ouvrir` (EX-7.18), mode d'attente (4.4 pas 6) |
+| `a_approuver` | `en_attente` | `null` | aucun événement, `approval_pending` consigné ; signal `en_attente`, ou rétention (EX-4.50) |
+| `autorise` | `approuve` | décision scellée | RL-1 à RL-4 (EX-7.21), relais avec la reprise d'EX-7.12, puis `consommer` (EX-7.20) |
+| `refuse` | `refuse` ou `expire` | décision scellée | événement `refusee` qui reprend la `policy` de la `retenue` (EX-7.12) ; signal de même `state` |
+
+Toute autre réponse est invalide : le noyau la consigne
+(`approval_response_invalid`) et la traite comme une indisponibilité du
+service (14.2 : `-31010`, raison `approbation`, jamais un relais). Une
+erreur du service (CT-3 §12.8) l'est aussi : `non_pret` ;
+`politique_inconnue`, après un `charger` et un seul nouvel essai
+d'`evaluer` ; `plafond_atteint`, qui ne survient que pour une demande que la
+politique retiendrait (CT-3 EX-14.1) ; toute autre.
+
+**EX-7.17** **Refus de sceller la `retenue` d'un ticket décidé.** Avant de
+sceller l'événement `retenue` d'une réponse `nouveau`, le noyau DOIT
+vérifier qu'aucune décision n'est scellée dans le journal pour ce ticket,
+quelle que soit la demande qui l'a créée. Sinon, il ne scelle rien, rend
+`-31010` (raison `approbation`), consigne `identifiant_en_collision`
+(ticket, `seq` de la décision) et lève l'alerte de 17.4 : un identifiant
+réattribué par un service qui a perdu son état (contre CT-3 EX-7.1) ne doit
+pas attacher la décision scellée d'une autre demande à une nouvelle
+`retenue` (CT-3 14.2). Le noyau ne scelle pas non plus de `retenue` pour un
+ticket dont une `retenue` sans décision est déjà durable dans le journal : le
+service qui répond `nouveau` garde le ticket en `reserve` faute d'avoir reçu
+`ouvrir` (lent ou en échec), et chaque ré-émission scellerait sinon une
+nouvelle `retenue` (CT-3 EX-7.19 : un agent qui réessaie ne doit pas
+remplir le journal) ; le noyau renvoie `ouvrir` pour la `retenue` durable,
+rend le signal `en_attente` (ou retient la requête, EX-4.50) et consigne
+`approval_pending` (4.4 pas 6). Deux `retenue` sans décision pour un même
+ticket ne naissent donc que d'une course, quand une seconde réponse
+`nouveau` arrive avant que la première `retenue` soit durable (CT-3
+EX-7.19), et restent admises. L'index des décisions par ticket est celui de
+SG-3 ; il se dérive de la chaîne à la reprise (12.4). Cette règle, proposée
+par CT-3 §15.2, est adoptée par la version 0.3.
+
+**EX-7.18** **`ouvrir`.** Quand un événement `retenue` et sa ligne des
+fichiers des approbations sont durables (4.4 pas 6, EX-12.23), le noyau
+envoie `ouvrir` : `{ "ticket", "request_hash", "request_seq",
+"request_ts", "request_event", "arguments_piece" }`, soit l'identifiant, le
+`hash`, le `seq` et le `ts` de l'événement, l'événement lui-même tel que
+scellé (objet à dix-sept clés), et les octets de la pièce « arguments »
+rédigée en base64 (RFC 4648 §4, avec remplissage), ou `null` quand la
+référence est en ligne (ce qui n'arrive pas pour un appel d'outil, EX-7.7).
+Le service s'en sert pour la console (CT-3 EX-9.6). Le noyau réessaie
+jusqu'au succès et, au redémarrage ou après une bascule, renvoie `ouvrir`
+pour tout événement `retenue` dont le ticket n'a pas de décision dans le
+journal (CT-3 EX-7.25). La réponse `{ "ticket", "state", "deadline" }` est
+consignée. L'erreur `ticket_deja_ouvert` (une autre `retenue` du même ticket
+a été remise d'abord) est consignée sans autre effet ; `ticket_inconnu`
+(service qui a perdu son état) conduit le noyau à expirer lui-même le ticket
+(EX-9.4).
+
+**EX-7.19** **`decisions` et `acquitter`.** Le noyau tient en permanence une
+requête `decisions` ouverte, `{ "wait_ms": 25000 }` (au plus 25 000), et la
+relance dès qu'elle répond ; sans réponse au terme de `wait_ms +
+timeout_ms`, le service est indisponible (CT-3 EX-12.8). Pour chaque remise
+reçue, dans l'ordre de la réponse :
+
+1. en mode dégradé (section 14), le noyau répond `acquitter` `temporaire`
+   (`reason: "mode_degrade"`), consigne `approval_deferred`, n'inscrit rien
+   et ne scelle rien : le stockage est peut-être précisément ce qui est en
+   panne, et CT-3 représente la remise (T12) ;
+2. sinon, il inscrit la remise dans les fichiers des approbations et
+   `fdatasync` (EX-12.23) ; un échec de cette écriture fait entrer le noyau
+   en mode dégradé « stockage » et donne le point 1 ; puis il applique
+   SG-1 à SG-7 (EX-7.5) ; un échec donne `acquitter` `refuse` avec la raison
+   et, pour `ticket_deja_decide`, `seq`, `hash`, `at`, `decision` et
+   l'`approval` de la décision scellée ;
+3. sinon, il scelle l'événement `noortrace.approbation.decision` (9.1 ;
+   `approval` de la remise, `reason` rédigé selon EX-10.24, `at` posé par
+   l'écrivain, EX-7.11) : l'écrivain, après l'avoir signé et avant de
+   l'ajouter au segment, inscrit la décision dans les fichiers des
+   approbations et `fdatasync` (EX-12.23), puis l'ajoute, `fsync` ; le noyau
+   répond alors `acquitter` `scelle` avec `seq`,
+   `hash`, `at`, `decision`, l'`approval` scellé (avec `at` et
+   `request_hash`) et `held`, vrai si et seulement si le noyau retient une
+   requête de ce ticket et va la relayer (EX-4.50).
+
+La requête `acquitter` est `{ "remise_id", "ticket", "result", "reason",
+"seq", "hash", "at", "decision", "held", "approval" }`, membres non
+applicables à `null` (CT-3 EX-12.9). La réponse `{ "ticket", "state" }` est
+consignée.
+
+**EX-7.20** **`consommer`.** Après le scellement durable du **premier**
+événement `executee` qui porte l'approbation d'un ticket, celui du relais qui
+a passé RL-3 (appel relayé, `finAppel`, requête retenue relayée, événement en
+attente scellé à la sortie du mode dégradé, événement de reprise de 12.5), le
+noyau envoie `consommer` : `{ "ticket", "seq", "hash" }` de cet événement ;
+réponse `{ "ticket", "state": "consomme" }` (CT-3 EX-12.10). Les événements
+`executee` des continuations MRTR qui héritent de l'approbation (EX-4.21)
+portent aussi l'approbation mais ne donnent pas de `consommer`. Le message ne
+retarde jamais la réponse à l'hôte ; sans réponse, il est réessayé (CT-3
+§12.7). Une réponse `state` `consomme`, ou `clos` (consommation tardive :
+relais scellé après la fin du délai de reconnaissance, CT-3 T22), ou une
+erreur `requete_invalide` ou `ticket_inconnu`, est **finale** : elle est
+consignée (`approval_consume_final`, ticket, état ou raison) et met fin aux
+essais ; une autre erreur est réessayée. Au redémarrage, le noyau renvoie
+`consommer` pour le premier événement `executee` de chaque ticket dont
+l'approbation est portée par un événement du journal et dont le délai de
+reconnaissance (`approval.at + E`) court encore : le message est idempotent
+(CT-3 EX-7.20).
+
+**EX-7.21** **Vérifications de relais (RL-).** Avant l'intention (4.4 pas 8,
+ou celle de `debutAppel`) d'un appel dont la réponse d'`evaluer` est
+`autorise` avec `ticket_state: "approuve"`, avant de relayer une requête
+retenue dont la décision `approuve` vient d'être scellée (EX-4.50), et avant
+de relayer une continuation MRTR qui hérite de l'approbation d'un ticket
+(EX-4.21), le noyau DOIT faire, dans cet ordre, les vérifications
+suivantes. Un échec refuse le
+relais par `-31010` (raison `approbation`), sans intention ni événement, le
+consigne (`approval_relay_refused`, ticket, vérification) et lève l'alerte
+critique de 17.4. Elles ne lisent que la chaîne, les fichiers des
+approbations et les intentions ouvertes.
+
+| Id | Vérification |
+|---|---|
+| RL-1 | Le noyau a scellé une décision pour ce ticket ; elle est `approuve` ; l'`approval` qu'il relaie est le sien (EX-7.12) ; pour un relais issu d'une réponse `autorise`/`approuve` d'`evaluer`, l'`approval` de la réponse lui est égal clé pour clé (EX-7.16) — une requête retenue ou une continuation n'a pas de réponse d'`evaluer` à comparer. |
+| RL-2 | L'appel est la demande approuvée : égalité, avec l'événement `retenue` dont le `hash` est `approval.request_hash`, de `execution.tool`, de `delegation.launched_by`, `delegation.on_behalf_of` et `delegation.scope` (jamais `run_id`, déclaratif), de la référence de la pièce « arguments » (`sha256`, `length`, `redacted`), et du MAC de relais des arguments en clair (EX-7.22) avec celui inscrit pour cette `retenue`. |
+| RL-3 | L'approbation n'a pas servi : aucun événement `executee` du journal ne la porte (`approval.ticket` égal au ticket ; événements de reprise et en attente compris), aucune intention ouverte ne porte ce ticket, et aucun autre relais en cours de ce ticket n'a passé RL-3. Pour une continuation MRTR (EX-4.21), dont le premier relais porte déjà l'approbation, RL-3 devient : le `sha256` de son `requestState` est inscrit pour ce ticket (ligne `continuation`, EX-12.23), n'a pas servi (aucune ligne `continuation_consommee`) et aucune autre continuation en cours de ce `requestState` n'a passé RL-3 : au plus un relais par aller-retour MRTR. |
+| RL-4 | L'approbation est dans son délai, avec la marge du délai de l'outil : l'instant de la vérification (horloge murale, règle 7.4) plus le `timeout_ms` de l'outil (EX-4.22) est strictement antérieur à `approval.at + E`, `E` étant l'`expire_after_ms` de la version de politique de l'événement `retenue` ; un appel relayé finit ainsi, même au bout de son délai, avant la fin du délai de reconnaissance. |
+
+Ces vérifications, proposées par CT-3 §15.2, sont adoptées par la version
+0.3 : elles sont la défense du noyau contre un service compromis qui ferait
+relayer, sous une approbation scellée, un autre appel ou le même deux fois
+(« blanchiment », CT-3 14.2 et 14.5), ce que la chaîne ne montrerait pas si
+seul un champ rédigé changeait. En mode `retenir`, RL-2 compare la requête
+retenue à la `retenue` (pour la ré-émission retenue d'EX-4.50, son propre
+MAC) et s'applique quand même. Un relais qui a passé RL-3 puis échoue avant
+le pas 9 ne libère pas l'approbation : le service l'a déjà servie (CT-3
+EX-7.17), et CT-3 n'a pas de message pour la libérer. La marge de RL-4 ne
+couvre ni l'événement en attente scellé à la sortie du mode dégradé ni
+l'événement de reprise : leur `consommer` peut arriver après la fin du délai
+de reconnaissance, et CT-3 l'admet (T22, EX-7.20).
+
+**EX-7.22** **MAC de relais.** Pour une réponse `nouveau` ou `approuve`,
+pour une ré-émission `en_attente` que le mode `retenir` retient (EX-4.50), et
+pour tout appel relayé, dont le résultat peut être `input_required`
+(EX-4.21), le noyau calcule, sur les arguments en clair (4.4 pas 3, ou
+`arguments` de `debutAppel`) :
+
+```text
+M = HMAC-SHA-256( K_relais, UTF-8("noortrace/relais/v0") ‖ 0x00 ‖ JCS_integral(arguments) )
+```
+
+où `K_relais` est la suite d'octets de `storage.relay_mac_key` décodée selon
+son `encoding` (15.2), d'au moins 32 octets après décodage, tirée au hasard
+et distincte de toute autre clé de l'enregistreur. Pour une `retenue`, `M`
+est inscrit dans le fichier des MAC avec le ticket et le `request_hash`
+(EX-12.23) ; pour un relais, il est comparé à celui de la `retenue` (RL-2),
+puis oublié ; pour un appel dont le résultat est `input_required`, il est
+gardé dans l'enregistrement de continuation (EX-4.21) et comparé à celui de
+la continuation. `M` est une valeur dérivée à clé qu'EX-10.2 admet hors de
+la chaîne, des pièces, du journal d'exploitation et des métriques ; il n'est
+jamais transmis au service ni consigné. Toutes les instances d'un même
+journal (section 13) DOIVENT résoudre `storage.relay_mac_key` vers les mêmes
+octets : chaque fichier `mac-<epoch>` commence par une ligne de contrôle
+`{ "kind": "controle", "mac" }`, où `mac` est `M` calculé sur la chaîne JSON
+`"controle"` (des arguments sont toujours un objet : aucune collision).
+Avant de prendre un bail détenu jusque-là par une autre instance (bascule,
+13.4), l'instance recalcule cette valeur et la compare à la ligne de
+contrôle du dernier fichier `mac-*` de l'instance précédente ; une
+différence est une erreur de configuration (`relay_mac_key_mismatch`,
+alerte critique de 17.4) : l'instance ne prend pas le bail, plutôt que de
+faire échouer RL-2 pour chaque ticket approuvé ensuite. À la reprise d'une
+même instance, une différence dit un changement volontaire de la clé
+(consigné, `relay_mac_key_changed`). Un changement de `K_relais` fait échouer
+RL-2 pour les tickets dont la `retenue` le précède : l'échec est fermé et
+consigné ; l'approbation, déjà servie si la réponse était `autorise`, ne se
+libère pas : les ré-émissions de la même demande reçoivent `en_attente`
+jusqu'à la fin du délai de reconnaissance, `approval.at + E` (CT-3 EX-7.17),
+après laquelle une ré-émission est une nouvelle demande. Une pièce
+« arguments » au-delà de la borne de temps n'atteint jamais RL-2 pour un
+outil susceptible d'approbation : elle est refusée au pas 4 (EX-10.23).
 
 ## 8. Sérialisation des pièces
 
@@ -2519,7 +3175,8 @@ d'hôte ou, si l'entrée l'admet (`accept_declared_delegation`), par
 l'en-tête `X-Noortrace-Prompt-Version` de la passerelle ou
 `_meta["noortrace/prompt_version"]`, déclaratifs, admis seulement s'ils
 respectent `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$` et qu'aucun détecteur de
-texte de la politique n'y correspond, EX-7.2) ; cette forme
+texte de la politique, quels que soient la portée, les outils et le `path`
+de sa règle, n'y correspond, EX-7.2) ; cette forme
 ne porte aucune empreinte du clair et répond à la recommandation de CT-1 §15,
 mais elle ne prouve plus le contenu du prompt, seulement son nom : la
 configuration l'assume explicitement, et le défaut reste le texte rédigé.
@@ -2549,11 +3206,18 @@ analysable n'en devient jamais une (elle est refusée, EX-5.7). Règles :
 3. sinon (binaire, ou codage de contenu inconnu, EX-5.9), si au moins une
    règle de rédaction s'applique à la portée, la pièce est le JCS intégral de
    `{"noortrace_non_redigeable": {"content_type": <valeur reçue ou null>,
-   "length": <octets reçus>, "reason": "non_utf8" ou "codage_inconnu" ou
+   "length": <longueur>, "reason": "non_utf8" ou "codage_inconnu" ou
    "budget_redaction"}}`, `redacted: true`, sans `media_type` : un
    contenu qui ne peut pas être rédigé n'est pas stocké, et son empreinte
    n'entre pas dans la chaîne (EX-10.2) ; si aucune règle ne s'applique, les
-   octets sont stockés tels quels.
+   octets sont stockés tels quels. `length` est le nombre d'octets du corps
+   reçu (requête ou réponse de modèle, document de contexte, corps HTTP) ;
+   pour une pièce JSON tirée d'un message JSON-RPC, que la borne d'EX-10.23
+   remplace par cette forme (arguments, résultat d'outil), c'est la longueur
+   en octets du JCS intégral de la valeur en clair, la sérialisation
+   qu'EX-10.16 calcule déjà, une fois, avant la rédaction ; pour une pièce
+   texte (prompt système, intention, contexte `text/plain`), la longueur
+   UTF-8 du texte.
 
 Un flux SSE dont aucun événement n'a pu être interprété est traité de même
 (`text/event-stream`, règle 2), avec `noortrace_flux_incomplet` noté dans le
@@ -2604,7 +3268,7 @@ qui les produit :
 | Événement | Déclencheur | Produit par | Champs notables |
 |---|---|---|---|
 | `noortrace.modele.echange` | Une requête de modèle et sa réponse par la passerelle, par ICAP (couple REQMOD/RESPMOD corrélé), par le miroir, par un `sampling/createMessage` relayé (EX-4.29), ou par `echangeModele` du SDK | Frontal modèle, frontal MCP, point d'entrée SDK | 7.2 ; toujours `executee`, `is_error` selon 5.7 |
-| `noortrace.approbation.decision` | Le service d'approbation (CT-3) remet une décision `approuve`, `refuse` ou `expire` pour un ticket dont l'événement `retenue` existe | Noyau, sur remise de CT-3 | `approval` complet, vérifié (EX-7.5) ; `approval.at = ts`, posé par l'écrivain (EX-7.11) ; précède tout appel relayé pour ce ticket (A-2) ; `expire` : `approvers` et `signatures` vides |
+| `noortrace.approbation.decision` | Le service d'approbation (CT-3) remet une décision `approuve`, `refuse` ou `expire` pour un ticket dont l'événement `retenue` existe (EX-7.19) ; ou le noyau expire seul un ticket que le service n'a pas décidé à temps (EX-9.4) | Noyau, sur remise de CT-3 ou seul | `approval` complet, vérifié (SG-1 à SG-7, EX-7.5) ; `approval.at = ts`, posé par l'écrivain (EX-7.11) ; précède tout appel relayé pour ce ticket (A-2) ; `expire` : `approvers` et `signatures` vides |
 | `noortrace.journal.rotation-cle` | Rotation planifiée (`signer.rotation.planned_every_days` de la configuration, EX-11.15), rotation d'urgence (commande d'exploitation), fin de validité annoncée par le signataire | Noyau, avec l'ancienne et la nouvelle clé | CT-1 §8 : annonce en ligne, contresignature de la nouvelle clé, `effects` `cle:<new_key_id>` ; le manifeste de la période est signé par la nouvelle clé |
 | `noortrace.journal.politique` | Création du journal ; chargement d'un ensemble de politique dont `policy_sha256` diffère du dernier annoncé dans le journal (au démarrage ou au rechargement, section 15) | Noyau, configuration | `arguments.value = { "policy_version", "policy_sha256" }` (8.5) ; `code.policy_version` égal à la nouvelle version |
 
@@ -2647,12 +3311,35 @@ rotation d'urgence est immédiate ; la révocation de l'ancienne clé au registr
 est du ressort de CT-4 (CT-1 §8 règle 5) et n'est pas un événement.
 
 **EX-9.4** Une décision `expire` (délai d'approbation écoulé sans décision,
-CT-1 §5.3) est produite par le noyau sur signalement de CT-3 (ou, si CT-3 ne
-répond plus, à `approval.expire_after_ms` de la configuration, en le disant
-dans `reason`), avec `approvers: []`, `signatures: []`, `at` = `ts` de
-l'événement (EX-7.11). Une expiration atteinte en mode dégradé est scellée à
-la sortie du mode, et `reason` le dit. L'appel reste `retenue` ; aucun appel
-relayé ne suit ; une nouvelle tentative de l'agent est un nouvel appel.
+CT-1 §5.3) a `approvers: []`, `signatures: []`, `at` = `ts` de l'événement
+(EX-7.11). Le noyau la scelle sur remise du service (EX-7.19), avec la raison
+fixe que CT-3 EX-7.11 donne à la remise, ou **seul**, quand aucune décision
+n'est scellée pour le ticket à son échéance plus `policy.approval.timeout_ms`
+(service muet, `ticket_inconnu`, remise `expire` refusée ; CT-3 EX-12.11).
+L'échéance est `request_ts + E`, où `request_ts` est le `ts` de l'événement
+`retenue` et `E` l'`expire_after_ms` de la version de politique de cet
+événement (`code.policy_version`, CT-3 EX-7.10), et non celui de la version en
+vigueur. Une expiration par le noyau seul porte la raison fixe `expire par
+l'enregistreur, service d'approbation sans reponse` (non rédigée, EX-10.24),
+l'`approver_set` de la dernière remise reçue pour ce ticket dont le jeu est
+exploitable (EX-7.16 : forme de SG-1, `source` de CT-3 EX-8.8, membres
+distincts, `size` égal au nombre de membres, `required` au plus `size`),
+quelle que soit sa décision, à défaut celui de la réponse `nouveau`, et pour
+`threshold` le `threshold` de cet `approver_set` : une remise refusée par
+SG-1 ou SG-6 (une remise `expire` refusée est justement l'un des cas où le
+noyau expire seul) ne peut pas donner une décision qui viole A-3 de CT-1. La
+règle se recalcule sur les seules lignes des fichiers des approbations
+(EX-12.23) ; la réponse `nouveau` portant toujours un jeu exploitable
+(EX-7.16), le noyau a toujours de quoi former la décision. Après son
+scellement, le noyau l'annonce au service par `expiration` : `{
+"ticket", "seq", "hash", "at", "approval" }`, `approval` étant l'objet scellé
+(CT-3 EX-12.11). Une expiration atteinte pendant un mode dégradé est scellée à
+la sortie du mode, après les événements de reprise et en attente (EX-9.8) ; sa
+raison reste l'une des chaînes fixes ci-dessus, et le retard est dit par le
+journal d'exploitation (`approval_expired_deferred`), pas par `reason`. L'appel
+reste `retenue` ; aucun appel relayé ne suit ; une ré-émission reconnue reçoit
+le refus scellé (un événement `refusee` par tentative, EX-7.12) tant que court
+le délai de reconnaissance (CT-3 EX-7.18), puis devient un nouvel appel.
 
 L'enregistreur ne produit aucun autre événement sur lui-même : démarrage,
 arrêt, bascule de bail, rotation de segment, clôture de période, purge,
@@ -2793,8 +3480,34 @@ compté) :
    `{"tools":[<définition ci-dessus>]}`, 418 octets, `sha256 =
    0xbce6c768f26f72d7377fa3098262b61db83bcc740fc528be536acaa7f168033e`.
 3. **Politique** (pas 3). Le service d'approbation reçoit les arguments en
-   clair (montant `7400.00` CHF) et rend `{ "rule": "paiement > 5000 CHF",
-   "decision": "a_approuver", "ticket": "apr-1192" }`. La corrélation 5.6
+   clair (montant `7400.00` CHF) et rend la réponse d'`evaluer` d'un ticket
+   nouveau (EX-7.16), dont l'`approver_set` est ici un jeu `statique`, celui
+   d'un enregistreur de développement (en production, le jeu vient du
+   registre, CT-3 EX-8.2) :
+
+<!-- schema: ticket/reponse_evaluer -->
+```json
+{
+  "rule": "paiement > 5000 CHF",
+  "decision": "a_approuver",
+  "ticket": "apr-1192",
+  "ticket_state": "nouveau",
+  "approval": null,
+  "approver_set": {
+    "threshold": { "required": 2, "size": 3 },
+    "members": [
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "source": "jeu statique de la politique 2026-11-01"
+  }
+}
+```
+
+   La réponse n'entre dans aucun événement : les octets et les hachages de
+   cette annexe n'en dépendent pas. Le noyau calcule le MAC de relais des
+   arguments en clair (EX-7.22). La corrélation 5.6
    trouve l'échange de modèle seq 1 (sa réponse contient un bloc `tool_use`
    de nom `sap.payments.create` dont `input` a le même JCS intégral que les
    arguments en clair) : `intent = "Régler le sinistre 2026-77812 après
@@ -2885,10 +3598,34 @@ compté) :
 }
 ```
 
-   L'événement est ajouté au segment, `fsync`. Le ticket `apr-1192` est remis
-   à CT-3 avec `request_hash = 0x793a…1bd6`. En mode `approval.mode:
-   "retenir"`, la requête `h-77812-4` de l'hôte reste ouverte ; rien n'est
-   envoyé au serveur d'outils.
+   L'événement est ajouté au segment, `fsync`. Aucune décision n'était
+   scellée pour `apr-1192` (EX-7.17). Le noyau inscrit l'`approver_set` de
+   la réponse et le MAC de relais dans les fichiers des approbations,
+   `fsync` (EX-12.23), puis remet le ticket au service par `ouvrir`
+   (EX-7.18) : `request_hash = 0x793a…1bd6`, `request_seq = 2`,
+   `request_ts = "2026-11-03T13:41:07.218Z"`, `request_event` = l'événement
+   ci-dessus, `arguments_piece` = les 96 octets du pas 4 en base64,
+   `eyJhbW91bnQiOiI3NDAwLjAwIiwiYmVuZWZpY2lhcnlfaWJhbiI6IltSRURJR0U6aWJhbl0iLCJjbGFpbV9pZCI6IjIwMjYtNzc4MTIiLCJjdXJyZW5jeSI6IkNIRiJ9`.
+   Ce récit suit le mode `retenir` : la requête `h-77812-4` de l'hôte reste
+   ouverte jusqu'à la décision, 693 s plus tard, et rien n'est envoyé au
+   serveur d'outils. C'est un récit, pas une configuration à reproduire :
+   EX-4.50 exigerait un `hold_timeout_ms` supérieur à 693 s, sous le délai
+   de **tous** les hôtes raccordés ; la plupart des hôtes de CT-3 §11.2
+   coupent bien avant (5 à 240 s), et seuls des hôtes en stdio le
+   permettraient (Claude Code, qui abandonne après 30 minutes d'inactivité ;
+   le SDK MCP Python et langchain-mcp-adapters, sans délai de requête par
+   défaut). En mode `erreur`, celui de la configuration de
+   référence (CT-3 EX-11.1), l'hôte
+   reçoit aussitôt le signal d'approbation (EX-4.49), ligne de 359 octets :
+
+```json
+{"jsonrpc":"2.0","id":"h-77812-4","result":{"resultType":"complete","content":[{"type":"text","text":"noortrace: appel soumis a approbation ; ticket=apr-1192 ; state=en_attente"}],"isError":true,"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"noortrace-enregistreur","version":"0.1.0"},"noortrace/approval":{"ticket":"apr-1192","state":"en_attente"}}}}
+```
+
+   puis l'agent ré-émet l'appel, et c'est la ré-émission reconnue, rendue
+   `autorise` avec `ticket_state: "approuve"` après la décision (EX-7.16),
+   qui suit les pas 7 et suivants ; les événements de cette annexe sont les
+   mêmes dans les deux modes.
 
 6. **Décision** (9.1). Les approbateurs signent `A` (CT-1 §6.3) :
 
@@ -2902,9 +3639,12 @@ D_A    = 0x411768329b8c16bdfe32c4a4b5f6993571c2e5d73b55fdf1f19d00fe408408a8
 | Compte Hardhat 1 | `0x70997970c51812dc3a010c7d01b50e0d17dc79c8` | `0xe6d383bce2a360d254823fd70827faef284269ba457832708c70e8956a6c2f4f6066998d2a083029d5816530d1c15b615c15de6504fc8c1a50a15f8bff131fbb1b` |
 | Compte Hardhat 2 | `0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc` | `0x64a98eee5687a9e5608b528200130c001414401543aaa01211b8b2666100dfbc3050be55d3d024d599e885424fbbd7ae1d05e050e259e1fd440a1e1c32f0fd1b1c` |
 
-   Le noyau vérifie les deux signatures (E-9), le seuil 2 sur 3 (A-3) et
-   `request_hash` (A-4), puis scelle seq 3, `ts = approval.at`
-   (EX-7.11) ; `arguments` est la référence en ligne à `A` (JCS v0, 287
+   Le noyau vérifie la remise par SG-1 à SG-7 (EX-7.5), dont les deux
+   signatures (E-9, SG-5), le seuil 2 sur 3 (A-3, SG-6), `request_hash` (A-4,
+   SG-2) et la séparation des tâches (SG-7 : aucune des deux adresses n'est
+   déclarée pour le demandeur), puis scelle seq 3, `ts = approval.at`
+   (EX-7.11), et l'acquitte (`scelle`, `held: true`, EX-7.19) ; `arguments`
+   est la référence en ligne à `A` (JCS v0, 287
    octets, `sha256 = 0x6b5a72c84048bc9578e472c81185536afd446554b17d56ead46c39b717dc00be`) ;
    `hash = 0xa167496bc58e285bd1d1925e15b3d24c147bc9559e0a19065eade18ecf860371`,
    `sig = 0x3e086991193f3264ce7704946a14b60b638dbd039dcebab04afc079a1a1d5ee3c8f1ad0fdc4120abd9c6e3e728001eaeedb2e2792614f2d814524641e7b02c0d`.
@@ -2914,18 +3654,22 @@ D_A    = 0x411768329b8c16bdfe32c4a4b5f6993571c2e5d73b55fdf1f19d00fe408408a8
 
 ### A.3 L'appel est relayé
 
-7. **Préconditions et intention** (pas 7 et 8). Bail détenu, signataire et
+7. **Préconditions et intention** (pas 7 et 8). RL-1 à RL-4 passent
+   (EX-7.21) : la décision scellée seq 3 est `approuve`, la requête retenue
+   est la demande elle-même, aucun appel ne porte encore l'approbation, et
+   l'instant est bien avant `approval.at + E`. Bail détenu, signataire et
    stockage disponibles. Le stockage ajoute au journal d'intention
    `intentions/intentions-1.ndjson` (époque du bail 1) la ligne intention
    suivante (EX-12.12 : neuf clés, JCS intégral, 482 octets, `sha256 =
-   0xdd28b1c3e93808ddb24979a145ca1fe131ba0adc5390291b3287c0b329310b08`), `intent_id` étant formé de l'époque et
-   du compteur de l'écrivain, `upstream_id` de l'`id` amont du pas 8, `host`
-   de l'`id` de l'entrée de connexion d'hôte (`agent-sinistres-stdio`, 15.3),
-   `arguments` de la référence complète de la pièce du pas 4 ; puis la ligne
-   de contexte d'intention de la section 12.5 (l'événement partiel :
-   `delegation`, `code`, `intent`, `policy`, `approval`, `execution` réduit à
-   `tool` et `arguments`, `effects`, `context`, tels qu'ils figurent dans
-   seq 4 ci-dessous, `effects` valant `[]`, 1717 octets) ; et `fsync` :
+   0xdd28b1c3e93808ddb24979a145ca1fe131ba0adc5390291b3287c0b329310b08`),
+   `intent_id` étant formé de l'époque et du compteur de l'écrivain,
+   `upstream_id` de l'`id` amont du pas 8, `host` de l'`id` de l'entrée de
+   connexion d'hôte (`agent-sinistres-stdio`, 15.3), `arguments` de la référence
+   complète de la pièce du pas 4 ; puis la ligne de contexte d'intention de la
+   section 12.5 (l'événement partiel : `delegation`, `code`, `intent`, `policy`,
+   `approval`, `execution` réduit à `tool` et `arguments`, `effects`, `context`,
+   tels qu'ils figurent dans seq 4 ci-dessous, `effects` valant `[]`, 1717
+   octets) ; et `fsync` :
 
 ```json
 {"arguments":{"length":96,"redacted":true,"sha256":"0x6cfc43b54a70eee0141d2fc7d1acc06003ee23354ac76f2097ef74958d91bbb4"},"host":"agent-sinistres-stdio","intent_id":"i-00000000000000000001-000000000041","journal_id":"0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b","org_id":"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab","ticket":"apr-1192","tool":"sap.payments.create","upstream_id":"e-000000000041","written_at":"2026-11-03T13:52:40.678Z"}
@@ -2933,7 +3677,8 @@ D_A    = 0x411768329b8c16bdfe32c4a4b5f6993571c2e5d73b55fdf1f19d00fe408408a8
 
    Si l'enregistreur s'arrêtait maintenant, la reprise (section 12)
    produirait un événement `executee`, `is_error: true`, dont la pièce
-   « résultat » serait `{"intention_sha256":"0xdd28…0b08","noortrace_reprise":"resultat
+   « résultat » serait
+   `{"intention_sha256":"0xdd28…0b08","noortrace_reprise":"resultat
    inconnu : enregistreur arrete pendant le relais"}`.
 
 8. **Envoi** (pas 9). Ligne écrite sur l'entrée standard du serveur d'outils
@@ -2975,7 +3720,9 @@ D_A    = 0x411768329b8c16bdfe32c4a4b5f6993571c2e5d73b55fdf1f19d00fe408408a8
     groupe capturant), `amount = "7400.00"`, `currency = "CHF"`.
 12. **Événement** (pas 13). Le noyau construit et scelle seq 4 ; l'écrivain
     vérifie le bail, ajoute la ligne au segment, `fsync`, revérifie le bail
-    (EX-13.10), lève l'intention `i-00000000000000000001-000000000041`.
+    (EX-13.10), lève l'intention `i-00000000000000000001-000000000041`, puis
+    le noyau envoie `consommer` (`{ "ticket": "apr-1192", "seq": 4, "hash":
+    "0x8e2f…5ca6" }`, EX-7.20).
 
 <!-- schema: evenement -->
 ```json
@@ -3154,14 +3901,17 @@ téléphone, nom) se renverse par dictionnaire : c'est la mise en garde du CEPD
 version pour consultation publique adoptée le 16 janvier 2025, toujours en
 cette version au 2026-10-22, R6) et le motif pour lequel Presidio sale par
 défaut son opérateur `hash` depuis la version 2.2.361 (R6). La seule forme
-dérivée admise est le pseudonyme à clé de 10.3.9. La règle vaut aussi pour
-les **valeurs en ligne** de l'événement, qui sont dans la chaîne signée et
-dans chaque dossier et ne peuvent pas être purgées : `intent` (tiré de la
-réponse rédigée, EX-5.21), `effects` (évalués sur les valeurs rédigées,
-EX-7.6), `code.model` (lu dans la réponse rédigée, 7.2), la délégation
-déclarée et le nom de prompt déclaré (bornés et soumis aux détecteurs,
-EX-7.2, EX-8.6). Aucune valeur en ligne n'est tirée d'une donnée en clair
-qui n'a pas traversé la rédaction.
+dérivée admise est le pseudonyme à clé de 10.3.9, et, hors de la chaîne,
+des pièces, du journal d'exploitation et des métriques, le MAC de relais
+d'EX-7.22, sous une clé distincte, effacé avec son fichier (EX-12.23). La
+règle vaut aussi pour les **valeurs en ligne** de l'événement, qui sont dans
+la chaîne signée et dans chaque dossier et ne peuvent pas être purgées :
+`intent` (tiré de la réponse rédigée, EX-5.21), `effects` (évalués sur les
+valeurs rédigées, EX-7.6), `code.model` (lu dans la réponse rédigée, 7.2),
+la délégation déclarée et le nom de prompt déclaré (bornés et soumis aux
+détecteurs, EX-7.2, EX-8.6), et le motif `approval.reason` d'une décision
+(rédigé avant le scellement, EX-10.24). Aucune valeur en ligne n'est tirée
+d'une donnée en clair qui n'a pas traversé la rédaction.
 
 **EX-10.3** Les règles de rédaction sont un **document JSON versionné**
 (10.2), validé contre `spec/schemas/politique-redaction-v0.schema.json` au
@@ -3172,10 +3922,12 @@ politique dont `code.policy_version` nomme la version (10.6).
 
 **EX-10.4** La rédaction est **déterministe** : pour une politique, une portée,
 un outil et une valeur d'entrée donnés, deux implémentations conformes
-produisent les mêmes octets. C'est pourquoi les détecteurs de 10.3 sont écrits
-au caractère près, avec leur normalisation et leur somme de contrôle, et pourquoi
-les vecteurs `redaction` de l'annexe B donnent entrée, politique et octets
-attendus.
+produisent les mêmes octets, sauf quand le budget de temps d'EX-10.23 est
+dépassé, ce qui dépend de la machine ; hors dépassement, rien de la
+rédaction ne dépend du temps. C'est pourquoi les détecteurs de 10.3 sont écrits
+au caractère près, avec leur normalisation et leur somme de contrôle, et
+pourquoi les vecteurs `redaction` de l'annexe B donnent entrée, politique et
+octets attendus.
 
 **EX-10.5** La rédaction porte sur les **chaînes de caractères** de la valeur
 JSON. Un nombre, un booléen, `null`, un nom de membre ne sont jamais examinés
@@ -3222,10 +3974,10 @@ commun** défini ci-dessous, sémantique « leftmost-first », sensible à la
 casse, sans drapeau, pour que l'implémentation de référence (ECMAScript,
 drapeau `u`) et le vérificateur (Go, paquet `regexp`) trouvent les mêmes
 correspondances ; aucun motif nommé ne fait correspondre l'un des jetons de
-remplacement possibles de la politique (`[REDIGE:<t>]`, `[PSEUDO:<t>:000000000000]`
-pour chaque type, nom ou étiquette `t` employé) ; les `id` de règles sont
-uniques. Le même sous-ensemble vaut pour `extract` des gabarits d'effets
-(EX-7.6).
+remplacement possibles de la politique (`[REDIGE:<t>]`,
+`[PSEUDO:<t>:000000000000]` pour chaque type, nom ou étiquette `t` employé) ;
+les `id` de règles sont uniques. Le même sous-ensemble vaut pour `extract` des
+gabarits d'effets (EX-7.6).
 
 **Sous-ensemble commun ECMAScript/RE2.** Il est défini par une liste
 **autorisée**, parce que des constructions admises par les deux moteurs n'y
@@ -3240,15 +3992,20 @@ de :
    `\[`, `\]`, `\{`, `\}`, `\/` ; `\t`, `\n`, `\r`, `\f`, `\v` ; `\xHH`
    (deux chiffres hexadécimaux) ; classes `\d`, `\D`, `\w`, `\W` ;
    frontières `\b`, `\B` ;
-3. classes `[…]` et `[^…]` non vides, faites de littéraux (autres que `\`, `]` et `[`),
-   d'échappements du point 2 sauf `\b` et `\B`, de `\-`, et d'intervalles
-   `a-z` entre deux de ces caractères ; un `-` littéral n'est admis qu'en
-   première ou dernière position ;
+3. classes `[…]` et `[^…]` non vides, faites de littéraux (autres que `\`, `]`
+   et `[`), d'échappements du point 2 sauf `\b` et `\B`, de `\-`, et
+   d'intervalles `a-z` entre deux de ces caractères ; un `-` littéral n'est
+   admis qu'en première ou dernière position ;
 4. groupes `( … )`, `(?: … )`, `(?<nom> … )` et `(?P<nom> … )` (nom
    `^[A-Za-z][A-Za-z0-9_]{0,31}$`) ;
-5. quantificateurs `*`, `+`, `?`, `{n}`, `{n,}`, `{n,m}` (`n ≤ m ≤ 1000`),
-   chacun éventuellement suivi de `?` (paresseux), jamais de `+`
-   (possessif) ;
+5. quantificateurs `*`, `+`, `?`, `{n}`, `{n,}`, `{n,m}` (`n ≤ m ≤ 1000`,
+   `n` et `m` écrits sans zéro non significatif, de la forme
+   `0|[1-9][0-9]{0,3}` : RE2 et le paquet `regexp` de Go lisent `a{01}`
+   comme le texte `a{01}` quand ECMAScript y voit une répétition, de sorte
+   que `[0-9]{04}` rédigerait `1234` en ECMAScript et rien en Go ; un tel
+   quantificateur est refusé, « zéro non significatif dans un
+   quantificateur »), chacun éventuellement suivi de `?` (paresseux), jamais
+   de `+` (possessif) ;
 6. ancres `^` et `$` (début et fin de la chaîne, sans mode multiligne) ;
    alternative `|`.
 
@@ -3258,8 +4015,59 @@ recherches avant et arrière, les groupes atomiques, les drapeaux en ligne et
 les classes POSIX. Le client écrit `[^\n]` à la place de `.` et
 `[ \t\n\r\f\v]` à la place de `\s`. Dans ce sous-ensemble, `\d`, `\w` et
 `\b` sont ASCII dans les deux moteurs, et `[^…]` admet tout point de code.
-Le vecteur `redaction/motifs.json` de l'annexe B donne des motifs admis et
-refusés.
+
+**Règles de structure et de taille.** Un motif fait de ces constructions
+n'est admis que s'il respecte en outre les trois règles suivantes, vérifiées
+à l'identique par l'implémentation de référence et par le vérificateur Go :
+
+a) **aucune répétition imbriquée ou ambiguë** : un quantificateur (de
+   quelque forme, paresseux ou non) ne porte pas sur un groupe (capturant,
+   non capturant ou nommé) dont le corps contient, à quelque profondeur que
+   ce soit, un quantificateur ou une alternative `|`. C'est la forme des
+   motifs à retour arrière exponentiel que décrit OWASP, un groupe répété
+   dont le corps contient une répétition ou une alternative qui se recouvre
+   (`(a+)+$`, `([a-zA-Z]+)*$`, `(a|aa)+$`, `(a|a?)+$`, R10 F-25), qu'une
+   borne ne rend pas sûre (`(a|aa){1,1000}$` passe 4 s à 35 caractères,
+   R10 F-28) ; une forme bénigne comme `(?:[0-9]{4} ?){3}` s'écrit déroulée ;
+b) **aucun groupe quantifié qui peut être vide** : le corps d'un groupe
+   quantifié contient au moins un caractère littéral, un échappement de
+   caractère ou une classe (`\b`, `\B`, `^`, `$` et un groupe vide ne
+   consomment rien), de sorte qu'aucune itération ne correspond à la chaîne
+   vide ;
+c) **taille développée d'au plus 1 000** : la taille d'un littéral, d'un
+   échappement, d'une classe ou d'une ancre vaut 1 ; celle d'une suite ou
+   d'une alternative, la somme de ses éléments ; celle d'un groupe, celle de
+   son corps ; celle d'un élément quantifié, sa taille multipliée par 1 pour
+   `*`, `+` et `?`, par `max(n, 1)` pour `{n}`, par `n + 1` pour `{n,}` et
+   par `max(m, 1)` pour `{n,m}`. Le coût d'un moteur à temps linéaire croît
+   avec cette taille : le paquet `regexp` de Go met 12 047 ms à parcourir
+   10^6 caractères avec `[0-9]{1000}x`, de taille 1 001, refusé (R10 F-29).
+
+La règle a) supprime aussi toute répétition imbriquée, que Go et RE2
+bornent seuls (`(a{1,1000}){1,1000}$` était admis par le contrôle
+JavaScript et refusé par Go, R10 F-30). Ces règles écartent les groupes
+répétés que décrit OWASP ; elles n'écartent ni le retour arrière d'une suite
+d'atomes quantifiés, exponentiel dans le nombre de ces atomes (`a?` répété
+n fois puis `a` répété n fois), ni le retour arrière polynomial
+d'ECMAScript : sans groupe répété, `[0-9]+$` met 4 671 ms sur 80 000 chiffres
+suivis de `x`, et `[a-z]*[a-z]*[a-z]*!` plus de 5 s sur 1 000 caractères
+(R10 F-27), tous admis. Aucune règle de structure ne borne ce coût, puisqu'un
+seul quantificateur suffit à dépasser la borne sur une entrée assez longue :
+c'est pourquoi EX-10.23 borne le temps de toute exécution d'un motif, au
+démarrage comme sur les données. Un motif admis se compile en Go tel quel ;
+en ECMAScript, avec le drapeau `u`, chaque ouverture de groupe nommé
+`(?P<nom>` reconnue par l'analyse du point 4 (parenthèse non échappée, hors
+classe) étant écrite `(?<nom>`, seule forme de groupe nommé qu'ECMAScript
+admet, et aucune autre suite n'étant modifiée : une suite « (?P< » dans une
+classe (`[(?P<]x`) ou après une parenthèse échappée (`a\(?P<b`, `\(?P<x>`)
+n'ouvre pas de groupe et garde son sens, alors qu'un remplacement textuel
+lui en donnerait un autre que celui de Go ; `\\(?P<x>a)`, barre oblique
+inverse échappée suivie d'un vrai groupe nommé, est réécrit. Le même
+sous-ensemble, les mêmes règles a) à c) et la même compilation valent pour
+`extract` des gabarits d'effets (EX-7.6), contrôlé au démarrage comme les
+motifs nommés (EX-15.4 pas 3). Le vecteur `redaction/motifs.json` de
+l'annexe B donne des motifs admis et refusés, et, pour certains motifs
+admis, la première correspondance de textes donnés (B.3).
 
 #### 10.2.2 Portées
 
@@ -3667,21 +4475,114 @@ pièce ; le texte extrait n'est jamais tiré de la réponse en clair, et sa
 référence porte `redacted: true` quand il diffère du texte que la réponse en
 clair aurait donné. Le texte d'une pièce `text/plain` d'une autre origine
 (contexte SDK, `intent` déclaré par le SDK) a pour racine la chaîne entière,
-à laquelle s'appliquent les règles de la portée (`contexte`, `arguments`) ;
-la référence porte `redacted` selon EX-10.16.
+à laquelle s'appliquent les règles de la portée (`contexte`, `arguments`)
+selon EX-10.14, `path` compris : sur une racine chaîne, seul le pointeur
+vide résout (10.2.1), et une règle dont `path` n'est pas vide n'a pas d'effet
+sur la pièce ; la référence porte `redacted` selon EX-10.16. Une valeur en
+ligne (EX-6.6, EX-7.2, EX-8.6, EX-10.24) n'est pas une pièce : le `path` des
+règles n'y est pas résolu, la chaîne est la racine.
 
 **EX-10.23** **Coût borné.** Les détecteurs nommés DOIVENT être implémentés
 en temps linéaire en la longueur de la chaîne (10.3 : lectures bornées, aucun
-retour arrière non borné) et les motifs nommés exécutés par un moteur à temps
-linéaire (RE2, paquet `regexp` de Go) ou, avec un moteur à retour arrière
-(ECMAScript), sous la borne de temps qui suit. La rédaction d'une pièce
-dispose de `limits.redaction_budget_ms` (défaut 1 000) ; au-delà, la pièce
-est remplacée par la pièce « non rédigeable » d'EX-8.7 (`reason:
-"budget_redaction"`, `content_type` du corps ou `null`), `redacted: true`,
-le dépassement est consigné et
-compté, et l'appel suit son cours : la preuve perd le contenu de la pièce,
-jamais le journal ne reçoit le clair. Le vecteur de performance de l'annexe B
-(`redaction`, cas `email-long`) fixe l'ordre de grandeur attendu.
+retour arrière non borné). Les motifs (motifs nommés et `extract`) sont
+exécutés sous une **borne de temps** : `limits.redaction_budget_ms`, un
+entier d'au moins 1 (1 000 dans la configuration de référence ; le schéma
+refuse 0), mesuré sur une horloge monotone depuis le début de l'opération,
+pour chacune des opérations suivantes :
+
+1. la rédaction d'une pièce, tous passages et toutes règles compris
+   (EX-10.14) : au-delà, la pièce est remplacée par la pièce « non
+   rédigeable » d'EX-8.7 (`reason: "budget_redaction"`, `content_type` du
+   corps ou `null`, `length` d'EX-8.7), `redacted: true`, et la copie
+   partiellement rédigée est jetée ; pour la pièce « arguments » d'un outil
+   de classe `ecriture` ou susceptible d'approbation dont la réponse
+   d'`evaluer` mène à un relais ou à un événement `retenue`, l'appel est en
+   outre refusé avant tout relais (4.4 pas 4, `debutAppel`) : `-31010`,
+   raison `redaction`, ni intention ni événement, consigné
+   (`redaction_budget_exceeded`, opération `piece`, portée `arguments`) et
+   compté dans `noortrace_calls_blocked_total` ; un ticket `nouveau` que le
+   service a réservé reste `reserve` et devient `abandonne` (CT-3 T3), une
+   approbation servie ne se libère pas (CT-3 EX-7.17). La taille ou la forme
+   des données suffit en effet à dépasser la borne, même sans motif nommé :
+   sous `pii-v1`, des arguments de quelques mégaoctets la dépassent selon la
+   machine et la charge (EX-10.4), et un appel d'écriture relayé avec une
+   pièce vide effacerait de la preuve ce qu'il écrit ;
+2. l'évaluation d'un gabarit d'effets (EX-7.6, pas 3) : au-delà, l'effet est
+   omis avec la note `effect_omitted`, raison `budget_redaction` ; pour un
+   outil de classe `ecriture`, si aucun effet n'est produit parce qu'un
+   `extract` a dépassé la borne ou parce qu'une pièce source (« arguments »
+   ou « résultat ») est la pièce non rédigeable, l'effet par défaut d'EX-7.6
+   (2) est déclaré à la place ;
+3. l'examen d'une valeur en ligne par les détecteurs (`run_id` et nom de
+   prompt déclarés, EX-7.2, EX-8.6 ; chaînes des effets déclarés par le SDK,
+   EX-6.6 ; motif d'une décision, EX-10.24) : au-delà, la valeur est traitée
+   comme une valeur dans laquelle un détecteur a trouvé une correspondance
+   (valeur déclarée refusée, effet omis), et le motif d'une décision devient
+   `null` ;
+4. le contrôle, au démarrage, au rechargement et par la commande de
+   validation (EX-15.4 pas 3), qu'aucun motif nommé ne fait correspondre un
+   jeton de la politique (EX-10.6), motif par motif : au-delà, le motif est
+   refusé (« motif trop coûteux sur les jetons ») et la configuration avec
+   lui ; un motif admis par EX-10.6 peut en effet mettre des secondes sur ces
+   seuls jetons, et bloquer le démarrage ou le rechargement : `[^x]*` répété
+   huit fois puis `x` y met 5 161 ms sans borne, contre 178 ms répété six fois
+   (mesure sous Node.js v22.22.0, le 2026-10-23, avec
+   `scripts/lib/capture.mjs`).
+
+L'implémentation DOIT pouvoir interrompre l'opération au dépassement, même
+au milieu d'une correspondance : un moteur à retour arrière (ECMAScript) ne
+rend pas la main de lui-même, et les règles d'EX-10.6 n'excluent pas le
+retour arrière polynomial (R10 F-27). Avec Node.js, une exécution dans un
+contexte `node:vm` avec l'option `timeout` interrompt une recherche en cours,
+y compris dans une fonction du contexte principal appelée depuis ce
+contexte, pour un surcoût mesuré d'environ 0,16 ms par appel ; l'arrêt d'un
+`Worker` par `terminate()` prend de 2 à 3 ms (R10 F-36). `replace`,
+`replaceAll`, `split`, `matchAll`, `match`, `search` et `test` sont
+interrompus de même : sous Node.js v22.22.0, avec une borne de 50 ms et
+`[0-9]+$` sur 80 000 chiffres suivis de `x`, chaque méthode s'arrête entre
+49,5 et 50,8 ms, quand `exec` et `replace` sans borne durent 4 365 et
+4 888 ms ; le surcoût mesuré est de 0,14 ms par appel (mesure du
+2026-10-23 avec `scripts/lib/capture.mjs`, et test/enregistreur.test.js,
+qui borne la durée par la borne plus 450 ms : R10 NV-4 levé). Cette
+exécution est synchrone : elle occupe le fil qui l'appelle jusqu'à la
+borne, d'où EX-3.6. Le moteur à temps linéaire
+de V8 n'est pas une solution : il est expérimental, derrière une option de
+ligne de commande, et refuse le drapeau `u` (R10 F-33, F-34), sans lequel
+les correspondances diffèrent de celles de Go (R10 F-35). Un moteur à temps
+linéaire (paquet `regexp` de Go) applique la même borne, son coût croissant
+avec la taille du motif (R10 F-29). Chaque dépassement est consigné
+(`redaction_budget_exceeded`, opération, portée, règle, sans valeur) et
+compté (17.2) ; hors du refus de l'opération 1 et du refus de configuration
+de l'opération 4, l'appel suit son cours : la preuve perd le contenu de la
+pièce ou de la valeur (une lecture, ou le résultat d'une écriture déjà
+exécutée), jamais le journal ne reçoit le clair. Un dépassement
+dépend de la machine (EX-10.4) : aucun vecteur de l'annexe B n'est près de
+la borne ; le cas `email-long` est un cas de longueur, sans assertion de
+durée, et un test de dépassement emploie une borne très petite ou une
+entrée très au-delà de la borne.
+
+**EX-10.24** **Motif d'une décision.** Avant de sceller une décision
+`approuve` ou `refuse` (EX-7.19), le noyau DOIT appliquer à
+`approval.reason`, s'il n'est pas `null`, pris comme une pièce texte (la
+chaîne est la racine), les règles de la politique de rédaction en vigueur
+dont les détecteurs sont des détecteurs de texte (`iban`, `avs`, `carte`,
+`email`, `telephone`, `regex`), quels que soient leur portée, leurs outils
+et leur `path` (la chaîne du motif est la racine et le pas 1 d'EX-10.14 ne
+s'applique pas : une règle dont le `path` vise `/beneficiary_iban` rédige
+aussi l'IBAN qu'un approbateur écrit dans le motif), avec leur action
+(`remplacer` ou `pseudonyme`), dans l'ordre et par passages comme EX-10.14 ;
+les détecteurs `champ` et l'action `supprimer` ne s'y appliquent pas. Un
+motif rédigé de plus de 1 024 caractères (un jeton peut allonger le texte)
+est tronqué à ses 1 024 premiers points de code
+(CT-1 §5.3). Le motif rédigé est celui de l'`approval` scellé et rendu au
+service par `acquitter` (CT-3 EX-9.14, EX-12.9). Les chaînes fixes d'une
+décision `expire` (CT-3 EX-7.11, EX-9.4) ne sont pas rédigées. `reason`
+n'est pas signé par les approbateurs (CT-1 §6.3) : le rédiger n'invalide
+aucune signature. Le motif est une valeur en ligne, dans la chaîne, qui ne
+peut pas être purgée (EX-10.2) : la console avertit déjà qu'il ne doit
+contenir aucune donnée personnelle (CT-3 EX-9.14), et la rédaction est la
+seconde barrière, que CT-3 demande au noyau (DEVRAIT) et que CT-2 rend
+obligatoire.
 
 ### 10.5 Prompt système
 
@@ -3728,12 +4629,16 @@ membre sans changer `version` est refusé (15.5). Un changement de `redaction`
 DOIT changer `redaction.name` en plus de `policy.version`.
 
 Pour l'exemple de configuration de la section 15.3, `JCS_integral(policy)`
-fait 4482 octets et `policy_sha256 =
-0xd87b0d3855984f5752d1a1f0962db634630488262e61e57544030f40daf6c811` ; la
+fait 6126 octets et `policy_sha256 =
+0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912` ; la
 valeur en ligne de l'événement de politique est alors
-`{"policy_sha256":"0xd87b0d3855984f5752d1a1f0962db634630488262e61e57544030f40daf6c811","policy_version":"2026-11-01"}`
+`{"policy_sha256":"0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912","policy_version":"2026-11-01"}`
 (116 octets, `sha256` de la référence :
-`0xefade454c774eaa0bd3efd9ec6fecd28606a0815ad551d60836e52cf00df31d6`). Le
+`0x77d3368adad6a5a62421901ee91ec7c500950a2c8038a7d58d0450b3665c253e`). La
+version 0.3 a changé ces valeurs (4 482 octets et `0xd87b…c811` en version
+0.2) en remplaçant le tableau illustratif de `policy.approval.rules` par un
+document `politique-approbation-v0`, `mode: "retenir"` par `"erreur"`, et en
+donnant au demandeur `poste-cursor` une entrée de `separation.identities`. Le
 document `pii-v1` seul (10.9) fait 1462 octets en JCS intégral et a pour
 SHA-256 `0x9116aac6ee1d124d155ffb22acd39b1cf2270cac07b30b239e9996012d787f4e` ;
 cette empreinte n'entre pas dans l'événement (seule celle de l'ensemble y
@@ -3743,14 +4648,14 @@ entre), elle sert au vecteur `redaction` de l'annexe B.
 
 **EX-10.22** Les originaux non rédigés ne sont jamais stockés par
 l'enregistreur en version 0, sauf si `storage.vault.enabled` est vrai. Le
-coffre est alors un répertoire distinct du stockage du journal (`storage.vault.path`,
-hors du répertoire des segments et des pièces, jamais dans un dossier de
-preuve), où chaque pièce rédigée a un homologue chiffré par **AES-256-GCM**
-avec une clé propre au coffre (`storage.vault.key`, référence de secret, 32
-octets), nonce de 12 octets aléatoire par fichier, données associées = le
-`sha256` de la pièce rédigée (ce qui lie l'original à la référence du
-journal), nom de fichier = `sha256` de la pièce rédigée. Le coffre est **hors
-chaîne** : rien dans l'événement ne le référence ; son existence est
+coffre est alors un répertoire distinct du stockage du journal
+(`storage.vault.path`, hors du répertoire des segments et des pièces, jamais
+dans un dossier de preuve), où chaque pièce rédigée a un homologue chiffré par
+**AES-256-GCM** avec une clé propre au coffre (`storage.vault.key`, référence de
+secret, 32 octets), nonce de 12 octets aléatoire par fichier, données
+associées = le `sha256` de la pièce rédigée (ce qui lie l'original à la
+référence du journal), nom de fichier = `sha256` de la pièce rédigée. Le coffre
+est **hors chaîne** : rien dans l'événement ne le référence ; son existence est
 consignée dans le journal d'exploitation ; sa clé n'est jamais celle du
 signataire ; son accès est un acte d'exploitation du client (CT-7, CT-8). Le
 coffre existe pour les clients dont une obligation légale ou contractuelle
@@ -3788,11 +4693,18 @@ supprime pas.
   ré-émission MRTR ne sont pas des pièces (EX-4.21) : elles ne sont ni rédigées
   ni journalisées en clair.
 - **Deux implémentations** concordent sur un motif nommé parce que la
-  validation n'admet que le sous-ensemble commun d'EX-10.6 ; les vecteurs de
-  l'annexe B couvrent les cinq détecteurs nommés, un motif nommé simple et la
-  liste des constructions admises et refusées.
+  validation n'admet que le sous-ensemble commun d'EX-10.6 et ses règles de
+  structure et de taille ; les vecteurs de l'annexe B couvrent les cinq
+  détecteurs nommés, un motif nommé simple et la liste des constructions
+  admises et refusées.
 - **Le coût** de la rédaction est borné (EX-10.23) ; au-delà, la pièce perd
-  son contenu plutôt que d'exposer le clair.
+  son contenu plutôt que d'exposer le clair. Un motif admis peut encore
+  coûter un temps polynomial en ECMAScript : la borne le coupe, la
+  validation ne l'empêche pas. Un moteur de correspondance à temps linéaire
+  écrit pour l'implémentation de référence n'est pas dans la version 0.3 :
+  son équivalence avec Go (sémantique « leftmost-first », groupes de
+  `extract`) et son coût restent à établir (R10 NV-5), et il ne dispenserait
+  pas de la borne (R10 F-29).
 
 ### 10.9 Politique « pii-v1 », publiée
 
@@ -3934,9 +4846,9 @@ key in cryptographic operations » (AWS, R3 F-78) ; séparation entre
 gestionnaires de clés (exemple : rôle Cloud KMS Admin) et utilisateurs de
 clés chez Google (https://docs.cloud.google.com/kms/docs/separation-of-duties,
 R3 F-79 ; le nom exact du rôle d'usage pour la signature n'a pas été lu),
-Crypto Officer / Crypto User chez Azure (R3 F-80), capacités posées à la création
-chez YubiHSM (R3 F-29). La cérémonie qui crée la clé et pose ces droits est de
-CT-7 (11.6).
+Crypto Officer / Crypto User chez Azure (R3 F-80), capacités posées à la
+création chez YubiHSM (R3 F-29). La cérémonie qui crée la clé et pose ces droits
+est de CT-7 (11.6).
 
 **EX-11.5** Quand le backend l'offre, la clé est créée **non exportable** et le
 reste : `exportable: false` par défaut et irréversible chez Vault et OpenBao
@@ -4046,12 +4958,12 @@ format d'événement v1 et n'est pas dans le périmètre de CT-2.
 
 ### 11.3 Identifiant de clé, inscription et révocation
 
-**EX-11.12** `recorder_key_id` suit CT-1 §3 (`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`),
-est unique par organisation et ne désigne jamais deux clés publiques
-différentes dans l'histoire d'un journal (CT-1 §11.2 : `key_id` et
-`public_key` uniques dans `cles.json`). Forme recommandée : `rec-<nom de
-l'instance ou du journal>-<AAAA>-<nn>` (`rec-sinistres-2026-01`). Le
-`key_id` du backend (étiquette PKCS#11, nom de clé Transit, ARN, nom de
+**EX-11.12** `recorder_key_id` suit CT-1 §3
+(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`), est unique par organisation et ne désigne
+jamais deux clés publiques différentes dans l'histoire d'un journal (CT-1
+§11.2 : `key_id` et `public_key` uniques dans `cles.json`). Forme recommandée :
+`rec-<nom de l'instance ou du journal>-<AAAA>-<nn>` (`rec-sinistres-2026-01`).
+Le `key_id` du backend (étiquette PKCS#11, nom de clé Transit, ARN, nom de
 ressource) est une donnée de configuration ; il n'apparaît pas dans
 l'événement.
 
@@ -4131,8 +5043,9 @@ de chiffrement : AWS, 365 jours par défaut (de 90 à 2560) pour la rotation
 automatique des clés symétriques (R3 F-85,
 https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html),
 Google, « such as every 90 days » en exemple, sans rotation automatique des
-clés asymétriques (R3 F-86, https://docs.cloud.google.com/kms/docs/key-rotation),
-Azure, « rotate encryption keys at least every two years » (R3 F-87,
+clés asymétriques (R3 F-86,
+https://docs.cloud.google.com/kms/docs/key-rotation), Azure, « rotate encryption
+keys at least every two years » (R3 F-87,
 https://learn.microsoft.com/en-us/azure/key-vault/keys/how-to-configure-key-rotation),
 Vault et OpenBao, une rotation « periodic » sans chiffre (R3 F-88). Une
 période DEVRAIT ne pas dépasser 730 jours : c'est un choix de cette
@@ -4236,6 +5149,8 @@ par ses identifiants en hexadécimal minuscule sans `0x` :
   pieces/<xx>/<sha256>                          pièces, nommées par leur sha256 sans 0x ; <xx> = deux premiers caractères (8.4)
   intentions/intentions-<epoch>.ndjson          journal d'intention (12.5)
   attente/attente-<epoch>.ndjson                événements en attente du mode dégradé (14.5)
+  approbations/approbations-<epoch>.ndjson      jeux d'approbateurs des tickets et des décisions (EX-12.23)
+  approbations/mac-<epoch>.ndjson               MAC de relais des appels retenus (EX-7.22, EX-12.23)
   manifestes/periode-<period_start>.json        manifeste de période (CT-1 §10) ; <period_start> en secondes UNIX, 10 chiffres
   manifestes/periode-<period_start>.sig         sa signature (CT-1 §10.2)
   journal.json                                  identité du journal (12.1), écrit une fois
@@ -4243,15 +5158,16 @@ par ses identifiants en hexadécimal minuscule sans `0x` :
 
 `journal.json` est `{ "version": 0, "org_id", "journal_id", "created_at",
 "recorder": "<version du logiciel>" }`, écrit à la création du journal et
-jamais modifié ; il n'est pas une pièce et n'entre dans aucune chaîne. Il
-n'y a **aucun fichier d'état mutable** : l'état de l'écrivain (dernier `seq`,
-dernier `hash`, clé courante, époque) se dérive à la reprise des segments et
-de leurs en-têtes (12.4). Les noms de fichiers sont ASCII et triables : l'ordre
-lexicographique des segments est l'ordre des `first_seq`, puis des époques.
-L'époque tient sur 20 chiffres parce qu'elle peut venir d'un compteur de
-64 bits partagé (la `mod_revision` d'etcd, compteur de toute la grappe ; le
-`bigint` de PostgreSQL, 13.2) : sur 8 chiffres, une époque au-delà de
-99 999 999 casserait le tri.
+jamais modifié ; il n'est pas une pièce et n'entre dans aucune chaîne. Il n'y a
+**aucun fichier d'état mutable** : l'état de l'écrivain (dernier `seq`, dernier
+`hash`, clé courante, époque) se dérive à la reprise des segments et de leurs
+en-têtes (12.4), et ce que le noyau doit garder de plus pour les approbations
+est écrit en ajout seul (EX-12.23). Les noms de fichiers sont ASCII et triables
+: l'ordre lexicographique des segments est l'ordre des `first_seq`, puis des
+époques. L'époque tient sur 20 chiffres parce qu'elle peut venir d'un compteur
+de 64 bits partagé (la `mod_revision` d'etcd, compteur de toute la grappe ; le
+`bigint` de PostgreSQL, 13.2) : sur 8 chiffres, une époque au-delà de 99 999
+999 casserait le tri.
 
 **EX-12.2** Le stockage DOIT être un système de fichiers local au démon ou un
 volume bloc qui lui est attaché ; **jamais NFS** ni un partage SMB : « O_APPEND
@@ -4344,13 +5260,13 @@ soient conservées ; depuis Linux 4.13, elle est rapportée aux descripteurs
 ouverts sur le fichier (« Since Linux 4.13, errors from write-back will be
 reported to all file descriptors that might have written the data which
 triggered the error », https://man7.org/linux/man-pages/man2/fsync.2.html,
-R5). L'écrivain ferme le segment, relit le fichier depuis le début pour établir sa
-dernière ligne valide (12.4), consigne, et entre en mode dégradé « stockage »
+R5). L'écrivain ferme le segment, relit le fichier depuis le début pour établir
+sa dernière ligne valide (12.4), consigne, et entre en mode dégradé « stockage »
 (section 14) ; les lignes dont la durabilité n'est pas établie sont tenues
 pour perdues (leurs appels n'ont pas reçu de réponse, par EX-12.6, et leurs
 intentions sont encore ouvertes, 12.5) ; un appel déjà relayé dont
 l'événement était parmi elles suit EX-4.46 (événement gardé en attente,
-`-32017`). À la sortie du mode dégradé, un nouveau segment est ouvert avec
+`-31017`). À la sortie du mode dégradé, un nouveau segment est ouvert avec
 `first_seq` = dernier `seq` valide + 1.
 
 **EX-12.9** Le client DOIT déployer le démon sur un stockage dont le cache
@@ -4396,8 +5312,8 @@ relit le journal avant d'écrire :
 troncature : c'est une altération ou une corruption de média. L'écrivain NE
 DOIT PAS la tronquer en silence : il s'arrête en mode dégradé « stockage »,
 consigne `segment_corrupted` avec le `seq` et les deux hachages, et attend une
-intervention (restauration depuis la copie WORM, CT-8). La troncature de EX-12.10
-ne porte que sur une fin de fichier incomplète (ligne sans `\n` ou JSON
+intervention (restauration depuis la copie WORM, CT-8). La troncature de
+EX-12.10 ne porte que sur une fin de fichier incomplète (ligne sans `\n` ou JSON
 inachevé) ou sur des octets nuls de remplissage.
 
 ### 12.5 Journal d'intention et reprise après arrêt
@@ -4517,12 +5433,12 @@ levée, dans l'ordre du fichier :
 
    où `intention_sha256` est le SHA-256 des octets de la ligne intention à
    neuf clés (son JCS intégral, sans le `\n`) ; `effects` : les effets
-   déclarés dans la ligne contexte s'il y en a, sinon pour une classe `ecriture` l'effet unique
-   par défaut d'EX-7.6 (le gabarit ne peut pas être évalué sans les valeurs
-   en clair) ; `policy.redaction` selon EX-10.16 (la pièce « arguments » est
-   celle de l'intention, avec son `redacted`). L'événement de reprise est un
-   appel d'outil `executee` en erreur : le vérificateur de CT-1 l'accepte
-   tel quel (table 5.3), et un lecteur reconnaît la reprise à la clé
+   déclarés dans la ligne contexte s'il y en a, sinon pour une classe `ecriture`
+   l'effet unique par défaut d'EX-7.6 (le gabarit ne peut pas être évalué sans
+   les valeurs en clair) ; `policy.redaction` selon EX-10.16 (la pièce
+   « arguments » est celle de l'intention, avec son `redacted`). L'événement de
+   reprise est un appel d'outil `executee` en erreur : le vérificateur de CT-1
+   l'accepte tel quel (table 5.3), et un lecteur reconnaît la reprise à la clé
    `noortrace_reprise` de la pièce « résultat ».
 3. la levée est écrite ; le journal d'exploitation reçoit `intent_recovered`
    (nom de 9.2) avec `intent_id`, `seq` de l'événement de reprise et
@@ -4580,17 +5496,18 @@ sa copie et que les octets sont identiques (`sha256` du fichier ; **pas**
 l'ETag, qui « may or may not be an MD5 digest » et n'en est pas un pour
 SSE-KMS, SSE-C et les objets multipart, R5 § 1.2).
 
-**EX-12.18** En plus ou à la place du WORM distant, `storage.seal.append_only_attribute`
-fait poser par une étape privilégiée (`CAP_LINUX_IMMUTABLE`, « Only the
-superuser or a process possessing the CAP_LINUX_IMMUTABLE capability can set
-or clear this attribute », `chattr(1)`, R5) l'attribut `a` (append-only) sur le
-segment courant et le journal d'intention, et `i` (immutable) sur chaque
-segment fermé et chaque manifeste. L'attribut « will not affect the ability
-to write to already existing file descriptors » (R5) : le démon garde son
-descripteur ouvert sur le segment courant ; il dépend du système de fichiers
-(ext4, xfs, btrfs). Le démon lui-même n'a pas cette capacité : c'est un
-service compagnon ou une tâche de l'orchestrateur qui la pose (CT-8), de
-sorte qu'un démon compromis ne puisse pas la retirer.
+**EX-12.18** En plus ou à la place du WORM distant,
+`storage.seal.append_only_attribute` fait poser par une étape privilégiée
+(`CAP_LINUX_IMMUTABLE`, « Only the superuser or a process possessing the
+CAP_LINUX_IMMUTABLE capability can set or clear this attribute », `chattr(1)`,
+R5) l'attribut `a` (append-only) sur le segment courant et le journal
+d'intention, et `i` (immutable) sur chaque segment fermé et chaque manifeste.
+L'attribut « will not affect the ability to write to already existing file
+descriptors » (R5) : le démon garde son descripteur ouvert sur le segment
+courant ; il dépend du système de fichiers (ext4, xfs, btrfs). Le démon lui-même
+n'a pas cette capacité : c'est un service compagnon ou une tâche de
+l'orchestrateur qui la pose (CT-8), de sorte qu'un démon compromis ne puisse pas
+la retirer.
 
 ### 12.7 Rétention et purge des pièces
 
@@ -4605,16 +5522,16 @@ environ onze ans après l'écriture (R5, conséquences). Rien dans l'enregistreu
 ne supprime un segment ; la fin de rétention est un acte d'exploitation
 (CT-8).
 
-**EX-12.20** Les **pièces** PEUVENT être purgées après `storage.retention.pieces_days`
-(ou jamais, `null`) : la chaîne garde leurs références (`sha256`, `length`,
-`redacted`), le dossier reste vérifiable sur tout ce qui ne dépend pas du
-contenu (CT-1 §11.4 : E-6 sur une pièce fournie à part devient « non exécuté,
-pièce absente », ce que le vérificateur dit), et le client perd la capacité
-de produire la pièce. La purge est consignée dans le journal d'exploitation
-avec la liste des `sha256` purgés et l'instant. L'Olico exige un
-procès-verbal pour le transfert des données d'un support à un autre (art. 10
-al. 3) et la consignation des procédures (art. 9 al. 1 let. b ch. 4) ; la
-consignation de la purge relève de cette seconde exigence
+**EX-12.20** Les **pièces** PEUVENT être purgées après
+`storage.retention.pieces_days` (ou jamais, `null`) : la chaîne garde leurs
+références (`sha256`, `length`, `redacted`), le dossier reste vérifiable sur
+tout ce qui ne dépend pas du contenu (CT-1 §11.4 : E-6 sur une pièce fournie à
+part devient « non exécuté, pièce absente », ce que le vérificateur dit), et le
+client perd la capacité de produire la pièce. La purge est consignée dans le
+journal d'exploitation avec la liste des `sha256` purgés et l'instant. L'Olico
+exige un procès-verbal pour le transfert des données d'un support à un autre
+(art. 10 al. 3) et la consignation des procédures (art. 9 al. 1 let. b ch. 4) ;
+la consignation de la purge relève de cette seconde exigence
 (https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/pdf-a/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-pdf-a.pdf,
 R5 § 1.9).
 
@@ -4637,11 +5554,80 @@ copie WORM.
 ### 12.8 Sauvegarde et restauration (renvoi à CT-8)
 
 La sauvegarde du journal (segments, pièces, manifestes, journal d'intention,
-journal d'exploitation, `journal.json`), sa restauration, la reconstruction
-depuis les copies WORM et la migration de support avec procès-verbal (Olico
-art. 10 al. 2 et 3) sont de CT-8. CT-2 fixe ce qui les rend possibles : des
-fichiers texte en ajout seul, nommés de façon triable, chacun porteur de ses
-preuves, et un état d'écrivain entièrement dérivable des fichiers (EX-12.1).
+fichiers des approbations, journal d'exploitation, `journal.json`), sa
+restauration, la reconstruction depuis les copies WORM et la migration de
+support avec procès-verbal (Olico art. 10 al. 2 et 3) sont de CT-8. CT-2
+fixe ce qui les rend possibles : des fichiers texte en ajout seul, nommés de
+façon triable, chacun porteur de ses preuves, et un état d'écrivain
+entièrement dérivable des fichiers (EX-12.1).
+
+### 12.9 Fichiers des approbations
+
+**EX-12.23** Le noyau garde hors chaîne, en ajout seul, ce que CT-3 lui
+demande de conserver et que la chaîne ne porte pas : l'`approver_set` de la
+réponse `nouveau` de chaque ticket et de chaque remise, pour expirer seul un
+ticket (EX-9.4, CT-3 EX-12.11) ; l'`approver_set` de chaque décision
+scellée, pour l'exportateur (CT-3 EX-8.9) ; le MAC de relais de chaque
+`retenue` (EX-7.22) ; les continuations MRTR d'un appel approuvé et leur
+usage (EX-4.21). Deux fichiers par époque, ouverts `O_APPEND` comme un
+segment, chaque ligne étant le JCS intégral d'un objet suivi de `\n` :
+
+1. `approbations/approbations-<epoch>.ndjson`, lignes :
+   - `{ "kind": "retenue", "ticket", "request_seq", "request_hash",
+     "approver_set" }`, écrite par l'écrivain après la signature de
+     l'événement `retenue` et **avant** son ajout au segment, `fdatasync`
+     (4.4 pas 6) : une `retenue` de la chaîne a toujours sa ligne et sa
+     ligne `mac`, et le noyau a toujours de quoi expirer seul le ticket
+     (EX-9.4), même si le service a perdu son état ;
+   - `{ "kind": "remise", "ticket", "remise_id", "decision",
+     "approver_set" }`, écrite à la réception d'une remise hors mode
+     dégradé, `fdatasync` avant sa vérification (EX-7.19) ;
+   - `{ "kind": "decision", "ticket", "seq", "hash", "approver_set" }`,
+     écrite par l'écrivain après la signature de l'événement de décision et
+     avant son ajout au segment, `fdatasync`, donc avant `acquitter`
+     `scelle` ou `expiration` ; `approver_set` est celui de la remise
+     scellée ou, pour une expiration par le noyau seul, celui d'EX-9.4 ;
+   - `{ "kind": "continuation", "ticket", "seq", "hash",
+     "request_state_sha256" }`, écrite pour un résultat `input_required`
+     d'un appel qui porte l'approbation d'un ticket (`seq` et `hash` de son
+     événement `executee`, `sha256` du `requestState` en hexadécimal `0x`),
+     `fdatasync` avant le relais du résultat à l'hôte (4.4 pas 14,
+     EX-4.21) ;
+   - `{ "kind": "continuation_consommee", "ticket", "request_state_sha256" }`,
+     écrite quand une continuation de ce `requestState` passe RL-3,
+     `fdatasync` avant son intention (4.4 pas 8) ;
+2. `approbations/mac-<epoch>.ndjson` : une première ligne de contrôle
+   `{ "kind": "controle", "mac" }` (EX-7.22), puis des lignes `{ "ticket",
+   "request_hash", "mac" }` (`mac` en hexadécimal `0x`, 32 octets), écrites
+   avec la ligne `retenue` et sous le même `fdatasync`.
+
+Le fichier `approbations-<epoch>` est conservé aussi longtemps que les
+segments (EX-12.19) et sauvegardé avec eux (12.8) : il ne porte que des
+adresses d'approbateurs, des seuils et la `source` déclarée. Un fichier
+`mac-<epoch>` est supprimé à la première rotation qui suit l'instant où
+toutes ses lignes de MAC sont échues : une ligne ne sert plus après
+`request_ts + 2E`, puisqu'une décision est scellée avant `request_ts + E`
+(SG-4) et que RL-4 refuse tout relais à partir de `approval.at + E`. À la
+reprise et après une bascule, l'écrivain relit, dans l'ordre des époques,
+tous les fichiers `approbations-*` et les fichiers `mac-*` restants ; seule
+une dernière ligne incomplète est une écriture tronquée, coupée comme en
+EX-12.10, et une ligne illisible suivie d'autres lignes est une corruption,
+traitée comme en EX-12.22. Les lignes étant écrites avant l'ajout de leur
+événement au segment, un arrêt entre les deux laisse une ligne dont
+l'événement n'est pas dans la chaîne (son `hash` n'y figure pas) : elle est
+ignorée. Si une décision du journal n'a pas sa ligne `decision` (fichier
+incomplet, par exemple une copie restaurée sans ses dernières lignes, 12.8),
+son `approver_set` est celui de la dernière ligne `remise` de son ticket qui
+porte sa `decision` et dont le jeu est exploitable (EX-7.16), et, pour une
+décision `expire`, celui que donne la règle d'EX-9.4 (dernière ligne `remise`
+au jeu exploitable, de toute décision, sinon la ligne `retenue`), la même
+que celle de l'expiration par le noyau seul. Une `retenue` sans ligne `mac`
+ne peut pas être relayée, RL-2 échouant : l'échec est fermé. Une
+continuation dont le `requestState` n'a pas de ligne `continuation`
+repasse par le pas 3 (EX-4.21). L'exportateur de dossier écrit dans
+`approbations.json` (CT-1 §11.2) l'`approver_set` de la ligne `decision` de
+la décision, tel quel ; sa `source` est celle que le service a déclarée
+(CT-3 EX-8.8).
 
 ## 13. Haute disponibilité à écrivain unique avec bail
 
@@ -4735,7 +5721,7 @@ segment (EX-12.5) et avant chaque appel au signataire (EX-11.3) : si le bail
 n'est plus tenu pour valide (13.3), il n'exécute pas l'opération, consigne
 `lease_lost`, cesse d'écrire et entre en mode dégradé « bail » (section 14) ;
 les appels non relayés dont l'événement n'a pas été rendu durable reçoivent
-`-32010`, les appels déjà relayés `-32017` (EX-4.46). Il ne reprend qu'après
+`-31010`, les appels déjà relayés `-31017` (EX-4.46). Il ne reprend qu'après
 une nouvelle acquisition, avec une nouvelle époque et un nouveau segment
 (12.4). Un écrivain qui a perdu son bail NE DOIT PAS tenter de le reprendre
 « à chaud » sans relire le journal (EX-12.10) : un autre a pu écrire
@@ -4763,7 +5749,7 @@ DOIT satisfaire les trois règles suivantes :
    `fdatasync` et avant de répondre** à l'hôte (lecture de la ligne de bail
    PostgreSQL, ou `Txn` etcd qui compare la clé) : si l'époque du magasin
    n'est plus la sienne, il ne répond pas comme si l'événement était acquis
-   (`-32017`, EX-4.46), consigne `lease_lost_after_write` avec le `seq`, et
+   (`-31017`, EX-4.46), consigne `lease_lost_after_write` avec le `seq`, et
    s'arrête d'écrire ; la validation groupée amortit ce contrôle sur le
    groupe (EX-12.7) ;
 3. **le repreneur consigne la taille finale** de chaque fichier
@@ -4779,11 +5765,18 @@ qu'il vit ; il ne sert pas entre hôtes (13.2).
 ### 13.4 Bascule, pas à pas
 
 Instances `A` (active) et `B` (passive), même configuration, même journal,
-stockage accessible aux deux (13.1).
+stockage accessible aux deux (13.1) ; leurs références de secrets se
+résolvent vers les mêmes octets, en particulier `storage.relay_mac_key`
+(EX-7.22), sans quoi `B` ne pourrait relayer aucun appel approuvé dont `A` a
+scellé la `retenue`.
 
-1. `B` démarre, valide sa configuration (15.4), essaie d'acquérir le bail ;
+1. `B` démarre, valide sa configuration (15.4) et compare la ligne de
+   contrôle de sa clé du MAC de relais à celle du dernier fichier `mac-*` de
+   `A` (EX-7.22) : une différence est une erreur de configuration
+   (`relay_mac_key_mismatch`), et `B` ne prend pas le bail ; puis `B` essaie
+   d'acquérir le bail ;
    échec tant que `A` le renouvelle ; `B` réessaie toutes les `lease.renew_ms`
-   et répond aux hôtes qui la joindraient `-32010` (`reason:
+   et répond aux hôtes qui la joindraient `-31010` (`reason:
    "bail_non_detenu"`) ; sa santé est `standby` (17).
 2. `A` s'arrête, est isolée ou cesse de renouveler ; au plus `lease.ttl_ms`
    après son dernier renouvellement, le magasin tient le bail pour expiré.
@@ -4797,6 +5790,9 @@ stockage accessible aux deux (13.1).
    puisque `e+1 >` toute époque présente.
 6. `B` rejoue le journal d'intention de `A` (12.5) : les écritures en vol
    deviennent des événements de reprise ; puis le fichier d'attente (14.5).
+   Elle relit les fichiers des approbations (EX-12.23) ; elle seule échange
+   désormais avec le service d'approbation : `charger`, `ouvrir` pour les
+   tickets sans décision, `consommer` à renvoyer, puis `decisions` (EX-7.14).
 7. `B` accepte les connexions d'hôtes (la bascule d'adresse — VIP, DNS,
    répartiteur — est du déploiement, CT-8 ; MCP n'a pas de redirection) ;
    santé `ok`.
@@ -4821,7 +5817,7 @@ ment :
   fichier d'attente de `A` (`fdatasync` au mieux) ; perdus si ce fichier n'est
   pas accessible à `B`.
 - **La fenêtre `ttl_ms`** : pendant au plus `lease.ttl_ms`, aucun écrivain ;
-  les hôtes reçoivent `-32010` ou ne joignent personne.
+  les hôtes reçoivent `-31010` ou ne joignent personne.
 - **Le segment ouvert de `A`** : si le volume de `A` est perdu, les événements
   de ce segment non encore copiés en WORM (la copie se fait à la fermeture,
   EX-12.16) sont perdus ; leurs appels avaient reçu une réponse. C'est la
@@ -4874,7 +5870,9 @@ quand il est relayé sans que l'événement soit durable à l'instant de la
 réponse, l'événement étant mis en attente (14.5) ; « retardé » quand
 l'enregistreur attend un délai borné avant de décider. Les codes et messages
 rendus sont ceux de la table de 4.4 (EX-4.24) ; aucune panne ne produit un
-code nouveau.
+code nouveau. L'attente d'une approbation et le refus d'un ticket ne sont
+pas des pannes : l'hôte reçoit le signal d'approbation, un résultat d'outil
+(EX-4.49).
 
 ### 14.1 Classification des outils
 
@@ -4909,7 +5907,7 @@ Colonnes : **E** = écritures et actions soumises à approbation ; **L** =
 lectures (avec `failure.lecture: "passant"`, le défaut) ; **M** = échanges de
 modèle par la passerelle (`policy.failure.modele`, `bloquant` par défaut ;
 ICAP et miroir : EX-14.12). « Événement en attente » renvoie à 14.5. Les
-codes sont ceux de 4.4 ; `-32010` porte `data.reason` avec la valeur de la
+codes sont ceux de 4.4 ; `-31010` porte `data.reason` avec la valeur de la
 colonne « Raison ». Un échange **bloqué** n'est pas relayé et reçoit `503`
 avec le corps d'erreur du format de la route
 (`{"type":"error","error":{"type":"noortrace_degrade","message":"noortrace: echange bloque, enregistreur en mode degrade"}}`
@@ -4918,26 +5916,29 @@ pour Messages,
 pour Chat Completions et Responses), sans événement : rien n'a atteint le
 fournisseur.
 
-| Panne | Détection | E | L | M | Erreur rendue (E) | Raison (`data.reason`) | Journal d'exploitation | Réglage |
+| Panne | Détection | E | L | M | Rendu à l'hôte (E) | Raison (`data.reason`) | Journal d'exploitation | Réglage |
 |---|---|---|---|---|---|---|---|---|
-| **Stockage indisponible** : `write`/`fdatasync` en erreur, disque plein (`ENOSPC`), segment corrompu (EX-12.11), répertoire inaccessible | Erreur à l'écriture ou à la relecture (12.3, 12.4) | bloquant | passant, événement en attente (jusqu'aux bornes de 14.5) | bloquant (`503`) ; avec `failure.modele: "passant"`, relayé, pièces gardées en mémoire et événement en attente | `-32010` | `stockage` | `storage_unavailable` (errno, chemin), `segment_truncated`, `segment_corrupted` | `policy.failure.lecture`, `policy.failure.modele`, `pending_max_*` |
-| **Clé indisponible** : signataire en erreur ou hors délai (`sign`, `health`), signature qui ne vérifie pas (EX-11.6), clé révoquée (EX-11.14), message hors borne (EX-11.7) | Appel au signataire | bloquant | **bloquant** (aucun événement, même en attente, ne peut être scellé sans clé ; une lecture passante créerait une attente sans fin) | bloquant (`503`) | `-32010` | `cle` | `signer_unavailable` (type de backend, classe, erreur sans secret) | aucun : « clé indisponible = bloquant pour tout » |
-| **Panne après relais** (EX-4.46) : l'une des pannes de ce tableau survient entre l'envoi d'un appel (4.4 pas 9) ou d'une requête de modèle et la durabilité de son événement | Au scellement ou au `fdatasync` | `-32017`, événement complet gardé en attente, scellé à la sortie du mode dégradé à la place d'un événement de reprise | idem | réponse déjà relayée ; événement gardé en attente | `-32017` | raison de la panne | `call_executed_not_durable` (`intent_id`) | — |
-| **Serveur d'outils injoignable** : connexion impossible, processus stdio mort, coupure avant réponse | Au relais (4.4 pas 7 à 11) | **bloquant** ; connexion impossible avant le pas 8 : aucune intention, aucun événement ; perte après l'envoi : événement `is_error: true`, pièce `noortrace_jsonrpc_error` `-32014`, `t_reponse` = instant de la perte (EX-4.48) | idem (même règle, pour toute classe) | sans objet | `-32014` | — | `upstream_unreachable` (alias), `child_exited` | `restart.max_attempts`, `restart.backoff_ms` |
-| **Délai du serveur d'outils** (EX-4.22) | `timeout_ms` écoulé | événement `is_error: true`, `duration_ms = timeout_ms`, annulation amont, `-32011` | idem | sans objet | `-32011` | — | `upstream_timeout` | `timeout_ms` par outil, serveur, `tools.default_timeout_ms` |
+| **Stockage indisponible** : `write`/`fdatasync` en erreur, disque plein (`ENOSPC`), segment corrompu (EX-12.11), répertoire inaccessible | Erreur à l'écriture ou à la relecture (12.3, 12.4) | bloquant | passant, événement en attente (jusqu'aux bornes de 14.5) | bloquant (`503`) ; avec `failure.modele: "passant"`, relayé, pièces gardées en mémoire et événement en attente | `-31010` | `stockage` | `storage_unavailable` (errno, chemin), `segment_truncated`, `segment_corrupted` | `policy.failure.lecture`, `policy.failure.modele`, `pending_max_*` |
+| **Clé indisponible** : signataire en erreur ou hors délai (`sign`, `health`), signature qui ne vérifie pas (EX-11.6), clé révoquée (EX-11.14), message hors borne (EX-11.7) | Appel au signataire | bloquant | **bloquant** (aucun événement, même en attente, ne peut être scellé sans clé ; une lecture passante créerait une attente sans fin) | bloquant (`503`) | `-31010` | `cle` | `signer_unavailable` (type de backend, classe, erreur sans secret) | aucun : « clé indisponible = bloquant pour tout » |
+| **Panne après relais** (EX-4.46) : l'une des pannes de ce tableau survient entre l'envoi d'un appel (4.4 pas 9) ou d'une requête de modèle et la durabilité de son événement | Au scellement ou au `fdatasync` | `-31017`, événement complet gardé en attente, scellé à la sortie du mode dégradé à la place d'un événement de reprise | idem | réponse déjà relayée ; événement gardé en attente | `-31017` | raison de la panne | `call_executed_not_durable` (`intent_id`) | — |
+| **Serveur d'outils injoignable** : connexion impossible, processus stdio mort, coupure avant réponse | Au relais (4.4 pas 7 à 11) | **bloquant** ; connexion impossible avant le pas 8 : aucune intention, aucun événement ; perte après l'envoi : événement `is_error: true`, pièce `noortrace_jsonrpc_error` `-31014`, `t_reponse` = instant de la perte (EX-4.48) | idem (même règle, pour toute classe) | sans objet | `-31014` | — | `upstream_unreachable` (alias), `child_exited` | `restart.max_attempts`, `restart.backoff_ms` |
+| **Délai du serveur d'outils** (EX-4.22) | `timeout_ms` écoulé | événement `is_error: true`, `duration_ms = timeout_ms`, annulation amont, `-31011` | idem | sans objet | `-31011` | — | `upstream_timeout` | `timeout_ms` par outil, serveur, `tools.default_timeout_ms` |
 | **Fournisseur de modèle injoignable ou en erreur** (5.7) | Connexion, délais, statut `≥ 400`, flux coupé | sans objet | sans objet | relayé ou échoue, et donne toujours un événement `executee`, `is_error: true` (CT-1 §5.3) | `504` HTTP avec corps `noortrace_timeout`, ou le statut et le corps amont inchangés (EX-5.23, EX-5.24) | — | `provider_error` (statut, `request-id`) | délais de 5.7 ; aucune relance (EX-5.25) |
-| **Service d'approbation (CT-3) indisponible** : pas de réponse dans `policy.approval.timeout_ms`, erreur | Pas 3 de 4.4, `debutAppel` | **bloquant** (`-32010`) pour tout outil de classe `ecriture` et pour tout outil **susceptible d'approbation** selon la liste que CT-3 fournit au chargement de la politique (EX-7.4 ; tous les outils tant qu'elle n'a pas été obtenue) ; la décision ne peut pas être devinée | passant pour une lecture qui n'est pas susceptible d'approbation, si `policy.failure.approval_service.lecture = "passant"` : relayé avec `policy.decision = "autorise"`, `rule: null`, défaut consigné ; sinon bloquant | sans objet (la politique n'est pas évaluée sur un échange) | `-32010` | `approbation` | `approval_service_unavailable` | `policy.approval.timeout_ms`, `policy.failure.approval_service.lecture` |
-| **Décision d'approbation en attente** (ticket ouvert) | Pas 6 de 4.4 | **retardé** jusqu'à la décision ou `hold_timeout_ms` (mode `retenir`), puis `-32015` ; ou `-32015` immédiat (mode `erreur`) | sans objet (une lecture soumise à approbation est traitée comme E) | sans objet | `-32015` avec `data.ticket`, `data.state` | — | `approval_pending` (ticket) | `policy.approval.mode`, `hold_timeout_ms` |
-| **Décision remise pendant un mode dégradé** | Remise de CT-3 | la décision n'est pas scellée ; le noyau la refuse à CT-3 avec un statut temporaire, CT-3 la représente ; aucun appel n'est relayé pour ce ticket avant que la décision soit scellée | sans objet | sans objet | `-32015` (`state: "en_attente"`) à une ré-émission | — | `approval_deferred` (ticket) | — |
-| **Expiration atteinte pendant un mode dégradé** (`expire_after_ms`, EX-9.4) | Minuteur | la décision `expire` est scellée à la sortie du mode dégradé, `reason` le dit | sans objet | sans objet | `-32015` (`state: "expire"`) après scellement | — | `approval_expired_deferred` | `approval.expire_after_ms` |
+| **Service d'approbation (CT-3) indisponible** : pas de réponse dans `policy.approval.timeout_ms`, erreur (`non_pret`, `politique_inconnue` après un `charger` et un nouvel essai, `plafond_atteint`, autre), réponse hors des combinaisons d'EX-7.16 | Pas 3 de 4.4, `debutAppel` | **bloquant** (`-31010`) pour tout outil de classe `ecriture` et pour tout outil **susceptible d'approbation** selon la liste du dernier `charger` réussi (EX-7.4, EX-7.15 ; tous les outils tant qu'elle n'a pas été obtenue, et tout nom absent de sa liste `tools`) ; la décision ne peut pas être devinée | passant pour une lecture qui n'est pas susceptible d'approbation, si `policy.failure.approval_service.lecture = "passant"` : relayé avec `policy.decision = "autorise"`, `rule: null`, défaut consigné ; sinon bloquant | sans objet (la politique n'est pas évaluée sur un échange) | `-31010` | `approbation` | `approval_service_unavailable`, `approval_response_invalid` | `policy.approval.timeout_ms`, `policy.failure.approval_service.lecture` |
+| **Service d'approbation en défaut** : `retenue` d'un ticket déjà décidé (EX-7.17), vérification de relais en échec (RL-1 à RL-4, EX-7.21) | Pas 6 ou 7 de 4.4, `debutAppel` | **bloquant**, sans événement ni intention ; alerte | idem | sans objet | `-31010` | `approbation` | `identifiant_en_collision`, `approval_relay_refused` (ticket, vérification) | — |
+| **Rédaction au-delà de la borne de temps** pour la pièce « arguments » (EX-10.23, opération 1) : taille ou forme des arguments, ou motif nommé coûteux | Pas 4 de 4.4, `debutAppel` | **bloquant** pour un outil de classe `ecriture` ou susceptible d'approbation dont la réponse mène à un relais ou à une `retenue` : ni intention ni événement ; un ticket réservé devient `abandonne` (CT-3 T3) | passant : relayé avec la pièce non rédigeable (EX-8.7) | sans objet (la pièce « requête » non rédigeable n'arrête pas l'échange, EX-10.23) | `-31010` | `redaction` | `redaction_budget_exceeded` (opération, portée, règle), `call_blocked` | `limits.redaction_budget_ms`, `policy.redaction` |
+| **Remise refusée** (SG-1 à SG-7, EX-7.5) | Remise de CT-3 | aucune décision scellée ; `acquitter` `refuse` ; le ticket suit CT-3 (T14 à T16) ; alerte | sans objet | sans objet | aucun | — | `approval_remise_refused` (ticket, vérification, raison) | — |
+| **Décision d'approbation en attente** (ticket ouvert) | Pas 6 de 4.4 | **retardé** jusqu'à la décision ou `hold_timeout_ms` (mode `retenir`, une requête au plus par ticket, EX-4.50), puis signal `en_attente` ; ou signal `en_attente` immédiat (mode `erreur`) ; une ré-émission en attente ne produit aucun événement | sans objet (une lecture soumise à approbation est traitée comme E) | sans objet | signal d'approbation (résultat `isError: true`, EX-4.49), `state: "en_attente"` | — | `approval_pending` (ticket) | `policy.approval.mode`, `hold_timeout_ms` |
+| **Décision remise pendant un mode dégradé** | Remise de CT-3 | la décision n'est pas scellée ; le noyau l'acquitte `temporaire` (EX-7.19), CT-3 la représente ; aucun appel n'est relayé pour ce ticket avant que la décision soit scellée | sans objet | sans objet | signal `en_attente` à une ré-émission | — | `approval_deferred` (ticket) | — |
+| **Expiration atteinte pendant un mode dégradé** (EX-9.4) | Minuteur (échéance `request_ts + E`, plus `timeout_ms` pour le noyau seul) | la décision `expire` est scellée à la sortie du mode dégradé, avec la raison fixe de la remise ou du noyau (EX-9.4) | sans objet | sans objet | signal `state: "expire"` à une ré-émission, après scellement | — | `approval_expired_deferred` | `expire_after_ms` de la version de la `retenue` |
 | **Ancrage (CT-5) indisponible** : horodateur RFC 3161, calendriers OpenTimestamps | Clôture de période | **jamais bloquant** : la clôture produit le manifeste et sa signature, l'ancre est réessayée par la supervision | idem | idem | aucune | — | `anchor_pending` (période, ancre, tentative) | `anchoring.*` |
 | **Registre (CT-4) indisponible** : RPC injoignable, transaction non confirmée, clé non encore inscrite | Clôture de période, inscription de clé | **jamais bloquant** : le manifeste est produit ; `submitPeriod` et l'inscription sont réessayés ; les événements restent valides (CT-1 §15 : le registre est déclaratif sans le contrôle 8) | idem | idem | aucune | — | `registry_pending` | `anchoring.registry.*` |
-| **Horloge qui recule** au-delà de `clock.max_backstep_ms` (EX-7.9) | À la lecture de `ts` par l'écrivain | **bloquant pour tout** : l'enregistreur ne peut plus dater honnêtement ; tant que l'horloge murale n'a pas rejoint le `ts` précédent, ou jusqu'à la procédure d'EX-7.13 | **bloquant** | bloquant (`503`) | `-32010` | `horloge` | `clock_backstep` (écart) | `clock.max_backstep_ms`, `clock.max_wait_ms` ; sous le seuil : `ts = max(maintenant, ts précédent)` et `clock_skew` si > `warn_skew_ms` |
-| **Horloge qui avance brutalement** (saut en avant, EX-7.13) | Avance murale supérieure à l'avance monotone + `clock.max_forward_ms`, ou écart à l'horloge du magasin de bail | **bloquant pour tout** : aucun `ts` n'est posé dans le futur ; sortie quand l'horloge revient dans la tolérance ou sur confirmation de l'exploitant | **bloquant** | bloquant (`503`) | `-32010` | `horloge` | `clock_forward_jump` (écart) | `clock.max_forward_ms` |
-| **Disque presque plein** : espace libre du volume sous `storage.min_free_bytes` (défaut 1 GiB) | Vérification avant ouverture de segment, avant l'écriture de chaque pièce, et toutes les 10 s | bloquant (préventif : mieux vaut refuser que tronquer) | passant, en attente | comme le stockage indisponible | `-32010` | `stockage` | `disk_low` (octets libres) | `storage.min_free_bytes` |
-| **Mémoire** : file d'attente d'événements ou tampon de flux au-delà des limites (`limits.*`, 14.5) | Compteurs internes | bloquant quand `pending_max_events`, `pending_max_ms` ou `limits.pending_max_bytes` est atteint (14.5) ; `-32013` pour une taille de message dépassée ou un quota (EX-4.47) | idem | bloquant (`503`) | `-32010` ou `-32013` | `attente` | `pending_limit_reached` | `policy.failure.pending_max_events`, `pending_max_ms`, `limits.*` |
-| **Bail perdu** (EX-13.6, EX-13.10) | Vérification avant `fdatasync`, avant signature, et après `fdatasync` | bloquant | **bloquant** (l'instance n'est plus l'écrivain ; une lecture passante ne pourrait jamais être écrite par elle) | bloquant (`503`) | `-32010` (`-32017` après relais) | `bail` | `lease_lost`, `lease_lost_after_write` | `lease.*` |
-| **Bail non détenu** (instance passive, 13.4) | Au démarrage et tant que l'acquisition échoue | bloquant | bloquant | bloquant (`503`) | `-32010` | `bail_non_detenu` | `lease_standby` | — |
+| **Horloge qui recule** au-delà de `clock.max_backstep_ms` (EX-7.9) | À la lecture de `ts` par l'écrivain | **bloquant pour tout** : l'enregistreur ne peut plus dater honnêtement ; tant que l'horloge murale n'a pas rejoint le `ts` précédent, ou jusqu'à la procédure d'EX-7.13 | **bloquant** | bloquant (`503`) | `-31010` | `horloge` | `clock_backstep` (écart) | `clock.max_backstep_ms`, `clock.max_wait_ms` ; sous le seuil : `ts = max(maintenant, ts précédent)` et `clock_skew` si > `warn_skew_ms` |
+| **Horloge qui avance brutalement** (saut en avant, EX-7.13) | Avance murale supérieure à l'avance monotone + `clock.max_forward_ms`, ou écart à l'horloge du magasin de bail | **bloquant pour tout** : aucun `ts` n'est posé dans le futur ; sortie quand l'horloge revient dans la tolérance ou sur confirmation de l'exploitant | **bloquant** | bloquant (`503`) | `-31010` | `horloge` | `clock_forward_jump` (écart) | `clock.max_forward_ms` |
+| **Disque presque plein** : espace libre du volume sous `storage.min_free_bytes` (défaut 1 GiB) | Vérification avant ouverture de segment, avant l'écriture de chaque pièce, et toutes les 10 s | bloquant (préventif : mieux vaut refuser que tronquer) | passant, en attente | comme le stockage indisponible | `-31010` | `stockage` | `disk_low` (octets libres) | `storage.min_free_bytes` |
+| **Mémoire** : file d'attente d'événements ou tampon de flux au-delà des limites (`limits.*`, 14.5) | Compteurs internes | bloquant quand `pending_max_events`, `pending_max_ms` ou `limits.pending_max_bytes` est atteint (14.5) ; `-31013` pour une taille de message dépassée ou un quota (EX-4.47) | idem | bloquant (`503`) | `-31010` ou `-31013` | `attente` | `pending_limit_reached` | `policy.failure.pending_max_events`, `pending_max_ms`, `limits.*` |
+| **Bail perdu** (EX-13.6, EX-13.10) | Vérification avant `fdatasync`, avant signature, et après `fdatasync` | bloquant | **bloquant** (l'instance n'est plus l'écrivain ; une lecture passante ne pourrait jamais être écrite par elle) | bloquant (`503`) | `-31010` (`-31017` après relais) | `bail` | `lease_lost`, `lease_lost_after_write` | `lease.*` |
+| **Bail non détenu** (instance passive, 13.4) | Au démarrage et tant que l'acquisition échoue | bloquant | bloquant | bloquant (`503`) | `-31010` | `bail_non_detenu` | `lease_standby` | — |
 | **Configuration invalide au démarrage** (15.4) | Validation | le démon **ne démarre pas** : rien n'écoute, l'hôte ne joint personne (préférable à un démon qui relaie sans politique) | idem | idem | aucune (pas de connexion) ; code de retour du processus non nul et rapport sur `stderr` | — | `config_invalid` (erreurs de validation) | — |
 | **Configuration invalide au rechargement** (15.5) | Validation | le rechargement est **refusé**, l'ancienne configuration reste en vigueur, le relais continue | idem | idem | aucune | — | `config_reload_rejected` | — |
 
@@ -4955,14 +5956,16 @@ réessayer ; chaque essai est un événement.
 ### 14.3 Ce qui est rendu à l'hôte
 
 **EX-14.5** Les erreurs de cette section sont rendues comme des **erreurs
-JSON-RPC** avec les codes et messages fixes de la table de 4.4 (`-32010`,
-`-32011`, `-32013`, `-32014`, `-32015`, `-32017`) ; `data` porte les clés nommées dans
+JSON-RPC** avec les codes et messages fixes de la table de 4.4 (`-31010`,
+`-31011`, `-31013`, `-31014`, `-31017`) ; `data` porte les clés nommées dans
 la matrice et jamais une donnée du client (ni argument, ni chemin de fichier
 du stockage, ni nom d'hôte du magasin de bail). Le texte est ASCII, en
 français sans accent, non traduit : les hôtes affichent le message tel quel
 et un agent ne doit pas pouvoir en déduire un détail d'exploitation. Côté
 passerelle de modèle, les pannes du fournisseur sont des réponses HTTP (5.7),
-jamais des erreurs JSON-RPC.
+jamais des erreurs JSON-RPC. L'attente d'une approbation et le refus d'un
+ticket, y compris pendant un mode dégradé, sont rendus par le signal
+d'approbation, un résultat d'outil (EX-4.49), jamais par une erreur.
 
 **EX-14.6** Une **lecture passante** reçoit sa réponse normale (le `result`
 du serveur, EX-4.20) ; rien n'indique à l'hôte que l'événement est en attente
@@ -5005,7 +6008,7 @@ le stockage est précisément ce qui est en panne).
 `limits.pending_max_bytes` (défaut 268 435 456), ou que l'événement le plus
 ancien attend depuis plus de `policy.failure.pending_max_ms` (défaut
 300 000), les lectures et les échanges passants deviennent **bloquants** à
-leur tour (`-32010`, `reason: "attente"`) : une attente sans borne n'est plus
+leur tour (`-31010`, `reason: "attente"`) : une attente sans borne n'est plus
 une journalisation, et la mémoire du démon reste bornée.
 
 **EX-14.10** À la sortie du mode dégradé (le stockage répond : nouveau segment
@@ -5048,11 +6051,14 @@ preuve passive, il ne peut pas refuser ce qu'il voit passer.
 ### 15.1 Document unique
 
 **EX-15.1** L'enregistreur est configuré par **un seul document JSON**,
-validé au démarrage contre `spec/schemas/configuration-enregistreur-v0.schema.json`
-(`$id` `https://noortrace.example/schemas/v0/configuration-enregistreur.schema.json`,
+validé au démarrage contre
+`spec/schemas/configuration-enregistreur-v0.schema.json` (`$id`
+`https://noortrace.example/schemas/v0/configuration-enregistreur.schema.json`,
 JSON Schema 2020-12, `additionalProperties: false` à tous les niveaux, motifs
-sur toutes les chaînes contraintes). Le schéma référence celui de la politique
-de rédaction (section 10) par son `$id` ; les deux se chargent ensemble (15.6).
+sur toutes les chaînes contraintes). Le schéma référence par leur `$id`
+celui de la politique de rédaction (section 10) et celui de la politique
+d'approbation (`politique-approbation-v0`, CT-3 §4), qui décrit
+`policy.approval.rules` ; les trois se chargent ensemble (15.6).
 Toute clé inconnue est une erreur : une faute de frappe ne devient jamais un
 réglage ignoré.
 
@@ -5075,11 +6081,11 @@ la troisième colonne) :
 | `model` | frontal modèle : `mode`, `listen`, `tls`, **connexions d'hôte** de la passerelle, de l'ICAP et du miroir (`hosts[]`, même forme que `mcp.hosts`), `static_tokens`, `forward_headers`, `strip_headers`, `prompt_in_request` (`reference` ou `inline`, EX-8.5), `prompt_system` (`redige` ou `named`, EX-8.6), délais, `correlation_window_ms`, `icap` (`listen`, `tls_listen`, `client_ca`, `allowed_sources`, `client_address_header`), `mirror` ; les **routes** sont dans `policy.model` | 5, 8 | `model.*` → `/model/*` ; `connect_timeout_ms`, `first_byte_timeout_ms`, `idle_timeout_ms` → `/model/…` ; routes, `credentials`, `provider_label`, `passthrough` → `/policy/model/routes/<i>/…` |
 | `sdk` | `enabled`, `socket`, `tcp_listen` (jeton ou mTLS), `hosts[]` (avec `alias`, EX-6.6) | 6 | — |
 | `signer` | `class`, `key_id`, `backend`, `verify_after_sign`, `max_message_bytes`, `timeout_ms`, `health_interval_ms`, `rotation` | 11 | `signer.*` → `/signer/*` |
-| `storage` | `root`, `segment_max_bytes`, `fsync`, `seal` (`append_only_attribute`, `worm`), `retention`, `vault` | 10.7, 12 | `storage.*` → `/storage/*` |
+| `storage` | `root`, `segment_max_bytes`, `fsync`, `seal` (`append_only_attribute`, `worm`), `retention`, `vault`, `relay_mac_key` (clé du MAC de relais, EX-7.22) | 7.5, 10.7, 12 | `storage.*` → `/storage/*` |
 | `lease` | `store` (`file`, `postgresql`, `etcd`), `ttl_ms`, `renew_ms`, `acquire_wait_ms`, `fencing` (EX-13.10) | 13 | `lease.*` → `/lease/*` |
 | `anchoring` | raccords CT-4 (`registry` : `rpc_url`, `chain_key`, `next_chain_key`, EX-11.19) et CT-5 (`rfc3161`, `opentimestamps`), jamais bloquants | 11, 14 | — |
 | `supervision` | `health_listen`, `metrics`, `ops_log` (`path`, `level`, `rotate_max_bytes`, `keep_files`, `child_stderr`, `child_stderr_max_bytes`, `child_stderr_lines_per_second`) | 9.2, 17 | `logging.rotate_bytes` → `/supervision/ops_log/rotate_max_bytes` ; `logging.keep_files` → `/supervision/ops_log/keep_files` ; `logging.child_stderr_max_bytes` → `/supervision/ops_log/child_stderr_max_bytes` |
-| `policy` | **l'ensemble de politique** (10.6) : `version`, `approval` (règles CT-3 opaques, `mode`, `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`), `redaction` (document de la section 10), `servers` (carte des serveurs d'outils par alias : `transport` avec, en stdio, `user` et `integrity`, et en HTTP les épinglages OAuth, `protocol`, `class_default`, `timeout_ms`, `tools.<nom>.{class, timeout_ms, effects, failure}`, `uri_prefixes`, `relay`), `model` (`routes` : `path`, `format`, `upstream`, `provider_label`, `credentials`, `secret`, `auth_header`, `passthrough`), `failure` (dont `modele`) | 4.3, 4.4, 5.1, 7.2, 10, 14 | `approval.mode`, `approval.hold_timeout_ms`, `approval.expire_after_ms` → `/policy/approval/…` ; `policy.timeout_ms` → `/policy/approval/timeout_ms` ; `resources.uri_prefixes` → `/policy/servers/<alias>/uri_prefixes` ; `protocol` d'un serveur → `/policy/servers/<alias>/protocol` ; `timeout_ms` par outil → `/policy/servers/<alias>/tools/<nom>/timeout_ms` ; `effects` (gabarit) → `…/tools/<nom>/effects` ; `relay.server_requests` par serveur → `/policy/servers/<alias>/relay` ; `passthrough` → `/policy/model/routes/<i>/passthrough` |
+| `policy` | **l'ensemble de politique** (10.6) : `version`, `approval` (`rules`, document `politique-approbation-v0` de CT-3 §4, que CT-2 valide sans l'évaluer, EX-15.4 ; `mode`, requis, `erreur` dans la configuration de référence, CT-3 EX-11.1 ; `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`), `redaction` (document de la section 10), `servers` (carte des serveurs d'outils par alias : `transport` avec, en stdio, `user` et `integrity`, et en HTTP les épinglages OAuth, `protocol`, `class_default`, `timeout_ms`, `tools.<nom>.{class, timeout_ms, effects, failure}`, `uri_prefixes`, `relay`), `model` (`routes` : `path`, `format`, `upstream`, `provider_label`, `credentials`, `secret`, `auth_header`, `passthrough`), `failure` (dont `modele`) | 4.3, 4.4, 5.1, 7.2, 10, 14 | `approval.mode`, `approval.hold_timeout_ms`, `approval.expire_after_ms` → `/policy/approval/…` ; `policy.timeout_ms` → `/policy/approval/timeout_ms` ; `resources.uri_prefixes` → `/policy/servers/<alias>/uri_prefixes` ; `protocol` d'un serveur → `/policy/servers/<alias>/protocol` ; `timeout_ms` par outil → `/policy/servers/<alias>/tools/<nom>/timeout_ms` ; `effects` (gabarit) → `…/tools/<nom>/effects` ; `relay.server_requests` par serveur → `/policy/servers/<alias>/relay` ; `passthrough` → `/policy/model/routes/<i>/passthrough` |
 
 **EX-15.2** Les membres hors `policy` sont la **configuration d'exploitation**
 : un changement y exige un redémarrage du démon et ne produit aucun événement
@@ -5092,17 +6098,17 @@ changent pas.
 
 ### 15.2 Références de secrets
 
-**EX-15.3** Aucun secret n'est écrit dans le document. Partout où un secret
-est attendu (jetons statiques, PIN PKCS#11, jeton Vault, phrase de passe de
-classe D, clés de fournisseurs de modèle, en-têtes et variables
-d'environnement des serveurs d'outils, DSN PostgreSQL, identifiants WORM,
-compte du registre, clé du coffre, clé de pseudonymisation), le document porte
-une **référence de secret**, objet à une clé d'emplacement (`env`, `file`
-ou `vault`) et, quand la valeur doit devenir des octets (clé de
-pseudonymisation, EX-10.12, où elle est obligatoire ; clé du coffre ;
-graines), une clé `encoding` : `"hex"` (chiffres hexadécimaux, préfixe `0x`
-facultatif, longueur paire), `"base64"` (RFC 4648 § 4, avec remplissage) ou
-`"utf8"` (les octets UTF-8 de la chaîne) ; une longueur minimale s'entend
+**EX-15.3** Aucun secret n'est écrit dans le document. Partout où un secret est
+attendu (jetons statiques, PIN PKCS#11, jeton Vault, phrase de passe de classe
+D, clés de fournisseurs de modèle, en-têtes et variables d'environnement des
+serveurs d'outils, DSN PostgreSQL, identifiants WORM, compte du registre, clé
+du coffre, clé de pseudonymisation, clé du MAC de relais), le document porte
+une **référence de secret**, objet à une clé d'emplacement (`env`, `file` ou
+`vault`) et, quand la valeur doit devenir des octets (clé de pseudonymisation,
+EX-10.12, et clé du MAC de relais, EX-7.22, où elle est obligatoire ; clé du
+coffre ; graines), une clé `encoding` : `"hex"` (chiffres hexadécimaux, préfixe
+`0x` facultatif, longueur paire), `"base64"` (RFC 4648 § 4, avec remplissage)
+ou `"utf8"` (les octets UTF-8 de la chaîne) ; une longueur minimale s'entend
 toujours en octets **après décodage**. Formes :
 
 | Forme | Résolution | Règles |
@@ -5121,8 +6127,10 @@ contient `KEY`, `TOKEN`, `SECRET`, `PASSWORD` ou `PIN`.
 ### 15.3 Exemple complet
 
 Le document ci-dessous valide contre le schéma (vérifié avec `npx --yes
-ajv-cli@5 validate --spec=draft2020 -s configuration-enregistreur-v0.schema.json
--r politique-redaction-v0.schema.json`, mode strict, aucun avertissement) ;
+ajv-cli@5 validate --spec=draft2020 --strict=true -s
+configuration-enregistreur-v0.schema.json -r
+politique-redaction-v0.schema.json -r politique-approbation-v0.schema.json`,
+aucun avertissement) ;
 il décrit l'enregistreur d'un journal `journal-sinistres` (`journal_id` des
 vecteurs CT-1) avec deux serveurs d'outils (un ERP en Streamable HTTP, un
 serveur de fichiers stdio sous un utilisateur propre et un bac à sable
@@ -5135,7 +6143,18 @@ l'empreinte de ce dernier et l'adresse de la clé de chaîne sont illustratifs ;
 la ligne de commande `bwrap` (qui part d'un espace de montage vide :
 `/usr`, les liens de bibliothèques, `/proc` et `/dev` y sont montés, et le
 seul répertoire inscriptible est celui où le serveur écrit) est à tester en
-phase 2. Son membre `policy` est celui dont l'empreinte figure en 10.6.
+phase 2. Sa politique d'approbation (`policy.approval.rules`) est un
+document `politique-approbation-v0` qui passe les vérifications de CT-3
+EX-4.2 et EX-8.2 : mode d'attente `erreur` (CT-3 EX-11.1) ; jeu
+d'approbateurs lu au registre, puisque `recorder.environment` vaut
+`production`, où un jeu `statique` est refusé (CT-3 EX-8.2) ; `chain_id`,
+`registry` et `set` repris de l'exemple de CT-3 §4.3 ; noms d'outils aux
+préfixes `sap__` et `fichiers__` ; demandeur `agent-sinistres`
+(l'utilisateur du connecteur, `${peer_user}`), détenteur de l'adresse du
+compte Hardhat 3, exclu de l'approbation de ses propres demandes. Les outils
+susceptibles d'approbation de cet exemple (`CANDIDATS`, CT-3 EX-4.11) sont
+`fichiers__write_file` et `sap__payments.create`. Son membre `policy` est
+celui dont l'empreinte figure en 10.6.
 
 <!-- schema: configuration-enregistreur -->
 ```json
@@ -5172,7 +6191,7 @@ phase 2. Son membre `policy` est celui dont l'empreinte figure en 10.6.
         "tool_name_sanitize": false,
         "prompt_version_name": null,
         "host_group": "agent-sinistres",
-        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
         "alias": null
       },
       {
@@ -5187,7 +6206,7 @@ phase 2. Son membre `policy` est celui dont l'empreinte figure en 10.6.
         "tool_name_sanitize": false,
         "prompt_version_name": null,
         "host_group": "cursor-postes",
-        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
         "alias": null
       }
     ],
@@ -5249,7 +6268,7 @@ phase 2. Son membre `policy` est celui dont l'empreinte figure en 10.6.
         "tool_name_sanitize": false,
         "prompt_version_name": null,
         "host_group": "agent-sinistres",
-        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456 },
+        "quota": { "max_concurrent": 32, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
         "alias": null
       }
     ],
@@ -5302,7 +6321,8 @@ phase 2. Son membre `policy` est celui dont l'empreinte figure en 10.6.
       }
     },
     "retention": { "events_years": 11, "pieces_days": null },
-    "vault": { "enabled": false, "path": null, "key": null }
+    "vault": { "enabled": false, "path": null, "key": null },
+    "relay_mac_key": { "file": "/run/secrets/cle-mac-relais", "encoding": "hex" }
   },
   "lease": {
     "store": {
@@ -5349,15 +6369,84 @@ phase 2. Son membre `policy` est celui dont l'empreinte figure en 10.6.
   "policy": {
     "version": "2026-11-01",
     "approval": {
-      "rules": [
-        {
-          "tool": "sap__payments.create",
-          "when": "amount > 5000 CHF",
-          "decision": "a_approuver",
-          "note": "syntaxe CT-3, opaque pour CT-2"
+      "rules": {
+        "version": 0,
+        "default": {
+          "name": "defaut : revue",
+          "description": "Tout appel qu'aucune règle ne couvre est soumis aux approbateurs.",
+          "level": "revue",
+          "decision": null,
+          "contest_ms": 0
+        },
+        "rules": [
+          {
+            "name": "lectures autorisees",
+            "description": null,
+            "tools": ["sap__claims.get", "fichiers__list_directory", "fichiers__read_file"],
+            "when": null,
+            "level": "automatique",
+            "decision": "autorise",
+            "window": null,
+            "contest_ms": null
+          },
+          {
+            "name": "paiement hors CHF",
+            "description": "Les paiements de sinistre se font en francs suisses.",
+            "tools": ["sap__payments.create"],
+            "when": { "none": [{ "path": "/arguments/currency", "op": "egal", "value": "CHF" }] },
+            "level": "automatique",
+            "decision": "refuse",
+            "window": null,
+            "contest_ms": null
+          },
+          {
+            "name": "paiement <= 5000 CHF",
+            "description": null,
+            "tools": ["sap__payments.create"],
+            "when": {
+              "all": [
+                { "path": "/arguments/currency", "op": "egal", "value": "CHF" },
+                { "path": "/arguments/amount", "op": "inferieur_ou_egal", "value": "5000" }
+              ]
+            },
+            "level": "automatique",
+            "decision": "autorise",
+            "window": null,
+            "contest_ms": null
+          },
+          {
+            "name": "paiement > 5000 CHF",
+            "description": "Chaque paiement est approuvé au seuil du jeu d'approbateurs.",
+            "tools": ["sap__payments.create"],
+            "when": {
+              "all": [
+                { "path": "/arguments/currency", "op": "egal", "value": "CHF" },
+                { "path": "/arguments/amount", "op": "strictement_superieur", "value": "5000" }
+              ]
+            },
+            "level": "revue",
+            "decision": null,
+            "window": null,
+            "contest_ms": 0
+          }
+        ],
+        "approver_set": {
+          "source": "registre",
+          "chain_id": 2124,
+          "registry": "0x172076e0166d1f9cc711c77adf8488051744980c",
+          "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+          "members": null,
+          "threshold": null
+        },
+        "separation": {
+          "self_approval": "interdite",
+          "identities": [
+            { "launched_by": "agent-sinistres", "addresses": ["0x90f79bf6eb2c4f870365e785982e1f101e93b906"] },
+            { "launched_by": "poste-cursor", "addresses": ["0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"] }
+          ]
         }
-      ],
-      "mode": "retenir",
+      },
+      "mode": "erreur",
       "hold_timeout_ms": 50000,
       "expire_after_ms": 3600000,
       "timeout_ms": 2000,
@@ -5565,6 +6654,15 @@ phase 2. Son membre `policy` est celui dont l'empreinte figure en 10.6.
 }
 ```
 
+Le demandeur fixe `poste-cursor`, jeton partagé des postes Cursor, a son
+entrée dans `separation.identities` : les adresses déclarées des personnes
+qui partagent ce jeton (ici une adresse illustrative), qui ne peuvent pas
+approuver ses demandes ; sans elle, la séparation des tâches ne serait pas
+vérifiable pour les paiements demandés depuis ces postes, et la commande de
+validation (15.6) l'avertirait (CT-3 EX-4.14, cinquième point, EX-10.5). Les
+avertissements des contrôles de démarrage sont donc vides pour cet exemple.
+Chaque connexion d'hôte porte les quatre quotas d'EX-4.47.
+
 ### 15.4 Validation au démarrage
 
 **EX-15.4** Le démon DOIT, dans cet ordre, et s'arrêter à la première erreur
@@ -5598,12 +6696,32 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      `listen` non nul en mode `passerelle` ; `icap` non nul en mode `icap` ;
      `mirror` non nul en mode `miroir` ;
    - politique de rédaction : règles d'EX-10.6, sous-ensemble commun des
-     motifs nommés, `encoding` de `pseudonym_key` et longueur d'au moins 32
-     octets après décodage (vérifiée au pas 4) ;
+     motifs nommés et ses règles de structure et de taille, contrôle des
+     jetons de chaque motif nommé sous la borne de temps
+     `limits.redaction_budget_ms` (EX-10.23, opération 4 : un motif trop
+     coûteux sur les jetons est refusé), `encoding` de `pseudonym_key` et
+     longueur d'au moins 32 octets après décodage (vérifiée au pas 4) ;
    - gabarits d'effets : pointeurs bien formés, `action` et `object`
      cohérents ; `currency` littéral de trois lettres majuscules ou pointeur ;
-     `extract` dans le sous-ensemble commun d'EX-10.6 ; avertissement pour un
-     pointeur qui désigne un chemin visé par une règle `champ` (EX-7.6) ;
+     `extract` dans le sous-ensemble commun d'EX-10.6, règles de structure et
+     de taille comprises ; avertissement pour un pointeur qui désigne un
+     chemin visé par une règle `champ` (EX-7.6) ;
+   - politique d'approbation (`policy.approval.rules`) : les vérifications
+     d'EX-4.2 de CT-3 (schéma `politique-approbation-v0`, puis les points 1
+     à 7 qu'il n'exprime pas) et celles d'EX-8.2 de CT-3, avec
+     `recorder.environment` et `/policy/approval/expire_after_ms` ; un
+     document refusé l'est avant d'être annoncé dans la chaîne (pas 6),
+     plutôt qu'annoncé puis refusé par le service, ce qui bloquerait tout
+     outil susceptible d'approbation (CT-3 EX-4.2). Adoptée par la version
+     0.3 (proposition de CT-3 §15.2) ; les avertissements d'EX-4.14 de CT-3
+     qui ne dépendent pas de la liste des outils annoncés, avec les
+     `launched_by` fixes (EX-7.15), sont rapportés sans refuser ; au pas 3,
+     aucun serveur d'outils n'est joint, et l'avertissement d'un sélecteur
+     qui ne désigne aucun outil est écrit par le service dans son journal, à
+     `charger` (EX-7.15) ;
+   - `policy.approval.mode` : avertissement quand il vaut `retenir` (CT-3
+     EX-11.1), qui rappelle la condition d'EX-4.50 sur `hold_timeout_ms` et
+     le délai des hôtes raccordés, que la configuration ne connaît pas ;
    - en `environment: "production"` : chaque serveur stdio a un `user`
      distinct de celui du démon et un `integrity` (EX-3.5) ; chaque serveur
      HTTP à OAuth a `issuer` et `resource_metadata_url` (EX-4.40) ; toute
@@ -5612,19 +6730,28 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      (EX-5.3) ; `anchoring.registry.chain_key` n'est pas de classe D
      (EX-11.19) ; `lease.fencing` est non nul avec un magasin `postgresql`
      ou `etcd` (EX-13.10) ; le service d'approbation embarqué de
-     démonstration est refusé (EX-18.8) ; avertissement si `signer.backend.module`
-     désigne un module PKCS#11 logiciel connu (`libsofthsm2.so`), qui vaut la
-     classe D (11.2) bien qu'il soit déclaré en classe A ;
+     démonstration est refusé (EX-18.8) ; avertissement si
+     `signer.backend.module` désigne un module PKCS#11 logiciel connu
+     (`libsofthsm2.so`), qui vaut la classe D (11.2) bien qu'il soit déclaré en
+     classe A ;
    - `lease.renew_ms < lease.ttl_ms / 2` ;
    - `storage.retention.events_years ≥ 10` et, si `worm` est configuré,
      `retain_days ≥ 365 × events_years` (avertissement si inférieur à
      365 × (events_years + 1), 12.7) ;
    - `signer.max_message_bytes` : avertissement si la borne peut être
-     dépassée par une approbation au `threshold.size` du jeu d'approbateurs
-     configuré dans `policy.approval.rules` quand CT-3 l'expose (EX-11.7) ;
+     dépassée par une approbation de `threshold.size` signatures (EX-11.7) :
+     pour un jeu `statique`, `approver_set.threshold.size` de
+     `policy.approval.rules` ; pour un jeu `registre`, la taille n'est connue
+     qu'à la lecture du jeu, et le noyau fait le même contrôle, à titre
+     d'avertissement consigné, sur l'`approver_set` de la première réponse
+     `nouveau` de chaque version de politique. Une remise porte exactement le
+     seuil effectif de signatures (CT-3 EX-7.28), qui ne dépasse pas le plus
+     grand `threshold.size` lu : l'estimation par `size` est prudente ;
    - `policy.failure` : avertissement nominatif pour chaque outil
      `ecriture` à `failure: "passant"` (EX-14.2) ;
 4. résoudre toutes les références de secrets (15.2) ; échec → erreur ;
+   `pseudonym_key` et `storage.relay_mac_key` d'au moins 32 octets après
+   décodage (EX-10.12, EX-7.22) ;
 5. ouvrir le stockage (12.4), acquérir ou attendre le bail (13), lire la clé
    publique du signataire (`public_key`, 11.5) et produire une signature de
    test vérifiée (EX-11.6) ;
@@ -5635,8 +6762,12 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
    à la place que lui donne EX-9.8 (après les événements de reprise et en
    attente, avant tout nouvel appel ; en tête du journal s'il est vide) ; si
    `policy.version` n'a pas changé alors que l'empreinte a changé, refuser le
-   démarrage (EX-10.21) ; obtenir de CT-3 la liste des outils susceptibles
-   d'approbation (EX-7.4) ;
+   démarrage (EX-10.21) ; relire les fichiers des approbations (EX-12.23) ;
+   envoyer `charger` au service d'approbation pour obtenir la liste des
+   outils susceptibles d'approbation (EX-7.4, EX-7.15), sans attendre sa
+   réponse pour ouvrir les frontaux (tout outil est susceptible tant
+   qu'elle manque), puis `ouvrir` pour les tickets sans décision (EX-7.18),
+   `consommer` à renvoyer (EX-7.20) et `decisions` (EX-7.19) ;
 7. consigner `startup` dans le journal d'exploitation avec le `sha256` des
    octets du document de configuration tel que lu (section 18), la classe de
    garde, le `recorder_key_id`, les alias de serveurs, les commandes exactes
@@ -5662,7 +6793,13 @@ nouvelle politique et porte le nouveau `code.policy_version` ; les appels déjà
 en cours finissent avec l'ancienne. Un changement de `policy.servers`
 provoque la reconnexion des serveurs concernés et un `tools/list_changed`
 vers les hôtes (EX-4.15) ; un changement de `policy.redaction.name` prend
-effet pour toute pièce construite après le scellement.
+effet pour toute pièce construite après le scellement. Après le scellement,
+le noyau envoie `charger` avec la nouvelle version (EX-7.15) ; tant que le
+service n'a pas répondu, tout outil est susceptible d'approbation (EX-7.4).
+Le noyau garde l'`expire_after_ms` et la politique d'approbation de chaque
+version tant qu'un ticket créé sous elle peut encore être décidé, relayé ou
+expiré (SG-4, SG-7, RL-4, EX-9.4) : il les relit dans la pièce de l'ensemble
+de politique de cette version (EX-8.11).
 
 **EX-15.6** L'événement de politique porte `delegation.launched_by =
 "noortrace-enregistreur"`, `scope = "journal:administration"`,
@@ -5675,13 +6812,16 @@ effet pour toute pièce construite après le scellement.
 **EX-15.7** `noortrace validate-config <fichier>` exécute les pas 1 à 3 de
 15.4 sans ouvrir ni le stockage, ni le bail, ni le signataire, ni les
 secrets (les références sont vérifiées en forme, pas résolues), imprime le
-rapport (erreurs puis avertissements), et rend `0` si aucune erreur, `2`
-sinon. Le même contrôle est reproductible hors de l'enregistreur :
+rapport (erreurs puis avertissements, dont ceux de la politique
+d'approbation), et rend `0` si aucune erreur, `2` sinon. La partie
+« schéma » est reproductible hors de l'enregistreur, les trois schémas
+chargés ensemble :
 
 ```bash
 npx --yes ajv-cli@5 validate --spec=draft2020 --all-errors \
   -s spec/schemas/configuration-enregistreur-v0.schema.json \
   -r spec/schemas/politique-redaction-v0.schema.json \
+  -r spec/schemas/politique-approbation-v0.schema.json \
   -d ma-configuration.json
 ```
 
@@ -5807,7 +6947,11 @@ un nom d'utilisateur, un identifiant de ticket ou un nom d'hôte de client.
 | `noortrace_sign_duration_ms` | histogramme | `backend` | Durée de `sign` |
 | `noortrace_sse_first_byte_ms` | histogramme | `provider` | Latence ajoutée au premier octet d'un flux |
 | `noortrace_model_tokens_total` | compteur | `provider` (libellé), `direction` (`entree`, `sortie`) | Jetons déclarés par le fournisseur dans `usage` (EX-5.20) : Anthropic `input_tokens` et `output_tokens` (R2 F-A20) ; Chat Completions `prompt_tokens` et `completion_tokens` (R2 F-O9) ; Responses `input_tokens` et `output_tokens` (R2 F-R2) ; les détails de cache et de raisonnement ne sont pas comptés en version 0 |
-| `noortrace_calls_blocked_total` | compteur | `code` (`-32010`, …), `reason`, `class` | Appels bloqués (14) |
+| `noortrace_calls_blocked_total` | compteur | `code` (`-31010`, …), `reason` (`data.reason` de `-31010`, dont `redaction` ; `direction` de `-31013`, dont `quota`), `class` | Appels bloqués (14, EX-4.47, EX-10.23) |
+| `noortrace_approval_signals_total` | compteur | `state` (`en_attente`, `refuse`, `expire`) | Signaux d'approbation rendus (EX-4.49) |
+| `noortrace_approval_remises_refused_total` | compteur | `check` (`SG-1` à `SG-7`) | Remises refusées (EX-7.5) |
+| `noortrace_approval_relays_refused_total` | compteur | `check` (`RL-1` à `RL-4`, `retenue_decidee`) | Relais refusés (EX-7.21) et `retenue` refusées (EX-7.17) |
+| `noortrace_redaction_budget_exceeded_total` | compteur | `operation` (`piece`, `extract`, `valeur`, `jetons`), `scope` | Dépassements du budget de rédaction (EX-10.23, opérations 1 à 4) |
 | `noortrace_pending_events` | jauge | — | Taille de la file d'attente (14.5) |
 | `noortrace_pending_oldest_ms` | jauge | — | Âge de l'événement en attente le plus ancien |
 | `noortrace_degraded` | jauge | `reason` | 1 en mode dégradé pour cette raison, 0 sinon |
@@ -5846,7 +6990,11 @@ employés par cette spécification, en plus de ceux de 9.2 (`tool_call_relayed`,
 `segment_corrupted`, `storage_unavailable`, `signer_unavailable`,
 `lease_standby`, `intention_levee_implicite`, `intention_sans_contexte`,
 `upstream_unreachable`, `upstream_timeout`, `provider_error`,
-`approval_pending`, `approval_service_unavailable`, `anchor_pending`,
+`approval_pending`, `approval_service_unavailable`,
+`approval_response_invalid`, `approval_candidates`, `approval_deferred`,
+`approval_expired_deferred`, `approval_remise_refused`,
+`approval_relay_refused`, `identifiant_en_collision`,
+`redaction_budget_exceeded`, `effect_omitted`, `anchor_pending`,
 `registry_pending`, `clock_backstep`, `disk_low`, `pending_limit_reached`,
 `worm_copy_failed`, `pieces_purged`, `integrity_check`, `auth_failed`,
 `model_exchange_relayed` (pendant de `tool_call_relayed` pour un échange de
@@ -5863,12 +7011,13 @@ et `noortrace/*`, le message soumis au signataire. Les tailles et les
 conservée avec le journal (12.7, Olico art. 9 al. 1 let. b ch. 4) et
 protégée comme lui (18).
 
-**EX-17.4** Le fichier est tourné par taille (`supervision.ops_log.rotate_max_bytes`,
-`keep_files` : les clés `logging.rotate_bytes`, `logging.keep_files` et
-`logging.child_stderr_max_bytes` de 9.2 sont celles du membre
-`supervision.ops_log`, 15.1) ; une ligne qui ne peut pas être écrite (disque
-plein) est comptée dans `noortrace_ops_log_dropped_total` et n'arrête pas le
-relais (EX-9.7) : le journal d'exploitation n'est pas la chaîne.
+**EX-17.4** Le fichier est tourné par taille
+(`supervision.ops_log.rotate_max_bytes`, `keep_files` : les clés
+`logging.rotate_bytes`, `logging.keep_files` et `logging.child_stderr_max_bytes`
+de 9.2 sont celles du membre `supervision.ops_log`, 15.1) ; une ligne qui ne
+peut pas être écrite (disque plein) est comptée dans
+`noortrace_ops_log_dropped_total` et n'arrête pas le relais (EX-9.7) : le
+journal d'exploitation n'est pas la chaîne.
 
 ### 17.4 Alertes
 
@@ -5886,7 +7035,12 @@ les règles Prometheus) :
 | Horloge | `abs(noortrace_clock_skew_ms) > warn_skew_ms` | mineure ; critique si `degraded{reason="horloge"}` |
 | Définition d'outil changée | `increase(noortrace_tool_definition_changes_total[1h]) > 0` | mineure, à examiner : c'est le signal du « rug pull » (EX-4.16) |
 | Fourche | `journal_fork` dans le journal d'exploitation : un fichier d'époque inférieure a grandi après la reprise (EX-13.10) | critique |
-| Panne après relais | `increase(noortrace_calls_executed_not_durable_total[5m]) > 0` (`-32017`, EX-4.46) | critique : un effet a eu lieu sans événement durable |
+| Panne après relais | `increase(noortrace_calls_executed_not_durable_total[5m]) > 0` (`-31017`, EX-4.46) | critique : un effet a eu lieu sans événement durable |
+| Relais refusé ou identifiant en collision | `increase(noortrace_approval_relays_refused_total[5m]) > 0` (EX-7.17, EX-7.21) | critique : le service d'approbation a demandé un relais ou une `retenue` que la chaîne ne justifie pas |
+| Remise refusée | `increase(noortrace_approval_remises_refused_total[1h]) > 0` (EX-7.5), ou `politique_invalide` au `charger` (EX-7.15) | majeure : défaut ou compromission du service d'approbation |
+| Budget de rédaction | `increase(noortrace_redaction_budget_exceeded_total[1h]) > 0` (EX-10.23) | mineure quand une pièce de lecture ou une valeur a perdu son contenu ; majeure quand un appel a été bloqué (`noortrace_calls_blocked_total{reason="redaction"}`, opération 1) : examiner la taille ou la forme des entrées, et les motifs nommés |
+| Clé du MAC de relais | `relay_mac_key_mismatch` dans le journal d'exploitation (EX-7.22, 13.4) | critique : deux instances d'un même journal n'ont pas la même clé ; la bascule est refusée |
+| Quota d'un hôte | `increase(noortrace_calls_blocked_total{code="-31013",reason="quota"}[5m]) > 0` (EX-4.47) | mineure : un hôte atteint son quota d'octets, de requêtes ou de temps de capture |
 | Latence | `histogram_quantile(0.99, noortrace_relay_latency_ms) > 50` sur 15 min | mineure |
 | Disque | `disk_low` dans le journal, ou espace libre < 2 × `min_free_bytes` | majeure |
 
@@ -6048,7 +7202,7 @@ l'enregistreur, ce qui est la règle de 4.9 appliquée au réseau Compose :
 
 | Service | Image | Réseaux | Rôle |
 |---|---|---|---|
-| `enregistreur` | `noortrace/enregistreur:<version>` | `hotes`, `outils`, `fournisseurs`, `registre` | Le démon : frontal MCP en Streamable HTTP (`:8300/mcp`), passerelle de modèle (`:8400`), santé (`:8500`) ; classe de garde D (clé de test `rec-test-01` de CT-1 §13, graine publique), bail `file`, stockage sur un volume `journal`, politique `pii-v1`, configuration `demo/configuration-demo.json` (valide contre le schéma de la section 15) |
+| `enregistreur` | `noortrace/enregistreur:<version>` | `hotes`, `outils`, `fournisseurs`, `registre` | Le démon : frontal MCP en Streamable HTTP (`:8300/mcp`), passerelle de modèle (`:8400`), santé (`:8500`) ; classe de garde D (clé de test `rec-test-01` de CT-1 §13, graine publique), bail `file`, stockage sur un volume `journal`, politique `pii-v1`, configuration `demo/configuration-demo.json` (valide contre le schéma de la section 15 et par EX-15.4 : sa politique d'approbation est un document `politique-approbation-v0`, en mode `erreur`) |
 | `outils-demo` | `noortrace/outils-demo:<version>` | `outils` | Serveur d'outils MCP de démonstration (ère `2026-07-28`, Streamable HTTP) : trois outils, `claims.get` (lecture), `claims.search` (lecture), `payments.create` (écriture, gabarit d'effets), données fictives en mémoire |
 | `modele-demo` | `noortrace/modele-demo:<version>` | `fournisseurs` | **Simulateur de l'API Messages** (19.3) : répond à `POST /v1/messages`, hors flux et en flux SSE, sans clé, d'après un scénario fixe |
 | `agent-demo` | `noortrace/agent-demo:<version>` | `hotes` | Agent scénarisé : client MCP (ère moderne) vers `http://enregistreur:8300/mcp`, SDK de modèle avec `ANTHROPIC_BASE_URL=http://enregistreur:8400` et une clé factice ; joue le scénario de 19.2 puis se termine |
@@ -6073,7 +7227,10 @@ aucune clé réelle et aucun prix.
 
 1. `enregistreur` démarre : validation de la configuration (15.4), bail,
    clé de test, événement de politique (`seq 1`, `noortrace.journal.politique`,
-   `policy_version: "demo-2026-11"`), inscription de la clé publique au
+   `policy_version: "demo-2026-12"`, ensemble dont `approval.rules` est un
+   document `politique-approbation-v0` en mode `erreur` ; le vecteur
+   `journal-demo` garde l'ensemble antérieur à CT-3, `demo-2026-11`, B.6),
+   inscription de la clé publique au
    `registre-dev` (CT-4), connexion à `outils-demo`, `server/discover`,
    `tools/list` (trois outils annoncés `demo__claims.get`,
    `demo__claims.search`, `demo__payments.create`), santé `ok`.
@@ -6096,9 +7253,11 @@ aucune clé réelle et aucun prix.
    consolidée ; événement `seq 4` (réponse rédigée : `[REDIGE:iban]`,
    `redacted: true`).
 5. `tools/call demo__payments.create` : classe `ecriture`, règle
-   d'approbation `montant > 5000` → `a_approuver` ; événement `seq 5`
-   (`retenue`) ; le mode `erreur` rend `-32015` avec le ticket ; l'agent
-   affiche « en attente d'approbation ».
+   d'approbation `montant > 5000` → `a_approuver`, `ticket_state:
+   "nouveau"` ; événement `seq 5` (`retenue`) ; le mode `erreur` rend le
+   signal d'approbation, résultat `isError: true` qui porte le ticket et
+   `state: "en_attente"` (EX-4.49) ; l'agent affiche « en attente
+   d'approbation ».
 6. Un service `approbateur-demo` (distinct de l'agent et de l'enregistreur,
    seul détenteur des clés de démonstration des comptes Hardhat 1 à 3,
    réseau `registre` et prise du service d'approbation de démonstration)
@@ -6108,11 +7267,13 @@ aucune clé réelle et aucun prix.
    CT-3 fournit le vrai) ; événement `seq 6`
    (`noortrace.approbation.decision`, `approval.at` = son `ts`, EX-7.11).
 7. L'agent ré-émet l'appel : CT-3 reconnaît le ticket décidé et rend
-   `autorise` avec l'objet `approval` ; l'appel relayé reprend de `seq 5`
+   `autorise` avec `ticket_state: "approuve"` et l'objet `approval` ; le
+   noyau fait RL-1 à RL-4 (EX-7.21) ; l'appel relayé reprend de `seq 5`
    `policy` (`decision: "a_approuver"`, `rule`, `ticket`), `intent` et `code`
    (EX-7.12) ; intention écrite et `fdatasync` ; relais ; réponse ; événement
    `seq 7` (`executee`, effets `{ "system": "demo", "action": "ecriture",
-   "object": "PAY-…", "amount": "7400.00", "currency": "CHF" }`).
+   "object": "PAY-…", "amount": "7400.00", "currency": "CHF" }`) ;
+   `consommer` (EX-7.20).
 8. Échange de modèle n° 3 (fin de tour) : événement `seq 8` ; `agent-demo`
    se termine.
 9. `verificateur` : clôture anticipée de la période ; manifeste signé ;
@@ -6156,8 +7317,14 @@ du fournisseur. La clé n'est jamais écrite sur disque ni dans le journal.
 
 ### 19.4 Sortie attendue
 
-Sortie de `verificateur` (extrait ; les valeurs sont celles des vecteurs
-`evenements` de l'annexe B quand le modèle simulé est employé) :
+Sortie de `verificateur` (extrait ; quand le modèle simulé est employé, les
+valeurs imprimées ici, nombre d'événements, `seq`, approbateurs et seuil,
+sont celles du vecteur `evenements/journal-demo` de l'annexe B ; les
+empreintes, le segment et le dossier de `seq 7` en diffèrent, puisque la
+configuration de démonstration porte une politique d'approbation conforme à
+CT-3, qui change `policy_sha256`, quand `journal-demo` garde l'ensemble de
+politique de la version 0.2, antérieur à CT-3, B.6 ; la `source` de
+`approbations.json` suit alors CT-3 EX-8.8) :
 
 ```text
 noortrace — démonstration de référence
@@ -6182,7 +7349,7 @@ captures (image ou enregistrement de terminal du README) sont fixés en phase
 seulement en développement) **termine** le journal de démonstration : la
 période close contient l'instant de la clôture, et un événement ultérieur y
 tomberait (CT-1 P-3). Après elle, l'enregistreur refuse tout nouvel appel et
-tout nouvel échange sur ce journal (`-32010`, `reason: "journal_clos"`) ;
+tout nouvel échange sur ce journal (`-31010`, `reason: "journal_clos"`) ;
 brancher un vrai hôte sur les ports `8300` et `8400` exige un nouveau journal
 (`docker compose down -v`, puis `up`).
 
@@ -6192,7 +7359,15 @@ Conventions communes : l'enregistreur tourne en démon ; le connecteur stdio
 `noortrace-connecteur` (EX-3.3) est lancé par l'hôte et joint la prise
 `mcp.socket` ; en Streamable HTTP, l'hôte joint `http://127.0.0.1:8300/mcp`
 avec un jeton statique (EX-4.39). La passerelle de modèle écoute sur
-`http://127.0.0.1:8400`. Chaque fichier est **à tester en phase 2**.
+`http://127.0.0.1:8400`. Chaque fichier est **à tester en phase 2**. Là où
+l'hôte admet des consignes pour l'agent (fichier d'instructions du projet,
+consigne système), le fichier d'intégration DEVRAIT reprendre la conduite de
+CT-3 EX-11.9 : après le signal d'approbation `en_attente`, le dire à
+l'utilisateur et ne pas répéter l'appel plus d'une fois par minute ; après
+`refuse`, `expire` ou le refus par la politique (`noortrace: appel refuse
+par la politique`), ne pas répéter l'appel, ne pas le fractionner ni le
+reformuler (autre écriture d'un montant, d'une devise, d'un identifiant),
+et le dire à l'utilisateur.
 
 #### 19.5.1 Claude Desktop (macOS, Windows, Linux)
 
@@ -6347,9 +7522,9 @@ et `setDefaultOpenAIClient(new OpenAI({ baseURL }))` (R7 F-63 à F-67).
 API actuelle `langchain.mcp.MCPAdapter` (`langchain[mcp] >= 1.4.0`, bêta,
 `langchain` 1.4.7, `langgraph` 1.2.16 ; le dépôt `langchain-mcp-adapters`
 n'est plus maintenu, R7 F-69 à F-75) ; `create_agent` (et non
-`create_react_agent`, déprécié, R7 F-79) ; URL de base par `ChatAnthropic(base_url=…)`
-ou `ANTHROPIC_BASE_URL`, `ChatOpenAI(base_url=…)` ou `OPENAI_BASE_URL` (R7
-F-80, F-81) :
+`create_react_agent`, déprécié, R7 F-79) ; URL de base par
+`ChatAnthropic(base_url=…)` ou `ANTHROPIC_BASE_URL`, `ChatOpenAI(base_url=…)` ou
+`OPENAI_BASE_URL` (R7 F-80, F-81) :
 
 ```python
 import os
@@ -6376,8 +7551,9 @@ deux. Avec plusieurs serveurs, `MCPConfig`
 (`{"mcpServers": {"noortrace": {"url": …}}}`) préfixe les outils par la clé
 de configuration (`noortrace_…`, R7 F-74) : la connexion d'hôte porte alors
 `tool_name_template: "noortrace_{tool_announced}"`. Variante JavaScript :
-`@langchain/mcp-adapters` 2.x, `new MCPAdapter({ servers: { noortrace: { url } } })`,
-`listTools()` (R7 F-82, F-83).
+`@langchain/mcp-adapters` 2.x,
+`new MCPAdapter({ servers: { noortrace: { url } } })`, `listTools()` (R7 F-82,
+F-83).
 
 #### 19.5.6 Autres hôtes (une ligne chacun, formats lus en R7)
 
@@ -6398,19 +7574,19 @@ Pour les hôtes sans URL de base (19.5.1, 19.5.3), le mode `icap` (EX-5.3 à
 EX-5.5) se raccorde au mandataire du client. Les éléments à fournir au
 client, par équipement, d'après le digest R4 (R4 § 1.2, § 1.3 ; section 5.1
 de la présente spécification) : Squid —
-`icap_service` REQMOD et RESPMOD vers `icap://enregistreur:1344/noortrace/reqmod`
-et `/respmod`, `adaptation_access` limité aux destinations des fournisseurs,
-`ssl_bump` déjà en place, et un seul service par point de vectorisation (un
-antivirus RESPMOD existant impose un chaînage) ; Broadcom ProxySG, FortiGate,
-Check Point : interception SSL préalable obligatoire, service ICAP sur les
-seules destinations des fournisseurs ; dans tous les cas, l'autorité
-d'interception sur les postes, l'authentification du lien ICAP (ICAPS avec
-certificat client, ou liste d'adresses, EX-5.3), l'en-tête d'adresse cliente
-que le mandataire doit transmettre (EX-5.8), et la documentation des limites
-de 5.1.2 (la réponse en flux n'est pas bloquable ; corrélation REQMOD/RESPMOD
-à vérifier, EX-5.4). Le détail opérationnel est de CT-8 ;
-l'intégration est à tester en phase 2 sur Squid, le seul dont la
-configuration a été lue dans le code source (R4).
+`icap_service` REQMOD et RESPMOD vers
+`icap://enregistreur:1344/noortrace/reqmod` et `/respmod`, `adaptation_access`
+limité aux destinations des fournisseurs, `ssl_bump` déjà en place, et un seul
+service par point de vectorisation (un antivirus RESPMOD existant impose un
+chaînage) ; Broadcom ProxySG, FortiGate, Check Point : interception SSL
+préalable obligatoire, service ICAP sur les seules destinations des
+fournisseurs ; dans tous les cas, l'autorité d'interception sur les postes,
+l'authentification du lien ICAP (ICAPS avec certificat client, ou liste
+d'adresses, EX-5.3), l'en-tête d'adresse cliente que le mandataire doit
+transmettre (EX-5.8), et la documentation des limites de 5.1.2 (la réponse en
+flux n'est pas bloquable ; corrélation REQMOD/RESPMOD à vérifier, EX-5.4). Le
+détail opérationnel est de CT-8 ; l'intégration est à tester en phase 2 sur
+Squid, le seul dont la configuration a été lue dans le code source (R4).
 
 ## 20. Décisions ouvertes de l'architecture closes par CT-2
 
@@ -6506,12 +7682,18 @@ en conséquence (section 22).
 - **La sauvegarde, la restauration, la migration de support, les règles
   d'alerte Prometheus, l'empaquetage `.mcpb`, le déploiement** (CT-8) ; **la
   cérémonie des clés, la revue de sécurité** (CT-7) ; **les règles
-  d'approbation, le cycle de vie des tickets, le choix entre `retenir` et
-  `erreur`** (CT-3) ; **la ligne de commande du vérificateur et de
-  l'exportateur** (CT-6) ; **les tests** (CT-9).
+  d'approbation et leur évaluation, le cycle de vie des tickets, le mode
+  d'attente par défaut, la console** (CT-3) ; **la ligne de commande du
+  vérificateur et de l'exportateur** (CT-6) ; **les tests** (CT-9).
 - **Les mesures de performance** : des cibles et une méthode (16), aucune
   valeur avant la phase 2.
 - **Le mode miroir** n'est construit que si un client l'exige (EX-5.6).
+- **Les messages `annulation` et `liberer` du noyau vers le service**, que
+  CT-3 §16 propose : en version 0.3, l'annulation par l'hôte d'une requête
+  retenue n'est pas transmise au service, et une approbation servie dont le
+  relais échoue avant tout événement n'est pas libérée (EX-7.21).
+- **Un moteur de correspondance à temps linéaire** dans l'implémentation de
+  référence (10.8) : la borne de temps d'EX-10.23 en tient lieu.
 - **La corrélation REQMOD/RESPMOD en mode ICAP** sur un mandataire réel
   (EX-5.4) et la **clôture par le stockage** d'un écrivain périmé selon le
   type de volume (EX-13.10) : à vérifier en phase 2.
@@ -6541,6 +7723,20 @@ CT-2, hors du texte de la spécification.
 | `CHANGELOG.md` | CT-1 | entrée « CT-2 — Enregistreur, version 0.2 : spécification, deux schémas, vecteurs, implémentation de référence JavaScript et vérificateur Go indépendant » | fait |
 | `scripts/lib/journal.mjs` | JCS v0 (`canonicaliserJCS`, entiers seulement) | ajouter `canonicaliserJCSIntegral` (RFC 8785 complet, nombres par `Number::toString`) pour les pièces, distinct de la forme v0 ; les deux coexistent (section 8) | fait |
 | `spec/vecteurs/ct-2/verificateur-independant/` | vérificateur Go de `ct-1` seulement | décision : module Go séparé `noortrace-ct2`, qui recalcule les familles de l'annexe B (JCS intégral, détecteurs, formes consolidées, chaîne `evenements`) ; le module de `spec/vecteurs/ct-1/verificateur-independant/` reste inchangé, les vecteurs CT-1 aussi | fait |
+
+Révision 0.3 :
+
+| Emplacement | Avant la révision 0.3 | Attendu par la révision 0.3 | État |
+|---|---|---|---|
+| `spec/README.md`, table des spécifications, ligne CT-2 | « version 0.2, en revue » | « version 0.3, en revue » | fait |
+| `spec/README.md`, table et commande des schémas de CT-2 | deux schémas chargés ensemble | trois : `configuration-enregistreur-v0`, `politique-redaction-v0`, `politique-approbation-v0` (`$ref` de `policy.approval.rules`), commande `ajv` avec deux `-r` | fait |
+| `spec/schemas/configuration-enregistreur-v0.schema.json` | `rules` « opaque pour CT-2 » ; `mode` décrit avec `-32015` | `rules` désigné par `$ref` vers `politique-approbation-v0` ; `mode` requis, sans valeur par défaut (`erreur` dans la configuration de référence) ; `storage.relay_mac_key` (EX-7.22) ; `limits.redaction_budget_ms` entier d'au moins 1 (EX-10.23) ; quotas `received_bytes_per_minute` et `redaction_ms_per_minute` (EX-4.47) | fait |
+| `spec/CT-3-approbations.md`, §15.2 et renvois | lignes de CT-2 « à faire » ou « à proposer » ; `-32015` | « fait (CT-2 0.3) », propositions adoptées avec leur EX ; signal d'approbation (EX-4.49) au lieu de `-32015` ; consommation tardive (T22) ; continuations MRTR (3.2, 14) | fait |
+| `spec/schemas/politique-approbation-v0.schema.json`, `spec/schemas/ticket-v0.schema.json` | « opaque pour CT-2 » ; `check` de `$defs/cas_remise` limité à `SG-1` à `SG-6` ; `ouvrir` décrit sans `request_event` ni `arguments_piece` | descriptions alignées ; `SG-7` admis dans `cas_remise` (EX-7.5) | fait |
+| `scripts/lib/capture.mjs`, `scripts/lib/approbation.mjs` | codes `-32010` à `-32017` ; `-32015` pour l'attente ; `erreursMotifRE2` sans règle de structure ; `limits.redaction_budget_ms` non appliqué ; `extract` compilé sans réécrire `(?P<` | codes de la table de 4.4 ; signal d'approbation (EX-4.49) ; règles a) à c) et point 5 d'EX-10.6, réécriture des seules ouvertures `(?P<nom>` ; budget d'EX-10.23, opérations 1 à 4, refus avant relais ; quotas d'EX-4.47 ; `requesters` dans `charger` ; SG-7 ; RL-1 à RL-4 et continuations MRTR ; réponse d'`evaluer` sans ordre des membres et jeu exploitable ; rédaction du motif (EX-10.24) ; consommation tardive (CT-3 T22) | fait |
+| `scripts/vecteurs/generer-ct2.mjs`, `generer-ct3.mjs`, vecteurs `ct-2` et `ct-3`, vérificateurs Go | codes `-3201x` dans `pieces-mcp` et `journal-demo` ; motifs refusés sans les formes d'OWASP ; cas `separation-non-verifiee-par-le-noyau` valide | codes de la table de 4.4, `result_rendered_seq_5`, cas d'approbation de `pieces-mcp`, motifs d'EX-10.6 avec `matches` (annexe B) ; cas SG-7 invalide ; trace `consommation-tardive` | fait |
+| `CHANGELOG.md` | entrée CT-2 version 0.2 ; entrée CT-3 : « an error carrying the ticket » | entrée CT-2 version 0.3 (alignement sur CT-3, codes hors de la plage héritée et signal d'approbation, `-32015` retiré sans successeur, contrôle des motifs et budget de rédaction, vérificateurs Go) ; entrée CT-3 : « the proxy answers at once with a tool error result (`isError`) carrying the ticket and its state (`erreur` mode) by default » et le décompte du vérificateur Go de `ct-3` | fait |
+| `ARCHITECTURE.md`, « Approbation : avant l'action, pas après », dernier paragraphe ; `README.md`, ligne CT-3 | « répond aussitôt par une erreur qui porte le numéro de ticket » ; « an immediate error carrying the ticket » | « répond aussitôt par un résultat d'erreur d'outil (`isError`) qui porte le numéro de ticket et son état (mode `erreur`, par défaut, CT-3 §11) » ; « an immediate tool error result (`isError`) carrying the ticket and its state by default » | fait |
 
 ## Annexe B — Disposition des vecteurs `spec/vecteurs/ct-2`
 
@@ -6628,15 +7824,15 @@ Tableau d'objets `{ "name", "input", "canonical", "note" }` :
 | `note` | français, libre |
 
 Cas obligatoires : les 24 lignes finies des 26 lignes de la table de
-l'annexe B de la RFC 8785 (l'entrée est le texte JSON de la colonne « JSON Representation », ou
-une forme équivalente non canonique — `1E+21`, `0.000001000`, `1.0` — et la
-sortie la colonne elle-même ; `NaN` et `Infinity` donnent `null`) ; les cas
-limites de CT-1 §4 qui restent valides en JCS intégral (`{"a":1.0}` →
-`{"a":1}`, `{"a":1e3}` → `{"a":1000}`, `{"a":9007199254740993}` → une valeur
-qui **n'est pas** l'entrée : `{"a":9007199254740992}`, ce qui documente la
-perte de précision au-delà de 2^53, RFC 7493 § 2.2) ; les cas invalides de
-CT-1 §4 qui le restent (`{"a":1,"a":2}`, `{"a":"\ud800"}`) ; le tri des clés
-par unités UTF-16 ; les contrôles échappés en minuscules.
+l'annexe B de la RFC 8785 (l'entrée est le texte JSON de la colonne « JSON
+Representation », ou une forme équivalente non canonique — `1E+21`,
+`0.000001000`, `1.0` — et la sortie la colonne elle-même ; `NaN` et `Infinity`
+donnent `null`) ; les cas limites de CT-1 §4 qui restent valides en JCS intégral
+(`{"a":1.0}` → `{"a":1}`, `{"a":1e3}` → `{"a":1000}`, `{"a":9007199254740993}` →
+une valeur qui **n'est pas** l'entrée : `{"a":9007199254740992}`, ce qui
+documente la perte de précision au-delà de 2^53, RFC 7493 § 2.2) ; les cas
+invalides de CT-1 §4 qui le restent (`{"a":1,"a":2}`, `{"a":"\ud800"}`) ; le tri
+des clés par unités UTF-16 ; les contrôles échappés en minuscules.
 
 ### B.3 `redaction/`
 
@@ -6662,12 +7858,30 @@ obligatoires que `pii-v1` ne peut pas porter (elle n'a ni `path`, ni
 règles dont l'ordre exige un second passage (EX-10.14), puis les cinq
 détecteurs.
 
-`motifs.json` : tableau d'objets `{ "pattern", "admis", "note" }` : des motifs
+`motifs.json` : tableau d'objets `{ "pattern", "admis", "note" }`, avec,
+pour certains motifs admis, un membre `matches` : `[ { "input", "first" } ]`,
+la première correspondance (leftmost-first, correspondance entière) du motif
+dans chaque texte, ou `null` ; ce sont des motifs
 du sous-ensemble commun ECMAScript/RE2 d'EX-10.6 (`admis: true`) et des
 motifs refusés (`admis: false` : `.`, `\s`, `\u…`, `\x{…}`, `\p{…}`, `\A`,
 classe POSIX, recherche avant, drapeau, quantificateur possessif, référence
 arrière, borne au-delà de 1 000, classe vide, quantificateur sur une
-frontière).
+frontière). Depuis la version 0.3, les refusés comprennent aussi les quatre
+motifs d'OWASP `^(a+)+$`, `([a-zA-Z]+)*$`, `(a|aa)+$` et `(a|a?)+$`, un
+quantificateur borné sur une alternative (`(a|aa){1,1000}$`), une répétition
+imbriquée bornée (`(a{1,1000}){1,1000}$`), une alternative qui se recouvre
+sous répétition (`(\w|\d)+$`), une forme bénigne refusée par la règle a)
+(`(?:[0-9]{4} ?){3}`), un groupe quantifié qui peut être vide (`(?:\b)+x`)
+et un motif de taille développée 1 001 (`[0-9]{1000}x`), chacun avec la
+règle a), b) ou c) qui le refuse dans `note` ; les admis comprennent un
+motif à retour arrière polynomial (`[0-9]+$`), avec la note qu'EX-10.23 le
+borne, et un groupe nommé de la forme `(?P<nom>…)`. Depuis la même
+version, les admis comprennent aussi quatre motifs où « (?P< » n'ouvre pas de
+groupe nommé ou en ouvre un après une barre oblique inverse échappée
+(`[(?P<]x`, `a\(?P<b`, `\(?P<x>`, `\\(?P<x>a)`), chacun avec `matches`
+(EX-10.6 : seules les ouvertures reconnues par l'analyse sont réécrites), et
+les refusés trois quantificateurs à zéro non significatif (`a{01}`,
+`[0-9]{04}`, `a{0,01}`). Aucun cas n'a d'attendu de durée.
 
 `cas.json` : tableau d'objets :
 
@@ -6706,17 +7920,17 @@ les mêmes octets (EX-10.15).
 
 **`appels/<cas>/`** — un `tools/call` reçu d'un hôte. `hote.jsonl` : les
 messages JSON-RPC échangés avec l'hôte, dans l'ordre, un par ligne, chacun
-dans une enveloppe `{"dir":"in"|"out","t":"<horodatage>","line":"<texte tel quel>"}`
-(`in` : reçu de l'hôte ; `out` : rendu à l'hôte ; `line` est une chaîne,
-pour que ses octets soient exacts : une ligne stdio, ou le corps d'un POST
-quand `transports.host` vaut `http`). `hote.jsonl` commence par l'échange
-`tools/list` qui sert la liste à cette connexion d'hôte (EX-4.13, EX-4.45),
-puis porte la requête reçue et la réponse rendue. `amont.jsonl` : de même
-pour le serveur d'outils (`out` : envoyé au serveur, `in` : reçu de lui), y
-compris la sonde `server/discover`, la poignée de main `initialize`, une
-annulation ou une réponse tardive ; l'enveloppe
-`{"dir":"in","t":"<horodatage>","eof":true}` marque la fin de fichier sur la
-sortie standard d'un serveur stdio. `attendu.json` :
+dans une enveloppe
+`{"dir":"in"|"out","t":"<horodatage>","line":"<texte tel quel>"}` (`in` : reçu
+de l'hôte ; `out` : rendu à l'hôte ; `line` est une chaîne, pour que ses octets
+soient exacts : une ligne stdio, ou le corps d'un POST quand `transports.host`
+vaut `http`). `hote.jsonl` commence par l'échange `tools/list` qui sert la liste
+à cette connexion d'hôte (EX-4.13, EX-4.45), puis porte la requête reçue et la
+réponse rendue. `amont.jsonl` : de même pour le serveur d'outils (`out` : envoyé
+au serveur, `in` : reçu de lui), y compris la sonde `server/discover`, la
+poignée de main `initialize`, une annulation ou une réponse tardive ;
+l'enveloppe `{"dir":"in","t":"<horodatage>","eof":true}` marque la fin de
+fichier sur la sortie standard d'un serveur stdio. `attendu.json` :
 
 ```json
 {
@@ -6736,6 +7950,8 @@ sortie standard d'un serveur stdio. `attendu.json` :
   "is_error": false,
   "duration_ms": 412,
   "error_rendered": null,
+  "approval": null,
+  "result_rendered": null,
   "protocols": { "host": "2026-07-28", "server": "2026-07-28" },
   "transports": { "host": "stdio", "server": "stdio" },
   "note": "…"
@@ -6743,27 +7959,46 @@ sortie standard d'un serveur stdio. `attendu.json` :
 ```
 
 `bytes` porte les octets de la pièce en chaîne UTF-8. `definition` est la
-définition servie (celle de la liste de `hote.jsonl`), `definition_current`
-la définition courante quand elle diffère (sinon `null`), `list` la pièce
-« liste annoncée » ; `context` suit EX-4.45 ; la classe vient de la
-définition courante. `duration_ms` = `t_reponse − t_envoi`, `t_reponse`
-suivant EX-4.48 pour une issue sans réponse. Un refus au pas 1 de 4.4 a
-`rejected: true`, `tool_announced`, `tool_original`, `server_alias`, `class`,
-`pieces`, `is_error` et `duration_ms` à `null`, `context: []`, un
-`amont.jsonl` vide, et `error_rendered` = l'erreur rendue. Les cas peuvent
-porter `timeout_ms` (délai de l'outil) et `limits.response_max_bytes`. Cas
-obligatoires : appel exécuté sans erreur (`execute-ecriture`, l'appel de
-seq 7 de `journal-demo`) ; résultat `isError: true` ; erreur JSON-RPC du
-serveur (pièce `noortrace_jsonrpc_error`) ; délai (`-32011`) ; serveur
-injoignable après l'envoi (`-32014`, fin de fichier) ; taille dépassée
-(`-32013`) ; `resultType: "input_required"` ; hôte hérité vers serveur
-moderne et l'inverse (les `_meta` réécrits) ; arguments avec des nombres non
-entiers exactement représentables (EX-4.20) ; refus d'un nombre non
-représentable et d'un nombre hors de la double précision (EX-4.44) ; ligne
-avec un CR (EX-4.43) ; lot (EX-4.3) ; blancs non significatifs ; corps HTTP
-sur plusieurs lignes relayé à un serveur stdio (EX-4.43) ; résultat qui
-n'est pas un objet (4.4 pas 12) ; `id` entier au-delà de 2^53 (4.4 pas 14) ;
-définition servie différente de la définition courante (EX-4.45).
+définition servie (celle de la liste de `hote.jsonl`), `definition_current` la
+définition courante quand elle diffère (sinon `null`), `list` la pièce « liste
+annoncée » ; `context` suit EX-4.45 ; la classe vient de la définition
+courante. `duration_ms` = `t_reponse − t_envoi`, `t_reponse` suivant EX-4.48
+pour une issue sans réponse. Un refus au pas 1 de 4.4 a `rejected: true`,
+`tool_announced`, `tool_original`, `server_alias`, `class`, `pieces`,
+`is_error` et `duration_ms` à `null`, `context: []`, un `amont.jsonl` vide, et
+`error_rendered` = l'erreur rendue. `approval` est `null`, ou, pour un cas
+d'approbation, `{ "response": <réponse d'evaluer simulée, $defs/reponse_evaluer
+de ticket-v0> }` ; `result_rendered` est `null`, ou le résultat que
+l'enregistreur rend lui-même (EX-4.49), objet JSON dont la ligne rendue de
+`hote.jsonl` porte les octets ; pour un cas d'approbation sans relais,
+`amont.jsonl` est vide, `pieces.result`, `is_error` et `duration_ms` sont
+`null`, et `pieces.arguments` est la pièce « arguments » écrite au pas 4.
+Les cas d'approbation sont rendus dans le mode d'attente `erreur`, celui de
+la configuration de référence (CT-3 EX-11.1 ; 4.4 pas 6) : le signal
+`en_attente` est rendu aussitôt ; le refus sans ticket (pas 5) ne dépend pas
+du mode ; `attendu.json` ne porte pas de membre `mode`. `protocols.host` est
+la version vue côté hôte (`_meta` de la requête, sinon réponse à
+`initialize`), `protocols.server` celle de la connexion au serveur de
+l'alias, lue dans `amont.jsonl` ; quand `amont.jsonl` est vide (refus au pas
+1, cas d'approbation sans relais), `protocols.server` est la version
+déclarée du serveur configuré, qu'aucune transcription ne porte : elle est
+déclarative et n'est pas vérifiable ; `transports.server` l'est de même. Les
+cas peuvent porter `timeout_ms` (délai de l'outil) et
+`limits.response_max_bytes`. Cas obligatoires : appel exécuté sans erreur
+(`execute-ecriture`, l'appel de seq 7 de `journal-demo`) ; résultat `isError:
+true` ; erreur JSON-RPC du serveur (pièce `noortrace_jsonrpc_error`) ; délai
+(`-31011`) ; serveur injoignable après l'envoi (`-31014`, fin de fichier) ;
+taille dépassée (`-31013`) ; refus par la politique sans ticket
+(`approbation-refus`, hôte moderne : le résultat exact d'EX-4.49) ; ticket en
+attente (`approbation-en-attente`, hôte hérité : le signal sans `resultType`) ;
+`resultType: "input_required"` ; hôte hérité vers serveur moderne et l'inverse
+(les `_meta` réécrits) ; arguments avec des nombres non entiers exactement
+représentables (EX-4.20) ; refus d'un nombre non représentable et d'un nombre
+hors de la double précision (EX-4.44) ; ligne avec un CR (EX-4.43) ; lot
+(EX-4.3) ; blancs non significatifs ; corps HTTP sur plusieurs lignes relayé à
+un serveur stdio (EX-4.43) ; résultat qui n'est pas un objet (4.4 pas 12) ;
+`id` entier au-delà de 2^53 (4.4 pas 14) ; définition servie différente de la
+définition courante (EX-4.45).
 
 **`agregation/`** — `serveurs.json` : tableau de serveurs fictifs `{ "alias",
 "tools": [ { "name", "annotations" } ] }` ; `attendu.json` : `{ "prefix",
@@ -6786,11 +8021,11 @@ Un répertoire par cas, nommé `<fournisseur>-<cas>` :
 `anthropic-messages-non-flux`, `anthropic-messages-flux`,
 `anthropic-messages-flux-outil`, `anthropic-messages-flux-bom`,
 `anthropic-messages-flux-incomplet`, `anthropic-messages-erreur-http`,
-`anthropic-messages-reponse-non-json`, `anthropic-messages-requete-non-analysable`,
-`openai-chat-non-flux`, `openai-chat-flux`, `openai-chat-flux-outils`,
-`openai-chat-prompt-inline`, `openai-responses-flux`,
-`openai-responses-flux-incomplet`, `bedrock-mantle-non-flux` (même corps
-qu'Anthropic, libellé `bedrock-mantle`).
+`anthropic-messages-reponse-non-json`,
+`anthropic-messages-requete-non-analysable`, `openai-chat-non-flux`,
+`openai-chat-flux`, `openai-chat-flux-outils`, `openai-chat-prompt-inline`,
+`openai-responses-flux`, `openai-responses-flux-incomplet`,
+`bedrock-mantle-non-flux` (même corps qu'Anthropic, libellé `bedrock-mantle`).
 
 | Fichier | Contenu |
 |---|---|
@@ -6818,7 +8053,8 @@ qui n'est pas JSON : pièce non JSON (EX-8.7), `is_error: true`.
 
 ### B.6 `evenements/journal-demo/`
 
-La courte exécution de démonstration de 19.2, **chaînée avec les clés de
+La courte exécution de démonstration de 19.2 sous l'ensemble de politique
+de la version 0.2 de CT-2, antérieur à CT-3, **chaînée avec les clés de
 test de CT-1** et vérifiable par les outils de CT-1 (`verifierChaine` de
 `scripts/lib/journal.mjs`, famille « journaux » du vérificateur Go), dans la
 disposition de `ct-1/journal-valide/` :
@@ -6826,14 +8062,29 @@ disposition de `ct-1/journal-valide/` :
 | Fichier | Contenu |
 |---|---|
 | `evenements.json` | les huit événements de 19.2 (`seq` 1 à 8 : politique, échange, lecture, échange en flux, retenue, décision, écriture relayée, échange), complets, mis en forme ; `recorder_key_id` `rec-test-01` ; `ts` fixes dans la période de démonstration |
-| `attendu.json` | `{ "valide": true, "diagnostics": [], "events": [ { "seq", "tool", "hash", "sig", "prev_hash", "canonical_length" } ], "A": {…}, "D_A": "0x…", "policy_version", "policy_sha256", "policy_length", "intention_sha256", "intent_id", "segment_sha256", "segment_length", "error_rendered_seq_5", "correlation": { "host_group", "run_id", "window_ms", "tool_name_template", "tool_name_sanitize", "calls": [ { "seq", "exchange_seq", "tool_call_id", "inherits_from_seq", "intent" } ] }, "period": {…} }` |
+| `attendu.json` | `{ "valide": true, "diagnostics": [], "events": [ { "seq", "tool", "hash", "sig", "prev_hash", "canonical_length" } ], "A": {…}, "D_A": "0x…", "policy_version", "policy_sha256", "policy_length", "intention_sha256", "intent_id", "segment_sha256", "segment_length", "result_rendered_seq_5", "correlation": { "host_group", "run_id", "window_ms", "tool_name_template", "tool_name_sanitize", "calls": [ { "seq", "exchange_seq", "tool_call_id", "inherits_from_seq", "intent" } ] }, "period": {…} }` |
 | `pieces.json` | les pièces référencées : `[ { "sha256", "length", "redacted", "media_type", "bytes" } ]`, dont les pièces de définition d'outil et la pièce « liste annoncée », les pièces « requête », « réponse », « prompt système », « intention », « arguments », « résultat » et le document d'ensemble de politique |
 | `cles.json` | `cles.json` du dossier (CT-1 §11.2) pour `rec-test-01` |
 | `segment.ndjson` | le segment tel que l'enregistreur l'écrit (12.2) : en-tête (`epoch: 1`, `first_seq: 1`) puis les huit lignes JCS v0, octets exacts |
 | `intentions.ndjson` | le journal d'intention de l'époque 1 : la ligne intention de `seq 7` (EX-12.12, neuf clés, `intent_id` `i-00000000000000000001-000000000001`), sa ligne contexte et sa levée |
-| `politique.json` | le membre `policy` de la configuration de démonstration (dont `redaction` = `pii-v1`), tel que haché pour `policy_sha256` de `seq 1` |
+| `politique.json` | l'ensemble de politique, antérieur à CT-3, qu'avait la démonstration de la version 0.2 (dont `redaction` = `pii-v1`), tel que haché pour `policy_sha256` de `seq 1` ; il porte sous `approval.rules` un tableau illustratif et non un document `politique-approbation-v0`, et il reste figé (voir ci-dessous) : ce n'est pas le membre `policy` de `demo/configuration-demo.json` (19.1) |
 | `entrees.json` | les entrées brutes de la démonstration : `host` (l'entrée de connexion d'hôte `agent-demo` : `id`, `host_group`, `launched_by`, `on_behalf_of`, `scope`, `tool_name_template`, `tool_name_sanitize`), `exchanges` (`seq`, `host`, `host_group`, `run_id`, `format`, `provider_label`, `route`, `t_complet`, `request`, `response_content_type`, `response_body`), `calls` (`seq`, `host`, `host_group`, `run_id`, `t_recu`, `host_line`, `inherits_from_seq`) et `served_list` (la liste servie à la connexion) |
 | `dossier-seq-7/` | le dossier CT-1 v0 de l'appel d'écriture relayé (seq 7) et son `attendu.json` |
+
+`result_rendered_seq_5` est le signal d'approbation rendu pour l'appel
+retenu de `seq 5` en mode `erreur` (EX-4.49), l'objet `result` de la ligne
+rendue ; il remplace `error_rendered_seq_5` (`-32015`) de la version 0.2.
+Aucun événement de `journal-demo` ne change. `politique.json` reste figé :
+le remplacer par une politique conforme à CT-3 changerait `policy_sha256`
+et, avec lui, les huit événements, le segment, le journal d'intention, les
+pièces et le dossier de `seq 7`, pour une vérification que CT-3 ne demande
+pas sur ce vecteur (CT-3 4.1). Il est donc validé contre `$defs/policy_set`
+du schéma de configuration **hors** `approval.rules`, qui est vérifié comme
+un tableau, et il n'est pas soumis à la validation d'EX-15.4 pas 3 : c'est
+un vecteur de hachage, pas une configuration de démarrage. Le fichier
+`approbations.json` de `dossier-seq-7/` garde sa `source` libre et l'ordre
+de ses membres, que CT-1 v0 admet (CT-1 §11.2), sans la forme de CT-3
+EX-8.8.
 
 Le vérificateur Go recalcule, pour cette famille : `hash` et `sig` de chaque
 événement (CT-1 §6), la chaîne (C-1 à C-3), les références de pièces (E-6
@@ -6858,7 +8109,8 @@ le générateur.
 ## Annexe C — Sources des faits externes
 
 Les renvois R1 à R9 du texte désignent les notes de recherche internes du lot
-CT-2 (les « digests »), qui ne sont pas publiées. Cette annexe donne, pour
+CT-2 (les « digests »), et R10 celle de la révision 0.3 (0.1), qui ne sont
+pas publiées. Cette annexe donne, pour
 chaque renvoi de la présente spécification, l'objet du fait en quelques mots
 et la ou les sources primaires publiques consultées, à la date indiquée ; elle
 ne remplace pas la lecture de ces sources. Un fait marqué « non vérifié » dans
@@ -7209,3 +8461,46 @@ publique.
 | R9 F-161 | Invariant Labs : exploitation de WhatsApp MCP par ombrage entre serveurs (2025-04-07) | https://invariantlabs.ai/blog/whatsapp-mcp-exploited | 2026-10-22 |
 | R9 F-170 | Trail of Bits : « line jumping », attaque par les descriptions d'outils avant tout appel (2025-04-21) | https://blog.trailofbits.com/2025/04/21/jumping-the-line-how-mcp-servers-can-attack-you-before-you-ever-use-them/ | 2026-10-22 |
 | R9 F-181 | OWASP MCP Top 10, MCP03 « Tool Poisoning » : contrôles (signature, empreintes des schémas) | https://owasp.github.io/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning | 2026-10-22 |
+
+### C.9 R10 — Codes d'erreur de MCP, hôtes et motifs de rédaction (révision 0.3)
+
+`MCP@dae694f` désigne le dépôt `modelcontextprotocol/modelcontextprotocol` au
+commit `dae694f61a31f7a3ec2af3aff709e11f70f61e48` (2026-10-23), dont les
+fichiers cités sont identiques à ceux du commit
+`80041ab0a139a8f4fb3adbc99f7ae9113ea59671` lu par CT-3 (R2-F10) ; les URL
+suivent la forme
+`https://github.com/modelcontextprotocol/modelcontextprotocol/blob/dae694f61a31f7a3ec2af3aff709e11f70f61e48/<fichier>#L<n>`.
+Une « mesure de la note » a été faite sur Node.js v22.22.0 (V8 12.4) ou Go
+1.24.7 par des scripts non publiés ; elle est reproductible avec les motifs
+et les longueurs cités, et n'a pas d'autre source primaire.
+
+| Renvoi | Objet | Source(s) primaire(s) | Consultée le |
+|---|---|---|---|
+| R10 F-2 | Révision `2026-07-28` : `-32000` à `-32019` hérités (aucune allocation, aucun usage par une implémentation nouvelle, aucun sens supposé par le récepteur sauf `-32002`) ; `-32020` à `-32099` réservés à la spécification | `MCP@dae694f`, `docs/specification/2026-07-28/basic/index.mdx` L109-L127 | 2026-10-23 |
+| R10 F-3 | Codes définis `-32020`, `-32021`, `-32022` ; `-32002` et `-32042` ne sont plus émis | `MCP@dae694f`, `docs/specification/2026-07-28/basic/index.mdx` L129-L144 | 2026-10-23 |
+| R10 F-4 | Erreurs locales sans code ; code nouveau hors de `-32768` à `-32000` (SHOULD) | `MCP@dae694f`, `docs/specification/2026-07-28/basic/index.mdx` L146-L155 | 2026-10-23 |
+| R10 F-5 | Introduction de la qualification « legacy » ; journal des modifications (« grandfathered ») et commentaire du schéma plus souples que le texte normatif | `MCP@dae694f`, commit `205e6c0638a73badb6fcf39a964f7d6c8d61520a` ; `docs/specification/2026-07-28/changelog.mdx` L61-L67 ; `schema/2026-07-28/schema.ts` L407-L425 ; `docs/specification/2026-07-28/index.mdx` L13-L15 | 2026-10-23 |
+| R10 F-7 | JSON-RPC 2.0, §5.1 : `-32768` à `-32000` réservés, `-32000` à `-32099` erreurs de serveur définies par l'implémentation, reste de l'espace aux applications | https://www.jsonrpc.org/specification | 2026-10-23 |
+| R10 F-9 | Outils : erreurs de protocole (erreur JSON-RPC, MAY au modèle) et erreurs d'exécution (`isError`, SHOULD au modèle) | `MCP@dae694f`, `docs/specification/2026-07-28/server/tools.mdx` L738-L785 | 2026-10-23 |
+| R10 F-10 | `CallToolResult.isError` : erreur née de l'outil dans le résultat ; condition exceptionnelle en erreur MCP | `MCP@dae694f`, `schema/2026-07-28/schema.ts` L1823-L1837 | 2026-10-23 |
+| R10 F-12 | `structuredContent` conforme à l'`outputSchema` de l'outil | `MCP@dae694f`, `docs/specification/2026-07-28/server/tools.mdx` L498, L509-L515 | 2026-10-23 |
+| R10 F-13 | Clés `_meta` : préfixe, notation DNS inversée recommandée, seconds labels `mcp` et `modelcontextprotocol` réservés | `MCP@dae694f`, `docs/specification/2026-07-28/basic/index.mdx` L330-L339 | 2026-10-23 |
+| R10 F-15 | CT-2 version 0.2 prenait ses codes dans `-32010` à `-32017` | `spec/CT-2-enregistreur.md` version 0.2 du dépôt public (§4.4, « Codes d'erreur de l'enregistreur », EX-4.24) | 2026-10-23 |
+| R10 F-18 | SDK TypeScript 1.32.1 : `callTool` valide `structuredContent` même quand `isError` est vrai (lecture du code, non exécuté) | paquet npm `@modelcontextprotocol/sdk` 1.32.1, `dist/esm/client/index.js` L486-L507 | 2026-10-23 |
+| R10 F-21 | SDK Python 1.30.0 : délai local signalé par le code `408`, `CONNECTION_CLOSED = -32000` | https://files.pythonhosted.org/packages/f5/f4/e58bc33317c92a0203664daaf00bf6f41166cc0149e5d6870a03f7cd004a/mcp-1.30.0-py3-none-any.whl (`mcp/shared/session.py` L293-L306, `mcp/types.py` L177-L183) | 2026-10-23 |
+| R10 F-22 | openai-agents 0.24.0 : texte fixe au modèle pour une erreur JSON-RPC ; contenu d'un résultat `isError` remis au modèle ; relance sur `-32001`, `408` et `-32000` | https://github.com/openai/openai-agents-python/blob/0dc4cf152bff1f50bdc0e41f28808563406545b2/src/agents/mcp/util.py (L272, L754-L821) ; même commit, `src/agents/tool.py` L1997-L2002, `src/agents/mcp/server.py` L2469-L2477, `src/agents/mcp/_compat.py` L142-L163 | 2026-10-23 |
+| R10 F-23 | langchain-mcp-adapters 0.3.2 : résultat `isError` remis au modèle ; erreur JSON-RPC propagée hors de l'outil | https://github.com/langchain-ai/langchain-mcp-adapters/blob/52a4535f3eb4b98f386836e4d9b8c4cadf99afca/langchain_mcp_adapters/tools.py#L99-L158 | 2026-10-23 |
+| R10 F-24 | Claude Code : le texte d'un résultat `isError` est le message d'erreur que reçoit le modèle ; rien sur une erreur JSON-RPC | https://code.claude.com/docs/en/mcp.md ; https://code.claude.com/docs/en/errors.md | 2026-10-23 |
+| R10 F-25 | OWASP, « Evil Regex » : groupe répété dont le corps contient une répétition ou une alternative qui se recouvre ; `(a+)+$`, `([a-zA-Z]+)*$`, `(a|aa)+$`, `(a|a?)+$` | https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS | 2026-10-23 |
+| R10 F-27 | Durées de retour arrière en ECMAScript, motifs exponentiels et polynomiaux sans groupe répété (`[0-9]+$`, `[a-z]*[a-z]*[a-z]*!`) | mesure de la note (Node.js v22.22.0) | 2026-10-23 |
+| R10 F-28 | Un quantificateur borné ne protège pas (`(a|aa){1,1000}$`), le drapeau `v` non plus | mesure de la note (Node.js v22.22.0) | 2026-10-23 |
+| R10 F-29 | Le paquet `regexp` de Go est linéaire en la longueur de l'entrée, de coût proportionnel à la taille du programme (`[0-9]{1000}x`, 12 047 ms pour 10^6 caractères) | source de la bibliothèque standard de Go 1.24.7, `regexp/regexp.go` L13-L14 ; https://github.com/google/re2/blob/2da0056814cf180480a19f5cf811e7e1c054bf6d/README.md#L9-L20 ; mesure de la note (Go 1.24.7) | 2026-10-23 |
+| R10 F-30 | Go et RE2 refusent une répétition imbriquée de plus de 1 000 copies ; divergence avec le contrôle JavaScript de la version 0.2 | source de la bibliothèque standard de Go 1.24.7, `regexp/syntax/parse.go` L435, L442-L473 ; https://github.com/google/re2/blob/2da0056814cf180480a19f5cf811e7e1c054bf6d/re2/parse.cc (L47, L532-L541) | 2026-10-23 |
+| R10 F-33 | Moteur non rétrogressif de V8 : expérimental, derrière des options, sans le drapeau `u` | https://v8.dev/blog/non-backtracking-regexp | 2026-10-23 |
+| R10 F-34 | Node.js v22.22.0 : drapeau `l` refusé sans option, `lu` refusé avec elle ; changer une option après le démarrage est imprévisible | https://raw.githubusercontent.com/nodejs/node/v22.22.0/doc/api/v8.md (L451-L454) ; mesure de la note | 2026-10-23 |
+| R10 F-35 | Sans le drapeau `u`, une classe reconnaît des unités UTF-16 | mesure de la note (Node.js v22.22.0) | 2026-10-23 |
+| R10 F-36 | `node:vm` avec `timeout` interrompt une recherche en cours, y compris dans une fonction du contexte principal (environ 0,16 ms par appel) ; `Worker.terminate()` l'arrête en 2 à 3 ms ; `vm` n'est pas une barrière de sécurité | https://raw.githubusercontent.com/nodejs/node/v22.22.0/doc/api/vm.md (L14-L15, L186-L188, L1840-L1851) ; https://raw.githubusercontent.com/nodejs/node/v22.22.0/doc/api/worker_threads.md (L1862-L1879) ; mesure de la note | 2026-10-23 |
+| R10 NV-1 | Ce que Claude Code, Claude Desktop ou Cursor montrent au modèle d'une erreur JSON-RPC : non vérifié | https://code.claude.com/docs/en/mcp.md (ne tranche pas) | 2026-10-23 |
+| R10 NV-3 | Aucun registre des codes d'application JSON-RPC : l'absence de collision de `-31010` à `-31017` n'est pas vérifiée | https://www.jsonrpc.org/specification (ne tranche pas) | 2026-10-23 |
+| R10 NV-4 (levé) | Interruption par `vm` de `replace`, `replaceAll`, `split`, `matchAll`, `match`, `search` et `test` : levée ; avec une borne de 50 ms, arrêt entre 49,5 et 50,8 ms sur `[0-9]+$` et 80 000 chiffres suivis de `x`, contre 4 365 ms (`exec`) et 4 888 ms (`replace`) sans borne | mesure sous Node.js v22.22.0 avec `scripts/lib/capture.mjs` ; test/enregistreur.test.js (EX-10.23, « R10 NV-4 levé ») | 2026-10-23 |
+| R10 NV-5 | Coût d'un moteur à automate écrit en JavaScript : non mesuré | https://v8.dev/blog/non-backtracking-regexp (ne tranche pas) | 2026-10-23 |

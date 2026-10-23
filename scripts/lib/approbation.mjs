@@ -14,9 +14,15 @@
 //   - lecture du jeu d'approbateurs dans le CuratorSetRegistry, par une source
 //     JSON-RPC fournie par l'appelant (EX-8.1, EX-8.5) ;
 //   - objet signé A, normalisation d'un vote (EX-9.3) et vérification d'une
-//     remise par le noyau avant scellement (SG-1 à SG-6, EX-9.11), avec les
-//     fonctions EIP-191 de scripts/lib/journal.mjs ;
-//   - comportement observable du mandataire (section 11).
+//     remise par le noyau avant scellement (SG-1 à SG-7, EX-9.11 ; CT-2
+//     EX-7.5), avec les fonctions EIP-191 de scripts/lib/journal.mjs ;
+//   - comportement observable du mandataire (section 11 ; CT-2 EX-4.49,
+//     EX-4.50, EX-6.7) ;
+//   - partie calculable des échanges du noyau de l'enregistreur avec le
+//     service (CT-2 §7.5 : messages charger, ouvrir, acquitter, consommer,
+//     expiration ; vérifications de relais RL-1 à RL-4 et MAC de relais ;
+//     expiration par le noyau ; motif rédigé ; fichiers des approbations ;
+//     contrôles de démarrage de la configuration qui touchent l'approbation).
 //
 // Fonctions pures, sauf la lecture du jeu (asynchrone, par la source donnée) :
 // aucune horloge (les instants sont des paramètres), aucun accès au système de
@@ -27,6 +33,7 @@
 // horodatages RFC 3339 UTC à la milliseconde, clés JSON en anglais, valeurs
 // énumérées en français sans accent.
 
+import { createHmac } from "node:crypto";
 import { Interface, ZeroAddress, getAddress, toQuantity } from "ethers";
 import * as J from "./journal.mjs";
 import * as C from "./capture.mjs";
@@ -77,7 +84,7 @@ export const PLAFOND_TICKETS_DEFAUT = 20;
 /** Intervalle de lecture du jeu par défaut (8.2). */
 export const INTERVALLE_LECTURE_DEFAUT_MS = 10000;
 
-/** Mode d'attente par défaut (EX-11.1). */
+/** Mode d'attente de la configuration de référence, de la démonstration et des outils du projet (EX-11.1) ; le membre mode est requis par le schéma de configuration de CT-2. */
 export const MODE_ATTENTE_DEFAUT = "erreur";
 
 /** États du ticket (7.3). */
@@ -108,12 +115,24 @@ export const RAISON_EXPIRATION_NOYAU = "expire par l'enregistreur, service d'app
 export const TEXTE_REFUS_POLITIQUE = "noortrace: appel refuse par la politique";
 /** Clé de _meta qui porte l'identité de l'enregistreur dans un résultat rendu (CT-2 EX-4.4, 4.4 pas 14). */
 export const CLE_SERVER_INFO = "io.modelcontextprotocol/serverInfo";
+/** Clé de _meta qui porte le ticket et son état dans le signal d'approbation (CT-2 EX-4.49). */
+export const CLE_META_APPROBATION = "noortrace/approval";
+/** États que porte le signal d'approbation (CT-2 EX-4.49, table d'EX-11.7). */
+export const ETATS_SIGNAL = ["en_attente", "refuse", "expire"];
 
 /** Codes d'erreur de validation d'une politique (ticket-v0, $defs/code_erreur_politique). */
 export const CODES_ERREUR_POLITIQUE = ["schema", "nom_double", "pointeur_trop_long", "condition_trop_profonde", "trop_de_predicats", "substitut_isole", "launched_by_double", "contest_ms_trop_long", "seuil_statique_incoherent", "jeu_statique_en_production"];
 
-/** Ordre des vérifications du noyau sur une remise (EX-9.11). */
-export const VERIFICATIONS_REMISE = ["SG-1", "SG-2", "SG-3", "SG-4", "SG-5", "SG-6"];
+/** Ordre des vérifications du noyau sur une remise (EX-9.11 ; SG-7 adoptée par CT-2 0.3, EX-7.5). */
+export const VERIFICATIONS_REMISE = ["SG-1", "SG-2", "SG-3", "SG-4", "SG-5", "SG-6", "SG-7"];
+/** Ordre des vérifications du noyau avant de relayer un appel approuvé (CT-2 EX-7.21). */
+export const VERIFICATIONS_RELAIS = ["RL-1", "RL-2", "RL-3", "RL-4"];
+/** Domaine du MAC de relais (CT-2 EX-7.22). */
+export const DOMAINE_MAC_RELAIS = "noortrace/relais/v0";
+/** Longueur minimale, en octets décodés, de la clé du MAC de relais et de la clé de pseudonymisation (CT-2 EX-7.22, EX-10.12). */
+export const LONGUEUR_CLE_MIN = 32;
+/** Longueur maximale de approval.reason (CT-1 §5.3, CT-2 EX-10.24). */
+export const MAX_MOTIF_DECISION = 1024;
 
 const N_SECP256K1 = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
 const MOITIE_N = N_SECP256K1 / 2n;
@@ -263,7 +282,10 @@ export function erreursSemantiques(doc, { environment, expire_after_ms }) {
  * /arguments/… des règles champ de portée arguments) ; règle fenetre à
  * plusieurs sélecteurs ou à joker, sans same_arguments ou sans condition
  * (sa fenêtre couvre plus que l'appel approuvé, EX-5.2) ; liste d'exclusion
- * (egal ou dans sous une règle automatique refuse) ; demandeur configuré
+ * (egal ou dans placé sous un nombre pair de none, zéro compris, dans la
+ * condition d'une règle automatique refuse ; sous un nombre impair de none, le
+ * prédicat forme une liste blanche, none sur egal ou dans, qui n'est pas
+ * signalée, CT-3 EX-4.14) ; demandeur configuré
  * (`demandeurs` : launched_by des connexions d'hôte, transmis par charger)
  * sans entrée dans separation.identities alors que self_approval vaut
  * interdite (séparation non vérifiable, EX-10.5). Rend des chaînes.
@@ -282,7 +304,9 @@ export function avertissementsPolitique(doc, { outils = null, cheminsRediges = [
       if (r.when === null) out.push(`/rules/${i}/when : nulle ; la fenêtre couvre tout appel de l'outil, sans borne sur ses arguments`);
     }
     if (r.level === "automatique" && r.decision === "refuse" && r.when !== null) for (const { predicat, chemin } of predicatsCondition(r.when)) {
-      if (predicat.op === "egal" || predicat.op === "dans") out.push(`/rules/${i}/when${chemin} : liste d'exclusion (${predicat.op}) ; une autre écriture de la valeur y échappe (4.8) : préférer une liste blanche`);
+      // Sous un nombre impair de none, egal ou dans forme une liste blanche (none sur egal ou dans), qui ne laisse rien passer : pas d'avertissement (EX-4.14).
+      const negations = chemin.split("/").filter((x) => x === "none").length;
+      if ((predicat.op === "egal" || predicat.op === "dans") && negations % 2 === 0) out.push(`/rules/${i}/when${chemin} : liste d'exclusion (${predicat.op}) ; une autre écriture de la valeur y échappe (4.8) : préférer une liste blanche`);
     }
   });
   if (doc.separation.self_approval === "interdite") for (const lb of demandeurs) {
@@ -562,11 +586,13 @@ export function normaliserSignature(signature) {
 }
 
 /**
- * Vérification d'une remise par le noyau avant scellement (EX-9.11) : SG-1 à
- * SG-6 dans l'ordre, la première en échec donne la raison. `contexte` :
- * { org_id, journal_id, retained: [{ seq, ticket, hash, ts }], decided:
- * [{ ticket, decision, seq, hash, at }], expire_after_ms, write_at }
- * (annexe A.7). Rend { result: "scelle" | "refuse", reason, check }.
+ * Vérification d'une remise par le noyau avant scellement (EX-9.11, CT-2
+ * EX-7.5) : SG-1 à SG-7 dans l'ordre, la première en échec donne la raison.
+ * `contexte` : { org_id, journal_id, retained: [{ seq, ticket, hash, ts,
+ * launched_by }], decided: [{ ticket, decision, seq, hash, at }],
+ * expire_after_ms, separation, write_at } (annexe A.7) : expire_after_ms et
+ * separation sont ceux de la politique de la version de l'événement retenue.
+ * Rend { result: "scelle" | "refuse", reason, check }.
  */
 export function verifierRemise(remise, contexte, { schemas }) {
   const refus = (check, reason) => ({ result: "refuse", reason, check });
@@ -593,6 +619,12 @@ export function verifierRemise(remise, contexte, { schemas }) {
   if (!J.egalJSON(a.threshold, js.threshold) || js.threshold.size !== js.members.length || js.threshold.required > js.threshold.size) return refus("SG-6", "seuil_different_du_jeu");
   if (a.decision === "expire" && a.approvers.length > 0) return refus("SG-6", "expire_avec_signatures");
   if (a.decision !== "expire" && a.approvers.length < a.threshold.required) return refus("SG-6", "seuil_non_atteint");
+  // SG-7 : séparation des tâches, sous self_approval interdite de la politique de la version de la retenue (CT-2 EX-7.5).
+  exiger(estObjet(contexte.separation) && typeof demande.launched_by === "string", "SG-7 exige contexte.separation et retained[].launched_by");
+  if (contexte.separation.self_approval === "interdite") {
+    const demandeur = adressesDemandeur(contexte.separation, demande.launched_by);
+    if (a.approvers.some((x) => demandeur.includes(String(x).toLowerCase()))) return refus("SG-7", "auto_approbation");
+  }
   return { result: "scelle", reason: null, check: null };
 }
 
@@ -786,6 +818,8 @@ const ORDRE_MINUTEURS = { echeance: 0, fin_contestation: 1, fin_reservation: 2, 
 /** Raisons de refus d'une remise par le noyau qui relèvent de T14, T15, T16 (12.5). */
 const RE_MARQUE_FENETRE = / \[fenetre (apr-[0-9a-z]+(?:-[0-9a-z]+)*) ([0-9T:.Z-]+)\]$/;
 const RE_HEX32 = /^0x[0-9a-f]{64}$/;
+/** Adresse d'un membre de jeu déclaré : 20 octets en hexadécimal minuscule (ticket-v0, $defs/adresse). */
+const RE_ADRESSE_JEU = /^0x[0-9a-f]{40}$/;
 const RE_ADRESSE = /^0x[0-9a-f]{40}$/;
 
 /** Clé de rapprochement d'une demande (EX-7.3), sous forme d'une chaîne comparée octet pour octet. */
@@ -813,7 +847,7 @@ function donneesValides(kind, d) {
   const ticket = typeof d.ticket === "string";
   switch (kind) {
     case "charger":
-      return typeof d.policy_version === "string" && d.policy_version.length > 0;
+      return typeof d.policy_version === "string" && d.policy_version.length > 0 && (d.requesters === undefined || (Array.isArray(d.requesters) && d.requesters.every((x) => typeof x === "string")));
     case "evaluer":
       return estObjet(d.request) && typeof d.request.tool_announced === "string" && estObjet(d.request.delegation) && typeof d.request.delegation.launched_by === "string" && estObjet(d.request.code) && typeof d.request.code.policy_version === "string" && (d.evaluation === undefined || estObjet(d.evaluation));
     case "ouvrir":
@@ -1244,7 +1278,10 @@ export class ServiceApprobation {
         return this.refuser(sortie, "politique_invalide");
       }
       this.versions.set(v, { politique: copie(doc), expire_after_ms: data.approval.expire_after_ms, approver_set: copie(doc.approver_set), separation: copie(doc.separation) });
-      sortie.response = { policy_version: v, policy_sha256: data.policy_sha256 ?? null, approval_candidates: candidats(doc, (data.tools ?? []).map((t) => t.tool_announced)) };
+      const noms = (data.tools ?? []).map((t) => t.tool_announced);
+      sortie.response = { policy_version: v, policy_sha256: data.policy_sha256 ?? null, approval_candidates: candidats(doc, noms) };
+      // EX-4.14 : avertissements au journal du service, jamais dans la réponse ; requesters (CT-2 EX-7.15) pour le cinquième.
+      for (const av of avertissementsPolitique(doc, { outils: data.tools ? noms : null, demandeurs: data.requesters ?? [] })) this.alerte(atMs, null, `avertissement ${v} : ${av}`);
     } else {
       // Trace de l'annexe A.6 : la version porte les paramètres de la trace ; la réponse ne porte que policy_version.
       if (!this.versions.has(v)) this.versions.set(v, { politique: null, ...copie(this.parametres) });
@@ -1626,8 +1663,16 @@ export class ServiceApprobation {
   consommer(data, atMs, sortie) {
     const tk = this.tickets.get(data.ticket);
     if (!tk) return this.refuser(sortie, "ticket_inconnu");
-    if (tk.state === "consomme" && tk.consumed.seq === data.seq && tk.consumed.hash === data.hash) {
+    if (["consomme", "clos"].includes(tk.state) && tk.consumed && tk.consumed.seq === data.seq && tk.consumed.hash === data.hash) {
       this.transition(tk, "consommer", atMs, tk.state, tk.state, true, null, donneesTransition("consommer", data));
+      sortie.response = { ticket: tk.ticket, state: tk.state };
+      return;
+    }
+    if (tk.state === "clos" && tk.served_at !== null && tk.consumed === null) {
+      // T22 : consommation tardive (relais d'une approbation servie, scellé après la fin du délai de reconnaissance, CT-2 EX-7.20).
+      tk.consumed = { seq: data.seq, hash: data.hash };
+      this.transition(tk, "consommer", atMs, "clos", "clos", true, null, donneesTransition("consommer", data));
+      this.alerte(atMs, tk.ticket, "consommation_tardive");
       sortie.response = { ticket: tk.ticket, state: tk.state };
       return;
     }
@@ -1705,23 +1750,46 @@ export function ecartsTransitions(doc) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Jeu déclaré exploitable (CT-2 EX-7.16, EX-9.4 ; CT-3 EX-12.6, EX-12.11) :
+ * la forme de `$defs/approver_set` vérifiée par SG-1 (seuil, adresses
+ * minuscules distinctes, `source` de la forme d'EX-8.8) et la cohérence que
+ * vérifie SG-6 (`size` égal au nombre de membres, `required` ≤ `size`). Un
+ * jeu qui ne l'est pas ne peut pas donner une décision `expire` conforme à
+ * A-3 de CT-1 ; la règle se recalcule sur la seule ligne d'un fichier des
+ * approbations (EX-12.23).
+ */
+export function jeuExploitable(jeu) {
+  if (!estObjet(jeu) || !J.egalJSON(Object.keys(jeu).sort(), ["members", "source", "threshold"])) return false;
+  const t = jeu.threshold;
+  const entier = (n) => Number.isSafeInteger(n) && n >= 1 && n <= 65535;
+  if (!estObjet(t) || !J.egalJSON(Object.keys(t).sort(), ["required", "size"]) || !entier(t.required) || !entier(t.size)) return false;
+  if (!Array.isArray(jeu.members) || jeu.members.length < 1 || jeu.members.some((a) => typeof a !== "string" || !RE_ADRESSE_JEU.test(a)) || new Set(jeu.members).size !== jeu.members.length) return false;
+  if (typeof jeu.source !== "string" || jeu.source.length > 256 || !(RE_SOURCE_REGISTRE.test(jeu.source) || RE_SOURCE_STATIQUE.test(jeu.source))) return false;
+  return t.size === jeu.members.length && t.required <= t.size;
+}
+
+/**
  * Les sept combinaisons de la table d'EX-7.16 (EX-12.6) : toute autre réponse
  * à evaluer est invalide, et le noyau la traite comme une indisponibilité du
- * service. approval non nul seulement pour une décision scellée du même
- * ticket ; approver_set non nul seulement pour ticket_state nouveau.
+ * service. Exactement les six membres, dans un ordre quelconque (l'ordre des
+ * membres d'un objet JSON n'a pas de sens) ; `rule` chaîne ou null, non nul
+ * pour a_approuver (CT-1 §5.3) ; approval non nul seulement pour une décision
+ * scellée du même ticket ; approver_set non nul seulement pour ticket_state
+ * nouveau, et alors exploitable (jeuExploitable, EX-9.4).
  */
 export function combinaisonAdmise(r) {
   if (!estObjet(r)) return false;
-  const cles = ["rule", "decision", "ticket", "ticket_state", "approval", "approver_set"];
-  if (!J.egalJSON(Object.keys(r), cles)) return false;
+  const cles = ["approval", "approver_set", "decision", "rule", "ticket", "ticket_state"];
+  if (!J.egalJSON(Object.keys(r).sort(), cles)) return false;
+  if (r.rule !== null && typeof r.rule !== "string") return false;
   if (r.ticket === null) return r.ticket_state === null && r.approval === null && r.approver_set === null && (r.decision === "autorise" || r.decision === "refuse");
   if (typeof r.ticket !== "string" || !RE_IDENTIFIANT_TICKET.test(r.ticket)) return false;
   const scelle = (decision) => estObjet(r.approval) && r.approval.ticket === r.ticket && r.approval.decision === decision && r.approver_set === null;
   switch (r.ticket_state) {
     case "nouveau":
-      return r.decision === "a_approuver" && r.approval === null && estObjet(r.approver_set);
+      return r.decision === "a_approuver" && r.rule !== null && r.approval === null && jeuExploitable(r.approver_set);
     case "en_attente":
-      return r.decision === "a_approuver" && r.approval === null && r.approver_set === null;
+      return r.decision === "a_approuver" && r.rule !== null && r.approval === null && r.approver_set === null;
     case "approuve":
       return r.decision === "autorise" && scelle("approuve");
     case "refuse":
@@ -1733,28 +1801,101 @@ export function combinaisonAdmise(r) {
 }
 
 /**
+ * Texte du signal d'approbation (CT-2 EX-4.49) :
+ * « noortrace: appel soumis a approbation ; ticket=<ticket> ; state=<state> ».
+ */
+export function texteSignalApprobation(ticket, state) {
+  exiger(typeof ticket === "string" && RE_IDENTIFIANT_TICKET.test(ticket), `ticket invalide : ${JSON.stringify(ticket)}`);
+  exiger(ETATS_SIGNAL.includes(state), `état du signal invalide : ${JSON.stringify(state)}`);
+  return `noortrace: appel soumis a approbation ; ticket=${ticket} ; state=${state}`;
+}
+
+/** Un résultat rendu par l'enregistreur lui-même (CT-2 EX-4.49) : resultType (hôte moderne), content, isError, _meta, dans cet ordre. */
+function resultatEnregistreur(texte, { hoteModerne = true, recorder = C.VERSION_ENREGISTREUR, approbation = null } = {}) {
+  const _meta = { [CLE_SERVER_INFO]: { name: C.IDENTITE_ENREGISTREUR.name, version: recorder } };
+  if (approbation) _meta[CLE_META_APPROBATION] = approbation;
+  const result = { content: [{ type: "text", text: texte }], isError: true, _meta };
+  return hoteModerne ? { resultType: "complete", ...result } : result;
+}
+
+/** Résultat d'un appel refusé par la politique sans ticket (EX-11.8, CT-2 EX-4.49) ; sans resultType pour un hôte de l'ère héritée. */
+export function resultatRefusPolitique({ hoteModerne = true, recorder = C.VERSION_ENREGISTREUR } = {}) {
+  return resultatEnregistreur(TEXTE_REFUS_POLITIQUE, { hoteModerne, recorder });
+}
+
+/**
+ * Signal d'approbation (CT-2 EX-4.49) : résultat isError de texte fixe, sans
+ * structuredContent, dont _meta porte serverInfo et « noortrace/approval » =
+ * { ticket, state } ; state ∈ { en_attente, refuse, expire } (EX-11.7) ; sans
+ * resultType pour un hôte de l'ère héritée. Jamais journalisé.
+ */
+export function resultatSignalApprobation(ticket, state, { hoteModerne = true, recorder = C.VERSION_ENREGISTREUR } = {}) {
+  return resultatEnregistreur(texteSignalApprobation(ticket, state), { hoteModerne, recorder, approbation: { ticket, state } });
+}
+
+/**
  * Ce que le mandataire fait d'une réponse à evaluer (EX-7.16, EX-11.3 à
- * EX-11.8), en mode `erreur` (défaut, EX-11.1) ou `retenir` :
- *   { action: "relayer", approval } — autorise, avec l'approval à recopier ;
- *   { action: "resultat", result } — refus sans ticket : résultat isError, avec
- *     le _meta serverInfo de l'enregistreur (CT-2 EX-4.4, 4.4 pas 14) et, pour
- *     un hôte de l'ère moderne, resultType ;
- *   { action: "erreur", error } — -32015 avec data { ticket, state }, ou
- *     -32010 (raison approbation) pour une réponse hors des sept combinaisons
- *     d'EX-12.6 (indisponibilité du service, CT-2 §14.2) ;
- *   { action: "retenir", ticket } — mode retenir, première requête du ticket.
+ * EX-11.8 ; CT-2 EX-4.49, EX-4.50, EX-7.16), en mode `erreur` (celui de la
+ * configuration de référence, EX-11.1) ou `retenir`. `decisionScellee` :
+ * l'approval de la décision que le noyau a lui-même scellée pour le ticket de
+ * la réponse, ou null ; la réponse doit être applicable
+ * (reponseEvaluerApplicable : l'une des sept combinaisons et, pour une
+ * décision scellée, un approval égal à celui du noyau).
+ *   { action: "relayer", approval: null } — autorise sans ticket ;
+ *   { action: "verifier_relais", ticket, approval } — autorise d'un ticket
+ *     approuve : relais seulement après RL-1 à RL-4 (CT-2 EX-7.21,
+ *     verifierRelais), sous l'approval de la décision scellée par le noyau,
+ *     jamais celui de la réponse (EX-7.12) ;
+ *   { action: "resultat", result } — résultat isError rendu par
+ *     l'enregistreur (CT-2 EX-4.49) : refus par la politique sans ticket, ou
+ *     signal d'approbation (ticket en attente, refusé ou expiré ; ré-émission
+ *     d'un ticket dont une requête est déjà retenue) ;
+ *   { action: "erreur", error } — -31010 (raison approbation) pour une
+ *     réponse non applicable (indisponibilité du service, CT-2 §14.2) : la
+ *     seule erreur JSON-RPC ;
+ *   { action: "retenir", ticket } — mode retenir, aucune requête de ce ticket
+ *     déjà retenue (CT-2 EX-4.50).
  * `recorder` est code.recorder, la version de l'enregistreur.
  */
-export function actionMandataire(reponse, { mode = MODE_ATTENTE_DEFAUT, hoteModerne = true, requeteDejaRetenue = false, recorder = C.VERSION_ENREGISTREUR } = {}) {
-  if (!combinaisonAdmise(reponse)) return { action: "erreur", error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }) };
-  if (reponse.decision === "autorise") return { action: "relayer", approval: reponse.approval };
-  if (reponse.ticket === null) {
-    const result = { content: [{ type: "text", text: TEXTE_REFUS_POLITIQUE }], isError: true, _meta: { [CLE_SERVER_INFO]: { name: C.IDENTITE_ENREGISTREUR.name, version: recorder } } };
-    return { action: "resultat", result: hoteModerne ? { resultType: "complete", ...result } : result };
-  }
+export function actionMandataire(reponse, { decisionScellee = null, mode = MODE_ATTENTE_DEFAUT, hoteModerne = true, requeteDejaRetenue = false, recorder = C.VERSION_ENREGISTREUR } = {}) {
+  if (!reponseEvaluerApplicable(reponse, { decisionScellee })) return { action: "erreur", error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }) };
+  if (reponse.decision === "autorise" && reponse.ticket === null) return { action: "relayer", approval: null };
+  if (reponse.decision === "autorise") return { action: "verifier_relais", ticket: reponse.ticket, approval: copie(decisionScellee) };
+  if (reponse.ticket === null) return { action: "resultat", result: resultatRefusPolitique({ hoteModerne, recorder }) };
   const state = ["refuse", "expire"].includes(reponse.ticket_state) ? reponse.ticket_state : "en_attente";
   if (mode === "retenir" && state === "en_attente" && !requeteDejaRetenue) return { action: "retenir", ticket: reponse.ticket };
-  return { action: "erreur", error: C.erreurEnregistreur("APPROBATION", { ticket: reponse.ticket, state }) };
+  return { action: "resultat", result: resultatSignalApprobation(reponse.ticket, state, { hoteModerne, recorder }) };
+}
+
+/**
+ * Fin de la rétention d'une requête (CT-2 EX-4.50) : à `hold_timeout_ms`
+ * (`issue` = "delai"), signal en_attente, le ticket continue ; à la décision
+ * scellée `refuse` ou `expire`, signal de même state (et l'événement refusee
+ * qui reprend la policy de la retenue) ; à `approuve`, relais de la requête
+ * retenue après RL-1 à RL-4. Rend { action: "resultat", result } ou
+ * { action: "relayer" }.
+ */
+export function finRetention(ticket, issue, { hoteModerne = true, recorder = C.VERSION_ENREGISTREUR } = {}) {
+  if (issue === "approuve") return { action: "relayer" };
+  exiger(["delai", "refuse", "expire"].includes(issue), `issue de rétention inconnue : ${JSON.stringify(issue)}`);
+  return { action: "resultat", result: resultatSignalApprobation(ticket, issue === "delai" ? "en_attente" : issue, { hoteModerne, recorder }) };
+}
+
+/**
+ * Résultat de `debutAppel` du SDK (CT-2 EX-6.7) selon la réponse d'evaluer :
+ * { call, decision, ticket, ticket_state }, `call` nul sauf pour autorise ;
+ * une réponse non applicable (reponseEvaluerApplicable avec
+ * `decisionScellee`, l'approval de la décision que le noyau a scellée pour ce
+ * ticket, ou null) rend l'erreur -31010 (raison approbation). Pour autorise
+ * d'un ticket approuve, l'appelant ne rend `call` qu'après RL-1 à RL-4
+ * (verifierRelais, CT-2 EX-7.21). Le SDK ne retient jamais : en_attente rend
+ * aussitôt a_approuver.
+ */
+export function resultatDebutAppel(reponse, { call = null, decisionScellee = null } = {}) {
+  if (!reponseEvaluerApplicable(reponse, { decisionScellee })) return { error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }) };
+  const autorise = reponse.decision === "autorise";
+  exiger(!autorise || typeof call === "string", "un appel autorisé exige l'identifiant call");
+  return { call: autorise ? call : null, decision: reponse.decision, ticket: reponse.ticket, ticket_state: reponse.ticket_state };
 }
 
 /**
@@ -1773,4 +1914,503 @@ export function avertissementsModeAttente(approval, { delaisHotesMs = [] } = {})
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Noyau de l'enregistreur : échanges avec le service (CT-2 §7.5)
+// ---------------------------------------------------------------------------
+
+/** Gabarits de launched_by d'une connexion d'hôte, jamais transmis au service (CT-2 EX-7.15). */
+export const GABARITS_LAUNCHED_BY = ["${peer_user}", "${oauth_subject}"];
+
+/** Comparaison par unités de code UTF-16 (CT-1 §4), celle de l'opérateur < sur les chaînes. */
+const comparerUtf16 = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+/** Les launched_by fixes de connexions d'hôte (entrées de mcp.hosts et sdk.hosts) : triés par unités UTF-16, sans doublon, sans gabarit (CT-2 EX-7.15). */
+export function demandeursFixes(hotes) {
+  const fixes = (hotes ?? []).map((h) => h?.launched_by).filter((lb) => typeof lb === "string" && !GABARITS_LAUNCHED_BY.includes(lb));
+  return [...new Set(fixes)].sort(comparerUtf16);
+}
+
+/**
+ * Message `charger` du noyau (CT-2 EX-7.15, CT-3 12.2) : { org_id,
+ * journal_id, environment, policy_version, policy_sha256, approval, tools,
+ * requesters }. `approval` est /policy/approval sans `service` ; `tools` la
+ * liste agrégée { tool_announced, tool_original, server_alias, class, effects }
+ * triée par tool_announced ; `hotes` les entrées de mcp.hosts et de sdk.hosts.
+ */
+export function messageCharger({ org_id, journal_id, environment, policy_version, policy_sha256, approval, tools, hotes = [] }) {
+  exiger(estObjet(approval), "approval : /policy/approval attendu");
+  const sansService = {};
+  for (const [k, v] of Object.entries(approval)) if (k !== "service") sansService[k] = copie(v);
+  const outils = (tools ?? []).map((t) => ({ tool_announced: t.tool_announced, tool_original: t.tool_original, server_alias: t.server_alias, class: t.class, effects: t.effects === undefined ? null : copie(t.effects) }));
+  outils.sort((a, b) => comparerUtf16(a.tool_announced, b.tool_announced));
+  return { org_id, journal_id, environment, policy_version, policy_sha256, approval: sansService, tools: outils, requesters: demandeursFixes(hotes) };
+}
+
+/**
+ * Réponse d'evaluer applicable par le noyau (CT-2 EX-7.16) : l'une des sept
+ * combinaisons (combinaisonAdmise) et, pour une décision scellée (approuve,
+ * refuse, expire), un `approval` égal clé pour clé à celui de la décision que
+ * le noyau a lui-même scellée pour ce ticket (`decisionScellee`, null s'il
+ * n'en a pas scellé : réponse invalide, RL-1). Une réponse non applicable est
+ * une indisponibilité du service : -31010, raison approbation, consignée
+ * approval_response_invalid.
+ */
+export function reponseEvaluerApplicable(r, { decisionScellee = null } = {}) {
+  if (!combinaisonAdmise(r)) return false;
+  if (!["approuve", "refuse", "expire"].includes(r.ticket_state)) return true;
+  return estObjet(decisionScellee) && decisionScellee.decision === r.ticket_state && J.egalJSON(r.approval, decisionScellee);
+}
+
+/**
+ * Refus de sceller la retenue d'une réponse nouveau (CT-2 EX-7.17) :
+ * `decisions` = les décisions scellées du journal [{ ticket, seq }] (l'index
+ * de SG-3). Rend null (sceller la retenue ; deux retenue sans décision d'un
+ * même ticket restent admises), ou { error: -31010 raison approbation,
+ * note: "identifiant_en_collision", ticket, seq }.
+ */
+export function refuserRetenue(ticket, decisions) {
+  const d = (decisions ?? []).find((x) => x.ticket === ticket);
+  if (!d) return null;
+  return { error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }), note: "identifiant_en_collision", ticket, seq: d.seq };
+}
+
+/**
+ * Ce que le noyau fait d'une réponse `nouveau` (CT-2 4.4 pas 6, EX-7.17) :
+ * `decisions` = les décisions scellées du journal [{ ticket, seq }] ;
+ * `retenues` = les événements retenue durables du journal [{ ticket, seq,
+ * hash }]. Une décision scellée pour ce ticket : refus (refuserRetenue). Une
+ * retenue sans décision déjà durable pour ce ticket (service qui garde le
+ * ticket en reserve faute d'avoir reçu ouvrir) : rien n'est scellé ; le noyau
+ * renvoie `ouvrir` pour cette retenue, rend le signal en_attente (ou retient
+ * la requête, EX-4.50) et consigne approval_pending : { action: "signal",
+ * retenue }. Sinon : { action: "sceller" }. Deux retenue d'un même ticket ne
+ * naissent que d'une course, avant que la première soit durable (CT-3
+ * EX-7.19).
+ */
+export function actionNouveau(ticket, { decisions = [], retenues = [] } = {}) {
+  const refus = refuserRetenue(ticket, decisions);
+  if (refus) return { action: "erreur", ...refus };
+  const r = retenues.find((x) => x.ticket === ticket);
+  if (r) return { action: "signal", retenue: { seq: r.seq, hash: r.hash } };
+  return { action: "sceller" };
+}
+
+/**
+ * Message `ouvrir` (CT-2 EX-7.18, CT-3 12.4) : { ticket, request_hash,
+ * request_seq, request_ts, request_event, arguments_piece } depuis
+ * l'événement retenue tel que scellé et les octets de sa pièce « arguments »
+ * (base64 RFC 4648 §4, avec remplissage), ou null quand la référence est en
+ * ligne.
+ */
+export function messageOuvrir(evenementRetenue, octetsArguments = null) {
+  const ev = evenementRetenue;
+  exiger(ev?.execution?.status === "retenue" && typeof ev.policy?.ticket === "string", "ouvrir : événement retenue avec ticket attendu");
+  const enLigne = Object.hasOwn(ev.execution.arguments ?? {}, "value");
+  exiger(enLigne || octetsArguments !== null, "ouvrir : octets de la pièce arguments attendus");
+  return { ticket: ev.policy.ticket, request_hash: ev.hash, request_seq: ev.seq, request_ts: ev.ts, request_event: copie(ev), arguments_piece: enLigne ? null : Buffer.from(octetsArguments).toString("base64") };
+}
+
+/**
+ * Requête `acquitter` (CT-2 EX-7.19, CT-3 EX-12.9) : { remise_id, ticket,
+ * result, reason, seq, hash, at, decision, held, approval }, membres non
+ * applicables à null. `scelle` : seq, hash, at, decision, held, approval (avec
+ * at et request_hash) ; `refuse` : reason (raison de 12.8) et, pour
+ * ticket_deja_decide, la décision scellée ; `temporaire` : reason
+ * mode_degrade.
+ */
+export function messageAcquitter({ remise_id, ticket, result, reason = null, seq = null, hash = null, at = null, decision = null, held = null, approval = null }) {
+  exiger(["scelle", "temporaire", "refuse"].includes(result), `acquitter : result inconnu ${JSON.stringify(result)}`);
+  exiger(typeof remise_id === "string" && remise_id.startsWith(`${ticket}/`), "acquitter : remise_id de la forme <ticket>/<n>");
+  const decisionDonnee = result === "scelle" || reason === "ticket_deja_decide";
+  if (decisionDonnee) exiger(estSeq(seq) && RE_HEX32.test(hash ?? "") && estHorodatage(at) && ETATS_DECIDES.includes(decision) && estObjet(approval), "acquitter : seq, hash, at, decision et approval de la décision scellée attendus");
+  if (result === "scelle") exiger(typeof held === "boolean" && reason === null, "acquitter scelle : held booléen, reason null");
+  if (result === "temporaire") exiger(reason === "mode_degrade", "acquitter temporaire : reason mode_degrade");
+  if (result === "refuse") exiger(typeof reason === "string", "acquitter refuse : raison attendue");
+  return {
+    remise_id,
+    ticket,
+    result,
+    reason: result === "scelle" ? null : reason,
+    seq: decisionDonnee ? seq : null,
+    hash: decisionDonnee ? hash : null,
+    at: decisionDonnee ? at : null,
+    decision: decisionDonnee ? decision : null,
+    held: result === "scelle" ? held : null,
+    approval: decisionDonnee ? copie(approval) : null,
+  };
+}
+
+/**
+ * Message `consommer` (CT-2 EX-7.20, CT-3 EX-12.10) : { ticket, seq, hash }
+ * d'un événement executee qui porte une approbation : celui du premier relais
+ * du ticket (les continuations MRTR qui héritent de l'approbation, EX-4.21,
+ * n'en envoient pas).
+ */
+export function messageConsommer(evenementExecutee) {
+  const ev = evenementExecutee;
+  exiger(ev?.execution?.status === "executee" && estObjet(ev.approval), "consommer : événement executee portant une approbation attendu");
+  return { ticket: ev.approval.ticket, seq: ev.seq, hash: ev.hash };
+}
+
+/**
+ * Issue d'un envoi de `consommer` (CT-2 EX-7.20) : `reponse` est la réponse
+ * du service ({ ticket, state }) ou null, `erreur` sa raison d'erreur (12.8)
+ * ou null ; sans réponse ni erreur (délai), le message est réessayé. Une
+ * réponse `consomme` ou `clos` (consommation tardive, T22 de CT-3), ou une
+ * erreur `requete_invalide` ou `ticket_inconnu`, est finale : consignée
+ * (approval_consume_final), elle met fin aux essais. Rend "final" ou
+ * "reessayer".
+ */
+export function issueConsommer({ reponse = null, erreur = null } = {}) {
+  if (reponse && ["consomme", "clos"].includes(reponse.state)) return "final";
+  if (erreur === "requete_invalide" || erreur === "ticket_inconnu") return "final";
+  return "reessayer";
+}
+
+/** Délai E d'un événement : `expireAfterMs` est un nombre, ou une fonction de la version de politique (code.policy_version) de la retenue. */
+const delaiE = (expireAfterMs, policy_version) => (typeof expireAfterMs === "function" ? expireAfterMs(policy_version) : expireAfterMs);
+
+/**
+ * Les `consommer` à renvoyer au redémarrage (CT-2 EX-7.20) : pour le premier
+ * événement executee (plus petit seq) de chaque ticket dont l'approbation est
+ * portée par un executee du journal, si le délai de reconnaissance
+ * (approval.at + E) court encore à `maintenantMs` ; les continuations MRTR
+ * qui héritent de l'approbation (EX-4.21) n'en donnent pas. `E` : nombre, ou
+ * fonction de la version de politique de la retenue (donnée par
+ * `versionRetenue(ticket)`, à défaut celle de l'événement).
+ */
+export function aReconsommer(evenements, maintenantMs, expireAfterMs, { versionRetenue = null } = {}) {
+  const premiers = new Map();
+  for (const ev of evenements ?? []) {
+    if (ev?.execution?.status !== "executee" || !estObjet(ev.approval)) continue;
+    const t = ev.approval.ticket;
+    if (!premiers.has(t) || ev.seq < premiers.get(t).seq) premiers.set(t, ev);
+  }
+  return [...premiers.values()]
+    .sort((a, b) => a.seq - b.seq)
+    .filter((ev) => maintenantMs < ms(ev.approval.at) + delaiE(expireAfterMs, versionRetenue ? versionRetenue(ev.approval.ticket) : ev.code?.policy_version))
+    .map(messageConsommer);
+}
+
+/**
+ * MAC de relais (CT-2 EX-7.22) : HMAC-SHA-256(K_relais, UTF-8("noortrace/relais/v0")
+ * ‖ 0x00 ‖ JCS intégral des arguments en clair), en hexadécimal 0x ; la clé
+ * a au moins 32 octets.
+ */
+export function macRelais(cle, args) {
+  const k = Buffer.from(cle);
+  exiger(k.length >= LONGUEUR_CLE_MIN, `clé du MAC de relais : au moins ${LONGUEUR_CLE_MIN} octets`);
+  const m = createHmac("sha256", k).update(Buffer.concat([Buffer.from(DOMAINE_MAC_RELAIS, "utf8"), Buffer.from([0]), Buffer.from(J.canonicaliserJCSIntegral(args === undefined ? {} : args), "utf8")])).digest();
+  return "0x" + m.toString("hex");
+}
+
+/**
+ * MAC de contrôle de la clé du MAC de relais (CT-2 EX-7.22, §13.4) : le MAC
+ * de relais de la chaîne JSON "controle" (des arguments sont toujours un
+ * objet : aucune collision). Première ligne de chaque fichier mac-<epoch>,
+ * `{ "kind": "controle", "mac" }` : une instance qui reprend les fichiers
+ * d'une autre (bascule, reprise) compare la sienne ; une différence dit que
+ * les deux instances ne résolvent pas storage.relay_mac_key vers les mêmes
+ * octets.
+ */
+export function macControle(cle) {
+  return macRelais(cle, "controle");
+}
+
+/** Ligne de contrôle d'un fichier approbations/mac-<epoch>.ndjson (CT-2 EX-12.23) : { kind: "controle", mac } en JCS intégral suivi de \n. */
+export function ligneMacControle(cle) {
+  return J.canonicaliserJCSIntegral({ kind: "controle", mac: macControle(cle) }) + "\n";
+}
+
+/**
+ * Contrôle de la clé du MAC de relais à la reprise ou après une bascule
+ * (CT-2 EX-7.22, §13.4) : `lignes` = les lignes relues d'un fichier
+ * mac-<epoch> ; vrai si sa ligne de contrôle est celle de `cle`. Faux : erreur
+ * de configuration (relay_mac_key_mismatch), l'instance ne prend pas le bail.
+ */
+export function controleMacConforme(lignes, cle) {
+  const c = (lignes ?? []).find((l) => l?.kind === "controle");
+  return Boolean(c) && c.mac === macControle(cle);
+}
+
+/**
+ * Vérifications de relais RL-1 à RL-4 (CT-2 EX-7.21), dans l'ordre, avant
+ * l'intention d'un appel dont la réponse est autorise/approuve, ou avant de
+ * relayer une requête retenue dont la décision approuve vient d'être scellée.
+ *   `reponse` : la réponse d'evaluer (son approval), ou null pour une requête
+ *     retenue (l'approval relayé est alors celui de la décision scellée) ;
+ *   `decisionScellee` : l'approval de la décision que le noyau a scellée pour
+ *     ce ticket, ou null ;
+ *   `retenue` : l'événement retenue dont le hash est approval.request_hash,
+ *     ou null ;
+ *   `appel` : { execution: { tool, arguments }, delegation } de l'appel à
+ *     relayer (événement partiel) ;
+ *   `macRetenue`, `macAppel` : MAC inscrit pour la retenue (null si la ligne
+ *     manque) et MAC des arguments en clair de l'appel ;
+ *   `executees` : événements executee du journal (reprise et en attente
+ *     compris) ; `intentionsOuvertes` : tickets des intentions ouvertes ;
+ *     `relaisEnCours` : tickets des relais en cours qui ont passé RL-3 ;
+ *   `maintenantMs` : instant de la vérification (horloge murale, 7.4) ;
+ *   `timeoutMs` : timeout_ms de l'outil (EX-4.22), marge de RL-4 ;
+ *   `expireAfterMs` : E de la version de politique de la retenue (nombre ou
+ *     fonction de la version) ;
+ *   `continuation` : null pour un premier relais ; pour une continuation MRTR
+ *     qui hérite de l'approbation (EX-4.21) : { requestState (sha256 du
+ *     requestState de la ré-émission), inscrites : [{ ticket,
+ *     request_state_sha256 }] (lignes continuation des fichiers des
+ *     approbations), consommees : [sha256] (lignes continuation_consommee),
+ *     enCours : [sha256] (continuations en cours qui ont passé RL-3) } ; RL-3
+ *     devient alors : ce requestState a été inscrit pour ce ticket et n'a pas
+ *     servi.
+ * Rend null si l'appel peut être relayé, sinon { check, error } (-31010,
+ * raison approbation ; aucune intention, aucun événement ; consigné
+ * approval_relay_refused).
+ */
+export function verifierRelais({ reponse = null, decisionScellee, retenue, appel, macRetenue, macAppel, executees = [], intentionsOuvertes = [], relaisEnCours = [], maintenantMs, timeoutMs = 0, expireAfterMs, continuation = null }) {
+  const refus = (check) => ({ check, error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }) });
+  // RL-1 : une décision scellée par le noyau, approuve, et la réponse égale à elle.
+  if (!estObjet(decisionScellee) || decisionScellee.decision !== "approuve") return refus("RL-1");
+  if (reponse !== null && !J.egalJSON(reponse.approval, decisionScellee)) return refus("RL-1");
+  const ticket = decisionScellee.ticket;
+  // RL-2 : l'appel est la demande approuvée (jamais run_id, déclaratif).
+  if (!estObjet(retenue) || retenue.hash !== decisionScellee.request_hash || retenue.policy?.ticket !== ticket) return refus("RL-2");
+  const da = appel?.delegation ?? {};
+  const dr = retenue.delegation ?? {};
+  if (appel?.execution?.tool !== retenue.execution.tool || da.launched_by !== dr.launched_by || da.on_behalf_of !== dr.on_behalf_of || da.scope !== dr.scope) return refus("RL-2");
+  const ra = appel.execution.arguments ?? {};
+  const rr = retenue.execution.arguments ?? {};
+  if (ra.sha256 !== rr.sha256 || ra.length !== rr.length || ra.redacted !== rr.redacted) return refus("RL-2");
+  if (typeof macRetenue !== "string" || typeof macAppel !== "string" || macRetenue !== macAppel) return refus("RL-2");
+  // RL-3 : l'approbation n'a pas servi ; pour une continuation MRTR, son requestState a été inscrit pour ce ticket et n'a pas servi.
+  if (continuation === null) {
+    if (executees.some((ev) => ev?.execution?.status === "executee" && ev.approval?.ticket === ticket)) return refus("RL-3");
+    if (intentionsOuvertes.includes(ticket) || relaisEnCours.includes(ticket)) return refus("RL-3");
+  } else {
+    const rs = continuation.requestState;
+    if (typeof rs !== "string" || !(continuation.inscrites ?? []).some((l) => l.ticket === ticket && l.request_state_sha256 === rs)) return refus("RL-3");
+    if ((continuation.consommees ?? []).includes(rs) || (continuation.enCours ?? []).includes(rs)) return refus("RL-3");
+  }
+  // RL-4 : dans le délai, avec la marge du délai de l'outil : maintenant + timeout_ms strictement avant approval.at + E (E de la version de la retenue).
+  if (!(maintenantMs + timeoutMs < ms(decisionScellee.at) + delaiE(expireAfterMs, retenue.code?.policy_version))) return refus("RL-4");
+  return null;
+}
+
+/**
+ * Héritage d'une continuation MRTR (CT-2 EX-4.21) : une ré-émission qui porte
+ * `requestState` n'hérite de la policy, de l'approval, de l'intent et du code
+ * de l'appel d'origine que si le noyau a gardé, au relais du résultat
+ * input_required de cet appel, un enregistrement pour ce requestState
+ * (`enregistrement` : { host, tool, mac, consomme }, null s'il est inconnu :
+ * redémarrage pour un appel sans ticket, autre connexion) et que la
+ * ré-émission (`appel` : { host, tool, mac }, `mac` étant le MAC de relais de
+ * ses arguments en clair, EX-7.22) vient de la même connexion d'hôte, porte
+ * le même nom annoncé et les mêmes arguments en clair (MAC égal ; l'égalité
+ * des pièces rédigées ne suffit pas : un champ rédigé peut changer sans
+ * changer la pièce) et que le requestState n'a pas encore servi (usage
+ * unique). Pour un appel qui porte un ticket approuvé, RL-1, RL-2, RL-3 en
+ * mode continuation et RL-4 s'appliquent en plus (verifierRelais). Rend
+ * { herite: true } ou { herite: false, raison } : sans héritage, la
+ * ré-émission repasse par le pas 3 de 4.4.
+ */
+export function heritageContinuation(enregistrement, appel) {
+  if (!estObjet(enregistrement)) return { herite: false, raison: "request_state_inconnu" };
+  if (enregistrement.consomme) return { herite: false, raison: "request_state_deja_servi" };
+  if (enregistrement.host !== appel?.host || enregistrement.tool !== appel?.tool) return { herite: false, raison: "autre_appel" };
+  if (typeof enregistrement.mac !== "string" || enregistrement.mac !== appel?.mac) return { herite: false, raison: "arguments_differents" };
+  return { herite: true };
+}
+
+/**
+ * L'approver_set d'une expiration scellée par le noyau seul (CT-2 EX-9.4,
+ * CT-3 EX-12.11) : celui de la dernière remise reçue pour ce ticket dont le
+ * jeu est exploitable (jeuExploitable : forme de SG-1, cohérence de SG-6),
+ * quelle que soit sa décision, sinon celui de la réponse nouveau (lignes
+ * retenue d'EX-12.23), sinon null. `remises` : les remises reçues pour ce
+ * ticket, dans l'ordre (objets ou lignes remise, qui portent approver_set).
+ */
+export function jeuExpiration({ remises = [], approverSetNouveau = null } = {}) {
+  for (let i = remises.length - 1; i >= 0; i--) if (jeuExploitable(remises[i]?.approver_set)) return copie(remises[i].approver_set);
+  return jeuExploitable(approverSetNouveau) ? copie(approverSetNouveau) : null;
+}
+
+/**
+ * Expiration d'un ticket par le noyau seul (CT-2 EX-9.4, CT-3 EX-12.11) :
+ * l'instant à partir duquel le noyau la scelle (request_ts + E +
+ * timeout_ms, E de la version de la retenue) et l'approval sans at, de raison
+ * fixe RAISON_EXPIRATION_NOYAU (non rédigée), sans approbateur ni signature,
+ * dont l'approver_set est celui de jeuExpiration (dernière remise reçue au
+ * jeu exploitable, sinon réponse nouveau) et le threshold celui de cet
+ * approver_set, de sorte que la décision vérifie A-3 de CT-1. L'écrivain pose
+ * at (approvalScelle).
+ */
+export function expirationParLeNoyau({ retenue, remises = [], approverSetNouveau = null, expireAfterMs, timeoutMs }) {
+  exiger(retenue?.execution?.status === "retenue", "expiration : événement retenue attendu");
+  const jeu = jeuExpiration({ remises, approverSetNouveau });
+  exiger(jeu !== null, "expiration : aucun approver_set exploitable (remises du ticket, réponse nouveau)");
+  const threshold = copie(jeu.threshold);
+  const E = delaiE(expireAfterMs, retenue.code?.policy_version);
+  return {
+    instantMs: ms(retenue.ts) + E + timeoutMs,
+    approval: { decision: "expire", ticket: retenue.policy.ticket, request_hash: retenue.hash, threshold, approvers: [], signatures: [], reason: RAISON_EXPIRATION_NOYAU },
+    approver_set: copie(jeu),
+  };
+}
+
+/** Message `expiration` (CT-2 EX-9.4, CT-3 EX-12.11) : { ticket, seq, hash, at, approval } de l'événement de décision expire scellé par le noyau. */
+export function messageExpiration(evenementDecision) {
+  const ev = evenementDecision;
+  exiger(ev?.execution?.tool === "noortrace.approbation.decision" && ev.approval?.decision === "expire", "expiration : événement de décision expire attendu");
+  return { ticket: ev.approval.ticket, seq: ev.seq, hash: ev.hash, at: ev.approval.at, approval: copie(ev.approval) };
+}
+
+/**
+ * Motif d'une décision rédigé avant scellement (CT-2 EX-10.24) : les
+ * détecteurs de texte de toutes les règles de la politique de rédaction
+ * chargée (C.chargerPolitique), quelles que soient leur portée et leurs
+ * outils, avec leur action, par passages ; tronqué à 1 024 points de code ;
+ * null reste null ; au-delà du budget (EX-10.23), null. Les chaînes fixes
+ * d'une décision expire ne passent pas par cette fonction.
+ */
+export function redigerMotifDecision(politique, reason, { budgetMs = C.BUDGET_REDACTION_MS, onDepassement = null } = {}) {
+  if (reason === null || reason === undefined) return null;
+  const r = C.redigerTexteEnLigne(politique, reason, { budgetMs, onDepassement, scope: "motif" });
+  if (r.depasse) return null;
+  return C.tronquer(r.texte, MAX_MOTIF_DECISION);
+}
+
+/**
+ * Ligne d'un fichier approbations/approbations-<epoch>.ndjson (CT-2
+ * EX-12.23) : JCS intégral suivi de \n, de l'objet { kind: "retenue",
+ * ticket, request_seq, request_hash, approver_set }, { kind: "remise",
+ * ticket, remise_id, decision, approver_set }, { kind: "decision", ticket,
+ * seq, hash, approver_set }, { kind: "continuation", ticket, seq, hash,
+ * request_state_sha256 } (résultat input_required relayé sous un ticket
+ * approuvé, EX-4.21 : seq et hash de son événement executee) ou { kind:
+ * "continuation_consommee", ticket, request_state_sha256 } (continuation qui a
+ * passé RL-3).
+ */
+export function ligneApprobations(kind, objet) {
+  const membres = { retenue: ["ticket", "request_seq", "request_hash", "approver_set"], remise: ["ticket", "remise_id", "decision", "approver_set"], decision: ["ticket", "seq", "hash", "approver_set"], continuation: ["ticket", "seq", "hash", "request_state_sha256"], continuation_consommee: ["ticket", "request_state_sha256"] }[kind];
+  exiger(membres, `ligne d'approbations : kind inconnu ${JSON.stringify(kind)}`);
+  const o = { kind };
+  for (const k of membres) {
+    exiger(objet[k] !== undefined, `ligne ${kind} : ${k} manquant`);
+    o[k] = copie(objet[k]);
+  }
+  return J.canonicaliserJCSIntegral(o) + "\n";
+}
+
+/** Ligne d'un fichier approbations/mac-<epoch>.ndjson (CT-2 EX-12.23) : { ticket, request_hash, mac } en JCS intégral suivi de \n. */
+export function ligneMac({ ticket, request_hash, mac }) {
+  exiger(/^0x[0-9a-f]{64}$/.test(mac ?? ""), "mac : 32 octets en hexadécimal 0x");
+  return J.canonicaliserJCSIntegral({ ticket, request_hash, mac }) + "\n";
+}
+
+/**
+ * Relecture d'un fichier des approbations (CT-2 EX-12.23) : une dernière
+ * ligne incomplète est une écriture tronquée (coupée), une ligne illisible
+ * suivie d'autres lignes est une corruption (C.ErreurModeDegrade, raison
+ * stockage). Rend { lignes, tronque }.
+ */
+export function lireFichierApprobations(texte) {
+  const brut = String(texte).split("\n");
+  const derniere = brut.pop();
+  const lignes = [];
+  for (const [i, l] of brut.entries()) {
+    try {
+      lignes.push(C.analyserJSONIntegral(l));
+    } catch {
+      throw new C.ErreurModeDegrade("stockage", `fichier des approbations : ligne ${i + 1} illisible`);
+    }
+  }
+  return { lignes, tronque: derniere !== "" };
+}
+
+/**
+ * L'approver_set d'une décision scellée, pour l'exportateur (CT-2 EX-12.23,
+ * CT-3 EX-8.9) : celui de sa ligne decision, écrite avant que l'événement de
+ * décision soit ajouté au segment. Sans elle (fichier incomplet, par exemple
+ * une copie restaurée sans ses dernières lignes, 12.8) : pour `approuve` ou
+ * `refuse`, la dernière ligne remise du ticket qui porte cette décision et dont
+ * le jeu est exploitable ; pour `expire`, la règle d'EX-9.4 (jeuExpiration :
+ * dernière ligne remise au jeu exploitable, de toute décision, sinon la ligne
+ * retenue). null si rien n'est inscrit.
+ */
+export function approverSetDecision(lignes, { ticket, decision, seq = null }) {
+  const du = lignes.filter((l) => l.ticket === ticket);
+  const d = du.find((l) => l.kind === "decision" && (seq === null || l.seq === seq));
+  if (d) return copie(d.approver_set);
+  const retenue = du.filter((l) => l.kind === "retenue").at(-1)?.approver_set ?? null;
+  if (decision === "expire") return jeuExpiration({ remises: du.filter((l) => l.kind === "remise"), approverSetNouveau: retenue });
+  const remises = du.filter((l) => l.kind === "remise" && l.decision === decision && jeuExploitable(l.approver_set));
+  if (remises.length) return copie(remises[remises.length - 1].approver_set);
+  return retenue === null ? null : copie(retenue);
+}
+
+/**
+ * Un fichier mac-<epoch> est-il échu (CT-2 EX-12.23) ? Vrai quand toutes ses
+ * lignes le sont : une ligne ne sert plus à partir de request_ts + 2E
+ * (`requestTs(request_hash)` : ts de la retenue, en millisecondes ou RFC
+ * 3339 ; `expireAfterMs` : E de sa version, nombre ou fonction du
+ * request_hash).
+ */
+export function fichierMacEchu(lignes, { requestTs, maintenantMs, expireAfterMs }) {
+  return lignes.every((l) => {
+    const t = requestTs(l.request_hash);
+    const E = typeof expireAfterMs === "function" ? expireAfterMs(l.request_hash) : expireAfterMs;
+    return maintenantMs >= (typeof t === "number" ? t : ms(t)) + 2 * E;
+  });
+}
+
+/**
+ * Contrôles de démarrage d'une configuration d'enregistreur qui relèvent de
+ * l'approbation et des motifs (CT-2 EX-15.4 pas 2, 3 et 4, EX-15.7) :
+ *   - pas 2 : schéma configuration-enregistreur-v0 (registre `schemas` avec
+ *     politique-redaction et politique-approbation, $ref de
+ *     policy.approval.rules) ;
+ *   - pas 3 : politique de rédaction (EX-10.6, règles a) à c) comprises),
+ *     `extract` des gabarits d'effets (même sous-ensemble et mêmes règles),
+ *     politique d'approbation (CT-3 EX-4.2, EX-8.2, avec recorder.environment
+ *     et /policy/approval/expire_after_ms) ; avertissements de CT-3 EX-4.14
+ *     (avec les outils `outils` s'ils sont donnés et les launched_by fixes),
+ *     du mode retenir (EX-11.1, EX-11.2 avec `delaisHotesMs`) ;
+ *   - pas 4 (si `secrets` est donné : { relay_mac_key, pseudonym_key, autres :
+ *     [clés] }, octets décodés) : relay_mac_key et pseudonym_key d'au moins 32
+ *     octets, relay_mac_key distincte de toute autre clé.
+ * Rend { erreurs, avertissements } (chaînes : pointeur JSON, règle).
+ */
+export function controlesConfiguration(config, { schemas, outils = null, delaisHotesMs = [], secrets = null } = {}) {
+  const erreurs = [];
+  const avertissements = [];
+  if (schemas?.[C.ID_SCHEMA_CONFIGURATION]) {
+    for (const e of J.validerSchema(config, schemas[C.ID_SCHEMA_CONFIGURATION], { registre: schemas })) erreurs.push(`${e.chemin} : schéma : ${e.message}`);
+    if (erreurs.length) return { erreurs, avertissements };
+  }
+  const policy = config?.policy ?? {};
+  const budgetMs = config?.limits?.redaction_budget_ms ?? C.BUDGET_REDACTION_MS;
+  for (const e of C.erreursPolitiqueRedaction(policy.redaction, { schemas, budgetMs })) erreurs.push(`/policy/redaction : ${e} (EX-10.6)`);
+  for (const [alias, serveur] of Object.entries(policy.servers ?? {})) {
+    for (const [nom, outil] of Object.entries(serveur?.tools ?? {})) {
+      for (const e of C.erreursGabaritsEffets(outil?.effects, { ou: `/policy/servers/${echapper(alias)}/tools/${echapper(nom)}/effects` })) erreurs.push(`${e} (EX-7.6, EX-10.6)`);
+    }
+  }
+  const approval = policy.approval ?? {};
+  if (approval.rules !== undefined) {
+    for (const e of erreursPolitique(approval.rules, { schemas, environment: config.recorder?.environment, expire_after_ms: approval.expire_after_ms })) erreurs.push(`/policy/approval/rules${e.pointer ?? ""} : ${e.code} (CT-3 EX-4.2, EX-8.2)`);
+    if (!erreurs.some((e) => e.startsWith("/policy/approval/rules"))) {
+      const hotes = [...(config.mcp?.hosts ?? []), ...(config.sdk?.hosts ?? [])];
+      for (const a of avertissementsPolitique(approval.rules, { outils, demandeurs: demandeursFixes(hotes) })) avertissements.push(`/policy/approval/rules : ${a} (CT-3 EX-4.14)`);
+    }
+  }
+  for (const a of avertissementsModeAttente({ mode: approval.mode, hold_timeout_ms: approval.hold_timeout_ms }, { delaisHotesMs })) avertissements.push(`/policy/approval/mode : ${a}`);
+  if (secrets) {
+    const mac = secrets.relay_mac_key ? Buffer.from(secrets.relay_mac_key) : null;
+    if (!mac || mac.length < LONGUEUR_CLE_MIN) erreurs.push(`/storage/relay_mac_key : au moins ${LONGUEUR_CLE_MIN} octets après décodage (CT-2 EX-7.22)`);
+    if (secrets.pseudonym_key && Buffer.from(secrets.pseudonym_key).length < LONGUEUR_CLE_MIN) erreurs.push(`/policy/redaction/pseudonym_key : au moins ${LONGUEUR_CLE_MIN} octets après décodage (CT-2 EX-10.12)`);
+    const autres = [secrets.pseudonym_key, ...(secrets.autres ?? [])].filter(Boolean).map((k) => Buffer.from(k));
+    if (mac && autres.some((k) => k.equals(mac))) erreurs.push("/storage/relay_mac_key : distincte de toute autre clé de l'enregistreur (CT-2 EX-7.22)");
+  }
+  return { erreurs, avertissements };
 }

@@ -12,10 +12,10 @@
       "bytes": "{\"query\":\"collision novembre\"}"
     },
     "result": {
-      "sha256": "0x99b3211b373fd85f577c9cb850180180481602fcb2d2eca06c774f8aa19063bc",
+      "sha256": "0xe855ee866f7c96705ca88600664290cda7fff0ad088b88182cc3286c8c9896b3",
       "length": 128,
       "redacted": false,
-      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-32011,\"data\":{\"timeout_ms\":30000},\"message\":\"noortrace: delai du serveur d'outils depasse\"}}"
+      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-31011,\"data\":{\"timeout_ms\":30000},\"message\":\"noortrace: delai du serveur d'outils depasse\"}}"
     },
     "definition": {
       "sha256": "0x7554590dd86b63e422c29b6966203d2b976987602700a6423c20ef247f0de75c",
@@ -52,12 +52,14 @@
   "is_error": true,
   "duration_ms": 30000,
   "error_rendered": {
-    "code": -32011,
+    "code": -31011,
     "message": "noortrace: delai du serveur d'outils depasse",
     "data": {
       "timeout_ms": 30000
     }
   },
+  "approval": null,
+  "result_rendered": null,
   "protocols": {
     "host": "2026-07-28",
     "server": "2026-07-28"
@@ -67,5 +69,5 @@
     "server": "stdio"
   },
   "timeout_ms": 30000,
-  "note": "Délai de l'outil (policy.servers.demo.tools[\"claims.search\"].timeout_ms = 30000) écoulé : t_reponse = t_envoi + timeout_ms (EX-4.48), annulation amont à cet instant (stdio : notifications/cancelled avec le requestId amont), événement is_error vrai avec la pièce -32011, erreur -32011 rendue ; la réponse amont tardive est ignorée (EX-4.22)."
+  "note": "Délai de l'outil (policy.servers.demo.tools[\"claims.search\"].timeout_ms = 30000) écoulé : t_reponse = t_envoi + timeout_ms (EX-4.48), annulation amont à cet instant (stdio : notifications/cancelled avec le requestId amont), événement is_error vrai avec la pièce -31011, erreur -31011 rendue (code hors de la plage réservée, EX-4.24) ; la réponse amont tardive est ignorée (EX-4.22)."
 }

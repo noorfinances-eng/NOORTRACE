@@ -21,16 +21,30 @@ const NomEnregistreur = "noortrace-enregistreur"
 // VersionEnregistreurVecteurs est code.recorder des vecteurs (annexe B).
 const VersionEnregistreurVecteurs = "0.1.0"
 
+// Codes de l'enregistreur (table de 4.4, version 0.3) : hors de -32768 à
+// -32000, deux derniers chiffres de la version 0.2 ; -31015 n'est pas
+// attribué (l'ancien -32015 est remplacé par le signal d'approbation,
+// EX-4.49).
+const (
+	CodeModeDegrade  int64 = -31010
+	CodeDelai        int64 = -31011
+	CodeAnnulation   int64 = -31012
+	CodeTaille       int64 = -31013
+	CodeInjoignable  int64 = -31014
+	CodeNonRelayable int64 = -31016
+	CodeNonDurable   int64 = -31017
+	CodeNonAttribue  int64 = -31015
+)
+
 // MessagesErreurs est la table des codes de l'enregistreur (4.4, EX-4.24).
 var MessagesErreurs = map[int64]string{
-	-32010: "noortrace: appel bloque, enregistreur en mode degrade",
-	-32011: "noortrace: delai du serveur d'outils depasse",
-	-32012: "noortrace: appel annule par l'hote",
-	-32013: "noortrace: taille maximale depassee",
-	-32014: "noortrace: serveur d'outils injoignable",
-	-32015: "noortrace: approbation requise",
-	-32016: "noortrace: resultat ou requete non relayable par la configuration",
-	-32017: "noortrace: appel execute, evenement non durable",
+	CodeModeDegrade:  "noortrace: appel bloque, enregistreur en mode degrade",
+	CodeDelai:        "noortrace: delai du serveur d'outils depasse",
+	CodeAnnulation:   "noortrace: appel annule par l'hote",
+	CodeTaille:       "noortrace: taille maximale depassee",
+	CodeInjoignable:  "noortrace: serveur d'outils injoignable",
+	CodeNonRelayable: "noortrace: resultat ou requete non relayable par la configuration",
+	CodeNonDurable:   "noortrace: appel execute, evenement non durable",
 }
 
 // CleServerInfo et CleClientInfo sont les clés _meta de 2026-07-28 (EX-4.4, EX-4.7).

@@ -13,8 +13,8 @@ les décisions ouvertes qu'elle nomme.
 | Réf. | Document | État | Clôt |
 |---|---|---|---|
 | CT-1 | [Modèle d'événement et formats](CT-1-evenements-et-formats.md) | version 0.2, en revue pour la porte 1 | décisions ouvertes 1 et 5 |
-| CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.2, en revue pour la porte 1 | décisions 2 et 3 |
-| CT-3 | [Approbations](CT-3-approbations.md) | version 0.1, en revue pour la porte 1 | décision 4 |
+| CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.3, en revue pour la porte 1 | décisions 2 et 3 |
+| CT-3 | [Approbations](CT-3-approbations.md) | version 0.2, en revue pour la porte 1 | décision 4 |
 | CT-4 | Registre | à écrire | — |
 | CT-5 | Ancrage | à écrire | — |
 | CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.1, en revue pour la porte 1 | — |
@@ -27,8 +27,9 @@ puis CT-7, CT-8, CT-9.
 
 ## Schémas (`schemas/`)
 
-JSON Schema draft 2020-12. Les identifiants `$id` (`https://noortrace.example/schemas/v0/…`)
-servent aux références croisées entre schémas ; ils ne sont pas résolus en ligne.
+JSON Schema draft 2020-12. Les identifiants `$id`
+(`https://noortrace.example/schemas/v0/…`) servent aux références croisées entre
+schémas ; ils ne sont pas résolus en ligne.
 
 | Fichier | Décrit | Référencé par |
 |---|---|---|
@@ -36,13 +37,13 @@ servent aux références croisées entre schémas ; ils ne sont pas résolus en 
 | [`manifeste-v0.schema.json`](schemas/manifeste-v0.schema.json) | Un manifeste de période (CT-1 §10) | — |
 | [`dossier-v0.schema.json`](schemas/dossier-v0.schema.json) | L'index `dossier.json` d'un dossier de preuve (CT-1 §11), et dans ses `$defs` les fichiers compagnons `voisins`, `chemin`, `manifeste_sig`, `cles`, `approbations` | — |
 | [`politique-redaction-v0.schema.json`](schemas/politique-redaction-v0.schema.json) | Une politique de rédaction avant hachage (CT-2 §10) ; l'exemple complet `pii-v1` est imprimé en CT-2 §10.9 | `policy.redaction` du schéma de configuration |
-| [`configuration-enregistreur-v0.schema.json`](schemas/configuration-enregistreur-v0.schema.json) | Le document unique de configuration de l'enregistreur (CT-2 §15), dont l'ensemble de politique `policy` ; l'exemple complet est imprimé en CT-2 §15.3 | — |
+| [`configuration-enregistreur-v0.schema.json`](schemas/configuration-enregistreur-v0.schema.json) | Le document unique de configuration de l'enregistreur (CT-2 §15), dont l'ensemble de politique `policy` ; l'exemple complet est imprimé en CT-2 §15.3 ; il référence les schémas de politique de rédaction et de politique d'approbation | — |
 | [`rapport-verification-v0.schema.json`](schemas/rapport-verification-v0.schema.json) | La sortie JSON du vérificateur (`--json`) : rapport (codes 0, 1, 3) ou rapport d'erreur (code 2) (CT-6 §8.6) | — |
 | [`ancres-confiance-v0.schema.json`](schemas/ancres-confiance-v0.schema.json) | Le fichier d'ancres de confiance écrit par le réviseur (CT-6 §12) ; l'exemple complet est imprimé en CT-6 §12.3 | — |
 | [`entetes-bitcoin-v0.schema.json`](schemas/entetes-bitcoin-v0.schema.json) | La chaîne d'en-têtes Bitcoin fournie à part (`--entetes-bitcoin`, CT-6 §10.3) | — |
 | [`registre-v0.schema.json`](schemas/registre-v0.schema.json) | La partie `registre.json` du dossier (CT-6 §11.2.1), et dans ses `$defs` la partie `certificat-commit.json` (`certificat_commit`, §11.2.2) | — |
 | [`validateurs-v0.schema.json`](schemas/validateurs-v0.schema.json) | La partie `validateurs.json` du dossier (CT-6 §11.2.3) | — |
-| [`politique-approbation-v0.schema.json`](schemas/politique-approbation-v0.schema.json) | La politique d'approbation, membre `/policy/approval/rules` de l'ensemble de politique (CT-3 §4) ; l'exemple complet est imprimé en CT-3 §4.3 | `jeu_approbateurs` et `separation`, repris par le schéma de ticket |
+| [`politique-approbation-v0.schema.json`](schemas/politique-approbation-v0.schema.json) | La politique d'approbation, membre `/policy/approval/rules` de l'ensemble de politique (CT-3 §4) ; l'exemple complet est imprimé en CT-3 §4.3 | `policy.approval.rules` du schéma de configuration (CT-2 §15) ; `jeu_approbateurs` et `separation`, repris par le schéma de ticket |
 | [`ticket-v0.schema.json`](schemas/ticket-v0.schema.json) | La trace d'un ticket que le service d'approbation persiste (CT-3 §7), et dans ses `$defs` le jeu d'approbateurs figé (§8), la fenêtre ouverte (§5.3), la remise d'une décision au noyau (`remise`, §12.5) et les formats des vecteurs de CT-3 (annexe A) | — |
 
 Validation d'un fichier avec ajv (les trois schémas doivent être chargés
@@ -55,13 +56,14 @@ npx --yes ajv-cli@5 validate --spec=draft2020 \
   -d mon-evenement.json
 ```
 
-Les deux schémas de CT-2 se chargent ensemble (la configuration référence la
-politique de rédaction par son `$id`) :
+Le schéma de configuration de CT-2 se charge avec ceux des deux politiques,
+qu'il référence par leur `$id` (rédaction, CT-2 §10 ; approbation, CT-3 §4) :
 
 ```bash
 npx --yes ajv-cli@5 validate --spec=draft2020 --all-errors \
   -s spec/schemas/configuration-enregistreur-v0.schema.json \
   -r spec/schemas/politique-redaction-v0.schema.json \
+  -r spec/schemas/politique-approbation-v0.schema.json \
   -d ma-configuration.json
 ```
 
@@ -147,8 +149,8 @@ changent pas.
 | Répertoire | Contenu (CT-2, annexe B) | Résultat attendu |
 |---|---|---|
 | `ct-2/jcs-integral/` | Forme canonique **JCS intégral** des pièces (RFC 8785 tel quel, nombres compris) : table de la RFC, cas limites, pertes au-delà de 2^53 | égalité octet par octet, ou refus |
-| `ct-2/redaction/` | Politique `pii-v1`, politique de pseudonymisation de test et politique de règles de test (pointeurs, `champ`, `supprimer`, motif nommé, passages successifs), motifs admis et refusés du sous-ensemble commun ECMAScript/RE2, entrées et pièces rédigées attendues (`sha256`, `length`, `redacted`, correspondances comptées) | égalité |
-| `ct-2/pieces-mcp/` | Requêtes `tools/call` reçues après la liste servie (`tools/list`), relayées ou refusées au pas 1 → pièces « arguments », « résultat », « définition d'outil », « liste annoncée », `context` ; erreurs JSON-RPC et de l'enregistreur ; blancs, CR, nombres non représentables ; agrégation et nommage `alias__nom` | égalité, erreurs rendues attendues |
+| `ct-2/redaction/` | Politique `pii-v1`, politique de pseudonymisation de test et politique de règles de test (pointeurs, `champ`, `supprimer`, motif nommé, passages successifs), motifs admis et refusés du sous-ensemble commun ECMAScript/RE2 et de ses règles de structure et de taille (formes à retour arrière exponentiel et quantificateurs à zéro non significatif refusés ; motifs à « (?P< » avec leur première correspondance), entrées et pièces rédigées attendues (`sha256`, `length`, `redacted`, correspondances comptées) | égalité |
+| `ct-2/pieces-mcp/` | Requêtes `tools/call` reçues après la liste servie (`tools/list`), relayées ou refusées au pas 1 → pièces « arguments », « résultat », « définition d'outil », « liste annoncée », `context` ; erreurs JSON-RPC et de l'enregistreur (codes `-31010` à `-31017`) ; refus par la politique et signal d'approbation, résultats `isError` rendus par l'enregistreur ; blancs, CR, nombres non représentables ; agrégation et nommage `alias__nom` | égalité, erreurs et résultats rendus attendus |
 | `ct-2/pieces-modele/` | API Messages d'Anthropic (hors flux, flux SSE), OpenAI Chat Completions (hors flux, flux), OpenAI Responses (flux) → forme consolidée → pièce ; réponse non JSON, requête non analysable refusée, prompt laissé en place ; `code.model`, `intent`, `prompt_version` attendus | égalité |
 | `ct-2/evenements/journal-demo/` | La courte exécution de la démonstration de référence (politique, échanges de modèle, lecture, écriture approuvée), chaînée avec les clés de test de CT-1, avec son segment, son journal d'intention, son ensemble de politique, ses entrées brutes (`entrees.json` : échanges, appels, liste servie, connexion d'hôte) et le dossier CT-1 de l'appel d'écriture (`dossier-seq-7/`) | chaîne valide par les outils de CT-1, égalité ; dossier valide (`node scripts/verify/dossier.mjs`, code 0) |
 | `ct-2/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de celui de `ct-1`, qui recalcule et confronte toutes ces valeurs | zéro discordance (`go run . ..`) |
@@ -179,15 +181,16 @@ son attendu. Les vecteurs de CT-1, CT-2 et CT-6 ne changent pas.
 ### CT-6 (`vecteurs/ct-6/`)
 
 Disposition, générateur et confrontation fixés par l'annexe A de
-[CT-6](CT-6-verificateur.md) (EX-A.1 à EX-A.12) : `scripts/vecteurs/generer-ct6.mjs`
-(`npm run vecteurs:ct6`) rejoue tout à l'identique ; ses entrées, lues et
-jamais réécrites, sont la capture du registre (`registre/capture/`, réseau de
-développement, avec sa procédure de recapture, EX-A.8), les clés RSA de test
-(`rfc3161/cles/*.cle.pem`) et `confrontation/`. Les vecteurs de CT-1 et de CT-2
-ne changent pas. Chaque cas et son attendu sont décrits dans
-[`vecteurs/ct-6/INDEX.md`](vecteurs/ct-6/INDEX.md) ; `test/verificateur.test.js`
-rejoue chaque dossier par `scripts/verify/dossier.mjs` et valide chaque rapport
-JSON contre `rapport-verification-v0`.
+[CT-6](CT-6-verificateur.md) (EX-A.1 à EX-A.12) :
+`scripts/vecteurs/generer-ct6.mjs` (`npm run vecteurs:ct6`) rejoue tout à
+l'identique ; ses entrées, lues et jamais réécrites, sont la capture du registre
+(`registre/capture/`, réseau de développement, avec sa procédure de recapture,
+EX-A.8), les clés RSA de test (`rfc3161/cles/*.cle.pem`) et `confrontation/`.
+Les vecteurs de CT-1 et de CT-2 ne changent pas. Chaque cas et son attendu sont
+décrits dans [`vecteurs/ct-6/INDEX.md`](vecteurs/ct-6/INDEX.md) ;
+`test/verificateur.test.js` rejoue chaque dossier par
+`scripts/verify/dossier.mjs` et valide chaque rapport JSON contre
+`rapport-verification-v0`.
 
 | Répertoire | Contenu (CT-6, annexe A) | Résultat attendu |
 |---|---|---|
