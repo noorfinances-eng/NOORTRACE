@@ -1,0 +1,418 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : revue",
+    "description": "Tout appel qu'aucune règle ne couvre est soumis aux approbateurs.",
+    "level": "revue",
+    "decision": null,
+    "contest_ms": 0
+  },
+  "rules": [
+    {
+      "name": "lecture autorisee",
+      "description": null,
+      "tools": [
+        "crm__claims.get"
+      ],
+      "when": null,
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "paiement en revue",
+      "description": null,
+      "tools": [
+        "sap__payments.create"
+      ],
+      "when": {
+        "all": [
+          {
+            "all": [
+              {
+                "path": "/arguments/p0",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p1",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p2",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p3",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p4",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p5",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p6",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p7",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p8",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p9",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p10",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p11",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p12",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p13",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p14",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p15",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p16",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p17",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p18",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p19",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p20",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p21",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p22",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p23",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p24",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p25",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p26",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p27",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p28",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p29",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p30",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p31",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p32",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p33",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p34",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p35",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p36",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p37",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p38",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p39",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p40",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p41",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p42",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p43",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p44",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p45",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p46",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p47",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p48",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p49",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p50",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p51",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p52",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p53",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p54",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p55",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p56",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p57",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p58",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p59",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p60",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p61",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p62",
+                "op": "existe",
+                "value": null
+              },
+              {
+                "path": "/arguments/p63",
+                "op": "existe",
+                "value": null
+              }
+            ]
+          },
+          {
+            "path": "/arguments/q0",
+            "op": "existe",
+            "value": null
+          }
+        ]
+      },
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 0
+    },
+    {
+      "name": "paiement moyen",
+      "description": null,
+      "tools": [
+        "sap__payments.create"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/amount",
+            "op": "strictement_superieur",
+            "value": "1000"
+          },
+          {
+            "path": "/arguments/amount",
+            "op": "inferieur_ou_egal",
+            "value": "5000"
+          }
+        ]
+      },
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 3600000,
+        "max_calls": 5,
+        "same_arguments": [
+          "/arguments/beneficiary_iban"
+        ]
+      },
+      "contest_ms": 0
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

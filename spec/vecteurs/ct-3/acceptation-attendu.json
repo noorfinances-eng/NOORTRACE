@@ -1,0 +1,56 @@
+{
+  "version": 0,
+  "policy": "acceptation/politique.json",
+  "expected": [
+    {
+      "id": "cas-01",
+      "rule": "virement <= 1000 CHF",
+      "decision": "autorise"
+    },
+    {
+      "id": "cas-02",
+      "rule": "virement <= 1000 CHF",
+      "decision": "autorise"
+    },
+    {
+      "id": "cas-03",
+      "rule": "virement > 1000 CHF",
+      "decision": "a_approuver"
+    },
+    {
+      "id": "cas-04",
+      "rule": "virement hors CHF",
+      "decision": "refuse"
+    },
+    {
+      "id": "cas-05",
+      "rule": "virement hors CHF [indetermine]",
+      "decision": "refuse"
+    },
+    {
+      "id": "cas-06",
+      "rule": "virement > 1000 CHF [indetermine]",
+      "decision": "a_approuver"
+    },
+    {
+      "id": "cas-07",
+      "rule": "defaut : revue",
+      "decision": "a_approuver"
+    },
+    {
+      "id": "cas-08",
+      "rule": "defaut : revue",
+      "decision": "a_approuver"
+    },
+    {
+      "id": "cas-09",
+      "rule": "virement <= 1000 CHF",
+      "decision": "autorise"
+    },
+    {
+      "id": "cas-10",
+      "rule": "virement hors CHF [indetermine]",
+      "decision": "refuse"
+    }
+  ]
+}

@@ -1,0 +1,366 @@
+{
+  "version": 0,
+  "id": "contestation-objection-maintenue",
+  "description": "Objection du compte 3 ; il se récuse ensuite : son vote refuse reste compté et l'objection demeure, et il ne peut plus la lever ; à l'échéance, expire, raison « objection non levee ».",
+  "checks": [
+    "TK-3",
+    "TK-6",
+    "TK-11"
+  ],
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+  "environment": "developpement",
+  "policy_version": "vecteurs-ct3-1",
+  "expire_after_ms": 3600000,
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  },
+  "service": {
+    "max_open_tickets": 20,
+    "escalation": [],
+    "set_poll_interval_ms": 10000,
+    "administrators": []
+  },
+  "steps": [
+    {
+      "input": {
+        "kind": "jeu_lu",
+        "at": "2026-11-12T08:59:00.000Z",
+        "data": {
+          "status": "lu",
+          "jeu": {
+            "chain_id": 2124,
+            "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+            "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+            "height": 1190,
+            "block_hash": "0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ]
+          },
+          "cause": null
+        }
+      },
+      "expected": {
+        "tickets": {},
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:00.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "crm.claims.delete",
+            "tool_original": "crm.claims.delete",
+            "server_alias": "crm",
+            "arguments": {
+              "claim_id": "2026-90417"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "a.keller@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Supprimer le sinistre en double 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "suppression de sinistre",
+            "decision": "a_approuver",
+            "contest_ms": 900000,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "suppression de sinistre",
+          "decision": "a_approuver",
+          "ticket": "apr-0001",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "ouvrir",
+        "at": "2026-11-12T09:00:00.250Z",
+        "data": {
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "request_seq": 5,
+          "request_ts": "2026-11-12T09:00:00.200Z"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0001",
+          "state": "ouvert",
+          "deadline": "2026-11-12T10:00:00.200Z"
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "jeu_lu",
+        "at": "2026-11-12T09:00:01.000Z",
+        "data": {
+          "status": "lu",
+          "jeu": {
+            "chain_id": 2124,
+            "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+            "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+            "height": 1200,
+            "block_hash": "0x0d69b52a5fa6dc8b96b79c133fcb3b7368106273ac3c969915238b890ee2e491",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ]
+          },
+          "cause": null
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:05:00.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "decision": "approuve",
+          "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+          "reason": null,
+          "session_identity": "approbateur-1@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:06:00.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "decision": "approuve",
+          "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+          "reason": null,
+          "session_identity": "approbateur-2@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "seuil_atteint"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:10:00.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "decision": "refuse",
+          "signature": "0x6c3117edcfec801ccfbf09cd421032fe5dd61eb8353fb1034ff7c3a1763f60e26b5e57222083c3459c9a0c1f95023f8c17b9d5a306db2894fda1101018cdcd481b",
+          "reason": "Sinistre encore ouvert",
+          "session_identity": "u.martin@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "recuser",
+        "at": "2026-11-12T09:11:00.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "session_identity": "u.martin@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:12:00.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "decision": "approuve",
+          "signature": "0x87ca98f57b6b10e0699b8e3ab9fdd06f4b890777b5de0acde93fca391a16474a30686c49b7d3f99b8ffb6b96e0221325b8bf57951b2eaa73c0fbbfb012502e8e1c",
+          "reason": null,
+          "session_identity": "u.martin@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert"
+        },
+        "accepted": false,
+        "reason": "recuse",
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "horloge",
+        "at": "2026-11-12T10:00:00.200Z",
+        "data": {}
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "a_remettre"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [
+          {
+            "remise_id": "apr-0001/1",
+            "ticket": "apr-0001",
+            "approval": {
+              "decision": "expire",
+              "ticket": "apr-0001",
+              "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "approvers": [],
+              "signatures": [],
+              "reason": "echeance atteinte, objection non levee"
+            },
+            "approver_set": {
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "members": [
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+              ],
+              "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1200 b=0x0d69b52a5fa6dc8b96b79c133fcb3b7368106273ac3c969915238b890ee2e491"
+            }
+          }
+        ],
+        "windows": []
+      }
+    }
+  ]
+}

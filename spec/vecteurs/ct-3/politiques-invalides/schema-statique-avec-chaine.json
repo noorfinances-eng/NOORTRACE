@@ -1,0 +1,97 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : revue",
+    "description": "Tout appel qu'aucune règle ne couvre est soumis aux approbateurs.",
+    "level": "revue",
+    "decision": null,
+    "contest_ms": 0
+  },
+  "rules": [
+    {
+      "name": "lecture autorisee",
+      "description": null,
+      "tools": [
+        "crm__claims.get"
+      ],
+      "when": null,
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "paiement en revue",
+      "description": null,
+      "tools": [
+        "sap__payments.create"
+      ],
+      "when": {
+        "path": "/arguments/amount",
+        "op": "strictement_superieur",
+        "value": "5000"
+      },
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 0
+    },
+    {
+      "name": "paiement moyen",
+      "description": null,
+      "tools": [
+        "sap__payments.create"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/amount",
+            "op": "strictement_superieur",
+            "value": "1000"
+          },
+          {
+            "path": "/arguments/amount",
+            "op": "inferieur_ou_egal",
+            "value": "5000"
+          }
+        ]
+      },
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 3600000,
+        "max_calls": 5,
+        "same_arguments": [
+          "/arguments/beneficiary_iban"
+        ]
+      },
+      "contest_ms": 0
+    }
+  ],
+  "approver_set": {
+    "source": "statique",
+    "chain_id": 2124,
+    "registry": null,
+    "set": null,
+    "members": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "threshold": {
+      "required": 2,
+      "size": 3
+    }
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

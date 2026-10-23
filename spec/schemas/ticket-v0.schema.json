@@ -1,0 +1,2553 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/ticket.schema.json",
+  "title": "Ticket d'approbation NOORTRACE, version 0 (CT-3 §7)",
+  "description": "Document d'un ticket tel que le service d'approbation le persiste et le relit à la reprise (CT-3 EX-7.22, EX-7.23), et dans ses $defs : le jeu d'approbateurs lu et figé (jeu, CT-3 §8), la fenêtre ouverte par un ticket ouvrant (fenetre_ouverte, CT-3 EX-7.22 et CT-3 §5.3), la remise d'une décision au noyau (remise, CT-3 §12.5), et les formats des vecteurs de CT-3 annexe A (trace, cas_remise, fichier_evaluation, attendu_politiques_invalides, fichier_candidats, attendu_acceptation). Ce document n'est pas un format de CT-1 : il vit dans le service, hors chaîne. Clés en anglais, valeurs énumérées en français sans accent. Se charge avec evenement-v0.schema.json (approval, delegation, code, context_item, horodatage) et politique-approbation-v0.schema.json (jeu_approbateurs, separation).",
+  "$ref": "#/$defs/ticket",
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "adresse": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "signature_brute": {
+      "description": "Signature EIP-191 telle qu'un portefeuille la rend, avant normalisation (CT-3 EX-9.3) : octets en hexadécimal minuscule. La longueur est contrôlée par le service, qui refuse tout autre que 65 octets (signature_invalide).",
+      "type": "string",
+      "pattern": "^0x([0-9a-f]{2})*$",
+      "maxLength": 1024
+    },
+    "signature": {
+      "description": "Signature EIP-191 de 65 octets r || s || v (CT-1 §6.3).",
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{130}$"
+    },
+    "horodatage": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/horodatage"
+    },
+    "ms": {
+      "description": "Durée en millisecondes, bornée à 24 heures comme les délais de la configuration de l'enregistreur (CT-2 §15).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 86400000
+    },
+    "entier_sur": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "identifiant_ticket": {
+      "description": "CT-3 EX-7.1 : ni espace ni crochet (CT-3 §6.4).",
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 128,
+      "pattern": "^apr-[0-9a-z]+(-[0-9a-z]+)*$"
+    },
+    "etat": {
+      "description": "États du ticket (CT-3 §7.3).",
+      "enum": [
+        "reserve",
+        "ouvert",
+        "seuil_atteint",
+        "verification",
+        "a_remettre",
+        "approuve",
+        "refuse",
+        "expire",
+        "consomme",
+        "clos",
+        "abandonne"
+      ]
+    },
+    "decision_vote": {
+      "enum": [
+        "approuve",
+        "refuse"
+      ]
+    },
+    "decision_approbation": {
+      "enum": [
+        "approuve",
+        "refuse",
+        "expire"
+      ]
+    },
+    "raison": {
+      "description": "Raisons de refus d'une entrée, d'un vote ou d'une remise (CT-3 table 12.8).",
+      "enum": [
+        "requete_invalide",
+        "non_pret",
+        "politique_invalide",
+        "politique_inconnue",
+        "ticket_inconnu",
+        "ticket_deja_ouvert",
+        "ticket_non_ouvert",
+        "ticket_clos_aux_votes",
+        "jeu_non_fige",
+        "signature_invalide",
+        "hors_jeu",
+        "approbateur_hors_jeu",
+        "auto_approbation",
+        "recuse",
+        "motif_trop_long",
+        "vote_identique",
+        "retrait_non_autorise",
+        "plafond_atteint",
+        "remise_mal_formee",
+        "request_hash_different",
+        "ticket_deja_decide",
+        "echeance_depassee",
+        "seuil_non_atteint",
+        "approbateur_double",
+        "seuil_different_du_jeu",
+        "expire_avec_signatures",
+        "mode_degrade"
+      ]
+    },
+    "cause_illisible": {
+      "description": "Causes d'une lecture du jeu sans résultat (CT-3 EX-8.1).",
+      "enum": [
+        "chaine_differente",
+        "organisation_sans_jeu",
+        "jeu_sans_code",
+        "seuil_incoherent",
+        "membres_non_reconstitues",
+        "etat_indisponible",
+        "jeu_non_attendu"
+      ]
+    },
+    "seuil": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "size"
+      ],
+      "properties": {
+        "required": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      }
+    },
+    "jeu": {
+      "description": "Jeu lu à une hauteur (CT-3 EX-8.1), ou jeu statique de la politique (EX-8.2), dont les champs de chaîne valent alors null.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chain_id",
+        "registry",
+        "set",
+        "height",
+        "block_hash",
+        "threshold",
+        "members"
+      ],
+      "properties": {
+        "chain_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          ]
+        },
+        "registry": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/adresse"
+            }
+          ]
+        },
+        "set": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/adresse"
+            }
+          ]
+        },
+        "height": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/entier_sur"
+            }
+          ]
+        },
+        "block_hash": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex32"
+            }
+          ]
+        },
+        "threshold": {
+          "$ref": "#/$defs/seuil"
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65535,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        }
+      }
+    },
+    "approver_set": {
+      "description": "Jeu déclaré avec une décision, écrit tel quel dans approbations.json (CT-1 §11.2) ; source de la forme exacte de CT-3 EX-8.8.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threshold",
+        "members",
+        "source"
+      ],
+      "properties": {
+        "threshold": {
+          "$ref": "#/$defs/seuil"
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65535,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^(CuratorSet c=[0-9]{1,20} r=0x[0-9a-f]{40} s=0x[0-9a-f]{40} h=[0-9]{1,20}\\.\\.[0-9]{1,20} b=0x[0-9a-f]{64}( repli)?|jeu statique de la politique .{1,128})$"
+        }
+      }
+    },
+    "portee": {
+      "description": "Portée K d'une fenêtre (CT-3 EX-5.2) : version de politique, nom de la règle, nom annoncé de l'outil, demandeur et valeurs désignées par same_arguments, dans leur ordre. Les valeurs sont des données des arguments : null après l'effacement d'un ticket (CT-3 EX-7.24).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_version",
+        "rule",
+        "tool",
+        "launched_by",
+        "values"
+      ],
+      "properties": {
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "tool": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+        },
+        "launched_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "values": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ouverture": {
+      "description": "Fenêtre qu'ouvrira un ticket ouvrant si sa décision approuve est scellée (CT-3 EX-5.3, EX-5.4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "duration_ms",
+        "max_calls"
+      ],
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/portee"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400000
+        },
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "fenetre_ouverte": {
+      "description": "Fenêtre W(K) ouverte (CT-3 EX-5.4 à EX-5.6 ; CT-3 T11, EX-7.22) : [start, end), remaining appels restants, ticket ouvrant. Le service la retire dès qu'elle est fermée (t ≥ end, remaining = 0, autre version) : une fenêtre tenue n'a jamais remaining = 0 ; remaining = 0 n'apparaît que dans la sortie pure d'EVALUER (annexe A.4). Les valeurs de la portée sont des données des arguments (CT-3 EX-7.24).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "start",
+        "end",
+        "remaining",
+        "ticket"
+      ],
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/portee"
+        },
+        "start": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "end": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "remaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        }
+      }
+    },
+    "approval_sans_at": {
+      "description": "Objet approval de CT-1 §5.3 sans at, que l'écrivain pose (CT-2 EX-7.11). Les règles de nombre (A-3, E-5) ne sont pas dans le schéma : le noyau les contrôle par SG-5 et SG-6 et en rend la raison précise.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "ticket",
+        "request_hash",
+        "threshold",
+        "approvers",
+        "signatures",
+        "reason"
+      ],
+      "properties": {
+        "decision": {
+          "$ref": "#/$defs/decision_approbation"
+        },
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "request_hash": {
+          "$ref": "#/$defs/hex32"
+        },
+        "threshold": {
+          "$ref": "#/$defs/seuil"
+        },
+        "approvers": {
+          "type": "array",
+          "maxItems": 65535,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        },
+        "signatures": {
+          "type": "array",
+          "maxItems": 65535,
+          "items": {
+            "$ref": "#/$defs/signature"
+          }
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 1024
+            }
+          ]
+        }
+      }
+    },
+    "remise": {
+      "description": "Remise d'une décision au noyau (CT-3 §12.5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "remise_id",
+        "ticket",
+        "approval",
+        "approver_set"
+      ],
+      "properties": {
+        "remise_id": {
+          "type": "string",
+          "maxLength": 139,
+          "pattern": "^apr-[0-9a-z]+(-[0-9a-z]+)*/[1-9][0-9]{0,9}$"
+        },
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "approval": {
+          "$ref": "#/$defs/approval_sans_at"
+        },
+        "approver_set": {
+          "$ref": "#/$defs/approver_set"
+        }
+      }
+    },
+    "requete_evaluer": {
+      "description": "Requête evaluer : exactement l'objet de CT-2 EX-7.4 (CT-3 §12.3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_announced",
+        "tool_original",
+        "server_alias",
+        "arguments",
+        "class",
+        "delegation",
+        "intent",
+        "code",
+        "context"
+      ],
+      "properties": {
+        "tool_announced": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+        },
+        "tool_original": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "server_alias": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+        },
+        "arguments": {
+          "description": "Valeur JSON analysée, en clair (CT-2 §4.4 pas 3)."
+        },
+        "class": {
+          "enum": [
+            "lecture",
+            "ecriture"
+          ]
+        },
+        "delegation": {
+          "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/delegation"
+        },
+        "intent": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 4096
+            }
+          ]
+        },
+        "code": {
+          "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/code"
+        },
+        "context": {
+          "type": "array",
+          "items": {
+            "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/context_item"
+          }
+        }
+      }
+    },
+    "evaluation": {
+      "description": "Sortie d'EVALUER fournie à une entrée evaluer de trace (CT-3 EX-A.6) : contest_ms et opening ne sont non nuls que pour a_approuver (opening : ticket ouvrant).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "decision",
+        "contest_ms",
+        "opening"
+      ],
+      "properties": {
+        "rule": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 1024
+            }
+          ]
+        },
+        "decision": {
+          "enum": [
+            "autorise",
+            "a_approuver",
+            "refuse"
+          ]
+        },
+        "contest_ms": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/ms"
+            }
+          ]
+        },
+        "opening": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/ouverture"
+            }
+          ]
+        }
+      }
+    },
+    "reponse_evaluer": {
+      "description": "Réponse à evaluer (CT-3 §12.3) ; les sept combinaisons admises sont celles de la table d'EX-7.16. approver_set n'est non nul que pour ticket_state nouveau : jeu de repli courant, ou jeu statique de la politique (CT-3 EX-12.6, EX-12.11).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "decision",
+        "ticket",
+        "ticket_state",
+        "approval",
+        "approver_set"
+      ],
+      "properties": {
+        "rule": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 1024
+            }
+          ]
+        },
+        "decision": {
+          "enum": [
+            "autorise",
+            "a_approuver",
+            "refuse"
+          ]
+        },
+        "ticket": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifiant_ticket"
+            }
+          ]
+        },
+        "ticket_state": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "nouveau",
+                "en_attente",
+                "approuve",
+                "refuse",
+                "expire"
+              ]
+            }
+          ]
+        },
+        "approval": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/approval"
+            }
+          ]
+        },
+        "approver_set": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/approver_set"
+            }
+          ]
+        }
+      }
+    },
+    "vote": {
+      "description": "Vote accepté par le service (CT-3 EX-7.26) ; les votes refusés sont dans transitions. cause dit pourquoi un vote a été écarté : hors_jeu (nouveau gel), recuse (vote approuve d'un membre récusé), auto_approbation, remise_refusee (votes d'une remise refusée par le noyau, T16).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "approver",
+        "decision",
+        "signature",
+        "reason",
+        "session_identity",
+        "status",
+        "cause",
+        "objection"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "approver": {
+          "$ref": "#/$defs/adresse"
+        },
+        "decision": {
+          "$ref": "#/$defs/decision_vote"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 1024
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "courant",
+            "remplace",
+            "ecarte"
+          ]
+        },
+        "cause": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "hors_jeu",
+                "recuse",
+                "auto_approbation",
+                "remise_refusee"
+              ]
+            }
+          ]
+        },
+        "session_identity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          ]
+        },
+        "objection": {
+          "description": "Vote refuse accepté d'un membre éligible quand contest_ms > 0, à tout moment avant la remise (CT-3 EX-10.7) ; lifted_at : instant du vote approuve de son auteur qui l'a levée (EX-10.8).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lifted_at"
+              ],
+              "properties": {
+                "lifted_at": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/horodatage"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "transition": {
+      "description": "Une entrée ou un minuteur traité pour ce ticket (CT-3 §7.4, §7.5), accepté ou refusé, avec les données de l'entrée (data, CT-3 EX-7.22) : aucune pour un minuteur ni pour evaluer (les arguments en clair sont dans request tant que le ticket est actif).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "input",
+        "from",
+        "to",
+        "accepted",
+        "reason",
+        "data"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "input": {
+          "enum": [
+            "evaluer",
+            "ouvrir",
+            "jeu_lu",
+            "voter",
+            "recuser",
+            "retirer",
+            "acquitter",
+            "consommer",
+            "expiration",
+            "echeance",
+            "fin_contestation",
+            "fin_reservation",
+            "fin_reconnaissance",
+            "escalade"
+          ]
+        },
+        "from": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/etat"
+            }
+          ]
+        },
+        "to": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/etat"
+            }
+          ]
+        },
+        "accepted": {
+          "type": "boolean"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/raison"
+            }
+          ]
+        },
+        "data": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    "ticket": {
+      "description": "Document persisté d'un ticket (CT-3 EX-7.22 à EX-7.24) : il porte tout ce que la reprise exige (EX-7.23).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "ticket",
+        "org_id",
+        "journal_id",
+        "state",
+        "request",
+        "key_released",
+        "reserved_at",
+        "deadline",
+        "expire_after_ms",
+        "contest_ms",
+        "opening",
+        "self_approval",
+        "requester_addresses",
+        "approver_set",
+        "effective_required",
+        "confirmation",
+        "set_reassigned",
+        "eligible",
+        "recused",
+        "votes",
+        "contest_end",
+        "computed_decision",
+        "remises",
+        "current_remise",
+        "sealed",
+        "served_at",
+        "consumed",
+        "recognize_until",
+        "escalations",
+        "transitions"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "state": {
+          "$ref": "#/$defs/etat"
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tool_announced",
+            "tool_original",
+            "server_alias",
+            "class",
+            "delegation",
+            "arguments",
+            "rule",
+            "policy_version",
+            "request_hash",
+            "request_seq",
+            "request_ts",
+            "retained_event",
+            "arguments_piece"
+          ],
+          "properties": {
+            "tool_announced": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+            },
+            "tool_original": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "server_alias": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "class": {
+              "enum": [
+                "lecture",
+                "ecriture"
+              ]
+            },
+            "delegation": {
+              "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/delegation"
+            },
+            "arguments": {
+              "description": "Arguments en clair tant que le ticket est actif ; null après effacement (CT-3 EX-7.24)."
+            },
+            "rule": {
+              "type": "string",
+              "maxLength": 1024
+            },
+            "policy_version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "request_hash": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/hex32"
+                }
+              ]
+            },
+            "request_seq": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              ]
+            },
+            "request_ts": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/horodatage"
+                }
+              ]
+            },
+            "retained_event": {
+              "description": "Événement retenue tel que le noyau l'a scellé, remis par ouvrir (CT-3 12.4) pour la console (EX-9.6) ; null tant qu'il n'est pas remis, dans les traces de l'annexe A.6, et après effacement (EX-7.24).",
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            },
+            "arguments_piece": {
+              "description": "Octets de la pièce « arguments » rédigée en base64, remis par ouvrir (CT-3 12.4) ; null s'ils ne sont pas remis, si la référence est en ligne, et après effacement (EX-7.24).",
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9+/]*={0,2}$"
+                }
+              ]
+            }
+          }
+        },
+        "key_released": {
+          "type": "boolean",
+          "description": "La clé de rapprochement est libérée (T3, T16 ticket_inconnu) : le ticket ne reconnaît plus aucune ré-émission (CT-3 EX-7.5)."
+        },
+        "reserved_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "deadline": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "expire_after_ms": {
+          "$ref": "#/$defs/ms"
+        },
+        "contest_ms": {
+          "$ref": "#/$defs/ms",
+          "description": "contest_ms de la règle retenue, figé à la réservation (CT-3 T1)."
+        },
+        "opening": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/ouverture"
+            }
+          ]
+        },
+        "self_approval": {
+          "enum": [
+            "interdite",
+            "permise"
+          ],
+          "description": "separation.self_approval de la version de politique du ticket (CT-3 EX-10.1)."
+        },
+        "requester_addresses": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          },
+          "description": "Adresses du demandeur selon separation.identities (CT-3 EX-10.1)."
+        },
+        "approver_set": {
+          "description": "Jeu figé (CT-3 §8.2), ou null tant qu'il n'est pas lu ; un nouveau gel le remplace (EX-8.6).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/jeu"
+            }
+          ]
+        },
+        "effective_required": {
+          "description": "Nombre de signatures que la décision exige (CT-3 EX-7.27, EX-8.6) : le plus grand required des jeux figés du ticket depuis son ouverture ; null tant que le jeu n'est pas figé.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          ]
+        },
+        "confirmation": {
+          "description": "Dernière lecture du jeu épinglé égale au jeu figé, gel compris : hauteur et hachage de bloc de la source d'EX-8.8 ; null pour un jeu statique ou non figé.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "height",
+                "block_hash"
+              ],
+              "properties": {
+                "height": {
+                  "$ref": "#/$defs/entier_sur"
+                },
+                "block_hash": {
+                  "$ref": "#/$defs/hex32"
+                }
+              }
+            }
+          ]
+        },
+        "set_reassigned": {
+          "type": "boolean",
+          "description": "La dernière lecture appliquée au ticket a trouvé un autre jeu que le jeu épinglé (illisible, jeu_non_attendu, CT-3 EX-8.1, EX-8.6)."
+        },
+        "eligible": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        },
+        "recused": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          },
+          "description": "Membres récusés pour ce ticket (CT-3 EX-10.4), dans l'ordre des récusations."
+        },
+        "votes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/vote"
+          }
+        },
+        "contest_end": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ],
+          "description": "Fin de la fenêtre de contestation en cours (s + contest_ms, CT-3 EX-7.27), sinon null."
+        },
+        "computed_decision": {
+          "description": "Décision approuve ou refuse calculée et instant de l'entrée en verification (CT-3 EX-7.27), tant que le ticket est en verification ; null sinon.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decision",
+                "at"
+              ],
+              "properties": {
+                "decision": {
+                  "$ref": "#/$defs/decision_vote"
+                },
+                "at": {
+                  "$ref": "#/$defs/horodatage"
+                }
+              }
+            }
+          ]
+        },
+        "remises": {
+          "description": "Toutes les remises présentées au noyau, dans l'ordre (CT-3 12.5), avec l'instant de calcul de leur décision.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "remise",
+              "computed_at"
+            ],
+            "properties": {
+              "remise": {
+                "$ref": "#/$defs/remise"
+              },
+              "computed_at": {
+                "$ref": "#/$defs/horodatage"
+              }
+            }
+          }
+        },
+        "current_remise": {
+          "description": "remise_id de la remise courante : la dernière remise présentée, tant que le ticket est en a_remettre et que le noyau ne l'a pas refusée (T16) ; null sinon (CT-3 7.5).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 139
+            }
+          ]
+        },
+        "sealed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decision",
+                "seq",
+                "hash",
+                "at",
+                "approval"
+              ],
+              "properties": {
+                "decision": {
+                  "$ref": "#/$defs/decision_approbation"
+                },
+                "seq": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "hash": {
+                  "$ref": "#/$defs/hex32"
+                },
+                "at": {
+                  "$ref": "#/$defs/horodatage"
+                },
+                "approval": {
+                  "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/approval"
+                }
+              },
+              "description": "Décision scellée par le noyau, avec l'objet approval scellé reçu par acquitter ou expiration (CT-3 12.5, 12.6), rendu tel quel à une ré-émission (EX-7.16)."
+            }
+          ]
+        },
+        "served_at": {
+          "description": "Instant où l'approbation a été servie : réponse autorise à une ré-émission (T21) ou requête retenue que le noyau relaie (acquitter scelle, held, T11) ; null sinon. Persisté avant de répondre (CT-3 EX-7.17, EX-7.22).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "consumed": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "seq",
+                "hash"
+              ],
+              "properties": {
+                "seq": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "hash": {
+                  "$ref": "#/$defs/hex32"
+                }
+              }
+            }
+          ]
+        },
+        "recognize_until": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "escalations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8,
+          "description": "Nombre d'étapes d'escalade déjà notifiées (CT-3 EX-7.13)."
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "consomme",
+                  "clos",
+                  "abandonne"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "request": {
+                "type": "object",
+                "properties": {
+                  "arguments": {
+                    "type": "null"
+                  },
+                  "retained_event": {
+                    "type": "null"
+                  },
+                  "arguments_piece": {
+                    "type": "null"
+                  }
+                }
+              },
+              "opening": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "values": {
+                            "type": "null"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entree": {
+      "description": "Entrée d'une trace de vecteur (CT-3 annexe A.6) : kind et at, et les données propres à l'entrée dans data. Une entrée abrège le message de la section 12 : charger ne porte que policy_version (la version chargée reprend les paramètres de la trace), ouvrir ne porte ni retained_event ni arguments_piece.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "at",
+        "data"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "charger",
+            "evaluer",
+            "ouvrir",
+            "jeu_lu",
+            "voter",
+            "recuser",
+            "retirer",
+            "horloge",
+            "acquitter",
+            "consommer",
+            "expiration"
+          ]
+        },
+        "at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "data": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "charger"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "policy_version"
+                ],
+                "properties": {
+                  "policy_version": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "evaluer"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "request",
+                  "evaluation"
+                ],
+                "properties": {
+                  "request": {
+                    "$ref": "#/$defs/requete_evaluer"
+                  },
+                  "evaluation": {
+                    "$ref": "#/$defs/evaluation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ouvrir"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ticket",
+                  "request_hash",
+                  "request_seq",
+                  "request_ts"
+                ],
+                "properties": {
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "request_hash": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "request_seq": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "request_ts": {
+                    "$ref": "#/$defs/horodatage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "jeu_lu"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "status",
+                  "jeu",
+                  "cause"
+                ],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "lu",
+                      "illisible"
+                    ]
+                  },
+                  "jeu": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/jeu"
+                      }
+                    ]
+                  },
+                  "cause": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/cause_illisible"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "voter"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ticket",
+                  "approver",
+                  "decision",
+                  "signature",
+                  "reason",
+                  "session_identity"
+                ],
+                "properties": {
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "approver": {
+                    "$ref": "#/$defs/adresse"
+                  },
+                  "decision": {
+                    "$ref": "#/$defs/decision_vote"
+                  },
+                  "signature": {
+                    "$ref": "#/$defs/signature_brute"
+                  },
+                  "reason": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "maxLength": 4096
+                      }
+                    ]
+                  },
+                  "session_identity": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "recuser"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ticket",
+                  "approver",
+                  "session_identity"
+                ],
+                "properties": {
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "approver": {
+                    "$ref": "#/$defs/adresse"
+                  },
+                  "session_identity": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "retirer"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ticket",
+                  "by",
+                  "reason"
+                ],
+                "properties": {
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "by": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "reason": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "maxLength": 1024
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "horloge"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "maxProperties": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "acquitter"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "remise_id",
+                  "ticket",
+                  "result",
+                  "reason",
+                  "seq",
+                  "hash",
+                  "at",
+                  "decision",
+                  "held",
+                  "approval"
+                ],
+                "properties": {
+                  "remise_id": {
+                    "type": "string",
+                    "maxLength": 139
+                  },
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "result": {
+                    "enum": [
+                      "scelle",
+                      "temporaire",
+                      "refuse"
+                    ]
+                  },
+                  "reason": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/raison"
+                      }
+                    ]
+                  },
+                  "seq": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      }
+                    ]
+                  },
+                  "hash": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/hex32"
+                      }
+                    ]
+                  },
+                  "at": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/horodatage"
+                      }
+                    ]
+                  },
+                  "decision": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/decision_approbation"
+                      }
+                    ]
+                  },
+                  "held": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "approval": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/approval"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "consommer"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ticket",
+                  "seq",
+                  "hash"
+                ],
+                "properties": {
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "seq": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "hash": {
+                    "$ref": "#/$defs/hex32"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "expiration"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ticket",
+                  "seq",
+                  "hash",
+                  "at",
+                  "approval"
+                ],
+                "properties": {
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "seq": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "hash": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "at": {
+                    "$ref": "#/$defs/horodatage"
+                  },
+                  "approval": {
+                    "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/approval"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "attendu_pas": {
+      "description": "Attendu d'un pas de trace (CT-3 EX-A.6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tickets",
+        "accepted",
+        "reason",
+        "response",
+        "remises",
+        "windows"
+      ],
+      "properties": {
+        "tickets": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/identifiant_ticket"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/etat"
+          }
+        },
+        "accepted": {
+          "type": "boolean"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/raison"
+            }
+          ]
+        },
+        "response": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "remises": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/remise"
+          }
+        },
+        "windows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fenetre_ouverte"
+          }
+        }
+      }
+    },
+    "trace": {
+      "description": "Trace de cycle de vie, vecteurs tickets/ (CT-3 annexe A.6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "description",
+        "checks",
+        "org_id",
+        "journal_id",
+        "environment",
+        "policy_version",
+        "expire_after_ms",
+        "approver_set",
+        "separation",
+        "service",
+        "steps"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^TK-[1-9][0-9]*$"
+          }
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "environment": {
+          "enum": [
+            "production",
+            "developpement"
+          ]
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "expire_after_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400000
+        },
+        "approver_set": {
+          "$ref": "https://noortrace.example/schemas/v0/politique-approbation.schema.json#/$defs/jeu_approbateurs"
+        },
+        "separation": {
+          "$ref": "https://noortrace.example/schemas/v0/politique-approbation.schema.json#/$defs/separation"
+        },
+        "service": {
+          "description": "Réglages de configuration du service (CT-3 §10.3).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_open_tickets",
+            "escalation",
+            "set_poll_interval_ms",
+            "administrators"
+          ],
+          "properties": {
+            "max_open_tickets": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "escalation": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "after_ms",
+                  "notify"
+                ],
+                "properties": {
+                  "after_ms": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 86400000
+                  },
+                  "notify": {
+                    "enum": [
+                      "jeu",
+                      "administrateur",
+                      "demandeur"
+                    ]
+                  }
+                }
+              }
+            },
+            "set_poll_interval_ms": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 86400000
+            },
+            "administrators": {
+              "description": "Identités de session des administrateurs de l'organisation, qui peuvent retirer un ticket (CT-3 EX-7.15, table 10.3).",
+              "type": "array",
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "input",
+              "expected"
+            ],
+            "properties": {
+              "input": {
+                "$ref": "#/$defs/entree"
+              },
+              "expected": {
+                "$ref": "#/$defs/attendu_pas"
+              }
+            }
+          }
+        }
+      }
+    },
+    "cas_remise": {
+      "description": "Cas de vérification d'une remise par le noyau, vecteurs decisions/ (CT-3 annexe A.7). La remise n'est pas contrainte ici : les cas invalides doivent pouvoir la porter mal formée (SG-1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "description",
+        "check",
+        "context",
+        "remise",
+        "expected"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "check": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^SG-[1-6]$"
+            }
+          ]
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "org_id",
+            "journal_id",
+            "retained",
+            "decided",
+            "expire_after_ms",
+            "write_at"
+          ],
+          "properties": {
+            "org_id": {
+              "$ref": "#/$defs/hex32"
+            },
+            "journal_id": {
+              "$ref": "#/$defs/hex32"
+            },
+            "retained": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "seq",
+                  "ticket",
+                  "hash",
+                  "ts"
+                ],
+                "properties": {
+                  "seq": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "hash": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "ts": {
+                    "$ref": "#/$defs/horodatage"
+                  }
+                }
+              }
+            },
+            "decided": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ticket",
+                  "decision",
+                  "seq",
+                  "hash",
+                  "at"
+                ],
+                "properties": {
+                  "ticket": {
+                    "$ref": "#/$defs/identifiant_ticket"
+                  },
+                  "decision": {
+                    "$ref": "#/$defs/decision_approbation"
+                  },
+                  "seq": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "hash": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "at": {
+                    "$ref": "#/$defs/horodatage"
+                  }
+                }
+              }
+            },
+            "expire_after_ms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400000
+            },
+            "write_at": {
+              "$ref": "#/$defs/horodatage",
+              "description": "Instant d'écriture que le noyau poserait (approval.at, SG-4)."
+            }
+          }
+        },
+        "remise": {
+          "type": "object"
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "reason"
+          ],
+          "properties": {
+            "result": {
+              "enum": [
+                "scelle",
+                "refuse"
+              ]
+            },
+            "reason": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/raison"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "code_erreur_politique": {
+      "description": "Codes d'erreur de validation d'une politique dans les vecteurs (CT-3 annexe A.4, EX-4.2 et EX-8.2).",
+      "enum": [
+        "schema",
+        "nom_double",
+        "pointeur_trop_long",
+        "condition_trop_profonde",
+        "trop_de_predicats",
+        "substitut_isole",
+        "launched_by_double",
+        "contest_ms_trop_long",
+        "seuil_statique_incoherent",
+        "jeu_statique_en_production"
+      ]
+    },
+    "attendu_politiques_invalides": {
+      "description": "politiques-invalides/attendu.json (CT-3 annexe A.4) : liste complète des erreurs par fichier, triée par pointer puis par code, chaînes comparées par unités UTF-16 ; une non-conformité au schéma donne exactement une entrée schema, de pointer null, et aucune autre.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file",
+              "environment",
+              "expire_after_ms",
+              "checks",
+              "errors"
+            ],
+            "properties": {
+              "file": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*\\.json$"
+              },
+              "environment": {
+                "enum": [
+                  "production",
+                  "developpement"
+                ]
+              },
+              "expire_after_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 86400000
+              },
+              "checks": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^AP-[1-9][0-9]*$"
+                }
+              },
+              "errors": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "code",
+                    "pointer"
+                  ],
+                  "properties": {
+                    "code": {
+                      "$ref": "#/$defs/code_erreur_politique"
+                    },
+                    "pointer": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^(/[^/]*)*$"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fichier_evaluation": {
+      "description": "evaluation/<politique>.json (CT-3 annexe A.4 et §6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "policy",
+        "policy_version",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "policy": {
+          "type": "string",
+          "pattern": "^politiques/[a-z0-9]+(-[a-z0-9]+)*\\.json$"
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "t",
+              "windows",
+              "request",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^AP-[1-9][0-9]*$"
+                }
+              },
+              "t": {
+                "$ref": "#/$defs/horodatage"
+              },
+              "windows": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/fenetre_ouverte"
+                }
+              },
+              "request": {
+                "$ref": "#/$defs/requete_evaluer"
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "rule",
+                  "decision",
+                  "contest_ms",
+                  "opening",
+                  "windows"
+                ],
+                "properties": {
+                  "rule": {
+                    "type": "string",
+                    "maxLength": 1024
+                  },
+                  "decision": {
+                    "enum": [
+                      "autorise",
+                      "a_approuver",
+                      "refuse"
+                    ]
+                  },
+                  "contest_ms": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/ms"
+                      }
+                    ]
+                  },
+                  "opening": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/ouverture"
+                      }
+                    ]
+                  },
+                  "windows": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/fenetre_ouverte"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fichier_candidats": {
+      "description": "candidats/<politique>.json (CT-3 annexe A.4 et EX-4.11).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "policy",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "policy": {
+          "type": "string",
+          "pattern": "^politiques/[a-z0-9]+(-[a-z0-9]+)*\\.json$"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "checks",
+              "tools",
+              "approval_candidates"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "checks": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^AP-[1-9][0-9]*$"
+                }
+              },
+              "tools": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+                }
+              },
+              "approval_candidates": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "attendu_acceptation": {
+      "description": "acceptation-attendu.json (CT-3 annexe A.5) : dix décisions attendues, hors du répertoire remis aux relecteurs.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "policy",
+        "expected"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "policy": {
+          "const": "acceptation/politique.json"
+        },
+        "expected": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "rule",
+              "decision"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^cas-(0[1-9]|10)$"
+              },
+              "rule": {
+                "type": "string",
+                "maxLength": 1024
+              },
+              "decision": {
+                "enum": [
+                  "autorise",
+                  "a_approuver",
+                  "refuse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

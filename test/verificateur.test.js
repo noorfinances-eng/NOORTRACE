@@ -483,6 +483,16 @@ describe("CT-6 : génération déterministe de spec/vecteurs/ct-6", function () 
     fs.rmSync(sortie, { recursive: true, force: true });
   });
 
+  it("le générateur n'efface que ses propres entrées : racine étrangère refusée sans rien effacer, --sortie sans répertoire refusée (code 2)", function () {
+    const etrangere = tmp("noortrace-vecteurs-ct6-etrangere-");
+    fs.writeFileSync(path.join(etrangere, "precieux.txt"), "à garder\n");
+    expect(() => genererCt6({ racine: etrangere })).to.throw(/entrées que le générateur n'écrit pas \(precieux\.txt\)/);
+    expect(fs.readdirSync(etrangere)).to.deep.equal(["precieux.txt"]);
+    fs.rmSync(etrangere, { recursive: true, force: true });
+    const r = spawnSync(process.execPath, [path.join(PROJECT_ROOT, "scripts", "vecteurs", "generer-ct6.mjs"), "--sortie"], { encoding: "utf8" });
+    expect([r.status, r.stderr]).to.deep.equal([2, "generer-ct6 : --sortie attend un répertoire\n"]);
+  });
+
   it("le vérificateur en mémoire (verifierRepertoire) et la ligne de commande donnent le même corps de rapport", function () {
     const corps = verifierRepertoire(COMPLET, { ancres: ANCRES_TEST, entetes: CHAINE });
     const { doc } = rapportJSON([COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);

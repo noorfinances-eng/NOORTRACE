@@ -1,0 +1,59 @@
+{
+  "version": 0,
+  "id": "sg6-taille-differente-des-membres",
+  "description": "approval.threshold et jeu déclarés 2 sur 4, mais le jeu déclaré n'a que trois membres : size doit égaler le nombre de membres.",
+  "check": "SG-6",
+  "context": {
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+    "retained": [
+      {
+        "seq": 5,
+        "ticket": "apr-0001",
+        "hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+        "ts": "2026-11-12T09:00:00.200Z"
+      }
+    ],
+    "decided": [],
+    "expire_after_ms": 3600000,
+    "write_at": "2026-11-12T09:15:01.900Z"
+  },
+  "remise": {
+    "remise_id": "apr-0001/1",
+    "ticket": "apr-0001",
+    "approval": {
+      "decision": "approuve",
+      "ticket": "apr-0001",
+      "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+      "threshold": {
+        "required": 2,
+        "size": 4
+      },
+      "approvers": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      ],
+      "signatures": [
+        "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+        "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+      ],
+      "reason": "Constat et facture concordants"
+    },
+    "approver_set": {
+      "threshold": {
+        "required": 2,
+        "size": 4
+      },
+      "members": [
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+      ],
+      "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1214 b=0xbbdda14682d88cba1356b88a3fa30ecf233920d3a15f4caf97dcff023d21fbca"
+    }
+  },
+  "expected": {
+    "result": "refuse",
+    "reason": "seuil_different_du_jeu"
+  }
+}

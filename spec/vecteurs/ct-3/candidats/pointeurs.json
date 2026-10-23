@@ -1,0 +1,22 @@
+{
+  "version": 0,
+  "policy": "politiques/pointeurs.json",
+  "cases": [
+    {
+      "id": "defaut-autorise",
+      "checks": [
+        "AP-16"
+      ],
+      "tools": [
+        "ptr__barre",
+        "ptr__autre",
+        "ptr__nul",
+        "ptr__barre"
+      ],
+      "approval_candidates": [
+        "ptr__barre",
+        "ptr__nul"
+      ]
+    }
+  ]
+}

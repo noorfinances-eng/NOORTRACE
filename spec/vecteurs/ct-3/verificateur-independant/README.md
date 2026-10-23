@@ -1,0 +1,135 @@
+# Vérificateur indépendant CT-3 (Go, salle blanche)
+
+Un second vérificateur des vecteurs de [CT-3](../../../CT-3-approbations.md),
+écrit en Go depuis la seule spécification (CT-3, et CT-1 pour l'objet signé
+`A`, son condensé `D_A` et le contrôle E-9) et les schémas qu'elle cite
+(`politique-approbation-v0`, `ticket-v0` et, par renvoi, `evenement-v0`),
+sans lire ni reprendre le code JavaScript de `scripts/` ni de `test/`. Il
+recalcule chaque valeur que les vecteurs de `spec/vecteurs/ct-3` déclarent,
+famille par famille selon l'annexe A, et la confronte à l'attendu. Deux
+implémentations écrites séparément qui tombent sur les mêmes valeurs rendent
+les vecteurs probants ; une discordance désigne une ambiguïté de la
+spécification ou une faute de l'une des deux (CT-3 §0, EX-A.10).
+
+Module propre `noortrace-ct3` (`go 1.24`), **bibliothèque standard
+uniquement** : aucun `go.sum`, aucun accès au réseau. Trois fichiers reprennent
+du code des vérificateurs indépendants de CT-1 et CT-2, ce qu'EX-A.10 permet,
+en le disant en tête : `keccak.go` (copie de CT-1), `jcs.go` (JCS v0 de CT-1,
+JCS intégral de CT-2) et `json.go` (analyseur de CT-1, adapté pour lire un
+substitut UTF-16 isolé au lieu de le refuser, ce qu'exige le code
+`substitut_isole` d'EX-4.2).
+
+## Usage
+
+```bash
+cd spec/vecteurs/ct-3/verificateur-independant
+go run . ..                       # rapport texte
+go run . -v ..                    # liste aussi chaque valeur concordante et hors périmètre
+go run . -json .. > rapport.json  # rapport complet en JSON
+go build -o verificateur . && ./verificateur ..
+gofmt -l . ; go vet ./... ; go test ./...
+```
+
+`go build` sans `-o` produit `noortrace-ct3` ; `noortrace-ct3` et
+`verificateur` sont exclus par le `.gitignore` local.
+
+Le vérificateur lit, à côté des vecteurs, les schémas
+(`../../schemas/*.schema.json`, obligatoires), la spécification
+(`../../CT-3-approbations.md`, pour les comparaisons au texte) et le journal
+valide des vecteurs CT-1 (`../ct-1/journal-valide/evenements.json`, pour le
+cas `ct1-apr-2201` d'EX-A.8) ; il n'écrit rien.
+
+Codes de retour (EX-A.10) : `0` tout concorde (les valeurs hors périmètre
+sont énoncées avec leur raison et ne comptent pas) ; `1` au moins une
+discordance, listée avec l'attendu, la valeur recalculée et la règle de la
+spécification qui fonde le calcul, ou une erreur (fichier absent ou
+illisible) ; `2` usage incorrect ou racine introuvable.
+
+Le rapport imprime, par famille puis au total, le nombre de valeurs
+recalculées, concordantes, discordantes et hors périmètre, puis
+« Résultat : tout concorde. » ou la liste des discordances.
+
+## Ce qui est recalculé
+
+| Famille | Fichiers lus | Valeurs recalculées et confrontées |
+|---|---|---|
+| constantes | `constantes.json` | `org_id` et `journal_id` (keccak256), registre et jeux 1 et 2 (20 premiers octets de SHA-256 des étiquettes), étiquettes, versions de politique, `chain_id`, mnémonique, **clé privée de chaque compte dérivée du mnémonique** (BIP-39 puis BIP-32, `m/44'/60'/0'/0/i`), adresse de chaque clé (secp256k1, keccak256) et adresses imprimées en A.2, demandeur, instant de base, `expire_after_ms` |
+| format | tous les `*.json` | octets du fichier = `JSON.stringify(valeur, null, 2)` suivi d'un saut de ligne (EX-A.1) : indentation, conteneurs vides, nombres par `Number::toString`, échappements, substitut isolé écrit `\udxxx` |
+| schemas | les fichiers qu'EX-A.3 désigne | conformité à `politique-approbation-v0` (politiques valides, politique de l'épreuve) et aux `$defs` de `ticket-v0` qu'EX-A.3 désigne (`attendu_politiques_invalides`, `fichier_evaluation`, `fichier_candidats`, `attendu_acceptation`, `trace`, `cas_remise`, `remise` des cas valides, remises et fenêtres attendues des traces par `attendu_pas`, `requete_evaluer` des cas de l'épreuve) |
+| politiques | `politiques/*.json` | validation complète d'EX-4.2 sans erreur ; `assureur.json` égale à l'exemple de §4.3 lu dans le texte ; `assureur-permute.json` de même valeur, chaque objet en ordre inverse (AP-17) |
+| politiques-invalides | `politiques-invalides/*.json`, `attendu.json` | liste complète des erreurs d'EX-4.2 et d'EX-8.2 : exactement l'entrée `schema` à pointeur nul pour un document non conforme au schéma, sinon chaque règle hors schéma avec son pointeur, triée par pointeur (unités UTF-16) puis par code, sous l'`environment` et l'`expire_after_ms` du cas ; l'exemple d'attendu imprimé en A.4 |
+| evaluation | `evaluation/*.json` et leurs politiques | pour chaque cas : `rule`, `decision`, `contest_ms`, `opening` (portée avec l'outil annoncé) et `windows` après l'évaluation, par `EVALUER` (6.2) avec `SELECTIONNE`, `RESOUDRE`, `NUMERIQUE`, `COMPARER` (entiers `math/big`, jamais de flottant), `PREDICAT`, la logique de Kleene, `ISSUE` (EX-6.2), la chaîne `policy.rule` (EX-6.4) et les fenêtres (EX-5.2 à EX-5.5) ; chaque vérification AP-1 à AP-17 a au moins un cas (A.4) |
+| candidats | `candidats/*.json` | `approval_candidates` par `CANDIDATS` (EX-4.11) ; l'exemple de 4.12 lu dans le texte |
+| acceptation | `acceptation/`, `acceptation-attendu.json` | `rule` et `decision` des dix cas (F vide) ; couverture d'EX-A.4 (chaque sortie au moins deux fois, égalité exacte au seuil, argument absent, argument d'un autre type, autre outil, aucune règle `fenetre`) ; forme du gabarit, présence de la consigne, attendu hors du répertoire remis ; des règles qui sélectionnent toutes les mêmes outils (A.5) |
+| tickets | `tickets/*.json` | chaque trace rejouée entrée par entrée sur un service vide (EX-A.6) : après chaque pas, l'état de **chaque** ticket, `accepted`, `reason`, `response`, les remises calculées pendant le pas (contenu complet : `remise_id`, `approvers` dans l'ordre d'acceptation, signatures normalisées, motif, seuil, membres, `source` d'EX-8.8) et les fenêtres ; minuteurs d'EX-7.7 (fin de fenêtre comprise), transitions T1 à T21, clé de rapprochement d'EX-7.3 (JCS intégral des arguments), réponses d'EX-7.16 et EX-7.17 (`approver_set` de la réponse `nouveau`, approbation servie une fois, `held`), votes et décompte (EX-7.26 à EX-7.29, EX-9.10 avec recouvrement de chaque signature sur `D_A`), séparation et récusation (10.1, refus d'un récusé maintenu), objections (10.2, refus antérieur au seuil compris), jeu épinglé (`jeu_non_attendu`), gel, nouveau gel, seuil effectif et confirmation du jeu (8.1 à 8.3), jeu de repli, remises (12.5), acquittements et expirations du noyau avec l'objet `approval` reçu (T11 à T17, T20), fenêtres ouvertes, consommées, épuisées et retirées (EX-5.4 à EX-5.6, EX-4.12), retrait par un contact administrateur (EX-7.15) ; identifiants `apr-0001`, … ; hachages synthétiques des blocs, des demandes (`demande/<k>`) et des événements (`evenement/<seq>`, A.2) ; cohérence de chaque `data.evaluation` (portée d'un ticket ouvrant, EX-5.2) ; trace exigée par EX-A.7 présente ; TK-1 à TK-13 servies ; escalades de 10.3 bien formées ; réponse à `charger` réduite à `{ policy_version }` (A.6) |
+| decisions | `decisions/valides/*.json`, `decisions/invalides/*.json` | `expected.result`, `expected.reason` et `check` par SG-1 à SG-6 dans l'ordre d'EX-9.11 (recouvrement secp256k1 de chaque signature sur `D_A`, canonicité, A-3) ; couverture d'EX-A.8 (une raison par cas de refus du noyau, signature sur la chaîne `"0x…"` de `D_A`, signature `approuve` dans une remise `refuse`, `s` haut, signature d'un autre journal, écriture à l'échéance ; les cinq remises valides exigées) ; SG-1 exige un `remise_id` de la forme `<ticket>/<n>` ; le cas `ct1-apr-2201` : `approval` plus `at` égal à l'événement seq 6 du journal valide de CT-1, remise égale à l'exemple de §12.5 |
+| signatures | `signatures/normalisation.json`, et les signatures valides des deux familles précédentes | forme normalisée d'EX-9.3 ou refus `signature_invalide` (`r` ou `s` hors de `[1, n − 1]` compris) ; même adresse recouvrée avant et après normalisation (A.8), sur le `D_A` où la forme canonique figure ; présence des sept formes exigées par A.8 ; **reproduction octet pour octet** de chaque signature valide par la clé du compte (ECDSA à nonce RFC 6979) |
+
+Briques écrites ici : secp256k1 en `math/big` (multiplication, recouvrement
+SEC 1 §4.1.6, signature RFC 6979, contrôlés contre les adresses de A.2 et les
+deux signatures imprimées en §12.5) ; BIP-39 et BIP-32 (`crypto/pbkdf2`,
+`crypto/hmac`) ; EIP-191 sur `D_A` ; un validateur JSON Schema 2020-12 réduit
+aux mots-clés des trois schémas (un mot-clé inconnu est une erreur, jamais
+ignoré ; les motifs ECMAScript sont traduits pour `regexp`) ; une machine à
+états du service ; la vérification SG du noyau.
+
+## Ce qui n'est pas recalculé (hors périmètre)
+
+- **`data.evaluation` des traces** : une trace fournit la sortie d'`EVALUER`
+  sans les règles qui la produisent (A.6) ; elle est reprise telle quelle,
+  seule sa cohérence (portée, `contest_ms`, `opening`) est contrôlée.
+- **`INDEX.md` et le texte de `acceptation/consigne.md`** : documents générés
+  ou libres, sans valeur attendue propre.
+- Ce que les traces ne publient pas : le document `ticket-v0` persisté
+  (`transitions`, `votes`, `eligible`), les notifications, les escalades, la
+  re-présentation d'une remise après `temporaire` (T12), la lecture du
+  registre sur la chaîne (8.1) : la machine joue les entrées `jeu_lu` telles
+  quelles.
+- Les refus que les traces n'exercent pas (un `consommer` ou un `retirer`
+  hors des états admis) sont implémentés selon les tables 7.5 et 12.8 mais
+  ne sont confrontés à aucun attendu.
+
+## Lectures retenues là où le texte laisse un choix
+
+Les choix qu'une version précédente du texte laissait ouverts sont désormais
+écrits dans la spécification et appliqués tels quels : vote identique de
+même décision quel que soit le motif (EX-9.10), ordre des pointeurs en
+unités UTF-16 (A.4), exactement l'entrée `schema` pour une politique non
+conforme au schéma (EX-4.2), retrait des fenêtres à leur fin et à leur
+épuisement (EX-5.6), refus hors table par `requete_invalide` (EX-7.8),
+`expiration` répétée idempotente (EX-7.20), `r` et `s` hors de
+`[1, n − 1]` refusés (EX-9.3). Il ne reste aucune lecture propre à ce
+vérificateur.
+
+## Tests du module (`go test`)
+
+- Keccak-f[1600] confronté à `crypto/sha3` ; `org_id`, `journal_id` de CT-3
+  et de CT-1.
+- Comptes 1 à 4 de A.2 dérivés du mnémonique ; signature puis recouvrement,
+  forme à `s` haut et sa normalisation ; les deux signatures de l'exemple de
+  §12.5 recouvrent les approbateurs qu'il nomme ; registre, jeu 1 et bloc 1214
+  de l'exemple d'EX-8.9.
+- JCS v0 (cas limites de CT-1 §4), JCS intégral (table de CT-2 EX-8.1),
+  `JSON.stringify(…, null, 2)`, horodatages inexistants refusés.
+- Comparaisons exactes d'EX-4.6, pointeurs d'EX-4.4, logique de Kleene et
+  garde `existe` (4.10), sélection (EX-4.3).
+- **Table de §6.7 transcrite du texte**, évaluée sur la politique de §4.3 lue
+  dans la spécification (décision, `policy.rule`, consommation de la fenêtre,
+  `contest_ms`, ouverture) ; exemple de 4.12.
+- Règles d'EX-4.2 hors schéma sur des documents construits (32 et 33 jetons,
+  8 et 9 niveaux, 64 et 65 prédicats, noms en double, substitut isolé,
+  `contest_ms`) ; refus du validateur de schémas.
+- Un scénario de service construit sans les vecteurs (jeu statique, votes
+  signés par les clés dérivées, auto-approbation refusée, vote identique,
+  remise acceptée par SG-1 à SG-6 puis refusée à l'échéance, consommation
+  unique) ; échéance avant un vote de même instant (EX-7.7).
+- Les vecteurs publiés dans le répertoire parent : tout doit concorder.
+
+## Écarts relevés entre la spécification et les vecteurs publiés
+
+Confrontation du 2026-10-23, après correction de la spécification et des
+vecteurs : 4 590 valeurs recalculées, 4 590 concordantes, **0 discordante**,
+81 hors périmètre (79 `data.evaluation` des traces, `INDEX.md`, texte de la
+consigne). Les écarts de la confrontation précédente (politique de l'épreuve
+à plusieurs règles, réponse réduite à `charger`, fenêtres échues gardées,
+étiquette d'événement absente de A.2) sont résolus dans le texte de CT-3.

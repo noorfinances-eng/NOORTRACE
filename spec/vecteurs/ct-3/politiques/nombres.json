@@ -1,0 +1,159 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : autorisation",
+    "description": "Politique de test : ce qu'aucune règle ne refuse est autorisé.",
+    "level": "automatique",
+    "decision": "autorise",
+    "contest_ms": null
+  },
+  "rules": [
+    {
+      "name": "egal a 5000",
+      "description": null,
+      "tools": [
+        "num__egal"
+      ],
+      "when": {
+        "path": "/arguments/v",
+        "op": "egal_numerique",
+        "value": "5000"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "egal a zero",
+      "description": null,
+      "tools": [
+        "num__zero"
+      ],
+      "when": {
+        "path": "/arguments/v",
+        "op": "egal_numerique",
+        "value": "0"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "superieur a 5000",
+      "description": null,
+      "tools": [
+        "num__sup"
+      ],
+      "when": {
+        "path": "/arguments/v",
+        "op": "strictement_superieur",
+        "value": "5000"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "superieur a 9.00",
+      "description": null,
+      "tools": [
+        "num__neuf"
+      ],
+      "when": {
+        "path": "/arguments/v",
+        "op": "strictement_superieur",
+        "value": "9.00"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "superieur ou egal a -0.5",
+      "description": null,
+      "tools": [
+        "num__supeg"
+      ],
+      "when": {
+        "path": "/arguments/v",
+        "op": "superieur_ou_egal",
+        "value": "-0.5"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "inferieur a zero",
+      "description": null,
+      "tools": [
+        "num__inf"
+      ],
+      "when": {
+        "path": "/arguments/v",
+        "op": "strictement_inferieur",
+        "value": "0"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "inferieur ou egal au plus petit pas",
+      "description": null,
+      "tools": [
+        "num__infeg"
+      ],
+      "when": {
+        "path": "/arguments/v",
+        "op": "inferieur_ou_egal",
+        "value": "0.000000000000000001"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "superieur a trente chiffres",
+      "description": null,
+      "tools": [
+        "num__grand"
+      ],
+      "when": {
+        "path": "/arguments/v",
+        "op": "strictement_superieur",
+        "value": "999999999999999999999999999999"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

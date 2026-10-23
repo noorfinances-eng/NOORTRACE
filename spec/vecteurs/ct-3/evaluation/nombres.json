@@ -1,0 +1,1407 @@
+{
+  "version": 0,
+  "policy": "politiques/nombres.json",
+  "policy_version": "vecteurs-ct3-1",
+  "cases": [
+    {
+      "id": "egal-chaine",
+      "description": "\"5000\" = 5000.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__egal",
+        "tool_original": "egal",
+        "server_alias": "num",
+        "arguments": {
+          "v": "5000"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "egal a 5000",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "egal-echelle",
+      "description": "\"5000.00\" = 5000 : échelles différentes.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__egal",
+        "tool_original": "egal",
+        "server_alias": "num",
+        "arguments": {
+          "v": "5000.00"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "egal a 5000",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "egal-nombre",
+      "description": "5000 en nombre JSON = \"5000\".",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__egal",
+        "tool_original": "egal",
+        "server_alias": "num",
+        "arguments": {
+          "v": 5000
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "egal a 5000",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "egal-dix-huit-decimales",
+      "description": "\"5000.000000000000000001\" ≠ 5000.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__egal",
+        "tool_original": "egal",
+        "server_alias": "num",
+        "arguments": {
+          "v": "5000.000000000000000001"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "zero-negatif",
+      "description": "\"-0\" vaut zéro.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__zero",
+        "tool_original": "zero",
+        "server_alias": "num",
+        "arguments": {
+          "v": "-0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "egal a zero",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "zero-negatif-decimales",
+      "description": "\"-0.00\" vaut zéro.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__zero",
+        "tool_original": "zero",
+        "server_alias": "num",
+        "arguments": {
+          "v": "-0.00"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "egal a zero",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "zero-nombre",
+      "description": "0 en nombre JSON.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__zero",
+        "tool_original": "zero",
+        "server_alias": "num",
+        "arguments": {
+          "v": 0
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "egal a zero",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "superieur-d-un-pas",
+      "description": "\"5000.000000000000000001\" > 5000.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": "5000.000000000000000001"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "superieur-egalite",
+      "description": "\"5000\" n'est pas > 5000.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": "5000"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "superieur-ordre-des-chaines",
+      "description": "\"10.00\" > 9.00 numériquement (l'ordre des chaînes dirait le contraire).",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__neuf",
+        "tool_original": "neuf",
+        "server_alias": "num",
+        "arguments": {
+          "v": "10.00"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 9.00",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "superieur-ou-egal-borne",
+      "description": "\"-0.50\" ≥ -0.5 (égalité, échelles différentes).",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__supeg",
+        "tool_original": "supeg",
+        "server_alias": "num",
+        "arguments": {
+          "v": "-0.50"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur ou egal a -0.5",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "superieur-ou-egal-sous-la-borne",
+      "description": "\"-0.51\" < -0.5.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__supeg",
+        "tool_original": "supeg",
+        "server_alias": "num",
+        "arguments": {
+          "v": "-0.51"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "superieur-ou-egal-negatif-entier",
+      "description": "-1 en nombre JSON < -0.5.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__supeg",
+        "tool_original": "supeg",
+        "server_alias": "num",
+        "arguments": {
+          "v": -1
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "inferieur-negatif",
+      "description": "-1 < 0.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__inf",
+        "tool_original": "inf",
+        "server_alias": "num",
+        "arguments": {
+          "v": -1
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "inferieur a zero",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "inferieur-plus-petit-pas",
+      "description": "\"-0.000000000000000001\" < 0.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__inf",
+        "tool_original": "inf",
+        "server_alias": "num",
+        "arguments": {
+          "v": "-0.000000000000000001"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "inferieur a zero",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "inferieur-moins-zero",
+      "description": "\"-0\" n'est pas < 0.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__inf",
+        "tool_original": "inf",
+        "server_alias": "num",
+        "arguments": {
+          "v": "-0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "inferieur-ou-egal-pas",
+      "description": "\"0.000000000000000001\" ≤ lui-même.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__infeg",
+        "tool_original": "infeg",
+        "server_alias": "num",
+        "arguments": {
+          "v": "0.000000000000000001"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "inferieur ou egal au plus petit pas",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "inferieur-ou-egal-deux-pas",
+      "description": "\"0.000000000000000002\" > 0.000000000000000001.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__infeg",
+        "tool_original": "infeg",
+        "server_alias": "num",
+        "arguments": {
+          "v": "0.000000000000000002"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "quarante-huit-chiffres",
+      "description": "30 chiffres et 18 décimales : dans la grammaire, > 999…9 (30 neuf).",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__grand",
+        "tool_original": "grand",
+        "server_alias": "num",
+        "arguments": {
+          "v": "999999999999999999999999999999.000000000000000001"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a trente chiffres",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "trente-et-un-chiffres",
+      "description": "31 chiffres avant le point : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__grand",
+        "tool_original": "grand",
+        "server_alias": "num",
+        "arguments": {
+          "v": "1000000000000000000000000000000"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a trente chiffres [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "dix-neuf-decimales",
+      "description": "19 décimales : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": "0.0000000000000000001"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "entier-sur-maximal",
+      "description": "2^53-1 en nombre JSON : numérique.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": 9007199254740991
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "entier-hors-intervalle",
+      "description": "2^53 en nombre JSON : hors de l'intervalle, non numérique.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": 9007199254740992
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "nombre-non-entier",
+      "description": "7400.5 en nombre JSON : non numérique.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": 7400.5
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "separateur-de-milliers",
+      "description": "\"7,400.00\" : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": "7,400.00"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "exposant",
+      "description": "\"1e3\" : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": "1e3"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "espace-de-tete",
+      "description": "\" 12\" : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": " 12"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "signe-plus",
+      "description": "\"+6000\" : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": "+6000"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "zero-de-tete",
+      "description": "\"06000\" : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": "06000"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "point-de-tete",
+      "description": "\".5\" : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__supeg",
+        "tool_original": "supeg",
+        "server_alias": "num",
+        "arguments": {
+          "v": ".5"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur ou egal a -0.5 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "point-final",
+      "description": "\"6000.\" : hors grammaire.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": "6000."
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "booleen",
+      "description": "true : non numérique.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": true
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "nul",
+      "description": "null : résolu, non numérique.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": null
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "objet",
+      "description": "Un objet : non numérique.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {
+          "v": {
+            "montant": "6000"
+          }
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "absent",
+      "description": "v absent : non résolu.",
+      "checks": [
+        "AP-7",
+        "AP-8"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "num__sup",
+        "tool_original": "sup",
+        "server_alias": "num",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "superieur a 5000 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    }
+  ]
+}

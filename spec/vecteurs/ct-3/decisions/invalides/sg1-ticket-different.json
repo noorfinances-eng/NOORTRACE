@@ -1,0 +1,59 @@
+{
+  "version": 0,
+  "id": "sg1-ticket-different",
+  "description": "approval.ticket (apr-0002) différent du ticket de la remise.",
+  "check": "SG-1",
+  "context": {
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+    "retained": [
+      {
+        "seq": 5,
+        "ticket": "apr-0001",
+        "hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+        "ts": "2026-11-12T09:00:00.200Z"
+      }
+    ],
+    "decided": [],
+    "expire_after_ms": 3600000,
+    "write_at": "2026-11-12T09:15:01.900Z"
+  },
+  "remise": {
+    "remise_id": "apr-0001/1",
+    "ticket": "apr-0001",
+    "approval": {
+      "decision": "approuve",
+      "ticket": "apr-0002",
+      "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "approvers": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      ],
+      "signatures": [
+        "0x6da9d342d1ed5743b11dbb3c4e3e9a7a6fbf8e8954c37e87b805b0b3cae56f960b86c4bb696f4de67ec8c940e6f51ebe93416a5f2e92f2f238999935dc9a8f8c1b",
+        "0x1fbf48bc334a732cd8e7917a0c0d48a73268edc5cd91112673c73f703183a68d07de2b026271ec981d19911ca6c3d160ffcb2c0bd7a16a186936b7dc35fc58f41b"
+      ],
+      "reason": "Constat et facture concordants"
+    },
+    "approver_set": {
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "members": [
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+      ],
+      "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1214 b=0xbbdda14682d88cba1356b88a3fa30ecf233920d3a15f4caf97dcff023d21fbca"
+    }
+  },
+  "expected": {
+    "result": "refuse",
+    "reason": "remise_mal_formee"
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : revue",
+    "description": "Tout appel qu'aucune règle ne couvre est soumis aux approbateurs.",
+    "level": "revue",
+    "decision": null,
+    "contest_ms": 0
+  },
+  "rules": [
+    {
+      "name": "petit montant",
+      "description": null,
+      "tools": [
+        "pay__virement"
+      ],
+      "when": {
+        "path": "/arguments/amount",
+        "op": "inferieur_ou_egal",
+        "value": "100"
+      },
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "petit montant bis",
+      "description": null,
+      "tools": [
+        "pay__virement"
+      ],
+      "when": {
+        "path": "/arguments/amount",
+        "op": "inferieur_ou_egal",
+        "value": "200"
+      },
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "fenetre moyenne",
+      "description": null,
+      "tools": [
+        "pay__virement"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/amount",
+            "op": "strictement_superieur",
+            "value": "100"
+          },
+          {
+            "path": "/arguments/amount",
+            "op": "inferieur_ou_egal",
+            "value": "1000"
+          }
+        ]
+      },
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 3600000,
+        "max_calls": 2,
+        "same_arguments": [
+          "/arguments/beneficiary"
+        ]
+      },
+      "contest_ms": 0
+    },
+    {
+      "name": "revue elevee",
+      "description": null,
+      "tools": [
+        "pay__virement"
+      ],
+      "when": {
+        "path": "/arguments/amount",
+        "op": "strictement_superieur",
+        "value": "1000"
+      },
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 60000
+    },
+    {
+      "name": "revue elevee bis",
+      "description": null,
+      "tools": [
+        "pay__virement"
+      ],
+      "when": {
+        "path": "/arguments/amount",
+        "op": "strictement_superieur",
+        "value": "5000"
+      },
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 0
+    },
+    {
+      "name": "blocage pays",
+      "description": null,
+      "tools": [
+        "pay__virement"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/pays",
+            "op": "existe",
+            "value": null
+          },
+          {
+            "path": "/arguments/pays",
+            "op": "egal",
+            "value": "KP"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "consultation autorisee",
+      "description": null,
+      "tools": [
+        "pay__consultation"
+      ],
+      "when": {
+        "path": "/arguments/mode",
+        "op": "egal",
+        "value": "lecture"
+      },
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "fenetre sans portee",
+      "description": null,
+      "tools": [
+        "pay__releve",
+        "pay__releve_detail"
+      ],
+      "when": null,
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 600000,
+        "max_calls": 1,
+        "same_arguments": []
+      },
+      "contest_ms": 0
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

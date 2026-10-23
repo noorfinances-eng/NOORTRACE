@@ -1,0 +1,66 @@
+{
+  "version": 0,
+  "policy": "politiques/assureur.json",
+  "cases": [
+    {
+      "id": "exemple-4-12",
+      "checks": [
+        "AP-16"
+      ],
+      "tools": [
+        "crm.claims.get",
+        "crm.claims.delete",
+        "documents.search",
+        "mail.send",
+        "sap.payments.create",
+        "sap.payments.list"
+      ],
+      "approval_candidates": [
+        "crm.claims.delete",
+        "mail.send",
+        "sap.payments.create",
+        "sap.payments.list"
+      ]
+    },
+    {
+      "id": "ordre-et-doublons",
+      "checks": [
+        "AP-16"
+      ],
+      "tools": [
+        "sap.payments.list",
+        "crm.claims.get",
+        "sap.payments.list",
+        "mail.send",
+        "documents.search",
+        "crm.claims.delete",
+        "mail.send"
+      ],
+      "approval_candidates": [
+        "sap.payments.list",
+        "mail.send",
+        "crm.claims.delete"
+      ]
+    },
+    {
+      "id": "liste-vide",
+      "checks": [
+        "AP-16"
+      ],
+      "tools": [],
+      "approval_candidates": []
+    },
+    {
+      "id": "outil-inconnu",
+      "checks": [
+        "AP-16"
+      ],
+      "tools": [
+        "erp.invoices.cancel"
+      ],
+      "approval_candidates": [
+        "erp.invoices.cancel"
+      ]
+    }
+  ]
+}

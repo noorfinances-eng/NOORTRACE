@@ -638,7 +638,8 @@ counter_sig = 0xe107f72204e19597866fb4967e8c30285027f5f87af7fe865a7360c640a8926d
 
 Un changement de politique suit le même schéma avec `noortrace.journal.politique`
 et `value = { "policy_version": "…", "policy_sha256": "0x…" }` (SHA-256 des
-octets de la politique, CT-3), sans contresignature.
+octets de l'ensemble de politique, défini par CT-2 EX-8.11), sans
+contresignature.
 
 ## 9. Arbre de Merkle, période vide, preuve d'inclusion
 

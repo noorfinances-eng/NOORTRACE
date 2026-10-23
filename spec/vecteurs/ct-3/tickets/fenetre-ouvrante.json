@@ -1,0 +1,1522 @@
+{
+  "version": 0,
+  "id": "fenetre-ouvrante",
+  "description": "Deux tickets ouvrants de même portée (u.martin, sap.payments.create, IBAN A ; 10 min, 3 appels) et un ticket non ouvrant, approuvés : le non ouvrant n'ouvre rien ; le premier ouvrant ouvre une fenêtre à l'acquittement de son scellement, debut = approval.at ; le second la remplace. Trois appels couverts l'épuisent : elle est retirée (EX-5.6). Une nouvelle demande ouvre apr-0004, dont la fenêtre est retirée à sa fin.",
+  "checks": [
+    "TK-3",
+    "TK-13"
+  ],
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+  "environment": "developpement",
+  "policy_version": "vecteurs-ct3-1",
+  "expire_after_ms": 3600000,
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  },
+  "service": {
+    "max_open_tickets": 20,
+    "escalation": [],
+    "set_poll_interval_ms": 10000,
+    "administrators": []
+  },
+  "steps": [
+    {
+      "input": {
+        "kind": "jeu_lu",
+        "at": "2026-11-12T08:59:00.000Z",
+        "data": {
+          "status": "lu",
+          "jeu": {
+            "chain_id": 2124,
+            "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+            "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+            "height": 1190,
+            "block_hash": "0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ]
+          },
+          "cause": null
+        }
+      },
+      "expected": {
+        "tickets": {},
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:00.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "2500.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement de 1000 a 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": {
+              "scope": {
+                "policy_version": "vecteurs-ct3-1",
+                "rule": "paiement de 1000 a 5000 CHF",
+                "tool": "sap.payments.create",
+                "launched_by": "u.martin@assureur-demo.example",
+                "values": [
+                  "CH9300762011623852957"
+                ]
+              },
+              "duration_ms": 600000,
+              "max_calls": 3
+            }
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0001",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:00.050Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "7400.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement > 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve",
+          "apr-0002": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0002",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:00.100Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "3000.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement de 1000 a 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": {
+              "scope": {
+                "policy_version": "vecteurs-ct3-1",
+                "rule": "paiement de 1000 a 5000 CHF",
+                "tool": "sap.payments.create",
+                "launched_by": "u.martin@assureur-demo.example",
+                "values": [
+                  "CH9300762011623852957"
+                ]
+              },
+              "duration_ms": 600000,
+              "max_calls": 3
+            }
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve",
+          "apr-0002": "reserve",
+          "apr-0003": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0003",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "ouvrir",
+        "at": "2026-11-12T09:00:00.250Z",
+        "data": {
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "request_seq": 5,
+          "request_ts": "2026-11-12T09:00:00.200Z"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert",
+          "apr-0002": "reserve",
+          "apr-0003": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0001",
+          "state": "ouvert",
+          "deadline": "2026-11-12T10:00:00.200Z"
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "ouvrir",
+        "at": "2026-11-12T09:00:00.300Z",
+        "data": {
+          "ticket": "apr-0002",
+          "request_hash": "0x8bb381db9145a748f4c5db763b11315643b8cb4af0c4a9098857915fe333a38e",
+          "request_seq": 6,
+          "request_ts": "2026-11-12T09:00:00.280Z"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert",
+          "apr-0002": "ouvert",
+          "apr-0003": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0002",
+          "state": "ouvert",
+          "deadline": "2026-11-12T10:00:00.280Z"
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "ouvrir",
+        "at": "2026-11-12T09:00:00.350Z",
+        "data": {
+          "ticket": "apr-0003",
+          "request_hash": "0x674a81de253edd1292bbe3986aced24649818a792a74179678ae9c348e200f1c",
+          "request_seq": 7,
+          "request_ts": "2026-11-12T09:00:00.330Z"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert",
+          "apr-0002": "ouvert",
+          "apr-0003": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0003",
+          "state": "ouvert",
+          "deadline": "2026-11-12T10:00:00.330Z"
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "jeu_lu",
+        "at": "2026-11-12T09:00:01.000Z",
+        "data": {
+          "status": "lu",
+          "jeu": {
+            "chain_id": 2124,
+            "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+            "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+            "height": 1200,
+            "block_hash": "0x0d69b52a5fa6dc8b96b79c133fcb3b7368106273ac3c969915238b890ee2e491",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ]
+          },
+          "cause": null
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert",
+          "apr-0002": "ouvert",
+          "apr-0003": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:10:00.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "decision": "approuve",
+          "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+          "reason": null,
+          "session_identity": "approbateur-1@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert",
+          "apr-0002": "ouvert",
+          "apr-0003": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:10:01.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "decision": "approuve",
+          "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+          "reason": null,
+          "session_identity": "approbateur-2@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "verification",
+          "apr-0002": "ouvert",
+          "apr-0003": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:10:02.000Z",
+        "data": {
+          "ticket": "apr-0002",
+          "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "decision": "approuve",
+          "signature": "0x910126fa348dfae9b185757a5fce711e62068d1c8e8ad42ff7b5285d41f41aff76c0296108dccde81dcde1cb209edc80fa25603772a9312684d3cd36497333671c",
+          "reason": null,
+          "session_identity": "approbateur-1@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "verification",
+          "apr-0002": "ouvert",
+          "apr-0003": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:10:03.000Z",
+        "data": {
+          "ticket": "apr-0002",
+          "approver": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "decision": "approuve",
+          "signature": "0x21317ac4ea3cac7176bae0c343dac004dd0c400c07da8a935b22b5564814b2476e3ed722d24894b5b7a73cd0ff16234a3eef51a7539e1214117d2c0c9abe4ae71c",
+          "reason": null,
+          "session_identity": "approbateur-2@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "verification",
+          "apr-0002": "verification",
+          "apr-0003": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:10:04.000Z",
+        "data": {
+          "ticket": "apr-0003",
+          "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "decision": "approuve",
+          "signature": "0x7a18c56d65e8a60f8095c5778a16d9d32945be7db2fd482ccba0c18b4ae7e86114e70b4ec2b38c9d7c642328e80dcfd1ca424e167c6735c00f1616f49008ebfa1b",
+          "reason": null,
+          "session_identity": "approbateur-1@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "verification",
+          "apr-0002": "verification",
+          "apr-0003": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:10:05.000Z",
+        "data": {
+          "ticket": "apr-0003",
+          "approver": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "decision": "approuve",
+          "signature": "0x223ec6c631603211d9b07549cf879d9eaaab8baa71c6f5939c608351c579656261d80f27eecf9832ea5bd9cc0688af00568f315ea4cabf59d6276cdf77e2fb8a1b",
+          "reason": null,
+          "session_identity": "approbateur-2@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "verification",
+          "apr-0002": "verification",
+          "apr-0003": "verification"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "jeu_lu",
+        "at": "2026-11-12T09:15:01.000Z",
+        "data": {
+          "status": "lu",
+          "jeu": {
+            "chain_id": 2124,
+            "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+            "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+            "height": 1214,
+            "block_hash": "0xbbdda14682d88cba1356b88a3fa30ecf233920d3a15f4caf97dcff023d21fbca",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ]
+          },
+          "cause": null
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "a_remettre",
+          "apr-0002": "a_remettre",
+          "apr-0003": "a_remettre"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [
+          {
+            "remise_id": "apr-0001/1",
+            "ticket": "apr-0001",
+            "approval": {
+              "decision": "approuve",
+              "ticket": "apr-0001",
+              "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "approvers": [
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+              ],
+              "signatures": [
+                "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+                "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+              ],
+              "reason": null
+            },
+            "approver_set": {
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "members": [
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+              ],
+              "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1214 b=0xbbdda14682d88cba1356b88a3fa30ecf233920d3a15f4caf97dcff023d21fbca"
+            }
+          },
+          {
+            "remise_id": "apr-0002/1",
+            "ticket": "apr-0002",
+            "approval": {
+              "decision": "approuve",
+              "ticket": "apr-0002",
+              "request_hash": "0x8bb381db9145a748f4c5db763b11315643b8cb4af0c4a9098857915fe333a38e",
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "approvers": [
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+              ],
+              "signatures": [
+                "0x910126fa348dfae9b185757a5fce711e62068d1c8e8ad42ff7b5285d41f41aff76c0296108dccde81dcde1cb209edc80fa25603772a9312684d3cd36497333671c",
+                "0x21317ac4ea3cac7176bae0c343dac004dd0c400c07da8a935b22b5564814b2476e3ed722d24894b5b7a73cd0ff16234a3eef51a7539e1214117d2c0c9abe4ae71c"
+              ],
+              "reason": null
+            },
+            "approver_set": {
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "members": [
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+              ],
+              "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1214 b=0xbbdda14682d88cba1356b88a3fa30ecf233920d3a15f4caf97dcff023d21fbca"
+            }
+          },
+          {
+            "remise_id": "apr-0003/1",
+            "ticket": "apr-0003",
+            "approval": {
+              "decision": "approuve",
+              "ticket": "apr-0003",
+              "request_hash": "0x674a81de253edd1292bbe3986aced24649818a792a74179678ae9c348e200f1c",
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "approvers": [
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+              ],
+              "signatures": [
+                "0x7a18c56d65e8a60f8095c5778a16d9d32945be7db2fd482ccba0c18b4ae7e86114e70b4ec2b38c9d7c642328e80dcfd1ca424e167c6735c00f1616f49008ebfa1b",
+                "0x223ec6c631603211d9b07549cf879d9eaaab8baa71c6f5939c608351c579656261d80f27eecf9832ea5bd9cc0688af00568f315ea4cabf59d6276cdf77e2fb8a1b"
+              ],
+              "reason": null
+            },
+            "approver_set": {
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "members": [
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+              ],
+              "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1214 b=0xbbdda14682d88cba1356b88a3fa30ecf233920d3a15f4caf97dcff023d21fbca"
+            }
+          }
+        ],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "acquitter",
+        "at": "2026-11-12T09:15:02.000Z",
+        "data": {
+          "remise_id": "apr-0002/1",
+          "ticket": "apr-0002",
+          "result": "scelle",
+          "reason": null,
+          "seq": 8,
+          "hash": "0xa6f86d9cfd14fd5fbd8c8e580c6d41314660d9ce6b648610c716b264da2fabf3",
+          "at": "2026-11-12T09:15:01.900Z",
+          "decision": "approuve",
+          "held": false,
+          "approval": {
+            "decision": "approuve",
+            "ticket": "apr-0002",
+            "request_hash": "0x8bb381db9145a748f4c5db763b11315643b8cb4af0c4a9098857915fe333a38e",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "approvers": [
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+            ],
+            "signatures": [
+              "0x910126fa348dfae9b185757a5fce711e62068d1c8e8ad42ff7b5285d41f41aff76c0296108dccde81dcde1cb209edc80fa25603772a9312684d3cd36497333671c",
+              "0x21317ac4ea3cac7176bae0c343dac004dd0c400c07da8a935b22b5564814b2476e3ed722d24894b5b7a73cd0ff16234a3eef51a7539e1214117d2c0c9abe4ae71c"
+            ],
+            "at": "2026-11-12T09:15:01.900Z",
+            "reason": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "a_remettre",
+          "apr-0002": "approuve",
+          "apr-0003": "a_remettre"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0002",
+          "state": "approuve"
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "acquitter",
+        "at": "2026-11-12T09:15:03.000Z",
+        "data": {
+          "remise_id": "apr-0001/1",
+          "ticket": "apr-0001",
+          "result": "scelle",
+          "reason": null,
+          "seq": 9,
+          "hash": "0xb69e33b7085bbffedd3ee76b5c04e57ed2f350a9773f333dcb4feed332780e39",
+          "at": "2026-11-12T09:15:02.950Z",
+          "decision": "approuve",
+          "held": false,
+          "approval": {
+            "decision": "approuve",
+            "ticket": "apr-0001",
+            "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "approvers": [
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+            ],
+            "signatures": [
+              "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+              "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+            ],
+            "at": "2026-11-12T09:15:02.950Z",
+            "reason": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "a_remettre"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0001",
+          "state": "approuve"
+        },
+        "remises": [],
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:15:02.950Z",
+            "end": "2026-11-12T09:25:02.950Z",
+            "remaining": 3,
+            "ticket": "apr-0001"
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "kind": "acquitter",
+        "at": "2026-11-12T09:15:04.000Z",
+        "data": {
+          "remise_id": "apr-0003/1",
+          "ticket": "apr-0003",
+          "result": "scelle",
+          "reason": null,
+          "seq": 10,
+          "hash": "0x0cdeb9fcf29a9710a511d261fc56556fde9d278e7c02f63dea0aed79e4bc8716",
+          "at": "2026-11-12T09:15:03.950Z",
+          "decision": "approuve",
+          "held": false,
+          "approval": {
+            "decision": "approuve",
+            "ticket": "apr-0003",
+            "request_hash": "0x674a81de253edd1292bbe3986aced24649818a792a74179678ae9c348e200f1c",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "approvers": [
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+            ],
+            "signatures": [
+              "0x7a18c56d65e8a60f8095c5778a16d9d32945be7db2fd482ccba0c18b4ae7e86114e70b4ec2b38c9d7c642328e80dcfd1ca424e167c6735c00f1616f49008ebfa1b",
+              "0x223ec6c631603211d9b07549cf879d9eaaab8baa71c6f5939c608351c579656261d80f27eecf9832ea5bd9cc0688af00568f315ea4cabf59d6276cdf77e2fb8a1b"
+            ],
+            "at": "2026-11-12T09:15:03.950Z",
+            "reason": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0003",
+          "state": "approuve"
+        },
+        "remises": [],
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:15:03.950Z",
+            "end": "2026-11-12T09:25:03.950Z",
+            "remaining": 3,
+            "ticket": "apr-0003"
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:16:00.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "2600.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement de 1000 a 5000 CHF [fenetre apr-0003 2026-11-12T09:25:03.950Z]",
+            "decision": "autorise",
+            "contest_ms": null,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF [fenetre apr-0003 2026-11-12T09:25:03.950Z]",
+          "decision": "autorise",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "remises": [],
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:15:03.950Z",
+            "end": "2026-11-12T09:25:03.950Z",
+            "remaining": 2,
+            "ticket": "apr-0003"
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:17:00.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "2700.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement de 1000 a 5000 CHF [fenetre apr-0003 2026-11-12T09:25:03.950Z]",
+            "decision": "autorise",
+            "contest_ms": null,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF [fenetre apr-0003 2026-11-12T09:25:03.950Z]",
+          "decision": "autorise",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "remises": [],
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:15:03.950Z",
+            "end": "2026-11-12T09:25:03.950Z",
+            "remaining": 1,
+            "ticket": "apr-0003"
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:18:00.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "2800.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement de 1000 a 5000 CHF [fenetre apr-0003 2026-11-12T09:25:03.950Z]",
+            "decision": "autorise",
+            "contest_ms": null,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF [fenetre apr-0003 2026-11-12T09:25:03.950Z]",
+          "decision": "autorise",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:19:00.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "2900.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement de 1000 a 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": {
+              "scope": {
+                "policy_version": "vecteurs-ct3-1",
+                "rule": "paiement de 1000 a 5000 CHF",
+                "tool": "sap.payments.create",
+                "launched_by": "u.martin@assureur-demo.example",
+                "values": [
+                  "CH9300762011623852957"
+                ]
+              },
+              "duration_ms": 600000,
+              "max_calls": 3
+            }
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0004",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1214..1214 b=0xbbdda14682d88cba1356b88a3fa30ecf233920d3a15f4caf97dcff023d21fbca repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "ouvrir",
+        "at": "2026-11-12T09:19:00.250Z",
+        "data": {
+          "ticket": "apr-0004",
+          "request_hash": "0x13d3a79aa80eb8defbb161697e7106caa15f959649d7228c55b4facf3ac209bf",
+          "request_seq": 14,
+          "request_ts": "2026-11-12T09:19:00.200Z"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0004",
+          "state": "ouvert",
+          "deadline": "2026-11-12T10:19:00.200Z"
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "jeu_lu",
+        "at": "2026-11-12T09:19:01.000Z",
+        "data": {
+          "status": "lu",
+          "jeu": {
+            "chain_id": 2124,
+            "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+            "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+            "height": 1240,
+            "block_hash": "0x6a5a3cc4c69104b0a7fa0722ca6ca1337ae6fb1a0056e13dd79fe1673e64f8c2",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ]
+          },
+          "cause": null
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:20:00.000Z",
+        "data": {
+          "ticket": "apr-0004",
+          "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "decision": "approuve",
+          "signature": "0xdd654238fc49126263a51803a957ae6cc4b0002e2a71e9a2425f6bce212ccba4378bc8030910be335e6fda87ab64222f56c3cf85d0e211ede6772c1a14d70dce1c",
+          "reason": null,
+          "session_identity": "approbateur-1@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:21:00.000Z",
+        "data": {
+          "ticket": "apr-0004",
+          "approver": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "decision": "approuve",
+          "signature": "0xec7a82c7f3d6b70040d8f879098a73672086dfc0fd3bccb3e876ed3856f3bcdc2a348f97384c20912960d4babf97e7c72c26b8efe2d6e23db2b76610803b2ee11b",
+          "reason": null,
+          "session_identity": "approbateur-2@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "verification"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "jeu_lu",
+        "at": "2026-11-12T09:21:01.000Z",
+        "data": {
+          "status": "lu",
+          "jeu": {
+            "chain_id": 2124,
+            "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+            "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+            "height": 1244,
+            "block_hash": "0x5cde76e8437429d41a36c1914ee1ca5d0b413ac0da9e85553cb38d9d437cee1c",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ]
+          },
+          "cause": null
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "a_remettre"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [
+          {
+            "remise_id": "apr-0004/1",
+            "ticket": "apr-0004",
+            "approval": {
+              "decision": "approuve",
+              "ticket": "apr-0004",
+              "request_hash": "0x13d3a79aa80eb8defbb161697e7106caa15f959649d7228c55b4facf3ac209bf",
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "approvers": [
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+              ],
+              "signatures": [
+                "0xdd654238fc49126263a51803a957ae6cc4b0002e2a71e9a2425f6bce212ccba4378bc8030910be335e6fda87ab64222f56c3cf85d0e211ede6772c1a14d70dce1c",
+                "0xec7a82c7f3d6b70040d8f879098a73672086dfc0fd3bccb3e876ed3856f3bcdc2a348f97384c20912960d4babf97e7c72c26b8efe2d6e23db2b76610803b2ee11b"
+              ],
+              "reason": null
+            },
+            "approver_set": {
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "members": [
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+              ],
+              "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1240..1244 b=0x5cde76e8437429d41a36c1914ee1ca5d0b413ac0da9e85553cb38d9d437cee1c"
+            }
+          }
+        ],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "acquitter",
+        "at": "2026-11-12T09:21:02.000Z",
+        "data": {
+          "remise_id": "apr-0004/1",
+          "ticket": "apr-0004",
+          "result": "scelle",
+          "reason": null,
+          "seq": 15,
+          "hash": "0xd7df4290e478e06a20cce12aa3b53714f5d257ca1099c68e2faaa9bd821396fc",
+          "at": "2026-11-12T09:21:01.900Z",
+          "decision": "approuve",
+          "held": false,
+          "approval": {
+            "decision": "approuve",
+            "ticket": "apr-0004",
+            "request_hash": "0x13d3a79aa80eb8defbb161697e7106caa15f959649d7228c55b4facf3ac209bf",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "approvers": [
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+            ],
+            "signatures": [
+              "0xdd654238fc49126263a51803a957ae6cc4b0002e2a71e9a2425f6bce212ccba4378bc8030910be335e6fda87ab64222f56c3cf85d0e211ede6772c1a14d70dce1c",
+              "0xec7a82c7f3d6b70040d8f879098a73672086dfc0fd3bccb3e876ed3856f3bcdc2a348f97384c20912960d4babf97e7c72c26b8efe2d6e23db2b76610803b2ee11b"
+            ],
+            "at": "2026-11-12T09:21:01.900Z",
+            "reason": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "approuve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0004",
+          "state": "approuve"
+        },
+        "remises": [],
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:21:01.900Z",
+            "end": "2026-11-12T09:31:01.900Z",
+            "remaining": 3,
+            "ticket": "apr-0004"
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "kind": "horloge",
+        "at": "2026-11-12T09:31:01.899Z",
+        "data": {}
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "approuve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:21:01.900Z",
+            "end": "2026-11-12T09:31:01.900Z",
+            "remaining": 3,
+            "ticket": "apr-0004"
+          }
+        ]
+      }
+    },
+    {
+      "input": {
+        "kind": "horloge",
+        "at": "2026-11-12T09:31:01.900Z",
+        "data": {}
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve",
+          "apr-0002": "approuve",
+          "apr-0003": "approuve",
+          "apr-0004": "approuve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    }
+  ]
+}

@@ -22,7 +22,7 @@ jobs:
       - run: npm test
 
   vecteurs:
-    name: vecteurs CT-1, CT-2 et CT-6, régénération déterministe et implémentations indépendantes
+    name: vecteurs CT-1, CT-2, CT-3 et CT-6, régénération déterministe et implémentations indépendantes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +54,24 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-2)"
       - name: clean-room Go verifier against the CT-2 JavaScript vectors
         working-directory: spec/vecteurs/ct-2/verificateur-independant
+        run: |
+          gofmt -l . && test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          go run . ..
+      # Vecteurs CT-3 (spec/CT-3-approbations.md, annexe A, EX-A.11) : le
+      # générateur scripts/vecteurs/generer-ct3.mjs n'efface et ne réécrit que
+      # ses propres entrées de spec/vecteurs/ct-3, jamais
+      # verificateur-independant/ ; tout doit être redonné à l'identique, sans
+      # fichier de plus.
+      - name: régénérer les vecteurs CT-3 et exiger les mêmes octets, sans fichier de plus
+        run: |
+          npm run vecteurs:ct3
+          git diff --exit-code -- spec/vecteurs/ct-3
+          test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-3)"
+      # Vérificateur Go indépendant de CT-3 (EX-A.10) : zéro discordance exigée.
+      - name: vérificateur Go indépendant contre les vecteurs CT-3
+        working-directory: spec/vecteurs/ct-3/verificateur-independant
         run: |
           gofmt -l . && test -z "$(gofmt -l .)"
           go vet ./...

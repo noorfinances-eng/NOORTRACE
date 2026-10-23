@@ -15,6 +15,7 @@
     "verify:dossier": "node scripts/verify/dossier.mjs",
     "vecteurs:ct1": "node scripts/vecteurs/generer-ct1.mjs",
     "vecteurs:ct2": "node scripts/vecteurs/generer-ct2.mjs",
+    "vecteurs:ct3": "node scripts/vecteurs/generer-ct3.mjs",
     "vecteurs:ct6": "node scripts/vecteurs/generer-ct6.mjs"
   },
   "license": "Apache-2.0",

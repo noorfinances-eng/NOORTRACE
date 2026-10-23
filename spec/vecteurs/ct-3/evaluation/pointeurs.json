@@ -1,0 +1,780 @@
+{
+  "version": 0,
+  "policy": "politiques/pointeurs.json",
+  "policy_version": "vecteurs-ct3-1",
+  "cases": [
+    {
+      "id": "barre-membre",
+      "description": "/arguments/a~1b désigne le membre « a/b ».",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__barre",
+        "tool_original": "barre",
+        "server_alias": "ptr",
+        "arguments": {
+          "a/b": "ok"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "echappement ~1",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "barre-imbrique",
+      "description": "« a/b » n'est pas a puis b : non résolu, INDETERMINE.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__barre",
+        "tool_original": "barre",
+        "server_alias": "ptr",
+        "arguments": {
+          "a": {
+            "b": "ok"
+          }
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "echappement ~1 [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "tilde-membre",
+      "description": "/arguments/m~0n désigne le membre « m~n ».",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__tilde",
+        "tool_original": "tilde",
+        "server_alias": "ptr",
+        "arguments": {
+          "m~n": "ok"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "echappement ~0",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "ordre-de-decodage",
+      "description": "~01 se décode en « ~1 » (~1 d'abord, puis ~0).",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__ordre",
+        "tool_original": "ordre",
+        "server_alias": "ptr",
+        "arguments": {
+          "~1": "ok"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "ordre de decodage",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "ordre-de-decodage-inverse",
+      "description": "Le décodage dans l'autre ordre donnerait « / » : non résolu ici.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__ordre",
+        "tool_original": "ordre",
+        "server_alias": "ptr",
+        "arguments": {
+          "/": "ok"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "ordre de decodage [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "indice",
+      "description": "items/1/id : deuxième élément.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__indice",
+        "tool_original": "indice",
+        "server_alias": "ptr",
+        "arguments": {
+          "items": [
+            {
+              "id": "x1"
+            },
+            {
+              "id": "x2"
+            }
+          ]
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "indice de tableau",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "indice-autre-valeur",
+      "description": "items/1/id résolu, autre valeur : FAUX.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__indice",
+        "tool_original": "indice",
+        "server_alias": "ptr",
+        "arguments": {
+          "items": [
+            {
+              "id": "x1"
+            },
+            {
+              "id": "x3"
+            }
+          ]
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "membre-nul",
+      "description": "existe sur un membre null : résolu, VRAI.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__nul",
+        "tool_original": "nul",
+        "server_alias": "ptr",
+        "arguments": {
+          "n": null
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "membre nul",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "membre-absent",
+      "description": "existe sur un membre absent : FAUX (jamais INDETERMINE).",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__nul",
+        "tool_original": "nul",
+        "server_alias": "ptr",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "jeton-tiret",
+      "description": "Le jeton - ne résout pas.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__tiret",
+        "tool_original": "tiret",
+        "server_alias": "ptr",
+        "arguments": {
+          "items": [
+            "x"
+          ]
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "jeton tiret [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "zero-de-tete-tableau",
+      "description": "01 n'est pas un indice de tableau.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__zero",
+        "tool_original": "zero",
+        "server_alias": "ptr",
+        "arguments": {
+          "items": [
+            "a",
+            "x"
+          ]
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "zero de tete [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "zero-de-tete-objet",
+      "description": "01 est un nom de membre d'objet : résolu.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__zero",
+        "tool_original": "zero",
+        "server_alias": "ptr",
+        "arguments": {
+          "items": {
+            "01": "x"
+          }
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "zero de tete",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "dix-chiffres-objet",
+      "description": "1000000000 est un nom de membre d'objet : résolu.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__long",
+        "tool_original": "long",
+        "server_alias": "ptr",
+        "arguments": {
+          "t": {
+            "1000000000": "x"
+          }
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "jeton de dix chiffres",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "dix-chiffres-tableau",
+      "description": "1000000000 a plus de 9 chiffres : pas un indice de tableau.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__long",
+        "tool_original": "long",
+        "server_alias": "ptr",
+        "arguments": {
+          "t": [
+            "x"
+          ]
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "jeton de dix chiffres [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "indice-hors-limites",
+      "description": "items/5 d'un tableau de deux éléments.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__hors",
+        "tool_original": "hors",
+        "server_alias": "ptr",
+        "arguments": {
+          "items": [
+            "a",
+            "b"
+          ]
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "indice hors limites [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "pas-a-travers-une-chaine",
+      "description": "s/0 d'une chaîne : non résolu.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__chaine",
+        "tool_original": "chaine",
+        "server_alias": "ptr",
+        "arguments": {
+          "s": "abc"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "pas a travers une chaine [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "membre-de-nom-vide",
+      "description": "/arguments/ désigne le membre de nom vide.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__vide",
+        "tool_original": "vide",
+        "server_alias": "ptr",
+        "arguments": {
+          "": "ok"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "membre de nom vide",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "membre-numerique-objet",
+      "description": "o/0 d'un objet : membre « 0 ».",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__objet",
+        "tool_original": "objet",
+        "server_alias": "ptr",
+        "arguments": {
+          "o": {
+            "0": "ok"
+          }
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "membre de nom numerique",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "membre-numerique-tableau",
+      "description": "o/0 d'un tableau : premier élément.",
+      "checks": [
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ptr__objet",
+        "tool_original": "objet",
+        "server_alias": "ptr",
+        "arguments": {
+          "o": [
+            "ok"
+          ]
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "membre de nom numerique",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    }
+  ]
+}

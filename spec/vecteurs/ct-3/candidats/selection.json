@@ -1,0 +1,22 @@
+{
+  "version": 0,
+  "policy": "politiques/selection.json",
+  "cases": [
+    {
+      "id": "regle-etoile-refus",
+      "checks": [
+        "AP-16"
+      ],
+      "tools": [
+        "crm__claims.get",
+        "mail__send",
+        "CRM__claims.get"
+      ],
+      "approval_candidates": [
+        "crm__claims.get",
+        "mail__send",
+        "CRM__claims.get"
+      ]
+    }
+  ]
+}

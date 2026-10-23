@@ -14,7 +14,7 @@ les décisions ouvertes qu'elle nomme.
 |---|---|---|---|
 | CT-1 | [Modèle d'événement et formats](CT-1-evenements-et-formats.md) | version 0.2, en revue pour la porte 1 | décisions ouvertes 1 et 5 |
 | CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.2, en revue pour la porte 1 | décisions 2 et 3 |
-| CT-3 | Approbations | à écrire | décision 4 |
+| CT-3 | [Approbations](CT-3-approbations.md) | version 0.1, en revue pour la porte 1 | décision 4 |
 | CT-4 | Registre | à écrire | — |
 | CT-5 | Ancrage | à écrire | — |
 | CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.1, en revue pour la porte 1 | — |
@@ -42,6 +42,8 @@ servent aux références croisées entre schémas ; ils ne sont pas résolus en 
 | [`entetes-bitcoin-v0.schema.json`](schemas/entetes-bitcoin-v0.schema.json) | La chaîne d'en-têtes Bitcoin fournie à part (`--entetes-bitcoin`, CT-6 §10.3) | — |
 | [`registre-v0.schema.json`](schemas/registre-v0.schema.json) | La partie `registre.json` du dossier (CT-6 §11.2.1), et dans ses `$defs` la partie `certificat-commit.json` (`certificat_commit`, §11.2.2) | — |
 | [`validateurs-v0.schema.json`](schemas/validateurs-v0.schema.json) | La partie `validateurs.json` du dossier (CT-6 §11.2.3) | — |
+| [`politique-approbation-v0.schema.json`](schemas/politique-approbation-v0.schema.json) | La politique d'approbation, membre `/policy/approval/rules` de l'ensemble de politique (CT-3 §4) ; l'exemple complet est imprimé en CT-3 §4.3 | `jeu_approbateurs` et `separation`, repris par le schéma de ticket |
+| [`ticket-v0.schema.json`](schemas/ticket-v0.schema.json) | La trace d'un ticket que le service d'approbation persiste (CT-3 §7), et dans ses `$defs` le jeu d'approbateurs figé (§8), la fenêtre ouverte (§5.3), la remise d'une décision au noyau (`remise`, §12.5) et les formats des vecteurs de CT-3 (annexe A) | — |
 
 Validation d'un fichier avec ajv (les trois schémas doivent être chargés
 ensemble à cause des références croisées) :
@@ -79,6 +81,23 @@ echo '{"$schema":"https://json-schema.org/draft/2020-12/schema","$ref":"https://
 npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
   -s certificat-commit.schema.json -r spec/schemas/registre-v0.schema.json \
   -d certificat-commit.json
+```
+
+Les deux schémas de CT-3 se compilent en mode strict. Une politique
+d'approbation se valide seule contre son schéma (la partie « schéma » de CT-3
+EX-4.2 ; les règles que le schéma n'exprime pas relèvent du service) ; le
+schéma de ticket se charge avec celui de l'événement et celui de la politique,
+et un format de ses `$defs` (une remise, un fichier de vecteurs) se valide par
+un schéma enveloppe :
+
+```bash
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s spec/schemas/politique-approbation-v0.schema.json -d politique-approbation.json
+echo '{"$schema":"https://json-schema.org/draft/2020-12/schema","$ref":"https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/remise"}' > remise.schema.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s remise.schema.json -r spec/schemas/ticket-v0.schema.json \
+  -r spec/schemas/evenement-v0.schema.json -r spec/schemas/politique-approbation-v0.schema.json \
+  -d remise.json
 ```
 
 Pour un fichier compagnon, le schéma est un `$defs` du schéma de dossier
@@ -133,6 +152,29 @@ changent pas.
 | `ct-2/pieces-modele/` | API Messages d'Anthropic (hors flux, flux SSE), OpenAI Chat Completions (hors flux, flux), OpenAI Responses (flux) → forme consolidée → pièce ; réponse non JSON, requête non analysable refusée, prompt laissé en place ; `code.model`, `intent`, `prompt_version` attendus | égalité |
 | `ct-2/evenements/journal-demo/` | La courte exécution de la démonstration de référence (politique, échanges de modèle, lecture, écriture approuvée), chaînée avec les clés de test de CT-1, avec son segment, son journal d'intention, son ensemble de politique, ses entrées brutes (`entrees.json` : échanges, appels, liste servie, connexion d'hôte) et le dossier CT-1 de l'appel d'écriture (`dossier-seq-7/`) | chaîne valide par les outils de CT-1, égalité ; dossier valide (`node scripts/verify/dossier.mjs`, code 0) |
 | `ct-2/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de celui de `ct-1`, qui recalcule et confronte toutes ces valeurs | zéro discordance (`go run . ..`) |
+
+### CT-3 (`vecteurs/ct-3/`)
+
+Disposition fixée par l'annexe A de [CT-3](CT-3-approbations.md) (A.3,
+EX-A.1 à EX-A.11) : produits par `scripts/vecteurs/generer-ct3.mjs`
+(`npm run vecteurs:ct3`), rejoués à l'identique par
+`test/approbation.test.js` avec l'implémentation de référence
+`scripts/lib/approbation.mjs`, et confrontés par le vérificateur Go
+indépendant du module séparé `vecteurs/ct-3/verificateur-independant/`
+(`noortrace-ct3`) ; tout est déterministe (comptes Hardhat 1 à 4, adresses
+de registre, de jeu et de bloc synthétiques dérivées par SHA-256, horodatages
+fixes, CT-3 A.2). L'index généré `vecteurs/ct-3/INDEX.md` liste chaque cas et
+son attendu. Les vecteurs de CT-1, CT-2 et CT-6 ne changent pas.
+
+| Répertoire ou fichier | Contenu (CT-3, annexe A) | Résultat attendu |
+|---|---|---|
+| `ct-3/politiques/`, `ct-3/politiques-invalides/` | Politiques `politique-approbation-v0` valides, et refusées avec leur `attendu.json` (A.4) | validation, liste complète des erreurs (AP-1 à AP-4) |
+| `ct-3/evaluation/`, `ct-3/candidats/` | Demandes évaluées par politique, avec l'état des fenêtres ; outils susceptibles d'approbation (A.4) | `rule`, `decision`, `contest_ms`, ouverture et fenêtres (AP-5 à AP-17) |
+| `ct-3/acceptation/` et `ct-3/acceptation-attendu.json` | L'épreuve des trois relecteurs : une politique, dix demandes ; les décisions attendues dans un fichier à part, que les relecteurs ne reçoivent pas (A.5) | mêmes décisions pour les trois relecteurs et l'attendu |
+| `ct-3/tickets/` | Traces de cycle de vie, entrée par entrée (A.6) | état de chaque ticket, réponses, remises, fenêtres (TK-1 à TK-13) |
+| `ct-3/decisions/` | Remises valides et invalides, dont la décision `apr-2201` des vecteurs de CT-1 (A.7) | `scelle`, ou refus avec la raison de la première vérification SG- en échec |
+| `ct-3/signatures/normalisation.json` | Formes de signature à normaliser ou à refuser (A.8) | forme normalisée, même adresse recouvrée |
+| `ct-3/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de ceux de `ct-1` et `ct-2` | zéro discordance (`go run . ..`) |
 
 ### CT-6 (`vecteurs/ct-6/`)
 

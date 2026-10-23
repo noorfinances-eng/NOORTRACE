@@ -1,0 +1,24 @@
+{
+  "version": 0,
+  "policy": "politiques/niveaux.json",
+  "cases": [
+    {
+      "id": "defaut-revue",
+      "checks": [
+        "AP-16"
+      ],
+      "tools": [
+        "pay__virement",
+        "pay__consultation",
+        "pay__releve",
+        "pay__inconnu"
+      ],
+      "approval_candidates": [
+        "pay__virement",
+        "pay__consultation",
+        "pay__releve",
+        "pay__inconnu"
+      ]
+    }
+  ]
+}

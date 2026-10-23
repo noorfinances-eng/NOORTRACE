@@ -1,0 +1,46 @@
+{
+  "role": null,
+  "reviewer": null,
+  "answers": [
+    {
+      "id": "cas-01",
+      "decision": null
+    },
+    {
+      "id": "cas-02",
+      "decision": null
+    },
+    {
+      "id": "cas-03",
+      "decision": null
+    },
+    {
+      "id": "cas-04",
+      "decision": null
+    },
+    {
+      "id": "cas-05",
+      "decision": null
+    },
+    {
+      "id": "cas-06",
+      "decision": null
+    },
+    {
+      "id": "cas-07",
+      "decision": null
+    },
+    {
+      "id": "cas-08",
+      "decision": null
+    },
+    {
+      "id": "cas-09",
+      "decision": null
+    },
+    {
+      "id": "cas-10",
+      "decision": null
+    }
+  ]
+}

@@ -1,0 +1,950 @@
+{
+  "version": 0,
+  "policy": "politiques/logique.json",
+  "policy_version": "vecteurs-ct3-1",
+  "cases": [
+    {
+      "id": "tout-vrai",
+      "description": "all : VRAI, VRAI.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__tout",
+        "tool_original": "tout",
+        "server_alias": "log",
+        "arguments": {
+          "a": "1",
+          "b": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "toutes",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "tout-faux",
+      "description": "all : VRAI, FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__tout",
+        "tool_original": "tout",
+        "server_alias": "log",
+        "arguments": {
+          "a": "1",
+          "b": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "tout-indetermine",
+      "description": "all : VRAI, INDETERMINE.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__tout",
+        "tool_original": "tout",
+        "server_alias": "log",
+        "arguments": {
+          "a": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "toutes [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "tout-indetermine-inverse",
+      "description": "all : INDETERMINE, VRAI.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__tout",
+        "tool_original": "tout",
+        "server_alias": "log",
+        "arguments": {
+          "b": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "toutes [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "tout-faux-absorbe",
+      "description": "all : FAUX, INDETERMINE donne FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__tout",
+        "tool_original": "tout",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "tout-faux-absorbe-inverse",
+      "description": "all : INDETERMINE, FAUX donne FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__tout",
+        "tool_original": "tout",
+        "server_alias": "log",
+        "arguments": {
+          "b": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "un-vrai-absorbe",
+      "description": "any : VRAI, INDETERMINE donne VRAI.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__un",
+        "tool_original": "un",
+        "server_alias": "log",
+        "arguments": {
+          "a": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "l'une",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "un-vrai-absorbe-inverse",
+      "description": "any : INDETERMINE, VRAI donne VRAI.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__un",
+        "tool_original": "un",
+        "server_alias": "log",
+        "arguments": {
+          "b": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "l'une",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "un-faux",
+      "description": "any : FAUX, FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__un",
+        "tool_original": "un",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0",
+          "b": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "un-indetermine",
+      "description": "any : FAUX, INDETERMINE.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__un",
+        "tool_original": "un",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "l'une [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "un-inverse-vrai",
+      "description": "any en ordre inverse : même valeur.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__un_inverse",
+        "tool_original": "un_inverse",
+        "server_alias": "log",
+        "arguments": {
+          "a": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "l'une, ordre inverse",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "un-inverse-indetermine",
+      "description": "any en ordre inverse : même valeur.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__un_inverse",
+        "tool_original": "un_inverse",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "l'une, ordre inverse [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "aucun-vrai",
+      "description": "none : FAUX, FAUX donne VRAI.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__aucun",
+        "tool_original": "aucun",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0",
+          "b": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "aucune",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "aucun-faux",
+      "description": "none : VRAI, INDETERMINE donne FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__aucun",
+        "tool_original": "aucun",
+        "server_alias": "log",
+        "arguments": {
+          "a": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "aucun-faux-inverse",
+      "description": "none : INDETERMINE, VRAI donne FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__aucun",
+        "tool_original": "aucun",
+        "server_alias": "log",
+        "arguments": {
+          "b": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "aucun-indetermine",
+      "description": "none : FAUX, INDETERMINE donne INDETERMINE.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__aucun",
+        "tool_original": "aucun",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "aucune [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "imbriquee-vrai",
+      "description": "none[any FAUX, all FAUX] : VRAI.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__imbrique",
+        "tool_original": "imbrique",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0",
+          "b": "0",
+          "c": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "imbriquee",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "imbriquee-faux",
+      "description": "none[any VRAI, …] : FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__imbrique",
+        "tool_original": "imbrique",
+        "server_alias": "log",
+        "arguments": {
+          "b": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "imbriquee-existe",
+      "description": "none[any FAUX, all[VRAI, existe FAUX]] : VRAI.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__imbrique",
+        "tool_original": "imbrique",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0",
+          "b": "0",
+          "c": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "imbriquee",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "imbriquee-indetermine",
+      "description": "none[any INDETERMINE, all FAUX] : INDETERMINE.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__imbrique",
+        "tool_original": "imbrique",
+        "server_alias": "log",
+        "arguments": {
+          "a": "0",
+          "c": "0"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "imbriquee [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "garde-absent",
+      "description": "priority absent : existe FAUX, all FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__garde",
+        "tool_original": "garde",
+        "server_alias": "log",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "garde-haute",
+      "description": "priority haute : VRAI.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__garde",
+        "tool_original": "garde",
+        "server_alias": "log",
+        "arguments": {
+          "priority": "haute"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "garde existe",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "garde-basse",
+      "description": "priority basse : FAUX.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__garde",
+        "tool_original": "garde",
+        "server_alias": "log",
+        "arguments": {
+          "priority": "basse"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : autorisation",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "garde-autre-type",
+      "description": "priority 3 : existe VRAI, egal INDETERMINE.",
+      "checks": [
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "log__garde",
+        "tool_original": "garde",
+        "server_alias": "log",
+        "arguments": {
+          "priority": 3
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "garde existe [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    }
+  ]
+}
