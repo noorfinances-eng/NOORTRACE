@@ -52,6 +52,8 @@
   "is_error": false,
   "duration_ms": 38,
   "error_rendered": null,
+  "approval": null,
+  "result_rendered": null,
   "protocols": {
     "host": "2026-07-28",
     "server": "2026-07-28"

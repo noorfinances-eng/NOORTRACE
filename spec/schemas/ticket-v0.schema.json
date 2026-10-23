@@ -1209,6 +1209,7 @@
           ]
         },
         "consumed": {
+          "description": "seq et hash de l'appel relayé qui consomme l'approbation : consommer en état approuve (T18), ou consommation tardive d'une approbation servie, ticket clos (T22, CT-3 EX-7.8) ; null sinon.",
           "oneOf": [
             {
               "type": "null"
@@ -1311,7 +1312,7 @@
       ]
     },
     "entree": {
-      "description": "Entrée d'une trace de vecteur (CT-3 annexe A.6) : kind et at, et les données propres à l'entrée dans data. Une entrée abrège le message de la section 12 : charger ne porte que policy_version (la version chargée reprend les paramètres de la trace), ouvrir ne porte ni retained_event ni arguments_piece.",
+      "description": "Entrée d'une trace de vecteur (CT-3 annexe A.6) : kind et at, et les données propres à l'entrée dans data. Une entrée abrège le message de la section 12 : charger ne porte que policy_version (la version chargée reprend les paramètres de la trace), ouvrir ne porte ni request_event ni arguments_piece.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -2059,7 +2060,7 @@
       }
     },
     "cas_remise": {
-      "description": "Cas de vérification d'une remise par le noyau, vecteurs decisions/ (CT-3 annexe A.7). La remise n'est pas contrainte ici : les cas invalides doivent pouvoir la porter mal formée (SG-1).",
+      "description": "Cas de vérification d'une remise par le noyau, SG-1 à SG-7, vecteurs decisions/ (CT-3 annexe A.7, CT-2 EX-7.5). La remise n'est pas contrainte ici : les cas invalides doivent pouvoir la porter mal formée (SG-1). Le contexte porte le delegation.launched_by de chaque événement retenue et la separation de la politique de la version du ticket (SG-7).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -2090,7 +2091,7 @@
             },
             {
               "type": "string",
-              "pattern": "^SG-[1-6]$"
+              "pattern": "^SG-[1-7]$"
             }
           ]
         },
@@ -2103,6 +2104,7 @@
             "retained",
             "decided",
             "expire_after_ms",
+            "separation",
             "write_at"
           ],
           "properties": {
@@ -2121,7 +2123,8 @@
                   "seq",
                   "ticket",
                   "hash",
-                  "ts"
+                  "ts",
+                  "launched_by"
                 ],
                 "properties": {
                   "seq": {
@@ -2137,6 +2140,12 @@
                   },
                   "ts": {
                     "$ref": "#/$defs/horodatage"
+                  },
+                  "launched_by": {
+                    "description": "delegation.launched_by de l'événement retenue (SG-7).",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
                   }
                 }
               }
@@ -2178,6 +2187,10 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 86400000
+            },
+            "separation": {
+              "description": "separation de la politique d'approbation de la version du ticket (SG-7).",
+              "$ref": "https://noortrace.example/schemas/v0/politique-approbation.schema.json#/$defs/separation"
             },
             "write_at": {
               "$ref": "#/$defs/horodatage",

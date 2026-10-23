@@ -67,12 +67,15 @@ type contexteCT2 struct {
 	pseudo                         *Politique
 	autres                         []*Politique      // politique-regles-test.json (B.3) et politiques supplémentaires
 	appels                         map[string]*Value // pieces-mcp : attendu.json par cas
+	// issuesApprobation : pieces-mcp, issue d'EX-7.16 et ère de l'hôte des
+	// cas d'approbation sans relais (« refus/moderne », …), par cas
+	issuesApprobation map[string]string
 }
 
 // VerifierVecteursCT2 parcourt la racine des vecteurs CT-2 et rend le rapport.
 func VerifierVecteursCT2(racine string, strict bool) *Rapport {
 	rap := &Rapport{Titre: TitreRapportCT2, Racine: racine, Comparaisons: []Comparaison{}, Erreurs: []string{}, Notes: []string{}, Details: []string{}}
-	ctx := &contexteCT2{racine: racine, strict: strict, appels: map[string]*Value{}}
+	ctx := &contexteCT2{racine: racine, strict: strict, appels: map[string]*Value{}, issuesApprobation: map[string]string{}}
 	familleConstantes(rap, ctx)
 	familleJCSIntegral(rap, ctx)
 	familleRedaction(rap, ctx)
@@ -296,6 +299,10 @@ func familleIndex(rap *Rapport, ctx *contexteCT2) {
 	// chaque famille est nommée dans l'index
 	for _, fam := range []string{"jcs-integral", "redaction", "pieces-mcp", "pieces-modele", "evenements"} {
 		rap.Comparer(f, "INDEX.md", "famille "+fam+" décrite", "présent", present(fam))
+	}
+	// B.7 : l'index liste chaque cas ; ici, ceux de pieces-mcp/appels
+	for _, c := range sousRepertoires(filepath.Join(ctx.racine, "pieces-mcp", "appels")) {
+		rap.Comparer(f, "INDEX.md", "cas pieces-mcp/appels/"+c+" listé (B.7)", "présent", present("`"+c+"/`"))
 	}
 }
 

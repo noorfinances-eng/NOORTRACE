@@ -12,10 +12,10 @@
       "bytes": "{\"amount\":\"300.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-81045\",\"currency\":\"CHF\"}"
     },
     "result": {
-      "sha256": "0x13b2cf6b6fcf2334c22e34e96f592f8886c83d3d1d91851ad2e6dc84d9922ddf",
+      "sha256": "0xc17d975923aad0abc3fd0e974f3f91599a7537d8b4a7ef2a920f627193f88987",
       "length": 120,
       "redacted": false,
-      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-32014,\"data\":{\"server\":\"demo\"},\"message\":\"noortrace: serveur d'outils injoignable\"}}"
+      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-31014,\"data\":{\"server\":\"demo\"},\"message\":\"noortrace: serveur d'outils injoignable\"}}"
     },
     "definition": {
       "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
@@ -52,12 +52,14 @@
   "is_error": true,
   "duration_ms": 15,
   "error_rendered": {
-    "code": -32014,
+    "code": -31014,
     "message": "noortrace: serveur d'outils injoignable",
     "data": {
       "server": "demo"
     }
   },
+  "approval": null,
+  "result_rendered": null,
   "protocols": {
     "host": "2026-07-28",
     "server": "2026-07-28"
@@ -66,5 +68,5 @@
     "host": "stdio",
     "server": "stdio"
   },
-  "note": "Le processus du serveur stdio se termine après l'envoi, avant toute réponse : l'enveloppe {\"dir\":\"in\",\"t\":…,\"eof\":true} marque la fin de fichier sur sa sortie standard, instant qui est t_reponse (EX-4.48). Appel d'écriture déjà relayé (son intention existait), événement is_error vrai avec la pièce -32014, erreur -32014 rendue (EX-4.33, matrice de 14.2)."
+  "note": "Le processus du serveur stdio se termine après l'envoi, avant toute réponse : l'enveloppe {\"dir\":\"in\",\"t\":…,\"eof\":true} marque la fin de fichier sur sa sortie standard, instant qui est t_reponse (EX-4.48). Appel d'écriture déjà relayé (son intention existait), événement is_error vrai avec la pièce -31014, erreur -31014 rendue (EX-4.33, matrice de 14.2)."
 }

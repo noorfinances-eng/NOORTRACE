@@ -85,12 +85,24 @@
   "intention_sha256": "0x2356a6e054a37c96c9bbdb5b0ae3269670457526680dcb82f92f8e0907207203",
   "segment_sha256": "0x8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
   "segment_length": 14293,
-  "error_rendered_seq_5": {
-    "code": -32015,
-    "message": "noortrace: approbation requise",
-    "data": {
-      "ticket": "apr-demo-0001",
-      "state": "en_attente"
+  "result_rendered_seq_5": {
+    "resultType": "complete",
+    "content": [
+      {
+        "type": "text",
+        "text": "noortrace: appel soumis a approbation ; ticket=apr-demo-0001 ; state=en_attente"
+      }
+    ],
+    "isError": true,
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": {
+        "name": "noortrace-enregistreur",
+        "version": "0.1.0"
+      },
+      "noortrace/approval": {
+        "ticket": "apr-demo-0001",
+        "state": "en_attente"
+      }
     }
   },
   "correlation": {

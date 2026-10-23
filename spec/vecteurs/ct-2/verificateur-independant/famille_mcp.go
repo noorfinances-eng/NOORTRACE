@@ -31,6 +31,19 @@ func famillePiecesMCP(rap *Rapport, ctx *contexteCT2) {
 	for _, c := range cas {
 		verifierAppelMCP(rap, ctx, filepath.Join(appels, c), "appels/"+c)
 	}
+	// B.4, cas obligatoires de la version 0.3 : refus par la politique sans
+	// ticket pour un hôte moderne (le résultat exact d'EX-4.49), ticket en
+	// attente pour un hôte hérité (le signal sans resultType)
+	for _, e := range []struct{ cas, issue string }{
+		{"appels/approbation-refus", IssueRefus + "/moderne"},
+		{"appels/approbation-en-attente", IssueEnAttente + "/héritée"},
+	} {
+		obt := ctx.issuesApprobation[e.cas]
+		if obt == "" {
+			obt = "absent"
+		}
+		rap.Comparer(FamillePiecesMCP, e.cas, "cas obligatoire d'approbation (B.4) : issue d'EX-7.16 et ère de l'hôte", e.issue, obt)
+	}
 	ag := filepath.Join(dir, "agregation")
 	if !fichierExiste(ag) {
 		rap.Erreur("pieces-mcp/agregation/ : absent (annexe B.4)")
@@ -110,6 +123,7 @@ func verifierAppelMCP(rap *Rapport, ctx *contexteCT2, dir, nom string) {
 	if lu.Erreur != nil {
 		comparerValeur(rap, f, nom, "error_rendered = erreur du pas 1 (4.4, EX-4.3, EX-4.43, EX-4.44)", att.Get("error_rendered"), lu.Erreur)
 		comparerValeur(rap, f, nom, "erreur rendue à l'hôte", lu.Erreur, rendue.Val.Get("error"))
+		comparerCodeEX424(rap, nom, rendue.Val.Get("error"))
 		idRendu := "(absent)"
 		if id := rendue.Val.Get("id"); id != nil {
 			idRendu = string(rendue.Ligne[id.Debut:id.Fin])
@@ -118,6 +132,14 @@ func verifierAppelMCP(rap *Rapport, ctx *contexteCT2, dir, nom string) {
 		rap.Comparer(f, nom, "aucun relais amont (lignes dans amont.jsonl)", "0", fmt.Sprint(len(amont)))
 		for _, k := range []string{"pieces", "is_error", "duration_ms"} {
 			rap.Comparer(f, nom, k+" (ni pièce ni événement)", "null", texteOuAbsent(att.Get(k)))
+		}
+		// B.4 : protocols.host est la version vue côté hôte (la requête
+		// refusée est illisible : celle de tools/list) ; amont.jsonl étant
+		// vide, protocols.server est déclaratif.
+		if pr := att.Get("protocols"); EstObjet(pr) {
+			vh, sh := versionHote(hote, listeReq)
+			comparerVersion(rap, nom, "protocols.host", chaineDe(pr, "host"), vh, sh)
+			horsPerimetre(rap, f, nom, "protocols.server", chaineDe(pr, "server"), "aucun échange amont dans la transcription (refus au pas 1) : déclaratif (B.4)")
 		}
 		return
 	}
@@ -131,6 +153,25 @@ func verifierAppelMCP(rap *Rapport, ctx *contexteCT2, dir, nom string) {
 	rap.Comparer(f, nom, "tool_announced (params.name reçu)", chaineDe(att, "tool_announced"), annonce)
 	rap.Comparer(f, nom, "tool_original (découpage au premier __, EX-4.10)", chaineDe(att, "tool_original"), origine)
 	rap.Comparer(f, nom, "server_alias", chaineDe(att, "server_alias"), alias)
+
+	// approbation (EX-4.49, EX-7.16) : réponse d'evaluer simulée par le cas ;
+	// les issues sans relais rendent un résultat de l'enregistreur.
+	if apv := att.Get("approval"); apv == nil {
+		rap.Comparer(f, nom, "approval présent (B.4 : null ou { response })", "présent", "absent")
+	} else if !apv.IsNull() {
+		rep := apv.Get("response")
+		issue, invalide := IssueReponseEvaluer(rep)
+		rap.ComparerAvecNote(f, nom, "approval.response : combinaison de la table d'EX-7.16", "valide", valideOu(invalide), invalide == "", texteOuAbsent(rep))
+		if invalide == "" && issue != IssueRelais && issue != IssueRelaisApprouv {
+			verifierIssueSansRelais(rap, ctx, nom, att, hote, amont, servie, recue, rendue, lu, issue, rep)
+			return
+		}
+	}
+	if rr := att.Get("result_rendered"); rr == nil {
+		rap.Comparer(f, nom, "result_rendered présent (B.4 : null ou résultat de l'enregistreur)", "présent", "absent")
+	} else {
+		rap.Comparer(f, nom, "result_rendered (appel relayé : aucun résultat rendu par l'enregistreur lui-même, EX-4.49)", "null", texteOuAbsent(rr))
+	}
 
 	// relais amont : octets des arguments recopiés sans blancs (EX-4.20, EX-4.43)
 	relais := trouverRequete(amont, "out", "tools/call")
@@ -170,9 +211,9 @@ func verifierAppelMCP(rap *Rapport, ctx *contexteCT2, dir, nom string) {
 	codeRendu, _ := EntierDe(erreurRendue.Get("code"))
 	erreurEnregistreur := false
 	switch codeRendu {
-	case -32011, -32012, -32014:
+	case CodeDelai, CodeAnnulation, CodeInjoignable:
 		erreurEnregistreur = true
-	case -32013:
+	case CodeTaille:
 		erreurEnregistreur = chaineDe(erreurRendue, "data", "direction") == "reponse"
 	}
 	var pRes *Piece
@@ -208,6 +249,126 @@ func verifierAppelMCP(rap *Rapport, ctx *contexteCT2, dir, nom string) {
 	rap.Comparer(f, nom, "is_error", texteOuAbsent(att.Get("is_error")), strconv.FormatBool(estErreur))
 
 	// définition servie, définition courante, liste annoncée, contexte (EX-4.45, EX-7.7)
+	verifierContexteAppel(rap, nom, att, servie, annonce)
+
+	// duration_ms = t_reponse − t_envoi (4.4 pas 11) ; issues sans réponse : EX-4.48
+	attDur := att.Get("duration_ms")
+	var tReponse time.Time
+	source := ""
+	switch {
+	case codeRendu == CodeDelai:
+		tm, _ := EntierDe(erreurRendue.Get("data").Get("timeout_ms"))
+		tReponse = relais.T.Add(time.Duration(tm) * time.Millisecond)
+		source = "délai : t_envoi + timeout_ms (EX-4.48)"
+		if an := trouverAnnulation(amont, relais); an != nil {
+			rap.Comparer(f, nom, "annulation amont envoyée à t_envoi + timeout_ms (EX-4.22)", FormaterHorodatage(tReponse), FormaterHorodatage(an.T))
+		} else {
+			rap.Comparer(f, nom, "annulation amont (notifications/cancelled, EX-4.22)", "présente", "absente")
+		}
+	case codeRendu == CodeInjoignable && erreurEnregistreur:
+		for _, l := range amont {
+			if l.EOF {
+				tReponse = l.T
+			}
+		}
+		source = "perte : fin de fichier de la sortie standard du serveur (EX-4.48)"
+	case codeRendu == CodeTaille && erreurEnregistreur:
+		for _, l := range amont {
+			if l.Dir == "in" && !l.EOF && int64(len(l.Ligne)) > 0 && l.Val != nil && l.id() == relais.id() {
+				tReponse = l.T
+			}
+		}
+		source = "taille : instant où la borne est atteinte (EX-4.48)"
+	case reponseAmont != nil:
+		tReponse = reponseAmont.T
+		source = "réponse amont (4.4 pas 11)"
+	}
+	if tReponse.IsZero() || relais.T.IsZero() {
+		horsPerimetre(rap, f, nom, "duration_ms", texteOuAbsent(attDur), "t_reponse non lisible dans la transcription")
+	} else {
+		rap.ComparerAvecNote(f, nom, "duration_ms = t_reponse − t_envoi", texteOuAbsent(attDur), fmt.Sprint(tReponse.Sub(relais.T).Milliseconds()),
+			texteOuAbsent(attDur) == fmt.Sprint(tReponse.Sub(relais.T).Milliseconds()), source)
+	}
+	if !tReponse.IsZero() {
+		rap.Comparer(f, nom, "réponse rendue après t_reponse (EX-4.19)", "oui", oui(rendue.T.After(tReponse)))
+	}
+
+	// erreur rendue à l'hôte et id recopié depuis le texte de l'hôte (4.4 pas 14)
+	idRendu := "(absent)"
+	if id := rendue.Val.Get("id"); id != nil {
+		idRendu = string(rendue.Ligne[id.Debut:id.Fin])
+	}
+	rap.Comparer(f, nom, "id rendu = octets de l'id reçu (4.4 pas 14)", lu.IDTexte, idRendu)
+	attErr := att.Get("error_rendered")
+	switch {
+	case attErr == nil:
+		rap.Comparer(f, nom, "error_rendered présent", "oui", "non")
+	case erreurAttendue == nil:
+		rap.Comparer(f, nom, "error_rendered", "null", texteOuAbsent(attErr))
+		rap.Comparer(f, nom, "aucune erreur rendue (réponse result)", "oui", oui(erreurRendue == nil && rendue.Val.Has("result")))
+	default:
+		comparerValeur(rap, f, nom, "error_rendered", erreurAttendue, attErr)
+		comparerValeur(rap, f, nom, "erreur rendue à l'hôte : même code, message et data (4.4 pas 12 et 14)", erreurAttendue, erreurRendue)
+	}
+	if erreurRendue != nil {
+		code, _ := EntierDe(erreurRendue.Get("code"))
+		if msg, ok := MessagesErreurs[code]; ok {
+			rap.Comparer(f, nom, fmt.Sprintf("message fixe du code %d (EX-4.24)", code), msg, chaineDe(erreurRendue, "message"))
+		}
+		// une erreur de l'enregistreur lui-même (préfixe « noortrace: » du
+		// message, EX-4.24) porte un code admis ; une erreur relayée du
+		// serveur garde le sien (4.4 pas 14)
+		if erreurEnregistreur || strings.HasPrefix(chaineDe(erreurRendue, "message"), "noortrace:") {
+			comparerCodeEX424(rap, nom, erreurRendue)
+		}
+	}
+	if tm := att.Get("timeout_ms"); tm != nil {
+		rap.Comparer(f, nom, "timeout_ms = data.timeout_ms de l'erreur -31011 rendue (EX-4.22)", texteOuAbsent(tm), texteOuAbsent(erreurRendue.Get("data").Get("timeout_ms")))
+	}
+	if lim, ok := EntierDe(att.Get("limits").Get("response_max_bytes")); ok {
+		rap.Comparer(f, nom, "limits.response_max_bytes = data.limit_bytes de l'erreur -31013 rendue", fmt.Sprint(lim), texteOuAbsent(erreurRendue.Get("data").Get("limit_bytes")))
+		var lue *LigneTranscription
+		for _, l := range amont {
+			if l.Dir == "in" && !l.EOF && l.Val != nil && l.id() == relais.id() {
+				lue = l
+			}
+		}
+		if lue != nil {
+			rap.Comparer(f, nom, "réponse amont au-delà de limits.response_max_bytes (4.4 pas 11)", "oui", oui(int64(len(lue.Ligne)) > lim))
+		}
+	}
+	// ères de protocole déclarées (4.2) : version vue côté hôte et côté serveur
+	if pr := att.Get("protocols"); EstObjet(pr) {
+		vh, sh := versionHote(hote, &LigneTranscription{Val: appel})
+		vs, ss := versionServeur(amont, relais)
+		comparerVersion(rap, nom, "protocols.host", chaineDe(pr, "host"), vh, sh)
+		comparerVersion(rap, nom, "protocols.server", chaineDe(pr, "server"), vs, ss)
+		if chaineDe(pr, "host") != VersionModerne && chaineDe(pr, "server") == VersionModerne {
+			m := relais.Val.Get("params").Get("_meta")
+			rap.Comparer(f, nom, "_meta requis ajoutés vers le serveur moderne (protocolVersion, clientCapabilities, EX-4.4)", "oui",
+				oui(chaineDe(m, "io.modelcontextprotocol/protocolVersion") == VersionModerne && m.Get("io.modelcontextprotocol/clientCapabilities") != nil))
+		}
+	}
+	// résultat rendu = résultat amont aux réécritures près (4.4 pas 14)
+	if rendue.Val.Has("result") && reponseAmont != nil && reponseAmont.Val.Has("result") {
+		rh, ra := sansIdentiteServeur(rendue.Val.Get("result")), sansIdentiteServeur(reponseAmont.Val.Get("result"))
+		if !ra.Has("resultType") {
+			Retirer(rh, "resultType")
+		}
+		comparerValeur(rap, f, nom, "result rendu = result amont, serverInfo et resultType ajoutés exceptés (4.4 pas 14)", ra, rh)
+		if si := rendue.Val.Get("result").Get("_meta").Get(CleServerInfo); si != nil {
+			comparerValeur(rap, f, nom, "_meta serverInfo rendu = identité de l'enregistreur (EX-4.4)",
+				Objet("name", Chaine(NomEnregistreur), "version", Chaine(VersionEnregistreurVecteurs)), si)
+		}
+	}
+}
+
+// verifierContexteAppel recalcule la définition servie, la définition
+// courante, la liste annoncée, le contexte (EX-4.45, EX-7.7) et la classe
+// (EX-14.1) d'un appel, relayé ou non.
+func verifierContexteAppel(rap *Rapport, nom string, att, servie *Value, annonce string) {
+	f := FamillePiecesMCP
+	pieces := att.Get("pieces")
 	var defServie *Value
 	for _, d := range servie.Arr {
 		if chaineDe(d, "name") == annonce {
@@ -256,109 +417,86 @@ func verifierAppelMCP(rap *Rapport, ctx *contexteCT2, dir, nom string) {
 	}
 	comparerValeur(rap, f, nom, "context : définition servie, définition courante si elle diffère, liste annoncée (EX-4.45)", att.Get("context"), ctxAttendu)
 
-	// duration_ms = t_reponse − t_envoi (4.4 pas 11) ; issues sans réponse : EX-4.48
-	attDur := att.Get("duration_ms")
-	var tReponse time.Time
-	source := ""
-	switch {
-	case codeRendu == -32011:
-		tm, _ := EntierDe(erreurRendue.Get("data").Get("timeout_ms"))
-		tReponse = relais.T.Add(time.Duration(tm) * time.Millisecond)
-		source = "délai : t_envoi + timeout_ms (EX-4.48)"
-		if an := trouverAnnulation(amont, relais); an != nil {
-			rap.Comparer(f, nom, "annulation amont envoyée à t_envoi + timeout_ms (EX-4.22)", FormaterHorodatage(tReponse), FormaterHorodatage(an.T))
-		} else {
-			rap.Comparer(f, nom, "annulation amont (notifications/cancelled, EX-4.22)", "présente", "absente")
-		}
-	case codeRendu == -32014 && erreurEnregistreur:
-		for _, l := range amont {
-			if l.EOF {
-				tReponse = l.T
-			}
-		}
-		source = "perte : fin de fichier de la sortie standard du serveur (EX-4.48)"
-	case codeRendu == -32013 && erreurEnregistreur:
-		for _, l := range amont {
-			if l.Dir == "in" && !l.EOF && int64(len(l.Ligne)) > 0 && l.Val != nil && l.id() == relais.id() {
-				tReponse = l.T
-			}
-		}
-		source = "taille : instant où la borne est atteinte (EX-4.48)"
-	case reponseAmont != nil:
-		tReponse = reponseAmont.T
-		source = "réponse amont (4.4 pas 11)"
-	}
-	if tReponse.IsZero() || relais.T.IsZero() {
-		horsPerimetre(rap, f, nom, "duration_ms", texteOuAbsent(attDur), "t_reponse non lisible dans la transcription")
-	} else {
-		rap.ComparerAvecNote(f, nom, "duration_ms = t_reponse − t_envoi", texteOuAbsent(attDur), fmt.Sprint(tReponse.Sub(relais.T).Milliseconds()),
-			texteOuAbsent(attDur) == fmt.Sprint(tReponse.Sub(relais.T).Milliseconds()), source)
-	}
-	if !tReponse.IsZero() {
-		rap.Comparer(f, nom, "réponse rendue après t_reponse (EX-4.19)", "oui", oui(rendue.T.After(tReponse)))
-	}
+}
 
-	// erreur rendue à l'hôte et id recopié depuis le texte de l'hôte (4.4 pas 14)
-	idRendu := "(absent)"
-	if id := rendue.Val.Get("id"); id != nil {
-		idRendu = string(rendue.Ligne[id.Debut:id.Fin])
+// valideOu rend « valide », ou « invalide : <raison> ».
+func valideOu(raison string) string {
+	if raison == "" {
+		return "valide"
 	}
-	rap.Comparer(f, nom, "id rendu = octets de l'id reçu (4.4 pas 14)", lu.IDTexte, idRendu)
-	attErr := att.Get("error_rendered")
-	switch {
-	case attErr == nil:
-		rap.Comparer(f, nom, "error_rendered présent", "oui", "non")
-	case erreurAttendue == nil:
-		rap.Comparer(f, nom, "error_rendered", "null", texteOuAbsent(attErr))
-		rap.Comparer(f, nom, "aucune erreur rendue (réponse result)", "oui", oui(erreurRendue == nil && rendue.Val.Has("result")))
-	default:
-		comparerValeur(rap, f, nom, "error_rendered", erreurAttendue, attErr)
-		comparerValeur(rap, f, nom, "erreur rendue à l'hôte : même code, message et data (4.4 pas 12 et 14)", erreurAttendue, erreurRendue)
+	return "invalide : " + raison
+}
+
+// comparerCodeEX424 vérifie qu'une erreur rendue par l'enregistreur lui-même
+// porte un code admis par EX-4.24 (version 0.3).
+func comparerCodeEX424(rap *Rapport, nom string, erreur *Value) {
+	code, ok := EntierDe(erreur.Get("code"))
+	if !ok {
+		rap.Comparer(FamillePiecesMCP, nom, "code de l'erreur rendue (EX-4.24)", "entier", texteOuAbsent(erreur.Get("code")))
+		return
 	}
-	if erreurRendue != nil {
-		code, _ := EntierDe(erreurRendue.Get("code"))
-		if msg, ok := MessagesErreurs[code]; ok {
-			rap.Comparer(f, nom, fmt.Sprintf("message fixe du code %d (EX-4.24)", code), msg, chaineDe(erreurRendue, "message"))
-		}
+	admis, raison := CodeAdmisEX424(code)
+	obt := "admis"
+	if !admis {
+		obt = "refusé : " + raison
 	}
-	if tm := att.Get("timeout_ms"); tm != nil {
-		rap.Comparer(f, nom, "timeout_ms = data.timeout_ms de l'erreur -32011 rendue (EX-4.22)", texteOuAbsent(tm), texteOuAbsent(erreurRendue.Get("data").Get("timeout_ms")))
+	rap.Comparer(FamillePiecesMCP, nom, fmt.Sprintf("code %d rendu par l'enregistreur : table de 4.4 ou code standard, hors des plages réservées (EX-4.24)", code), "admis", obt)
+}
+
+// verifierIssueSansRelais vérifie un cas d'approbation sans relais (B.4) :
+// refus par la politique, ticket nouveau ou en attente, ticket refusé ou
+// expiré. Aucun échange amont, pièce « arguments » du pas 4, ni résultat, ni
+// is_error, ni duration_ms ; l'hôte reçoit le résultat d'EX-4.49. Les cas
+// d'approbation sont rendus en mode d'attente « erreur », celui de la
+// configuration de référence (B.4, CT-3 EX-11.1) : le signal en_attente est
+// rendu aussitôt ; attendu.json ne porte pas de membre mode.
+func verifierIssueSansRelais(rap *Rapport, ctx *contexteCT2, nom string, att *Value, hote, amont []*LigneTranscription, servie *Value, recue, rendue *LigneTranscription, lu RequeteLue, issue string, rep *Value) {
+	f := FamillePiecesMCP
+	appel := lu.Msg
+	params := appel.Get("params")
+	annonce := chaineDe(params, "name")
+	rap.Comparer(f, nom, "aucun relais amont (lignes dans amont.jsonl)", "0", fmt.Sprint(len(amont)))
+	pieces := att.Get("pieces")
+	args := params.Get("arguments")
+	if args == nil {
+		args = ObjetVide()
 	}
-	if lim, ok := EntierDe(att.Get("limits").Get("response_max_bytes")); ok {
-		rap.Comparer(f, nom, "limits.response_max_bytes = data.limit_bytes de l'erreur -32013 rendue", fmt.Sprint(lim), texteOuAbsent(erreurRendue.Get("data").Get("limit_bytes")))
-		var lue *LigneTranscription
-		for _, l := range amont {
-			if l.Dir == "in" && !l.EOF && l.Val != nil && l.id() == relais.id() {
-				lue = l
-			}
-		}
-		if lue != nil {
-			rap.Comparer(f, nom, "réponse amont au-delà de limits.response_max_bytes (4.4 pas 11)", "oui", oui(int64(len(lue.Ligne)) > lim))
-		}
+	pArgs, _, errArgs := PieceRedigeeJSON(ctx.piiV1, "arguments", annonce, args)
+	comparerPiece(rap, f, nom, "arguments (pièce écrite au pas 4)", pieces.Get("arguments"), pArgs, errArgs)
+	for _, k := range []string{"result"} {
+		rap.Comparer(f, nom, "pieces."+k+" (aucun relais, B.4)", "null", texteOuAbsent(pieces.Get(k)))
 	}
-	// ères de protocole déclarées (4.2) : version vue côté hôte et côté serveur
+	for _, k := range []string{"is_error", "duration_ms", "error_rendered"} {
+		rap.Comparer(f, nom, k+" (aucun relais, B.4)", "null", texteOuAbsent(att.Get(k)))
+	}
+	verifierContexteAppel(rap, nom, att, servie, annonce)
+
+	// ère de l'hôte (4.2) : resultType pour l'ère moderne seulement (EX-4.49)
+	vh, sh := versionHote(hote, &LigneTranscription{Val: appel})
+	moderne := vh == VersionModerne
+	if moderne {
+		ctx.issuesApprobation[nom] = issue + "/moderne"
+	} else {
+		ctx.issuesApprobation[nom] = issue + "/héritée"
+	}
 	if pr := att.Get("protocols"); EstObjet(pr) {
-		vh, sh := versionHote(hote, &LigneTranscription{Val: appel})
-		vs, ss := versionServeur(amont, relais)
 		comparerVersion(rap, nom, "protocols.host", chaineDe(pr, "host"), vh, sh)
-		comparerVersion(rap, nom, "protocols.server", chaineDe(pr, "server"), vs, ss)
-		if chaineDe(pr, "host") != VersionModerne && chaineDe(pr, "server") == VersionModerne {
-			m := relais.Val.Get("params").Get("_meta")
-			rap.Comparer(f, nom, "_meta requis ajoutés vers le serveur moderne (protocolVersion, clientCapabilities, EX-4.4)", "oui",
-				oui(chaineDe(m, "io.modelcontextprotocol/protocolVersion") == VersionModerne && m.Get("io.modelcontextprotocol/clientCapabilities") != nil))
-		}
+		horsPerimetre(rap, f, nom, "protocols.server", chaineDe(pr, "server"), "aucun échange amont dans la transcription (appel non relayé) : déclaratif (B.4)")
 	}
-	// résultat rendu = résultat amont aux réécritures près (4.4 pas 14)
-	if rendue.Val.Has("result") && reponseAmont != nil && reponseAmont.Val.Has("result") {
-		rh, ra := sansIdentiteServeur(rendue.Val.Get("result")), sansIdentiteServeur(reponseAmont.Val.Get("result"))
-		if !ra.Has("resultType") {
-			Retirer(rh, "resultType")
-		}
-		comparerValeur(rap, f, nom, "result rendu = result amont, serverInfo et resultType ajoutés exceptés (4.4 pas 14)", ra, rh)
-		if si := rendue.Val.Get("result").Get("_meta").Get(CleServerInfo); si != nil {
-			comparerValeur(rap, f, nom, "_meta serverInfo rendu = identité de l'enregistreur (EX-4.4)",
-				Objet("name", Chaine(NomEnregistreur), "version", Chaine(VersionEnregistreurVecteurs)), si)
-		}
+	attendu := ResultatAttendu(issue, rep, moderne)
+	comparerValeur(rap, f, nom, "result_rendered (EX-4.49, issue "+issue+" d'EX-7.16)", att.Get("result_rendered"), attendu)
+	if rendue.Val.Has("error") || !rendue.Val.Has("result") {
+		rap.Comparer(f, nom, "réponse rendue : result, jamais une erreur JSON-RPC (EX-4.49, EX-14.5)", "result", "error")
+		return
+	}
+	comparerValeur(rap, f, nom, "result de la ligne rendue = result_rendered", att.Get("result_rendered"), rendue.Val.Get("result"))
+	rap.Comparer(f, nom, "ligne rendue, octets exacts : membres dans l'ordre des exemples d'EX-4.49, id recopié (4.4 pas 14)", LigneResultat(lu.IDTexte, attendu), string(rendue.Ligne))
+	rap.Comparer(f, nom, "réponse rendue sans structuredContent (EX-4.49)", "(absent)", texteOuAbsent(rendue.Val.Get("result").Get("structuredContent")))
+	if r := chaineDe(rep, "rule"); r != "" {
+		rap.Comparer(f, nom, "texte rendu sans le nom de la règle (EX-4.49, CT-3 EX-11.8)", "oui", oui(!strings.Contains(string(rendue.Ligne), r)))
+	}
+	if !recue.T.IsZero() && !rendue.T.IsZero() {
+		rap.Comparer(f, nom, "réponse rendue après la requête reçue", "oui", oui(rendue.T.After(recue.T)))
 	}
 }
 

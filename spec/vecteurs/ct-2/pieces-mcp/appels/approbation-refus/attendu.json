@@ -1,0 +1,85 @@
+{
+  "tool_announced": "demo__payments.create",
+  "tool_original": "payments.create",
+  "server_alias": "demo",
+  "class": "ecriture",
+  "rejected": false,
+  "pieces": {
+    "arguments": {
+      "sha256": "0x83e182b6e107aeedb53d61c7f4e86fca6d00886ebf87b8450b94eb9ffa0d5952",
+      "length": 95,
+      "redacted": true,
+      "bytes": "{\"amount\":\"120.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-81047\",\"currency\":\"EUR\"}"
+    },
+    "result": null,
+    "definition": {
+      "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
+      "length": 575,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}"
+    },
+    "definition_current": null,
+    "list": {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "bytes": "{\"tools\":[{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend une pièce archivée d'un sinistre\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"document_id\":{\"type\":\"string\"}},\"required\":[\"document_id\"],\"type\":\"object\"},\"name\":\"archives__documents.get\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"claim_id\":{\"type\":\"string\"}},\"required\":[\"claim_id\"],\"type\":\"object\"},\"name\":\"demo__claims.get\",\"title\":\"Lire un sinistre\"},{\"annotations\":{\"readOnlyHint\":true},\"description\":\"Recherche des sinistres de démonstration par texte libre\",\"inputSchema\":{\"properties\":{\"filtre\":{\"type\":\"object\"},\"identifiant_long\":{\"type\":\"number\"},\"limite\":{\"type\":\"number\"},\"plafond\":{\"type\":\"number\"},\"query\":{\"type\":\"string\"},\"seuil\":{\"type\":\"number\"}},\"required\":[\"query\"],\"type\":\"object\"},\"name\":\"demo__claims.search\",\"title\":\"Rechercher des sinistres\"},{\"annotations\":{\"destructiveHint\":false,\"readOnlyHint\":false},\"description\":\"Crée un paiement de sinistre (écriture)\",\"inputSchema\":{\"additionalProperties\":false,\"properties\":{\"amount\":{\"type\":\"string\"},\"beneficiary_iban\":{\"type\":\"string\"},\"claim_id\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"object\"},\"name\":\"demo__payments.create\",\"outputSchema\":{\"additionalProperties\":false,\"properties\":{\"payment_id\":{\"type\":\"string\"}},\"required\":[\"payment_id\"],\"type\":\"object\"},\"title\":\"Créer un paiement\"}]}"
+    }
+  },
+  "context": [
+    {
+      "sha256": "0xf8ba86dfd990ebc87d9ba591ddf78caa9788b6103e09a66fa9add269bbd24e23",
+      "length": 575,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    },
+    {
+      "sha256": "0xc85634c79bafe503065822ca34af29f9dc4c2f53be4ba8dc732190ab4f63b746",
+      "length": 1548,
+      "redacted": false,
+      "media_type": "application/json",
+      "kind": "autre"
+    }
+  ],
+  "is_error": null,
+  "duration_ms": null,
+  "error_rendered": null,
+  "approval": {
+    "response": {
+      "rule": "paiement hors CHF",
+      "decision": "refuse",
+      "ticket": null,
+      "ticket_state": null,
+      "approval": null,
+      "approver_set": null
+    }
+  },
+  "result_rendered": {
+    "resultType": "complete",
+    "content": [
+      {
+        "type": "text",
+        "text": "noortrace: appel refuse par la politique"
+      }
+    ],
+    "isError": true,
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": {
+        "name": "noortrace-enregistreur",
+        "version": "0.1.0"
+      }
+    }
+  },
+  "protocols": {
+    "host": "2026-07-28",
+    "server": "2026-07-28"
+  },
+  "transports": {
+    "host": "stdio",
+    "server": "stdio"
+  },
+  "note": "Refus par la politique sans ticket (réponse d'evaluer refuse, ticket null) pour un hôte moderne : événement refusee (policy.decision refuse), pièce « arguments » écrite au pas 4, aucun relais ; l'hôte reçoit le résultat isError de texte fixe « noortrace: appel refuse par la politique », avec resultType complete et serverInfo, sans structuredContent ni nom de règle (EX-4.49, CT-3 EX-11.8) : ce n'est pas une erreur JSON-RPC."
+}

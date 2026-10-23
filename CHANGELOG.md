@@ -6,7 +6,26 @@ is tagged.
 
 ## Unreleased
 
-- CT-3, approvals, version 0.1: a JSON rule language (`politique-approbation-v0`)
+- CT-2, the recorder, version 0.3: aligned with CT-3. The approval service
+  interface (`charger`, `evaluer`, `ouvrir`, `decisions`, `acquitter`,
+  `consommer`, `expiration`), the refusal to seal a held call for a ticket
+  already decided, relay checks RL-1 to RL-4 with a keyed relay MAC over the
+  plain arguments, SG-7 (no self-approval), validation of
+  `policy.approval.rules` against `politique-approbation-v0` before sealing,
+  and the approver set kept and exported in `approbations.json`.
+- Breaking: following the MCP 2026-07-28 error code policy, the recorder's
+  JSON-RPC error codes move from `-32010`…`-32017` to `-31010`…`-31017`, and
+  `-32015` is withdrawn: a pending, refused or expired approval is now a tool
+  error result (`isError: true`) carrying the ticket and its state in its text
+  and in `_meta["noortrace/approval"]`.
+- CT-2 redaction patterns: a structural check refuses the patterns with
+  exponential backtracking, and `limits.redaction_budget_ms` now bounds every
+  pattern evaluation; a write or approval-bound call whose arguments exceed it
+  is refused before relay.
+- CT-2 vectors updated accordingly (`pieces-mcp`, `journal-demo` rendered
+  signal, `redaction/motifs.json`); the CT-2 Go verifier recomputes 2,512
+  values, 2,506 matching, none discordant, 6 outside its scope.
+- CT-3, approvals, version 0.2: a JSON rule language (`politique-approbation-v0`)
   selecting a tool and typed predicates on its arguments by JSON Pointer, with
   exact decimal comparison and no floating point; three levels, automatic,
   time-boxed window and per-call review, projected on the CT-1 values without
@@ -16,12 +35,12 @@ is tagged.
   ticket opens and confirmed again before the decision, with a threshold that
   cannot drop while waiting; what the approver sees before signing; separation
   of duties; the approval service interface and the console requirements.
-  Closes open decision 4: the proxy answers at once with an error carrying the
-  ticket (`erreur` mode) by default.
+  Closes open decision 4: the proxy answers at once with a tool error result
+  (`isError`) carrying the ticket and its state (`erreur` mode) by default.
 - CT-3 reference implementation (`scripts/lib/approbation.mjs`), deterministic
   vectors (`spec/vecteurs/ct-3`, `npm run vecteurs:ct3`) with ten acceptance
-  cases, and a Go verifier written from the specification alone: 4,590 values
-  recomputed, all matching, 81 outside its scope. Continuous integration regenerates the CT-3 vectors
+  cases, and a Go verifier written from the specification alone: 4,718 values
+  recomputed, all matching, 83 outside its scope. Continuous integration regenerates the CT-3 vectors
   and runs that verifier.
 - CT-6 vector generator: it now deletes only the entries it writes and refuses
   an output directory that holds anything else, or `--sortie` without a value.

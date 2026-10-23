@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":"h-77812-4","result":{"resultType":"complete","content":[{"type":"text","text":"noortrace: appel soumis a approbation ; ticket=apr-1192 ; state=en_attente"}],"isError":true,"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"noortrace-enregistreur","version":"0.1.0"},"noortrace/approval":{"ticket":"apr-1192","state":"en_attente"}}}}

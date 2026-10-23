@@ -12,10 +12,10 @@
       "bytes": "{\"query\":\"tout\"}"
     },
     "result": {
-      "sha256": "0x4bad340ca3fd8ebc05bb7d4220c97c2063e1e56d5ea3d14ce8dc2c384ffea686",
+      "sha256": "0x53477e4b86f6ce45b3705ca7bf4fe9354c7eefafd36343c8ad0e28f4419e288b",
       "length": 140,
       "redacted": false,
-      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-32013,\"data\":{\"direction\":\"reponse\",\"limit_bytes\":512},\"message\":\"noortrace: taille maximale depassee\"}}"
+      "bytes": "{\"noortrace_jsonrpc_error\":{\"code\":-31013,\"data\":{\"direction\":\"reponse\",\"limit_bytes\":512},\"message\":\"noortrace: taille maximale depassee\"}}"
     },
     "definition": {
       "sha256": "0x7554590dd86b63e422c29b6966203d2b976987602700a6423c20ef247f0de75c",
@@ -52,13 +52,15 @@
   "is_error": true,
   "duration_ms": 86,
   "error_rendered": {
-    "code": -32013,
+    "code": -31013,
     "message": "noortrace: taille maximale depassee",
     "data": {
       "limit_bytes": 512,
       "direction": "reponse"
     }
   },
+  "approval": null,
+  "result_rendered": null,
   "protocols": {
     "host": "2026-07-28",
     "server": "2026-07-28"
@@ -70,5 +72,5 @@
   "limits": {
     "response_max_bytes": 512
   },
-  "note": "Réponse amont au-delà de limits.response_max_bytes (512 octets pour ce cas) : lecture arrêtée à la borne (t_reponse, EX-4.48), connexion amont fermée, événement is_error vrai avec la pièce -32013 (direction reponse), erreur -32013 rendue (4.4 pas 11)."
+  "note": "Réponse amont au-delà de limits.response_max_bytes (512 octets pour ce cas) : lecture arrêtée à la borne (t_reponse, EX-4.48), connexion amont fermée, événement is_error vrai avec la pièce -31013 (direction reponse), erreur -31013 rendue (4.4 pas 11)."
 }

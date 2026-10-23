@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { HDNodeWallet, keccak256, toUtf8Bytes } from "ethers";
 import * as J from "../lib/journal.mjs";
 import * as C from "../lib/capture.mjs";
+import * as AP from "../lib/approbation.mjs";
 import { parseArgs } from "../lib/noortrace.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -84,7 +85,7 @@ for (const entree of ENTREES_GENEREES) fs.rmSync(path.join(SORTIE, entree), { re
 fs.mkdirSync(SORTIE, { recursive: true });
 
 const lireSchema = (n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"));
-const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "politique-redaction", "configuration-enregistreur"].map(lireSchema));
+const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "politique-redaction", "politique-approbation", "ticket", "configuration-enregistreur"].map(lireSchema));
 
 /** Les blocs JSON annotés `<!-- schema: … -->` de CT-2, texte exact. */
 function blocsSpec(marque) {
@@ -439,8 +440,37 @@ const OUTIL_PAIEMENT = "demo__payments.create";
     ["a{1001}", "répétition au-delà de 1000"],
     ["[]", "classe vide"],
     ["\\bx\\b*", "quantificateur sur une frontière"],
-  ].map(([pattern, note]) => ({ pattern, admis: C.erreursMotifRE2(pattern).length === 0, note }));
-  exiger(MOTIFS.filter((m) => m.admis).length === 7, "motifs admis");
+    // Règles de structure et de taille (EX-10.6 a à c, version 0.3) : la note nomme la première règle qui refuse le motif.
+    ["[0-9]+$", "retour arrière polynomial (4,7 s sur 80 000 chiffres suivis de x en ECMAScript), admis par les règles a) à c) : borné par le budget d'EX-10.23"],
+    ["^(a+)+$", "règle a) : répétition imbriquée (motif à retour arrière exponentiel d'OWASP)"],
+    ["([a-zA-Z]+)*$", "règle a) : répétition imbriquée (motif d'OWASP)"],
+    ["(a|aa)+$", "règle a) : alternative qui se recouvre sous répétition (motif d'OWASP)"],
+    ["(a|a?)+$", "règle a) : alternative sous répétition (motif d'OWASP)"],
+    ["(a|aa){1,1000}$", "règle a) : alternative sous un quantificateur borné (aussi règle c, taille 3 001)"],
+    ["(a{1,1000}){1,1000}$", "règle a) : répétition imbriquée bornée (aussi règle c, taille 1 000 001 ; refusée par RE2)"],
+    ["(\\w|\\d)+$", "règle a) : alternative qui se recouvre sous répétition"],
+    ["(?:[0-9]{4} ?){3}", "règle a) : forme bénigne refusée, à écrire déroulée"],
+    ["(?:\\b)+x", "règle b) : groupe quantifié qui peut être vide"],
+    ["[0-9]{1000}x", "règle c) : taille développée 1 001"],
+    // Version 0.3 : réécriture des seuls groupes nommés (?P<nom> reconnus par l'analyse, et quantificateurs à zéro non significatif (EX-10.6).
+    ["[(?P<]x", "« (?P< » dans une classe : pas un groupe nommé, non réécrit", [["Px", "Px"], ["<x", "<x"]]],
+    ["a\\(?P<b", "parenthèse échappée et optionnelle suivie de « P<b » : pas un groupe nommé, non réécrit", [["aP<b", "aP<b"], ["a(P<b", "a(P<b"], ["a<b", null]]],
+    ["\\(?P<x>", "parenthèse échappée et optionnelle suivie de « P<x> » : pas un groupe nommé, non réécrit", [["P<x>", "P<x>"]]],
+    ["\\\\(?P<x>a)", "barre oblique inverse échappée suivie d'un vrai groupe nommé, réécrit (?<x>", [["\\a", "\\a"], ["a", null]]],
+    ["a{01}", "zéro non significatif dans un quantificateur : RE2 et Go lisent « { » comme un littéral"],
+    ["[0-9]{04}", "zéro non significatif dans un quantificateur"],
+    ["a{0,01}", "zéro non significatif dans un quantificateur"],
+  ].map(([pattern, note, matches]) => ({ pattern, admis: C.erreursMotifRE2(pattern).length === 0, note, ...(matches ? { matches: matches.map(([input, first]) => ({ input, first })) } : {}) }));
+  exiger(MOTIFS.filter((m) => m.admis).length === 12, "motifs admis");
+  for (const m of MOTIFS.filter((x) => x.matches)) {
+    const re = C.compilerExtract(m.pattern);
+    for (const { input, first } of m.matches) exiger((re.exec(input)?.[0] ?? null) === first, `motif ${m.pattern} sur ${input}`);
+  }
+  for (const m of MOTIFS.filter((x) => x.note.startsWith("zéro non significatif"))) exiger(!m.admis && C.erreursMotifRE2(m.pattern)[0].startsWith("zéro non significatif dans un quantificateur"), `motif ${m.pattern} : zéro non significatif`);
+  for (const m of MOTIFS) {
+    const regle = /^règle ([abc])\)/.exec(m.note)?.[1];
+    if (regle) exiger(!m.admis && C.erreursMotifRE2(m.pattern)[0].includes(`(EX-10.6 ${regle})`), `motif ${m.pattern} : première règle ${regle}`);
+  }
   ecrireJSON("redaction/motifs.json", MOTIFS);
   ecrire("redaction/politique-pii-v1.json", TEXTE_PII + "\n");
   ecrireJSON("redaction/politique-pseudonyme-test.json", DOC_PSEUDO);
@@ -605,6 +635,8 @@ function ecrireCasAppel(nom, r, { note, protocoles, transports = TRANSPORTS_STDI
       is_error: null,
       duration_ms: null,
       error_rendered: r.errorRendered,
+      approval: null,
+      result_rendered: null,
       protocols: protocoles,
       transports,
       ...extra,
@@ -619,16 +651,58 @@ function ecrireCasAppel(nom, r, { note, protocoles, transports = TRANSPORTS_STDI
     server_alias: r.def.server_alias,
     class: r.def.class,
     rejected: false,
-    pieces: { arguments: avecOctets(r.args), result: avecOctets(r.resultat), definition: avecOctets(r.servie.piece), definition_current: differente ? avecOctets(r.def.piece) : null, list: avecOctets(r.liste.piece) },
+    pieces: { arguments: avecOctets(r.args), result: r.sansRelais ? null : avecOctets(r.resultat), definition: avecOctets(r.servie.piece), definition_current: differente ? avecOctets(r.def.piece) : null, list: avecOctets(r.liste.piece) },
     context: r.contexte,
     is_error: r.resultat.is_error,
     duration_ms: r.duration_ms,
     error_rendered: r.errorRendered,
+    approval: r.approbation ? { response: r.approbation } : null,
+    result_rendered: r.resultatRendu ?? null,
     protocols: protocoles,
     transports,
     ...extra,
     note,
   });
+}
+
+/**
+ * Un tools/call dont la politique d'approbation décide sans relais (4.4 pas 3
+ * à 6, EX-4.49) : la réponse d'evaluer simulée (`reponse`,
+ * ticket-v0#/$defs/reponse_evaluer), la pièce « arguments » écrite au pas 4,
+ * le résultat que l'enregistreur rend lui-même (refus par la politique ou
+ * signal d'approbation) ; ni ligne amont, ni pièce « résultat », ni durée.
+ */
+function decisionSansRelais({ ligneHote, tRecu, hoteModerne = true, reponse, politique = PII, liste = LISTE_APPELS, courantes = LISTE_APPELS }) {
+  const lu = C.lireRequeteHote(ligneHote);
+  exiger(!lu.erreur, "requête d'approbation lisible");
+  const msg = lu.msg;
+  const annonce = msg.params.name;
+  const courante = courantes.parNom.get(annonce);
+  exiger(courante, `outil ${annonce} absent de la liste courante`);
+  const servie = liste.parNom.get(annonce) ?? courante;
+  exiger(AP.erreursSchema(reponse, SCHEMAS, "reponse_evaluer").length === 0 && AP.combinaisonAdmise(reponse), "réponse d'evaluer conforme à ticket-v0 et à EX-7.16");
+  const action = AP.actionMandataire(reponse, { hoteModerne });
+  exiger(action.action === "resultat", `issue sans relais attendue : ${action.action}`);
+  const args = C.pieceArguments(msg.params, { politique, outil: annonce });
+  const ligneRendue = C.ligneHoteResultatEnregistreur(msg.id, action.result, { idHoteTexte: C.texteIdRequete(ligneHote) });
+  const listeHote = echangeListeHote(tRecu, { hoteModerne, liste });
+  return {
+    annonce,
+    def: courante,
+    servie,
+    args,
+    resultat: { is_error: null },
+    sansRelais: true,
+    approbation: reponse,
+    resultatRendu: action.result,
+    ligneRendue,
+    errorRendered: null,
+    duration_ms: null,
+    contexte: C.contexteAppel({ servie: servie.piece, courante: courante.piece, liste: liste.piece }),
+    liste,
+    hote: [...listeHote, enveloppe("in", tRecu, ligneHote), enveloppe("out", J.horodatage(ms(tRecu) + 8), ligneRendue)],
+    amont: [],
+  };
 }
 
 // L'appel d'écriture de la démonstration (seq 7 de evenements/journal-demo) : partagé avec la section 5.
@@ -684,7 +758,7 @@ const APPEL_LECTURE = {
     postlude: [enveloppe("out", T(10, 31, 30, 5), C.ligneAnnulation(C.idAmont(7), "noortrace: delai du serveur d'outils depasse")), enveloppe("in", T(10, 31, 31, 250), reponseServeur(C.idAmont(7), { resultType: "complete", content: [{ type: "text", text: "Aucun sinistre" }], isError: false }))],
   });
   exiger(r4.duration_ms === 30000, "délai : t_reponse = t_envoi + timeout_ms (EX-4.48)");
-  ecrireCasAppel("delai", r4, { protocoles: PROT, extra: { timeout_ms: 30000 }, note: "Délai de l'outil (policy.servers.demo.tools[\"claims.search\"].timeout_ms = 30000) écoulé : t_reponse = t_envoi + timeout_ms (EX-4.48), annulation amont à cet instant (stdio : notifications/cancelled avec le requestId amont), événement is_error vrai avec la pièce -32011, erreur -32011 rendue ; la réponse amont tardive est ignorée (EX-4.22)." });
+  ecrireCasAppel("delai", r4, { protocoles: PROT, extra: { timeout_ms: 30000 }, note: "Délai de l'outil (policy.servers.demo.tools[\"claims.search\"].timeout_ms = 30000) écoulé : t_reponse = t_envoi + timeout_ms (EX-4.48), annulation amont à cet instant (stdio : notifications/cancelled avec le requestId amont), événement is_error vrai avec la pièce -31011, erreur -31011 rendue (code hors de la plage réservée, EX-4.24) ; la réponse amont tardive est ignorée (EX-4.22)." });
 
   const r5 = relayer({
     ligneHote: requeteHote("agent-demo-24", "demo__payments.create", '{"claim_id":"2026-81045","amount":"300.00","currency":"CHF","beneficiary_iban":"CH9300762011623852957"}', META_HOTE()),
@@ -693,7 +767,7 @@ const APPEL_LECTURE = {
     postlude: [JSON.stringify({ dir: "in", t: T(10, 32, 0, 21), eof: true })],
   });
   exiger(r5.duration_ms === 15, "injoignable : t_reponse = fin de fichier amont");
-  ecrireCasAppel("injoignable", r5, { protocoles: PROT, note: "Le processus du serveur stdio se termine après l'envoi, avant toute réponse : l'enveloppe {\"dir\":\"in\",\"t\":…,\"eof\":true} marque la fin de fichier sur sa sortie standard, instant qui est t_reponse (EX-4.48). Appel d'écriture déjà relayé (son intention existait), événement is_error vrai avec la pièce -32014, erreur -32014 rendue (EX-4.33, matrice de 14.2)." });
+  ecrireCasAppel("injoignable", r5, { protocoles: PROT, note: "Le processus du serveur stdio se termine après l'envoi, avant toute réponse : l'enveloppe {\"dir\":\"in\",\"t\":…,\"eof\":true} marque la fin de fichier sur sa sortie standard, instant qui est t_reponse (EX-4.48). Appel d'écriture déjà relayé (son intention existait), événement is_error vrai avec la pièce -31014, erreur -31014 rendue (EX-4.33, matrice de 14.2)." });
 
   {
     const texte = "x".repeat(600);
@@ -705,7 +779,7 @@ const APPEL_LECTURE = {
       erreur: { cle: "TAILLE", data: { limit_bytes: 512, direction: "reponse" } },
       postlude: [enveloppe("in", T(10, 33, 0, 90), grande)],
     });
-    ecrireCasAppel("taille-depassee", r6, { protocoles: PROT, extra: { limits: { response_max_bytes: 512 } }, note: "Réponse amont au-delà de limits.response_max_bytes (512 octets pour ce cas) : lecture arrêtée à la borne (t_reponse, EX-4.48), connexion amont fermée, événement is_error vrai avec la pièce -32013 (direction reponse), erreur -32013 rendue (4.4 pas 11)." });
+    ecrireCasAppel("taille-depassee", r6, { protocoles: PROT, extra: { limits: { response_max_bytes: 512 } }, note: "Réponse amont au-delà de limits.response_max_bytes (512 octets pour ce cas) : lecture arrêtée à la borne (t_reponse, EX-4.48), connexion amont fermée, événement is_error vrai avec la pièce -31013 (direction reponse), erreur -31013 rendue (4.4 pas 11)." });
   }
 
   const r7 = relayer({
@@ -828,6 +902,25 @@ const APPEL_LECTURE = {
   });
   exiger(r19.contexte.length === 3 && r19.contexte[0].sha256 !== r19.contexte[1].sha256, "cas definition-servie-differente");
   ecrireCasAppel("definition-servie-differente", r19, { protocoles: PROT, note: "La liste servie à cette connexion d'hôte portait une description piégée de demo__claims.get ; le serveur l'a remplacée depuis : context porte, dans cet ordre, la définition servie, la définition courante (autre sha256) et la liste annoncée servie (EX-4.45, EX-7.7) ; la classe vient de la définition courante (4.4 pas 2)." });
+
+  // Issues d'une politique d'approbation sans relais (4.4 pas 5 et 6, EX-4.49, EX-7.16) : résultats isError rendus par l'enregistreur.
+  const r20 = decisionSansRelais({
+    ligneHote: requeteHote("agent-demo-37", "demo__payments.create", '{"claim_id":"2026-81047","amount":"120.00","currency":"EUR","beneficiary_iban":"CH9300762011623852957"}', META_HOTE()),
+    tRecu: T(10, 44, 0, 0),
+    reponse: { rule: "paiement hors CHF", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null },
+  });
+  exiger(r20.ligneRendue === `{"jsonrpc":"2.0","id":"agent-demo-37","result":${JSON.stringify(AP.resultatRefusPolitique())}}` && r20.resultatRendu.resultType === "complete", "cas approbation-refus");
+  ecrireCasAppel("approbation-refus", r20, { protocoles: PROT, note: "Refus par la politique sans ticket (réponse d'evaluer refuse, ticket null) pour un hôte moderne : événement refusee (policy.decision refuse), pièce « arguments » écrite au pas 4, aucun relais ; l'hôte reçoit le résultat isError de texte fixe « noortrace: appel refuse par la politique », avec resultType complete et serverInfo, sans structuredContent ni nom de règle (EX-4.49, CT-3 EX-11.8) : ce n'est pas une erreur JSON-RPC." });
+
+  const r21 = decisionSansRelais({
+    ligneHote: '{"jsonrpc":"2.0","id":41,"method":"tools/call","params":{"name":"demo__payments.create","arguments":{"claim_id":"2026-81048","amount":"8200.00","currency":"CHF","beneficiary_iban":"CH9300762011623852957"}}}',
+    hoteModerne: false,
+    liste: listeServie(AGREGATION_MCP),
+    tRecu: T(10, 45, 0, 0),
+    reponse: { rule: "paiement > 5000 CHF", decision: "a_approuver", ticket: "apr-demo-0042", ticket_state: "en_attente", approval: null, approver_set: null },
+  });
+  exiger(!Object.hasOwn(r21.resultatRendu, "resultType") && r21.resultatRendu._meta[AP.CLE_META_APPROBATION].state === "en_attente", "cas approbation-en-attente");
+  ecrireCasAppel("approbation-en-attente", r21, { protocoles: { host: PROTOCOLE_HERITE, server: PROTOCOLE_MODERNE }, note: "Ré-émission reconnue d'un appel dont le ticket est en attente (ticket_state en_attente), hôte de l'ère héritée, mode erreur : aucun événement (CT-3 EX-7.19), aucun relais ; l'hôte reçoit le signal d'approbation, résultat isError de texte « noortrace: appel soumis a approbation ; ticket=apr-demo-0042 ; state=en_attente » dont _meta porte serverInfo et noortrace/approval { ticket, state }, sans resultType pour l'ère héritée (EX-4.49). La pièce « arguments » est celle qu'écrirait le pas 4." });
 }
 
 // Agrégation (annexe B.4, agregation/).
@@ -1294,7 +1387,10 @@ const POLITIQUE_DEMO = {
   failure: { ecriture: "bloquant", lecture: "passant", modele: "bloquant", approval_service: { ecriture: "bloquant", lecture: "passant" }, pending_max_events: 10000, pending_max_ms: 300000 },
 };
 {
-  const erreurs = J.validerSchema(POLITIQUE_DEMO, SCHEMAS[C.ID_SCHEMA_CONFIGURATION], { registre: SCHEMAS, fragment: "#/$defs/policy_set" });
+  // politique.json est figé (annexe B.6) : antérieur à CT-3, il porte sous approval.rules un tableau illustratif, et non un document
+  // politique-approbation-v0 ; il est validé contre policy_set hors approval.rules, vérifié comme un tableau, et n'est pas soumis à EX-15.4 pas 3.
+  exiger(Array.isArray(POLITIQUE_DEMO.approval.rules), "politique de démonstration : approval.rules illustratif (tableau)");
+  const erreurs = J.validerSchema(POLITIQUE_DEMO, SCHEMAS[C.ID_SCHEMA_CONFIGURATION], { registre: SCHEMAS, fragment: "#/$defs/policy_set" }).filter((e) => !(e.chemin === "/approval/rules" || e.chemin.startsWith("/approval/rules/")));
   exiger(erreurs.length === 0, `politique de démonstration hors schéma : ${JSON.stringify(erreurs)}`);
 }
 const EMPREINTE_DEMO = C.empreinteEnsemblePolitique(POLITIQUE_DEMO);
@@ -1429,7 +1525,7 @@ ENTREES_APPELS.push({ seq: 3, host: HOTE_DEMO.id, host_group: HOTE_DEMO.host_gro
 
 const { ev: ev4 } = scellerEchange(ECHANGES_DEMO[1]);
 
-// seq 5 : première tentative d'écriture, retenue pour approbation (mode erreur : -32015 rendu à l'hôte).
+// seq 5 : première tentative d'écriture, retenue pour approbation (mode erreur : signal d'approbation rendu à l'hôte, EX-4.49).
 const LIGNE_ECRITURE_1 = requeteHote("agent-demo-05", "demo__payments.create", '{"claim_id":"2026-81044","amount":"7400.00","currency":"CHF","beneficiary_iban":"CH93 0076 2011 6238 5295 7"}', META_HOTE());
 const T_RECU_5 = T(10, 14, 7, 802);
 const lu5 = C.lireRequeteHote(LIGNE_ECRITURE_1);
@@ -1452,7 +1548,8 @@ const ev5 = ecrivain.sceller(
   }),
   { ts_lu: T(10, 14, 7, 805) },
 );
-const ERREUR_RETENUE = C.erreurEnregistreur("APPROBATION", { ticket: TICKET, state: "en_attente" });
+// La requête de seq 5 vient d'un hôte moderne (META_HOTE) : le signal porte resultType (EX-4.49).
+const RESULTAT_RETENUE = AP.resultatSignalApprobation(TICKET, "en_attente", { hoteModerne: true });
 ENTREES_APPELS.push({ seq: 5, host: HOTE_DEMO.id, host_group: HOTE_DEMO.host_group, run_id: RUN_DEMO, t_recu: T_RECU_5, host_line: LIGNE_ECRITURE_1, inherits_from_seq: null });
 
 // seq 6 : décision d'approbation, comptes Hardhat 1 et 2, seuil 2 sur 3 (EX-7.5, EX-7.11).
@@ -1573,7 +1670,7 @@ const DOSSIER = J.assemblerDossier({
     intention_sha256: C.empreinteIntention(LIGNE_INTENTION),
     segment_sha256: J.sha256(Buffer.from(SEGMENT, "utf8")),
     segment_length: Buffer.byteLength(SEGMENT, "utf8"),
-    error_rendered_seq_5: ERREUR_RETENUE,
+    result_rendered_seq_5: RESULTAT_RETENUE,
     correlation: {
       host_group: HOTE_DEMO.host_group,
       run_id: RUN_DEMO,
@@ -1621,7 +1718,8 @@ const DOSSIER = J.assemblerDossier({
     const at = JSON.parse(fs.readFileSync(path.join(SORTIE, "pieces-mcp", "appels", a, "attendu.json"), "utf8"));
     const outil = at.rejected ? "refus au pas 1" : `\`${at.tool_announced}\` (${at.class})`;
     const ie = at.is_error === null ? "—" : at.is_error ? "vrai" : "faux";
-    return `| \`${a}/\` | ${outil} | ${ie} | ${at.error_rendered ? at.error_rendered.code : "—"} | ${at.note} |`;
+    const rendu = at.error_rendered ? `erreur ${at.error_rendered.code}` : at.result_rendered ? (at.approval?.response?.ticket ? "signal d'approbation (résultat isError)" : "refus par la politique (résultat isError)") : "—";
+    return `| \`${a}/\` | ${outil} | ${ie} | ${rendu} | ${at.note} |`;
   });
   const modeles = fs.readdirSync(path.join(SORTIE, "pieces-modele")).sort();
   const lignesModeles = modeles.map((m) => {
@@ -1718,7 +1816,10 @@ alias, classe (de la définition courante), \`rejected\` (refus au pas 1 : ni pi
 événement), pièces « arguments », « résultat », « définition d'outil » servie,
 définition courante si elle diffère (sinon null) et « liste annoncée » (référence et
 octets), \`context\` (EX-4.45, EX-7.7), \`is_error\`, \`duration_ms\` (\`t_reponse − t_envoi\` ;
-pour une issue sans réponse, \`t_reponse\` suit EX-4.48), l'erreur rendue à l'hôte, les
+pour une issue sans réponse, \`t_reponse\` suit EX-4.48), l'erreur rendue à l'hôte, la
+réponse d'\`evaluer\` simulée (\`approval\`) et le résultat que l'enregistreur rend
+lui-même (\`result_rendered\` : refus par la politique ou signal d'approbation,
+résultat \`isError\`, EX-4.49 ; les deux \`null\` hors des cas d'approbation), les
 deux ères (\`protocols\`) et les deux transports (\`transports\`). Les arguments sont
 rédigés par \`pii-v1\`. La ligne amont recopie les arguments reçus, blancs non
 significatifs retirés (EX-4.20, EX-4.43) ; la réponse rendue recopie \`result\` de même,
@@ -1727,7 +1828,7 @@ posé à l'identité de l'enregistreur, inséré en fin de \`result\` quand \`_m
 \`resultType: "complete"\` inséré en tête quand il manque et que l'hôte est moderne) et
 l'\`id\` de l'hôte recopié depuis son texte.
 
-| Cas | Outil | is_error | Erreur rendue | Note |
+| Cas | Outil | is_error | Erreur ou résultat rendu par l'enregistreur | Note |
 |---|---|---|---|---|
 ${lignesAppels.join("\n")}
 
@@ -1780,7 +1881,7 @@ ${lignesEvenements.join("\n")}
 | Fichier | Contenu |
 |---|---|
 | \`evenements.json\` | les huit événements complets |
-| \`attendu.json\` | chaîne valide, \`hash\`, \`sig\`, \`prev_hash\` et longueur canonique de chaque événement, objet \`A\` et \`D_A\` de la décision, \`policy_sha256\` (JCS intégral de \`politique.json\`, ${EMPREINTE_DEMO.octets.length} octets), \`intention_sha256\`, empreinte du segment, erreur -32015 rendue à seq 5, corrélations, période |
+| \`attendu.json\` | chaîne valide, \`hash\`, \`sig\`, \`prev_hash\` et longueur canonique de chaque événement, objet \`A\` et \`D_A\` de la décision, \`policy_sha256\` (JCS intégral de \`politique.json\`, ${EMPREINTE_DEMO.octets.length} octets), \`intention_sha256\`, empreinte du segment, signal d'approbation rendu à seq 5 (EX-4.49), corrélations, période |
 | \`pieces.json\` | les pièces stockées : définition d'outil, requêtes, réponses, prompts système, intentions rédigées, arguments, résultats, document d'ensemble de politique ; \`media_type\` null pour une pièce JSON |
 | \`cles.json\` | \`cles.json\` des dossiers pour \`rec-test-01\` |
 | \`segment.ndjson\` | l'en-tête de segment (\`epoch: 1\`, \`first_seq: 1\`) puis les huit lignes JCS v0, octets exacts (12.2) |

@@ -75,7 +75,7 @@ func construireArbre(t *testing.T) string {
 	pol := politiqueSpec(t)
 
 	// ---- INDEX.md
-	a.ecrire("INDEX.md", []byte(fmt.Sprintf("# Vecteurs CT-2\n\njournal_id : %s\n\nclé de pseudonymisation de test : %s\n\nnonce noortrace/vecteurs/v0/nonce/journal-demo/periode-1 : %s\n\nFamilles : jcs-integral, redaction, pieces-mcp, pieces-modele, evenements.\n",
+	a.ecrire("INDEX.md", []byte(fmt.Sprintf("# Vecteurs CT-2\n\njournal_id : %s\n\nclé de pseudonymisation de test : %s\n\nnonce noortrace/vecteurs/v0/nonce/journal-demo/periode-1 : %s\n\nFamilles : jcs-integral, redaction, pieces-mcp, pieces-modele, evenements.\n\nCas de pieces-mcp/appels : `annexe-a/`, `erreur-jsonrpc/`, `approbation-annexe-a/`, `approbation-refus/`, `approbation-en-attente/`.\n",
 		JournalIDVecteurs(), ClePseudoTestHex, NonceVecteurs(1))))
 
 	// ---- jcs-integral
@@ -109,7 +109,24 @@ func construireArbre(t *testing.T) string {
 	}
 	docPseudo.Get("rules").Arr = append([]*Value{doit(t, RegleChampPseudoTest)}, docPseudo.Get("rules").Arr...)
 	a.json("redaction/politique-pseudonyme-test.json", docPseudo)
-	a.json("redaction/motifs.json", doit(t, `[{"pattern":"\\b20[0-9]{2}\\b","admis":true,"note":"admis"},{"pattern":".","admis":false,"note":"refusé"}]`))
+	// motifs exigés par B.3 (version 0.3), notes portant la règle a), b) ou c)
+	a.json("redaction/motifs.json", doit(t, `[{"pattern":"\\b20[0-9]{2}\\b","admis":true,"note":"admis"},{"pattern":".","admis":false,"note":"refusé"},
+	  {"pattern":"[0-9]+$","admis":true,"note":"retour arrière polynomial, borné par EX-10.23"},
+	  {"pattern":"(?P<annee>20[0-9]{2})","admis":true,"note":"groupe nommé (?P<nom>…)"},
+	  {"pattern":"^(a+)+$","admis":false,"note":"règle a) : OWASP"},{"pattern":"([a-zA-Z]+)*$","admis":false,"note":"règle a) : OWASP"},
+	  {"pattern":"(a|aa)+$","admis":false,"note":"règle a) : OWASP"},{"pattern":"(a|a?)+$","admis":false,"note":"règle a) : OWASP"},
+	  {"pattern":"(a|aa){1,1000}$","admis":false,"note":"règle a) : alternative sous un quantificateur borné"},
+	  {"pattern":"(a{1,1000}){1,1000}$","admis":false,"note":"règle a) : répétition imbriquée bornée"},
+	  {"pattern":"(\\w|\\d)+$","admis":false,"note":"règle a) : alternative qui se recouvre"},
+	  {"pattern":"(?:[0-9]{4} ?){3}","admis":false,"note":"règle a) : forme bénigne"},
+	  {"pattern":"(?:\\b)+x","admis":false,"note":"règle b) : groupe quantifié vide"},
+	  {"pattern":"[0-9]{1000}x","admis":false,"note":"règle c) : taille 1 001"},
+	  {"pattern":"[(?P<]x","admis":true,"note":"(?P< dans une classe","matches":[{"input":"Px","first":"Px"}]},
+	  {"pattern":"a\\(?P<b","admis":true,"note":"parenthèse échappée","matches":[{"input":"aP<b","first":"aP<b"},{"input":"a<b","first":null}]},
+	  {"pattern":"\\(?P<x>","admis":true,"note":"parenthèse échappée","matches":[{"input":"P<x>","first":"P<x>"}]},
+	  {"pattern":"\\\\(?P<x>a)","admis":true,"note":"vrai groupe nommé","matches":[{"input":"\\a","first":"\\a"}]},
+	  {"pattern":"a{01}","admis":false,"note":"zéro non significatif"},{"pattern":"[0-9]{04}","admis":false,"note":"zéro non significatif"},
+	  {"pattern":"a{0,01}","admis":false,"note":"zéro non significatif"}]`))
 	red := TableauVide()
 	red.Arr = append(red.Arr, doit(t, `{"name":"exemple-10-9-arguments","policy":"pii-v1","scope":"arguments","tool":"sap.payments.create",
 	  "input":{"claim_id":"2026-77812","amount":"7400.00","currency":"CHF","beneficiary_iban":"CH9300762011623852957"},
@@ -150,7 +167,54 @@ func construireArbre(t *testing.T) string {
 	    "list":{"sha256":"0xbce6c768f26f72d7377fa3098262b61db83bcc740fc528be536acaa7f168033e","length":418,"redacted":false,"media_type":"application/json"}},
 	  "context":[{"sha256":"0x7d2ffcd2cba25dbd90b54926be79c845131109b2e1bc4ccc22389fb8a26a498a","length":406,"redacted":false,"media_type":"application/json","kind":"autre"},
 	    {"sha256":"0xbce6c768f26f72d7377fa3098262b61db83bcc740fc528be536acaa7f168033e","length":418,"redacted":false,"media_type":"application/json","kind":"autre"}],
-	  "rejected":false,"is_error":false,"duration_ms":412,"error_rendered":null,"note":"annexe A"}`))
+	  "rejected":false,"is_error":false,"duration_ms":412,"error_rendered":null,"approval":null,"result_rendered":null,"note":"annexe A"}`))
+	// approbation (EX-4.49, EX-7.16) : la requête de l'annexe A, réponse
+	// d'evaluer de l'annexe A (ticket nouveau, mode erreur), ligne rendue
+	// imprimée par l'annexe A (359 octets) ; puis un refus par la politique,
+	// résultat exact d'EX-4.49, rendu à la même requête.
+	attAppr := doit(t, `{"tool_announced":"sap.payments.create","tool_original":"sap.payments.create","server_alias":"sap","class":"ecriture",
+	  "pieces":{"arguments":{"sha256":"0x6cfc43b54a70eee0141d2fc7d1acc06003ee23354ac76f2097ef74958d91bbb4","length":96,"redacted":true,
+	      "bytes":"{\"amount\":\"7400.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-77812\",\"currency\":\"CHF\"}"},
+	    "result":null,
+	    "definition":{"sha256":"0x7d2ffcd2cba25dbd90b54926be79c845131109b2e1bc4ccc22389fb8a26a498a","length":406,"redacted":false,"media_type":"application/json"},
+	    "definition_current":null,
+	    "list":{"sha256":"0xbce6c768f26f72d7377fa3098262b61db83bcc740fc528be536acaa7f168033e","length":418,"redacted":false,"media_type":"application/json"}},
+	  "context":[{"sha256":"0x7d2ffcd2cba25dbd90b54926be79c845131109b2e1bc4ccc22389fb8a26a498a","length":406,"redacted":false,"media_type":"application/json","kind":"autre"},
+	    {"sha256":"0xbce6c768f26f72d7377fa3098262b61db83bcc740fc528be536acaa7f168033e","length":418,"redacted":false,"media_type":"application/json","kind":"autre"}],
+	  "rejected":false,"is_error":null,"duration_ms":null,"error_rendered":null,"approval":null,"result_rendered":null,
+	  "protocols":{"host":"2026-07-28","server":"2026-07-28"},"note":"annexe A, mode erreur"}`)
+	ligneSignal := strings.TrimSuffix(string(lireSpec(t, "annexe-a-signal-attente.jsonl")), "\n")
+	Definir(attAppr, "approval", Objet("response", valeurSpec(t, "annexe-a-reponse-evaluer.json")))
+	Definir(attAppr, "result_rendered", doit(t, ligneSignal).Get("result"))
+	hAppr := enveloppe("in", "2026-11-03T13:41:06.000Z", `{"jsonrpc":"2.0","id":"h-1","method":"tools/list","params":{}}`) +
+		enveloppe("out", "2026-11-03T13:41:06.010Z", `{"jsonrpc":"2.0","id":"h-1","result":{"tools":[`+strings.TrimSuffix(def, "\n")+`],"resultType":"complete"}}`) +
+		enveloppe("in", "2026-11-03T13:41:07.000Z", string(lireSpec(t, "annexe-a-hote-requete.jsonl"))) +
+		enveloppe("out", "2026-11-03T13:41:07.300Z", ligneSignal)
+	a.ecrire("pieces-mcp/appels/approbation-annexe-a/hote.jsonl", []byte(hAppr))
+	a.ecrire("pieces-mcp/appels/approbation-annexe-a/amont.jsonl", nil)
+	a.json("pieces-mcp/appels/approbation-annexe-a/attendu.json", attAppr)
+	refus := strings.TrimSuffix(string(lireSpec(t, "ex-4-49-refus.json")), "\n")
+	attRefus := Copier(attAppr)
+	Definir(attRefus, "approval", doit(t, `{"response":{"rule":"paiement hors CHF","decision":"refuse","ticket":null,"ticket_state":null,"approval":null,"approver_set":null}}`))
+	Definir(attRefus, "result_rendered", doit(t, refus))
+	hRefus := strings.Replace(hAppr, enveloppe("out", "2026-11-03T13:41:07.300Z", ligneSignal), enveloppe("out", "2026-11-03T13:41:07.300Z", `{"jsonrpc":"2.0","id":"h-77812-4","result":`+refus+`}`), 1)
+	a.ecrire("pieces-mcp/appels/approbation-refus/hote.jsonl", []byte(hRefus))
+	a.ecrire("pieces-mcp/appels/approbation-refus/amont.jsonl", nil)
+	a.json("pieces-mcp/appels/approbation-refus/attendu.json", attRefus)
+	// ticket en attente pour un hôte de l'ère héritée (requête sans _meta) :
+	// « l'objet est le même sans resultType » (EX-4.49), texte de l'exemple
+	signalHerite := strings.Replace(texteSpec(t, "ex-4-49-signal.json"), `"resultType":"complete",`, "", 1)
+	attAttente := Copier(attAppr)
+	Definir(attAttente, "approval", doit(t, `{"response":{"rule":"paiement > 5000 CHF","decision":"a_approuver","ticket":"apr-1192","ticket_state":"en_attente","approval":null,"approver_set":null}}`))
+	Definir(attAttente, "result_rendered", doit(t, signalHerite))
+	Definir(attAttente, "protocols", doit(t, `{"host":"2025-11-25","server":"2026-07-28"}`))
+	hAttente := enveloppe("in", "2026-11-03T13:41:06.000Z", `{"jsonrpc":"2.0","id":40,"method":"tools/list","params":{}}`) +
+		enveloppe("out", "2026-11-03T13:41:06.010Z", `{"jsonrpc":"2.0","id":40,"result":{"tools":[`+strings.TrimSuffix(def, "\n")+`]}}`) +
+		enveloppe("in", "2026-11-03T13:41:07.000Z", `{"jsonrpc":"2.0","id":41,"method":"tools/call","params":{"name":"sap.payments.create","arguments":{"claim_id":"2026-77812","amount":"7400.00","currency":"CHF","beneficiary_iban":"CH9300762011623852957"}}}`) +
+		enveloppe("out", "2026-11-03T13:41:07.008Z", `{"jsonrpc":"2.0","id":41,"result":`+signalHerite+`}`)
+	a.ecrire("pieces-mcp/appels/approbation-en-attente/hote.jsonl", []byte(hAttente))
+	a.ecrire("pieces-mcp/appels/approbation-en-attente/amont.jsonl", nil)
+	a.json("pieces-mcp/appels/approbation-en-attente/attendu.json", attAttente)
 	// erreur JSON-RPC du serveur
 	defLue := doit(t, `{"name":"demo__claims.get","description":"Lit un dossier","inputSchema":{"type":"object"},"annotations":{"readOnlyHint":true}}`)
 	h2 := enveloppe("in", "2026-11-03T13:59:59.000Z", `{"jsonrpc":"2.0","id":6,"method":"tools/list","params":{}}`) +
@@ -169,7 +233,8 @@ func construireArbre(t *testing.T) string {
 	a.json("pieces-mcp/appels/erreur-jsonrpc/attendu.json", Objet("tool_announced", Chaine("demo__claims.get"), "tool_original", Chaine("claims.get"), "server_alias", Chaine("demo"), "class", Chaine("lecture"),
 		"rejected", Booleen(false), "context", &Value{Kind: KindArray, Arr: []*Value{ctxRef(pdl), ctxRef(pll)}},
 		"pieces", Objet("arguments", refBytes(pa), "result", refBytes(pr), "definition", refBytes(pdl), "definition_current", Nul(), "list", refBytes(pll)),
-		"is_error", Booleen(true), "duration_ms", Entier(85), "error_rendered", doit(t, `{"code":-32602,"message":"Invalid params","data":{"champ":"claim_id"}}`), "note", Chaine("erreur JSON-RPC")))
+		"is_error", Booleen(true), "duration_ms", Entier(85), "error_rendered", doit(t, `{"code":-32602,"message":"Invalid params","data":{"champ":"claim_id"}}`),
+		"approval", Nul(), "result_rendered", Nul(), "note", Chaine("erreur JSON-RPC")))
 	// agrégation
 	a.json("pieces-mcp/agregation/serveurs.json", doit(t, `[{"alias":"demo","tools":[{"name":"payments.create","annotations":{"readOnlyHint":false}},{"name":"claims.get","annotations":{"readOnlyHint":true}},{"name":"noortrace.x"}]}]`))
 	a.json("pieces-mcp/agregation/attendu.json", doit(t, `{"prefix":true,"announced":[{"server_alias":"demo","original":"claims.get","announced":"demo__claims.get","class":"lecture"},{"server_alias":"demo","original":"payments.create","announced":"demo__payments.create","class":"ecriture"}],
@@ -352,6 +417,9 @@ func construireJournal(t *testing.T, a *arbreSynthetique, pol *Politique, pii []
 		att.Get("events").Arr = append(att.Get("events").Arr, Objet("seq", Copier(ev.Get("seq")), "hash", Copier(ev.Get("hash")), "sig", Copier(ev.Get("sig")),
 			"prev_hash", Copier(ev.Get("prev_hash")), "canonical_length", Entier(int64(len(c)))))
 	}
+	// signal d'approbation rendu pour seq 5 en mode erreur, hôte de l'ère
+	// héritée (requête sans protocolVersion) : sans resultType (EX-4.49, B.6)
+	Definir(att, "result_rendered_seq_5", doit(t, `{"content":[{"type":"text","text":"noortrace: appel soumis a approbation ; ticket=apr-demo-1 ; state=en_attente"}],"isError":true,"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"noortrace-enregistreur","version":"0.1.0"},"noortrace/approval":{"ticket":"apr-demo-1","state":"en_attente"}}}`))
 	cA, _ := Canonique(s6)
 	Definir(att, "A", s6)
 	Definir(att, "D_A", Chaine(Hex0x(SHA256Prefixe(PrefixeApprobation, cA))))
@@ -421,5 +489,58 @@ func TestVecteursSynthetiques(t *testing.T) {
 	rap = VerifierVecteursCT2(racine, true)
 	if _, _, d2, _ := rap.Comptes(); d2 <= d {
 		t.Error("segment altéré non détecté")
+	}
+}
+
+// Version 0.3 : un signal d'approbation dont les membres ne suivent pas
+// l'ordre des exemples d'EX-4.49, ou l'ancienne erreur -32015 de la version
+// 0.2 à sa place, sont détectés ; un motif d'OWASP ou à zéro non significatif
+// déclaré admis, et une première correspondance fausse, aussi.
+func TestAlterationsVersion03(t *testing.T) {
+	racine := construireArbre(t)
+	ecrire := func(rel, ancien, nouveau string) {
+		t.Helper()
+		p := filepath.Join(racine, rel)
+		b, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(b), ancien) {
+			t.Fatalf("%s : %q introuvable", rel, ancien)
+		}
+		os.WriteFile(p, []byte(strings.Replace(string(b), ancien, nouveau, 1)), 0o644)
+	}
+	discordances := func() map[string]bool {
+		out := map[string]bool{}
+		for _, x := range VerifierVecteursCT2(racine, true).Comparaisons {
+			if !x.Concorde && !x.HorsPerimetre {
+				out[x.Vecteur] = true
+			}
+		}
+		return out
+	}
+	if d := discordances(); len(d) != 0 {
+		t.Fatalf("arbre de départ discordant : %v", d)
+	}
+	// ordre des membres : isError avant content
+	ecrire("pieces-mcp/appels/approbation-refus/hote.jsonl", `\"content\":[{\"type\":\"text\",\"text\":\"noortrace: appel refuse par la politique\"}],\"isError\":true`,
+		`\"isError\":true,\"content\":[{\"type\":\"text\",\"text\":\"noortrace: appel refuse par la politique\"}]`)
+	// ancienne erreur -32015 au lieu du signal
+	b, _ := os.ReadFile(filepath.Join(racine, "pieces-mcp/appels/approbation-en-attente/hote.jsonl"))
+	lignes := strings.Split(strings.TrimSuffix(string(b), "\n"), "\n")
+	lignes[len(lignes)-1] = strings.TrimSuffix(enveloppe("out", "2026-11-03T13:41:07.008Z", `{"jsonrpc":"2.0","id":41,"error":{"code":-32015,"message":"noortrace: approbation requise","data":{"ticket":"apr-1192","state":"en_attente"}}}`), "\n")
+	os.WriteFile(filepath.Join(racine, "pieces-mcp/appels/approbation-en-attente/hote.jsonl"), []byte(strings.Join(lignes, "\n")+"\n"), 0o644)
+	// motif d'OWASP déclaré admis
+	ecrire("redaction/motifs.json", `{"admis":false,"note":"règle a) : OWASP","pattern":"^(a+)+$"}`, `{"admis":true,"note":"règle a) : OWASP","pattern":"^(a+)+$"}`)
+	// première correspondance d'un motif à « (?P< » qui n'ouvre pas de groupe :
+	// celle d'un remplacement textuel par (?< ; quantificateur à zéro non
+	// significatif déclaré admis
+	ecrire("redaction/motifs.json", `{"first":"Px","input":"Px"}`, `{"first":null,"input":"Px"}`)
+	ecrire("redaction/motifs.json", `{"admis":false,"note":"zéro non significatif","pattern":"a{01}"}`, `{"admis":true,"note":"zéro non significatif","pattern":"a{01}"}`)
+	d := discordances()
+	for _, v := range []string{"appels/approbation-refus", "appels/approbation-en-attente", "motifs.json[4] ^(a+)+$", `motifs.json[14] [(?P<]x matches[0] "Px"`, "motifs.json[18] a{01}"} {
+		if !d[v] {
+			t.Errorf("%s : altération non détectée (%v)", v, d)
+		}
 	}
 }

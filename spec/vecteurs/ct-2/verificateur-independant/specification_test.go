@@ -65,9 +65,13 @@ func TestPolitiquePiiV1Empreinte(t *testing.T) {
 	}
 }
 
-// §10.6 : membre policy de l'exemple de 15.3, 4482 octets, policy_sha256
-// 0xd87b…c811 ; valeur en ligne de l'événement de politique, 116 octets,
-// sha256 0xefad…31d6 ; le membre redaction est pii-v1 octet pour octet.
+// §10.6 : membre policy de l'exemple de 15.3, 6126 octets, policy_sha256
+// 0xa75a…8912 ; valeur en ligne de l'événement de politique, 116 octets,
+// sha256 0x77d3…253e (version 0.3 : 4482 octets et 0xd87b…c811 en version
+// 0.2) ; le membre redaction est pii-v1 octet pour octet ; rules est un
+// document politique-approbation-v0, mode erreur, avec une entrée de
+// separation.identities pour poste-cursor, et storage.relay_mac_key porte un
+// encoding (15.3, EX-7.22).
 func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	conf := valeurSpec(t, "configuration-exemple.json")
 	pol := conf.Get("policy")
@@ -75,7 +79,7 @@ func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c) != 4482 || Hex0x(SHA256(c)) != "0xd87b0d3855984f5752d1a1f0962db634630488262e61e57544030f40daf6c811" {
+	if len(c) != 6126 || Hex0x(SHA256(c)) != "0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912" {
 		t.Errorf("policy : %d octets, %s", len(c), Hex0x(SHA256(c)))
 	}
 	val := Objet("policy_version", Chaine("2026-11-01"), "policy_sha256", Chaine(Hex0x(SHA256(c))))
@@ -83,12 +87,22 @@ func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(cv) != `{"policy_sha256":"0xd87b0d3855984f5752d1a1f0962db634630488262e61e57544030f40daf6c811","policy_version":"2026-11-01"}` ||
-		len(cv) != 116 || Hex0x(SHA256(cv)) != "0xefade454c774eaa0bd3efd9ec6fecd28606a0815ad551d60836e52cf00df31d6" {
+	if string(cv) != `{"policy_sha256":"0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912","policy_version":"2026-11-01"}` ||
+		len(cv) != 116 || Hex0x(SHA256(cv)) != "0x77d3368adad6a5a62421901ee91ec7c500950a2c8038a7d58d0450b3665c253e" {
 		t.Errorf("valeur en ligne : %s (%d octets, %s)", cv, len(cv), Hex0x(SHA256(cv)))
 	}
 	if !MemeValeur(pol.Get("redaction"), valeurSpec(t, "pii-v1.json")) {
 		t.Error("le membre redaction de l'exemple diffère de pii-v1 (10.9)")
+	}
+	ap := pol.Get("approval")
+	if chaineDe(ap, "mode") != "erreur" {
+		t.Errorf("approval.mode : %s, attendu erreur (15.3, CT-3 EX-11.1)", chaineDe(ap, "mode"))
+	}
+	if r := ap.Get("rules"); !EstObjet(r) || texteOuAbsent(r.Get("version")) != "0" || chaineDe(r, "separation", "self_approval") != "interdite" {
+		t.Errorf("approval.rules : document politique-approbation-v0 attendu (15.3) : %s", texteOuAbsent(r))
+	}
+	if k := conf.Get("storage").Get("relay_mac_key"); !EstObjet(k) || chaineDe(k, "encoding") == "" {
+		t.Errorf("storage.relay_mac_key : référence de secret avec encoding attendue (EX-7.22, EX-15.3) : %s", texteOuAbsent(k))
 	}
 }
 

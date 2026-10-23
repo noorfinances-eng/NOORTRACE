@@ -1180,8 +1180,16 @@ func (s *Service) consommer(d *Value) Resultat {
 		t.Etat = "consomme"
 		t.Consomme = &[2]string{seq, h}
 		return Resultat{Accepte: true, Reponse: rep()}
-	case "consomme": // répété à l'identique : sans effet (EX-7.20)
+	case "consomme", "clos": // répété à l'identique : sans effet (EX-7.20)
 		if t.Consomme != nil && t.Consomme[0] == seq && t.Consomme[1] == h {
+			return Resultat{Accepte: true, Reponse: rep()}
+		}
+		// T22 : consommation tardive d'une approbation servie, ticket clos
+		// à la fin du délai de reconnaissance (CT-2 EX-7.20) : consumed
+		// inscrit, état inchangé.
+		if t.Etat == "clos" && t.Servi && t.Consomme == nil {
+			t.Consomme = &[2]string{seq, h}
+			s.avertir("%s : consommation_tardive", t.ID)
 			return Resultat{Accepte: true, Reponse: rep()}
 		}
 	}

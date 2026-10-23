@@ -373,6 +373,24 @@ Cycle nominal : réservation (la réponse nouveau porte le jeu de repli), ouvert
 11. consommer 09:16:01.000 → apr-0001 consomme
 12. evaluer 09:20:00.000 → apr-0001 consomme, apr-0002 reserve
 
+### `consommation-tardive.json` (TK-3, TK-9, TK-10)
+
+Approbation servie à la ré-émission de 09:16 ; le relais (appel long, sortie du mode dégradé ou reprise) n'est scellé qu'après la fin du délai de reconnaissance (09:15:01.900 + 1 h) : le ticket est clos (T19) ; le consommer qui arrive ensuite est admis sans changer l'état (T22) : consumed inscrit, réponse clos ; répété à l'identique, sans effet ; pour un autre événement, requete_invalide (CT-2 EX-7.20 : réponse finale, fin des essais).
+
+1. jeu_lu 08:59:00.000 → aucun ticket
+2. evaluer 09:00:00.000 → apr-0001 reserve
+3. ouvrir 09:00:00.250 → apr-0001 ouvert
+4. jeu_lu 09:00:01.000 → apr-0001 ouvert
+5. voter 09:10:00.000 → apr-0001 ouvert
+6. voter 09:15:00.000 → apr-0001 verification
+7. jeu_lu 09:15:01.000 → apr-0001 a_remettre ; remise apr-0001/1 : approuve (2 signatures)
+8. acquitter 09:15:02.000 → apr-0001 approuve
+9. evaluer 09:16:00.000 → apr-0001 approuve
+10. horloge 10:15:01.900 → apr-0001 clos
+11. consommer 10:15:20.000 → apr-0001 clos
+12. consommer 10:15:21.000 → apr-0001 clos
+13. consommer 10:15:22.000 → apr-0001 clos ; refus : requete_invalide
+
 ### `refuse-seuil.json` (TK-3, TK-6, TK-9)
 
 Deux votes refuse des comptes 1 et 2 : décision refuse au seuil ; la ré-émission reçoit le refus scellé ; au terme du délai de reconnaissance, clos, et la même demande ouvre un nouveau ticket.
@@ -937,7 +955,7 @@ Après le chargement de vecteurs-ct3-2, la même demande portant code.policy_ver
 10. evaluer 09:21:00.000 → apr-0001 approuve, apr-0002 reserve
 11. horloge 10:15:01.900 → apr-0001 clos, apr-0002 reserve
 
-## decisions/ (A.7, SG-1 à SG-6)
+## decisions/ (A.7, SG-1 à SG-7)
 
 | Cas | Vérification visée | Résultat attendu | Ce qu'il exerce |
 |---|---|---|---|
@@ -946,7 +964,7 @@ Après le chargement de vecteurs-ct3-2, la même demande portant code.policy_ver
 | `decisions/valides/expiration-sans-signature.json` | — | scelle | Expiration sans signature, écrite à l'échéance : SG-4 ne vise que approuve et refuse. |
 | `decisions/valides/jeu-statique.json` | — | scelle | Approbation sur un jeu statique : source « jeu statique de la politique vecteurs-ct3-1 ». |
 | `decisions/valides/ct1-apr-2201.json` | — | scelle | La décision du ticket apr-2201 des vecteurs de CT-1 (journal-sinistres, seq 6) : approval augmenté de at = l'approval de l'événement, clé pour clé (exemple de CT-3 §12.5). |
-| `decisions/valides/separation-non-verifiee-par-le-noyau.json` | — | scelle | Le compte 3, adresse du demandeur, signe avec le compte 1 : le noyau scelle, il ne vérifie pas la séparation des tâches (EX-9.12). |
+| `decisions/valides/separation-permise.json` | — | scelle | Le compte 3, adresse du demandeur, signe avec le compte 1 sous self_approval permise : SG-7 ne s'applique pas, le noyau scelle. |
 | `decisions/invalides/sg1-at-present.json` | SG-1 | refuse, remise_mal_formee | approval porte at, que l'écrivain pose. |
 | `decisions/invalides/sg1-ticket-different.json` | SG-1 | refuse, remise_mal_formee | approval.ticket (apr-0002) différent du ticket de la remise. |
 | `decisions/invalides/sg1-source-libre.json` | SG-1 | refuse, remise_mal_formee | source en texte libre, hors d'EX-8.8. |
@@ -971,6 +989,8 @@ Après le chargement de vecteurs-ct3-2, la même demande portant code.policy_ver
 | `decisions/invalides/sg6-refus-seuil-non-atteint.json` | SG-6 | refuse, seuil_non_atteint | Un seul refus pour un seuil de 2 (EX-9.13). |
 | `decisions/invalides/sg1-remise-id-autre-ticket.json` | SG-1 | refuse, remise_mal_formee | remise_id apr-0002/1 pour une remise du ticket apr-0001 : remise_id doit commencer par « <ticket>/ ». |
 | `decisions/invalides/sg6-taille-differente-des-membres.json` | SG-6 | refuse, seuil_different_du_jeu | approval.threshold et jeu déclarés 2 sur 4, mais le jeu déclaré n'a que trois membres : size doit égaler le nombre de membres. |
+| `decisions/invalides/sg7-auto-approbation.json` | SG-7 | refuse, auto_approbation | Le compte 3, adresse du demandeur (separation.identities), signe avec le compte 1 sous self_approval interdite : auto_approbation (CT-2 EX-7.5). C'est le cas separation-non-verifiee-par-le-noyau, valide avant la version 0.3 de CT-2. |
+| `decisions/invalides/sg7-refus-par-le-demandeur.json` | SG-7 | refuse, auto_approbation | Refus signé par le compte 3, adresse du demandeur, et le compte 1 sous self_approval interdite : SG-7 vaut pour refuse comme pour approuve. |
 | `decisions/invalides/ordre-sg1-sg2.json` | SG-1 | refuse, remise_mal_formee | SG-1 (approval porte at) et SG-2 (ticket sans événement retenue) en échec : SG-1 l'emporte. |
 | `decisions/invalides/ordre-sg2-sg3.json` | SG-2 | refuse, request_hash_different | SG-2 (autre hash) et SG-3 (décision déjà scellée) en échec : SG-2 l'emporte. |
 | `decisions/invalides/ordre-sg3-sg4.json` | SG-3 | refuse, ticket_deja_decide | SG-3 (décision déjà scellée) et SG-4 (écriture à l'échéance) en échec : SG-3 l'emporte. |
@@ -980,6 +1000,7 @@ Après le chargement de vecteurs-ct3-2, la même demande portant code.policy_ver
 | `decisions/invalides/ordre-sg6-hors-jeu-seuil.json` | SG-6 | refuse, approbateur_hors_jeu | Le compte 4 hors jeu, et un jeu déclaré 3 sur 3 pour approval.threshold 2 sur 3 : approbateur_hors_jeu précède seuil_different_du_jeu. |
 | `decisions/invalides/ordre-sg6-seuil-expire.json` | SG-6 | refuse, seuil_different_du_jeu | Expiration signée par le compte 1, et un jeu déclaré 3 sur 3 pour approval.threshold 2 sur 3 : seuil_different_du_jeu précède expire_avec_signatures. |
 | `decisions/invalides/ordre-sg6-seuil-non-atteint.json` | SG-6 | refuse, seuil_different_du_jeu | Une seule approbation, et un jeu déclaré 3 sur 3 pour approval.threshold 2 sur 3 : seuil_different_du_jeu précède seuil_non_atteint. |
+| `decisions/invalides/ordre-sg6-sg7.json` | SG-6 | refuse, approbateur_hors_jeu | SG-6 (compte 4 hors jeu) et SG-7 (compte 3, adresse du demandeur, sous self_approval interdite) en échec : SG-6 l'emporte. |
 
 ## signatures/normalisation.json (A.8, EX-9.3)
 

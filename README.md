@@ -54,8 +54,9 @@ implementations written separately from the reference.
   levels (automatic, time-boxed window, per-call review), the ticket lifecycle, the
   approver set pinned by the policy and read from the client's CuratorSet, what an
   approver sees before signing, and the proxy's behaviour while waiting: an
-  immediate error carrying the ticket by default. Rule evaluation, tickets and
-  decision checks are implemented and checked.
+  immediate tool error result (`isError`) carrying the ticket and its state by
+  default. Rule evaluation, tickets and decision checks are implemented and
+  checked.
 - **CT-6, the verifier**: the eight checks, the reviewer's trust anchors, verdicts
   and what each one proves and does not prove, human and JSON output, and the
   reproducible, network-free build of a future Go binary. The RFC 3161,

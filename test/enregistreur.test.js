@@ -7,6 +7,7 @@ import { Wallet } from "ethers";
 import { PROJECT_ROOT } from "../scripts/lib/noortrace.mjs";
 import * as J from "../scripts/lib/journal.mjs";
 import * as C from "../scripts/lib/capture.mjs";
+import * as AP from "../scripts/lib/approbation.mjs";
 
 // L'IMPLÉMENTATION DE RÉFÉRENCE DE CT-2 (scripts/lib/capture.mjs, et
 // canonicaliserJCSIntegral de scripts/lib/journal.mjs) : JCS intégral des
@@ -23,7 +24,7 @@ import * as C from "../scripts/lib/capture.mjs";
 
 const SPEC = path.join(PROJECT_ROOT, "spec");
 const VECTEURS = path.join(SPEC, "vecteurs", "ct-2");
-const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "politique-redaction", "configuration-enregistreur"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
+const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "politique-redaction", "politique-approbation", "ticket", "configuration-enregistreur"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
 const lireJSON = (...p) => C.analyserJSONIntegral(fs.readFileSync(path.join(VECTEURS, ...p)));
 const lireTexte = (...p) => fs.readFileSync(path.join(VECTEURS, ...p), "utf8");
 const graine = (id) => J.sha256(Buffer.from(`noortrace/vecteurs/v0/cle-enregistreur/${id}`, "utf8"));
@@ -251,9 +252,12 @@ describe("CT-2 : politique de rédaction (§10)", function () {
     const e1 = C.empreinteEnsemblePolitique(PII_DOC);
     expect([e1.octets.length, e1.policy_sha256]).to.deep.equal([1462, "0x9116aac6ee1d124d155ffb22acd39b1cf2270cac07b30b239e9996012d787f4e"]);
     const e2 = C.empreinteEnsemblePolitique(CONFIG.policy);
-    expect([e2.octets.length, e2.policy_sha256, e2.policy_version]).to.deep.equal([4482, "0xd87b0d3855984f5752d1a1f0962db634630488262e61e57544030f40daf6c811", "2026-11-01"]);
+    expect([e2.octets.length, e2.policy_sha256, e2.policy_version]).to.deep.equal([6126, "0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912", "2026-11-01"]);
     const enLigne = J.referenceEnLigne({ policy_version: e2.policy_version, policy_sha256: e2.policy_sha256 });
-    expect([enLigne.length, enLigne.sha256]).to.deep.equal([116, "0xefade454c774eaa0bd3efd9ec6fecd28606a0815ad551d60836e52cf00df31d6"]);
+    expect([enLigne.length, enLigne.sha256]).to.deep.equal([116, "0x77d3368adad6a5a62421901ee91ec7c500950a2c8038a7d58d0450b3665c253e"]);
+    // Les valeurs imprimées en EX-10.21 sont celles-ci.
+    const md = fs.readFileSync(path.join(SPEC, "CT-2-enregistreur.md"), "utf8");
+    for (const v of [e2.policy_sha256, enLigne.sha256]) expect(md, v).to.include(v);
     expect(J.canonicaliserJCSIntegral(CONFIG.policy.redaction)).to.equal(J.canonicaliserJCSIntegral(PII_DOC));
   });
 
@@ -662,7 +666,7 @@ describe("CT-2 : construction des événements, écrivain, segment, intention, r
     expect(C.ligneHoteReponse('{ "jsonrpc" : "2.0" ,\r\n "id" : "e" , "result" : { "content" : [ ] , "isError" : false } }', { idHote: 12345678901234567000, idHoteTexte: "12345678901234567890" })).to.equal(`{"jsonrpc":"2.0","id":12345678901234567890,"result":{"resultType":"complete","content":[],"isError":false,"_meta":{${si}}}}`);
     expect(C.ligneHoteReponse('{"jsonrpc":"2.0","id":"e","result":["x"]}', { idHote: 1 })).to.equal('{"jsonrpc":"2.0","id":1,"error":{"code":-32603,"message":"noortrace: resultat amont invalide","data":{"result_type":"array"}}}');
     expect(C.ligneHoteReponse('{"jsonrpc":"2.0","id":"e","error":{"code":-32602,"message":"Unknown tool: x"}}', { idHote: 9 })).to.equal('{"jsonrpc":"2.0","id":9,"error":{"code":-32602,"message":"Unknown tool: x"}}');
-    expect(C.ligneHoteErreur(9, C.erreurEnregistreur("ANNULE"))).to.equal('{"jsonrpc":"2.0","id":9,"error":{"code":-32012,"message":"noortrace: appel annule par l\'hote"}}');
+    expect(C.ligneHoteErreur(9, C.erreurEnregistreur("ANNULE"))).to.equal('{"jsonrpc":"2.0","id":9,"error":{"code":-31012,"message":"noortrace: appel annule par l\'hote"}}');
     const amont = C.ligneAmontToolsCall('{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"demo__x","_meta":{"progressToken":"t-hote","traceparent":"00-ab-cd-01"},"requestState":"etat","inputResponses":{"k":{"action":"accept"}}}}', { idAmont: "e-000000000001", nomOrigine: "x", protocolVersion: "2026-07-28", progressToken: "p-000000000001" });
     expect(amont.progressTokenHote).to.equal("t-hote");
     expect(amont.ligne).to.equal('{"jsonrpc":"2.0","id":"e-000000000001","method":"tools/call","params":{"name":"x","inputResponses":{"k":{"action":"accept"}},"requestState":"etat","_meta":{"progressToken":"p-000000000001","traceparent":"00-ab-cd-01","io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/clientInfo":{"name":"noortrace-enregistreur","version":"0.1.0"}}}}');
@@ -882,7 +886,12 @@ describe("CT-2 : schémas de configuration et de politique (validerSchema)", fun
     expect(J.validerSchema(CONFIG, conf, { registre: SCHEMAS })).to.deep.equal([]);
     expect(J.validerSchema(lireJSON("redaction", "politique-pii-v1.json"), pol, { registre: SCHEMAS })).to.deep.equal([]);
     for (const f of ["politique-pseudonyme-test.json", "politique-regles-test.json"]) expect(J.validerSchema(lireJSON("redaction", f), pol, { registre: SCHEMAS }), f).to.deep.equal([]);
-    expect(J.validerSchema(lireJSON("evenements", "journal-demo", "politique.json"), conf, { registre: SCHEMAS, fragment: "#/$defs/policy_set" })).to.deep.equal([]);
+    // journal-demo/politique.json est figé (annexe B.6) : validé hors approval.rules, qui reste un tableau illustratif.
+    const demo = lireJSON("evenements", "journal-demo", "politique.json");
+    expect(Array.isArray(demo.approval.rules)).to.equal(true);
+    const erreursDemo = J.validerSchema(demo, conf, { registre: SCHEMAS, fragment: "#/$defs/policy_set" });
+    expect(erreursDemo.filter((e) => !(e.chemin === "/approval/rules" || e.chemin.startsWith("/approval/rules/")))).to.deep.equal([]);
+    expect(erreursDemo.length, "le tableau illustratif n'est pas un document politique-approbation-v0").to.be.greaterThan(0);
     const sansServeur = C.copieJSON(CONFIG);
     sansServeur.policy.servers = {};
     expect(J.validerSchema(sansServeur, conf, { registre: SCHEMAS }).map((e) => e.message).join(" ")).to.include("moins de 1 membre");
@@ -898,6 +907,321 @@ describe("CT-2 : schémas de configuration et de politique (validerSchema)", fun
     const cleInconnue = C.copieJSON(CONFIG);
     cleInconnue.tools.prefixe = true;
     expect(J.validerSchema(cleInconnue, conf, { registre: SCHEMAS }).some((e) => e.message === "membre non admis")).to.equal(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("CT-2 révision 0.3 : codes d'erreur et résultats rendus par l'enregistreur (4.4, EX-4.24, EX-4.49)", function () {
+  const MD2 = fs.readFileSync(path.join(SPEC, "CT-2-enregistreur.md"), "utf8");
+
+  it("EX-4.24 : codes -31010 à -31017 sans -31015, hors de -32768 à -32000, messages ASCII « noortrace: » ; la table de 4.4 dit les mêmes", function () {
+    expect(C.ERREURS).to.not.have.property("APPROBATION");
+    const codes = Object.values(C.ERREURS).map((e) => e.code).sort((a, b) => b - a);
+    expect(codes).to.deep.equal([-31010, -31011, -31012, -31013, -31014, -31016, -31017]);
+    for (const [cle, e] of Object.entries(C.ERREURS)) {
+      expect(e.code >= -32768 && e.code <= -32000, cle).to.equal(false);
+      expect(e.message, cle).to.match(/^noortrace: [\x20-\x7e]+$/);
+      // La ligne de la table de 4.4 porte ce code et ce message.
+      expect(MD2, cle).to.include(`| \`${e.code}\` | \`${e.message}\` |`);
+    }
+    expect(MD2).to.include("| `-31015` | non attribué |");
+    expect(Object.isFrozen(C.ERREURS) && Object.isFrozen(C.ERREURS.DELAI)).to.equal(true);
+    // Ce que l'enregistreur peut émettre (EX-4.24) : ses codes, les codes JSON-RPC standard, -32020 à -32022.
+    for (const c of [-31010, -31017, -32700, -32600, -32601, -32602, -32603, -32020, -32021, -32022]) expect(C.codeEmissible(c), String(c)).to.equal(true);
+    for (const c of [-31015, -32000, -32001, -32010, -32015, -32019, -32002, -32042, -32023, -32099, 100, 408, 599, -31018, 1.5]) expect(C.codeEmissible(c), String(c)).to.equal(false);
+    // Aucun littéral -3201x ne reste dans les bibliothèques.
+    for (const f of ["capture.mjs", "approbation.mjs"]) expect(fs.readFileSync(path.join(PROJECT_ROOT, "scripts", "lib", f), "utf8"), f).to.not.match(/-3201[0-9]/);
+  });
+
+  it("EX-4.49 : la ligne rendue du signal d'approbation de l'annexe A (359 octets) et le refus par la politique, octet pour octet", function () {
+    const signal = AP.resultatSignalApprobation("apr-1192", "en_attente");
+    const ligne = C.ligneHoteResultatEnregistreur("h-77812-4", signal);
+    expect(Buffer.byteLength(ligne)).to.equal(359);
+    expect(MD2).to.include("```json\n" + ligne + "\n```");
+    const refus = C.ligneHoteResultatEnregistreur(12345678901234567000, AP.resultatRefusPolitique(), { idHoteTexte: "12345678901234567890" });
+    expect(refus).to.equal('{"jsonrpc":"2.0","id":12345678901234567890,"result":{"resultType":"complete","content":[{"type":"text","text":"noortrace: appel refuse par la politique"}],"isError":true,"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"noortrace-enregistreur","version":"0.1.0"}}}}');
+    expect(C.ligneHoteResultatEnregistreur(7, AP.resultatRefusPolitique({ hoteModerne: false }))).to.equal('{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"noortrace: appel refuse par la politique"}],"isError":true,"_meta":{"io.modelcontextprotocol/serverInfo":{"name":"noortrace-enregistreur","version":"0.1.0"}}}}');
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("CT-2 révision 0.3 : contrôle des motifs et budget de rédaction (EX-10.6, EX-10.23, EX-7.6)", function () {
+  this.timeout(60_000);
+  const politique = (motif, scopes = ["arguments", "resultat", "requete", "reponse", "prompt_systeme", "contexte"]) => C.chargerPolitique({ version: 0, name: "budget-v1", pseudonym_key: null, named_patterns: { m: { pattern: motif } }, rules: [{ id: "r-motif", scopes, tools: "*", detectors: [{ type: "regex", name: "m" }], action: { kind: "remplacer" } }] }, { schemas: SCHEMAS });
+  const LONG = "1".repeat(80000) + "x";
+  const duree = (fn) => {
+    const t0 = process.hrtime.bigint();
+    const v = fn();
+    return [v, Number(process.hrtime.bigint() - t0) / 1e6];
+  };
+
+  it("EX-10.6 a) à c) : les motifs à retour arrière exponentiel connus (OWASP) sont refusés, dans l'ordre des règles ; tailles développées", function () {
+    const regle = (motif) => /\(EX-10\.6 ([abc])\)/.exec(C.erreursMotifRE2(motif)[0] ?? "")?.[1] ?? null;
+    for (const motif of ["^(a+)+$", "([a-zA-Z]+)*$", "(a|aa)+$", "(a|a?)+$", "(\\w|\\d)+$", "(?:[0-9]{4} ?){3}", "(a|aa){1,1000}$", "(a{1,1000}){1,1000}$", "((ab)+)?x", "(?:a|b)*?c", "(x+x+)+y"]) expect(regle(motif), motif).to.equal("a");
+    for (const motif of ["(?:\\b)+x", "()+", "(?:^$)*a", "((?:\\B))?x"]) expect(regle(motif), motif).to.equal("b");
+    // Ordre des règles : un motif en échec sur a) et b) donne a), sur b) et c) donne b).
+    expect(regle("(?:\\b|\\B)+"), "a et b").to.equal("a");
+    expect(regle("(?:\\b){1000}a"), "b et c").to.equal("b");
+    for (const motif of ["[0-9]{1000}x", "(?:ab){501}", "a{1000}b{1}"]) expect(regle(motif), motif).to.equal("c");
+    for (const motif of ["[0-9]+$", "a{2,1000}?", "ref=(X)?", "^(X)", "ref=([A-Z]+)-", "(?:ab)+", "((a))+", "\\b20[0-9]{2}-[0-9]{5}\\b", "(?P<a>x)|(?<b>y)|(?:z)", "(a|b)c", "[0-9]*[0-9]*[0-9]*x"]) expect(C.erreursMotifRE2(motif), motif).to.deep.equal([]);
+    expect([C.tailleDeveloppeeMotif("\\b20[0-9]{2}-[0-9]{5}\\b"), C.tailleDeveloppeeMotif("a{2,1000}?"), C.tailleDeveloppeeMotif("[0-9]{1000}x"), C.tailleDeveloppeeMotif("(a|aa){1,1000}$"), C.tailleDeveloppeeMotif("(a{1,1000}){1,1000}$"), C.tailleDeveloppeeMotif("a{3,}"), C.tailleDeveloppeeMotif("a{0}"), C.tailleDeveloppeeMotif(".")]).to.deep.equal([12, 1000, 1001, 3001, 1000001, 4, 1, null]);
+    // Une politique dont un motif nommé est refusé n'est pas chargée (EX-15.4 pas 3).
+    expect(() => politique("^(a+)+$")).to.throw(C.ErreurConfiguration);
+    expect(C.erreursPolitiqueRedaction({ version: 0, name: "x-v1", pseudonym_key: null, named_patterns: { m: { pattern: "(a|aa)+$" } }, rules: [] }).join(" ")).to.include("(EX-10.6 a)");
+  });
+
+  it("EX-10.23 : un motif admis mais polynomial ([0-9]+$) est borné par le budget ; exec, replace, split et matchAll sont interrompus sous node:vm (R10 NV-4 levé)", function () {
+    const re = /[0-9]+$/gu;
+    // La durée est bornée par rapport au budget (50 ms + 450 ms de marge), très en deçà d'une exécution non interrompue (plus de 4 s sur cette entrée, mesurée sous Node.js 22) : un dépassement constaté seulement en fin d'opération ne passerait pas.
+    for (const [nom, fn] of [["exec", () => { re.lastIndex = 0; return re.exec(LONG); }], ["replace", () => LONG.replace(/[0-9]+$/gu, "T")], ["split", () => LONG.split(/[0-9]+$/u)], ["matchAll", () => [...LONG.matchAll(/[0-9]+$/gu)]], ["test", () => /[0-9]+$/u.test(LONG)], ["search", () => LONG.search(/[0-9]+$/u)], ["match", () => LONG.match(/[0-9]+$/u)], ["replaceAll", () => LONG.replaceAll(/[0-9]+$/gu, "T")]]) {
+      const [r, ms] = duree(() => C.sousBudget(fn, 50));
+      expect(r, nom).to.deep.equal({ ok: false });
+      expect(ms, nom).to.be.below(50 + 450);
+    }
+    expect(C.sousBudget(() => 42, 50)).to.deep.equal({ ok: true, valeur: 42 });
+    expect(C.sousBudget(() => 42, null)).to.deep.equal({ ok: true, valeur: 42 });
+    expect(() => C.sousBudget(() => { throw new RangeError("autre"); }, 50)).to.throw(RangeError);
+    expect(() => C.sousBudget(() => 1, 0)).to.throw(/budget/);
+    expect(C.BUDGET_REDACTION_MS).to.equal(1000);
+  });
+
+  it("EX-10.23 opération 1 : rédaction d'une pièce au-delà du budget → pièce « non rédigeable » (budget_redaction), redacted vrai, sans media_type, note sans valeur", function () {
+    const P = politique("[0-9]+$");
+    const notes = [];
+    const onDepassement = (n) => notes.push(n);
+    const [p, ms] = duree(() => C.pieceJSON({ a: LONG }, { politique: P, portee: "arguments", budgetMs: 50, onDepassement }));
+    expect(ms).to.be.below(50 + 450);
+    expect(p.octets.toString()).to.equal(`{"noortrace_non_redigeable":{"content_type":null,"length":${LONG.length + 8},"reason":"budget_redaction"}}`);
+    expect(p.reference).to.deep.equal({ sha256: J.sha256(p.octets), length: p.octets.length, redacted: true });
+    expect(notes).to.deep.equal([{ event: "redaction_budget_exceeded", operation: "piece", scope: "arguments", rule: "r-motif" }]);
+    expect(JSON.stringify(notes)).to.not.include("111");
+    const t = C.pieceTexte(LONG, { politique: P, portee: "prompt_systeme", budgetMs: 50 });
+    expect([t.octets.toString(), t.reference.media_type]).to.deep.equal([`{"noortrace_non_redigeable":{"content_type":null,"length":${LONG.length},"reason":"budget_redaction"}}`, undefined]);
+    const b = C.pieceBrute(Buffer.from(LONG), { contentType: "text/plain; charset=utf-8", politique: P, portee: "resultat", budgetMs: 50 });
+    expect([b.octets.toString(), b.reference.redacted, b.reference.media_type]).to.deep.equal([`{"noortrace_non_redigeable":{"content_type":"text/plain; charset=utf-8","length":${LONG.length},"reason":"budget_redaction"}}`, true, undefined]);
+    // Pièce tirée d'un message JSON-RPC : length est la longueur du JCS intégral des arguments en clair (EX-8.7), calculé une fois avant la rédaction.
+    const a = C.pieceArguments({ arguments: { a: LONG } }, { politique: P, budgetMs: 50 });
+    expect(C.analyserJSONIntegral(a.octets).noortrace_non_redigeable.length).to.equal(Buffer.byteLength(J.canonicaliserJCSIntegral({ a: LONG })));
+    expect(a.nonRedigeable).to.equal("budget_redaction");
+    // Une requête de modèle : une seule opération pour la pièce « requête ».
+    const e = C.echangeModele({ format: "anthropic-messages", provider_label: "demo", requete: { corps: Buffer.from(JSON.stringify({ model: "m", max_tokens: 1, messages: [{ role: "user", content: LONG }] })), content_type: "application/json" }, reponse: { status: 200, content_type: "application/json", corps: Buffer.from('{"id":"x","type":"message","role":"assistant","model":"m","content":[{"type":"text","text":"ok"}],"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1}}') }, politique: P, budgetMs: 50 });
+    expect(C.analyserJSONIntegral(e.pieces.requete.octets).noortrace_non_redigeable.reason).to.equal("budget_redaction");
+    expect(e.pieces.reponse.octets.toString()).to.include('"text":"ok"');
+    // Sous le budget par défaut, la même politique rédige une valeur courte comme avant.
+    expect(C.pieceJSON({ a: "abc 12" }, { politique: P, portee: "arguments" }).octets.toString()).to.equal('{"a":"abc [REDIGE:m]"}');
+  });
+
+  it("EX-10.23 opérations 2 et 3 : extract d'un gabarit d'effets (effet omis), valeur en ligne (traitée comme une correspondance), effets déclarés par le SDK (omis)", function () {
+    const notes = [];
+    const g = C.evaluerGabaritsEffets([{ system: "S", action: "ecriture", object: "/arguments/a", extract: "[0-9]+$", amount: null, currency: null }, { system: "S", action: "ecriture", object: "fixe", amount: null, currency: null }], { arguments: { a: LONG }, budgetMs: 50, onDepassement: (n) => notes.push(n) });
+    expect(g).to.deep.equal({ effects: [{ system: "S", action: "ecriture", object: "fixe", amount: null, currency: null }], notes: ["effet 0 : effect_omitted, budget_redaction"] });
+    expect(notes).to.deep.equal([{ event: "redaction_budget_exceeded", operation: "extract", scope: null, rule: null }]);
+    const P = politique("[0-9]+$", ["resultat"]);
+    expect(C.examinerValeurEnLigne(P, LONG, { budgetMs: 50 })).to.deep.equal({ correspondance: true, depasse: true });
+    expect(C.examinerValeurEnLigne(P, "run-2026-11-03-x")).to.deep.equal({ correspondance: false, depasse: false });
+    // Toutes les règles, quelle que soit leur portée (EX-7.2) : la règle de portée resultat trouve le chiffre final.
+    expect(C.examinerValeurEnLigne(P, "run-0142")).to.deep.equal({ correspondance: true, depasse: false });
+    const Pa = politique("[0-9]+$", ["arguments"]);
+    const sdk = C.effetsDeclares([{ system: "SAP", action: "ecriture", object: LONG, amount: null, currency: null }, { system: "SAP", action: "ecriture", object: "PAY-12", amount: "7400.00", currency: "CHF" }], { politique: Pa, budgetMs: 50 });
+    expect(sdk.effects).to.deep.equal([{ system: "SAP", action: "ecriture", object: "PAY-[REDIGE:m]", amount: "7400.00", currency: "CHF" }]);
+    expect(sdk.notes).to.deep.equal(["effet 0 : effect_omitted, budget_redaction"]);
+    expect(C.effetsDeclares([{ system: "S", action: "x", object: "o", amount: "1", currency: null }]).notes).to.have.length(1);
+  });
+
+  it("EX-7.6 et EX-10.6 : extract compilé comme un motif nommé ((?P< réécrit en (?<) et contrôlé au démarrage", function () {
+    const source = { arguments: { r: "ok ref=ABC-12" } };
+    const avecP = C.evaluerGabaritsEffets([{ system: "S", action: "ecriture", object: "/arguments/r", extract: "ref=(?P<ref>[A-Z]+)", amount: null, currency: null }], source);
+    const sansP = C.evaluerGabaritsEffets([{ system: "S", action: "ecriture", object: "/arguments/r", extract: "ref=(?<ref>[A-Z]+)", amount: null, currency: null }], source);
+    expect(avecP.effects).to.deep.equal(sansP.effects);
+    expect(avecP.effects[0].object).to.equal("ABC");
+    expect(C.compilerExtract("ref=(?P<ref>[A-Z]+)").flags).to.equal("u");
+    expect(C.erreursGabaritsEffets([{ extract: null }, { extract: "(?P<r>[A-Z]+)" }])).to.deep.equal([]);
+    const e = C.erreursGabaritsEffets([{ extract: "(a+)+$" }, { extract: "." }, { extract: "x".repeat(1025) }], { ou: "/policy/servers/sap/tools/x/effects" });
+    expect(e).to.have.length(3);
+    expect(e[0]).to.include("/policy/servers/sap/tools/x/effects[0].extract").and.include("(EX-10.6 a)");
+  });
+
+  it("EX-10.6 : seules les ouvertures de groupe nommé (?P<nom> reconnues par l'analyse sont réécrites ; ailleurs, « (?P< » garde son sens (mêmes correspondances qu'en Go)", function () {
+    const premiere = (motif, s) => C.compilerExtract(motif).exec(s)?.[0] ?? null;
+    for (const motif of ["[(?P<]x", "a\\(?P<b", "\\(?P<x>", "\\\\(?P<x>a)"]) expect(C.erreursMotifRE2(motif), motif).to.deep.equal([]);
+    expect(C.sourceECMAScript("[(?P<]x")).to.equal("[(?P<]x");
+    expect(C.sourceECMAScript("a\\(?P<b")).to.equal("a\\(?P<b");
+    expect(C.sourceECMAScript("\\\\(?P<x>a)")).to.equal("\\\\(?<x>a)");
+    expect(C.sourceECMAScript("(?P<n>x)|(?P<m>[(?P<])")).to.equal("(?<n>x)|(?<m>[(?P<])");
+    // Correspondances : celles du paquet regexp de Go sur le motif tel quel (redaction/motifs.json).
+    expect(premiere("[(?P<]x", "Px")).to.equal("Px");
+    expect([premiere("a\\(?P<b", "aP<b"), premiere("a\\(?P<b", "a<b")]).to.deep.equal(["aP<b", null]);
+    expect(premiere("\\(?P<x>", "P<x>")).to.equal("P<x>");
+    expect(premiere("\\\\(?P<x>a)", "\\a")).to.equal("\\a");
+    expect(() => C.sourceECMAScript(".")).to.throw();
+  });
+
+  it("EX-10.6 point 5 : un quantificateur à zéro non significatif ({04}, {0,01}) est refusé ; RE2 et Go le liraient comme du texte", function () {
+    for (const motif of ["a{01}", "[0-9]{04}", "a{0,01}", "a{1,01}", "a{00}", "[\\d-]{02}\\d"]) expect(C.erreursMotifRE2(motif), motif).to.deep.equal([`zéro non significatif dans un quantificateur (position ${motif.indexOf("{")})`]);
+    for (const motif of ["a{0}", "a{0,0}", "a{0,}", "a{10,}", "a{1,1000}", "a{1000}"]) expect(C.erreursMotifRE2(motif), motif).to.deep.equal([]);
+    expect(C.erreursMotifRE2("a{1,}x{")).to.deep.equal(["« { » qui n'ouvre pas un quantificateur (à échapper) (position 6)"]);
+  });
+
+  it("EX-10.23 quatrième opération : le contrôle des jetons de chaque motif nommé est borné ; au-delà, le motif est refusé (configuration refusée, sans blocage)", function () {
+    const motif = "[^x]*".repeat(10) + "x";
+    expect(C.erreursMotifRE2(motif)).to.deep.equal([]);
+    const doc = { version: 0, name: "jetons-v1", pseudonym_key: null, named_patterns: { lent: { pattern: motif } }, rules: [{ id: "r", scopes: ["arguments"], tools: "*", detectors: [{ type: "regex", name: "lent" }], action: { kind: "remplacer" } }] };
+    const [e, ms] = duree(() => C.erreursPolitiqueRedaction(doc, { budgetMs: 50 }));
+    expect(e).to.deep.equal(["named_patterns.lent : motif trop coûteux sur les jetons (EX-10.23)"]);
+    expect(ms).to.be.below(50 + 450);
+    expect(() => C.chargerPolitique(doc, { budgetMs: 50 })).to.throw(C.ErreurConfiguration);
+    // La même règle au démarrage d'une configuration : limits.redaction_budget_ms borne le contrôle (EX-15.4 pas 3).
+    const conf = C.copieJSON(CONFIG);
+    conf.limits.redaction_budget_ms = 50;
+    conf.policy.redaction.named_patterns = { lent: { pattern: motif } };
+    expect(AP.controlesConfiguration(conf, { schemas: SCHEMAS }).erreurs).to.deep.equal(["/policy/redaction : named_patterns.lent : motif trop coûteux sur les jetons (EX-10.23) (EX-10.6)"]);
+    // Un motif rapide reste admis, et un motif qui fait correspondre un jeton est refusé comme avant.
+    expect(C.erreursPolitiqueRedaction({ ...doc, named_patterns: { lent: { pattern: "[0-9]{3}-[0-9]{2}" } } }, { budgetMs: 50 })).to.deep.equal([]);
+    expect(C.erreursPolitiqueRedaction({ ...doc, named_patterns: { lent: { pattern: "REDIGE" } } }, { budgetMs: 50 })[0]).to.include("fait correspondre le jeton [REDIGE:iban]");
+  });
+
+  it("EX-10.23 : la pièce « arguments » d'un appel d'écriture ou susceptible d'approbation au-delà du budget est un refus avant relais (-31010, raison redaction) ; une lecture suit son cours ; l'effet par défaut remplace un gabarit sans effet", function () {
+    const P = politique("[0-9]+$");
+    const a = C.pieceArguments({ arguments: { path: "/etc/cron.d/x", content: LONG } }, { politique: P, budgetMs: 50 });
+    expect(a.nonRedigeable).to.equal("budget_redaction");
+    const refus = { error: { code: -31010, message: "noortrace: appel bloque, enregistreur en mode degrade", data: { reason: "redaction" } } };
+    const autorise = { rule: "r", decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null };
+    const nouveau = { rule: "r", decision: "a_approuver", ticket: "apr-1", ticket_state: "nouveau", approval: null, approver_set: null };
+    expect(C.refusArgumentsNonRedigeables(a, { classe: "ecriture", reponse: autorise })).to.deep.equal(refus);
+    expect(C.refusArgumentsNonRedigeables(a, { classe: "lecture", susceptible: true, reponse: nouveau })).to.deep.equal(refus);
+    expect(C.refusArgumentsNonRedigeables(a, { classe: "lecture", reponse: autorise })).to.equal(null);
+    expect(C.refusArgumentsNonRedigeables(a, { classe: "ecriture", reponse: { ...autorise, decision: "refuse" } })).to.equal(null);
+    expect(C.refusArgumentsNonRedigeables(a, { classe: "ecriture", reponse: { ...nouveau, ticket_state: "en_attente" } })).to.equal(null);
+    expect(C.refusArgumentsNonRedigeables(C.pieceArguments({ arguments: { path: "/srv/x" } }, { politique: P }), { classe: "ecriture", reponse: autorise })).to.equal(null);
+    // Effets (EX-7.6) : un gabarit qui ne résout rien parce qu'une pièce est non rédigeable donne l'effet par défaut d'un outil ecriture.
+    const gabarit = [{ system: "FS", action: "ecriture", object: "/arguments/path", extract: null, amount: null, currency: null }];
+    const defaut = C.effetsParDefaut({ classe: "ecriture", alias: "fichiers", original: "write_file" });
+    const nr = C.evaluerGabaritsEffets(gabarit, { arguments: { path: "/srv/x" }, result: a.valeur, defaut });
+    expect(nr.effects).to.deep.equal([{ system: "FS", action: "ecriture", object: "/srv/x", amount: null, currency: null }]);
+    const vide = C.evaluerGabaritsEffets(gabarit, { arguments: a.valeur, result: null, defaut });
+    expect(vide.effects).to.deep.equal(defaut);
+    expect(vide.notes.at(-1)).to.include("effets par défaut");
+    const extrait = C.evaluerGabaritsEffets([{ ...gabarit[0], extract: "[0-9]+$" }], { arguments: { path: LONG }, budgetMs: 50, defaut });
+    expect(extrait.effects).to.deep.equal(defaut);
+    // Sans pièce non rédigeable ni dépassement, un effet non résolu reste omis (EX-7.6).
+    expect(C.evaluerGabaritsEffets(gabarit, { arguments: { autre: 1 }, defaut }).effects).to.deep.equal([]);
+  });
+
+  it("EX-4.47 : quotas par connexion d'hôte sur une minute glissante : requêtes en cours, octets reçus, octets de pièces, temps de capture ; -31013 de direction quota", function () {
+    const q = new C.QuotaConnexion({ max_concurrent: 2, piece_bytes_per_minute: 1000, received_bytes_per_minute: 4096, redaction_ms_per_minute: 1500 });
+    const quota = (data) => ({ code: -31013, message: "noortrace: taille maximale depassee", data: { ...data, direction: "quota" } });
+    expect(q.admettre(0, 1000)).to.equal(null);
+    expect(q.admettre(10, 1000)).to.equal(null);
+    expect(q.admettre(20, 10)).to.deep.equal(quota({ limit_requests: 2 }));
+    q.terminer();
+    expect(q.admettre(30, 3000)).to.deep.equal(quota({ limit_bytes: 4096 }));
+    expect(q.admettre(40, 100)).to.equal(null);
+    q.terminer();
+    q.terminer();
+    // Une requête dont la pièce est la pièce non rédigeable écrit 96 octets mais coûte son temps de capture : le temps est compté.
+    q.noter(50, { octetsPieces: 96, msCapture: 1600 });
+    expect(q.admettre(60, 10)).to.deep.equal(quota({ limit_ms: 1500 }));
+    q.noter(70, { octetsPieces: 2000, msCapture: 0 });
+    // Une minute plus tard, la fenêtre a glissé.
+    expect(q.admettre(60071, 10)).to.equal(null);
+    expect(C.FENETRE_QUOTA_MS).to.equal(60000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("CT-2 révision 0.3 : configuration (15.3, EX-15.4 pas 2 à 4, EX-7.15)", function () {
+  const MD2 = fs.readFileSync(path.join(SPEC, "CT-2-enregistreur.md"), "utf8");
+
+  it("chaque bloc annoté <!-- schema: X --> ou <!-- schema: X/defs --> de CT-2 est conforme ($ref de policy.approval.rules résolu)", function () {
+    const exemples = [...MD2.matchAll(/<!-- schema: ([a-z-]+)(?:\/([a-z_]+))? -->\n```json\n([\s\S]*?)\n```/g)];
+    expect(exemples.length).to.be.at.least(5);
+    const ids = { evenement: "evenement", "politique-redaction": "politique-redaction", "configuration-enregistreur": "configuration-enregistreur", ticket: "ticket" };
+    for (const [, nom, def, texte] of exemples) {
+      const id = `https://noortrace.example/schemas/v0/${ids[nom]}.schema.json`;
+      expect(SCHEMAS[id], nom).to.not.equal(undefined);
+      const erreurs = J.validerSchema(JSON.parse(texte), SCHEMAS[id], def ? { registre: SCHEMAS, fragment: `#/$defs/${def}` } : { registre: SCHEMAS });
+      expect(erreurs, `${nom}/${def ?? ""}`).to.deep.equal([]);
+    }
+    expect(exemples.some(([, nom, def]) => nom === "ticket" && def === "reponse_evaluer")).to.equal(true);
+  });
+
+  it("l'exemple de 15.3 passe les contrôles de démarrage : politique d'approbation valide en production, mode erreur, CANDIDATS ; avertissements seulement", function () {
+    expect(CONFIG.policy.approval.mode).to.equal("erreur");
+    expect(CONFIG.recorder.environment).to.equal("production");
+    const rules = CONFIG.policy.approval.rules;
+    expect(AP.erreursPolitique(rules, { schemas: SCHEMAS, environment: CONFIG.recorder.environment, expire_after_ms: CONFIG.policy.approval.expire_after_ms })).to.deep.equal([]);
+    expect(AP.candidats(rules, ["fichiers__list_directory", "fichiers__read_file", "fichiers__write_file", "sap__claims.get", "sap__payments.create"])).to.deep.equal(["fichiers__write_file", "sap__payments.create"]);
+    const r = AP.controlesConfiguration(CONFIG, { schemas: SCHEMAS });
+    expect(r.erreurs).to.deep.equal([]);
+    // Aucun avertissement : le demandeur fixe poste-cursor a son entrée dans separation.identities (CT-3 EX-4.14) ; « paiement hors CHF » (none sur egal) est une liste blanche, non signalée.
+    expect(r.avertissements).to.deep.equal([]);
+    expect(AP.demandeursFixes(CONFIG.mcp.hosts)).to.deep.equal(["poste-cursor"]);
+    const sansIdentite = C.copieJSON(CONFIG);
+    sansIdentite.policy.approval.rules.separation.identities = sansIdentite.policy.approval.rules.separation.identities.filter((e) => e.launched_by !== "poste-cursor");
+    const av = AP.controlesConfiguration(sansIdentite, { schemas: SCHEMAS }).avertissements;
+    expect([av.length, av[0]]).to.deep.equal([1, "/policy/approval/rules : /separation/identities : aucune entrée pour le demandeur poste-cursor ; la séparation des tâches n'est pas vérifiable pour lui (EX-10.5) (CT-3 EX-4.14)"]);
+    // Pas 4 : clé du MAC de relais d'au moins 32 octets, distincte des autres clés.
+    const cle = Buffer.alloc(32, 7);
+    expect(AP.controlesConfiguration(CONFIG, { schemas: SCHEMAS, secrets: { relay_mac_key: cle, pseudonym_key: Buffer.alloc(32, 8) } }).erreurs).to.deep.equal([]);
+    expect(AP.controlesConfiguration(CONFIG, { schemas: SCHEMAS, secrets: { relay_mac_key: Buffer.alloc(31, 7) } }).erreurs.join(" ")).to.include("/storage/relay_mac_key : au moins 32 octets");
+    expect(AP.controlesConfiguration(CONFIG, { schemas: SCHEMAS, secrets: { relay_mac_key: cle, pseudonym_key: Buffer.from(cle) } }).erreurs.join(" ")).to.include("distincte de toute autre clé");
+    expect(AP.controlesConfiguration(CONFIG, { schemas: SCHEMAS, secrets: { relay_mac_key: cle, autres: [Buffer.from(cle)] } }).erreurs).to.have.length(1);
+    // Mode retenir : avertissement (CT-3 EX-11.1), et délai des hôtes connus (EX-11.2).
+    const retenir = C.copieJSON(CONFIG);
+    retenir.policy.approval.mode = "retenir";
+    expect(AP.controlesConfiguration(retenir, { schemas: SCHEMAS, delaisHotesMs: [5000] }).avertissements.filter((a) => a.startsWith("/policy/approval/mode"))).to.have.length(2);
+  });
+
+  it("le schéma de configuration exige storage.relay_mac_key, désigne policy.approval.rules par $ref, exige mode (erreur dans la configuration de référence), un budget de rédaction d'au moins 1 ms et les quotas d'EX-4.47", function () {
+    const conf = SCHEMAS[C.ID_SCHEMA_CONFIGURATION];
+    const sansCle = C.copieJSON(CONFIG);
+    delete sansCle.storage.relay_mac_key;
+    expect(J.validerSchema(sansCle, conf, { registre: SCHEMAS }).length).to.be.greaterThan(0);
+    expect(AP.controlesConfiguration(sansCle, { schemas: SCHEMAS }).erreurs.length).to.be.greaterThan(0);
+    const tableau = C.copieJSON(CONFIG);
+    tableau.policy.approval.rules = [];
+    expect(J.validerSchema(tableau, conf, { registre: SCHEMAS }).length).to.be.greaterThan(0);
+    // mode est requis par le schéma, sans valeur par défaut ; la configuration de référence écrit erreur (CT-3 EX-11.1).
+    const sansMode = C.copieJSON(CONFIG);
+    delete sansMode.policy.approval.mode;
+    expect(J.validerSchema(sansMode, conf, { registre: SCHEMAS })).to.deep.equal([{ chemin: "/policy/approval", message: "membre obligatoire absent : mode" }]);
+    expect(AP.controlesConfiguration(sansMode, { schemas: SCHEMAS }).erreurs).to.deep.equal(["/policy/approval : schéma : membre obligatoire absent : mode"]);
+    expect(conf.$defs.policy_set.properties.approval.properties.mode).to.not.have.property("default");
+    expect(JSON.stringify(conf)).to.not.include('"default"');
+    expect(AP.MODE_ATTENTE_DEFAUT).to.equal("erreur");
+    // limits.redaction_budget_ms : entier d'au moins 1 (EX-10.23) ; 0 est refusé au pas 2.
+    const budgetNul = C.copieJSON(CONFIG);
+    budgetNul.limits.redaction_budget_ms = 0;
+    expect(AP.controlesConfiguration(budgetNul, { schemas: SCHEMAS }).erreurs.join(" ")).to.include("/limits/redaction_budget_ms");
+    // Quotas d'EX-4.47 : octets reçus et temps de capture par minute, requis.
+    const sansQuota = C.copieJSON(CONFIG);
+    delete sansQuota.mcp.hosts[0].quota.redaction_ms_per_minute;
+    expect(J.validerSchema(sansQuota, conf, { registre: SCHEMAS })).to.deep.equal([{ chemin: "/mcp/hosts/0/quota", message: "membre obligatoire absent : redaction_ms_per_minute" }]);
+    // Pas 3 : règles sémantiques de CT-3 (contest_ms ≥ expire_after_ms) et extract hors des règles d'EX-10.6, refusés avant tout scellement.
+    const contest = C.copieJSON(CONFIG);
+    contest.policy.approval.rules.rules[3].contest_ms = contest.policy.approval.expire_after_ms;
+    expect(AP.controlesConfiguration(contest, { schemas: SCHEMAS }).erreurs).to.deep.equal(["/policy/approval/rules/rules/3/contest_ms : contest_ms_trop_long (CT-3 EX-4.2, EX-8.2)"]);
+    const statique = C.copieJSON(CONFIG);
+    statique.policy.approval.rules.approver_set = { source: "statique", chain_id: null, registry: null, set: null, members: ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8"], threshold: { required: 1, size: 1 } };
+    expect(AP.controlesConfiguration(statique, { schemas: SCHEMAS }).erreurs).to.deep.equal(["/policy/approval/rules/approver_set/source : jeu_statique_en_production (CT-3 EX-4.2, EX-8.2)"]);
+    const extract = C.copieJSON(CONFIG);
+    extract.policy.servers.sap.tools["payments.create"].effects[0].extract = "(a+)+$";
+    expect(AP.controlesConfiguration(extract, { schemas: SCHEMAS }).erreurs.join(" ")).to.include("/policy/servers/sap/tools/payments.create/effects[0].extract").and.include("(EX-10.6 a)");
+    const motif = C.copieJSON(CONFIG);
+    motif.policy.redaction.named_patterns = { ...(motif.policy.redaction.named_patterns ?? {}), lent: { pattern: "(x+x+)+y" } };
+    expect(AP.controlesConfiguration(motif, { schemas: SCHEMAS }).erreurs.join(" ")).to.include("(EX-10.6 a)");
+  });
+
+  it("EX-7.15 : charger de l'exemple : approval sans service, requesters = launched_by fixes de mcp.hosts et sdk.hosts", function () {
+    const outils = [
+      { tool_announced: "sap__payments.create", tool_original: "payments.create", server_alias: "sap", class: "ecriture", effects: CONFIG.policy.servers.sap.tools["payments.create"].effects },
+      { tool_announced: "fichiers__write_file", tool_original: "write_file", server_alias: "fichiers", class: "ecriture", effects: null },
+    ];
+    const m = AP.messageCharger({ org_id: CONFIG.recorder.org_id ?? "0x" + "00".repeat(32), journal_id: "0x" + "11".repeat(32), environment: CONFIG.recorder.environment, policy_version: CONFIG.policy.version, policy_sha256: C.empreinteEnsemblePolitique(CONFIG.policy).policy_sha256, approval: CONFIG.policy.approval, tools: outils, hotes: [...CONFIG.mcp.hosts, ...CONFIG.sdk.hosts] });
+    expect(m.approval).to.not.have.property("service");
+    expect(Object.keys(m.approval)).to.deep.equal(Object.keys(CONFIG.policy.approval).filter((k) => k !== "service"));
+    expect(m.tools.map((t) => t.tool_announced)).to.deep.equal(["fichiers__write_file", "sap__payments.create"]);
+    expect(m.requesters).to.deep.equal(["poste-cursor"]);
   });
 });
 
@@ -943,14 +1267,33 @@ describe("CT-2 : vecteurs spec/vecteurs/ct-2, rejoués", function () {
     for (const portee of C.PORTEES) expect(cas.some((c) => c.scope === portee), portee).to.equal(true);
     // Sous-ensemble commun ECMAScript/RE2 (EX-10.6) : chaque motif admis ou refusé comme l'attendu.
     const motifs = lireJSON("redaction", "motifs.json");
-    expect(motifs.length).to.be.at.least(15);
+    expect(motifs.length).to.be.at.least(25);
     for (const m of motifs) expect(C.erreursMotifRE2(m.pattern).length === 0, m.pattern).to.equal(m.admis);
+    // Annexe B.3 (version 0.3) : les quatre motifs d'OWASP et les autres formes des règles a) à c) sont refusés, avec la règle dans la note ; [0-9]+$ est admis.
+    for (const motif of ["^(a+)+$", "([a-zA-Z]+)*$", "(a|aa)+$", "(a|a?)+$", "(a|aa){1,1000}$", "(a{1,1000}){1,1000}$", "(\\w|\\d)+$", "(?:[0-9]{4} ?){3}", "(?:\\b)+x", "[0-9]{1000}x"]) {
+      const m = motifs.find((x) => x.pattern === motif);
+      expect(m, motif).to.not.equal(undefined);
+      expect(m.admis, motif).to.equal(false);
+      const regle = /^règle ([abc])\)/.exec(m.note)[1];
+      expect(C.erreursMotifRE2(motif)[0], motif).to.include(`(EX-10.6 ${regle})`);
+    }
+    expect(motifs.find((x) => x.pattern === "[0-9]+$").admis).to.equal(true);
+    expect(motifs.filter((x) => x.admis)).to.have.length(12);
+    for (const m of motifs) expect(Object.keys(m)).to.deep.equal(m.matches ? ["pattern", "admis", "note", "matches"] : ["pattern", "admis", "note"]);
+    // B.3 (version 0.3) : « (?P< » hors d'une ouverture de groupe nommé n'est pas réécrit ; matches donne la première correspondance de chaque texte (celle du paquet regexp de Go sur le motif tel quel).
+    for (const motif of ["[(?P<]x", "a\\(?P<b", "\\(?P<x>", "\\\\(?P<x>a)"]) {
+      const m = motifs.find((x) => x.pattern === motif);
+      expect([m?.admis, m?.matches?.length > 0], motif).to.deep.equal([true, true]);
+      for (const { input, first } of m.matches) expect(C.compilerExtract(motif).exec(input)?.[0] ?? null, `${motif} sur ${input}`).to.equal(first);
+    }
+    // Quantificateur à zéro non significatif : refusé.
+    for (const motif of ["a{01}", "[0-9]{04}", "a{0,01}"]) expect(motifs.find((x) => x.pattern === motif)?.admis, motif).to.equal(false);
   });
 
   it("pieces-mcp/appels : liste servie, refus au pas 1, pièces, contexte, lignes relayées et rendues, durées, erreurs", function () {
     const lignes = (cas, f) => lireTexte("pieces-mcp", "appels", cas, f).split("\n").filter(Boolean).map((l) => JSON.parse(l));
     const appels = fs.readdirSync(path.join(VECTEURS, "pieces-mcp", "appels")).sort();
-    expect(appels).to.include.members(["execute-ecriture", "resultat-is-error", "erreur-jsonrpc", "delai", "injoignable", "taille-depassee", "input-required", "hote-herite-serveur-moderne", "hote-moderne-serveur-herite", "arguments-non-entiers", "nombre-non-representable", "arguments-non-canonisables", "ligne-avec-cr", "lot-refuse", "blancs-non-significatifs", "corps-http-multiligne", "resultat-non-objet", "id-entier-long", "definition-servie-differente"]);
+    expect(appels).to.include.members(["execute-ecriture", "resultat-is-error", "erreur-jsonrpc", "delai", "injoignable", "taille-depassee", "input-required", "hote-herite-serveur-moderne", "hote-moderne-serveur-herite", "arguments-non-entiers", "nombre-non-representable", "arguments-non-canonisables", "ligne-avec-cr", "lot-refuse", "blancs-non-significatifs", "corps-http-multiligne", "resultat-non-objet", "id-entier-long", "definition-servie-differente", "approbation-refus", "approbation-en-attente"]);
     const P = POLITIQUES["pii-v1"];
     for (const cas of appels) {
       const at = lireJSON("pieces-mcp", "appels", cas, "attendu.json");
@@ -961,7 +1304,12 @@ describe("CT-2 : vecteurs spec/vecteurs/ct-2, rejoués", function () {
       expect(C.analyserJSONIntegral(hote[0].line).method, cas).to.equal("tools/list");
       const recue = hote[2];
       const lu = C.lireRequeteHote(recue.line, { cadrage: at.transports.host === "http" ? "corps" : "ligne" });
+      // EX-4.24 : toute erreur rendue par l'enregistreur lui-même (refus au pas 1, message « noortrace: ») a un code qu'il peut émettre, jamais de -32000 à -32099 hors -32020 à -32022.
+      if (at.error_rendered && (at.rejected || at.error_rendered.message.startsWith("noortrace:"))) expect(C.codeEmissible(at.error_rendered.code), `${cas} : code ${at.error_rendered.code}`).to.equal(true);
+      // Annexe B.4 : approval et result_rendered après error_rendered, null hors des cas d'approbation.
+      expect(Object.keys(at).slice(Object.keys(at).indexOf("error_rendered"), Object.keys(at).indexOf("error_rendered") + 3), cas).to.deep.equal(["error_rendered", "approval", "result_rendered"]);
       if (at.rejected) {
+        expect([at.approval, at.result_rendered], cas).to.deep.equal([null, null]);
         expect(lu.erreur, `${cas} : refus`).to.deep.equal(at.error_rendered);
         expect(hote[3].line, `${cas} : erreur rendue`).to.equal(C.ligneHoteErreur(lu.id, lu.erreur, { idHoteTexte: lu.id === null ? null : C.texteIdRequete(recue.line) }));
         expect([amont, at.pieces, at.is_error, at.duration_ms], cas).to.deep.equal([[], null, null, null]);
@@ -978,6 +1326,20 @@ describe("CT-2 : vecteurs spec/vecteurs/ct-2, rejoués", function () {
       expect(avecOctets(pListe), `${cas} : liste annoncée`).to.deep.equal(at.pieces.list);
       const courante = at.pieces.definition_current ? C.pieceDefinitionOutil(C.analyserJSONIntegral(at.pieces.definition_current.bytes)) : servie;
       expect(C.contexteAppel({ servie, courante, liste: pListe }), `${cas} : contexte`).to.deep.equal(at.context);
+      if (at.approval !== null) {
+        // Issue d'une politique d'approbation sans relais (4.4 pas 5 et 6, EX-4.49) : réponse d'evaluer conforme, résultat rendu par l'enregistreur.
+        expect(AP.erreursSchema(at.approval.response, SCHEMAS, "reponse_evaluer"), cas).to.deep.equal([]);
+        const hoteModerne = at.protocols.host === "2026-07-28";
+        const action = AP.actionMandataire(at.approval.response, { hoteModerne });
+        expect(action.action, cas).to.equal("resultat");
+        expect(JSON.stringify(at.result_rendered), `${cas} : résultat rendu`).to.equal(JSON.stringify(action.result));
+        expect(hote[3].line, `${cas} : ligne rendue`).to.equal(C.ligneHoteResultatEnregistreur(requete.id, action.result, { idHoteTexte: C.texteIdRequete(recue.line) }));
+        expect(Object.hasOwn(at.result_rendered, "resultType"), cas).to.equal(hoteModerne);
+        expect([at.result_rendered.isError, Object.hasOwn(at.result_rendered, "structuredContent")], cas).to.deep.equal([true, false]);
+        expect([amont, at.pieces.result, at.is_error, at.duration_ms, at.error_rendered], cas).to.deep.equal([[], null, null, null, null]);
+        continue;
+      }
+      expect(at.result_rendered, cas).to.equal(null);
       expect(at.class, cas).to.equal(C.classeOutil({ annotations: C.analyserJSONIntegral(Buffer.from(courante.octets)).annotations, configurationOutil: at.server_alias === "demo" ? { class: { "claims.get": "lecture", "claims.search": "lecture", "payments.create": "ecriture" }[at.tool_original] } : null }));
       const envoi = amont.find((l) => l.dir === "out" && C.analyserJSONIntegral(l.line).method === "tools/call");
       const idAmont = C.analyserJSONIntegral(envoi.line).id;
@@ -989,7 +1351,7 @@ describe("CT-2 : vecteurs spec/vecteurs/ct-2, rejoués", function () {
       const idTexte = C.texteIdRequete(recue.line);
       let resultat;
       let tReponse;
-      if (at.error_rendered && at.error_rendered.code <= -32010 && at.error_rendered.code >= -32019) {
+      if (at.error_rendered && at.error_rendered.code <= -31010 && at.error_rendered.code >= -31017) {
         const cle = Object.keys(C.ERREURS).find((k) => C.ERREURS[k].code === at.error_rendered.code);
         resultat = C.pieceErreurEnregistreur(cle, at.error_rendered.data, { politique: P });
         expect(hote[3].line, `${cas} : erreur rendue`).to.equal(C.ligneHoteErreur(requete.id, at.error_rendered, { idHoteTexte: idTexte }));
@@ -1098,6 +1460,11 @@ describe("CT-2 : vecteurs spec/vecteurs/ct-2, rejoués", function () {
     const entete = C.analyserJSONIntegral(segment.split("\n")[0]);
     expect(segment).to.equal(C.segment(entete, evs));
     expect([entete.epoch, entete.first_seq, J.sha256(Buffer.from(segment, "utf8"))]).to.deep.equal([1, 1, at.segment_sha256]);
+    // Signal d'approbation rendu pour seq 5 en mode erreur (EX-4.49) : hôte moderne, ticket de la retenue, en_attente ; plus d'erreur -32015 (version 0.2).
+    expect(Object.hasOwn(at, "error_rendered_seq_5")).to.equal(false);
+    expect(JSON.stringify(at.result_rendered_seq_5)).to.equal(JSON.stringify(AP.resultatSignalApprobation(evs[4].policy.ticket, "en_attente", { hoteModerne: true, recorder: evs[4].code.recorder })));
+    expect(at.result_rendered_seq_5.content[0].text).to.equal(`noortrace: appel soumis a approbation ; ticket=${evs[4].policy.ticket} ; state=en_attente`);
+    expect(evs[4].execution.result).to.equal(null);
     const mcp = lireJSON("pieces-mcp", "appels", "execute-ecriture", "attendu.json");
     expect(sansOctets(mcp.pieces.arguments)).to.deep.equal(evs[6].execution.arguments);
     expect(sansOctets(mcp.pieces.result)).to.deep.equal(evs[6].execution.result);

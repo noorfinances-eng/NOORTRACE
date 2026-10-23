@@ -188,6 +188,14 @@ func familleEvenements(rap *Rapport, ctx *contexteCT2) {
 			}
 		}
 		rap.Comparer(f, nom, "politique.version de la démonstration (19.2)", "demo-2026-11", chaineDe(docPol, "version"))
+		// B.6 (version 0.3) : politique.json, antérieur à CT-3, reste figé ;
+		// approval.rules y est un tableau illustratif, vérifié comme tel, et
+		// non un document politique-approbation-v0
+		forme := "absent"
+		if r := docPol.Get("approval").Get("rules"); r != nil {
+			forme = typeJSONDe(r)
+		}
+		rap.Comparer(f, nom, "politique.json : approval.rules, tableau illustratif figé (B.6, CT-3 4.1)", "array", forme)
 		red := docPol.Get("redaction")
 		var mq []string
 		pol, mq = ChargerPolitique(red)
@@ -239,7 +247,7 @@ func familleEvenements(rap *Rapport, ctx *contexteCT2) {
 	controlerEffets(rap, nom, evs, pieces, docPol)
 
 	// 8 bis. autres valeurs déclarées par attendu.json
-	valeursSupplementaires(rap, nom, dir, evs, attendu, docPol)
+	valeursSupplementaires(rap, nom, dir, evs, attendu, docPol, entrees)
 
 	// 9. dossiers CT-1 éventuels (contrôles 1, 2, 3, 6 ; 7 hors périmètre)
 	verifierDossiersDemo(rap, ctx, filepath.Join(ctx.racine, "evenements"))
@@ -1254,7 +1262,7 @@ func normaliserNomOutil(s string) string {
 // dans la liste de B.6 mais que le vecteur déclare : bornes de séquence,
 // identité, outils, longueur du document de politique, segment, erreur
 // rendue pour l'appel retenu, période (racine, nonce, empreinte).
-func valeursSupplementaires(rap *Rapport, nom, dir string, evs []*Value, attendu, docPol *Value) {
+func valeursSupplementaires(rap *Rapport, nom, dir string, evs []*Value, attendu, docPol, entrees *Value) {
 	f := FamilleEvenements
 	if len(evs) == 0 {
 		return
@@ -1311,21 +1319,49 @@ func valeursSupplementaires(rap *Rapport, nom, dir string, evs []*Value, attendu
 			}
 		}
 	}
-	// erreur rendue à l'hôte pour l'appel retenu (mode « erreur », 4.4 pas 6)
+	// signal d'approbation rendu à l'hôte pour l'appel retenu, en mode
+	// « erreur » (4.4 pas 6, EX-4.49, B.6 : result_rendered_seq_<seq>, qui
+	// remplace error_rendered_seq_<seq> et le code -32015 de la version 0.2)
+	rendus := map[int64]bool{}
 	for _, x := range attendu.Obj {
-		if !strings.HasPrefix(x.Key, "error_rendered_seq_") {
+		if strings.HasPrefix(x.Key, "error_rendered_seq_") {
+			rap.Comparer(f, nom, x.Key+" (version 0.2 ; B.6 : remplacé par result_rendered_seq_, -32015 retiré, EX-4.24)", "absent", "présent")
 			continue
 		}
-		seq, _ := EntierDe(&Value{Kind: KindNumber, Num: strings.TrimPrefix(x.Key, "error_rendered_seq_")})
+		if !strings.HasPrefix(x.Key, "result_rendered_seq_") {
+			continue
+		}
+		seq, _ := EntierDe(&Value{Kind: KindNumber, Num: strings.TrimPrefix(x.Key, "result_rendered_seq_")})
+		rendus[seq] = true
 		ev := parSeq[seq]
+		etiq := fmt.Sprintf("%s · seq %d", nom, seq)
 		mode := chaineDe(docPol, "approval", "mode")
 		if ev == nil || chaineDe(ev, "execution", "status") != "retenue" {
 			rap.Comparer(f, nom, x.Key+" : événement retenue à ce seq", "oui", "non")
 			continue
 		}
-		etat := "en_attente"
-		obt := Objet("code", Entier(-32015), "message", Chaine(MessagesErreurs[-32015]), "data", Objet("ticket", Copier(ev.Get("policy").Get("ticket")), "state", Chaine(etat)))
-		comparerValeur(rap, f, fmt.Sprintf("%s · seq %d", nom, seq), "erreur -32015 rendue en mode « "+mode+" » (4.4 pas 6, table de 4.4)", x.Val, obt)
+		rap.Comparer(f, etiq, "politique.json : approval.mode (B.6 : signal rendu en mode erreur)", "erreur", mode)
+		// ère de l'hôte : _meta de la requête reçue (entrees.json, calls)
+		moderne, source := false, "requête de l'hôte absente d'entrees.json"
+		for _, c := range entrees.Get("calls").Arr {
+			if s, ok := entierDe(c, "seq"); ok && s == seq {
+				lu := LireRequeteHote([]byte(chaineDe(c, "host_line")), "ligne")
+				v, src := versionHote(nil, &LigneTranscription{Val: lu.Msg})
+				moderne, source = v == VersionModerne, src
+			}
+		}
+		obt := SignalApprobation(chaineDe(ev, "policy", "ticket"), "en_attente", moderne)
+		// valeur JSON (B.6 : « l'objet result de la ligne rendue ») ; l'ordre
+		// des membres, qui ne vaut que pour les octets rendus, est vérifié
+		// sur les lignes de pieces-mcp
+		comparerValeur(rap, f, etiq, "signal d'approbation en_attente rendu en mode « "+mode+" » (4.4 pas 6, EX-4.49 ; ère : "+source+")", x.Val, obt)
+	}
+	for _, ev := range evs {
+		if chaineDe(ev, "execution", "status") == "retenue" {
+			if s, ok := entierDe(ev, "seq"); ok && !rendus[s] {
+				rap.Comparer(f, fmt.Sprintf("%s · seq %d", nom, s), fmt.Sprintf("result_rendered_seq_%d pour l'événement retenue (B.6)", s), "présent", "absent")
+			}
+		}
 	}
 	// période (CT-1 §9, §10) : heure des ts, nonce de la période 1, racine des événements
 	if p := attendu.Get("period"); EstObjet(p) {
