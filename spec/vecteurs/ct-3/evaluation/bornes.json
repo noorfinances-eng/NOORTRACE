@@ -1,0 +1,350 @@
+{
+  "version": 0,
+  "policy": "politiques/bornes.json",
+  "policy_version": "vecteurs-ct3-1",
+  "cases": [
+    {
+      "id": "pointeur-32-jetons",
+      "description": "Pointeur de 32 jetons sur un objet de 31 niveaux : résolu.",
+      "checks": [
+        "AP-3",
+        "AP-6"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "borne__pointeur",
+        "tool_original": "pointeur",
+        "server_alias": "borne",
+        "arguments": {
+          "k": {
+            "k": {
+              "k": {
+                "k": {
+                  "k": {
+                    "k": {
+                      "k": {
+                        "k": {
+                          "k": {
+                            "k": {
+                              "k": {
+                                "k": {
+                                  "k": {
+                                    "k": {
+                                      "k": {
+                                        "k": {
+                                          "k": {
+                                            "k": {
+                                              "k": {
+                                                "k": {
+                                                  "k": {
+                                                    "k": {
+                                                      "k": {
+                                                        "k": {
+                                                          "k": {
+                                                            "k": {
+                                                              "k": {
+                                                                "k": {
+                                                                  "k": {
+                                                                    "k": {
+                                                                      "k": "fond"
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "pointeur de 32 jetons",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "condition-8-niveaux",
+      "description": "Condition de 8 niveaux.",
+      "checks": [
+        "AP-3",
+        "AP-10"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "borne__profondeur",
+        "tool_original": "profondeur",
+        "server_alias": "borne",
+        "arguments": {
+          "x": "1"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "condition de 8 niveaux",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "64-predicats",
+      "description": "64 prédicats existe, tous VRAI.",
+      "checks": [
+        "AP-3"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "borne__predicats",
+        "tool_original": "predicats",
+        "server_alias": "borne",
+        "arguments": {
+          "p0": 0,
+          "p1": 1,
+          "p2": 2,
+          "p3": 3,
+          "p4": 4,
+          "p5": 5,
+          "p6": 6,
+          "p7": 7,
+          "p8": 8,
+          "p9": 9,
+          "p10": 10,
+          "p11": 11,
+          "p12": 12,
+          "p13": 13,
+          "p14": 14,
+          "p15": 15,
+          "p16": 16,
+          "p17": 17,
+          "p18": 18,
+          "p19": 19,
+          "p20": 20,
+          "p21": 21,
+          "p22": 22,
+          "p23": 23,
+          "p24": 24,
+          "p25": 25,
+          "p26": 26,
+          "p27": 27,
+          "p28": 28,
+          "p29": 29,
+          "p30": 30,
+          "p31": 31,
+          "p32": 32,
+          "p33": 33,
+          "p34": 34,
+          "p35": 35,
+          "p36": 36,
+          "p37": 37,
+          "p38": 38,
+          "p39": 39,
+          "p40": 40,
+          "p41": 41,
+          "p42": 42,
+          "p43": 43,
+          "p44": 44,
+          "p45": 45,
+          "p46": 46,
+          "p47": 47,
+          "p48": 48,
+          "p49": 49,
+          "p50": 50,
+          "p51": 51,
+          "p52": 52,
+          "p53": 53,
+          "p54": 54,
+          "p55": 55,
+          "p56": 56,
+          "p57": 57,
+          "p58": 58,
+          "p59": 59,
+          "p60": 60,
+          "p61": 61,
+          "p62": 62,
+          "p63": 63
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "64 predicats",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "64-predicats-un-absent",
+      "description": "63 prédicats VRAI, un FAUX : la règle ne s'applique pas ; défaut revue.",
+      "checks": [
+        "AP-3"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "borne__predicats",
+        "tool_original": "predicats",
+        "server_alias": "borne",
+        "arguments": {
+          "p0": 0,
+          "p1": 1,
+          "p2": 2,
+          "p3": 3,
+          "p4": 4,
+          "p5": 5,
+          "p6": 6,
+          "p7": 7,
+          "p8": 8,
+          "p9": 9,
+          "p10": 10,
+          "p11": 11,
+          "p12": 12,
+          "p13": 13,
+          "p14": 14,
+          "p15": 15,
+          "p16": 16,
+          "p17": 17,
+          "p18": 18,
+          "p19": 19,
+          "p20": 20,
+          "p21": 21,
+          "p22": 22,
+          "p23": 23,
+          "p24": 24,
+          "p25": 25,
+          "p26": 26,
+          "p27": 27,
+          "p28": 28,
+          "p29": 29,
+          "p30": 30,
+          "p31": 31,
+          "p32": 32,
+          "p33": 33,
+          "p34": 34,
+          "p35": 35,
+          "p36": 36,
+          "p37": 37,
+          "p38": 38,
+          "p39": 39,
+          "p40": 40,
+          "p41": 41,
+          "p42": 42,
+          "p43": 43,
+          "p44": 44,
+          "p45": 45,
+          "p46": 46,
+          "p47": 47,
+          "p48": 48,
+          "p49": 49,
+          "p50": 50,
+          "p51": 51,
+          "p52": 52,
+          "p53": 53,
+          "p54": 54,
+          "p55": 55,
+          "p56": 56,
+          "p57": 57,
+          "p58": 58,
+          "p59": 59,
+          "p60": 60,
+          "p61": 61,
+          "p62": 62
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 3599999,
+        "opening": null,
+        "windows": []
+      }
+    }
+  ]
+}

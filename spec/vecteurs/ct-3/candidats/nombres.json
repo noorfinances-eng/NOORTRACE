@@ -1,0 +1,21 @@
+{
+  "version": 0,
+  "policy": "politiques/nombres.json",
+  "cases": [
+    {
+      "id": "regles-de-refus",
+      "checks": [
+        "AP-16"
+      ],
+      "tools": [
+        "num__egal",
+        "num__autre",
+        "num__grand"
+      ],
+      "approval_candidates": [
+        "num__egal",
+        "num__grand"
+      ]
+    }
+  ]
+}

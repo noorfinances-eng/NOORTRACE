@@ -1,8 +1,8 @@
 # NOORTRACE — architecture cible
 
-Version 0.4, 23 octobre 2026. Document de conception, pas d'implémentation. Les
+Version 0.5, 23 octobre 2026. Document de conception, pas d'implémentation. Les
 spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
-l'enregistreur, CT-6 pour le vérificateur.
+l'enregistreur, CT-3 pour les approbations, CT-6 pour le vérificateur.
 
 ## Principe
 
@@ -176,21 +176,33 @@ Mécanique :
 La politique est évaluée sur chaque `tools/call` avant relais. Une règle est un outil
 plus des prédicats sur ses arguments, par exemple `sap.payments.create` et
 `montant > 5000 CHF`. Trois sorties : autorisé et journalisé, à approuver, refusé.
+Chaque règle a un niveau (CT-3 §5) : `automatique`, la règle décide seule ;
+`fenetre`, une première demande approuvée au seuil autorise ensuite, sans nouvelle
+approbation, les demandes de la même portée pendant une durée et un nombre
+d'appels bornés ; `revue`, chaque appel est approuvé au seuil. Une fenêtre de
+contestation peut retarder la remise d'une approbation pour laisser un membre du
+jeu s'y opposer. Ces niveaux se projettent sur les trois sorties, sans valeur
+nouvelle.
 
 Quand la sortie est « à approuver » :
 
 1. Le mandataire ne transmet pas l'appel. Il crée un ticket, le journalise, et
    notifie les approbateurs du client dans la console reprise du hub.
-2. Chaque approbateur signe sa décision avec sa clé, en EIP-191, comme les curateurs
-   de NOORCHAIN signent aujourd'hui. Le seuil, par exemple deux sur trois, est celui
-   du jeu d'approbateurs du client dans le contrat CuratorSet.
+2. Chaque approbateur signe sa décision avec sa clé, en EIP-191, dans son
+   portefeuille ; la console reprise du hub ne garde aucune clé (CT-3 §13). Le
+   seuil, par exemple deux sur trois, est celui du jeu d'approbateurs du client
+   dans le contrat CuratorSet : jeu épinglé par la politique, lu à l'ouverture du
+   ticket et reconfirmé avant la décision ; un seuil abaissé pendant l'attente ne
+   réduit pas les signatures exigées (CT-3 §8).
 3. La décision signée devient un événement du journal, puis l'appel est relayé ou
    refusé. Délai écoulé sans décision : refus, journalisé.
 
-MCP n'a pas d'état « en attente » pour un appel d'outil. Le mandataire retient la
-réponse jusqu'à la décision ou jusqu'au délai de l'hôte ; au-delà, il renvoie une
-erreur qui porte le numéro de ticket, et l'agent réessaie une fois la décision prise.
-Le choix entre les deux comportements est une décision ouverte, à régler au prototype.
+MCP n'a pas d'état « en attente » pour un appel d'outil. Le mandataire répond
+aussitôt par une erreur qui porte le numéro de ticket (mode `erreur`, par défaut,
+CT-3 §11) ; l'agent ré-émet l'appel, qui n'est relayé qu'après la décision signée
+au seuil, et une seule fois. Le mode `retenir`, qui garde la requête ouverte, n'est
+admis que sous le délai de tous les hôtes raccordés. L'approbation se signe dans la
+console, hors de l'hôte MCP.
 
 ### Ancrage : trois ancres indépendantes pour une période
 
@@ -332,7 +344,9 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
   l'enregistreur, seule autorisée par le pare-feu à joindre les fournisseurs ; à
   défaut, par le mandataire d'interception du client raccordé en ICAP.
 - Registre et console NOORTRACE : hébergés en Suisse. Rétention probatoire visée :
-  10 ans, alignée sur l'art. 958f CO et l'art. 18 du Règlement IA.
+  10 ans, alignée sur l'art. 958f CO. Le Règlement IA demande au moins six mois
+  pour les journaux (art. 19 § 1 et 26 § 6) ; son art. 18 fixe dix ans pour la
+  documentation du fournisseur, pas pour les journaux.
 - Vérificateur : binaire autonome, sans réseau, publié avec son code et ses vecteurs
   de test.
 
@@ -377,13 +391,16 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 - la spécification CT-6 du vérificateur et ses schémas ; les contrôles 4, 5 et 8
   en JavaScript dans le vérificateur de dossier, avec leurs vecteurs, recalculés
   sans discordance par OpenSSL, la bibliothèque officielle d'OpenTimestamps et
-  go-ethereum.
+  go-ethereum ;
+- la spécification CT-3 des approbations et ses deux schémas ; l'implémentation de
+  référence de l'évaluation des règles, du cycle de vie du ticket et de la
+  vérification des décisions, avec ses vecteurs et un vérificateur Go indépendant.
 
 Au 23 octobre 2026, le VPS de développement porte la chaîne dédiée et les contrats.
 
 À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
-les approbations, les clients RFC 3161 et OpenTimestamps, le binaire Go du
-vérificateur, la démonstration en une commande.
+le service et la console d'approbation, les clients RFC 3161 et OpenTimestamps, le
+binaire Go du vérificateur, la démonstration en une commande.
 
 ## Décisions ouvertes
 
@@ -397,9 +414,10 @@ vérificateur, la démonstration en une commande.
 3. Politique de rédaction des paramètres sensibles avant hachage : close par CT-2.
    Politique versionnée avec schéma, détecteurs à somme de contrôle, exemple
    `pii-v1` publié avec ses vecteurs.
-4. Comportement du mandataire pendant une approbation : CT-2 fixe les deux modes,
-   réponse retenue ou erreur avec ticket ; le choix et le cycle de vie du ticket
-   relèvent de CT-3.
+4. Comportement du mandataire pendant une approbation : close par CT-3. Mode
+   `erreur` par défaut, `retenir` seulement sous le délai de tous les hôtes ; cycle
+   de vie du ticket, jeu figé à l'ouverture et reconfirmé avant la décision (CT-3
+   §7, §8, §11).
 5. Format d'export : close par CT-1, version 0 spécifiée avec ses vecteurs ; une
    révision issue de la revue de la porte 1 ou du prototype produira une version 1.
 6. Identifiant de la chaîne de production et premiers validateurs partenaires, après le pilote.

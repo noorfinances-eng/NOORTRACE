@@ -1,0 +1,176 @@
+{
+  "version": 0,
+  "policy": "politiques/ordre.json",
+  "policy_version": "vecteurs-ct3-1",
+  "cases": [
+    {
+      "id": "revue-meme-rang",
+      "description": "Deux règles revue VRAI au rang 4 : la première du document est retenue, avec son contest_ms (0 dans ordre.json, 900 000 dans ordre-inverse.json) ; la décision ne change pas.",
+      "checks": [
+        "AP-12"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ord__revue",
+        "tool_original": "revue",
+        "server_alias": "ord",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "revue sans contestation",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "fenetre-meme-rang",
+      "description": "Deux règles fenetre au rang 3, l'une de portée indéterminée (marquée, non ouvrante), l'autre VRAI (ouvrante) : la première du document décide si le ticket ouvrira une fenêtre.",
+      "checks": [
+        "AP-12",
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "ord__fenetre",
+        "tool_original": "fenetre",
+        "server_alias": "ord",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre indeterminee [indetermine]",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "fenetres-couvrantes",
+      "description": "Deux fenêtres de deux règles couvrent la demande au rang 2 : seule celle de la première règle du document est consommée.",
+      "checks": [
+        "AP-12",
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre longue",
+            "tool": "ord__couverte",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": []
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 10,
+          "ticket": "apr-0051"
+        },
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre courte",
+            "tool": "ord__couverte",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": []
+          },
+          "start": "2026-11-12T09:55:00.000Z",
+          "end": "2026-11-12T10:05:00.000Z",
+          "remaining": 1,
+          "ticket": "apr-0052"
+        }
+      ],
+      "request": {
+        "tool_announced": "ord__couverte",
+        "tool_original": "couverte",
+        "server_alias": "ord",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre longue [fenetre apr-0051 2026-11-12T10:30:00.000Z]",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre longue",
+              "tool": "ord__couverte",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": []
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 9,
+            "ticket": "apr-0051"
+          },
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre courte",
+              "tool": "ord__couverte",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": []
+            },
+            "start": "2026-11-12T09:55:00.000Z",
+            "end": "2026-11-12T10:05:00.000Z",
+            "remaining": 1,
+            "ticket": "apr-0052"
+          }
+        ]
+      }
+    }
+  ]
+}

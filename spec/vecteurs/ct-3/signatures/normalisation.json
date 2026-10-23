@@ -1,0 +1,95 @@
+{
+  "version": 0,
+  "cases": [
+    {
+      "id": "canonique",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+      "expected": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+      "reason": null
+    },
+    {
+      "id": "canonique-v28",
+      "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+      "expected": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+      "reason": null
+    },
+    {
+      "id": "s-haut-v27",
+      "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb9b02c61b42a00ba10d12f1a0f4ba766815222171ec7b426757743ab7ace752e81b",
+      "expected": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+      "reason": null
+    },
+    {
+      "id": "s-haut-v28",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971ae880a9777d6f31fd754da42ffdbf4a3671ab6e81549193a0342e6a00076b152a1c",
+      "expected": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+      "reason": null
+    },
+    {
+      "id": "v-0",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c1700",
+      "expected": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+      "reason": null
+    },
+    {
+      "id": "v-1",
+      "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee5901",
+      "expected": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+      "reason": null
+    },
+    {
+      "id": "s-haut-v-0",
+      "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb9b02c61b42a00ba10d12f1a0f4ba766815222171ec7b426757743ab7ace752e800",
+      "expected": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+      "reason": null
+    },
+    {
+      "id": "v-29",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171d",
+      "expected": null,
+      "reason": "signature_invalide"
+    },
+    {
+      "id": "v-2",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c1702",
+      "expected": null,
+      "reason": "signature_invalide"
+    },
+    {
+      "id": "longueur-64",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c17",
+      "expected": null,
+      "reason": "signature_invalide"
+    },
+    {
+      "id": "longueur-66",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b00",
+      "expected": null,
+      "reason": "signature_invalide"
+    },
+    {
+      "id": "r-nul",
+      "signature": "0x0000000000000000000000000000000000000000000000000000000000000000177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+      "expected": null,
+      "reason": "signature_invalide"
+    },
+    {
+      "id": "r-egal-n",
+      "signature": "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+      "expected": null,
+      "reason": "signature_invalide"
+    },
+    {
+      "id": "s-nul",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a00000000000000000000000000000000000000000000000000000000000000001b",
+      "expected": null,
+      "reason": "signature_invalide"
+    },
+    {
+      "id": "s-egal-n",
+      "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971afffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd03641411b",
+      "expected": null,
+      "reason": "signature_invalide"
+    }
+  ]
+}

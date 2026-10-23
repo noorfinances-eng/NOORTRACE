@@ -1,0 +1,519 @@
+{
+  "version": 0,
+  "id": "plafond",
+  "description": "max_open_tickets = 2 : une troisième demande à approuver du même demandeur reçoit plafond_atteint, sans ticket ; une ré-émission reconnue reste servie ; un autre demandeur n'est pas concerné ; une sortie autorise ou refuse non plus.",
+  "checks": [
+    "TK-3"
+  ],
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+  "environment": "developpement",
+  "policy_version": "vecteurs-ct3-1",
+  "expire_after_ms": 3600000,
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  },
+  "service": {
+    "max_open_tickets": 2,
+    "escalation": [],
+    "set_poll_interval_ms": 10000,
+    "administrators": []
+  },
+  "steps": [
+    {
+      "input": {
+        "kind": "jeu_lu",
+        "at": "2026-11-12T08:59:00.000Z",
+        "data": {
+          "status": "lu",
+          "jeu": {
+            "chain_id": 2124,
+            "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+            "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+            "height": 1190,
+            "block_hash": "0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ]
+          },
+          "cause": null
+        }
+      },
+      "expected": {
+        "tickets": {},
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:00.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "6000.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement > 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0001",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:01.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "7000.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement > 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve",
+          "apr-0002": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0002",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:02.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "8000.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement > 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve",
+          "apr-0002": "reserve"
+        },
+        "accepted": false,
+        "reason": "plafond_atteint",
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:03.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "6000.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement > 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve",
+          "apr-0002": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0001",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:04.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "8000.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "a.keller@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement > 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve",
+          "apr-0002": "reserve",
+          "apr-0003": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0003",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1190..1190 b=0xbe2f72fe62eb8b09120401559d9e5a77a91e84fb5d4d36e157c8f874550df254 repli"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:05.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "900.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement <= 1000 CHF",
+            "decision": "autorise",
+            "contest_ms": null,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve",
+          "apr-0002": "reserve",
+          "apr-0003": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement <= 1000 CHF",
+          "decision": "autorise",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:06.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "900.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH4431999123000889012"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "beneficiaire hors liste blanche",
+            "decision": "refuse",
+            "contest_ms": null,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve",
+          "apr-0002": "reserve",
+          "apr-0003": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "beneficiaire hors liste blanche",
+          "decision": "refuse",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "remises": [],
+        "windows": []
+      }
+    }
+  ]
+}

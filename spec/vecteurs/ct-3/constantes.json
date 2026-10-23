@@ -1,0 +1,61 @@
+{
+  "version": 0,
+  "organization": {
+    "slug": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "journal": {
+    "name": "journal-approbations",
+    "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1"
+  },
+  "policy_versions": [
+    "vecteurs-ct3-1",
+    "vecteurs-ct3-2"
+  ],
+  "chain_id": 2124,
+  "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+  "sets": {
+    "1": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "2": "0xfc6619bf29131ace4eb03178580ed2ac64a5fe3c"
+  },
+  "labels": {
+    "registry": "noortrace/vecteurs/ct3/registre",
+    "set": "noortrace/vecteurs/ct3/jeu/<n>",
+    "block": "noortrace/vecteurs/ct3/bloc/<h>",
+    "request": "noortrace/vecteurs/ct3/demande/<k>",
+    "event": "noortrace/vecteurs/ct3/evenement/<seq>"
+  },
+  "accounts": [
+    {
+      "index": 1,
+      "derivation_path": "m/44'/60'/0'/0/1",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "private_key": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+    },
+    {
+      "index": 2,
+      "derivation_path": "m/44'/60'/0'/0/2",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "private_key": "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+    },
+    {
+      "index": 3,
+      "derivation_path": "m/44'/60'/0'/0/3",
+      "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+      "private_key": "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+    },
+    {
+      "index": 4,
+      "derivation_path": "m/44'/60'/0'/0/4",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+      "private_key": "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
+    }
+  ],
+  "mnemonic": "test test test test test test test test test test test junk",
+  "requester": {
+    "launched_by": "u.martin@assureur-demo.example",
+    "account": 3
+  },
+  "base_instant": "2026-11-12T09:00:00.000Z",
+  "expire_after_ms": 3600000
+}

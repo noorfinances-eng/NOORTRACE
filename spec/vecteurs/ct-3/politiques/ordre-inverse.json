@@ -1,0 +1,123 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : revue",
+    "description": "Tout appel qu'aucune règle ne couvre est soumis aux approbateurs.",
+    "level": "revue",
+    "decision": null,
+    "contest_ms": 0
+  },
+  "rules": [
+    {
+      "name": "fenetre courte",
+      "description": null,
+      "tools": [
+        "ord__couverte"
+      ],
+      "when": null,
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 600000,
+        "max_calls": 1,
+        "same_arguments": []
+      },
+      "contest_ms": 0
+    },
+    {
+      "name": "fenetre longue",
+      "description": null,
+      "tools": [
+        "ord__couverte"
+      ],
+      "when": null,
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 3600000,
+        "max_calls": 10,
+        "same_arguments": []
+      },
+      "contest_ms": 0
+    },
+    {
+      "name": "fenetre determinee",
+      "description": null,
+      "tools": [
+        "ord__fenetre"
+      ],
+      "when": null,
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 600000,
+        "max_calls": 2,
+        "same_arguments": [
+          "/arguments/beneficiary"
+        ]
+      },
+      "contest_ms": 0
+    },
+    {
+      "name": "fenetre indeterminee",
+      "description": null,
+      "tools": [
+        "ord__fenetre"
+      ],
+      "when": null,
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 3600000,
+        "max_calls": 5,
+        "same_arguments": [
+          "/arguments/absent"
+        ]
+      },
+      "contest_ms": 0
+    },
+    {
+      "name": "revue avec contestation",
+      "description": null,
+      "tools": [
+        "ord__revue"
+      ],
+      "when": null,
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 900000
+    },
+    {
+      "name": "revue sans contestation",
+      "description": null,
+      "tools": [
+        "ord__revue"
+      ],
+      "when": null,
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 0
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,223 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : autorisation",
+    "description": "Politique de test : ce qu'aucune règle ne refuse est autorisé.",
+    "level": "automatique",
+    "decision": "autorise",
+    "contest_ms": null
+  },
+  "rules": [
+    {
+      "name": "echappement ~1",
+      "description": null,
+      "tools": [
+        "ptr__barre"
+      ],
+      "when": {
+        "path": "/arguments/a~1b",
+        "op": "egal",
+        "value": "ok"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "echappement ~0",
+      "description": null,
+      "tools": [
+        "ptr__tilde"
+      ],
+      "when": {
+        "path": "/arguments/m~0n",
+        "op": "egal",
+        "value": "ok"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "ordre de decodage",
+      "description": null,
+      "tools": [
+        "ptr__ordre"
+      ],
+      "when": {
+        "path": "/arguments/~01",
+        "op": "egal",
+        "value": "ok"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "indice de tableau",
+      "description": null,
+      "tools": [
+        "ptr__indice"
+      ],
+      "when": {
+        "path": "/arguments/items/1/id",
+        "op": "egal",
+        "value": "x2"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "membre nul",
+      "description": null,
+      "tools": [
+        "ptr__nul"
+      ],
+      "when": {
+        "path": "/arguments/n",
+        "op": "existe",
+        "value": null
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "jeton tiret",
+      "description": null,
+      "tools": [
+        "ptr__tiret"
+      ],
+      "when": {
+        "path": "/arguments/items/-",
+        "op": "egal",
+        "value": "x"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "zero de tete",
+      "description": null,
+      "tools": [
+        "ptr__zero"
+      ],
+      "when": {
+        "path": "/arguments/items/01",
+        "op": "egal",
+        "value": "x"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "jeton de dix chiffres",
+      "description": null,
+      "tools": [
+        "ptr__long"
+      ],
+      "when": {
+        "path": "/arguments/t/1000000000",
+        "op": "egal",
+        "value": "x"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "indice hors limites",
+      "description": null,
+      "tools": [
+        "ptr__hors"
+      ],
+      "when": {
+        "path": "/arguments/items/5",
+        "op": "egal",
+        "value": "x"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "pas a travers une chaine",
+      "description": null,
+      "tools": [
+        "ptr__chaine"
+      ],
+      "when": {
+        "path": "/arguments/s/0",
+        "op": "egal",
+        "value": "a"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "membre de nom vide",
+      "description": null,
+      "tools": [
+        "ptr__vide"
+      ],
+      "when": {
+        "path": "/arguments/",
+        "op": "egal",
+        "value": "ok"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "membre de nom numerique",
+      "description": null,
+      "tools": [
+        "ptr__objet"
+      ],
+      "when": {
+        "path": "/arguments/o/0",
+        "op": "egal",
+        "value": "ok"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1404 @@
+{
+  "version": 0,
+  "policy": "politiques/niveaux.json",
+  "policy_version": "vecteurs-ct3-1",
+  "cases": [
+    {
+      "id": "automatique-autorise-egalite-de-rang",
+      "description": "50 : petit montant et petit montant bis VRAI au rang 1 ; la première du document est nommée.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "amount": "50"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "petit montant",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "fenetre-portee-indeterminee",
+      "description": "150 sans beneficiary : condition VRAI, portée indéterminée : rang 3 marqué, ticket non ouvrant.",
+      "checks": [
+        "AP-11",
+        "AP-13",
+        "AP-15"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne [indetermine]",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "fenetre-ouvrante",
+      "description": "150 avec beneficiary, aucune fenêtre : rang 3 (l'emporte sur petit montant bis, rang 1), ticket ouvrant.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "duration_ms": 3600000,
+          "max_calls": 2
+        },
+        "windows": []
+      }
+    },
+    {
+      "id": "fenetre-couverte",
+      "description": "Fenêtre apr-0042 ouverte, même portée : rang 2, une unité consommée.",
+      "checks": [
+        "AP-11",
+        "AP-13",
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 2,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne [fenetre apr-0042 2026-11-12T10:30:00.000Z]",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 1,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-dernier-appel",
+      "description": "Dernière unité : restant passe à 0, la fenêtre reste dans l'état.",
+      "checks": [
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 1,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "999.99"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne [fenetre apr-0042 2026-11-12T10:30:00.000Z]",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 0,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-epuisee",
+      "description": "restant = 0 : la fenêtre ne couvre plus ; rang 3, ticket ouvrant.",
+      "checks": [
+        "AP-15"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 0,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "duration_ms": 3600000,
+          "max_calls": 2
+        },
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 0,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-debut-inclus",
+      "description": "t = debut : couvert.",
+      "checks": [
+        "AP-14"
+      ],
+      "t": "2026-11-12T09:30:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 2,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne [fenetre apr-0042 2026-11-12T10:30:00.000Z]",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 1,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-fin-exclue",
+      "description": "t = fin : fermée ; rang 3.",
+      "checks": [
+        "AP-15"
+      ],
+      "t": "2026-11-12T10:30:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 2,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "duration_ms": 3600000,
+          "max_calls": 2
+        },
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 2,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-autre-demandeur",
+      "description": "Même bénéficiaire, autre demandeur : autre portée.",
+      "checks": [
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 2,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "a.keller@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "a.keller@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "duration_ms": 3600000,
+          "max_calls": 2
+        },
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 2,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-autre-beneficiaire",
+      "description": "Autre bénéficiaire : autre portée.",
+      "checks": [
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 2,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH5604835012345678009",
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH5604835012345678009"
+            ]
+          },
+          "duration_ms": 3600000,
+          "max_calls": 2
+        },
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 2,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-autre-version",
+      "description": "Fenêtre d'une autre policy_version : ne couvre pas (EX-4.12).",
+      "checks": [
+        "AP-15"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-0",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 2,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "150"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre moyenne",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "duration_ms": 3600000,
+          "max_calls": 2
+        },
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-0",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 2,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-non-consommee",
+      "description": "Fenêtre qui couvre, mais blocage pays (rang 5) l'emporte : rien n'est consommé.",
+      "checks": [
+        "AP-12",
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre moyenne",
+            "tool": "pay__virement",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-12T09:30:00.000Z",
+          "end": "2026-11-12T10:30:00.000Z",
+          "remaining": 2,
+          "ticket": "apr-0042"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "150",
+          "pays": "KP"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "blocage pays",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre moyenne",
+              "tool": "pay__virement",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-12T09:30:00.000Z",
+            "end": "2026-11-12T10:30:00.000Z",
+            "remaining": 2,
+            "ticket": "apr-0042"
+          }
+        ]
+      }
+    },
+    {
+      "id": "revue",
+      "description": "2000 : revue elevee, rang 4.",
+      "checks": [
+        "AP-11"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "2000"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "revue elevee",
+        "decision": "a_approuver",
+        "contest_ms": 60000,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "revue-egalite-de-rang",
+      "description": "6000 : deux revues VRAI au rang 4 ; la première du document.",
+      "checks": [
+        "AP-12"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "6000"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "revue elevee",
+        "decision": "a_approuver",
+        "contest_ms": 60000,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "refus",
+      "description": "pays KP : refus, rang 5.",
+      "checks": [
+        "AP-11",
+        "AP-12"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "6000",
+          "pays": "KP"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "blocage pays",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "refus-indetermine",
+      "description": "pays 1 (nombre) : existe VRAI, egal INDETERMINE : refus marqué.",
+      "checks": [
+        "AP-11",
+        "AP-13"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957",
+          "amount": "6000",
+          "pays": 1
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "blocage pays [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "montant-absent",
+      "description": "amount absent : autorisations sans effet, fenêtre et revues INDETERMINE ; revue elevee marquée.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__virement",
+        "tool_original": "virement",
+        "server_alias": "pay",
+        "arguments": {
+          "beneficiary": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "revue elevee [indetermine]",
+        "decision": "a_approuver",
+        "contest_ms": 60000,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "defaut-autre-outil",
+      "description": "pay__inconnu : aucune règle ne le sélectionne.",
+      "checks": [
+        "AP-12"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__inconnu",
+        "tool_original": "inconnu",
+        "server_alias": "pay",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "consultation",
+      "description": "mode lecture : rang 1.",
+      "checks": [
+        "AP-11"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__consultation",
+        "tool_original": "consultation",
+        "server_alias": "pay",
+        "arguments": {
+          "mode": "lecture"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "consultation autorisee",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "consultation-faux",
+      "description": "mode ecriture : FAUX, défaut.",
+      "checks": [
+        "AP-12"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__consultation",
+        "tool_original": "consultation",
+        "server_alias": "pay",
+        "arguments": {
+          "mode": "ecriture"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "consultation-indeterminee",
+      "description": "mode absent : l'autorisation INDETERMINE ne s'applique pas ; la règle par défaut décide.",
+      "checks": [
+        "AP-11",
+        "AP-12"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__consultation",
+        "tool_original": "consultation",
+        "server_alias": "pay",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "fenetre-sans-portee-ouvrante",
+      "description": "same_arguments vide : la portée est (version, règle, demandeur) ; ticket ouvrant.",
+      "checks": [
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "pay__releve",
+        "tool_original": "releve",
+        "server_alias": "pay",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre sans portee",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre sans portee",
+            "tool": "pay__releve",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": []
+          },
+          "duration_ms": 600000,
+          "max_calls": 1
+        },
+        "windows": []
+      }
+    },
+    {
+      "id": "fenetre-sans-portee-couverte",
+      "description": "Fenêtre sans valeurs, une unité : consommée.",
+      "checks": [
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre sans portee",
+            "tool": "pay__releve",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": []
+          },
+          "start": "2026-11-12T09:55:00.000Z",
+          "end": "2026-11-12T10:05:00.000Z",
+          "remaining": 1,
+          "ticket": "apr-0043"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__releve",
+        "tool_original": "releve",
+        "server_alias": "pay",
+        "arguments": {
+          "periode": "2026-10"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre sans portee [fenetre apr-0043 2026-11-12T10:05:00.000Z]",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre sans portee",
+              "tool": "pay__releve",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": []
+            },
+            "start": "2026-11-12T09:55:00.000Z",
+            "end": "2026-11-12T10:05:00.000Z",
+            "remaining": 0,
+            "ticket": "apr-0043"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fenetre-autre-outil",
+      "description": "Règle fenetre à deux outils : la fenêtre ouverte pour pay__releve ne couvre pas pay__releve_detail, autre portée (EX-5.2) ; rang 3, ticket ouvrant.",
+      "checks": [
+        "AP-14"
+      ],
+      "t": "2026-11-12T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre sans portee",
+            "tool": "pay__releve",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": []
+          },
+          "start": "2026-11-12T09:55:00.000Z",
+          "end": "2026-11-12T10:05:00.000Z",
+          "remaining": 1,
+          "ticket": "apr-0043"
+        }
+      ],
+      "request": {
+        "tool_announced": "pay__releve_detail",
+        "tool_original": "releve_detail",
+        "server_alias": "pay",
+        "arguments": {
+          "periode": "2026-10"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "fenetre sans portee",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "fenetre sans portee",
+            "tool": "pay__releve_detail",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": []
+          },
+          "duration_ms": 600000,
+          "max_calls": 1
+        },
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "fenetre sans portee",
+              "tool": "pay__releve",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": []
+            },
+            "start": "2026-11-12T09:55:00.000Z",
+            "end": "2026-11-12T10:05:00.000Z",
+            "remaining": 1,
+            "ticket": "apr-0043"
+          }
+        ]
+      }
+    }
+  ]
+}

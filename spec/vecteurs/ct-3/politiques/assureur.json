@@ -1,0 +1,217 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : revue",
+    "description": "Tout appel qu'aucune règle ne couvre est soumis aux approbateurs.",
+    "level": "revue",
+    "decision": null,
+    "contest_ms": 0
+  },
+  "rules": [
+    {
+      "name": "outil crm.claims.get : lecture autorisee",
+      "description": null,
+      "tools": [
+        "crm.claims.get"
+      ],
+      "when": null,
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "outil documents.search : lecture autorisee",
+      "description": null,
+      "tools": [
+        "documents.search"
+      ],
+      "when": null,
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "outil mail.send : envoi autorise vers l'assure",
+      "description": "Courriel à l'assuré du dossier ; tout autre destinataire relève de la règle par défaut.",
+      "tools": [
+        "mail.send"
+      ],
+      "when": {
+        "path": "/arguments/recipient_role",
+        "op": "egal",
+        "value": "assure"
+      },
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "paiement hors CHF",
+      "description": "Les paiements de sinistre se font en francs suisses.",
+      "tools": [
+        "sap.payments.create"
+      ],
+      "when": {
+        "none": [
+          {
+            "path": "/arguments/currency",
+            "op": "egal",
+            "value": "CHF"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "beneficiaire hors liste blanche",
+      "description": null,
+      "tools": [
+        "sap.payments.create"
+      ],
+      "when": {
+        "none": [
+          {
+            "path": "/arguments/beneficiary_iban",
+            "op": "dans",
+            "value": [
+              "CH9300762011623852957",
+              "CH5604835012345678009"
+            ]
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "paiement <= 1000 CHF",
+      "description": null,
+      "tools": [
+        "sap.payments.create"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/currency",
+            "op": "egal",
+            "value": "CHF"
+          },
+          {
+            "path": "/arguments/amount",
+            "op": "strictement_superieur",
+            "value": "0"
+          },
+          {
+            "path": "/arguments/amount",
+            "op": "inferieur_ou_egal",
+            "value": "1000"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "paiement de 1000 a 5000 CHF",
+      "description": "Une approbation ouvre, pour le même demandeur et le même bénéficiaire, une fenêtre de 8 heures et 20 paiements.",
+      "tools": [
+        "sap.payments.create"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/currency",
+            "op": "egal",
+            "value": "CHF"
+          },
+          {
+            "path": "/arguments/amount",
+            "op": "strictement_superieur",
+            "value": "1000"
+          },
+          {
+            "path": "/arguments/amount",
+            "op": "inferieur_ou_egal",
+            "value": "5000"
+          }
+        ]
+      },
+      "level": "fenetre",
+      "decision": null,
+      "window": {
+        "duration_ms": 28800000,
+        "max_calls": 20,
+        "same_arguments": [
+          "/arguments/beneficiary_iban"
+        ]
+      },
+      "contest_ms": 0
+    },
+    {
+      "name": "paiement > 5000 CHF",
+      "description": "Chaque paiement est approuvé au seuil du jeu d'approbateurs.",
+      "tools": [
+        "sap.payments.create"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/currency",
+            "op": "egal",
+            "value": "CHF"
+          },
+          {
+            "path": "/arguments/amount",
+            "op": "strictement_superieur",
+            "value": "5000"
+          }
+        ]
+      },
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 0
+    },
+    {
+      "name": "suppression de sinistre",
+      "description": "Toute suppression attend 15 minutes après le seuil : un autre approbateur peut s'y opposer.",
+      "tools": [
+        "crm.claims.delete"
+      ],
+      "when": null,
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 900000
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0x172076e0166d1f9cc711c77adf8488051744980c",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

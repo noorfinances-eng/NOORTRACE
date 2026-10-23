@@ -6,6 +6,29 @@ is tagged.
 
 ## Unreleased
 
+- CT-3, approvals, version 0.1: a JSON rule language (`politique-approbation-v0`)
+  selecting a tool and typed predicates on its arguments by JSON Pointer, with
+  exact decimal comparison and no floating point; three levels, automatic,
+  time-boxed window and per-call review, projected on the CT-1 values without
+  any new one; a contest window before an approval is delivered; the ticket
+  lifecycle (`ticket-v0`), escalation, expiry and recognised re-issue; the
+  approver set pinned by the policy, read from the client's CuratorSet when the
+  ticket opens and confirmed again before the decision, with a threshold that
+  cannot drop while waiting; what the approver sees before signing; separation
+  of duties; the approval service interface and the console requirements.
+  Closes open decision 4: the proxy answers at once with an error carrying the
+  ticket (`erreur` mode) by default.
+- CT-3 reference implementation (`scripts/lib/approbation.mjs`), deterministic
+  vectors (`spec/vecteurs/ct-3`, `npm run vecteurs:ct3`) with ten acceptance
+  cases, and a Go verifier written from the specification alone: 4,590 values
+  recomputed, all matching, 81 outside its scope. Continuous integration regenerates the CT-3 vectors
+  and runs that verifier.
+- CT-6 vector generator: it now deletes only the entries it writes and refuses
+  an output directory that holds anything else, or `--sortie` without a value.
+- Text only: `ARCHITECTURE.md` 0.5 (approval levels, pinned approver set,
+  open decision 4 closed; the AI Act asks at least six months for logs,
+  art. 19(1) and 26(6), its art. 18 ten years being for provider
+  documentation); CT-1 §8 points `policy_sha256` to CT-2 EX-8.11.
 - CT-6, the verifier, version 0.1: trust model (the evidence folder is
   declarative, only the reviewer's trust anchors are trusted), the eight checks
   with numbered verifications (T- for RFC 3161, O- for OpenTimestamps, R- for the

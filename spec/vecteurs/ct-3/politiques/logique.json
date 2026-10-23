@@ -1,0 +1,199 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : autorisation",
+    "description": "Politique de test : ce qu'aucune règle ne refuse est autorisé.",
+    "level": "automatique",
+    "decision": "autorise",
+    "contest_ms": null
+  },
+  "rules": [
+    {
+      "name": "toutes",
+      "description": null,
+      "tools": [
+        "log__tout"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/a",
+            "op": "egal",
+            "value": "1"
+          },
+          {
+            "path": "/arguments/b",
+            "op": "egal",
+            "value": "1"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "l'une",
+      "description": null,
+      "tools": [
+        "log__un"
+      ],
+      "when": {
+        "any": [
+          {
+            "path": "/arguments/a",
+            "op": "egal",
+            "value": "1"
+          },
+          {
+            "path": "/arguments/b",
+            "op": "egal",
+            "value": "1"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "l'une, ordre inverse",
+      "description": null,
+      "tools": [
+        "log__un_inverse"
+      ],
+      "when": {
+        "any": [
+          {
+            "path": "/arguments/b",
+            "op": "egal",
+            "value": "1"
+          },
+          {
+            "path": "/arguments/a",
+            "op": "egal",
+            "value": "1"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "aucune",
+      "description": null,
+      "tools": [
+        "log__aucun"
+      ],
+      "when": {
+        "none": [
+          {
+            "path": "/arguments/a",
+            "op": "egal",
+            "value": "1"
+          },
+          {
+            "path": "/arguments/b",
+            "op": "egal",
+            "value": "1"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "imbriquee",
+      "description": null,
+      "tools": [
+        "log__imbrique"
+      ],
+      "when": {
+        "none": [
+          {
+            "any": [
+              {
+                "path": "/arguments/a",
+                "op": "egal",
+                "value": "1"
+              },
+              {
+                "path": "/arguments/b",
+                "op": "egal",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "path": "/arguments/c",
+                "op": "egal",
+                "value": "1"
+              },
+              {
+                "path": "/arguments/d",
+                "op": "existe",
+                "value": null
+              }
+            ]
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "garde existe",
+      "description": "Exemple de CT-3 §4.10 : priority absent rend la condition FAUX, pas INDETERMINE.",
+      "tools": [
+        "log__garde"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/priority",
+            "op": "existe",
+            "value": null
+          },
+          {
+            "path": "/arguments/priority",
+            "op": "egal",
+            "value": "haute"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

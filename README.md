@@ -41,7 +41,7 @@ verification proves and what the reviewer must still trust.
 
 ## Status
 
-Early. Three specifications are written, each with test vectors checked by
+Early. Four specifications are written, each with test vectors checked by
 implementations written separately from the reference.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
@@ -50,17 +50,25 @@ implementations written separately from the reference.
   key custody classes, append-only storage, single-writer lease and behaviour under
   failure. The computable parts (full canonical form, redaction, MCP and model
   payloads, stream reassembly, event construction) are implemented and checked.
+- **CT-3, approvals**: a JSON rule language over a tool and its arguments, three
+  levels (automatic, time-boxed window, per-call review), the ticket lifecycle, the
+  approver set pinned by the policy and read from the client's CuratorSet, what an
+  approver sees before signing, and the proxy's behaviour while waiting: an
+  immediate error carrying the ticket by default. Rule evaluation, tickets and
+  decision checks are implemented and checked.
 - **CT-6, the verifier**: the eight checks, the reviewer's trust anchors, verdicts
   and what each one proves and does not prove, human and JSON output, and the
-  reproducible, network-free build of a future Go binary. The RFC 3161, OpenTimestamps and registry checks are
-  implemented in the JavaScript verifier; their vectors are recomputed without
-  discrepancy by OpenSSL, the official OpenTimestamps library and go-ethereum.
+  reproducible, network-free build of a future Go binary. The RFC 3161,
+  OpenTimestamps and registry checks are implemented in the JavaScript verifier;
+  their vectors are recomputed without discrepancy by OpenSSL, the official
+  OpenTimestamps library and go-ethereum.
 
-CT-1 and CT-2 vectors are also recomputed by Go verifiers written from the
+CT-1, CT-2 and CT-3 vectors are also recomputed by Go verifiers written from the
 specification alone, without reading the JavaScript.
 
 The registry contracts and the commit-certificate verifier exist and are tested. The
-recorder and the verifier's Go binary are specified, not built yet.
+recorder, the approval service and console, and the verifier's Go binary are
+specified, not built yet.
 
 ## Layout
 

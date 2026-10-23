@@ -1,0 +1,275 @@
+{
+  "version": 0,
+  "id": "jeu-statique",
+  "description": "approver_set statique (comptes 1 à 3, seuil 2) : aucun jeu_lu ; la réponse nouveau porte le jeu statique ; gel à l'ouverture, confirmation acquise : la remise suit l'entrée en verification au même pas ; source « jeu statique de la politique vecteurs-ct3-1 ».",
+  "checks": [
+    "TK-3",
+    "TK-7",
+    "TK-8"
+  ],
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+  "environment": "developpement",
+  "policy_version": "vecteurs-ct3-1",
+  "expire_after_ms": 3600000,
+  "approver_set": {
+    "source": "statique",
+    "chain_id": null,
+    "registry": null,
+    "set": null,
+    "members": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "threshold": {
+      "required": 2,
+      "size": 3
+    }
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  },
+  "service": {
+    "max_open_tickets": 20,
+    "escalation": [],
+    "set_poll_interval_ms": 10000,
+    "administrators": []
+  },
+  "steps": [
+    {
+      "input": {
+        "kind": "evaluer",
+        "at": "2026-11-12T09:00:00.000Z",
+        "data": {
+          "request": {
+            "tool_announced": "sap.payments.create",
+            "tool_original": "sap.payments.create",
+            "server_alias": "sap",
+            "arguments": {
+              "claim_id": "2026-90417",
+              "amount": "7400.00",
+              "currency": "CHF",
+              "beneficiary_iban": "CH9300762011623852957"
+            },
+            "class": "ecriture",
+            "delegation": {
+              "launched_by": "u.martin@assureur-demo.example",
+              "on_behalf_of": "service-sinistres",
+              "scope": "sinistres:lecture,paiement",
+              "run_id": "run-2026-11-12-0001"
+            },
+            "intent": "Régler le sinistre 2026-90417",
+            "code": {
+              "model": "fournisseur/modele@2026-09",
+              "prompt_version": null,
+              "policy_version": "vecteurs-ct3-1",
+              "recorder": "0.1.0"
+            },
+            "context": []
+          },
+          "evaluation": {
+            "rule": "paiement > 5000 CHF",
+            "decision": "a_approuver",
+            "contest_ms": 0,
+            "opening": null
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "reserve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0001",
+          "ticket_state": "nouveau",
+          "approval": null,
+          "approver_set": {
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "members": [
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+            ],
+            "source": "jeu statique de la politique vecteurs-ct3-1"
+          }
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "ouvrir",
+        "at": "2026-11-12T09:00:00.250Z",
+        "data": {
+          "ticket": "apr-0001",
+          "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+          "request_seq": 5,
+          "request_ts": "2026-11-12T09:00:00.200Z"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0001",
+          "state": "ouvert",
+          "deadline": "2026-11-12T10:00:00.200Z"
+        },
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:05:00.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "decision": "approuve",
+          "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+          "reason": null,
+          "session_identity": "approbateur-1@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "ouvert"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "voter",
+        "at": "2026-11-12T09:06:00.000Z",
+        "data": {
+          "ticket": "apr-0001",
+          "approver": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "decision": "approuve",
+          "signature": "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b",
+          "reason": "Conforme",
+          "session_identity": "approbateur-2@assureur-demo.example"
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "a_remettre"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": null,
+        "remises": [
+          {
+            "remise_id": "apr-0001/1",
+            "ticket": "apr-0001",
+            "approval": {
+              "decision": "approuve",
+              "ticket": "apr-0001",
+              "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "approvers": [
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+              ],
+              "signatures": [
+                "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+                "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+              ],
+              "reason": "Conforme"
+            },
+            "approver_set": {
+              "threshold": {
+                "required": 2,
+                "size": 3
+              },
+              "members": [
+                "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+              ],
+              "source": "jeu statique de la politique vecteurs-ct3-1"
+            }
+          }
+        ],
+        "windows": []
+      }
+    },
+    {
+      "input": {
+        "kind": "acquitter",
+        "at": "2026-11-12T09:06:01.000Z",
+        "data": {
+          "remise_id": "apr-0001/1",
+          "ticket": "apr-0001",
+          "result": "scelle",
+          "reason": null,
+          "seq": 6,
+          "hash": "0x06ad85842b12c027db6f00723d18d5e81d3e89925570c303b52f128de3ebd178",
+          "at": "2026-11-12T09:06:00.900Z",
+          "decision": "approuve",
+          "held": false,
+          "approval": {
+            "decision": "approuve",
+            "ticket": "apr-0001",
+            "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+            "threshold": {
+              "required": 2,
+              "size": 3
+            },
+            "approvers": [
+              "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+              "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+            ],
+            "signatures": [
+              "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+              "0x7774f5f29c5c6ed3e4aa5a7d82f62bfc70a15de8223d219f3e019cf98361971a177f56888290ce028ab25bd00240b5c849036e655ab70c9b8ba3f48cc8cb2c171b"
+            ],
+            "at": "2026-11-12T09:06:00.900Z",
+            "reason": "Conforme"
+          }
+        }
+      },
+      "expected": {
+        "tickets": {
+          "apr-0001": "approuve"
+        },
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "ticket": "apr-0001",
+          "state": "approuve"
+        },
+        "remises": [],
+        "windows": []
+      }
+    }
+  ]
+}

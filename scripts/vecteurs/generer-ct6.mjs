@@ -50,6 +50,9 @@ const DOSSIER_BASE = path.join(REPERTOIRE_CT1, "dossiers", "valide-seq-7");
 
 /** Entrées de premier niveau de ct-6 que ce générateur ne supprime pas : familles (gérées par leur générateur) et confrontation/. */
 const CONSERVEES = new Set(["rfc3161", "ots", "registre", "confrontation"]);
+// Entrées de premier niveau que le générateur écrit lui-même : seules elles sont
+// effacées avant une génération ; une racine qui porte une autre entrée est refusée.
+const ENTREES_GENEREES = ["INDEX.md", "ancres", "dossiers"];
 
 const texteJSON = (v) => JSON.stringify(v, null, 2) + "\n";
 const exiger = (condition, message) => {
@@ -344,7 +347,9 @@ function copierClesSiAbsentes(racine) {
  */
 export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
   fs.mkdirSync(racine, { recursive: true });
-  for (const e of fs.readdirSync(racine)) if (!CONSERVEES.has(e)) fs.rmSync(path.join(racine, e), { recursive: true, force: true });
+  const etrangeres = fs.readdirSync(racine).filter((e) => !CONSERVEES.has(e) && !ENTREES_GENEREES.includes(e)).sort();
+  exiger(etrangeres.length === 0, `${racine} porte des entrées que le générateur n'écrit pas (${etrangeres.slice(0, 3).join(", ")}) : nommer un répertoire vide ou déjà produit par lui`);
+  for (const e of ENTREES_GENEREES) fs.rmSync(path.join(racine, e), { recursive: true, force: true });
   copierClesSiAbsentes(racine);
 
   const rfc = genererRfc3161({ racine, repertoireCT1: REPERTOIRE_CT1 });
@@ -408,6 +413,10 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const i = process.argv.indexOf("--sortie");
+  if (i !== -1 && (!process.argv[i + 1] || process.argv[i + 1].startsWith("--"))) {
+    process.stderr.write("generer-ct6 : --sortie attend un répertoire\n");
+    process.exit(2);
+  }
   const racine = i !== -1 ? path.resolve(process.argv[i + 1]) : REPERTOIRE_CT6;
   const r = genererCt6({ racine });
   process.stdout.write(`ct-6 : ${Object.keys(r.ancres).length} fichiers d'ancres, ${r.dossiers.length} dossiers vérifiés sous ${racine}\n`);

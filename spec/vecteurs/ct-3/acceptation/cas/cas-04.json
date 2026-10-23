@@ -1,0 +1,29 @@
+{
+  "id": "cas-04",
+  "request": {
+    "tool_announced": "sap__payments.create",
+    "tool_original": "payments.create",
+    "server_alias": "sap",
+    "arguments": {
+      "claim_id": "2026-90417",
+      "amount": "2500",
+      "currency": "EUR",
+      "beneficiary_iban": "CH9300762011623852957"
+    },
+    "class": "ecriture",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-2026-11-12-0042"
+    },
+    "intent": null,
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": null,
+      "policy_version": "vecteurs-ct3-1",
+      "recorder": "0.1.0"
+    },
+    "context": []
+  }
+}

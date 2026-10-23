@@ -1,0 +1,81 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : refus",
+    "description": null,
+    "level": "automatique",
+    "decision": "refuse",
+    "contest_ms": null
+  },
+  "rules": [
+    {
+      "name": "lecture crm autorisee",
+      "description": null,
+      "tools": [
+        "crm__claims.get",
+        "crm__claims.search"
+      ],
+      "when": null,
+      "level": "automatique",
+      "decision": "autorise",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "ecritures sap en revue",
+      "description": null,
+      "tools": [
+        "sap__*"
+      ],
+      "when": null,
+      "level": "revue",
+      "decision": null,
+      "window": null,
+      "contest_ms": 0
+    },
+    {
+      "name": "suppressions refusees",
+      "description": "Tout outil, quand l'argument action vaut supprimer.",
+      "tools": [
+        "*"
+      ],
+      "when": {
+        "all": [
+          {
+            "path": "/arguments/action",
+            "op": "existe",
+            "value": null
+          },
+          {
+            "path": "/arguments/action",
+            "op": "egal",
+            "value": "supprimer"
+          }
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

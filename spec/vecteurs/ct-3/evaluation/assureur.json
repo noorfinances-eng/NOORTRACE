@@ -1,0 +1,1182 @@
+{
+  "version": 0,
+  "policy": "politiques/assureur.json",
+  "policy_version": "vecteurs-ct3-1",
+  "cases": [
+    {
+      "id": "lecture-inconditionnelle",
+      "description": "crm.claims.get : règle inconditionnelle, rang 1 (CT-3 §6.7).",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "crm.claims.get",
+        "tool_original": "crm.claims.get",
+        "server_alias": "crm",
+        "arguments": {
+          "claim_id": "2026-77812"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "outil crm.claims.get : lecture autorisee",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-7400",
+      "description": "7400.00 CHF : paiement > 5000 CHF VRAI, rang 4.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "7400.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "beneficiaire-hors-liste",
+      "description": "IBAN hors liste blanche : refus VRAI, rang 5, l'emporte sur la revue.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "7400.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH4431999123000889012"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "beneficiaire hors liste blanche",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-800",
+      "description": "800 CHF : rang 1.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "800",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement <= 1000 CHF",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-2500-sans-fenetre",
+      "description": "2500.00 CHF sans fenêtre : fenetre VRAI, rang 3, ticket ouvrant.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-14"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "2500.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement de 1000 a 5000 CHF",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "paiement de 1000 a 5000 CHF",
+            "tool": "sap.payments.create",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "duration_ms": 28800000,
+          "max_calls": 20
+        },
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-2500-fenetre-ouverte",
+      "description": "2500.00 CHF sous la fenêtre apr-3001 : rang 2, 19 appels restants.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-14"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "paiement de 1000 a 5000 CHF",
+            "tool": "sap.payments.create",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-05T08:00:00.000Z",
+          "end": "2026-11-05T16:00:00.000Z",
+          "remaining": 20,
+          "ticket": "apr-3001"
+        }
+      ],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "2500.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement de 1000 a 5000 CHF [fenetre apr-3001 2026-11-05T16:00:00.000Z]",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-05T08:00:00.000Z",
+            "end": "2026-11-05T16:00:00.000Z",
+            "remaining": 19,
+            "ticket": "apr-3001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paiement-2500-autre-beneficiaire",
+      "description": "Fenêtre ouverte pour un autre bénéficiaire : autre portée, rang 3.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-14"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "paiement de 1000 a 5000 CHF",
+            "tool": "sap.payments.create",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-05T08:00:00.000Z",
+          "end": "2026-11-05T16:00:00.000Z",
+          "remaining": 20,
+          "ticket": "apr-3001"
+        }
+      ],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "2500.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH5604835012345678009"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement de 1000 a 5000 CHF",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "paiement de 1000 a 5000 CHF",
+            "tool": "sap.payments.create",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH5604835012345678009"
+            ]
+          },
+          "duration_ms": 28800000,
+          "max_calls": 20
+        },
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-05T08:00:00.000Z",
+            "end": "2026-11-05T16:00:00.000Z",
+            "remaining": 20,
+            "ticket": "apr-3001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paiement-5000-borne",
+      "description": "5000.00 : ≤ 5000 VRAI, > 5000 FAUX, rang 3.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-8"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "5000.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement de 1000 a 5000 CHF",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "paiement de 1000 a 5000 CHF",
+            "tool": "sap.payments.create",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "duration_ms": 28800000,
+          "max_calls": 20
+        },
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-5000-dix-huit-decimales",
+      "description": "5000.000000000000000001 : > 5000 VRAI, rang 4.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-8"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "5000.000000000000000001",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-nombre-entier",
+      "description": "7400 en nombre JSON entier : numérique, rang 4.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-7"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": 7400,
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-nombre-non-entier",
+      "description": "7400.5 en nombre JSON : non numérique, les trois règles de montant INDETERMINE ; l'autorisation ne s'applique pas ; rang 4.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-7"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": 7400.5,
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement > 5000 CHF [indetermine]",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-hors-grammaire",
+      "description": "\"7,400.00\" : hors grammaire, même cas.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-7"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "7,400.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement > 5000 CHF [indetermine]",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-montant-absent",
+      "description": "amount absent : même cas.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement > 5000 CHF [indetermine]",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-devise-absente",
+      "description": "currency absent : none d'un INDETERMINE, refus INDETERMINE, rang 5.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "7400.00",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement hors CHF [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-devise-minuscules",
+      "description": "currency \"chf\" : la casse compte, egal FAUX, none VRAI.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-9"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "7400.00",
+          "currency": "chf",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "paiement hors CHF",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-iban-absent-fenetre",
+      "description": "2500.00 CHF, beneficiary_iban absent, fenêtre ouverte : liste blanche INDETERMINE, rang 5 ; la fenêtre n'est pas consommée.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-14"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [
+        {
+          "scope": {
+            "policy_version": "vecteurs-ct3-1",
+            "rule": "paiement de 1000 a 5000 CHF",
+            "tool": "sap.payments.create",
+            "launched_by": "u.martin@assureur-demo.example",
+            "values": [
+              "CH9300762011623852957"
+            ]
+          },
+          "start": "2026-11-05T08:00:00.000Z",
+          "end": "2026-11-05T16:00:00.000Z",
+          "remaining": 20,
+          "ticket": "apr-3001"
+        }
+      ],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "2500.00",
+          "currency": "CHF"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "beneficiaire hors liste blanche [indetermine]",
+        "decision": "refuse",
+        "contest_ms": null,
+        "opening": null,
+        "windows": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-05T08:00:00.000Z",
+            "end": "2026-11-05T16:00:00.000Z",
+            "remaining": 20,
+            "ticket": "apr-3001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "paiement-zero",
+      "description": "\"0\" : > 0 FAUX, > 1000 FAUX ; aucune règle ne s'applique.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "0",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "paiement-moins-zero",
+      "description": "\"-0\" vaut zéro : même cas.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-8"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "-0",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "courriel-assure",
+      "description": "mail.send à l'assuré : rang 1.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "mail.send",
+        "tool_original": "mail.send",
+        "server_alias": "mail",
+        "arguments": {
+          "recipient_role": "assure"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "outil mail.send : envoi autorise vers l'assure",
+        "decision": "autorise",
+        "contest_ms": null,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "courriel-garage",
+      "description": "mail.send au garage : FAUX, la règle par défaut décide.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "mail.send",
+        "tool_original": "mail.send",
+        "server_alias": "mail",
+        "arguments": {
+          "recipient_role": "garage"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "courriel-sans-role",
+      "description": "mail.send sans recipient_role : INDETERMINE, l'autorisation ne s'applique pas.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "mail.send",
+        "tool_original": "mail.send",
+        "server_alias": "mail",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "outil-sans-regle",
+      "description": "sap.payments.list : aucune règle ne le sélectionne.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "sap.payments.list",
+        "tool_original": "sap.payments.list",
+        "server_alias": "sap",
+        "arguments": {},
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "outil-casse",
+      "description": "SAP.payments.create : la casse du nom compte, aucune règle.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13",
+        "AP-5"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "SAP.payments.create",
+        "tool_original": "SAP.payments.create",
+        "server_alias": "sap",
+        "arguments": {
+          "claim_id": "2026-77812",
+          "amount": "7400.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "defaut : revue",
+        "decision": "a_approuver",
+        "contest_ms": 0,
+        "opening": null,
+        "windows": []
+      }
+    },
+    {
+      "id": "suppression",
+      "description": "crm.claims.delete : revue inconditionnelle, contest_ms 900 000.",
+      "checks": [
+        "AP-11",
+        "AP-12",
+        "AP-13"
+      ],
+      "t": "2026-11-05T10:00:00.000Z",
+      "windows": [],
+      "request": {
+        "tool_announced": "crm.claims.delete",
+        "tool_original": "crm.claims.delete",
+        "server_alias": "crm",
+        "arguments": {
+          "claim_id": "2026-77812"
+        },
+        "class": "ecriture",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0001"
+        },
+        "intent": null,
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "context": []
+      },
+      "expected": {
+        "rule": "suppression de sinistre",
+        "decision": "a_approuver",
+        "contest_ms": 900000,
+        "opening": null,
+        "windows": []
+      }
+    }
+  ]
+}

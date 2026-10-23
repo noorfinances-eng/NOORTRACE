@@ -1,0 +1,146 @@
+{
+  "version": 0,
+  "default": {
+    "name": "defaut : autorisation",
+    "description": "Politique de test : ce qu'aucune règle ne refuse est autorisé.",
+    "level": "automatique",
+    "decision": "autorise",
+    "contest_ms": null
+  },
+  "rules": [
+    {
+      "name": "devise CHF",
+      "description": null,
+      "tools": [
+        "str__devise"
+      ],
+      "when": {
+        "path": "/arguments/currency",
+        "op": "egal",
+        "value": "CHF"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "accent precompose",
+      "description": null,
+      "tools": [
+        "str__accent"
+      ],
+      "when": {
+        "path": "/arguments/nom",
+        "op": "egal",
+        "value": "é"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "liste blanche",
+      "description": null,
+      "tools": [
+        "str__liste"
+      ],
+      "when": {
+        "path": "/arguments/iban",
+        "op": "dans",
+        "value": [
+          "CH9300762011623852957",
+          "CH5604835012345678009"
+        ]
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "prefixe de compte",
+      "description": null,
+      "tools": [
+        "str__prefixe"
+      ],
+      "when": {
+        "path": "/arguments/compte",
+        "op": "commence_par",
+        "value": "CH93"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "domaine du courriel",
+      "description": null,
+      "tools": [
+        "str__domaine"
+      ],
+      "when": {
+        "path": "/arguments/courriel",
+        "op": "finit_par",
+        "value": "@assureur-demo.example"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "drapeau urgent",
+      "description": null,
+      "tools": [
+        "str__drapeau"
+      ],
+      "when": {
+        "path": "/arguments/urgent",
+        "op": "egal",
+        "value": true
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    },
+    {
+      "name": "symbole hors du plan de base",
+      "description": null,
+      "tools": [
+        "str__symbole"
+      ],
+      "when": {
+        "path": "/arguments/note",
+        "op": "finit_par",
+        "value": "𝄞"
+      },
+      "level": "automatique",
+      "decision": "refuse",
+      "window": null,
+      "contest_ms": null
+    }
+  ],
+  "approver_set": {
+    "source": "registre",
+    "chain_id": 2124,
+    "registry": "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1",
+    "set": "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2",
+    "members": null,
+    "threshold": null
+  },
+  "separation": {
+    "self_approval": "interdite",
+    "identities": [
+      {
+        "launched_by": "u.martin@assureur-demo.example",
+        "addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      }
+    ]
+  }
+}

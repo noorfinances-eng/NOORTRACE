@@ -4024,7 +4024,9 @@ l'identique : clés, horodatages, numéros de série et nonces fixes. Seul
 développement (A.5) ; le générateur la lit et ne la réécrit jamais. Le
 générateur efface et réécrit tout le reste de `spec/vecteurs/ct-6/`, sauf
 `registre/capture/`, les clés `rfc3161/cles/*.cle.pem` (A.3) et
-`confrontation/` (A.8).
+`confrontation/` (A.8). Il n'efface que les entrées qu'il écrit : une racine
+de sortie (`--sortie`) qui porte une autre entrée est refusée, sans rien
+effacer.
 
 **EX-A.2** Données de base : le journal `journal-sinistres` des vecteurs de
 CT-1, ses trois manifestes

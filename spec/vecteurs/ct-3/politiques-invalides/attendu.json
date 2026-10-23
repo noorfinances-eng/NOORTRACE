@@ -1,0 +1,458 @@
+{
+  "version": 0,
+  "cases": [
+    {
+      "file": "schema-version.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-membre-inconnu.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-decision-manquante.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-fenetre-sans-window.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-defaut-fenetre.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-litteral-nombre.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1",
+        "AP-7"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-litteral-exposant.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1",
+        "AP-7"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-joker-interne.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1",
+        "AP-5"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-double-joker.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1",
+        "AP-5"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-pointeur-hors-arguments.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-pointeur-echappement.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1",
+        "AP-6"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-nom-crochet.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1",
+        "AP-13"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-nom-espace-final.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1",
+        "AP-13"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-expression-reguliere.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-statique-avec-chaine.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-erreurs-multiples.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "schema-et-nom-double.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-1",
+        "AP-2"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "nom-double.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-2"
+      ],
+      "errors": [
+        {
+          "code": "nom_double",
+          "pointer": "/rules/2/name"
+        }
+      ]
+    },
+    {
+      "file": "nom-de-la-regle-par-defaut.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-2"
+      ],
+      "errors": [
+        {
+          "code": "nom_double",
+          "pointer": "/rules/1/name"
+        }
+      ]
+    },
+    {
+      "file": "pointeur-trop-long.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-3"
+      ],
+      "errors": [
+        {
+          "code": "pointeur_trop_long",
+          "pointer": "/rules/1/when/path"
+        },
+        {
+          "code": "pointeur_trop_long",
+          "pointer": "/rules/2/window/same_arguments/0"
+        }
+      ]
+    },
+    {
+      "file": "condition-trop-profonde.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-3"
+      ],
+      "errors": [
+        {
+          "code": "condition_trop_profonde",
+          "pointer": "/rules/1/when"
+        }
+      ]
+    },
+    {
+      "file": "trop-de-predicats.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-3"
+      ],
+      "errors": [
+        {
+          "code": "trop_de_predicats",
+          "pointer": "/rules/1/when"
+        }
+      ]
+    },
+    {
+      "file": "substitut-isole.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-4"
+      ],
+      "errors": [
+        {
+          "code": "substitut_isole",
+          "pointer": "/rules/1/description"
+        }
+      ]
+    },
+    {
+      "file": "launched-by-double.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-4"
+      ],
+      "errors": [
+        {
+          "code": "launched_by_double",
+          "pointer": "/separation/identities/2/launched_by"
+        }
+      ]
+    },
+    {
+      "file": "contest-ms-egal-echeance.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-4"
+      ],
+      "errors": [
+        {
+          "code": "contest_ms_trop_long",
+          "pointer": "/rules/1/contest_ms"
+        }
+      ]
+    },
+    {
+      "file": "contest-ms-defaut.json",
+      "environment": "developpement",
+      "expire_after_ms": 600000,
+      "checks": [
+        "AP-4"
+      ],
+      "errors": [
+        {
+          "code": "contest_ms_trop_long",
+          "pointer": "/default/contest_ms"
+        }
+      ]
+    },
+    {
+      "file": "statique-seuil-incoherent.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-4"
+      ],
+      "errors": [
+        {
+          "code": "seuil_statique_incoherent",
+          "pointer": "/approver_set/threshold"
+        }
+      ]
+    },
+    {
+      "file": "statique-en-production.json",
+      "environment": "production",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-4"
+      ],
+      "errors": [
+        {
+          "code": "jeu_statique_en_production",
+          "pointer": "/approver_set/source"
+        }
+      ]
+    },
+    {
+      "file": "erreurs-multiples.json",
+      "environment": "production",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-2",
+        "AP-4"
+      ],
+      "errors": [
+        {
+          "code": "jeu_statique_en_production",
+          "pointer": "/approver_set/source"
+        },
+        {
+          "code": "seuil_statique_incoherent",
+          "pointer": "/approver_set/threshold"
+        },
+        {
+          "code": "contest_ms_trop_long",
+          "pointer": "/rules/2/contest_ms"
+        },
+        {
+          "code": "nom_double",
+          "pointer": "/rules/2/name"
+        },
+        {
+          "code": "launched_by_double",
+          "pointer": "/separation/identities/1/launched_by"
+        }
+      ]
+    },
+    {
+      "file": "ordre-des-pointeurs.json",
+      "environment": "developpement",
+      "expire_after_ms": 3600000,
+      "checks": [
+        "AP-2"
+      ],
+      "errors": [
+        {
+          "code": "nom_double",
+          "pointer": "/rules/10/name"
+        },
+        {
+          "code": "nom_double",
+          "pointer": "/rules/2/name"
+        }
+      ]
+    }
+  ]
+}
