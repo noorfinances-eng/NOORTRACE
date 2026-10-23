@@ -45,7 +45,19 @@ function runScript(args, env) {
   return r;
 }
 
+// Répertoires temporaires des tests, effacés à la fin de la suite.
+const TEMPORAIRES = [];
+function repertoireTemporaire(prefixe) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefixe));
+  TEMPORAIRES.push(dir);
+  return dir;
+}
+
 describe("Déploiement de NOORTRACE", function () {
+  after(function () {
+    for (const dir of TEMPORAIRES.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  });
+
   it("deployNoortrace lie PeriodRegistry et RecorderRegistry au CuratorSetRegistry administré par le déployeur", async function () {
     const { ethers } = await network.create();
     const [deployeur] = await ethers.getSigners();
@@ -92,7 +104,7 @@ describe("Déploiement de NOORTRACE", function () {
 
   it("le script deploy-noortrace.mjs écrit deployments/<réseau>.json avec adresses et numéros de bloc", async function () {
     this.timeout(180_000);
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-deploy-"));
+    const dir = repertoireTemporaire("noortrace-deploy-");
     const r = runScript([path.join(PROJECT_ROOT, "scripts", "deploy", "deploy-noortrace.mjs"), "--network", "hardhat"], { NOORTRACE_DEPLOYMENTS_DIR: dir });
     const deployment = readDeployment("hardhat", dir);
     expect(deployment, r.stdout).to.not.equal(null);
@@ -106,7 +118,7 @@ describe("Déploiement de NOORTRACE", function () {
   });
 
   it("writeDeployment refuse d'écraser un fichier existant sans --force, et l'archive avec", async function () {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-write-"));
+    const dir = repertoireTemporaire("noortrace-write-");
     const contrats = (suffixe) => Object.fromEntries(CONTRACT_NAMES.map((n, i) => [n, { adresse: `0x${String(i + 1).padStart(39, "0")}${suffixe}`, bloc: 1, tx: "0x" + "0".repeat(64) }]));
     const v1 = { reseau: "recette", chainId: "2124", deployeur: "0x" + "1".repeat(40), horodatage: "2026-10-21T10:43:54.486Z", bloc: 1, contrats: contrats("a") };
     const v2 = { ...v1, horodatage: "2026-10-21T11:00:00.000Z", contrats: contrats("b") };
@@ -133,7 +145,7 @@ describe("Déploiement de NOORTRACE", function () {
   it("ensureDeployment refuse un fichier d'une autre chaîne et l'absence de compte sur un réseau distant", async function () {
     const { ethers } = await network.create();
     const { deployment } = await deployNoortrace(ethers, { networkName: "recette" });
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-ensure-"));
+    const dir = repertoireTemporaire("noortrace-ensure-");
     // Un fichier copié d'une autre chaîne (chainId 2124) alors que la connexion est sur 31337.
     writeDeployment({ ...deployment, chainId: "2124" }, dir);
     const connDistante = { ethers, networkName: "recette", networkConfig: { type: "http" } };
@@ -208,7 +220,7 @@ describe("Déploiement de NOORTRACE", function () {
   it("le script bootstrap-org.mjs écrit deployments/<réseau>-orgs.json", async function () {
     this.timeout(180_000);
     const { ethers } = await network.create();
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-orgs-"));
+    const dir = repertoireTemporaire("noortrace-orgs-");
     const approbateurs = [ethers.Wallet.createRandom().address, ethers.Wallet.createRandom().address, ethers.Wallet.createRandom().address];
     runScript(
       [path.join(PROJECT_ROOT, "scripts", "deploy", "bootstrap-org.mjs"), "--org", "assureur-du-lac", "--approvers", approbateurs.join(","), "--threshold", "2", "--network", "hardhat"],

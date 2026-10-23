@@ -14,7 +14,8 @@
     "verify:certificat": "node scripts/verify/certificat-commit.mjs",
     "verify:dossier": "node scripts/verify/dossier.mjs",
     "vecteurs:ct1": "node scripts/vecteurs/generer-ct1.mjs",
-    "vecteurs:ct2": "node scripts/vecteurs/generer-ct2.mjs"
+    "vecteurs:ct2": "node scripts/vecteurs/generer-ct2.mjs",
+    "vecteurs:ct6": "node scripts/vecteurs/generer-ct6.mjs"
   },
   "license": "Apache-2.0",
   "devDependencies": {

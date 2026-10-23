@@ -1,0 +1,70 @@
+{
+  "version": 0,
+  "seq": 6,
+  "ts": "2026-11-05T09:31:47.250Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+  "delegation": {
+    "launched_by": "u.martin@assureur-demo.example",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement,courriel",
+    "run_id": "run-2026-11-05-0007"
+  },
+  "code": {
+    "model": "fournisseur/modele@2026-09",
+    "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+    "policy_version": "2026-11-01",
+    "recorder": "0.1.0"
+  },
+  "intent": null,
+  "policy": {
+    "rule": null,
+    "decision": "sans_objet",
+    "ticket": "apr-2201",
+    "redaction": null
+  },
+  "approval": {
+    "decision": "refuse",
+    "ticket": "apr-2201",
+    "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "approvers": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    ],
+    "signatures": [
+      "0x80a151e641cffdf8b8643d3b1687b1bf1ccafd853a400b52fd7a91820905d4b34b7d8103e496ffe97365c77910323b617817dfac248953c4fe29961cda6b2f6b1b",
+      "0x552828ad07d4649a0ef8e6a78b0e4331504c44abafa41c60ec8057402cec607f620023fe649fd02cf0f6ff6d23b7f19d9b6e2e4808f90cc7b99e520234daaf5e1c"
+    ],
+    "at": "2026-11-05T09:31:47.250Z",
+    "reason": "Refus : bénéficiaire non vérifié"
+  },
+  "execution": {
+    "tool": "noortrace.approbation.decision",
+    "arguments": {
+      "sha256": "0x64ed583fc2f217df49f503e189429fd77d28f8b4f4960e1d94c2721ac4ce1ab1",
+      "length": 285,
+      "redacted": false,
+      "value": {
+        "decision": "refuse",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+        "ticket": "apr-2201"
+      }
+    },
+    "status": "executee",
+    "result": null,
+    "duration_ms": null,
+    "is_error": null
+  },
+  "effects": [],
+  "context": [],
+  "hash": "0x9a195fa25fdbdd8c4be43289667118b42876e345de5cdf1b6c0b4f9d8e7e5e75",
+  "sig": "0x57ae771c2621662b1b3a41cc6042f8091b20cc8dc322478e0f228319b923f95b986237250272da352f72484c0229085fb1c07aa37bb8edd22bd7c6c45e00de02"
+}

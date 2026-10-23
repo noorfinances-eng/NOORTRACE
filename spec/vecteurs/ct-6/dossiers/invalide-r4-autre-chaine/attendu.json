@@ -1,0 +1,39 @@
+{
+  "valid": false,
+  "target": "R-4",
+  "failed_checks": [
+    "R-4"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "echoue"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-autre-chaine.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : R-4 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): R-4; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "le dossier complet, vérifié avec ancres-autre-chaine.json : chain_id noortrace-9999-test dans l'ancre."
+}

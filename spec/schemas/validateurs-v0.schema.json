@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/validateurs.schema.json",
+  "title": "Partie validateurs.json d'un dossier de preuve, version 0 (CT-6 §11.2.3)",
+  "description": "Le ou les jeux de validateurs que l'exportateur déclare pour les blocs du dossier, dans la forme du fichier validators.json de noorcore, avec leur intervalle de hauteurs et leur provenance. Partie déclarative : le quorum du contrôle 8 se calcule sur le jeu du fichier d'ancres du réviseur ; cette partie ne sert qu'à la cohérence (R-3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "version", "sets" ],
+  "properties": {
+    "version": { "const": 0 },
+    "sets": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/jeu_validateurs" } }
+  },
+  "$defs": {
+    "validateur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "id", "pubKeyHex" ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "pubKeyHex": { "type": "string", "pattern": "^0x([0-9a-f]{66}|[0-9a-f]{128}|[0-9a-f]{130})$" }
+      }
+    },
+    "jeu_validateurs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "from_height", "to_height", "validators", "source" ],
+      "properties": {
+        "from_height": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "to_height": { "oneOf": [ { "type": "null" }, { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } ] },
+        "validators": { "type": "array", "minItems": 1, "maxItems": 128, "items": { "$ref": "#/$defs/validateur" } },
+        "source": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "valid": true,
+  "target": null,
+  "failed_checks": [],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "non_execute",
+    "5": "non_execute",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "non_execute"
+  },
+  "not_executed": [],
+  "warnings": [],
+  "anchors": null,
+  "bitcoin_headers": null,
+  "exit_code": 0,
+  "statement": {
+    "fr": "L'événement seq 6 (hachage 0x9a195fa25fdbdd8c4be43289667118b42876e345de5cdf1b6c0b4f9d8e7e5e75) du journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 de l'organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab est bien formé, chaîné à ses voisins seq 5 et 7 et inclus dans la période du 2026-11-05T09:00:00Z au 2026-11-05T10:00:00Z close par le manifeste 0xc708fd91c73b97fc9f2b4f1205fcdaf4e3eb4ff7c2792a2fc22524beb1567488 ; l'événement est signé, comme le manifeste, par la clé d'enregistreur rec-test-01, clé déclarée par le dossier ; l'événement porte un refus signé par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier) ; ce dossier ne prouve rien sur sa date (contrôles 4 et 5) ni sur son inscription au registre (contrôle 8).",
+    "en": "Event seq 6 (hash 0x9a195fa25fdbdd8c4be43289667118b42876e345de5cdf1b6c0b4f9d8e7e5e75) of journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 of organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab is well-formed, chained to its neighbours seq 5 and 7 and included in the period from 2026-11-05T09:00:00Z to 2026-11-05T10:00:00Z closed by manifest 0xc708fd91c73b97fc9f2b4f1205fcdaf4e3eb4ff7c2792a2fc22524beb1567488; the event is signed, like the manifest, by recorder key rec-test-01, declared by the dossier; the event carries a refusal signed by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, threshold 2 of 3 of the set declared by the dossier); this dossier proves nothing about its date (controls 4 and 5) or its registration in the registry (control 8)."
+  },
+  "bound": {
+    "fr": "verdict borné : contrôle 4 non exécuté (hors_perimetre_version), contrôle 5 non exécuté (hors_perimetre_version), contrôle 8 non exécuté (hors_perimetre_version)",
+    "en": "bounded verdict: control 4 not run (hors_perimetre_version), control 5 not run (hors_perimetre_version), control 8 not run (hors_perimetre_version)"
+  },
+  "description": "Dossier de la décision (seq 6) d'une variante du journal de CT-1 produite par scripts/vecteurs/ct6/decisions.mjs : décision du ticket apr-2201 refusée (decision = refuse), signée par les comptes Hardhat 1 et 2 ; l'énoncé dit « porte un refus signé par » (EX-6.8, F3). Les cinq parties réservées sont absentes (hors périmètre CT-1) ; vérifié sans ancres."
+}

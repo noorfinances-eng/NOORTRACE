@@ -1,0 +1,59 @@
+{
+  "valid": false,
+  "target": "P-1",
+  "failed_checks": [
+    "P-1",
+    "P-5"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "echoue",
+    "4": "non_execute",
+    "5": "non_execute",
+    "6": "echoue",
+    "7": "reussi",
+    "8": "non_execute"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-2",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-2",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-9",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-10",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : P-1, P-5 ; vérification(s) non exécutée(s) sans raison admise : T-2, O-2, R-9, R-10 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): P-1, P-5; check(s) not run without an admitted reason: T-2, O-2, R-9, R-10; the verifier asserts nothing about this event."
+  },
+  "bound": {
+    "fr": "verdict borné : contrôle 4 non exécuté (prerequis_en_echec), contrôle 5 non exécuté (prerequis_en_echec), contrôle 8 non exécuté (prerequis_en_echec)",
+    "en": "bounded verdict: control 4 not run (prerequis_en_echec), control 5 not run (prerequis_en_echec), control 8 not run (prerequis_en_echec)"
+  },
+  "description": "manifeste.json porte un membre « extra » de plus (dossier.json réindexé) : P-1 échoue, et P-5 aussi, la forme canonique du manifeste modifié n'étant plus celle que manifeste.sig signe ; periodHash n'est pas recalculé pour les ancres ; T-2, O-2, R-9 et R-10 sont non exécutées (prerequis_en_echec), toutes les autres vérifications T-, O- et R- s'exécutent (EX-5.4) ; le contrôle 5 n'est pas réussi sans O-2 (EX-10.12)."
+}

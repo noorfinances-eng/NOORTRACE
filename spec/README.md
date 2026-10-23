@@ -17,7 +17,7 @@ les décisions ouvertes qu'elle nomme.
 | CT-3 | Approbations | à écrire | décision 4 |
 | CT-4 | Registre | à écrire | — |
 | CT-5 | Ancrage | à écrire | — |
-| CT-6 | Vérificateur | à écrire | — |
+| CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.1, en revue pour la porte 1 | — |
 | CT-7 | Sécurité et conformité | à écrire | — |
 | CT-8 | Déploiement et exploitation | à écrire | — |
 | CT-9 | Plan de tests | à écrire | — |
@@ -37,6 +37,11 @@ servent aux références croisées entre schémas ; ils ne sont pas résolus en 
 | [`dossier-v0.schema.json`](schemas/dossier-v0.schema.json) | L'index `dossier.json` d'un dossier de preuve (CT-1 §11), et dans ses `$defs` les fichiers compagnons `voisins`, `chemin`, `manifeste_sig`, `cles`, `approbations` | — |
 | [`politique-redaction-v0.schema.json`](schemas/politique-redaction-v0.schema.json) | Une politique de rédaction avant hachage (CT-2 §10) ; l'exemple complet `pii-v1` est imprimé en CT-2 §10.9 | `policy.redaction` du schéma de configuration |
 | [`configuration-enregistreur-v0.schema.json`](schemas/configuration-enregistreur-v0.schema.json) | Le document unique de configuration de l'enregistreur (CT-2 §15), dont l'ensemble de politique `policy` ; l'exemple complet est imprimé en CT-2 §15.3 | — |
+| [`rapport-verification-v0.schema.json`](schemas/rapport-verification-v0.schema.json) | La sortie JSON du vérificateur (`--json`) : rapport (codes 0, 1, 3) ou rapport d'erreur (code 2) (CT-6 §8.6) | — |
+| [`ancres-confiance-v0.schema.json`](schemas/ancres-confiance-v0.schema.json) | Le fichier d'ancres de confiance écrit par le réviseur (CT-6 §12) ; l'exemple complet est imprimé en CT-6 §12.3 | — |
+| [`entetes-bitcoin-v0.schema.json`](schemas/entetes-bitcoin-v0.schema.json) | La chaîne d'en-têtes Bitcoin fournie à part (`--entetes-bitcoin`, CT-6 §10.3) | — |
+| [`registre-v0.schema.json`](schemas/registre-v0.schema.json) | La partie `registre.json` du dossier (CT-6 §11.2.1), et dans ses `$defs` la partie `certificat-commit.json` (`certificat_commit`, §11.2.2) | — |
+| [`validateurs-v0.schema.json`](schemas/validateurs-v0.schema.json) | La partie `validateurs.json` du dossier (CT-6 §11.2.3) | — |
 
 Validation d'un fichier avec ajv (les trois schémas doivent être chargés
 ensemble à cause des références croisées) :
@@ -56,6 +61,24 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --all-errors \
   -s spec/schemas/configuration-enregistreur-v0.schema.json \
   -r spec/schemas/politique-redaction-v0.schema.json \
   -d ma-configuration.json
+```
+
+Les cinq schémas de CT-6 n'ont aucune référence croisée et se compilent en
+mode strict. Le réviseur valide son fichier d'ancres ainsi :
+
+```bash
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s spec/schemas/ancres-confiance-v0.schema.json -d mes-ancres.json
+```
+
+`certificat-commit.json` se valide par un schéma enveloppe qui désigne
+`$defs/certificat_commit` du schéma de registre :
+
+```bash
+echo '{"$schema":"https://json-schema.org/draft/2020-12/schema","$ref":"https://noortrace.example/schemas/v0/registre.schema.json#/$defs/certificat_commit"}' > certificat-commit.schema.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s certificat-commit.schema.json -r spec/schemas/registre-v0.schema.json \
+  -d certificat-commit.json
 ```
 
 Pour un fichier compagnon, le schéma est un `$defs` du schéma de dossier
@@ -110,3 +133,25 @@ changent pas.
 | `ct-2/pieces-modele/` | API Messages d'Anthropic (hors flux, flux SSE), OpenAI Chat Completions (hors flux, flux), OpenAI Responses (flux) → forme consolidée → pièce ; réponse non JSON, requête non analysable refusée, prompt laissé en place ; `code.model`, `intent`, `prompt_version` attendus | égalité |
 | `ct-2/evenements/journal-demo/` | La courte exécution de la démonstration de référence (politique, échanges de modèle, lecture, écriture approuvée), chaînée avec les clés de test de CT-1, avec son segment, son journal d'intention, son ensemble de politique, ses entrées brutes (`entrees.json` : échanges, appels, liste servie, connexion d'hôte) et le dossier CT-1 de l'appel d'écriture (`dossier-seq-7/`) | chaîne valide par les outils de CT-1, égalité ; dossier valide (`node scripts/verify/dossier.mjs`, code 0) |
 | `ct-2/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de celui de `ct-1`, qui recalcule et confronte toutes ces valeurs | zéro discordance (`go run . ..`) |
+
+### CT-6 (`vecteurs/ct-6/`)
+
+Disposition, générateur et confrontation fixés par l'annexe A de
+[CT-6](CT-6-verificateur.md) (EX-A.1 à EX-A.12) : `scripts/vecteurs/generer-ct6.mjs`
+(`npm run vecteurs:ct6`) rejoue tout à l'identique ; ses entrées, lues et
+jamais réécrites, sont la capture du registre (`registre/capture/`, réseau de
+développement, avec sa procédure de recapture, EX-A.8), les clés RSA de test
+(`rfc3161/cles/*.cle.pem`) et `confrontation/`. Les vecteurs de CT-1 et de CT-2
+ne changent pas. Chaque cas et son attendu sont décrits dans
+[`vecteurs/ct-6/INDEX.md`](vecteurs/ct-6/INDEX.md) ; `test/verificateur.test.js`
+rejoue chaque dossier par `scripts/verify/dossier.mjs` et valide chaque rapport
+JSON contre `rapport-verification-v0`.
+
+| Répertoire | Contenu (CT-6, annexe A) | Résultat attendu |
+|---|---|---|
+| `ct-6/ancres/` | Fichiers d'ancres de test, `ancres-test.json` et ses variantes (A.6) | entrées des dossiers |
+| `ct-6/rfc3161/` | AC et TSA de test à clés RSA fixes et publiques, pour les tests seulement ; jetons sur le `periodHash` des trois manifestes de CT-1, `genTime` et numéros de série fixes ; une variante invalide par vérification T- ; CRL de test (A.3) | statuts de T-1 à T-11 ; `openssl ts -verify` |
+| `ct-6/ots/` | Chaîne d'en-têtes Bitcoin synthétique `regtest`, preuve de travail réelle à la cible minimale ; preuves `.ots` au format officiel sur `periodHash` ; une variante invalide par vérification O- (A.4) | statuts de O-1 à O-7 ; `python-opentimestamps` |
+| `ct-6/registre/` | Capture unique du réseau de développement (entrée) ; parties `registre.json`, `certificat-commit.json` et `validateurs.json` dérivées pour les périodes 1 et 2 (A.5) | hachages de blocs, racines des reçus, journaux décodés ; go-ethereum et noorcore |
+| `ct-6/dossiers/` | `valide-seq-7-complet` (le dossier CT-1 `valide-seq-7` complété des cinq parties réservées) et ses variantes, et deux dossiers de décision refusée et expirée, chacun avec son `attendu.json` (A.7) | verdict, liste exacte des vérifications en échec, statuts des huit contrôles, avertissements dans l'ordre de EX-6.15, énoncé et borne |
+| `ct-6/confrontation/` | Programmes et sorties des implémentations tierces : OpenSSL (`rfc3161/`), python-opentimestamps (`ots/`), go-ethereum et noorcore (`registre/`) (A.8) | concordance avec les `attendu.json` ; `test/confrontation.test.js` relie les sorties publiées aux vecteurs |

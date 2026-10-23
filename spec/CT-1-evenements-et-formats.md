@@ -982,11 +982,11 @@ quand `approval` de l'événement prouvé vaut `null`.
 | `manifeste.sig` | `#/$defs/manifeste_sig` | Signature du manifeste (section 10.2). JSON malgré son extension. |
 | `cles.json` | `#/$defs/cles` | `{ "version": 0, "org_id", "journal_id", "keys": [ { "key_id", "algorithm": "ed25519", "public_key", "valid_from", "valid_to", "source" } ] }`. Toutes les clés nommées par les événements et le manifeste du dossier y figurent. `org_id` et `journal_id` sont ceux de l'événement prouvé ; `key_id` et `public_key` sont uniques dans `keys` (deux entrées de même identifiant, ou deux identifiants pour une même clé publique, rendent le fichier inexploitable : E-8) ; `valid_to`, s'il n'est pas `null`, est ≥ `valid_from`. `valid_from` et `valid_to` (nullable) sont la période de validité **telle qu'annoncée** : `source` nomme d'où l'exportateur la tient (registre CT-4, événement de rotation, onboarding, vecteurs), et le vérificateur ne peut pas la prouver par lui-même sans `registre.json` ; pour une clé introduite par une rotation du journal, elle est fixée par la section 8, règle 3. |
 | `approbations.json` | `#/$defs/approbations` | `{ "version": 0, "ticket", "request_hash", "approver_set": { "threshold": { "required", "size" }, "members": [adresses], "source" }, "events": [événements de décision complets] }`. Le jeu déclaré et sa source ; les événements `noortrace.approbation.decision` du ticket. `source` est un texte libre (1 à 256 caractères) qui dit d'où vient le jeu (`CuratorSet` lu à telle hauteur, vecteurs) ; il entre dans le SHA-256 du fichier, d'où l'exemple complet ci-dessous. |
-| `jeton-rfc3161.der` | CT-5 | Jeton d'horodatage qualifié sur SHA-256 de la racine. |
-| `preuve.ots` | CT-5 | Preuve OpenTimestamps de la racine. |
-| `registre.json` | CT-4 | Reçu de `submitPeriod` et de `anchor`, valeurs lues (`getPeriod`, `lookup`, `recorderByPubKey`). |
-| `certificat-commit.json` | CT-4 | Certificat de commit du bloc (`noor_getCommitCertificate`), vérifié par `scripts/verify/certificat-commit.mjs`. |
-| `validateurs.json` | CT-4 | Jeu de validateurs du bloc. |
+| `jeton-rfc3161.der` | CT-6 §9 | Jeton d'horodatage qualifié sur `periodHash` (section 10.2), produit par CT-5. |
+| `preuve.ots` | CT-6 §10 | Preuve OpenTimestamps de `periodHash`, produite par CT-5. |
+| `registre.json` | `registre-v0.schema.json` (CT-6 §11.2.1) | Entrées des transactions prouvées (inscription de clé, `anchor`, `submitPeriod`) : en-tête et tous les reçus de leur bloc, index du reçu et du journal prouvés ; aucune valeur d'état. Produit par CT-4. |
+| `certificat-commit.json` | `registre-v0.schema.json#/$defs/certificat_commit` (CT-6 §11.2.2) | Un certificat de commit (`noor_getCommitCertificate`) par bloc nommé dans `registre.json`. Produit par CT-4. |
+| `validateurs.json` | `validateurs-v0.schema.json` (CT-6 §11.2.3) | Jeux de validateurs déclarés, avec leurs hauteurs de validité. Produit par CT-4. |
 
 Exemple de `cles.json` du dossier de référence :
 
@@ -1120,11 +1120,11 @@ complète ; son SHA-256 est celui que `dossier.json` de la section 11.1 déclare
 | 1 | Hachage canonique de l'événement et égalité avec `hash` | `evenement.json` | **CT-1** |
 | 2 | Continuité de la chaîne avec les voisins fournis | `voisins.json` | **CT-1** |
 | 3 | Recalcul du chemin de Merkle jusqu'à la racine | `chemin.json`, `manifeste.json` | **CT-1** |
-| 4 | Signature du jeton RFC 3161 et égalité avec SHA-256 de la racine | `jeton-rfc3161.der`, chaîne de certificats | CT-5 |
-| 5 | Preuve OpenTimestamps contre les en-têtes Bitcoin | `preuve.ots`, en-têtes | CT-5 |
+| 4 | Signature du jeton RFC 3161 et égalité avec `periodHash` (section 10.2) | `jeton-rfc3161.der`, chaîne de certificats | CT-6 (jeton produit par CT-5) |
+| 5 | Preuve OpenTimestamps contre les en-têtes Bitcoin | `preuve.ots`, en-têtes | CT-6 (preuve produite par CT-5) |
 | 6 | Signature Ed25519 de l'enregistreur sur l'événement | `evenement.json`, `cles.json` | **CT-1** |
 | 7 | Signatures des approbateurs et respect du seuil | `approbations.json` | **CT-1** |
-| 8 | Inclusion de la transaction du registre dans un bloc certifié par un quorum | `registre.json`, `certificat-commit.json`, `validateurs.json` | CT-4 |
+| 8 | Inclusion de la transaction du registre dans un bloc certifié par un quorum | `registre.json`, `certificat-commit.json`, `validateurs.json` | CT-6 (parties produites par CT-4) |
 
 Tant que 4, 5 et 8 ne sont pas exécutables, le verdict du vérificateur est
 borné : « cet événement est bien formé, chaîné à ses voisins, inclus dans la
@@ -1145,7 +1145,9 @@ avec raison est « non exécuté », jamais « passé ».
 
 Une partie déclarée présente dont le fichier n'est pas un objet JSON (texte qui
 n'est pas du JSON, littéral `null`, tableau, nombre) ou qui ne respecte pas son
-schéma met en échec le contrôle qui porte la partie : `dossier.json` → D-1,
+schéma met en échec le contrôle qui porte la partie : `dossier.json` → D-1
+(sauf un `dossier.json` absent ou qui n'est pas du JSON : l'entrée est alors
+inutilisable, code 2, sans verdict, CT-6 EX-4.12),
 `evenement.json` → E-1, l'enveloppe de `voisins.json` → C-1 (ses événements →
 E-1), `chemin.json` → M-2, `manifeste.json` → P-1, `manifeste.sig` → P-5,
 `cles.json` → E-8, `approbations.json` → A-1 ; un fichier sans forme canonique
@@ -1186,8 +1188,9 @@ dans son rapport (pas de `seq` ni de `hash` lus dans l'index à la place de
 | A-3 | Approbateurs distincts, tous membres de `approver_set.members`, en nombre ≥ `threshold.required` ; `threshold` de l'événement = `approver_set.threshold` ; `required ≤ size = longueur de members`. Pour `decision = "refuse"`, mêmes règles ; pour `expire`, aucune signature. | 7 |
 | A-4 | `request_hash` : si l'événement de demande est dans le dossier (voisin), son `hash` recalculé = `request_hash` et son `execution.status = "retenue"` ; sinon, non vérifiable, signalé. | 7 |
 
-Les contrôles des parties réservées (4, 5, 8) sont spécifiés par CT-5 et CT-4,
-qui reprendront la numérotation (`T-`, `O-`, `R-`).
+Les contrôles des parties réservées (4, 5, 8) sont spécifiés par CT-6
+(vérifications `T-`, `O-`, `R-` et `N-`) ; CT-5 et CT-4 produisent les
+parties.
 
 ### 11.5 Vecteurs de dossiers publiés
 
@@ -1397,12 +1400,10 @@ taille bornée, puisque les pièces sont des références.
 
 **Décision 5 — version 0 du format d'export.** Close : le format v0 est celui
 de ce document, figé par ses trois schémas et ses vecteurs ; `version: 0` dans
-l'événement, le manifeste et le dossier. Les entretiens avec des réviseurs
-prévus par l'architecture ont lieu à la porte 1 sur ce document, et non avant
-sa rédaction : un réviseur se prononce sur un format écrit, avec des vecteurs,
-pas sur un principe. Une modification issue de ces entretiens produit une
-version 1 avec ses propres préfixes de domaine (`…/v1`) ; un vérificateur v1
-continue d'accepter v0. Ce qui est délibérément laissé à v1 : les formats
+l'événement, le manifeste et le dossier. Une modification ultérieure du
+format, issue de la revue de la porte 1 ou du prototype, produit une version 1
+avec ses propres préfixes de domaine (`…/v1`) ; un vérificateur v1 continue
+d'accepter v0. Ce qui est délibérément laissé à v1 : les formats
 d'export (section 12), l'enveloppe COSE, les hachages de bord dans le manifeste.
 
 ## 15. Ce que cette version ne couvre pas

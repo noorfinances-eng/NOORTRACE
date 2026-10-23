@@ -1,0 +1,668 @@
+Confrontation des vecteurs CT-6 rfc3161/ par OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
+
+== 1. Clés, certificats et CRL de test (EX-A.4, EX-A.5)
+  cles/ac-test.cle.pem SHA-256 du PKCS #8 DER (openssl pkcs8 -topk8) : vecteur 0x846bf8381fa673f28f26629421a8733cd342799de4c8d1c59396d98738ad6972 ; openssl 0x846bf8381fa673f28f26629421a8733cd342799de4c8d1c59396d98738ad6972 : concorde
+  cles/ac-test.cle.pem taille de clé RSA : vecteur 3072 ; openssl 3072 : concorde
+  cles/tsa-test.cle.pem SHA-256 du PKCS #8 DER (openssl pkcs8 -topk8) : vecteur 0x0333491f9adf0a25a7216499ede896b7e0d0b39ade81321eb69b12f17d13f10c ; openssl 0x0333491f9adf0a25a7216499ede896b7e0d0b39ade81321eb69b12f17d13f10c : concorde
+  cles/tsa-test.cle.pem taille de clé RSA : vecteur 3072 ; openssl 3072 : concorde
+  cles/ac-test.pem SHA-256 du DER (openssl x509) : vecteur 0x56ae2b379606d0aee499f5d790f35cc9a41ee6dbc63e511f5f2c5ac73399b568 ; openssl 0x56ae2b379606d0aee499f5d790f35cc9a41ee6dbc63e511f5f2c5ac73399b568 : concorde
+  cles/tsa-test.pem SHA-256 du DER (openssl x509) : vecteur 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ; openssl 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 : concorde
+  cles/tsa-expiree.pem SHA-256 du DER (openssl x509) : vecteur 0xe1d773f9b29af5614c521969b98ffdcb3a484ec98e2f2ff843f001c637d89d3a ; openssl 0xe1d773f9b29af5614c521969b98ffdcb3a484ec98e2f2ff843f001c637d89d3a : concorde
+  cles/tsa-eku-non-critique.pem SHA-256 du DER (openssl x509) : vecteur 0xe91135578a497e9f25f34c961e1b860e844f9a15bdf657e08e255c820699d002 ; openssl 0xe91135578a497e9f25f34c961e1b860e844f9a15bdf657e08e255c820699d002 : concorde
+  cles/tsa-critique-faux.pem SHA-256 du DER (openssl x509) : vecteur 0x8bcda2d914e55fe43e07f96102b2ebfee03cba768c55f18dace7f295a3c93332 ; openssl 0x8bcda2d914e55fe43e07f96102b2ebfee03cba768c55f18dace7f295a3c93332 : concorde
+  cles/tsa-critique-faux.pem : valeur DEFAULT encodée relevée par openssl asn1parse (X.690 §11.5) : BOOLEAN :0 après X509v3 Subject Key Identifier
+  cles/tsa-cn-utf8-invalide.pem SHA-256 du DER (openssl asn1parse) : vecteur 0xb3bed2e9b5a52e4a9423dc420194d2c1b0b090bb625fac40e14ed07d3200f597 ; openssl 0xb3bed2e9b5a52e4a9423dc420194d2c1b0b090bb625fac40e14ed07d3200f597 : concorde
+  cles/tsa-cn-utf8-invalide.pem : openssl x509 refuse de lire le certificat : unsupported; invalid utf8string; nested asn1 error; ASN1 lib
+  cles/tsa-sans-cn.pem SHA-256 du DER (openssl x509) : vecteur 0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84 ; openssl 0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84 : concorde
+  cles/ac-test.pem clé publique = celle de cles/ac-test.cle.pem : vecteur True ; openssl True : concorde
+  cles/tsa-test.pem clé publique = celle de cles/tsa-test.cle.pem : vecteur True ; openssl True : concorde
+  cles/tsa-expiree.pem clé publique = celle de cles/tsa-test.cle.pem : vecteur True ; openssl True : concorde
+  cles/tsa-eku-non-critique.pem clé publique = celle de cles/tsa-test.cle.pem : vecteur True ; openssl True : concorde
+  cles/tsa-critique-faux.pem clé publique = celle de cles/tsa-test.cle.pem : vecteur True ; openssl True : concorde
+  cles/tsa-cn-utf8-invalide.pem clé publique = celle de cles/tsa-test.cle.pem : vecteur True ; openssl True : concorde
+  cles/tsa-sans-cn.pem clé publique = celle de cles/tsa-test.cle.pem : vecteur True ; openssl True : concorde
+  openssl verify tsa-test.pem sous ac-test.pem à 2026-11-05T10:00:05Z : vecteur cles/tsa-test.pem: OK ; openssl cles/tsa-test.pem: OK : concorde
+  openssl verify cles/tsa-expiree.pem sous ac-test.pem à 2026-11-05T10:00:05Z : certificate has expired
+  openssl verify cles/tsa-eku-non-critique.pem sous ac-test.pem à 2026-11-05T10:00:05Z : OK
+  openssl verify cles/tsa-critique-faux.pem sous ac-test.pem à 2026-11-05T10:00:05Z : OK
+  openssl verify cles/tsa-cn-utf8-invalide.pem sous ac-test.pem à 2026-11-05T10:00:05Z : unsupported
+  openssl verify cles/tsa-sans-cn.pem sous ac-test.pem à 2026-11-05T10:00:05Z : OK
+  crl/crl-vide.pem SHA-256 (du DER ou du fichier PEM) : vecteur 0xa9e3e3154bb8c01d6df822865a1def8c074a41e3ee7124af473f56bb0be59d01 ; openssl 0xa9e3e3154bb8c01d6df822865a1def8c074a41e3ee7124af473f56bb0be59d01 : concorde
+  crl/crl-vide.pem signature de l'AC (openssl crl -CAfile) : vecteur verify OK ; openssl verify OK : concorde
+  crl/crl-vide.pem thisUpdate : vecteur 2026-11-06T00:00:00Z ; openssl 2026-11-06T00:00:00Z : concorde
+  crl/crl-vide.pem entrées révoquées : vecteur [] ; openssl [] : concorde
+  crl/crl-tsa-revoquee.pem SHA-256 (du DER ou du fichier PEM) : vecteur 0x5fb20e31c1c7b6c3497fc87094df8fdb15bd6883a54833a2ff93e81a4906b080 ; openssl 0x5fb20e31c1c7b6c3497fc87094df8fdb15bd6883a54833a2ff93e81a4906b080 : concorde
+  crl/crl-tsa-revoquee.pem signature de l'AC (openssl crl -CAfile) : vecteur verify OK ; openssl verify OK : concorde
+  crl/crl-tsa-revoquee.pem thisUpdate : vecteur 2026-11-06T00:00:00Z ; openssl 2026-11-06T00:00:00Z : concorde
+  crl/crl-tsa-revoquee.pem entrées révoquées (numéro, date, raison) : vecteur [('02', '2026-11-05T12:00:00Z', 'Key Compromise')] ; openssl [('02', '2026-11-05T12:00:00Z', 'Key Compromise')] : concorde
+
+== 2. Chaque jeton : lecture par openssl et vérification à genTime (EX-A.5)
+-- jetons/periode-1.der (cible : aucune ; altération : aucune)
+  SHA-256 du fichier : vecteur 0xdbfb99a9cd7a6b022614b62957cd4f9e17a168a43efa7dee729503937af58d13 ; openssl 0xdbfb99a9cd7a6b022614b62957cd4f9e17a168a43efa7dee729503937af58d13 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/periode-1.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jetons/periode-2.der (cible : aucune ; altération : aucune)
+  SHA-256 du fichier : vecteur 0x79ae36a3821fdfe4d65bcb2a1781ee8667356a99d0f5e6c384ac92ea0545ec03 ; openssl 0x79ae36a3821fdfe4d65bcb2a1781ee8667356a99d0f5e6c384ac92ea0545ec03 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 ; openssl 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T11:00:05Z ; openssl 2026-11-05T11:00:05Z : concorde
+  serialNumber : vecteur 0x02 ; openssl 0x02 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-2 ») : vecteur 0x0da8d6a4d8aece20 ; openssl 0x0da8d6a4d8aece20 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/periode-2.der -token_in -CAfile cles/ac-test.pem -attime 1793876405 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793876405 -purpose timestampsign : CMS Verification successful
+-- jetons/periode-3.der (cible : aucune ; altération : aucune)
+  SHA-256 du fichier : vecteur 0x79ccf23495b5356dff57577e77d9e8fdf5ecdad48e99bbcdb9bb2163b1ffc6f0 ; openssl 0x79ccf23495b5356dff57577e77d9e8fdf5ecdad48e99bbcdb9bb2163b1ffc6f0 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 ; openssl 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T12:00:05Z ; openssl 2026-11-05T12:00:05Z : concorde
+  serialNumber : vecteur 0x03 ; openssl 0x03 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-3 ») : vecteur 0xb352748582fcec9c ; openssl 0xb352748582fcec9c : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/periode-3.der -token_in -CAfile cles/ac-test.pem -attime 1793880005 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793880005 -purpose timestampsign : CMS Verification successful
+-- jetons/t1-octet-en-trop.der (cible : T-1 ; altération : un octet 00 après le ContentInfo)
+  SHA-256 du fichier : vecteur 0x77a0e9496ccd1e967c868cc5a6232b5ba9cebe4ea97e382fa6914f135fdf7239 ; openssl 0x77a0e9496ccd1e967c868cc5a6232b5ba9cebe4ea97e382fa6914f135fdf7239 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 1, « Error in encoding »
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/t1-octet-en-trop.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK (l'octet qui suit le ContentInfo est ignoré ; openssl asn1parse relève « Error in encoding ») ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jetons/t3-message-digest.der (cible : T-3 ; altération : genTime avancé d'une seconde dans TSTInfo ; signedAttrs re-signés, à l'identique puisque message-digest, empreinte du TSTInfo d'origine, est inchangé)
+  SHA-256 du fichier : vecteur 0x9dba5465d44dda53ead1722a24fcafb4811a814f0a49b2b24e3549df9dd31c89 ; openssl 0x9dba5465d44dda53ead1722a24fcafb4811a814f0a49b2b24e3549df9dd31c89 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:06Z ; openssl 2026-11-05T10:00:06Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/t3-message-digest.der -token_in -CAfile cles/ac-test.pem -attime 1793872806 : Verification: FAILED : digest failure; signature failure
+  résultat présumé par attendu.json (« digest failure ») : vecteur True ; openssl True : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872806 -purpose timestampsign : code 4 : verification failure; content verify error
+-- jetons/t4-ess-autre-certificat.der (cible : T-4 ; altération : certHash de ESSCertIDv2 = SHA-256 de ac-test.pem, re-signé)
+  SHA-256 du fichier : vecteur 0xa2fe0c8f5591523b6b53a046d5ccb061467fd19cfc6b12cb2bef7be6dd4ff044 ; openssl 0xa2fe0c8f5591523b6b53a046d5ccb061467fd19cfc6b12cb2bef7be6dd4ff044 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/t4-ess-autre-certificat.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : ess cert id not found
+  résultat présumé par attendu.json (« ess cert id not found ») : vecteur True ; openssl True : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jetons/t5-sha1.der (cible : T-5 ; altération : digestAlgorithm SHA-1, message-digest SHA-1, signature sha1WithRSAEncryption)
+  SHA-256 du fichier : vecteur 0xfff90cf64db42bc9d6139dfe37ac1aa0e99ac28cc1de8d79c01125a8201e0494 ; openssl 0xfff90cf64db42bc9d6139dfe37ac1aa0e99ac28cc1de8d79c01125a8201e0494 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha1, signatureAlgorithm sha1WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/t5-sha1.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK (OpenSSL n'applique pas la table de EX-9.11) ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jetons/t6-signature.der (cible : T-6 ; altération : dernier octet de la signature inversé (xor ff))
+  SHA-256 du fichier : vecteur 0xa36be096a4faacfe5cdaaf7f2687a013d72221763434aad926ee95debbf20eec ; openssl 0xa36be096a4faacfe5cdaaf7f2687a013d72221763434aad926ee95debbf20eec : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/t6-signature.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : invalid padding; padding check failed; RSA lib; signature failure
+  résultat présumé par attendu.json (« invalid padding / signature failure ») : vecteur True ; openssl True : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 4 : invalid padding; padding check failed; RSA lib; verification failure
+-- jetons/t7-tsa-expiree.der (cible : T-7 ; altération : signé par la même clé, certificates = [tsa-expiree.pem])
+  SHA-256 du fichier : vecteur 0x185b86e2785130a030e72a9cf1c7f03373770e6bce946212e175ec30c5023a7d ; openssl 0x185b86e2785130a030e72a9cf1c7f03373770e6bce946212e175ec30c5023a7d : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0xe1d773f9b29af5614c521969b98ffdcb3a484ec98e2f2ff843f001c637d89d3a
+  openssl ts -verify -digest <period_hash> -in jetons/t7-tsa-expiree.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : certificate verify error (certificate has expired)
+  résultat présumé par attendu.json (« certificate has expired ») : vecteur True ; openssl True : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 4 : certificate verify error (certificate has expired)
+-- jetons/t8-eku-non-critique.der (cible : T-8 ; altération : certificates = [tsa-eku-non-critique.pem])
+  SHA-256 du fichier : vecteur 0xa9bc9d1ed5b566627fa936be88fa199f367f47f9c78fa156205459bfe3643b3a ; openssl 0xa9bc9d1ed5b566627fa936be88fa199f367f47f9c78fa156205459bfe3643b3a : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0xe91135578a497e9f25f34c961e1b860e844f9a15bdf657e08e255c820699d002
+  openssl ts -verify -digest <period_hash> -in jetons/t8-eku-non-critique.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : certificate verify error (unsuitable certificate purpose)
+  résultat présumé par attendu.json (« refus de l'extendedKeyUsage non critique ») : vecteur True ; openssl True : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 4 : certificate verify error (unsuitable certificate purpose)
+-- jetons/t9-extension-critique.der (cible : T-9 ; altération : extension critique d'OID 1.3.6.1.4.1.99999.2 dans TSTInfo, re-signé)
+  SHA-256 du fichier : vecteur 0xa34eb4fc9cdb6b323c29c5d2b531583641e10dcb5c9199f6d09f7d23d3c1914d ; openssl 0xa34eb4fc9cdb6b323c29c5d2b531583641e10dcb5c9199f6d09f7d23d3c1914d : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : 1.3.6.1.4.1.99999.2: critical |     ..
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/t9-extension-critique.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK (extension critique inconnue de TSTInfo non refusée) ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jetons/t1-default-explicite.der (cible : T-1 ; altération : certificates = [tsa-critique-faux.pem] : extension subjectKeyIdentifier avec critical codé explicitement à FALSE (valeur DEFAULT encodée, EX-9.21))
+  SHA-256 du fichier : vecteur 0xd17544c5512de273fe4152d14502760b68f54447d23b88aa551a906dc7b11067 ; openssl 0xd17544c5512de273fe4152d14502760b68f54447d23b88aa551a906dc7b11067 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x8bcda2d914e55fe43e07f96102b2ebfee03cba768c55f18dace7f295a3c93332
+  openssl ts -verify -digest <period_hash> -in jetons/t1-default-explicite.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK (critical FALSE encodé n'est pas refusé ; openssl asn1parse du certificat imprime « BOOLEAN :0 ») ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jetons/t1-cn-utf8-invalide.der (cible : T-1 ; altération : certificates = [tsa-cn-utf8-invalide.pem] (CN en UTF8String d'octets ff fe, UTF-8 invalide), champ tsa absent : certificat illisible (EX-9.4))
+  SHA-256 du fichier : vecteur 0xc5d96c9f3c0e7bc354cd23cfa98ff0e5c026343b264220d3c4d84588489a790a ; openssl 0xc5d96c9f3c0e7bc354cd23cfa98ff0e5c026343b264220d3c4d84588489a790a : concorde
+  openssl ts -reply -token_in -text : code 1
+  openssl ts -text refuse le jeton : invalid utf8string; nested asn1 error ; TSTInfo lu par openssl asn1parse -strparse
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa : absent ; aucun certificat lu par openssl pkcs7 -print_certs
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : code 2 : invalid utf8string; nested asn1 error
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 0, SHA-256 aucun
+  openssl ts -verify -digest <period_hash> -in jetons/t1-cn-utf8-invalide.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : invalid utf8string; nested asn1 error
+  résultat présumé par attendu.json (« invalid utf8string (le jeton n'est pas lu) ») : vecteur True ; openssl True : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 2 : invalid utf8string; nested asn1 error
+-- jetons/periode-1-unite-sans-cn.der (cible : aucune ; altération : certificates = [tsa-sans-cn.pem] (sujet sans commonName), tsa = son sujet : jeton valide, tsu_subject_cn nul, unité nommée par le SHA-256 de son certificat (EX-9.19, EX-9.20))
+  SHA-256 du fichier : vecteur 0x9fbb5ea0074cb8d0d2ff3fea8c53d9df80ae57b4c82b18eca9f44d0f4cfe2551 ; openssl 0x9fbb5ea0074cb8d0d2ff3fea8c53d9df80ae57b4c82b18eca9f44d0f4cfe2551 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-1 ») : vecteur 0x44036595bf6f9515 ; openssl 0x44036595bf6f9515 : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs, unit\xC3\xA9 sans CN ; openssl DirName:/C=CH/O=NOORTRACE vecteurs, unit\xC3\xA9 sans CN : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84
+  openssl ts -verify -digest <period_hash> -in jetons/periode-1-unite-sans-cn.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jeton de la période 2 contre periodHash de la période 1 : message imprint mismatch
+  résultat présumé par attendu.json (« message imprint mismatch ») : vecteur True ; openssl True : concorde
+
+== 3. Vérification par vérification, cas de attendu.json (statut attendu / statut établi par openssl)
+-- jetons/periode-1.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-2.der, ancres ancres/ancres-test.json, periodHash du dossier 0xe867be7f64b77e49…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xe867be7f64b77e49…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x40f4669794daccb0… ; sha256 de eContent (asn1parse -strparse, dgst) 0x40f4669794daccb0… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-3.der, ancres ancres/ancres-test.json, periodHash du dossier 0x5852e3c7f403875b…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0x5852e3c7f403875b…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x80dbdf503fcda5b0… ; sha256 de eContent (asn1parse -strparse, dgst) 0x80dbdf503fcda5b0… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-2.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu echoue                       concorde — messageImprint lu par ts -text (sha256, 0xe867be7f64b77e49…) ; ts -verify -digest <periodHash du dossier> : message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x40f4669794daccb0… ; sha256 de eContent (asn1parse -strparse, dgst) 0x40f4669794daccb0… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1.der, ancres ancres/ancres-tsa-revoquee.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu echoue                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : certificate revoked
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1.der, ancres ancres/ancres-qualification-declaree.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu reussi                       hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1.der, ancres ancres/ancres-unite-epinglee-revoquee.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu echoue                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : certificate revoked
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1.der, ancres ancres/ancres-deux-autorites.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu reussi                       hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1-unite-sans-cn.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x018f7161da23791b… ; sha256 de eContent (asn1parse -strparse, dgst) 0x018f7161da23791b… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x69ada0c156e7ecd5… ; SHA-256 du certificat du jeton 0x69ada0c156e7ecd5… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1.der, ancres absentes, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu non_execute/ancre_absente    sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — sans fichier d'ancres, aucun -CAfile : openssl ne peut établir aucun chemin
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu non_execute/ancre_absente    sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — sans fichier d'ancres, aucune CRL
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-octet-en-trop.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — asn1parse du fichier entier (code 1, Error in encoding) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu non_execute/prerequis_en_echec hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -purpose timestampsign : accepté
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t3-message-digest.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu echoue                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x47ba8216d41a4700… ; cms -verify : content verify error
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify ne se prononce pas sur ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : échec
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t4-ess-autre-certificat.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu echoue                       concorde — certHash ESSCertIDv2 0x56ae2b379606d0ae… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ess cert id not found
+  T-5   attendu non_execute/prerequis_en_echec hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify ne se prononce pas sur ces algorithmes
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -purpose timestampsign : accepté
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : échec
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t5-sha1.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x65a5b1abfc45dcba… ; sha1 de eContent (asn1parse -strparse, dgst) 0x65a5b1abfc45dcba… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu echoue                       hors outil — valeurs lues par openssl : digestAlgorithm sha1, signatureAlgorithm sha1WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t6-signature.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify ne se prononce pas sur ces algorithmes
+  T-6   attendu echoue                       concorde — cms -verify -noverify -no_content_verify : invalid padding; padding check failed; RSA lib; verification failure
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : échec
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t7-tsa-expiree.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0xe1d773f9b29af561… ; SHA-256 du certificat du jeton 0xe1d773f9b29af561… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify ne se prononce pas sur ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu echoue                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : certificate has expired ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : échec
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : ? — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : certificate has expired
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t8-eku-non-critique.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0xe91135578a497e9f… ; SHA-256 du certificat du jeton 0xe91135578a497e9f… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify ne se prononce pas sur ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu echoue                       concorde — openssl verify -purpose timestampsign : unsuitable certificate purpose
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : échec
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t9-extension-critique.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x8afede522805cc2b… ; sha256 de eContent (asn1parse -strparse, dgst) 0x8afede522805cc2b… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu echoue                       concorde — extensions critiques lues par ts -text : ['1.3.6.1.4.1.99999.2'] ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-default-explicite.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : BOOLEAN :0 après X509v3 Subject Key Identifier
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — certHash ESSCertIDv2 0x8bcda2d914e55fe4… ; SHA-256 du certificat du jeton 0x8bcda2d914e55fe4… ; ts -verify : ESS accepté
+  T-5   attendu non_execute/prerequis_en_echec hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -purpose timestampsign : accepté
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/t1-cn-utf8-invalide.der, ancres ancres/ancres-test.json, periodHash du dossier 0xae22426f25529379…
+  T-1   attendu echoue                       concorde — openssl ts -text, cms -print et pkcs7 -print_certs refusent le jeton : invalid utf8string; nested asn1 error
+  T-2   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-3   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-4   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-5   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-6   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-8   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+
+== 4. Faits rapportés (EX-9.19), recalculés par openssl
+-- jetons/periode-1.der, ancres ancres/ancres-test.json
+  tsu_certificate_sha256 : vecteur 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ; openssl 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 : concorde
+  tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN) : vecteur TSA de test CT-6 ; openssl TSA de test CT-6 : concorde
+  gen_time : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  accuracy : vecteur {'seconds': 1, 'millis': None, 'micros': None} ; openssl {'seconds': 1, 'millis': None, 'micros': None} : concorde
+  upper_bound (genTime + accuracy) : vecteur 2026-11-05T10:00:06Z ; openssl 2026-11-05T10:00:06Z : concorde
+  policy : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  serial_number : vecteur 0x01 ; openssl 0x01 : concorde
+  digest_algorithm : vecteur sha256 ; openssl sha256 : concorde
+  signature_algorithm : vecteur sha256WithRSAEncryption ; openssl sha256WithRSAEncryption : concorde
+  key_bits : vecteur 3072 ; openssl 3072 : concorde
+  qualified_claim (qcStatements absent des extensions de TSTInfo) : vecteur False ; openssl False : concorde
+  authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur AC de test CT-6 ; openssl AC de test CT-6 : concorde
+  qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur None ; openssl None : concorde
+  revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 1) : vecteur [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] ; openssl [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] : concorde
+-- jetons/periode-2.der, ancres ancres/ancres-test.json
+  tsu_certificate_sha256 : vecteur 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ; openssl 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 : concorde
+  tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN) : vecteur TSA de test CT-6 ; openssl TSA de test CT-6 : concorde
+  gen_time : vecteur 2026-11-05T11:00:05Z ; openssl 2026-11-05T11:00:05Z : concorde
+  accuracy : vecteur {'seconds': 1, 'millis': None, 'micros': None} ; openssl {'seconds': 1, 'millis': None, 'micros': None} : concorde
+  upper_bound (genTime + accuracy) : vecteur 2026-11-05T11:00:06Z ; openssl 2026-11-05T11:00:06Z : concorde
+  policy : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  serial_number : vecteur 0x02 ; openssl 0x02 : concorde
+  digest_algorithm : vecteur sha256 ; openssl sha256 : concorde
+  signature_algorithm : vecteur sha256WithRSAEncryption ; openssl sha256WithRSAEncryption : concorde
+  key_bits : vecteur 3072 ; openssl 3072 : concorde
+  qualified_claim (qcStatements absent des extensions de TSTInfo) : vecteur False ; openssl False : concorde
+  authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur AC de test CT-6 ; openssl AC de test CT-6 : concorde
+  qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur None ; openssl None : concorde
+  revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 1) : vecteur [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] ; openssl [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] : concorde
+-- jetons/periode-3.der, ancres ancres/ancres-test.json
+  tsu_certificate_sha256 : vecteur 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ; openssl 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 : concorde
+  tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN) : vecteur TSA de test CT-6 ; openssl TSA de test CT-6 : concorde
+  gen_time : vecteur 2026-11-05T12:00:05Z ; openssl 2026-11-05T12:00:05Z : concorde
+  accuracy : vecteur {'seconds': 1, 'millis': None, 'micros': None} ; openssl {'seconds': 1, 'millis': None, 'micros': None} : concorde
+  upper_bound (genTime + accuracy) : vecteur 2026-11-05T12:00:06Z ; openssl 2026-11-05T12:00:06Z : concorde
+  policy : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  serial_number : vecteur 0x03 ; openssl 0x03 : concorde
+  digest_algorithm : vecteur sha256 ; openssl sha256 : concorde
+  signature_algorithm : vecteur sha256WithRSAEncryption ; openssl sha256WithRSAEncryption : concorde
+  key_bits : vecteur 3072 ; openssl 3072 : concorde
+  qualified_claim (qcStatements absent des extensions de TSTInfo) : vecteur False ; openssl False : concorde
+  authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur AC de test CT-6 ; openssl AC de test CT-6 : concorde
+  qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur None ; openssl None : concorde
+  revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 1) : vecteur [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] ; openssl [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] : concorde
+-- jetons/periode-1.der, ancres ancres/ancres-qualification-declaree.json
+  tsu_certificate_sha256 : vecteur 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ; openssl 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 : concorde
+  tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN) : vecteur TSA de test CT-6 ; openssl TSA de test CT-6 : concorde
+  gen_time : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  accuracy : vecteur {'seconds': 1, 'millis': None, 'micros': None} ; openssl {'seconds': 1, 'millis': None, 'micros': None} : concorde
+  upper_bound (genTime + accuracy) : vecteur 2026-11-05T10:00:06Z ; openssl 2026-11-05T10:00:06Z : concorde
+  policy : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  serial_number : vecteur 0x01 ; openssl 0x01 : concorde
+  digest_algorithm : vecteur sha256 ; openssl sha256 : concorde
+  signature_algorithm : vecteur sha256WithRSAEncryption ; openssl sha256WithRSAEncryption : concorde
+  key_bits : vecteur 3072 ; openssl 3072 : concorde
+  qualified_claim (qcStatements absent des extensions de TSTInfo) : vecteur False ; openssl False : concorde
+  authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur AC de test CT-6 ; openssl AC de test CT-6 : concorde
+  qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur {'framework': 'eidas', 'source': 'déclaration de test, sans valeur'} ; openssl {'framework': 'eidas', 'source': 'déclaration de test, sans valeur'} : concorde
+  revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 1) : vecteur [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] ; openssl [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] : concorde
+-- jetons/periode-1.der, ancres ancres/ancres-deux-autorites.json
+  tsu_certificate_sha256 : vecteur 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ; openssl 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 : concorde
+  tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN) : vecteur TSA de test CT-6 ; openssl TSA de test CT-6 : concorde
+  gen_time : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  accuracy : vecteur {'seconds': 1, 'millis': None, 'micros': None} ; openssl {'seconds': 1, 'millis': None, 'micros': None} : concorde
+  upper_bound (genTime + accuracy) : vecteur 2026-11-05T10:00:06Z ; openssl 2026-11-05T10:00:06Z : concorde
+  policy : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  serial_number : vecteur 0x01 ; openssl 0x01 : concorde
+  digest_algorithm : vecteur sha256 ; openssl sha256 : concorde
+  signature_algorithm : vecteur sha256WithRSAEncryption ; openssl sha256WithRSAEncryption : concorde
+  key_bits : vecteur 3072 ; openssl 3072 : concorde
+  qualified_claim (qcStatements absent des extensions de TSTInfo) : vecteur False ; openssl False : concorde
+  authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur Unité TSA épinglée de test CT-6 ; openssl Unité TSA épinglée de test CT-6 : concorde
+  qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur {'framework': 'eidas', 'source': 'déclaration de test, sans valeur'} ; openssl {'framework': 'eidas', 'source': 'déclaration de test, sans valeur'} : concorde
+  revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 0) : vecteur [] ; openssl [] : concorde
+-- jetons/periode-1-unite-sans-cn.der, ancres ancres/ancres-test.json
+  tsu_certificate_sha256 : vecteur 0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84 ; openssl 0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84 : concorde
+  tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN) : vecteur None ; openssl None : concorde
+  gen_time : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  accuracy : vecteur {'seconds': 1, 'millis': None, 'micros': None} ; openssl {'seconds': 1, 'millis': None, 'micros': None} : concorde
+  upper_bound (genTime + accuracy) : vecteur 2026-11-05T10:00:06Z ; openssl 2026-11-05T10:00:06Z : concorde
+  policy : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  serial_number : vecteur 0x01 ; openssl 0x01 : concorde
+  digest_algorithm : vecteur sha256 ; openssl sha256 : concorde
+  signature_algorithm : vecteur sha256WithRSAEncryption ; openssl sha256WithRSAEncryption : concorde
+  key_bits : vecteur 3072 ; openssl 3072 : concorde
+  qualified_claim (qcStatements absent des extensions de TSTInfo) : vecteur False ; openssl False : concorde
+  authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur AC de test CT-6 ; openssl AC de test CT-6 : concorde
+  qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur None ; openssl None : concorde
+  revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 1) : vecteur [{'certificate_sha256': '0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] ; openssl [{'certificate_sha256': '0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] : concorde
+
+== 5. Verdict d'openssl ts -verify par jeton, avec ancres-test.json, contre les vérifications en échec de attendu.json
+  jetons/periode-1.der               periodHash du dossier 0xae22426f… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
+  jetons/periode-2.der               periodHash du dossier 0xe867be7f… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
+  jetons/periode-3.der               periodHash du dossier 0x5852e3c7… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
+  jetons/periode-2.der               periodHash du dossier 0xae22426f… ; attendu : T-2          openssl ts -verify : FAILED (message imprint mismatch)                            concorde
+  jetons/periode-1-unite-sans-cn.der periodHash du dossier 0xae22426f… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
+  jetons/t1-octet-en-trop.der        periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : Verification: OK                                             limite de l'outil : openssl ts -verify ne fait pas T-1
+  jetons/t3-message-digest.der       periodHash du dossier 0xae22426f… ; attendu : T-3          openssl ts -verify : FAILED (digest failure; signature failure)                   concorde
+  jetons/t4-ess-autre-certificat.der periodHash du dossier 0xae22426f… ; attendu : T-4          openssl ts -verify : FAILED (ess cert id not found)                               concorde
+  jetons/t5-sha1.der                 periodHash du dossier 0xae22426f… ; attendu : T-5          openssl ts -verify : Verification: OK                                             limite de l'outil : openssl ts -verify ne fait pas T-5
+  jetons/t6-signature.der            periodHash du dossier 0xae22426f… ; attendu : T-6          openssl ts -verify : FAILED (invalid padding; padding check failed; RSA lib; signature failure) concorde
+  jetons/t7-tsa-expiree.der          periodHash du dossier 0xae22426f… ; attendu : T-7          openssl ts -verify : FAILED (certificate verify error (certificate has expired))  concorde
+  jetons/t8-eku-non-critique.der     periodHash du dossier 0xae22426f… ; attendu : T-8          openssl ts -verify : FAILED (certificate verify error (unsuitable certificate purpose)) concorde
+  jetons/t9-extension-critique.der   periodHash du dossier 0xae22426f… ; attendu : T-9          openssl ts -verify : Verification: OK                                             limite de l'outil : openssl ts -verify ne fait pas T-9
+  jetons/t1-default-explicite.der    periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : Verification: OK                                             limite de l'outil : openssl ts -verify ne fait pas T-1
+  jetons/t1-cn-utf8-invalide.der     periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (invalid utf8string; nested asn1 error)               concorde
+
+Bilan des cas : 141 concordances, 0 discordances, 39 hors outil, 40 sans objet
+Discordances au total (sections 1 à 4) : 0
+Verdicts d'openssl ts -verify qui ne disent pas « échec » là où attendu.json en relève un (limites de l'outil, section 5) : 4
+  - jetons/t1-octet-en-trop.der : attendu.json T-1 en échec ; openssl ts -verify : Verification: OK
+  - jetons/t5-sha1.der : attendu.json T-5 en échec ; openssl ts -verify : Verification: OK
+  - jetons/t9-extension-critique.der : attendu.json T-9 en échec ; openssl ts -verify : Verification: OK
+  - jetons/t1-default-explicite.der : attendu.json T-1 en échec ; openssl ts -verify : Verification: OK

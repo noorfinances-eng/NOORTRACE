@@ -2,10 +2,13 @@
 
 La boîte noire des agents IA pour les entreprises régulées suisses et européennes.
 
-Chaque action d'un agent IA est enregistrée hors de portée de l'agent, les actions
-sensibles passent par une approbation humaine tracée, l'ensemble est horodaté par un
-prestataire de confiance qualifié et restitué en dossier de preuve qu'un réviseur,
-un régulateur ou un tribunal peuvent vérifier sans faire confiance au fournisseur.
+Chaque appel d'outil et chaque échange avec le modèle d'un agent IA qui passent
+par l'enregistreur sont consignés hors de portée de l'agent. Les actions
+sensibles passent par une approbation humaine tracée. L'ensemble est horodaté
+par un prestataire de confiance qualifié et restitué en dossier de preuve. Un
+réviseur, un régulateur ou un tribunal peuvent le vérifier eux-mêmes, hors
+ligne. Ce que la vérification prouve, et ce qu'il faut encore croire, est écrit
+dans la spécification du vérificateur (CT-6 §7).
 
 ## Pourquoi
 
@@ -34,7 +37,8 @@ un régulateur ou un tribunal peuvent vérifier sans faire confiance au fourniss
 3. **L'horodatage qualifié par lots**, reconnu ZertES et eIDAS, complété par un
    ancrage public gratuit pour la vérification sans intermédiaire.
 4. **Un dossier de preuve exportable et un vérificateur ouvert**, que le réviseur
-   exécute lui-même, sans accès à nos systèmes et sans nous faire confiance.
+   exécute lui-même, hors ligne, sans accès à nos systèmes ; CT-6 §7 dit ce
+   qu'il prouve et ce qu'il faut encore croire.
 
 ## Ce que NOORTRACE n'est pas
 
@@ -77,8 +81,10 @@ construction.
 - `chain/` : instance de développement dédiée de noorcore, quatre validateurs BFT en
   boucle locale, sans émission ni jeton ; voir [chain/README.md](chain/README.md).
 - `spec/` : spécifications normatives, schémas JSON et vecteurs de test ; CT-1 pour
-  les formats, CT-2 pour l'enregistreur. Chacune est confrontée à un vérificateur Go
-  écrit depuis la seule spécification ; voir [spec/README.md](spec/README.md).
+  les formats, CT-2 pour l'enregistreur, CT-6 pour le vérificateur. Les vecteurs de
+  CT-1 et CT-2 sont recalculés par des vérificateurs Go écrits depuis la seule
+  spécification ; ceux de CT-6 par OpenSSL, la bibliothèque officielle
+  d'OpenTimestamps et go-ethereum ; voir [spec/README.md](spec/README.md).
 - `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
   noorchain-core sans modification ; PeriodRegistry, dérivé de PoSSRegistry de
   noorchain-core, RecorderRegistry, et la bibliothèque ThresholdSignatures, dont la
@@ -87,22 +93,24 @@ construction.
   parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
 - `scripts/lib/` : implémentation de référence de CT-1 et de la partie calculable de
   CT-2.
-- `scripts/verify/` : vérificateur hors ligne des dossiers de preuve, et vérificateur
-  hors ligne des certificats de commit BFT, en parité octet par octet avec noorcore ;
+- `scripts/verify/` : vérificateur hors ligne des dossiers de preuve, avec les huit
+  contrôles de CT-6 et les ancres de confiance du réviseur, et vérificateur hors
+  ligne des certificats de commit BFT, en parité octet par octet avec noorcore ;
   voir [scripts/verify/README.md](scripts/verify/README.md).
 - `chain/docker/` : image conteneur du nœud, validateur ou relais RPC, avec l'étude
   mesurée du mode suiveur ; voir [chain/docker/README.md](chain/docker/README.md).
 
 ## Statut
 
-22 octobre 2026 : conception technique en cours. Écrits : la spécification CT-1 des
-formats et la spécification CT-2 de l'enregistreur, avec leurs vecteurs, leur
-implémentation de référence et leurs vérificateurs Go indépendants ; le vérificateur
-de dossier ; l'instance de développement, les contrats du registre avec leurs tests,
-le parcours complet exécuté sur le réseau de développement ; la méthode RPC du
-certificat de commit, portée comme correctif sur noorcore fourni hors dépôt, et son
-vérificateur hors ligne. À construire : l'enregistreur lui-même, les approbations,
-l'ancrage externe et la console.
+23 octobre 2026 : conception technique en cours. Écrits : les spécifications CT-1
+des formats, CT-2 de l'enregistreur et CT-6 du vérificateur, avec leurs vecteurs,
+leur implémentation de référence et leur confrontation indépendante ; le
+vérificateur de dossier, avec les huit contrôles ; l'instance de développement,
+les contrats du registre avec leurs tests, le parcours complet exécuté sur le
+réseau de développement ; la méthode RPC du certificat de commit, portée comme
+correctif sur noorcore fourni hors dépôt, et son vérificateur hors ligne. À
+construire : l'enregistreur lui-même, les approbations, l'ancrage externe, le
+binaire Go du vérificateur et la console.
 
 ## Licence
 

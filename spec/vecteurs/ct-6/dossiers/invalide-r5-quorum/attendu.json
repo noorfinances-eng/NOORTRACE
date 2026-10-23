@@ -1,0 +1,39 @@
+{
+  "valid": false,
+  "target": "R-5",
+  "failed_checks": [
+    "R-5"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "echoue"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : R-5 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): R-5; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "parties du registre de registre/variantes/invalide-r5-quorum/ : une ligne de precommit retirée du certificat de la clôture, qui portait le quorum exact."
+}

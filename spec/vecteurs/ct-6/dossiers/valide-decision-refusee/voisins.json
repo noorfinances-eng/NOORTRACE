@@ -1,0 +1,137 @@
+{
+  "version": 0,
+  "previous": {
+    "version": 0,
+    "seq": 5,
+    "ts": "2026-11-05T09:12:09.904Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xb7029550addf2b15f8436077d6478d94ba5d5757e56179e8136b0cf91dec19a4",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Régler le sinistre 2026-81044 : 12500.00 CHF au bénéficiaire du contrat",
+    "policy": {
+      "rule": "paiement > 5000 CHF",
+      "decision": "a_approuver",
+      "ticket": "apr-2201",
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "sap.payments.create",
+      "arguments": {
+        "sha256": "0xa7f50f8522f252a345e0f06329d571bd525adba3c8e4b88035f11ce40ee1374c",
+        "length": 97,
+        "redacted": true
+      },
+      "status": "retenue",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [
+      {
+        "sha256": "0xdfaf2094d6f01f9a1e7e77df796e44ee7a672dffca8d6fb947481d3e7b702bfa",
+        "length": 56,
+        "redacted": false,
+        "kind": "document"
+      },
+      {
+        "sha256": "0x791d7559f460761ffffd26e1ce5e93b35ecf09d2028b427500d33325db374d99",
+        "length": 58,
+        "redacted": false,
+        "kind": "document"
+      }
+    ],
+    "hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+    "sig": "0x3321fe0f8dac62dc5d9ee0840a52f38c70ab3db23e3fe5cd002064ee124a465b24fb6b8549a244fff4b23186cead7dd95bc4b6eb849e912a0ca98652f5002d05"
+  },
+  "next": {
+    "version": 0,
+    "seq": 7,
+    "ts": "2026-11-05T09:31:48.006Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0x9a195fa25fdbdd8c4be43289667118b42876e345de5cdf1b6c0b4f9d8e7e5e75",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Régler le sinistre 2026-81044 : 12500.00 CHF au bénéficiaire du contrat",
+    "policy": {
+      "rule": "paiement > 5000 CHF",
+      "decision": "a_approuver",
+      "ticket": "apr-2201",
+      "redaction": "pii-v1"
+    },
+    "approval": {
+      "decision": "refuse",
+      "ticket": "apr-2201",
+      "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "approvers": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      ],
+      "signatures": [
+        "0x80a151e641cffdf8b8643d3b1687b1bf1ccafd853a400b52fd7a91820905d4b34b7d8103e496ffe97365c77910323b617817dfac248953c4fe29961cda6b2f6b1b",
+        "0x552828ad07d4649a0ef8e6a78b0e4331504c44abafa41c60ec8057402cec607f620023fe649fd02cf0f6ff6d23b7f19d9b6e2e4808f90cc7b99e520234daaf5e1c"
+      ],
+      "at": "2026-11-05T09:31:47.250Z",
+      "reason": "Refus : bénéficiaire non vérifié"
+    },
+    "execution": {
+      "tool": "sap.payments.create",
+      "arguments": {
+        "sha256": "0xa7f50f8522f252a345e0f06329d571bd525adba3c8e4b88035f11ce40ee1374c",
+        "length": 97,
+        "redacted": true
+      },
+      "status": "refusee",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [
+      {
+        "sha256": "0xdfaf2094d6f01f9a1e7e77df796e44ee7a672dffca8d6fb947481d3e7b702bfa",
+        "length": 56,
+        "redacted": false,
+        "kind": "document"
+      },
+      {
+        "sha256": "0x791d7559f460761ffffd26e1ce5e93b35ecf09d2028b427500d33325db374d99",
+        "length": 58,
+        "redacted": false,
+        "kind": "document"
+      }
+    ],
+    "hash": "0xd0f8b46110296acaf23d74d9120354bca96b306dfcfb052e59037feb4138e14a",
+    "sig": "0x603c1d1afce843205d602dc52b546462f2559a1135811b4243215ff82ccc11cbf7aeecab6e83c4cf835dabb64363ea92c4ec31cb42f00d7565cac3f77fa2350d"
+  }
+}

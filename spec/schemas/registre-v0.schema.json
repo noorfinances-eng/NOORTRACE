@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/registre.schema.json",
+  "title": "Parties registre.json et certificat-commit.json d'un dossier de preuve, version 0 (CT-6 §11.2)",
+  "description": "Le schéma principal décrit registre.json : une entrée par transaction de registre prouvée (clôture, ancre, inscriptions), chacune avec les champs engagés de l'en-tête de son bloc et tous les reçus du bloc. Le $defs certificat_commit décrit certificat-commit.json : un certificat par bloc, tel que noor_getCommitCertificate le rend. Tout y est déclaratif ; le vérificateur recalcule hachages, racines et condensés (contrôle 8).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "version", "source", "entries" ],
+  "properties": {
+    "version": { "const": 0 },
+    "source": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "entries": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/entree" },
+      "allOf": [
+        { "contains": { "type": "object", "properties": { "role": { "const": "cloture" } } }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "type": "object", "properties": { "role": { "const": "ancre" } } }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "type": "object", "properties": { "role": { "const": "inscription" } } }, "minContains": 0, "maxContains": 8 }
+      ]
+    }
+  },
+  "$defs": {
+    "hex32": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+    "adresse": { "type": "string", "pattern": "^0x[0-9a-f]{40}$" },
+    "quantite64": { "type": "string", "pattern": "^0x(0|[1-9a-f][0-9a-f]{0,15})$", "description": "Entier de 0 à 2^64 − 1 en quantité JSON-RPC : hexadécimal minuscule sans zéro de tête." },
+    "quantite256": { "type": "string", "pattern": "^0x(0|[1-9a-f][0-9a-f]{0,63})$" },
+    "entree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "role", "block", "receipts", "transaction_index", "log_index", "transaction_hash" ],
+      "properties": {
+        "role": { "type": "string", "enum": [ "cloture", "ancre", "inscription" ] },
+        "block": { "$ref": "#/$defs/entete" },
+        "receipts": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/recu" } },
+        "transaction_index": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "log_index": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "transaction_hash": { "$ref": "#/$defs/hex32", "description": "Déclaratif, rapporté, non vérifié en version 0." }
+      }
+    },
+    "entete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "number", "hash", "parentHash", "timestamp", "stateRoot", "transactionsRoot", "receiptsRoot", "gasUsed", "gasLimit", "baseFeePerGas" ],
+      "properties": {
+        "number": { "$ref": "#/$defs/quantite64" },
+        "hash": { "$ref": "#/$defs/hex32" },
+        "parentHash": { "$ref": "#/$defs/hex32" },
+        "timestamp": { "$ref": "#/$defs/quantite64" },
+        "stateRoot": { "$ref": "#/$defs/hex32" },
+        "transactionsRoot": { "$ref": "#/$defs/hex32" },
+        "receiptsRoot": { "$ref": "#/$defs/hex32" },
+        "gasUsed": { "$ref": "#/$defs/quantite64" },
+        "gasLimit": { "$ref": "#/$defs/quantite64" },
+        "baseFeePerGas": { "$ref": "#/$defs/quantite256" }
+      }
+    },
+    "recu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "type", "status", "cumulativeGasUsed", "logs" ],
+      "properties": {
+        "type": { "type": "string", "enum": [ "0x0", "0x1", "0x2", "0x3", "0x4" ] },
+        "status": { "type": "string", "enum": [ "0x0", "0x1" ] },
+        "cumulativeGasUsed": { "$ref": "#/$defs/quantite64" },
+        "logs": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/journal" } }
+      }
+    },
+    "journal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "address", "topics", "data" ],
+      "properties": {
+        "address": { "$ref": "#/$defs/adresse" },
+        "topics": { "type": "array", "maxItems": 4, "items": { "$ref": "#/$defs/hex32" } },
+        "data": { "type": "string", "maxLength": 262146, "pattern": "^0x([0-9a-f]{2})*$" }
+      }
+    },
+    "certificat_commit": {
+      "title": "certificat-commit.json",
+      "description": "Un certificat par hauteur de bloc nommée dans registre.json, chacun étant le champ result de noor_getCommitCertificate. Seuls height, round, chainId, valsetHash, blockHash, proposal.line et precommits[].line sont lus ; les autres champs que le nœud ajoute sont admis et ignorés.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "version", "certificates" ],
+      "properties": {
+        "version": { "const": 0 },
+        "certificates": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/certificat" } }
+      }
+    },
+    "certificat": {
+      "type": "object",
+      "required": [ "height", "round", "chainId", "valsetHash", "blockHash", "proposal", "precommits" ],
+      "properties": {
+        "height": { "$ref": "#/$defs/quantite64" },
+        "round": { "$ref": "#/$defs/quantite64" },
+        "chainId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "valsetHash": { "$ref": "#/$defs/hex32" },
+        "blockHash": { "$ref": "#/$defs/hex32" },
+        "proposal": { "$ref": "#/$defs/ligne" },
+        "precommits": { "type": "array", "minItems": 1, "maxItems": 128, "items": { "$ref": "#/$defs/ligne" } }
+      }
+    },
+    "ligne": {
+      "type": "object",
+      "required": [ "line" ],
+      "properties": {
+        "line": { "type": "string", "minLength": 1, "maxLength": 4194304, "description": "Ligne brute de l'enveloppe signée, telle que stockée par le nœud." }
+      }
+    }
+  }
+}

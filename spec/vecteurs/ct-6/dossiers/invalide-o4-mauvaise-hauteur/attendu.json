@@ -1,0 +1,43 @@
+{
+  "valid": false,
+  "target": "O-4",
+  "failed_checks": [
+    "O-4"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "echoue",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-6",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : O-4 ; vérification(s) non exécutée(s) sans raison admise : O-6 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): O-4; check(s) not run without an admitted reason: O-6; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "preuve.ots = ots/preuves/o4-mauvaise-hauteur.ots : attestation à la hauteur 1002."
+}

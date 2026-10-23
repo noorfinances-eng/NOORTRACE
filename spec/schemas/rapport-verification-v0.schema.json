@@ -1,0 +1,1450 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json",
+  "title": "Rapport de vérification NOORTRACE, version 0 (CT-6 §8.6)",
+  "description": "Sortie JSON du vérificateur (option --json) : soit un rapport de vérification (codes de retour 0, 1 et 3), soit un rapport d'erreur quand l'entrée est inutilisable (code 2). Clés en anglais, valeurs énumérées en français sans accent. Les identifiants de vérification (D-, E-, C-, M-, P-, A- de CT-1 §11.4 ; T-, O-, R-, N- de CT-6) et les numéros de contrôle (1 à 8) sont stables.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/rapport"
+    },
+    {
+      "$ref": "#/$defs/erreur"
+    }
+  ],
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "adresse": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "instant": {
+      "description": "Instant RFC 3339 en UTC, suffixe Z, fraction de seconde seulement si elle est non nulle (CT-6 §6.5).",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]*[1-9])?Z$"
+    },
+    "horodatage_journal": {
+      "description": "Horodatage du journal, CT-1 §3 : trois décimales de seconde.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "entier_sur": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "numero_controle": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8
+    },
+    "id_verification": {
+      "type": "string",
+      "pattern": "^(D|E|C|M|P|A|T|O|R|N)-[1-9][0-9]{0,2}$"
+    },
+    "statut": {
+      "enum": [
+        "reussi",
+        "echoue",
+        "non_execute"
+      ]
+    },
+    "raison_verification": {
+      "enum": [
+        "partie_absente",
+        "ancre_absente",
+        "hors_perimetre_version",
+        "piece_hors_dossier",
+        "prerequis_en_echec"
+      ]
+    },
+    "raison_controle": {
+      "enum": [
+        "partie_absente",
+        "ancre_absente",
+        "hors_perimetre_version",
+        "prerequis_en_echec"
+      ]
+    },
+    "langue": {
+      "enum": [
+        "fr",
+        "en"
+      ]
+    },
+    "fichier_lu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/hex32"
+        }
+      }
+    },
+    "verificateur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "implementation",
+        "version",
+        "runtime",
+        "schemas"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "implementation": {
+          "enum": [
+            "binaire_go",
+            "reference_javascript"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$"
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "schemas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "$ref": "#/$defs/hex32"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entrees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dossier",
+        "anchors",
+        "bitcoin_headers",
+        "second_manifest",
+        "pieces",
+        "required_controls"
+      ],
+      "properties": {
+        "dossier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "index_sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "index_sha256": {
+              "description": "SHA-256 des octets de dossier.json ; null si dossier.json n'a pas pu être lu.",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/hex32"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "anchors": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fichier_lu"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bitcoin_headers": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fichier_lu"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "second_manifest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fichier_lu"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pieces": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "files"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "files": {
+                  "$ref": "#/$defs/entier_sur"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "required_controls": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/numero_controle"
+          }
+        }
+      }
+    },
+    "controle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "number",
+        "status",
+        "reason",
+        "checks",
+        "anchors_used",
+        "summary"
+      ],
+      "properties": {
+        "number": {
+          "$ref": "#/$defs/numero_controle"
+        },
+        "status": {
+          "$ref": "#/$defs/statut"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/raison_controle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks": {
+          "description": "Identifiants des vérifications rattachées au contrôle et présentes dans checks, dans l'ordre du rapport.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id_verification"
+          }
+        },
+        "anchors_used": {
+          "description": "Pointeurs JSON (RFC 6901) vers les ancres du fichier d'ancres sur lesquelles le contrôle a reposé, par exemple /tsa_authorities/0, /bitcoin, /registry/validator_sets/0, /recorders/1 ; vide si aucune.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(/[^/]+)+$"
+          }
+        },
+        "summary": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "enum": [
+                "reussi",
+                "echoue"
+              ]
+            },
+            "reason": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "const": "non_execute"
+            },
+            "reason": {
+              "$ref": "#/$defs/raison_controle"
+            }
+          }
+        }
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "controls",
+        "status",
+        "reason",
+        "admitted",
+        "detail"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id_verification"
+        },
+        "controls": {
+          "description": "Contrôles de l'architecture servis (CT-1 §11.4 pour D- à A- ; 4, 5 et 8 pour T-, O-, R- ; CT-6 §12 pour N-). Vide pour D-1 et D-2.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/numero_controle"
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/statut"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/raison_verification"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "admitted": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "detail": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "enum": [
+                "reussi",
+                "echoue"
+              ]
+            },
+            "reason": {
+              "type": "null"
+            },
+            "admitted": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "const": "non_execute"
+            },
+            "reason": {
+              "$ref": "#/$defs/raison_verification"
+            },
+            "admitted": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "partie_absente": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "file",
+        "reason"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "evenement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seq",
+        "hash",
+        "ts",
+        "tool"
+      ],
+      "properties": {
+        "seq": {
+          "$ref": "#/$defs/entier_sur"
+        },
+        "hash": {
+          "$ref": "#/$defs/hex32"
+        },
+        "ts": {
+          "$ref": "#/$defs/horodatage_journal"
+        },
+        "tool": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "periode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "period_start",
+        "period_end",
+        "period_hash"
+      ],
+      "properties": {
+        "period_start": {
+          "$ref": "#/$defs/entier_sur"
+        },
+        "period_end": {
+          "$ref": "#/$defs/entier_sur"
+        },
+        "period_hash": {
+          "$ref": "#/$defs/hex32"
+        }
+      }
+    },
+    "faits": {
+      "description": "Valeurs établies par des contrôles réussis, et seulement elles : une clé vaut null quand son contrôle n'a pas réussi (CT-6 EX-6.13). Les champs de timestamp, bitcoin et registry sont ceux que les sections 9.7, 10.7 et 11.6 exigent (EX-9.19, EX-10.14, EX-11.21).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recorder_keys",
+        "approval",
+        "timestamp",
+        "bitcoin",
+        "registry"
+      ],
+      "properties": {
+        "recorder_keys": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_key_id",
+                "manifest_key_id",
+                "source",
+                "event_key_source",
+                "manifest_key_source"
+              ],
+              "properties": {
+                "event_key_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "manifest_key_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source": {
+                  "enum": [
+                    "dossier",
+                    "ancres",
+                    "registre",
+                    "mixte"
+                  ]
+                },
+                "event_key_source": {
+                  "enum": [
+                    "dossier",
+                    "ancres",
+                    "registre"
+                  ]
+                },
+                "manifest_key_source": {
+                  "enum": [
+                    "dossier",
+                    "ancres",
+                    "registre"
+                  ]
+                }
+              },
+              "description": "Clés employées (EX-6.8) : celle de l'événement prouvé et celle du manifeste. source : provenance commune des deux clés, ou mixte quand elles diffèrent ; event_key_source et manifest_key_source : provenance de chaque clé (EX-3.6)."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approval": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "decision",
+                "ticket",
+                "approvers",
+                "required",
+                "size",
+                "set_source"
+              ],
+              "properties": {
+                "decision": {
+                  "enum": [
+                    "approuve",
+                    "refuse",
+                    "expire"
+                  ]
+                },
+                "ticket": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "approvers": {
+                  "type": "array",
+                  "minItems": 0,
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/adresse"
+                  }
+                },
+                "required": {
+                  "$ref": "#/$defs/entier_sur"
+                },
+                "size": {
+                  "$ref": "#/$defs/entier_sur"
+                },
+                "set_source": {
+                  "const": "dossier"
+                }
+              },
+              "description": "Décision liée à l'événement (EX-6.8, F3) : approbation, refus signés par approvers, ou demande expirée sans signature (approvers vide)."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timestamp": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "authority",
+                "tsu_certificate_sha256",
+                "tsu_subject_cn",
+                "gen_time",
+                "accuracy",
+                "upper_bound",
+                "policy",
+                "serial_number",
+                "digest_algorithm",
+                "signature_algorithm",
+                "key_bits",
+                "qualified_claim",
+                "qualified",
+                "revocation"
+              ],
+              "properties": {
+                "authority": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tsu_certificate_sha256": {
+                  "$ref": "#/$defs/hex32"
+                },
+                "tsu_subject_cn": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "gen_time": {
+                  "$ref": "#/$defs/instant"
+                },
+                "accuracy": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "seconds",
+                        "millis",
+                        "micros"
+                      ],
+                      "properties": {
+                        "seconds": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/$defs/entier_sur"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "millis": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 999
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "micros": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 999
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "upper_bound": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/instant"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "policy": {
+                  "type": "string",
+                  "pattern": "^[0-2](\\.[0-9]+)+$"
+                },
+                "serial_number": {
+                  "type": "string",
+                  "pattern": "^0x[0-9a-f]+$"
+                },
+                "digest_algorithm": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "signature_algorithm": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "key_bits": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "qualified_claim": {
+                  "type": "boolean"
+                },
+                "qualified": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "framework",
+                        "source"
+                      ],
+                      "properties": {
+                        "framework": {
+                          "enum": [
+                            "eidas",
+                            "zertes"
+                          ]
+                        },
+                        "source": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "revocation": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "certificate_sha256",
+                      "evidence",
+                      "issued_at"
+                    ],
+                    "properties": {
+                      "certificate_sha256": {
+                        "$ref": "#/$defs/hex32"
+                      },
+                      "evidence": {
+                        "enum": [
+                          "crl",
+                          "declaration"
+                        ]
+                      },
+                      "issued_at": {
+                        "$ref": "#/$defs/instant"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bitcoin": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "file_digest",
+                "network",
+                "checkpoint",
+                "attestations",
+                "retained_height",
+                "block_hash",
+                "block_time",
+                "median_bound",
+                "confirmations",
+                "cumulative_work"
+              ],
+              "properties": {
+                "file_digest": {
+                  "$ref": "#/$defs/hex32"
+                },
+                "network": {
+                  "enum": [
+                    "mainnet",
+                    "regtest"
+                  ]
+                },
+                "checkpoint": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "height",
+                    "hash"
+                  ],
+                  "properties": {
+                    "height": {
+                      "$ref": "#/$defs/entier_sur"
+                    },
+                    "hash": {
+                      "$ref": "#/$defs/hex32"
+                    }
+                  }
+                },
+                "attestations": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "height",
+                      "uri",
+                      "tag",
+                      "status"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "bitcoin",
+                          "en_attente",
+                          "inconnue"
+                        ]
+                      },
+                      "height": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/$defs/entier_sur"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "uri": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "minLength": 0,
+                            "maxLength": 1000,
+                            "description": "URI d'une attestation en attente, de 0 à 1000 octets (CT-6 §10.2, EX-10.2)."
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "tag": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^0x[0-9a-f]{16}$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "status": {
+                        "$ref": "#/$defs/statut"
+                      }
+                    }
+                  }
+                },
+                "retained_height": {
+                  "$ref": "#/$defs/entier_sur"
+                },
+                "block_hash": {
+                  "description": "Ordre d'affichage usuel (octets inversés par rapport à l'en-tête sérialisé).",
+                  "$ref": "#/$defs/hex32"
+                },
+                "block_time": {
+                  "$ref": "#/$defs/instant"
+                },
+                "median_bound": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/instant"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "confirmations": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "cumulative_work": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "registry": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chain_id",
+                "entries",
+                "certificates"
+              ],
+              "properties": {
+                "chain_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "entries": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "role",
+                      "block_number",
+                      "block_hash",
+                      "block_time",
+                      "transaction_index",
+                      "transaction_hash_declared",
+                      "emitter",
+                      "event"
+                    ],
+                    "properties": {
+                      "role": {
+                        "enum": [
+                          "cloture",
+                          "ancre",
+                          "inscription"
+                        ]
+                      },
+                      "block_number": {
+                        "$ref": "#/$defs/entier_sur"
+                      },
+                      "block_hash": {
+                        "$ref": "#/$defs/hex32"
+                      },
+                      "block_time": {
+                        "$ref": "#/$defs/instant"
+                      },
+                      "transaction_index": {
+                        "$ref": "#/$defs/entier_sur"
+                      },
+                      "transaction_hash_declared": {
+                        "$ref": "#/$defs/hex32"
+                      },
+                      "emitter": {
+                        "$ref": "#/$defs/adresse"
+                      },
+                      "event": {
+                        "description": "Valeurs décodées du journal prouvé (CT-6 section 11).",
+                        "type": "object"
+                      }
+                    }
+                  }
+                },
+                "certificates": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "height",
+                      "valset_hash",
+                      "set_source",
+                      "set_size",
+                      "quorum",
+                      "signers"
+                    ],
+                    "properties": {
+                      "height": {
+                        "$ref": "#/$defs/entier_sur"
+                      },
+                      "valset_hash": {
+                        "$ref": "#/$defs/hex32"
+                      },
+                      "set_source": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "set_size": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "quorum": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "signers": {
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "enonce": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fr",
+        "en"
+      ],
+      "properties": {
+        "fr": {
+          "type": "string",
+          "minLength": 1
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "rapport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "version",
+        "verifier",
+        "language",
+        "inputs",
+        "event",
+        "org_id",
+        "journal_id",
+        "period",
+        "controls",
+        "checks",
+        "failed_checks",
+        "blocking_unexecuted",
+        "absent_parts",
+        "warnings",
+        "facts",
+        "verdict",
+        "exit_code",
+        "statement",
+        "bound"
+      ],
+      "properties": {
+        "format": {
+          "const": "noortrace/rapport-verification"
+        },
+        "version": {
+          "const": 0
+        },
+        "verifier": {
+          "$ref": "#/$defs/verificateur"
+        },
+        "language": {
+          "$ref": "#/$defs/langue"
+        },
+        "inputs": {
+          "$ref": "#/$defs/entrees"
+        },
+        "event": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/evenement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "org_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/hex32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "journal_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/hex32"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "period": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/periode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "controls": {
+          "type": "array",
+          "minItems": 8,
+          "items": false,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/controle",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "const": 1
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/controle",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "const": 2
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/controle",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "const": 3
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/controle",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "const": 4
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/controle",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "const": 5
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/controle",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "const": 6
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/controle",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "const": 7
+                }
+              }
+            },
+            {
+              "$ref": "#/$defs/controle",
+              "type": "object",
+              "properties": {
+                "number": {
+                  "const": 8
+                }
+              }
+            }
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/verification"
+          }
+        },
+        "failed_checks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id_verification"
+          }
+        },
+        "blocking_unexecuted": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id_verification"
+          }
+        },
+        "absent_parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/partie_absente"
+          }
+        },
+        "warnings": {
+          "description": "Avertissements des sections 9 à 11 (AV-T-, AV-O-, AV-R-) : jamais un échec, sans effet sur aucun statut.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/avertissement"
+          }
+        },
+        "facts": {
+          "$ref": "#/$defs/faits"
+        },
+        "verdict": {
+          "enum": [
+            "valide",
+            "invalide",
+            "incomplet"
+          ]
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1,
+            3
+          ]
+        },
+        "statement": {
+          "$ref": "#/$defs/enonce"
+        },
+        "bound": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "verdict": {
+              "const": "valide"
+            },
+            "exit_code": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "verdict": {
+              "const": "invalide"
+            },
+            "exit_code": {
+              "const": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "verdict": {
+              "const": "incomplet"
+            },
+            "exit_code": {
+              "const": 3
+            }
+          }
+        }
+      ]
+    },
+    "erreur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "version",
+        "verifier",
+        "language",
+        "inputs",
+        "verdict",
+        "exit_code",
+        "error"
+      ],
+      "properties": {
+        "format": {
+          "const": "noortrace/rapport-verification"
+        },
+        "version": {
+          "const": 0
+        },
+        "verifier": {
+          "$ref": "#/$defs/verificateur"
+        },
+        "language": {
+          "$ref": "#/$defs/langue"
+        },
+        "inputs": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/entrees"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verdict": {
+          "type": "null"
+        },
+        "exit_code": {
+          "const": 2
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "message",
+            "check"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "usage",
+                "dossier_illisible",
+                "schemas_illisibles",
+                "ancres_inutilisables",
+                "entree_illisible",
+                "taille_depassee",
+                "erreur_interne"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1
+            },
+            "check": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/id_verification"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "avertissement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "check",
+        "detail"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^AV-[TORN]-[1-9][0-9]{0,2}$"
+        },
+        "check": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/id_verification"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

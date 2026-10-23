@@ -1,51 +1,71 @@
 #!/usr/bin/env node
-// Vérificateur en ligne de commande d'un dossier de preuve NOORTRACE v0
-// (spec/CT-1-evenements-et-formats.md §11). Il exécute les contrôles 1, 2, 3, 6
-// et 7 de l'architecture, soit les contrôles D-1 à A-4 de CT-1 §11.4, hors
-// ligne : l'événement est bien formé, haché et signé comme annoncé, chaîné à
-// ses voisins, inclus dans la racine du manifeste de sa période, lequel est
-// signé par la clé annoncée, et approuvé par les adresses déclarées au seuil
-// déclaré. La logique est dans scripts/lib/journal.mjs ; ce fichier porte la
-// ligne de commande et le rapport.
+// Vérificateur hors ligne d'un dossier de preuve NOORTRACE v0 : implémentation
+// de référence JavaScript de spec/CT-6-verificateur.md (section 8), qui
+// exécute les huit contrôles de l'architecture.
 //
-//   node scripts/verify/dossier.mjs <répertoire> [--schemas <répertoire>] [--json]
-//   npm run verify:dossier -- spec/vecteurs/ct-1/dossiers/valide-seq-7
+//   contrôles 1, 2, 3, 6, 7 : vérifications D-1 à A-4 de CT-1 §11.4
+//                             (scripts/lib/journal.mjs) ;
+//   contrôle 4              : jeton RFC 3161 sur periodHash, T-1 à T-11
+//                             (scripts/lib/horodatage.mjs) ;
+//   contrôle 5              : preuve OpenTimestamps et en-têtes Bitcoin, O-1 à
+//                             O-7 (scripts/lib/ots.mjs) ;
+//   contrôle 8              : registre et certificats de commit, R-1 à R-10
+//                             (scripts/lib/registre.mjs) ;
+//   N-1 à N-4               : fichier d'ancres du réviseur, fichier d'en-têtes,
+//                             clés d'enregistreur et clé de chaîne.
 //
-// Options :
-//   <répertoire>          le dossier : contient dossier.json et les parties présentes
-//   --schemas <dir>       répertoire des schémas JSON (défaut : spec/schemas du projet)
-//   --json                rapport en JSON au lieu du rapport lisible
+// La logique est dans scripts/lib/verificateur.mjs ; ce fichier porte la ligne
+// de commande : lecture bornée des entrées (EX-4.13), options, sorties lisible
+// et JSON, codes de retour. Aucun accès réseau, aucune lecture de l'horloge du
+// système pour décider d'un statut, aucun magasin de certificats.
 //
-// Codes de retour : 0 dossier valide (tous les contrôles exécutés passent et
-// aucun contrôle n'est non exécuté sans raison admise, CT-1 §11.4) ; 1 dossier
-// invalide (au moins un contrôle en échec, ou non exécuté sans raison admise :
-// partie inexploitable) ; 2 entrée inutilisable
-// (répertoire ou schémas illisibles, dossier.json absent ou qui n'est pas du
-// JSON). Le code 1 est une affirmation sur le dossier ; le code 2 n'en est pas une.
+//   node scripts/verify/dossier.mjs <répertoire> [--ancres <fichier>] [--entetes-bitcoin <fichier>]
+//        [--pieces <répertoire>] [--second-manifeste <fichier>] [--exiger <contrôles>]
+//        [--langue fr|en] [--json] [--detail] [--schemas <répertoire>]
+//   node scripts/verify/dossier.mjs --version | --aide
 //
-// Les parties réservées à CT-4 et CT-5 (jeton RFC 3161, preuve OpenTimestamps,
-// reçu du registre, certificat de commit, validateurs) ne sont pas vérifiées
-// ici : quand elles sont absentes, le rapport énonce la borne du verdict (rien
-// sur la date, rien sur l'ancre). Ne dépend pas de Hardhat : node et ethers suffisent.
+// Codes de retour (section 8.3) : 0 valide ; 1 invalide ; 2 entrée inutilisable
+// (usage, dossier, schémas, fichier d'ancres ou entrée à part illisibles, limite
+// dépassée, erreur interne) ; 3 incomplet (un contrôle exigé par --exiger n'a
+// pas réussi). Les codes 0, 1 et 2 gardent le sens de la version CT-1.
 
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DossierInutilisable, controlesEnEchec, registreSchemas, verifierDossier } from "../lib/journal.mjs";
+import * as J from "../lib/journal.mjs";
+import * as V from "../lib/verificateur.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const CODE_VALIDE = 0;
-const CODE_INVALIDE = 1;
-const CODE_INUTILISABLE = 2;
-const FICHIERS_SCHEMAS = ["evenement-v0.schema.json", "manifeste-v0.schema.json", "dossier-v0.schema.json"];
+const OPTIONS_A_VALEUR = new Set(["ancres", "entetes-bitcoin", "pieces", "second-manifeste", "exiger", "langue", "schemas"]);
+const DRAPEAUX = new Set(["json", "detail", "version", "aide", "help"]);
+const T = (fr, en = fr) => ({ fr, en });
+const sha256Hex = (octets) => "0x" + crypto.createHash("sha256").update(octets).digest("hex");
 
-class EntreeInutilisable extends Error {}
+const usage = (fr, en) => new V.EntreeInutilisable("usage", T(fr, en));
 
-/** Analyse argv : un argument positionnel (le répertoire), --schemas <dir>, --json, --aide. */
+/** Langue annoncée sur la ligne de commande, pour les messages d'usage eux-mêmes. */
+function langueAnnoncee(argv) {
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--langue=en" || (argv[i] === "--langue" && argv[i + 1] === "en")) return "en";
+  }
+  return "fr";
+}
+
+/** --exiger : numéros de 1 à 8 séparés par des virgules, ou « tous ». */
+function analyserExiger(valeur) {
+  if (valeur === "tous") return [1, 2, 3, 4, 5, 6, 7, 8];
+  const morceaux = valeur.split(",");
+  if (!morceaux.every((m) => /^[1-8]$/.test(m))) throw usage(`--exiger : numéros de contrôles de 1 à 8 séparés par des virgules, ou « tous », attendus (reçu « ${valeur} »)`, `--exiger: control numbers from 1 to 8 separated by commas, or "tous", expected (got "${valeur}")`);
+  const nums = morceaux.map(Number);
+  if (new Set(nums).size !== nums.length) throw usage(`--exiger : contrôle répété (« ${valeur} »)`, `--exiger: repeated control ("${valeur}")`);
+  return nums.sort((a, b) => a - b);
+}
+
+/** Analyse argv (EX-8.2) : un répertoire, options à valeur (--option valeur ou --option=valeur), drapeaux. */
 function analyserArguments(argv) {
-  const avecValeur = new Set(["schemas"]);
-  const drapeaux = new Set(["json", "aide", "help"]);
   const options = { positionnels: [] };
+  const vues = new Set();
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (!a.startsWith("--")) {
@@ -54,114 +74,270 @@ function analyserArguments(argv) {
     }
     const eq = a.indexOf("=");
     const nom = eq === -1 ? a.slice(2) : a.slice(2, eq);
-    if (drapeaux.has(nom)) {
+    if (!DRAPEAUX.has(nom) && !OPTIONS_A_VALEUR.has(nom)) throw usage(`option inconnue : ${a}`, `unknown option: ${a}`);
+    if (vues.has(nom)) throw usage(`option répétée : --${nom}`, `repeated option: --${nom}`);
+    vues.add(nom);
+    if (DRAPEAUX.has(nom)) {
+      if (eq !== -1) throw usage(`l'option --${nom} ne prend pas de valeur`, `option --${nom} takes no value`);
       options[nom] = true;
-    } else if (avecValeur.has(nom)) {
-      const valeur = eq === -1 ? argv[++i] : a.slice(eq + 1);
-      if (valeur === undefined || valeur.startsWith("--")) throw new EntreeInutilisable(`l'option --${nom} attend une valeur`);
-      options[nom] = valeur;
     } else {
-      throw new EntreeInutilisable(`option inconnue : ${a}`);
+      const valeur = eq === -1 ? argv[++i] : a.slice(eq + 1);
+      if (valeur === undefined || valeur === "" || (eq === -1 && valeur.startsWith("--"))) throw usage(`l'option --${nom} attend une valeur`, `option --${nom} expects a value`);
+      options[nom] = valeur;
     }
   }
+  if (options.langue !== undefined && !["fr", "en"].includes(options.langue)) throw usage(`--langue : fr ou en attendu (reçu « ${options.langue} »)`, `--langue: fr or en expected (got "${options.langue}")`);
+  // --version et --aide sont exclusives (EX-8.2) : seules --langue et --schemas les accompagnent.
+  const exclusives = ["version", "aide", "help"].filter((n) => options[n]);
+  if (exclusives.length) {
+    const autres = Object.keys(options).filter((n) => !["positionnels", "version", "aide", "help", "langue", "schemas"].includes(n));
+    if (exclusives.length > 1 || autres.length || options.positionnels.length) {
+      const nom = `--${exclusives[0]}`;
+      throw usage(`${nom} ne se combine qu'avec --langue et --schemas (reçu aussi : ${[...exclusives.slice(1).map((n) => `--${n}`), ...autres.map((n) => `--${n}`), ...options.positionnels].join(", ")})`, `${nom} combines only with --langue and --schemas (also given: ${[...exclusives.slice(1).map((n) => `--${n}`), ...autres.map((n) => `--${n}`), ...options.positionnels].join(", ")})`);
+    }
+  }
+  options.exiger = options.exiger === undefined ? [] : analyserExiger(options.exiger);
   return options;
 }
 
-function aide() {
+function aide(langue) {
+  if (langue === "en") {
+    return [
+      "Usage:",
+      "  node scripts/verify/dossier.mjs <directory> [--ancres <file>] [--entetes-bitcoin <file>]",
+      "       [--pieces <directory>] [--second-manifeste <file>] [--exiger <controls>]",
+      "       [--langue fr|en] [--json] [--detail] [--schemas <directory>]",
+      "  node scripts/verify/dossier.mjs --version | --aide",
+      "Verifies a NOORTRACE v0 evidence dossier offline: the eight controls of the architecture (CT-1 §11.4, CT-6).",
+      "  --ancres            the reviewer's trust anchors file (schema ancres-confiance-v0); without it, the checks that need an anchor are not run",
+      "  --entetes-bitcoin   Bitcoin header chain (schema entetes-bitcoin-v0) for control 5",
+      "  --pieces            directory of pieces named by their sha256 (E-6)",
+      "  --second-manifeste  previous or next manifest of the same journal (P-5)",
+      "  --exiger            controls (1 to 8, comma-separated, or tous) that must pass, otherwise code 3",
+      "  --langue            language of the readable report and of the JSON texts (fr by default)",
+      "  --json              JSON report (schema rapport-verification-v0) instead of the readable report",
+      "  --detail            readable report: every check, not only those that did not pass",
+      "Exit codes: 0 valid, 1 invalid, 2 unusable input, 3 incomplete (--exiger).",
+    ].join("\n");
+  }
   return [
     "Usage :",
-    "  node scripts/verify/dossier.mjs <répertoire> [--schemas <répertoire>] [--json]",
-    "Vérifie un dossier de preuve NOORTRACE v0 (contrôles D-1 à A-4 de CT-1 §11.4).",
-    "Codes de retour : 0 valide, 1 invalide, 2 entrée inutilisable.",
+    "  node scripts/verify/dossier.mjs <répertoire> [--ancres <fichier>] [--entetes-bitcoin <fichier>]",
+    "       [--pieces <répertoire>] [--second-manifeste <fichier>] [--exiger <contrôles>]",
+    "       [--langue fr|en] [--json] [--detail] [--schemas <répertoire>]",
+    "  node scripts/verify/dossier.mjs --version | --aide",
+    "Vérifie hors ligne un dossier de preuve NOORTRACE v0 : les huit contrôles de l'architecture (CT-1 §11.4, CT-6).",
+    "  --ancres            fichier d'ancres de confiance du réviseur (schéma ancres-confiance-v0) ; sans lui, les vérifications qui exigent une ancre ne s'exécutent pas",
+    "  --entetes-bitcoin   chaîne d'en-têtes Bitcoin (schéma entetes-bitcoin-v0) pour le contrôle 5",
+    "  --pieces            répertoire de pièces nommées par leur sha256 (E-6)",
+    "  --second-manifeste  manifeste précédent ou suivant du même journal (P-5)",
+    "  --exiger            contrôles (1 à 8, séparés par des virgules, ou tous) qui doivent réussir, sinon code 3",
+    "  --langue            langue du rapport lisible et des textes du rapport JSON (fr par défaut)",
+    "  --json              rapport JSON (schéma rapport-verification-v0) au lieu du rapport lisible",
+    "  --detail            rapport lisible : toutes les vérifications, pas seulement celles qui n'ont pas réussi",
+    "Codes de retour : 0 valide, 1 invalide, 2 entrée inutilisable, 3 incomplet (--exiger).",
   ].join("\n");
 }
 
-/** Les trois schémas, chargés depuis un répertoire. */
-function chargerSchemas(repertoire) {
-  const documents = FICHIERS_SCHEMAS.map((nom) => {
-    const fichier = path.join(repertoire, nom);
-    let texte;
-    try {
-      texte = fs.readFileSync(fichier, "utf8");
-    } catch (err) {
-      throw new EntreeInutilisable(`schéma illisible (${fichier}) : ${err.message}`);
+/**
+ * Lit au plus `limite + 1` octets d'un fichier régulier (EX-4.13) : rend
+ * { octets } ou, au-delà de la limite, { trop: true, taille, debut } sans lire
+ * plus loin. Lève l'erreur du système de fichiers.
+ */
+function lireBorne(fichier, limite) {
+  const fd = fs.openSync(fichier, "r");
+  try {
+    const st = fs.fstatSync(fd);
+    if (!st.isFile()) throw new Error("pas un fichier régulier");
+    const morceaux = [];
+    let total = 0;
+    const tampon = Buffer.alloc(Math.min(limite + 1, 1 << 20));
+    for (;;) {
+      const n = fs.readSync(fd, tampon, 0, Math.min(tampon.length, limite + 1 - total), null);
+      if (n === 0) break;
+      morceaux.push(Buffer.from(tampon.subarray(0, n)));
+      total += n;
+      if (total > limite) break;
     }
-    try {
-      return JSON.parse(texte);
-    } catch (err) {
-      throw new EntreeInutilisable(`schéma (${fichier}) qui n'est pas du JSON : ${err.message}`);
-    }
-  });
-  return registreSchemas(documents);
+    const octets = Buffer.concat(morceaux);
+    if (total > limite) return { trop: true, taille: Math.max(st.size, total), debut: octets };
+    return { octets };
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
-/** Les fichiers réguliers du répertoire, nom -> octets. */
-function lireRepertoire(repertoire) {
+/** Les schémas de spec/schemas : registre $id -> document et SHA-256 de chaque fichier. */
+function chargerSchemas(repertoire) {
+  const documents = [];
+  const empreintes = new Map();
+  for (const { fichier, id } of V.FICHIERS_SCHEMAS) {
+    const chemin = path.join(repertoire, fichier);
+    let octets;
+    try {
+      octets = fs.readFileSync(chemin);
+    } catch (err) {
+      throw new V.EntreeInutilisable("schemas_illisibles", T(`schéma illisible (${chemin}) : ${err.message}`, `unreadable schema (${chemin}): ${err.message}`));
+    }
+    let doc;
+    try {
+      doc = JSON.parse(octets.toString("utf8"));
+    } catch (err) {
+      throw new V.EntreeInutilisable("schemas_illisibles", T(`schéma (${chemin}) qui n'est pas du JSON : ${err.message}`, `schema (${chemin}) is not JSON: ${err.message}`));
+    }
+    if (doc?.$id !== id) throw new V.EntreeInutilisable("schemas_illisibles", T(`schéma ${chemin} : $id ${doc?.$id} au lieu de ${id}`, `schema ${chemin}: $id ${doc?.$id} instead of ${id}`));
+    documents.push(doc);
+    empreintes.set(id, sha256Hex(octets));
+  }
+  return { registre: J.registreSchemas(documents), empreintes };
+}
+
+/** Lit une entrée désignée par une option ; une erreur du système de fichiers devient une entrée inutilisable. */
+function lireEntree(fichier, limite, { kind, check, nom }) {
+  try {
+    return lireBorne(fichier, limite);
+  } catch (err) {
+    throw new V.EntreeInutilisable(kind, T(`${nom} illisible (${fichier}) : ${err.message}`, `${nom} unreadable (${fichier}): ${err.message}`), check);
+  }
+}
+
+function principal(argv, etat) {
+  etat.langue = langueAnnoncee(argv);
+  const options = analyserArguments(argv);
+  const langue = options.langue ?? "fr";
+  etat.langue = langue;
+  etat.json = Boolean(options.json);
+  if (options.aide || options.help) {
+    process.stdout.write(aide(langue) + "\n");
+    return 0;
+  }
+  const repertoireSchemas = path.resolve(options.schemas ?? path.join(PROJECT_ROOT, "spec", "schemas"));
+  if (options.version) {
+    const { empreintes } = chargerSchemas(repertoireSchemas);
+    const lignes = [`${V.NOM_VERIFICATEUR} ${V.VERSION_VERIFICATEUR} (node ${process.version})`, langue === "en" ? `schemas (${repertoireSchemas}):` : `schémas (${repertoireSchemas}) :`];
+    for (const [id, h] of empreintes) lignes.push(`  ${id} SHA-256 ${h}`);
+    process.stdout.write(lignes.join("\n") + "\n");
+    return 0;
+  }
+  if (options.positionnels.length !== 1) throw usage(`un répertoire de dossier attendu, ${options.positionnels.length} argument(s) reçu(s)`, `one dossier directory expected, ${options.positionnels.length} argument(s) given`);
+
+  const repertoire = path.resolve(options.positionnels[0]);
+  const inputs = { dossier: { path: repertoire, index_sha256: null }, anchors: null, bitcoin_headers: null, second_manifest: null, pieces: null, required_controls: options.exiger };
+  etat.inputs = inputs;
+
+  // 1. Schémas, fichier d'ancres (N-1), fichier d'en-têtes (N-2), entrées à part (EX-5.2).
+  // verifier.schemas : les huit schémas embarqués, dans l'ordre fixé (section 8.6), quelles que soient les options.
+  const { registre: schemas, empreintes } = chargerSchemas(repertoireSchemas);
+  etat.schemas = V.FICHIERS_SCHEMAS.map(({ id }) => ({ id, sha256: empreintes.get(id) }));
+
+  let ancres = null;
+  if (options.ancres) {
+    const fichier = path.resolve(options.ancres);
+    const lu = lireEntree(fichier, V.LIMITES.ancres, { kind: "ancres_inutilisables", check: "N-1", nom: langue === "en" ? "anchors file" : "fichier d'ancres" });
+    if (lu.trop) throw new V.EntreeInutilisable("ancres_inutilisables", T(`fichier d'ancres inutilisable : ${lu.taille} octets, au-delà de la limite de ${V.LIMITES.ancres}`, `unusable anchors file: ${lu.taille} bytes, beyond the limit of ${V.LIMITES.ancres}`), "N-1");
+    inputs.anchors = { path: fichier, sha256: sha256Hex(lu.octets) };
+    ancres = V.controlerAncres(lu.octets, schemas);
+  }
+  let entetes = null;
+  if (options["entetes-bitcoin"]) {
+    const fichier = path.resolve(options["entetes-bitcoin"]);
+    const lu = lireEntree(fichier, V.LIMITES.entetes, { kind: "entree_illisible", check: "N-2", nom: langue === "en" ? "Bitcoin headers file" : "fichier d'en-têtes Bitcoin" });
+    if (lu.trop) throw new V.EntreeInutilisable("taille_depassee", T(`fichier d'en-têtes Bitcoin : ${lu.taille} octets, au-delà de la limite de ${V.LIMITES.entetes}`, `Bitcoin headers file: ${lu.taille} bytes, beyond the limit of ${V.LIMITES.entetes}`), "N-2");
+    inputs.bitcoin_headers = { path: fichier, sha256: sha256Hex(lu.octets) };
+    entetes = V.controlerEntetes(lu.octets, schemas);
+  }
+  let secondManifeste = null;
+  if (options["second-manifeste"]) {
+    const fichier = path.resolve(options["second-manifeste"]);
+    const lu = lireEntree(fichier, V.LIMITES.secondManifeste, { kind: "entree_illisible", check: null, nom: langue === "en" ? "second manifest" : "second manifeste" });
+    if (lu.trop) throw new V.EntreeInutilisable("taille_depassee", T(`second manifeste : ${lu.taille} octets, au-delà de la limite de ${V.LIMITES.secondManifeste}`, `second manifest: ${lu.taille} bytes, beyond the limit of ${V.LIMITES.secondManifeste}`));
+    inputs.second_manifest = { path: fichier, sha256: sha256Hex(lu.octets) };
+    secondManifeste = V.controlerSecondManifeste(lu.octets, schemas);
+  }
+  let pieces = null;
+  if (options.pieces) {
+    const rep = path.resolve(options.pieces);
+    let st;
+    try {
+      st = fs.statSync(rep);
+    } catch (err) {
+      throw new V.EntreeInutilisable("entree_illisible", T(`répertoire de pièces illisible (${rep}) : ${err.message}`, `unreadable pieces directory (${rep}): ${err.message}`));
+    }
+    if (!st.isDirectory()) throw new V.EntreeInutilisable("entree_illisible", T(`--pieces : ${rep} n'est pas un répertoire`, `--pieces: ${rep} is not a directory`));
+    inputs.pieces = { path: rep, files: 0 };
+    pieces = {
+      lire(nom) {
+        const fichier = path.join(rep, nom);
+        let stp;
+        try {
+          stp = fs.statSync(fichier);
+        } catch {
+          return null; // pièce non fournie : la référence reste une empreinte (EX-4.6)
+        }
+        if (!stp.isFile()) return null;
+        const lu = lireEntree(fichier, V.LIMITES.piece, { kind: "entree_illisible", check: null, nom: langue === "en" ? "piece" : "pièce" });
+        if (lu.trop) throw new V.EntreeInutilisable("taille_depassee", T(`pièce ${fichier} : ${lu.taille} octets, au-delà de la limite de ${V.LIMITES.piece}`, `piece ${fichier}: ${lu.taille} bytes, beyond the limit of ${V.LIMITES.piece}`));
+        return lu.octets;
+      },
+    };
+  }
+
+  // 2. Le dossier : dossier.json et les douze parties, chacune dans sa limite (EX-4.1, EX-4.13).
   let entrees;
   try {
     entrees = fs.readdirSync(repertoire, { withFileTypes: true });
   } catch (err) {
-    throw new EntreeInutilisable(`répertoire illisible (${repertoire}) : ${err.message}`);
+    throw new V.EntreeInutilisable("dossier_illisible", T(`répertoire illisible (${repertoire}) : ${err.message}`, `unreadable directory (${repertoire}): ${err.message}`));
   }
   const fichiers = {};
-  for (const e of entrees) if (e.isFile()) fichiers[e.name] = fs.readFileSync(path.join(repertoire, e.name));
-  return fichiers;
-}
-
-function principal() {
-  const options = analyserArguments(process.argv.slice(2));
-  if (options.aide || options.help) {
-    process.stdout.write(aide() + "\n");
-    return CODE_VALIDE;
+  const nonLus = new Map();
+  for (const e of entrees) {
+    if (!e.isFile() || !V.FICHIERS_DOSSIER.includes(e.name)) continue;
+    const limite = V.limiteFichier(e.name);
+    let lu;
+    try {
+      lu = lireBorne(path.join(repertoire, e.name), limite);
+    } catch (err) {
+      throw new V.EntreeInutilisable("dossier_illisible", T(`${e.name} illisible : ${err.message}`, `${e.name} unreadable: ${err.message}`));
+    }
+    if (lu.trop) {
+      if (e.name === "dossier.json") throw new V.EntreeInutilisable("taille_depassee", T(`dossier.json : ${lu.taille} octets, au-delà de la limite de ${limite}`, `dossier.json: ${lu.taille} bytes, beyond the limit of ${limite}`));
+      nonLus.set(e.name, { taille: lu.taille, limite, debut: lu.debut });
+    } else fichiers[e.name] = lu.octets;
   }
-  if (options.positionnels.length !== 1) throw new EntreeInutilisable(`un répertoire de dossier attendu, ${options.positionnels.length} argument(s) reçu(s)`);
-  const repertoire = path.resolve(options.positionnels[0]);
-  const repertoireSchemas = path.resolve(options.schemas ?? path.join(PROJECT_ROOT, "spec", "schemas"));
-  const schemas = chargerSchemas(repertoireSchemas);
-  const fichiers = lireRepertoire(repertoire);
+  if (fichiers["dossier.json"]) inputs.dossier.index_sha256 = sha256Hex(fichiers["dossier.json"]);
 
-  let resultat;
+  // 3. Les huit contrôles, le verdict, l'énoncé.
+  let corps;
   try {
-    resultat = verifierDossier(fichiers, { schemas });
+    corps = V.verifierDossierComplet({ fichiers, nonLus, schemas, ancres, entetes, pieces, secondManifeste, exiger: options.exiger, langue });
   } catch (err) {
-    if (err instanceof DossierInutilisable) throw new EntreeInutilisable(err.message);
+    if (err instanceof J.DossierInutilisable) throw new V.EntreeInutilisable("dossier_illisible", T(err.message, traduireDossierInutilisable(err.message)));
     throw err;
   }
-  const rapport = { ...resultat, controlesEnEchec: controlesEnEchec(resultat), repertoire, schemas: repertoireSchemas };
+  if (inputs.pieces) inputs.pieces.files = corps.pieces_lues;
+  const rapport = V.rapportJSON({ verifier: V.blocVerificateur(etat.schemas), langue, inputs, corps });
   if (options.json) process.stdout.write(JSON.stringify(rapport, null, 2) + "\n");
-  else process.stdout.write(rapportLisible(rapport) + "\n");
-  return resultat.valide ? CODE_VALIDE : CODE_INVALIDE;
+  else process.stdout.write(V.rapportLisible(rapport, { detail: Boolean(options.detail) }) + "\n");
+  return rapport.exit_code;
 }
 
-/** Rapport lisible en français. */
-function rapportLisible(r) {
-  const lignes = [];
-  lignes.push("Vérification hors ligne d'un dossier de preuve NOORTRACE (format v0, CT-1)");
-  lignes.push(`Répertoire    : ${r.repertoire}`);
-  lignes.push(`Schémas       : ${r.schemas}`);
-  if (r.evenement) lignes.push(`Événement     : seq ${r.evenement.seq}, hash ${r.evenement.hash}${r.evenement.ts ? `, ts ${r.evenement.ts}` : ""}${r.evenement.tool ? `, outil ${r.evenement.tool}` : ""}`);
-  if (r.org_id) lignes.push(`Journal       : org_id ${r.org_id}, journal_id ${r.journal_id}`);
-  lignes.push("Contrôles (architecture entre crochets) :");
-  for (const c of r.controles) {
-    const etat = !c.execute ? "[non exécuté]" : c.ok ? "[ok]         " : "[ÉCHEC]      ";
-    const archi = c.architecture === null ? "   " : `[${c.architecture}]`;
-    lignes.push(`  ${etat} ${c.id.padEnd(4)} ${archi} ${c.libelle}`);
-    if (c.detail && (!c.ok || !c.execute)) lignes.push(`                      ${c.detail}`);
-  }
-  if (r.partiesAbsentes.length) lignes.push(`Parties absentes : ${r.partiesAbsentes.map((p) => `${p.file} (${p.reason})`).join(", ")}`);
-  if (r.borne) lignes.push(`Borne         : ${r.borne}`);
-  const motifs = [];
-  if (r.controlesEnEchec.length) motifs.push(`contrôle(s) en échec : ${r.controlesEnEchec.join(", ")}`);
-  if (r.nonExecutesBloquants.length) motifs.push(`contrôle(s) non exécuté(s) sans raison admise : ${r.nonExecutesBloquants.join(", ")}`);
-  lignes.push(`Résultat      : ${r.valide ? "VALIDE" : "INVALIDE"} — ${r.valide ? "tous les contrôles exécutés passent, aucun contrôle non exécuté sans raison admise" : motifs.join(" ; ")}`);
-  return lignes.join("\n");
+function traduireDossierInutilisable(message) {
+  return message
+    .replace(/^dossier\.json absent : le répertoire n'est pas un dossier de preuve$/, "dossier.json missing: the directory is not an evidence dossier")
+    .replace(/^dossier\.json illisible : /, "dossier.json unreadable: ");
 }
 
+const etat = { langue: "fr", json: process.argv.includes("--json"), inputs: null, schemas: [] };
+let code;
 try {
-  process.exit(principal());
+  code = principal(process.argv.slice(2), etat);
 } catch (err) {
-  const message = err instanceof EntreeInutilisable ? err.message : `erreur inattendue : ${err?.stack ?? err}`;
-  process.stderr.write(`Erreur : ${message}\n`);
-  if (process.argv.includes("--json")) process.stdout.write(JSON.stringify({ valide: null, erreur: message }) + "\n");
-  process.exit(CODE_INUTILISABLE);
+  const erreur = err instanceof V.EntreeInutilisable ? err : new V.EntreeInutilisable("erreur_interne", T(`erreur interne du vérificateur : ${err?.message ?? err}`, `internal verifier error: ${err?.message ?? err}`));
+  const message = erreur.texte[etat.langue] ?? erreur.message;
+  process.stderr.write(`${etat.langue === "en" ? "Error: " : "Erreur : "}${message}\n`);
+  if (!(err instanceof V.EntreeInutilisable) && err?.stack) process.stderr.write(err.stack + "\n");
+  if (etat.json) process.stdout.write(JSON.stringify(V.rapportErreur({ verifier: V.blocVerificateur(etat.schemas), langue: etat.langue, inputs: etat.inputs, erreur }), null, 2) + "\n");
+  code = 2;
 }
+process.exitCode = code;
