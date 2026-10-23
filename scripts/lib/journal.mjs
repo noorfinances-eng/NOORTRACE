@@ -1645,13 +1645,22 @@ function nonExecutesBloquants(rapport, parts) {
  * manifeste.json P-1, manifeste.sig P-5, cles.json E-8, approbations.json A-1 ;
  * forme canonique impossible E-2) ; les contrôles qui en dépendent sont non
  * exécutés, sans raison admise, et le dossier est invalide.
+ *
+ * `inexploitables` (facultatif, CT-6 EX-4.11, EX-4.13) : Map nom de fichier ->
+ * motif, pour les parties que l'appelant a refusé de lire ou d'analyser (taille
+ * au-delà de la limite de la partie, imbrication JSON trop profonde). Une telle
+ * partie met en échec le contrôle qui la porte, avec ce motif ; si ses octets ne
+ * sont pas dans `fichiers` (fichier non lu), D-2 échoue aussi, son SHA-256
+ * n'étant pas vérifiable. Sans cette option, le comportement est celui de CT-1.
  */
-export function verifierDossier(fichiers, { schemas } = {}) {
+export function verifierDossier(fichiers, { schemas, inexploitables = null } = {}) {
   if (!schemas || !schemas[ID_SCHEMA_EVENEMENT] || !schemas[ID_SCHEMA_MANIFESTE] || !schemas[ID_SCHEMA_DOSSIER]) {
     throw new DossierInutilisable("les trois schémas (evenement, manifeste, dossier) sont requis pour vérifier un dossier");
   }
   const rapport = new Rapport();
   const brut = (nom) => (fichiers[nom] === undefined || fichiers[nom] === null ? null : enOctets(fichiers[nom]));
+  const refus = (nom) => (inexploitables instanceof Map && inexploitables.has(nom) ? inexploitables.get(nom) : null);
+  const nonLu = (nom) => refus(nom) !== null && !brut(nom);
   const indexOctets = brut("dossier.json");
   if (!indexOctets) throw new DossierInutilisable("dossier.json absent : le répertoire n'est pas un dossier de preuve");
   let index;
@@ -1685,11 +1694,12 @@ export function verifierDossier(fichiers, { schemas } = {}) {
       continue;
     }
     if (p.present === true) {
-      if (!o) rapport.echec("D-2", `${file} déclaré présent mais absent du répertoire`);
+      if (nonLu(file)) rapport.echec("D-2", `${file} non lu (${refus(file)}) : SHA-256 non vérifiable`);
+      else if (!o) rapport.echec("D-2", `${file} déclaré présent mais absent du répertoire`);
       else if (sha256(o) !== p.sha256) rapport.echec("D-2", `${file} : SHA-256 ${sha256(o)} différent de l'index ${p.sha256}`);
       else rapport.succes("D-2");
     } else {
-      if (o) rapport.echec("D-2", `${file} déclaré absent mais présent dans le répertoire`);
+      if (o || nonLu(file)) rapport.echec("D-2", `${file} déclaré absent mais présent dans le répertoire`);
       else if (typeof p.reason_if_absent !== "string" || !p.reason_if_absent.trim()) rapport.echec("D-2", `${file} absent sans raison`);
       else rapport.succes("D-2");
     }
@@ -1699,6 +1709,10 @@ export function verifierDossier(fichiers, { schemas } = {}) {
   // JSON. L'échec est imputé au contrôle qui porte la partie (E-2 quand c'est
   // la forme canonique qui est en cause).
   const lire = (file, controle) => {
+    if (refus(file) !== null) {
+      rapport.echec(controle, `${file} : ${refus(file)} ; la partie est inexploitable`);
+      return null;
+    }
     const o = brut(file);
     if (!o) return null;
     let valeur;
@@ -1720,7 +1734,7 @@ export function verifierDossier(fichiers, { schemas } = {}) {
   const manifeste = lire("manifeste.json", "P-1");
   const manifesteSig = lire("manifeste.sig", "P-5");
   const clesDoc = lire("cles.json", "E-8");
-  const approbations = brut("approbations.json") ? lire("approbations.json", "A-1") : null;
+  const approbations = brut("approbations.json") || refus("approbations.json") !== null ? lire("approbations.json", "A-1") : null;
 
   if (evenement) {
     if (index.event?.seq !== evenement.seq || index.event?.hash !== evenement.hash) rapport.echec("D-1", `event de l'index (seq ${index.event?.seq}, ${index.event?.hash}) différent de evenement.json (seq ${evenement.seq}, ${evenement.hash})`);
@@ -1905,7 +1919,7 @@ export function verifierDossier(fichiers, { schemas } = {}) {
     for (const id of ["A-1", "A-2", "A-3", "A-4"]) rapport.nonExecute(id, "événement inexploitable");
   } else if (ev.approval === null || ev.approval === undefined) {
     const a1 = [];
-    if (approbations || brut("approbations.json")) a1.push("approbations.json présent alors que approval est null");
+    if (approbations || brut("approbations.json") || nonLu("approbations.json")) a1.push("approbations.json présent alors que approval est null");
     if (partieApprobations?.present === false && partieApprobations.reason_if_absent !== RAISON_AUCUNE_APPROBATION) a1.push(`raison d'absence « ${partieApprobations.reason_if_absent} », attendue « ${RAISON_AUCUNE_APPROBATION} »`);
     a1.length ? a1.forEach((m) => rapport.echec("A-1", m)) : rapport.succes("A-1", "aucune approbation liée, partie absente avec sa raison");
     for (const id of ["A-2", "A-3", "A-4"]) rapport.nonExecute(id, "aucune approbation liée");

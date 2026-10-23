@@ -6,7 +6,9 @@
 // --rpc <url> --bloc <hauteur|hash> pour l'obtenir du nœud. Le jeu de
 // validateurs (--validateurs validators.json) est OBLIGATOIRE : c'est contre
 // lui, et lui seul, que les signatures sont vérifiées ; le vérificateur ne va
-// pas le chercher sur le réseau, le dossier doit le porter avec son origine.
+// pas le chercher sur le réseau. Le réviseur le fournit, obtenu par une voie
+// indépendante du dossier : un jeu porté par le dossier reste déclaratif
+// (CT-6 EX-3.4).
 //
 //   node scripts/verify/certificat-commit.mjs certificat.json --validateurs chain/runtime/validators.json
 //   node scripts/verify/certificat-commit.mjs --rpc http://127.0.0.1:8645 --bloc 8328 \
@@ -143,7 +145,7 @@ async function principal() {
   }
   if (options.positionnels.length > 1) throw new EntreeInutilisable(`un seul fichier de certificat attendu, ${options.positionnels.length} reçus`);
   const fichierCertificat = options.positionnels[0];
-  if (!options.validateurs) throw new EntreeInutilisable("--validateurs <validators.json> est obligatoire : le jeu de validateurs doit être fourni par le dossier");
+  if (!options.validateurs) throw new EntreeInutilisable("--validateurs <validators.json> est obligatoire : le réviseur fournit le jeu de validateurs, obtenu par une voie indépendante du dossier (CT-6 EX-3.4)");
   if (!fichierCertificat && !options.bloc) throw new EntreeInutilisable("donner un fichier de certificat, ou --rpc <url> --bloc <hauteur|hash>");
   if (fichierCertificat && options.bloc) throw new EntreeInutilisable("donner soit un fichier de certificat, soit --bloc, pas les deux");
   if ((options.bloc || options["en-ligne"]) && !options.rpc) throw new EntreeInutilisable("--rpc <url> est requis avec --bloc et avec --en-ligne");

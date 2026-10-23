@@ -1,0 +1,100 @@
+{
+  "version": 0,
+  "label": "Ancres de test CT-6 (ancres-deux-autorites.json)",
+  "prepared_by": "générateur des vecteurs CT-6 (scripts/vecteurs/generer-ct6.mjs)",
+  "prepared_at": "2026-11-10T08:00:00.000Z",
+  "tsa_authorities": [
+    {
+      "name": "Unité TSA épinglée de test CT-6",
+      "certificate": "-----BEGIN CERTIFICATE-----\nMIIEbjCCAtagAwIBAgIBAjANBgkqhkiG9w0BAQsFADBEMQswCQYDVQQGEwJDSDEb\nMBkGA1UECgwSTk9PUlRSQUNFIHZlY3RldXJzMRgwFgYDVQQDDA9BQyBkZSB0ZXN0\nIENULTYwHhcNMjYwNjAxMDAwMDAwWhcNMjcwNjAxMDAwMDAwWjBFMQswCQYDVQQG\nEwJDSDEbMBkGA1UECgwSTk9PUlRSQUNFIHZlY3RldXJzMRkwFwYDVQQDDBBUU0Eg\nZGUgdGVzdCBDVC02MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA2rDa\nyoMed9RzACN5tbiB/+dMGempCuvv61NZaLQ5W64pQe5bq4+nIrNONM6YW39wOcBi\nvDDojBYMthf8Xqh3+oPP9B5zXlCm4vvep+vrd5Tx0moQA6C1oJPMHt/hLLpw+L0O\npieF8MU8D9rs5HThmxPa9K5UCL66lu1lXx6r2zvG1e6BZ6uDjgYwZwIljOdG0Dw2\ntS4Bxd2AWSdLWoMpVWI8bN/Rs57p2jmJ2i7mtIMC+f1UoXHCmWOpkr9gkFpvKD2V\nc9cSW3K5SZ3zkqZql4s95/3Fhi8tbgKKYgVPG9RZn9aU3ySVLtTpmDLX65xMDyZ6\n+bNfEyKQy1g83TrSLvS1HFEgM7ZtCwvnE7QrzzUmSCRovHfjJxn6AzMzEZNsKbYR\nINQgbs+csVbqEsfMiTFa+On5/IhsCxFGPZO5krkwh8kHyzL/Dc1VtwIUoAabiof6\nenPL//y1YKuosoohrY71aGLQSSAyZsxvBOeoXg4281CIfalxukEeN2EpIBOlAgMB\nAAGjajBoMA4GA1UdDwEB/wQEAwIHgDAWBgNVHSUBAf8EDDAKBggrBgEFBQcDCDAd\nBgNVHQ4EFgQUQuDopoDCB/0vsbFULFCfHNnyipMwHwYDVR0jBBgwFoAU5ZhDP/nf\nf5nml3PbE94/sN6TmFowDQYJKoZIhvcNAQELBQADggGBAJFv/c2gLX53K85FEADA\nnbC0W19/AJHI7xZFsjxtiqfOLLJ7ZYELi68ZEMbyu7M+BUubRsNQAhQ+AoUtT+Uw\nP9HpWeHk4Pobk2BCuGkYHgZ4AvZeNYjMG1Y7QhGX/xcNORF9cpA7WVywPEbjgOfw\nAL340Om62JX85iBNXpxS01B9HmGQggQTm+peUQNqi0oub2uBkusBdYYFNmriQd2N\n68gwZDmk0w1YxBZrU6oRZzaLoUD7812s45+jAFHPyvadynR2PKtlNJQUPGkeO9qn\nmgc0RizbdtRpEuVaV5rEsx4xK1I36ct4HXDFYCKDKoScZ9yJvRdrvCFN+NHNUcf6\nNiGdohpyCuV3yL/IZ8ycLMkFcGiIQ8PgD/MuXa9JJd1Q/6cNiSoGjEcYdS2hfYGl\nrlHT6MtiRmVR6123cYGjaNrUdJVSu+ZteQ2yZ6qYMV72M25Qh4b9LyBg/o8D+aVu\nVLicDZhIQ0kX5PQVT40dr7YBGj4BHJw/y51xnWTNdHt+7Q==\n-----END CERTIFICATE-----\n",
+      "intermediates": [],
+      "accepted_policies": [
+        "1.3.6.1.4.1.99999.1.1"
+      ],
+      "qualified": {
+        "framework": "eidas",
+        "valid_from": "2026-01-01T00:00:00.000Z",
+        "valid_to": null,
+        "source": "déclaration de test, sans valeur"
+      },
+      "source": "unité TSA de test des vecteurs CT-6 (spec/vecteurs/ct-6/rfc3161/cles/tsa-test.pem), épinglée par le réviseur ; clé publique de test, sans valeur hors des tests"
+    },
+    {
+      "name": "AC de test CT-6",
+      "certificate": "-----BEGIN CERTIFICATE-----\nMIIERTCCAq2gAwIBAgIBATANBgkqhkiG9w0BAQsFADBEMQswCQYDVQQGEwJDSDEb\nMBkGA1UECgwSTk9PUlRSQUNFIHZlY3RldXJzMRgwFgYDVQQDDA9BQyBkZSB0ZXN0\nIENULTYwHhcNMjYwMTAxMDAwMDAwWhcNMzYwMTAxMDAwMDAwWjBEMQswCQYDVQQG\nEwJDSDEbMBkGA1UECgwSTk9PUlRSQUNFIHZlY3RldXJzMRgwFgYDVQQDDA9BQyBk\nZSB0ZXN0IENULTYwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC6/DG2\nIeKP3DpkymqTJju07MV4T6897KG3c54dBNvYkDp/5+sTszTfscX97zJNe9yEdQUk\nGOWgsWVsHuPfwdIHkxOpg+iTzXesOigZ5Z3nnRhGhaapFOt7dw8Y2k11Ph5D020d\nVFg6mmF/3o/DjQYmBZWVslZrBPZ1Ox+BAgtJ8TEfzM2WKQJU7ynOKTkRqVhGIzGU\nKQs7y8ajeXsYPcHVE9DPgAsBlvfocHBjPM6HTAPr2uQAGyxmWbi0TVURCLWjosA/\np2rVipwtUY5kOummqe1WeYYu4TJGFS9UwTv0Wb9QdSwgDF4Gil9QlRBdsgjK0q8l\nLl9d5aMc2+Ek7ygoFy5fOayFbuEW2C+p8AVORcTe6NyVtAr+BKKyRT/5cqg4mg3/\nVuWp2xtLcfnibL0Xv6dDINQa9cvXrZ8ffQVQoXvWypT/qB95A2UIABnlJ+Puy7pw\n4Ig+jW7xtDfZq7E6gtmkWcO+K7ZJAWSFHt5G1+gu8629c0f/+lIMtWEUMAcCAwEA\nAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwHQYDVR0OBBYE\nFOWYQz/533+Z5pdz2xPeP7Dek5haMA0GCSqGSIb3DQEBCwUAA4IBgQBj1DnJODOM\nt0uQ+W3l/EaxbhJgxxTz+W/W/Em7iIpehUEmdfwoMd5Sz3IZLNQA2n7bdNUrn0au\nnsS+EHO5RgxbMSVD2Wi5ykwltNKVFI3sROPQW9jcqzVlKH+2ychGk9CTsJL0sGhJ\nCdJJEap84UVrXYL9W4xH5kdqSpbyJmRi8g7+9SuKDYwjQbrxEHErvlLqbrRRgNtU\nYhTnqQXRsi979JY/zbhhaBG/u6q20wKKh5PvqwiK7JXGgrQIiN+wBc4R8SvROy2B\nzsQNc0vkgZCxTgOrhRcHa5XkZVXmaFk8Vc7QMzadGjB455cy0yXVjJK1A6H705CO\n8i8/bSz+s0l9z4fxELG1uEPtH/DZypUrSRxhV6UU1fF/ltGFQib6XI3s7FvRKWev\nqlvZV1dpGUobK/tZiKkItGiVmDuHS98d3nEu07PkQrdrIDpedKBE70InQztk6BuO\nTJXpBjWvMH4G7P6/U3gIEV2lvvx53XljANu1Rj7bVhZH2YHavlIJ+TE=\n-----END CERTIFICATE-----\n",
+      "intermediates": [],
+      "accepted_policies": [
+        "1.3.6.1.4.1.99999.1.1"
+      ],
+      "qualified": null,
+      "source": "AC de test des vecteurs CT-6 (spec/vecteurs/ct-6/rfc3161/cles/ac-test.pem), clé publique de test, sans valeur hors des tests"
+    }
+  ],
+  "revocation": {
+    "crls": [
+      "-----BEGIN X509 CRL-----\nMIICPjCBpwIBATANBgkqhkiG9w0BAQsFADBEMQswCQYDVQQGEwJDSDEbMBkGA1UE\nCgwSTk9PUlRSQUNFIHZlY3RldXJzMRgwFgYDVQQDDA9BQyBkZSB0ZXN0IENULTYX\nDTI2MTEwNjAwMDAwMFoXDTI2MTIwNjAwMDAwMFqgLzAtMB8GA1UdIwQYMBaAFOWY\nQz/533+Z5pdz2xPeP7Dek5haMAoGA1UdFAQDAgEBMA0GCSqGSIb3DQEBCwUAA4IB\ngQCODjF/DlgbMUpdzLSvq80lTSgT2Ys8ezY2icruhZ9tIxUZF7K1rahy5Imhs+h9\nSwqSwkEeAQQnczS6Rx0/8NbHNes94J5B9ErI9nT+zG1Pe1U2jV6FoANLSRAug6ly\nMCaxRBgUOO6cJZuy1E8JHvLeM2cBDY+gjUj55RMQSBxio9F05f6bch+Y1HmCDufq\nloJjhlmFxyL9oRlYgl8czoXd+Z8J6Tk/F5ayx3FB+PzEut96vEt+bAgEvMvlf3gM\nnrSClZvkgy5R5lhtC3Z1GQv6fY4VatwYmfZ70VVzUcL39hDCBp+Z2LxWXbmjaTMY\niDCV1ascFX/4VUTBTp01Jgt6IEIAwrsITYoOTvUt3tKF5HHa8f60lf6vgtnaM25H\nwsLyiq/hqy1fSFNIW3h8jMlbvUz3N73+GmCiSHCYFL1HaiBSSFqdFYgbaE5H18xq\nTEhNVDBwN+008YmAvoTBqO/9hmrv3c0n3ekvJw2a14ODIoqzrfh7iJTVtA2gNuRM\nI9w=\n-----END X509 CRL-----\n"
+    ],
+    "statements": []
+  },
+  "bitcoin": {
+    "network": "regtest",
+    "checkpoint": {
+      "height": 1000,
+      "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+    },
+    "min_confirmations": 6,
+    "source": "point de contrôle de la chaîne regtest synthétique des vecteurs CT-6 (spec/vecteurs/ct-6/ots/entetes/chaine.json, hauteur 1000), sans valeur hors des tests"
+  },
+  "registry": {
+    "chain_id": "noortrace-2124-dev",
+    "contracts": {
+      "period_registry": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+      "attestation_registry": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+      "recorder_registry": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25"
+    },
+    "validator_sets": [
+      {
+        "from_height": 1,
+        "to_height": null,
+        "validators": [
+          {
+            "id": "v1",
+            "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+          },
+          {
+            "id": "v2",
+            "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+          },
+          {
+            "id": "v3",
+            "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+          },
+          {
+            "id": "v4",
+            "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+          }
+        ],
+        "source": "validators.json du réseau de développement, clés publiques seulement"
+      }
+    ],
+    "source": "réseau de développement noortrace-2124-dev de chain/README.md ; adresses de deployments/noorcore.json reprises dans capture.json"
+  },
+  "recorders": [
+    {
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "key_id": "rec-test-01",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "source": "clé de test de CT-1 §13 ; clé de chaîne de l'annexe A de CT-6 (graine publiée)"
+    },
+    {
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "key_id": "rec-test-02",
+      "public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+      "chain_key": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+      "source": "clé de test de CT-1 §13 ; clé de chaîne de l'annexe A de CT-6 (graine publiée)"
+    }
+  ]
+}

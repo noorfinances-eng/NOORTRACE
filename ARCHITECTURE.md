@@ -1,8 +1,8 @@
 # NOORTRACE — architecture cible
 
-Version 0.3, 22 octobre 2026. Document de conception, pas d'implémentation. Les
+Version 0.4, 23 octobre 2026. Document de conception, pas d'implémentation. Les
 spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
-l'enregistreur.
+l'enregistreur, CT-6 pour le vérificateur.
 
 ## Principe
 
@@ -14,7 +14,7 @@ trois rôles.
 |---|---|---|---|
 | Enregistreur | Composant déployé chez le client | Capturer, chaîner, signer les événements | Être lu ou modifié par l'agent |
 | Registre et approbations | NOORTRACE, sur NOORCHAIN | Enregistrer les lots d'empreintes et les décisions humaines | Modifier un événement déjà chaîné |
-| Ancre de confiance | Prestataire qualifié et registre public | Horodater les racines de lots | Rien d'autre : il ne voit que des empreintes |
+| Ancre de confiance | Prestataire qualifié et registre public | Horodater les empreintes des manifestes de période | Rien d'autre : il ne voit que des empreintes |
 
 ## Flux
 
@@ -31,16 +31,18 @@ trois rôles.
    instant et son motif deviennent des événements du même journal. Les jeux
    d'approbateurs, repris des contrats de curateurs de NOORCHAIN, fournissent ce
    mécanisme : bornés, tracés, contestables.
-4. **Ancrage.** Toutes les heures, la racine de Merkle des événements de la période
-   est horodatée par un prestataire de confiance qualifié ZertES et eIDAS, puis
-   ancrée sur un registre public gratuit. Seule la racine quitte le client.
+4. **Ancrage.** Toutes les heures, l'empreinte du manifeste de la période, qui
+   engage la racine de Merkle de ses événements, est horodatée par un prestataire
+   de confiance qualifié ZertES et eIDAS, puis ancrée sur un registre public
+   gratuit. Seule cette empreinte quitte le client.
 5. **Dossier de preuve.** À la demande, pour un incident, une revue ou une requête
    du régulateur, le client exporte les événements concernés, les preuves d'inclusion
    et les jetons d'horodatage.
 6. **Vérification.** Un vérificateur en ligne de commande, publié en source ouverte,
    recalcule la chaîne, contrôle les preuves d'inclusion, valide les jetons
-   d'horodatage contre le certificat du prestataire et la preuve d'ancrage public.
-   Il fonctionne hors ligne et sans accès à NOORTRACE.
+   d'horodatage et la preuve d'ancrage public contre les ancres de confiance que
+   le réviseur fournit lui-même. Il fonctionne hors ligne et sans accès à
+   NOORTRACE (CT-6).
 
 Le détail de chaque étape est dans la section « Chaîne de traitement ».
 
@@ -190,13 +192,18 @@ réponse jusqu'à la décision ou jusqu'au délai de l'hôte ; au-delà, il renv
 erreur qui porte le numéro de ticket, et l'agent réessaie une fois la décision prise.
 Le choix entre les deux comportements est une décision ouverte, à régler au prototype.
 
-### Ancrage : trois ancres indépendantes pour une racine
+### Ancrage : trois ancres indépendantes pour une période
 
-Chaque heure, la racine R reçoit trois ancres :
+Chaque heure, l'empreinte du manifeste de la période reçoit trois ancres. Cette
+empreinte, `periodHash`, est le SHA-256 du manifeste canonique préfixé (CT-1
+§10.2) ; le manifeste porte la racine R, les bornes de la période, l'empreinte
+du manifeste précédent et la clé de l'enregistreur. Ancrer `periodHash` engage
+donc R et tout ce qui la situe ; ancrer R seule n'engagerait que R (CT-6 §16).
 
 1. **Registre.** Une transaction vers l'instance dédiée de noorcore appelle la
-   fonction `anchor` du contrat AttestationRegistry avec R comme empreinte, un type de
-   lot, l'adresse de l'enregistreur et sa signature. Le contrat émet l'événement
+   fonction `anchor` du contrat AttestationRegistry avec l'empreinte
+   keccak256(orgId ‖ journalId ‖ periodHash), un type de lot, l'adresse de
+   l'enregistreur et sa signature. Le contrat émet l'événement
    `Anchored` ; `lookup` rend l'enregistrement à quiconque interroge le RPC d'un
    validateur, et la méthode `noor_getCommitCertificate` rend le certificat de commit
    du bloc, signé par un quorum des validateurs, que le dossier emporte et que le
@@ -208,11 +215,12 @@ Chaque heure, la racine R reçoit trois ancres :
    et en numéro de séquence. Les clés d'enregistreur sont inscrites par organisation
    dans RecorderRegistry, sous signatures des approbateurs au seuil. Le registre donne l'ordre et la
    consultation, pas la preuve.
-2. **Horodatage qualifié.** Une requête RFC 3161 contenant SHA-256 de R et un nonce
+2. **Horodatage qualifié.** Une requête RFC 3161 contenant `periodHash` et un nonce
    part vers le prestataire reconnu. La réponse est un jeton CMS signé par lui, avec
    l'heure UTC, l'exactitude et son certificat. Il se vérifie avec
    `openssl ts -verify` contre la chaîne de certificats du prestataire, sans NOORTRACE.
-3. **Ancrage public.** `ots stamp` sur R produit un fichier `.ots`. Les calendriers
+3. **Ancrage public.** `ots stamp` sur le manifeste canonique préfixé, dont le
+   SHA-256 est `periodHash`, produit un fichier `.ots`. Les calendriers
    OpenTimestamps agrègent et inscrivent dans Bitcoin ; `ots upgrade` complète la
    preuve après confirmation. La vérification se fait avec les en-têtes de blocs
    Bitcoin, depuis un nœud ou une source d'en-têtes.
@@ -221,16 +229,26 @@ En option, un serveur RFC 3161 interne, non qualifié, contresigne la chaîne to
 minutes pour l'ordre fin entre deux ancres qualifiées. Il figure dans le dossier comme
 indice, étiqueté non qualifié, jamais comme preuve.
 
-Ce que les tiers voient : 32 octets par heure. Jamais un argument, jamais un document.
+Ce que les tiers voient : une empreinte de 32 octets par heure et par journal.
+Jamais un argument, jamais un document.
 
 ### Dossier et vérification
 
-Le dossier remis pour un événement contient : l'événement, ses deux voisins
-complets, dont les hachages se recalculent, le chemin de Merkle jusqu'à R, R et
-le manifeste de période, le jeton RFC 3161, la preuve `.ots`, le reçu de la transaction du registre avec le certificat
-de commit de son bloc et le jeu de validateurs de ce bloc, les événements
-d'approbation liés avec leurs signatures, et les clés publiques et certificats
-nécessaires. Un événement se prouve seul, sans révéler les autres.
+Le dossier remis pour un événement contient : l'événement, ses voisins
+complets (le précédent, sauf pour le premier événement du journal, et le
+suivant s'il était dans le journal au moment de l'export), dont les hachages
+se recalculent, le chemin de Merkle jusqu'à R, R et le manifeste de période,
+le jeton RFC 3161, la preuve `.ots`, les entrées du registre (inscription de
+la clé, ancre, clôture) avec l'en-tête et tous les reçus de leurs blocs, le
+certificat de commit de chaque bloc et le jeu de validateurs déclaré, les
+événements d'approbation liés avec leurs signatures, et les clés publiques et
+certificats nécessaires. Un événement se prouve seul, sans révéler d'autres
+événements que ses voisins et les décisions d'approbation liées. Le
+certificat de commit d'un bloc emporte toutefois les transactions brutes de
+tout ce bloc, qui ne se caviardent pas sans casser les signatures des
+validateurs : un dossier montre donc aussi les clôtures et les ancres d'autres
+organisations inscrites dans les mêmes blocs, c'est-à-dire leurs empreintes,
+leurs identifiants et leurs heures, jamais leurs événements (CT-6 §11.2).
 
 Le vérificateur, binaire autonome sans réseau, refait dans l'ordre :
 
@@ -238,18 +256,29 @@ Le vérificateur, binaire autonome sans réseau, refait dans l'ordre :
 2. continuité de la chaîne avec les voisins fournis ;
 3. recalcul du chemin de Merkle jusqu'à R ;
 4. signature du jeton RFC 3161 contre la chaîne de certificats du prestataire, et
-   égalité entre l'empreinte du jeton et SHA-256 de R ;
-5. preuve OpenTimestamps contre les en-têtes de blocs Bitcoin ;
+   égalité entre l'empreinte du jeton et `periodHash` ;
+5. preuve OpenTimestamps de `periodHash` contre des en-têtes de blocs Bitcoin dont
+   la preuve de travail se rattache à un point de contrôle choisi par le réviseur ;
 6. signature Ed25519 de l'enregistreur sur l'événement ;
 7. signatures des approbateurs et respect du seuil ;
-8. inclusion de la transaction du registre dans un bloc dont le certificat de commit
-   est signé par un quorum du jeu de validateurs fourni, et égalité entre le hachage
-   du bloc et celui du certificat.
+8. inclusion de la clôture de période et de l'ancre dans les reçus d'un bloc dont le
+   hachage, recalculé, engage la racine des reçus (le hachage de bloc de noorcore,
+   qui n'est pas celui d'Ethereum), et dont le certificat de commit
+   est signé par un quorum du jeu de validateurs que le réviseur fournit, jamais
+   celui du dossier.
 
-Sa sortie tient en une ligne : cet événement existait sous cette forme avant telle
-heure UTC selon tel prestataire, et avant tel bloc Bitcoin, il a été approuvé par
-les personnes nommées, et son ancre est dans un bloc que les validateurs nommés ont
-signé.
+Le dossier est déclaratif ; seules les ancres de confiance du réviseur (autorités
+d'horodatage, point de contrôle Bitcoin, registre et jeu de validateurs, clés
+d'enregistreur) font foi. Un contrôle dont une partie ou une ancre manque n'est
+pas exécuté, et le dit (CT-6 §6 et §7).
+
+Sa sortie tient en un énoncé qui n'affirme que ce qui a été prouvé. Quand les huit
+contrôles réussissent, il dit ceci. Cet événement existait sous cette forme au
+plus tard à telle heure UTC selon tel prestataire, et avant tel bloc Bitcoin. La
+décision qui lui est liée est une approbation ou un refus signé par les adresses
+nommées, au moins aussi nombreuses que le seuil que déclare le dossier, ou une
+demande expirée sans signature. Sa clôture de période est dans un bloc signé
+par un quorum du jeu de validateurs que le réviseur déclare.
 
 ## Ancrage et droit de la preuve
 
@@ -297,7 +326,7 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 ## Déploiement
 
 - Enregistreur et journal chez le client : sur site, dans son tenant cloud ou chez un
-  hébergeur suisse. Seules les racines de lots sortent.
+  hébergeur suisse. Seules les empreintes des manifestes de période sortent.
 - Prérequis réseau chez le client : les serveurs d'outils ne sont joignables que par
   le mandataire, et les appels à l'API du modèle passent par la passerelle de
   l'enregistreur, seule autorisée par le pare-feu à joindre les fournisseurs ; à
@@ -315,7 +344,7 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | L'agent contourne l'enregistreur | Pare-feu : seuls le mandataire MCP et la passerelle, ou le mandataire ICAP, joignent les outils et l'API du modèle ; ce qui ne traverse pas l'enregistreur n'est pas journalisé, et le dossier ne prétend pas le contraire |
 | L'opérateur réécrit l'historique après coup | Racines horodatées par un tiers qualifié : toute réécriture casse les preuves d'inclusion |
 | L'enregistreur lui-même est compromis | Clé selon la classe de garde, vérification de chaque signature, copies WORM, rotation d'urgence ; les ancres horaires bornent la fenêtre de réécriture ; contresignature interne à la minute en option |
-| Le fournisseur NOORTRACE triche ou disparaît | Vérification possible sans lui ; registre substituable ; format ouvert |
+| Le fournisseur NOORTRACE triche ou disparaît | Vérification hors ligne, sans son concours ; ce qu'il faut encore croire de lui est énoncé en CT-6 §3.4 et §7.8 ; registre substituable ; format ouvert |
 | Le fournisseur sert une histoire falsifiée par son RPC | Certificat de commit du bloc vérifié hors ligne contre le jeu de validateurs ; validateurs partenaires en production |
 | Manipulation de l'horloge | Temps issu du jeton d'horodatage qualifié, pas de l'hôte ; `ts` jamais décroissant, et un saut en avant mesuré contre l'horloge monotone bloque l'écrivain (CT-2 EX-7.13) |
 | Fuite de données via les empreintes | Seules des racines de Merkle sortent du périmètre du client ; rédaction avant hachage, jamais de hachage du clair |
@@ -324,14 +353,14 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 
 | Dépôt noorchain-core | Usage |
 |---|---|
-| `contracts/poss/AttestationRegistry.sol` | Registre des racines de lots : `anchor`, `lookup`, `isAnchored` |
+| `contracts/poss/AttestationRegistry.sol` | Registre des ancres de période : `anchor`, `lookup`, `isAnchored` |
 | `contracts/poss/CuratorSet.sol`, `CuratorSetRegistry.sol` | Jeux d'approbateurs par client, seuil, administration reprise par le client |
 | `contracts/poss/PoSSRegistry.sol` | Modèle de PeriodRegistry, dérivé sans le champ des paiements, avec continuité par journal ; dans `contracts/` |
 | `dapps/curators-hub` | Base de la console d'approbation et de revue, signature EIP-191, page de vérification |
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
 
-Écrit au 22 octobre 2026 :
+Écrit au 23 octobre 2026 :
 
 - la spécification CT-1 avec ses schémas, ses vecteurs, son implémentation de
   référence et son vérificateur Go indépendant ; le vérificateur de dossier ;
@@ -344,10 +373,16 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
   de déploiement et le parcours complet ;
 - la méthode RPC `noor_getCommitCertificate`, portée comme correctif sur noorcore,
   fourni hors dépôt public, déposé dans `chain/patches/` et appliqué à la
-  construction du binaire ; le vérificateur hors ligne des certificats de commit.
+  construction du binaire ; le vérificateur hors ligne des certificats de commit ;
+- la spécification CT-6 du vérificateur et ses schémas ; les contrôles 4, 5 et 8
+  en JavaScript dans le vérificateur de dossier, avec leurs vecteurs, recalculés
+  sans discordance par OpenSSL, la bibliothèque officielle d'OpenTimestamps et
+  go-ethereum.
+
+Au 23 octobre 2026, le VPS de développement porte la chaîne dédiée et les contrats.
 
 À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
-les approbations, les clients RFC 3161 et OpenTimestamps, la ligne de commande du
+les approbations, les clients RFC 3161 et OpenTimestamps, le binaire Go du
 vérificateur, la démonstration en une commande.
 
 ## Décisions ouvertes
@@ -365,8 +400,8 @@ vérificateur, la démonstration en une commande.
 4. Comportement du mandataire pendant une approbation : CT-2 fixe les deux modes,
    réponse retenue ou erreur avec ticket ; le choix et le cycle de vie du ticket
    relèvent de CT-3.
-5. Format d'export : close par CT-1, version 0 spécifiée avec ses vecteurs ; révision
-   prévue après les trois premiers entretiens de réviseurs, en version 1.
+5. Format d'export : close par CT-1, version 0 spécifiée avec ses vecteurs ; une
+   révision issue de la revue de la porte 1 ou du prototype produira une version 1.
 6. Identifiant de la chaîne de production et premiers validateurs partenaires, après le pilote.
 7. Mode observateur de noorcore : nœud non validateur qui rejoue les blocs et vérifie
    leurs certificats chez le client, pour une copie indépendante en lecture. Chantier

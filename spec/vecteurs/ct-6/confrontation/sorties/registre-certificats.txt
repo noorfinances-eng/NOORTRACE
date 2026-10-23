@@ -1,0 +1,169 @@
+# Transcription des commandes ci-dessous, lancées depuis la racine du dépôt ; certificat-commit.mjs imprime les chemins absolus (path.resolve) : le préfixe de la copie locale du dépôt y est retiré.
+$ node scripts/verify/certificat-commit.mjs spec/vecteurs/ct-6/registre/capture/certificat-16648.json --validateurs spec/vecteurs/ct-6/registre/capture/validators.json --chaine noortrace-2124-dev
+Vérification hors ligne d'un certificat de commit noorcore
+Source        : fichier spec/vecteurs/ct-6/registre/capture/certificat-16648.json
+Validateurs   : spec/vecteurs/ct-6/registre/capture/validators.json
+Certificat    : chaîne « noortrace-2124-dev », hauteur 16648, tour 0
+Bloc          : 0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2
+Jeu (hachage) : 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+Quorum        : 3 sur 4
+Contrôles :
+  [ok]    structure              chaîne « noortrace-2124-dev », hauteur 16648, tour 0, bloc 0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2, 3 ligne(s) de precommit
+  [ok]    jeu_validateurs        4 validateur(s) : v1, v2, v3, v4 ; quorum 3
+  [ok]    hachage_jeu            valsetHash 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 = hachage du jeu fourni
+  [ok]    chaine                 chaîne « noortrace-2124-dev » attendue
+  [ok]    proposition            signé par « v1 » (0x0405de9b275a…), digest 0xa67d30f9d85c50d1556d484d02797246301ac121112effd95464b1451e3d8680
+  [ok]    precommit 1            signé par « v4 » (0x042cc90013f7…), digest 0x3c274cca6d0fb7bea25af8f5ee19450f9bff3767cf0313ac7e786fa5b8fe0e82
+  [ok]    precommit 2            signé par « v1 » (0x0405de9b275a…), digest 0xb63a2c7933d0f63a73bc9d79dcb9dadf662e0f78c605c7815fbc25ed9881176c
+  [ok]    precommit 3            signé par « v3 » (0x040a9ee3f382…), digest 0xfe238328564a2726e31f45b6cafd39112366ab7152249d9ff2549d8ee52cd224
+  [ok]    signataires_distincts  3 signataire(s) distinct(s) : v1, v3, v4
+  [ok]    quorum                 3 signataire(s) distinct(s) valide(s) pour un quorum de 3 sur 4
+Signataires   : v1, v3, v4 ; proposant v1
+Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
+Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
+$ echo $?
+0
+$ node scripts/verify/certificat-commit.mjs spec/vecteurs/ct-6/registre/capture/certificat-16652.json --validateurs spec/vecteurs/ct-6/registre/capture/validators.json --chaine noortrace-2124-dev
+Vérification hors ligne d'un certificat de commit noorcore
+Source        : fichier spec/vecteurs/ct-6/registre/capture/certificat-16652.json
+Validateurs   : spec/vecteurs/ct-6/registre/capture/validators.json
+Certificat    : chaîne « noortrace-2124-dev », hauteur 16652, tour 0
+Bloc          : 0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d
+Jeu (hachage) : 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+Quorum        : 3 sur 4
+Contrôles :
+  [ok]    structure              chaîne « noortrace-2124-dev », hauteur 16652, tour 0, bloc 0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d, 3 ligne(s) de precommit
+  [ok]    jeu_validateurs        4 validateur(s) : v1, v2, v3, v4 ; quorum 3
+  [ok]    hachage_jeu            valsetHash 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 = hachage du jeu fourni
+  [ok]    chaine                 chaîne « noortrace-2124-dev » attendue
+  [ok]    proposition            signé par « v1 » (0x0405de9b275a…), digest 0x60fe7cd64ca2ab335f64c381a7e4945a6540113844a1b651569141d793cc3f09
+  [ok]    precommit 1            signé par « v4 » (0x042cc90013f7…), digest 0xc007650e5c7c88d763e31609b76bd869a18be021ee20edf8ba1eeb1dc70f665c
+  [ok]    precommit 2            signé par « v1 » (0x0405de9b275a…), digest 0x3400c82f72cbf4aa159dc127d66fd063580a26d7f0fab90f09db444c99dd6a93
+  [ok]    precommit 3            signé par « v3 » (0x040a9ee3f382…), digest 0x3b0c954fd76dcb86a4641f2d98d9502788c92f32d9d0fbbe7020b3ab891e2ba2
+  [ok]    signataires_distincts  3 signataire(s) distinct(s) : v1, v3, v4
+  [ok]    quorum                 3 signataire(s) distinct(s) valide(s) pour un quorum de 3 sur 4
+Signataires   : v1, v3, v4 ; proposant v1
+Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
+Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
+$ echo $?
+0
+$ node scripts/verify/certificat-commit.mjs spec/vecteurs/ct-6/registre/capture/certificat-16656.json --validateurs spec/vecteurs/ct-6/registre/capture/validators.json --chaine noortrace-2124-dev
+Vérification hors ligne d'un certificat de commit noorcore
+Source        : fichier spec/vecteurs/ct-6/registre/capture/certificat-16656.json
+Validateurs   : spec/vecteurs/ct-6/registre/capture/validators.json
+Certificat    : chaîne « noortrace-2124-dev », hauteur 16656, tour 0
+Bloc          : 0x6e907c1f5304e76ab5a4542959cc12fa94e589474830f8719e4e880b39468da8
+Jeu (hachage) : 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+Quorum        : 3 sur 4
+Contrôles :
+  [ok]    structure              chaîne « noortrace-2124-dev », hauteur 16656, tour 0, bloc 0x6e907c1f5304e76ab5a4542959cc12fa94e589474830f8719e4e880b39468da8, 3 ligne(s) de precommit
+  [ok]    jeu_validateurs        4 validateur(s) : v1, v2, v3, v4 ; quorum 3
+  [ok]    hachage_jeu            valsetHash 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 = hachage du jeu fourni
+  [ok]    chaine                 chaîne « noortrace-2124-dev » attendue
+  [ok]    proposition            signé par « v1 » (0x0405de9b275a…), digest 0xea47f36056307f09b820cc520232c4aedbe81350d811ff5f2a1be77797fc9ec8
+  [ok]    precommit 1            signé par « v4 » (0x042cc90013f7…), digest 0xc1747e20318bc100234f6cd3f05923b43f34dd0a90a25ef45cfaa4bc33c6bfda
+  [ok]    precommit 2            signé par « v1 » (0x0405de9b275a…), digest 0x87d224be64a6ed59fd061da8ead54ece9269da7f26aae03978c96ffd47764ccf
+  [ok]    precommit 3            signé par « v3 » (0x040a9ee3f382…), digest 0x9a10c2ac0d40cba329efe6430dcb4d577263a55ff79ef6f68c146584fbaf1489
+  [ok]    signataires_distincts  3 signataire(s) distinct(s) : v1, v3, v4
+  [ok]    quorum                 3 signataire(s) distinct(s) valide(s) pour un quorum de 3 sur 4
+Signataires   : v1, v3, v4 ; proposant v1
+Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
+Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
+$ echo $?
+0
+$ node scripts/verify/certificat-commit.mjs spec/vecteurs/ct-6/registre/capture/certificat-16660.json --validateurs spec/vecteurs/ct-6/registre/capture/validators.json --chaine noortrace-2124-dev
+Vérification hors ligne d'un certificat de commit noorcore
+Source        : fichier spec/vecteurs/ct-6/registre/capture/certificat-16660.json
+Validateurs   : spec/vecteurs/ct-6/registre/capture/validators.json
+Certificat    : chaîne « noortrace-2124-dev », hauteur 16660, tour 0
+Bloc          : 0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee
+Jeu (hachage) : 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+Quorum        : 3 sur 4
+Contrôles :
+  [ok]    structure              chaîne « noortrace-2124-dev », hauteur 16660, tour 0, bloc 0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee, 3 ligne(s) de precommit
+  [ok]    jeu_validateurs        4 validateur(s) : v1, v2, v3, v4 ; quorum 3
+  [ok]    hachage_jeu            valsetHash 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 = hachage du jeu fourni
+  [ok]    chaine                 chaîne « noortrace-2124-dev » attendue
+  [ok]    proposition            signé par « v1 » (0x0405de9b275a…), digest 0x1770ed45300890ea8050de580534376345b9e4e1360b9bdfdb99667855b984f4
+  [ok]    precommit 1            signé par « v4 » (0x042cc90013f7…), digest 0x5f9cb6523bbe563a5667b642a42393abb6c969f7960f1c94a592a072abdd4264
+  [ok]    precommit 2            signé par « v1 » (0x0405de9b275a…), digest 0x741af9b64732f96ea13f8ee91c597f7c90924f8c2c5ddcc89178d895c9398e77
+  [ok]    precommit 3            signé par « v3 » (0x040a9ee3f382…), digest 0x084d531226b2e6e01a949f3a894a15e89039499b21f155617aa78df61c17828f
+  [ok]    signataires_distincts  3 signataire(s) distinct(s) : v1, v3, v4
+  [ok]    quorum                 3 signataire(s) distinct(s) valide(s) pour un quorum de 3 sur 4
+Signataires   : v1, v3, v4 ; proposant v1
+Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
+Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
+$ echo $?
+0
+$ node scripts/verify/certificat-commit.mjs spec/vecteurs/ct-6/registre/capture/certificat-16664.json --validateurs spec/vecteurs/ct-6/registre/capture/validators.json --chaine noortrace-2124-dev
+Vérification hors ligne d'un certificat de commit noorcore
+Source        : fichier spec/vecteurs/ct-6/registre/capture/certificat-16664.json
+Validateurs   : spec/vecteurs/ct-6/registre/capture/validators.json
+Certificat    : chaîne « noortrace-2124-dev », hauteur 16664, tour 0
+Bloc          : 0x593377aa5a1e891d7c3d5aabaeb0915a52826eedd85b846e7570cef354538323
+Jeu (hachage) : 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+Quorum        : 3 sur 4
+Contrôles :
+  [ok]    structure              chaîne « noortrace-2124-dev », hauteur 16664, tour 0, bloc 0x593377aa5a1e891d7c3d5aabaeb0915a52826eedd85b846e7570cef354538323, 3 ligne(s) de precommit
+  [ok]    jeu_validateurs        4 validateur(s) : v1, v2, v3, v4 ; quorum 3
+  [ok]    hachage_jeu            valsetHash 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 = hachage du jeu fourni
+  [ok]    chaine                 chaîne « noortrace-2124-dev » attendue
+  [ok]    proposition            signé par « v1 » (0x0405de9b275a…), digest 0xc80a8a243075eeec422420559268f513084cf09c73b9fe79e991553eb7d0d1b0
+  [ok]    precommit 1            signé par « v4 » (0x042cc90013f7…), digest 0x788eab006a2bfd5ca18f44afabeebf045ccfda31c5e910ea2427796bf254d64e
+  [ok]    precommit 2            signé par « v1 » (0x0405de9b275a…), digest 0xfbba06dae997eba26046387760315dcec2520eb6b2bd5e2e37bef914832a19ed
+  [ok]    precommit 3            signé par « v3 » (0x040a9ee3f382…), digest 0x4b0056c68fe00585abc3a197354868c3b01b9a29e038bd5a5709153a2d1057d1
+  [ok]    signataires_distincts  3 signataire(s) distinct(s) : v1, v3, v4
+  [ok]    quorum                 3 signataire(s) distinct(s) valide(s) pour un quorum de 3 sur 4
+Signataires   : v1, v3, v4 ; proposant v1
+Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
+Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
+$ echo $?
+0
+$ node scripts/verify/certificat-commit.mjs spec/vecteurs/ct-6/registre/capture/certificat-16668.json --validateurs spec/vecteurs/ct-6/registre/capture/validators.json --chaine noortrace-2124-dev
+Vérification hors ligne d'un certificat de commit noorcore
+Source        : fichier spec/vecteurs/ct-6/registre/capture/certificat-16668.json
+Validateurs   : spec/vecteurs/ct-6/registre/capture/validators.json
+Certificat    : chaîne « noortrace-2124-dev », hauteur 16668, tour 0
+Bloc          : 0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e
+Jeu (hachage) : 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+Quorum        : 3 sur 4
+Contrôles :
+  [ok]    structure              chaîne « noortrace-2124-dev », hauteur 16668, tour 0, bloc 0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e, 3 ligne(s) de precommit
+  [ok]    jeu_validateurs        4 validateur(s) : v1, v2, v3, v4 ; quorum 3
+  [ok]    hachage_jeu            valsetHash 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 = hachage du jeu fourni
+  [ok]    chaine                 chaîne « noortrace-2124-dev » attendue
+  [ok]    proposition            signé par « v1 » (0x0405de9b275a…), digest 0x883035e87d85c1a3cd574dfdb5ba1c18d6b02d60187d5a07f55a3e1c8d84c693
+  [ok]    precommit 1            signé par « v4 » (0x042cc90013f7…), digest 0x2461f39725cce9a5163e1e22af3fbc6aad4662ae3f5a04c525e456d514c86f13
+  [ok]    precommit 2            signé par « v1 » (0x0405de9b275a…), digest 0x3f7c091c58c654340e160109979dbf3941fa997140d7f4eaef5d773d4cc8f4ab
+  [ok]    precommit 3            signé par « v3 » (0x040a9ee3f382…), digest 0x83605a8cdc0babb7a7e0ef5fab2b6b61dc8307a4138ba1ef7d4fb6d811f285c4
+  [ok]    signataires_distincts  3 signataire(s) distinct(s) : v1, v3, v4
+  [ok]    quorum                 3 signataire(s) distinct(s) valide(s) pour un quorum de 3 sur 4
+Signataires   : v1, v3, v4 ; proposant v1
+Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
+Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
+$ echo $?
+0
+$ node scripts/verify/certificat-commit.mjs spec/vecteurs/ct-6/registre/capture/certificat-16672.json --validateurs spec/vecteurs/ct-6/registre/capture/validators.json --chaine noortrace-2124-dev
+Vérification hors ligne d'un certificat de commit noorcore
+Source        : fichier spec/vecteurs/ct-6/registre/capture/certificat-16672.json
+Validateurs   : spec/vecteurs/ct-6/registre/capture/validators.json
+Certificat    : chaîne « noortrace-2124-dev », hauteur 16672, tour 0
+Bloc          : 0xc27d3fee203a5361fc5d5ef200a4326b9742288b108cd038ae5889012107058f
+Jeu (hachage) : 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+Quorum        : 3 sur 4
+Contrôles :
+  [ok]    structure              chaîne « noortrace-2124-dev », hauteur 16672, tour 0, bloc 0xc27d3fee203a5361fc5d5ef200a4326b9742288b108cd038ae5889012107058f, 3 ligne(s) de precommit
+  [ok]    jeu_validateurs        4 validateur(s) : v1, v2, v3, v4 ; quorum 3
+  [ok]    hachage_jeu            valsetHash 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 = hachage du jeu fourni
+  [ok]    chaine                 chaîne « noortrace-2124-dev » attendue
+  [ok]    proposition            signé par « v1 » (0x0405de9b275a…), digest 0xfd883a1bde7cc2ea62b83ae8dfbb812de00094e2f02b5b37e65c717fe672d3fe
+  [ok]    precommit 1            signé par « v4 » (0x042cc90013f7…), digest 0xd9199e9f98fb0a6f9fed790e9d746b0f97a551dd6c4be130f195d82fc61ba468
+  [ok]    precommit 2            signé par « v1 » (0x0405de9b275a…), digest 0x0559bb1e45ef6fb1787b1fb49fb90c10491437d9f890c561c1be9e95571da37c
+  [ok]    precommit 3            signé par « v3 » (0x040a9ee3f382…), digest 0x4b04c3f149f35c0838c1349b2af86b7927f56daa2d98f41e4f8e6856896a250c
+  [ok]    signataires_distincts  3 signataire(s) distinct(s) : v1, v3, v4
+  [ok]    quorum                 3 signataire(s) distinct(s) valide(s) pour un quorum de 3 sur 4
+Signataires   : v1, v3, v4 ; proposant v1
+Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
+Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
+$ echo $?
+0

@@ -1,0 +1,1746 @@
+{
+  "description": "Vecteurs CT-6 de la famille rfc3161 (spec/CT-6-verificateur.md, annexe A.3). Les statuts sont ceux de l'implémentation de référence (scripts/lib/horodatage.mjs) avec les seules parties d'horodatage des fichiers d'ancres de test (tsa_authorities, revocation).",
+  "keys": {
+    "derivation": "RSA 3072, e = 65537 ; p et q dérivés des étiquettes <graine>/p et <graine>/q par scripts/vecteurs/ct6/rfc3161.mjs (cleRsaDepuisGraine) ; SHA-256 des clés : PKCS #8 DER ; clés publiques, pour les tests seulement",
+    "seeds": {
+      "ac-test": "noortrace/vecteurs/v0/ct-6/rsa/ac-test",
+      "tsa-test": "noortrace/vecteurs/v0/ct-6/rsa/tsa-test"
+    },
+    "files": {
+      "cles/ac-test.cle.pem": "0x846bf8381fa673f28f26629421a8733cd342799de4c8d1c59396d98738ad6972",
+      "cles/tsa-test.cle.pem": "0x0333491f9adf0a25a7216499ede896b7e0d0b39ade81321eb69b12f17d13f10c",
+      "cles/ac-test.pem": "0x56ae2b379606d0aee499f5d790f35cc9a41ee6dbc63e511f5f2c5ac73399b568",
+      "cles/tsa-test.pem": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+      "cles/tsa-expiree.pem": "0xe1d773f9b29af5614c521969b98ffdcb3a484ec98e2f2ff843f001c637d89d3a",
+      "cles/tsa-eku-non-critique.pem": "0xe91135578a497e9f25f34c961e1b860e844f9a15bdf657e08e255c820699d002",
+      "cles/tsa-critique-faux.pem": "0x8bcda2d914e55fe43e07f96102b2ebfee03cba768c55f18dace7f295a3c93332",
+      "cles/tsa-cn-utf8-invalide.pem": "0xb3bed2e9b5a52e4a9423dc420194d2c1b0b090bb625fac40e14ed07d3200f597",
+      "cles/tsa-sans-cn.pem": "0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84"
+    }
+  },
+  "crls": {
+    "crl/crl-vide.pem": "0xa9e3e3154bb8c01d6df822865a1def8c074a41e3ee7124af473f56bb0be59d01",
+    "crl/crl-tsa-revoquee.pem": "0x5fb20e31c1c7b6c3497fc87094df8fdb15bd6883a54833a2ff93e81a4906b080"
+  },
+  "tokens": [
+    {
+      "file": "jetons/periode-1.der",
+      "sha256": "0xdbfb99a9cd7a6b022614b62957cd4f9e17a168a43efa7dee729503937af58d13",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": null,
+      "target": null,
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/periode-1.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK",
+        "source": "R1 F6.08"
+      }
+    },
+    {
+      "file": "jetons/periode-2.der",
+      "sha256": "0x79ae36a3821fdfe4d65bcb2a1781ee8667356a99d0f5e6c384ac92ea0545ec03",
+      "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+      "gen_time": "2026-11-05T11:00:05Z",
+      "serial_number": "0x02",
+      "alteration": null,
+      "target": null,
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/periode-2.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK",
+        "source": "R1 F6.08"
+      }
+    },
+    {
+      "file": "jetons/periode-3.der",
+      "sha256": "0x79ccf23495b5356dff57577e77d9e8fdf5ecdad48e99bbcdb9bb2163b1ffc6f0",
+      "period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+      "gen_time": "2026-11-05T12:00:05Z",
+      "serial_number": "0x03",
+      "alteration": null,
+      "target": null,
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/periode-3.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK",
+        "source": "R1 F6.08"
+      }
+    },
+    {
+      "file": "jetons/t1-octet-en-trop.der",
+      "sha256": "0x77a0e9496ccd1e967c868cc5a6232b5ba9cebe4ea97e382fa6914f135fdf7239",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "un octet 00 après le ContentInfo",
+      "target": "T-1",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t1-octet-en-trop.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK (l'octet qui suit le ContentInfo est ignoré ; openssl asn1parse relève « Error in encoding »)",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    },
+    {
+      "file": "jetons/t3-message-digest.der",
+      "sha256": "0x9dba5465d44dda53ead1722a24fcafb4811a814f0a49b2b24e3549df9dd31c89",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:06Z",
+      "serial_number": "0x01",
+      "alteration": "genTime avancé d'une seconde dans TSTInfo ; signedAttrs re-signés, à l'identique puisque message-digest, empreinte du TSTInfo d'origine, est inchangé",
+      "target": "T-3",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t3-message-digest.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "digest failure",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    },
+    {
+      "file": "jetons/t4-ess-autre-certificat.der",
+      "sha256": "0xa2fe0c8f5591523b6b53a046d5ccb061467fd19cfc6b12cb2bef7be6dd4ff044",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "certHash de ESSCertIDv2 = SHA-256 de ac-test.pem, re-signé",
+      "target": "T-4",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t4-ess-autre-certificat.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "ess cert id not found",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    },
+    {
+      "file": "jetons/t5-sha1.der",
+      "sha256": "0xfff90cf64db42bc9d6139dfe37ac1aa0e99ac28cc1de8d79c01125a8201e0494",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "digestAlgorithm SHA-1, message-digest SHA-1, signature sha1WithRSAEncryption",
+      "target": "T-5",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t5-sha1.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK (OpenSSL n'applique pas la table de EX-9.11)",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    },
+    {
+      "file": "jetons/t6-signature.der",
+      "sha256": "0xa36be096a4faacfe5cdaaf7f2687a013d72221763434aad926ee95debbf20eec",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "dernier octet de la signature inversé (xor ff)",
+      "target": "T-6",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t6-signature.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "invalid padding / signature failure",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    },
+    {
+      "file": "jetons/t7-tsa-expiree.der",
+      "sha256": "0x185b86e2785130a030e72a9cf1c7f03373770e6bce946212e175ec30c5023a7d",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "signé par la même clé, certificates = [tsa-expiree.pem]",
+      "target": "T-7",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t7-tsa-expiree.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "certificate has expired",
+        "source": "R1 F5.14"
+      }
+    },
+    {
+      "file": "jetons/t8-eku-non-critique.der",
+      "sha256": "0xa9bc9d1ed5b566627fa936be88fa199f367f47f9c78fa156205459bfe3643b3a",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "certificates = [tsa-eku-non-critique.pem]",
+      "target": "T-8",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t8-eku-non-critique.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "refus de l'extendedKeyUsage non critique",
+        "source": "R1 F5.12 (code lu)"
+      }
+    },
+    {
+      "file": "jetons/t9-extension-critique.der",
+      "sha256": "0xa34eb4fc9cdb6b323c29c5d2b531583641e10dcb5c9199f6d09f7d23d3c1914d",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "extension critique d'OID 1.3.6.1.4.1.99999.2 dans TSTInfo, re-signé",
+      "target": "T-9",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t9-extension-critique.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK (extension critique inconnue de TSTInfo non refusée)",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    },
+    {
+      "file": "jetons/t1-default-explicite.der",
+      "sha256": "0xd17544c5512de273fe4152d14502760b68f54447d23b88aa551a906dc7b11067",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "certificates = [tsa-critique-faux.pem] : extension subjectKeyIdentifier avec critical codé explicitement à FALSE (valeur DEFAULT encodée, EX-9.21)",
+      "target": "T-1",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t1-default-explicite.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK (critical FALSE encodé n'est pas refusé ; openssl asn1parse du certificat imprime « BOOLEAN :0 »)",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    },
+    {
+      "file": "jetons/t1-cn-utf8-invalide.der",
+      "sha256": "0xc5d96c9f3c0e7bc354cd23cfa98ff0e5c026343b264220d3c4d84588489a790a",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "certificates = [tsa-cn-utf8-invalide.pem] (CN en UTF8String d'octets ff fe, UTF-8 invalide), champ tsa absent : certificat illisible (EX-9.4)",
+      "target": "T-1",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t1-cn-utf8-invalide.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "invalid utf8string (le jeton n'est pas lu)",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    },
+    {
+      "file": "jetons/periode-1-unite-sans-cn.der",
+      "sha256": "0x9fbb5ea0074cb8d0d2ff3fea8c53d9df80ae57b4c82b18eca9f44d0f4cfe2551",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "gen_time": "2026-11-05T10:00:05Z",
+      "serial_number": "0x01",
+      "alteration": "certificates = [tsa-sans-cn.pem] (sujet sans commonName), tsa = son sujet : jeton valide, tsu_subject_cn nul, unité nommée par le SHA-256 de son certificat (EX-9.19, EX-9.20)",
+      "target": null,
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/periode-1-unite-sans-cn.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK",
+        "source": "relevé par la confrontation (A.8)"
+      }
+    }
+  ],
+  "openssl_ts_verify_other_period": {
+    "command": "openssl ts -verify -digest <periodHash de la période 1> -in jetons/periode-2.der -token_in -CAfile cles/ac-test.pem -attime <genTime>",
+    "presumed_result": "message imprint mismatch",
+    "source": "R1 F6.08"
+  },
+  "cases": [
+    {
+      "token": "jetons/periode-1.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [],
+      "facts": {
+        "authority": "AC de test CT-6",
+        "tsu_certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+        "tsu_subject_cn": "TSA de test CT-6",
+        "gen_time": "2026-11-05T10:00:05Z",
+        "accuracy": {
+          "seconds": 1,
+          "millis": null,
+          "micros": null
+        },
+        "upper_bound": "2026-11-05T10:00:06Z",
+        "policy": "1.3.6.1.4.1.99999.1.1",
+        "serial_number": "0x01",
+        "digest_algorithm": "sha256",
+        "signature_algorithm": "sha256WithRSAEncryption",
+        "key_bits": 3072,
+        "qualified_claim": false,
+        "qualified": null,
+        "revocation": [
+          {
+            "certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+            "evidence": "crl",
+            "issued_at": "2026-11-06T00:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "token": "jetons/periode-2.der",
+      "dossier_period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [],
+      "facts": {
+        "authority": "AC de test CT-6",
+        "tsu_certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+        "tsu_subject_cn": "TSA de test CT-6",
+        "gen_time": "2026-11-05T11:00:05Z",
+        "accuracy": {
+          "seconds": 1,
+          "millis": null,
+          "micros": null
+        },
+        "upper_bound": "2026-11-05T11:00:06Z",
+        "policy": "1.3.6.1.4.1.99999.1.1",
+        "serial_number": "0x02",
+        "digest_algorithm": "sha256",
+        "signature_algorithm": "sha256WithRSAEncryption",
+        "key_bits": 3072,
+        "qualified_claim": false,
+        "qualified": null,
+        "revocation": [
+          {
+            "certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+            "evidence": "crl",
+            "issued_at": "2026-11-06T00:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "token": "jetons/periode-3.der",
+      "dossier_period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [],
+      "facts": {
+        "authority": "AC de test CT-6",
+        "tsu_certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+        "tsu_subject_cn": "TSA de test CT-6",
+        "gen_time": "2026-11-05T12:00:05Z",
+        "accuracy": {
+          "seconds": 1,
+          "millis": null,
+          "micros": null
+        },
+        "upper_bound": "2026-11-05T12:00:06Z",
+        "policy": "1.3.6.1.4.1.99999.1.1",
+        "serial_number": "0x03",
+        "digest_algorithm": "sha256",
+        "signature_algorithm": "sha256WithRSAEncryption",
+        "key_bits": 3072,
+        "qualified_claim": false,
+        "qualified": null,
+        "revocation": [
+          {
+            "certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+            "evidence": "crl",
+            "issued_at": "2026-11-06T00:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "token": "jetons/periode-2.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [
+        "T-2"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/periode-1.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-tsa-revoquee.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [
+        "T-10"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/periode-1.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-qualification-declaree.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [],
+      "facts": {
+        "authority": "AC de test CT-6",
+        "tsu_certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+        "tsu_subject_cn": "TSA de test CT-6",
+        "gen_time": "2026-11-05T10:00:05Z",
+        "accuracy": {
+          "seconds": 1,
+          "millis": null,
+          "micros": null
+        },
+        "upper_bound": "2026-11-05T10:00:06Z",
+        "policy": "1.3.6.1.4.1.99999.1.1",
+        "serial_number": "0x01",
+        "digest_algorithm": "sha256",
+        "signature_algorithm": "sha256WithRSAEncryption",
+        "key_bits": 3072,
+        "qualified_claim": false,
+        "qualified": {
+          "framework": "eidas",
+          "source": "déclaration de test, sans valeur"
+        },
+        "revocation": [
+          {
+            "certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+            "evidence": "crl",
+            "issued_at": "2026-11-06T00:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "token": "jetons/periode-1.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-unite-epinglee-revoquee.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [
+        "T-10"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/periode-1.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-deux-autorites.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [],
+      "facts": {
+        "authority": "Unité TSA épinglée de test CT-6",
+        "tsu_certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+        "tsu_subject_cn": "TSA de test CT-6",
+        "gen_time": "2026-11-05T10:00:05Z",
+        "accuracy": {
+          "seconds": 1,
+          "millis": null,
+          "micros": null
+        },
+        "upper_bound": "2026-11-05T10:00:06Z",
+        "policy": "1.3.6.1.4.1.99999.1.1",
+        "serial_number": "0x01",
+        "digest_algorithm": "sha256",
+        "signature_algorithm": "sha256WithRSAEncryption",
+        "key_bits": 3072,
+        "qualified_claim": false,
+        "qualified": {
+          "framework": "eidas",
+          "source": "déclaration de test, sans valeur"
+        },
+        "revocation": []
+      }
+    },
+    {
+      "token": "jetons/periode-1-unite-sans-cn.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [],
+      "facts": {
+        "authority": "AC de test CT-6",
+        "tsu_certificate_sha256": "0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84",
+        "tsu_subject_cn": null,
+        "gen_time": "2026-11-05T10:00:05Z",
+        "accuracy": {
+          "seconds": 1,
+          "millis": null,
+          "micros": null
+        },
+        "upper_bound": "2026-11-05T10:00:06Z",
+        "policy": "1.3.6.1.4.1.99999.1.1",
+        "serial_number": "0x01",
+        "digest_algorithm": "sha256",
+        "signature_algorithm": "sha256WithRSAEncryption",
+        "key_bits": 3072,
+        "qualified_claim": false,
+        "qualified": null,
+        "revocation": [
+          {
+            "certificate_sha256": "0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84",
+            "evidence": "crl",
+            "issued_at": "2026-11-06T00:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "token": "jetons/periode-1.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": null,
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "non_execute",
+      "control_reason": "ancre_absente",
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t1-octet-en-trop.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-3",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-5",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-9",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-1"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t3-message-digest.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [
+        "T-3"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t4-ess-autre-certificat.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-9",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-4"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t5-sha1.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-5"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t6-signature.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-6"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t7-tsa-expiree.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-7"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t8-eku-non-critique.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [
+        "T-8"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t9-extension-critique.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-9"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t1-default-explicite.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-3",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-5",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-9",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-1"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "token": "jetons/t1-cn-utf8-invalide.der",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-3",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-5",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-9",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-1"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    }
+  ]
+}

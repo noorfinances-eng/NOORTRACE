@@ -1,0 +1,116 @@
+{
+  "version": 0,
+  "source": "réseau de développement noortrace-2124-dev, nœud v1, capture unique du 2026-10-22 (spec/vecteurs/ct-6/registre/capture, capture.json)",
+  "entries": [
+    {
+      "role": "inscription",
+      "block": {
+        "number": "0x410c",
+        "hash": "0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d",
+        "parentHash": "0x4f1b07b01bee5e31d9cb3cc66d6ce17fe956ad704db96dbfc7d8dfbcd8f2cc95",
+        "timestamp": "0x6ada8c39",
+        "stateRoot": "0x4f55e9844e878a34cb6cc1665195fd71548ad5cd604a5f9354382bbcb78b66b5",
+        "transactionsRoot": "0xca5b143496026a357d2b37bb14c9720a6e7af589c36e536cd14a6d7a96fb104d",
+        "receiptsRoot": "0x6f928b897911ec2d1317f55e0d9ec60f81b355b98acad2885b278f7f3f9ddcc1",
+        "gasUsed": "0x2a0f7",
+        "gasLimit": "0x1c9c380",
+        "baseFeePerGas": "0x1"
+      },
+      "receipts": [
+        {
+          "type": "0x2",
+          "status": "0x1",
+          "cumulativeGasUsed": "0x2a0f7",
+          "logs": [
+            {
+              "address": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+              "topics": [
+                "0xe29e846d78f0b22a87c669add67dec8daa3b0935e6f4c96d7f627a60e7ae44ec",
+                "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+                "0x000000000000000000000000510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+                "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164"
+              ],
+              "data": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+            }
+          ]
+        }
+      ],
+      "transaction_index": 0,
+      "log_index": 0,
+      "transaction_hash": "0x158850e1aae6d6a6eb7125387c581d580886135a7fafbe871e4185b66beea062"
+    },
+    {
+      "role": "ancre",
+      "block": {
+        "number": "0x4118",
+        "hash": "0x593377aa5a1e891d7c3d5aabaeb0915a52826eedd85b846e7570cef354538323",
+        "parentHash": "0x0738850f0844c6b0f76ed78c8a05b2cf74cfb78ad253dc2286a8c385f9d68bd5",
+        "timestamp": "0x6ada8c44",
+        "stateRoot": "0x8c1ebe15097c32b6a6523d32eed647692faa7e0d0c5efb4f00044de2eb7c5dbb",
+        "transactionsRoot": "0x8b58d1311af478e99a02f67e3b05234d1a3f96bcc649c864b1085c31e0d78974",
+        "receiptsRoot": "0xa30e3a290a5dc7b5745674908f0156acd491adf73511c09fbe451dd9d9d3b0a8",
+        "gasUsed": "0x17ac5",
+        "gasLimit": "0x1c9c380",
+        "baseFeePerGas": "0x1"
+      },
+      "receipts": [
+        {
+          "type": "0x2",
+          "status": "0x1",
+          "cumulativeGasUsed": "0x17ac5",
+          "logs": [
+            {
+              "address": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+              "topics": [
+                "0x4450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706e",
+                "0xb924b06ebd452df9db27c7c29305d5d1fd876bdedc1e8483a6088f006ca68ee5",
+                "0x000000000000000000000000510d7d0f5afbd9129abb1a899aff5f9246dd9c49"
+              ],
+              "data": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+            }
+          ]
+        }
+      ],
+      "transaction_index": 0,
+      "log_index": 0,
+      "transaction_hash": "0xb9bdfb0db9059c2fb4d4789e3fb28e2ee4bcf5fee0ff13cedfd96a2b79ffeb39"
+    },
+    {
+      "role": "cloture",
+      "block": {
+        "number": "0x4120",
+        "hash": "0xc27d3fee203a5361fc5d5ef200a4326b9742288b108cd038ae5889012107058f",
+        "parentHash": "0x63c8b08090c01692d16525c25049fa4be540eb0da7586453c9438b586ddc047d",
+        "timestamp": "0x6ada8c4b",
+        "stateRoot": "0x75bf4a32e395b7d0ebf0be8c8303cd5da164a7875fe58c17a5ca180af6978869",
+        "transactionsRoot": "0x7c6958d007b876b3492811ed49af3b5ea4882c0e675980c804d340e4dfeb2136",
+        "receiptsRoot": "0xfd2d267fcddcc3d09951eb9fd3a70397311a1f811f9b155ffff6f57ac1041128",
+        "gasUsed": "0x3925f",
+        "gasLimit": "0x1c9c380",
+        "baseFeePerGas": "0x1"
+      },
+      "receipts": [
+        {
+          "type": "0x2",
+          "status": "0x1",
+          "cumulativeGasUsed": "0x3925f",
+          "logs": [
+            {
+              "address": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+              "topics": [
+                "0x6d6cb8da98056d2abd84165b9f6d64d8097b1e28deaf23013228f6bdd5370fba",
+                "0x0000000000000000000000000000000000000000000000000000000000000006",
+                "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+                "0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+              ],
+              "data": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c51643cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26000000000000000000000000000000000000000000000000000000006aec53a0000000000000000000000000000000000000000000000000000000006aec61b0000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000006ada8c4b0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        }
+      ],
+      "transaction_index": 0,
+      "log_index": 0,
+      "transaction_hash": "0xbb53b23f5406a11c8d62fbb29a574ce04eca719dcc14f7118582e37278ac256f"
+    }
+  ]
+}

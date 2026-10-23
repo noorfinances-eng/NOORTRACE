@@ -1,0 +1,28 @@
+{
+  "version": 0,
+  "sets": [
+    {
+      "from_height": 1,
+      "to_height": null,
+      "validators": [
+        {
+          "id": "v1",
+          "pubKeyHex": "0x0438f303422e03a6018244ee66367501e6be461ac8a66df47eb4a4c15f0133c684317ed280d46f233631841ce6eaa746810a2c6578e3d7a38f41a424be5c5f5fc7"
+        },
+        {
+          "id": "v2",
+          "pubKeyHex": "0x04cc5873a12f7717ddf7333705b2bf654bdde40fd5c9953385ad08463a827030d017aaff20d3cd5cd261057b96488acb23cf207a1a87b8f3146007afee94a08d7d"
+        },
+        {
+          "id": "v3",
+          "pubKeyHex": "0x04165ab8b0d3423c022eb3cca45267f5e7119a6f793f8bdfd1ac1446c11d38ffc3e6384118e9a65bf50d46691cf3693ffe90459c9ed8fccc99c6835ce9251cc8b2"
+        },
+        {
+          "id": "v4",
+          "pubKeyHex": "0x04ffc18e32c86c47d9f7d2e6d3cefcf3dcd13209005636a113a973ba14c522b8585a557525778aff52111a430fd3befc266eaa2107fe186e7f401a268f2280c0ae"
+        }
+      ],
+      "source": "jeu substitué des vecteurs CT-6 (graines publiées), déclaré par l'exportateur"
+    }
+  ]
+}

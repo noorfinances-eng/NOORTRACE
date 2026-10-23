@@ -1,0 +1,79 @@
+{
+  "valid": false,
+  "target": "R-1",
+  "failed_checks": [
+    "R-1"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "echoue"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-2",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-3",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-4",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-5",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-6",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-7",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-8",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-9",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "R-10",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "N-4",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : R-1 ; vérification(s) non exécutée(s) sans raison admise : R-2, R-3, R-4, R-5, R-6, R-7, R-8, R-9, R-10, N-4 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): R-1; check(s) not run without an admitted reason: R-2, R-3, R-4, R-5, R-6, R-7, R-8, R-9, R-10, N-4; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "parties du registre de registre/variantes/invalide-r1-sans-ancre/ : entrée ancre retirée de registre.json."
+}

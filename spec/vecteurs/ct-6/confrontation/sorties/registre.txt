@@ -1,0 +1,319 @@
+$ registre-confrontation spec/vecteurs/ct-6/registre spec/vecteurs/ct-1    # binaire construit par go build depuis confrontation/registre (Go 1.26.9, go-ethereum v1.17.0, noorchain-core 618fcef), lancé depuis la racine du dépôt
+== 0. Constantes ==
+  [concordant] topics[0] de PeriodSubmitted (abi) = 0x6d6cb8da98056d2abd84165b9f6d64d8097b1e28deaf23013228f6bdd5370fba
+  [concordant] topics[0] de Anchored (abi) = 0x4450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706e
+  [concordant] topics[0] de RecorderRegistered (abi) = 0xe29e846d78f0b22a87c669add67dec8daa3b0935e6f4c96d7f627a60e7ae44ec
+== 1. Capture brute (capture/) contre attendu.json ==
+  [concordant] ValidatorSetHash(validators.json) = 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+bloc 16648 (inscription, 0x932ae471728698ae648a109858081ccfadbf20e472bd85cdc47115550dc85158)
+  [concordant] node.BFTBlockHash = 0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2 = hash servi = attendu
+  [concordant] keccak256(préimage attendue de 212 octets) = BFTBlockHash
+  [concordant] DeriveSha(1 reçu(s)) = 0xb3c82c3469e6e3a68d778f93f268c0377668012108f4bae1936e2804f161f8ef = receiptsRoot servi = attendu
+  [concordant] encodage de consensus du reçu 0 (EncodeIndex) = attendu
+  [concordant] RecorderRegistered décodé par l'ABI = événement attendu (6 champs)
+  [concordant] certificat : proposition et 3 precommits valides (VerifyEnvelope), quorum 3 sur 4, blockHash = BFTBlockHash (err=<nil>)
+  [concordant] proposant v1, signataires v4,v1,v3 = attendu
+bloc 16652 (inscription, 0x158850e1aae6d6a6eb7125387c581d580886135a7fafbe871e4185b66beea062)
+  [concordant] node.BFTBlockHash = 0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d = hash servi = attendu
+  [concordant] keccak256(préimage attendue de 212 octets) = BFTBlockHash
+  [concordant] DeriveSha(1 reçu(s)) = 0x6f928b897911ec2d1317f55e0d9ec60f81b355b98acad2885b278f7f3f9ddcc1 = receiptsRoot servi = attendu
+  [concordant] encodage de consensus du reçu 0 (EncodeIndex) = attendu
+  [concordant] RecorderRegistered décodé par l'ABI = événement attendu (6 champs)
+  [concordant] certificat : proposition et 3 precommits valides (VerifyEnvelope), quorum 3 sur 4, blockHash = BFTBlockHash (err=<nil>)
+  [concordant] proposant v1, signataires v4,v1,v3 = attendu
+bloc 16656 (inscription, 0x3a55a9dc62d6d587a0cf6c231c5586bc323a2190a1ac27bb646c33f66825c2b2)
+  [concordant] node.BFTBlockHash = 0x6e907c1f5304e76ab5a4542959cc12fa94e589474830f8719e4e880b39468da8 = hash servi = attendu
+  [concordant] keccak256(préimage attendue de 212 octets) = BFTBlockHash
+  [concordant] DeriveSha(1 reçu(s)) = 0xda74d270a7274ccb6826937b9b43c9e376a918730b712622b08e55a66c61455e = receiptsRoot servi = attendu
+  [concordant] encodage de consensus du reçu 0 (EncodeIndex) = attendu
+  [concordant] RecorderRegistered décodé par l'ABI = événement attendu (6 champs)
+  [concordant] certificat : proposition et 3 precommits valides (VerifyEnvelope), quorum 3 sur 4, blockHash = BFTBlockHash (err=<nil>)
+  [concordant] proposant v1, signataires v4,v1,v3 = attendu
+bloc 16660 (ancre, 0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779)
+  [concordant] node.BFTBlockHash = 0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee = hash servi = attendu
+  [concordant] keccak256(préimage attendue de 212 octets) = BFTBlockHash
+  [concordant] DeriveSha(1 reçu(s)) = 0x3e8c30f8511077b2a5388f6f551c496dd5e5b9f22634d440aa58be73c6fb5638 = receiptsRoot servi = attendu
+  [concordant] encodage de consensus du reçu 0 (EncodeIndex) = attendu
+  [concordant] Anchored décodé par l'ABI = événement attendu (4 champs)
+  [concordant] certificat : proposition et 3 precommits valides (VerifyEnvelope), quorum 3 sur 4, blockHash = BFTBlockHash (err=<nil>)
+  [concordant] proposant v1, signataires v4,v1,v3 = attendu
+bloc 16664 (ancre, 0xb9bdfb0db9059c2fb4d4789e3fb28e2ee4bcf5fee0ff13cedfd96a2b79ffeb39)
+  [concordant] node.BFTBlockHash = 0x593377aa5a1e891d7c3d5aabaeb0915a52826eedd85b846e7570cef354538323 = hash servi = attendu
+  [concordant] keccak256(préimage attendue de 212 octets) = BFTBlockHash
+  [concordant] DeriveSha(1 reçu(s)) = 0xa30e3a290a5dc7b5745674908f0156acd491adf73511c09fbe451dd9d9d3b0a8 = receiptsRoot servi = attendu
+  [concordant] encodage de consensus du reçu 0 (EncodeIndex) = attendu
+  [concordant] Anchored décodé par l'ABI = événement attendu (4 champs)
+  [concordant] certificat : proposition et 3 precommits valides (VerifyEnvelope), quorum 3 sur 4, blockHash = BFTBlockHash (err=<nil>)
+  [concordant] proposant v1, signataires v4,v1,v3 = attendu
+bloc 16668 (cloture, 0xd9fb0d69567fa4f5ecbf51179198fa02f30524a3275678405cfc11307374bbc0)
+  [concordant] node.BFTBlockHash = 0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e = hash servi = attendu
+  [concordant] keccak256(préimage attendue de 212 octets) = BFTBlockHash
+  [concordant] DeriveSha(1 reçu(s)) = 0x50fb8e0b920bd3ba439d52978a8488884a223593c1a778715a1eec5a99b5059c = receiptsRoot servi = attendu
+  [concordant] encodage de consensus du reçu 0 (EncodeIndex) = attendu
+  [concordant] PeriodSubmitted décodé par l'ABI = événement attendu (14 champs)
+  [concordant] certificat : proposition et 3 precommits valides (VerifyEnvelope), quorum 3 sur 4, blockHash = BFTBlockHash (err=<nil>)
+  [concordant] proposant v1, signataires v4,v1,v3 = attendu
+bloc 16672 (cloture, 0xbb53b23f5406a11c8d62fbb29a574ce04eca719dcc14f7118582e37278ac256f)
+  [concordant] node.BFTBlockHash = 0xc27d3fee203a5361fc5d5ef200a4326b9742288b108cd038ae5889012107058f = hash servi = attendu
+  [concordant] keccak256(préimage attendue de 212 octets) = BFTBlockHash
+  [concordant] DeriveSha(1 reçu(s)) = 0xfd2d267fcddcc3d09951eb9fd3a70397311a1f811f9b155ffff6f57ac1041128 = receiptsRoot servi = attendu
+  [concordant] encodage de consensus du reçu 0 (EncodeIndex) = attendu
+  [concordant] PeriodSubmitted décodé par l'ABI = événement attendu (14 champs)
+  [concordant] certificat : proposition et 3 precommits valides (VerifyEnvelope), quorum 3 sur 4, blockHash = BFTBlockHash (err=<nil>)
+  [concordant] proposant v1, signataires v4,v1,v3 = attendu
+== 2. trie.json ==
+  [concordant] DeriveSha de 1 reçus synthétiques = 0x642cd2bcdba228efb3996bf53981250d3608289522b80754c4e3c085c93c806f
+  [concordant] DeriveSha de 2 reçus synthétiques = 0xd57614bff363717aada151d9075e9a853dbad1a46527587b05daa4bcaba724cc
+  [concordant] DeriveSha de 3 reçus synthétiques = 0xdcb948663bf9daceed28a4e22b62d72c9d9caf47a952df58e2d503403847137b
+  [concordant] DeriveSha de 16 reçus synthétiques = 0x927fb89a25eeb551bf3d1e5648fe5cebf82fdd74b899fbde97985ec5873efed8
+  [concordant] DeriveSha de 17 reçus synthétiques = 0x86e138dfdb8d3c89faffa0824ea2c38574ab5e18b7cb78565a3e350e56ea96a8
+  [concordant] DeriveSha de 130 reçus synthétiques = 0xf0fec064bd0b470b6d83a43ac43c505d07f6cefa102867569f42f874e220a32e
+  [concordant] StackTrie de 1 couples génériques = 0xc2b21283473e90e72d27ee2210e04f73f966e10ce630d1d4ef2624768c78f0b8
+  [concordant] StackTrie de 2 couples génériques = 0xacf84e9884e41678bee3ebe7aca89f9e2ff3ab0408b283071be41f7bc7c12626
+  [concordant] StackTrie de 3 couples génériques = 0x0014a919860c36700101a0fc5e97d4694ff48c7c09e93bb61a72f321566de7de
+  [concordant] StackTrie de 20 couples génériques = 0x0e3ad015649093b7d3427a13450dcb2ce018afdf1350645e4febfc1f06ff0474
+  [concordant] StackTrie de 200 couples génériques = 0x7b4f5d9fe8c9a57a733d0efed71f772009c98522f6497ecd14c4ab4e4984abde
+  [concordant] racine vide = types.EmptyReceiptsHash 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421
+  [concordant] clé RLP(0) = 0x80
+== 3. Jeux de parties et variantes : R-1 à R-10 et N-4 refaites en Go ==
+periode-1, ancres-test.json
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+periode-2, ancres-test.json
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+periode-1, sans fichier d'ancres
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = non_execute attendu = non_execute:ancre_absente
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = non_execute attendu = non_execute:ancre_absente
+  [concordant] R-5  go = non_execute attendu = non_execute:ancre_absente
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = non_execute attendu = non_execute:ancre_absente
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+periode-1, ancres-sans-enregistreurs.json
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+periode-1, validateurs.json absent
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = non_execute attendu = non_execute:partie_absente
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-r1-sans-ancre
+  [concordant] R-1  go = echoue      attendu = echoue
+  [concordant] R-2  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-3  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-4  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-5  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-6  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-7  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-8  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-9  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-10 go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] N-4  go = non_execute attendu = non_execute:prerequis_en_echec
+invalide-r2-jeu-substitue
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = echoue      attendu = echoue
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = non_execute attendu = non_execute:prerequis_en_echec
+invalide-r3-validateurs-declares
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = echoue      attendu = echoue
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-r4-autre-chaine
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = echoue      attendu = echoue
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-r5-quorum
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = echoue      attendu = echoue
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-r6-entete-modifie
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = echoue      attendu = echoue
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-9  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-r7-recu-falsifie
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = echoue      attendu = echoue
+  [concordant] R-8  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-9  go = non_execute attendu = non_execute:prerequis_en_echec
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-r8-autre-contrat
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = echoue      attendu = echoue
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-r9-cloture-autre-periode
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = echoue      attendu = echoue
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-r10-inscription-cle-inconnue
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = echoue      attendu = echoue
+  [concordant] N-4  go = reussi      attendu = reussi
+invalide-n4-cle-chaine
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = echoue      attendu = echoue
+valide-sans-inscription
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = non_execute attendu = non_execute:partie_absente
+  [concordant] N-4  go = reussi      attendu = reussi
+valide-provenance-mixte
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+valide-deux-jeux
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+valide-ligne-non-canonique
+  [concordant] R-1  go = reussi      attendu = reussi
+  [concordant] R-2  go = reussi      attendu = reussi
+  [concordant] R-3  go = reussi      attendu = reussi
+  [concordant] R-4  go = reussi      attendu = reussi
+  [concordant] R-5  go = reussi      attendu = reussi
+  [concordant] R-6  go = reussi      attendu = reussi
+  [concordant] R-7  go = reussi      attendu = reussi
+  [concordant] R-8  go = reussi      attendu = reussi
+  [concordant] R-9  go = reussi      attendu = reussi
+  [concordant] R-10 go = reussi      attendu = reussi
+  [concordant] N-4  go = reussi      attendu = reussi
+
+concordances : 283, écarts : 0
+$ echo $?
+0

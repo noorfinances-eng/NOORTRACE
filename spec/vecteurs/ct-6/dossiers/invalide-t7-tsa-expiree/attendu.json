@@ -1,0 +1,43 @@
+{
+  "valid": false,
+  "target": "T-7",
+  "failed_checks": [
+    "T-7"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "echoue",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-10",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-11",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : T-7 ; vérification(s) non exécutée(s) sans raison admise : T-10, T-11 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): T-7; check(s) not run without an admitted reason: T-10, T-11; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "jeton-rfc3161.der = rfc3161/jetons/t7-tsa-expiree.der : certificat de la TSA expiré à genTime."
+}

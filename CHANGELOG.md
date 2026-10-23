@@ -6,6 +6,36 @@ is tagged.
 
 ## Unreleased
 
+- CT-6, the verifier, version 0.1: trust model (the evidence folder is
+  declarative, only the reviewer's trust anchors are trusted), the eight checks
+  with numbered verifications (T- for RFC 3161, O- for OpenTimestamps, R- for the
+  registry, N- for anchors, V- for verdicts), verdicts and the one-sentence
+  statement that asserts only what was proven, what each verdict proves and does
+  not prove, human and JSON output, reproducible network-free Go build of the
+  future binary, requirements on CT-4 and CT-5. The three anchors now bind the
+  period manifest hash (`periodHash`), which commits to the Merkle root.
+- Schemas: `rapport-verification-v0`, `ancres-confiance-v0`,
+  `entetes-bitcoin-v0`, `registre-v0`, `validateurs-v0`.
+- Verifier (`scripts/verify/dossier.mjs`): checks 4, 5 and 8 implemented in
+  JavaScript (`scripts/lib/horodatage.mjs`, `ots.mjs`, `registre.mjs`,
+  `verificateur.mjs`); new options `--ancres`, `--entetes-bitcoin`, `--pieces`,
+  `--second-manifeste`, `--exiger`, `--langue`, `--detail`; new exit code 3
+  (required check not executed).
+- Breaking: the `--json` output of `scripts/verify/dossier.mjs` now follows the
+  `rapport-verification-v0` schema (`valide` becomes `verdict`,
+  `controlesEnEchec` becomes `failed_checks`, `nonExecutesBloquants` becomes
+  `blocking_unexecuted`, `controles` becomes `checks`, `evenement` becomes
+  `event`). Exit codes and failed checks of the 40 CT-1 folders are unchanged.
+- CT-6 test vectors: RFC 3161 tokens from a test authority, OpenTimestamps proofs
+  on a synthetic Bitcoin header chain, registry data captured once on the
+  development network, 50 complete evidence folders, 12 trust-anchor files;
+  recomputed without discrepancy by OpenSSL 3.0.13, python-opentimestamps 0.4.5
+  and go-ethereum v1.17.0 with the noorcore block hash.
+- Continuous integration: deterministic regeneration of the CT-6 vectors and a
+  third-party confrontation job (OpenSSL, python-opentimestamps).
+- Text only: CT-1 §14 (decision 5) and `ARCHITECTURE.md` (open decision 5) no
+  longer tie a revision of the export format to reviewer interviews; a revision
+  from the gate 1 review or from the prototype produces version 1.
 - CT-2, the recorder, version 0.2: MCP proxy (tool aggregation, `tools/call`
   relayed byte by byte over stdio and Streamable HTTP, no token passthrough),
   model API gateway as the nominal capture mode with ICAP and passive mirroring

@@ -1,0 +1,325 @@
+{
+  "version": 0,
+  "certificates": [
+    {
+      "height": "0x4108",
+      "round": "0x0",
+      "chainId": "noortrace-2124-dev",
+      "valsetHash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "blockHash": "0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2",
+      "canonical": {
+        "blockHash": "0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2",
+        "matchesCertificate": true
+      },
+      "proposal": {
+        "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PROPOSAL\",\"validatorId\":\"v1\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16648,\"round\":0,\"blockHash\":\"c/W5mA1kziuMY9INNZAoHPCe7IapgP5Ck+ykFX/MLaI=\",\"bodyHash\":\"bZQ/L+990kRCJshFQ4+hhSrVZ8vTiQcg2z5rqsTjncU=\",\"body\":{\"height\":16648,\"round\":0,\"proposer\":\"v1\",\"blockHash\":\"0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2\",\"parentHash\":\"0xe827d963665c436ab12e2d1483bbcbe5fe51bb4b369a9368f466cb7b8f64b57f\",\"timestamp\":1792707638,\"stateRoot\":\"0x1383d31aaffe689ad5eaf7b30a133f2c308a96fa5ad7567f23322a98b321d18b\",\"receiptsRoot\":\"0xb3c82c3469e6e3a68d778f93f268c0377668012108f4bae1936e2804f161f8ef\",\"txRoot\":\"0x8af260f7974b8a328d63598faf07205b1e6e660bd4c8da9609863908aa57de0a\",\"gasUsed\":189229,\"gasLimit\":30000000,\"baseFeeHex\":\"0x1\",\"txsRaw\":[\"AvkB64IITG0BA4MtxsCUvsSfoUCsqoNTP7AKK7Gb3dApDyWAuQGEmC+WLqWBu3iHGihvXki3JDOkRAwEMD22EDh+h31zDdsDZtqrQcJANm2ZPg8qQDH3F38myzOmj4dlK1Hgl53YY/IcUWQAAAAAAAAAAAAAAACqKlllY2E1LpbvLu01Uxbviynat+IRb9zn8n/yCJcbbIIflpGkqaKbxAciTq8MS2DBF0BFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbbp8ZtlQ+DxySe4appBkEsE5xcflN7NjbPhyAoKFCGNdMQPWsshJ9fZlG45MXI62NipSvk4R7XDWgRmFew4v1EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcJXHLln3wGRME8/Ur2qC7mdFNac8gzZgIJM2oFy2gb/xbAohC8giOPKPeD85GFihvYdSfl+uQiyf7Ca5zJgUWE8ABoJXSRg8uVCnLnfCAE0Up4bsdkuamPw6ZIhQa6Qo1W3l5oCDJ/0ha/MYSUztbAyV9fhwdWmag4xTOHmNrTjm5ySGd\"]},\"sig\":\"5q9UucG95bqSBVhrKaHIYvyPzPwxGg6V6ToYg5p3Q34fc2mh0fUnbNPGtrnPdL6I4/vjdvZuSqVl1aFPg2Ds9gA=\"}",
+        "validatorId": "v1",
+        "bodyHash": "0x6d943f2fef7dd2444226c845438fa1852ad567cbd3890720db3e6baac4e39dc5",
+        "sig": "0xe6af54b9c1bde5ba9205586b29a1c862fc8fccfc311a0e95e93a18839a77437e1f7369a1d1f5276cd3c6b6b9cf74be88e3fbe376f66e4aa565d5a14f8360ecf600"
+      },
+      "precommits": [
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v4\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16648,\"round\":0,\"blockHash\":\"c/W5mA1kziuMY9INNZAoHPCe7IapgP5Ck+ykFX/MLaI=\",\"bodyHash\":\"px46mmdIoV+sf+5w8n7+eaDBm+KB22v0opc35nuFNIQ=\",\"body\":{\"Height\":16648,\"Round\":0,\"Voter\":\"v4\",\"Type\":2,\"BlockHash\":\"0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2\",\"Sig\":null},\"sig\":\"EKe7WNn4q184KB21Jyzndh9GIv1IhZWfkdIyGc5TMVEL8ldnK1xf/NrINj1FjXyRNvioFPvY4UQJtfoDNGKL5QA=\"}",
+          "validatorId": "v4",
+          "height": "0x4108",
+          "round": "0x0",
+          "blockHash": "0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2",
+          "bodyHash": "0xa71e3a9a6748a15fac7fee70f27efe79a0c19be281db6bf4a29737e67b853484",
+          "sig": "0x10a7bb58d9f8ab5f38281db5272ce7761f4622fd4885959f91d23219ce5331510bf257672b5c5ffcdac8363d458d7c9136f8a814fbd8e14409b5fa0334628be500"
+        },
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v1\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16648,\"round\":0,\"blockHash\":\"c/W5mA1kziuMY9INNZAoHPCe7IapgP5Ck+ykFX/MLaI=\",\"bodyHash\":\"yvyJ6Y+2vrh9cP3bgeXMv//SyPUraRIN543YJLSwxXI=\",\"body\":{\"Height\":16648,\"Round\":0,\"Voter\":\"v1\",\"Type\":2,\"BlockHash\":\"0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2\",\"Sig\":null},\"sig\":\"/LHnTpUDU7qo6CbnhLOemOwBV/JHPqY2RdNL5zQdrHZHMZ9x1OEwSP/+t/46tqH3VlWAm/zgOj9E+mj17ap+eQA=\"}",
+          "validatorId": "v1",
+          "height": "0x4108",
+          "round": "0x0",
+          "blockHash": "0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2",
+          "bodyHash": "0xcafc89e98fb6beb87d70fddb81e5ccbfffd2c8f52b69120de78dd824b4b0c572",
+          "sig": "0xfcb1e74e950353baa8e826e784b39e98ec0157f2473ea63645d34be7341dac7647319f71d4e13048fffeb7fe3ab6a1f75655809bfce03a3f44fa68f5edaa7e7900"
+        },
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v3\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16648,\"round\":0,\"blockHash\":\"c/W5mA1kziuMY9INNZAoHPCe7IapgP5Ck+ykFX/MLaI=\",\"bodyHash\":\"hhQCcGLA+g88IF9F690+pPdNbI/Mq/pTK3C81e6VjyY=\",\"body\":{\"Height\":16648,\"Round\":0,\"Voter\":\"v3\",\"Type\":2,\"BlockHash\":\"0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2\",\"Sig\":null},\"sig\":\"xQJ6WgQWDWGDmVj3riVDOnlnRgnGOO16GtHozS3JejQybidCwVuqwiLrJZ+AsZDj2Clq2jbCtvkqmr4X7UYf5gA=\"}",
+          "validatorId": "v3",
+          "height": "0x4108",
+          "round": "0x0",
+          "blockHash": "0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2",
+          "bodyHash": "0x8614027062c0fa0f3c205f45ebdd3ea4f74d6c8fccabfa532b70bcd5ee958f26",
+          "sig": "0xc5027a5a04160d61839958f7ae25433a79674609c638ed7a1ad1e8cd2dc97a34326e2742c15baac222eb259f80b190e3d8296ada36c2b6f92a9abe17ed461fe600"
+        }
+      ],
+      "quorum": {
+        "validators": 4,
+        "required": 3,
+        "precommits": 3
+      },
+      "validatorSet": [
+        {
+          "id": "v1",
+          "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+        },
+        {
+          "id": "v2",
+          "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+        },
+        {
+          "id": "v3",
+          "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+        },
+        {
+          "id": "v4",
+          "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+        }
+      ],
+      "validatorSetHash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "validatorSetMatchesCertificate": true,
+      "signing": {
+        "domain": "noor/v1/bft",
+        "digestPrefix": "noor/v1/bft-sign|",
+        "scheme": "digest = sha256(digestPrefix || LP(domain) || LP(chainId) || LP(type) || LP(validatorId) || valsetHash[32] || u64be(height) || u64be(round) || blockHash[32] || bodyHash[32]), where LP(x) = 4-byte big-endian length of x followed by x, bodyHash = sha256(body), and blockHash is 32 zero bytes when the envelope has none; sig is a 65-byte secp256k1 signature [R||S||V] over the digest with low-S enforced; the recovered public key (65 bytes, 0x04||X||Y) must equal the pubKeyHex of validatorSet[validatorId] brought to the same uncompressed form (pubKeyHex is served as configured: 65 bytes 0x04||X||Y, 64 bytes X||Y to be prefixed with 0x04, or 33 bytes compressed to be decompressed); valsetHash = sha256(\"noor/v1/valsethash|\" || for each validator in ascending id order: id || 0x00 || pubKeyBytes || 0x00) over the pubKeyHex bytes exactly as configured, without normalization"
+      },
+      "retention": {
+        "heights": 300000,
+        "pruned": false
+      }
+    },
+    {
+      "height": "0x410c",
+      "round": "0x0",
+      "chainId": "noortrace-2124-dev",
+      "valsetHash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "blockHash": "0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d",
+      "canonical": {
+        "blockHash": "0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d",
+        "matchesCertificate": true
+      },
+      "proposal": {
+        "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PROPOSAL\",\"validatorId\":\"v1\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16652,\"round\":0,\"blockHash\":\"c0g/Ix8SIG83PXAgGwvhLsVhDxTr93RaZOLhnBj38n0=\",\"bodyHash\":\"0krvzBkZYrTKnBe7/P+qVrApB88IVt5Fj4Zf3EJvMCg=\",\"body\":{\"height\":16652,\"round\":0,\"proposer\":\"v1\",\"blockHash\":\"0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d\",\"parentHash\":\"0x4f1b07b01bee5e31d9cb3cc66d6ce17fe956ad704db96dbfc7d8dfbcd8f2cc95\",\"timestamp\":1792707641,\"stateRoot\":\"0x4f55e9844e878a34cb6cc1665195fd71548ad5cd604a5f9354382bbcb78b66b5\",\"receiptsRoot\":\"0x6f928b897911ec2d1317f55e0d9ec60f81b355b98acad2885b278f7f3f9ddcc1\",\"txRoot\":\"0xca5b143496026a357d2b37bb14c9720a6e7af589c36e536cd14a6d7a96fb104d\",\"gasUsed\":172279,\"gasLimit\":30000000,\"baseFeeHex\":\"0x1\",\"txsRaw\":[\"AvkB64IITG4BA4MtxsCUvsSfoUCsqoNTP7AKK7Gb3dApDyWAuQGEmC+WLqWBu3iHGihvXki3JDOkRAwEMD22EDh+h31zDdsDZtqrQcJANm2ZPg8qQDH3F38myzOmj4dlK1Hgl53YY/IcUWQAAAAAAAAAAAAAAABRDX0PWvvZEpq7Goma/1+SRt2cSf0IdX+keYw8h1e79aDbSVgMvLgAdd2zDxP4gbD0eqyzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcEhDRNlh1+79QQoymSWXKflkJnZzDZIGyIf4O09bP44w+9/S8iYVJGE4esIdUi4fwJG/HNy7NMxmxwykw6t3J/QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcSZiGEpHZOzBXeMeQcIZyywPENu0SCbiOzeknaph0J5YKZK6Y5SRpLDT+4QxkTMaQk63uW3R8rqsN0Q+ILzYxrMABoK47SKadJca+QKZVDFlRYrFEy0kFqtFVCHJOcvNmkTFeoAR3YjqjDKINMhX/fVy1eZ0qpaXKLD01F/JUmxMFbYTr\"]},\"sig\":\"vUmp+W5+RZpwwdOXENQdN8xKAl5cqjklW+Evvx2IUk0NKIA/GR14LMFMaaYfS2U/4lTizLXqUs9M60Sz0af9EwA=\"}",
+        "validatorId": "v1",
+        "bodyHash": "0xd24aefcc191962b4ca9c17bbfcffaa56b02907cf0856de458f865fdc426f3028",
+        "sig": "0xbd49a9f96e7e459a70c1d39710d41d37cc4a025e5caa39255be12fbf1d88524d0d28803f191d782cc14c69a61f4b653fe254e2ccb5ea52cf4ceb44b3d1a7fd1300"
+      },
+      "precommits": [
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v4\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16652,\"round\":0,\"blockHash\":\"c0g/Ix8SIG83PXAgGwvhLsVhDxTr93RaZOLhnBj38n0=\",\"bodyHash\":\"dQpbJqZ6c1OLsMUmmaujVjSsfrfJDjoC2TYXKfIkFCo=\",\"body\":{\"Height\":16652,\"Round\":0,\"Voter\":\"v4\",\"Type\":2,\"BlockHash\":\"0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d\",\"Sig\":null},\"sig\":\"2FT4+Qw3BX6GNppuGLfkRlsD1BKqK7e+HG611crD/W9KG5Euss9WYenZ1RnQT69AEpY4e3+vGzTLVxrcEM4XzgA=\"}",
+          "validatorId": "v4",
+          "height": "0x410c",
+          "round": "0x0",
+          "blockHash": "0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d",
+          "bodyHash": "0x750a5b26a67a73538bb0c52699aba35634ac7eb7c90e3a02d9361729f224142a",
+          "sig": "0xd854f8f90c37057e86369a6e18b7e4465b03d412aa2bb7be1c6eb5d5cac3fd6f4a1b912eb2cf5661e9d9d519d04faf401296387b7faf1b34cb571adc10ce17ce00"
+        },
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v1\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16652,\"round\":0,\"blockHash\":\"c0g/Ix8SIG83PXAgGwvhLsVhDxTr93RaZOLhnBj38n0=\",\"bodyHash\":\"liKP5D1fuSkqnKQb/dHvJD5jzxHZPIIHyTEaxj6yu0g=\",\"body\":{\"Height\":16652,\"Round\":0,\"Voter\":\"v1\",\"Type\":2,\"BlockHash\":\"0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d\",\"Sig\":null},\"sig\":\"fFHghMuSJobJ+/17cTgqnQBUHYEDyXNELtlR8CJzY9omSKR3QJ4ulMQPwVh2sSjJXOI3VhD9F88QU6j0+D5bVAE=\"}",
+          "validatorId": "v1",
+          "height": "0x410c",
+          "round": "0x0",
+          "blockHash": "0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d",
+          "bodyHash": "0x96228fe43d5fb9292a9ca41bfdd1ef243e63cf11d93c8207c9311ac63eb2bb48",
+          "sig": "0x7c51e084cb922686c9fbfd7b71382a9d00541d8103c973442ed951f0227363da2648a477409e2e94c40fc15876b128c95ce2375610fd17cf1053a8f4f83e5b5401"
+        },
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v3\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16652,\"round\":0,\"blockHash\":\"c0g/Ix8SIG83PXAgGwvhLsVhDxTr93RaZOLhnBj38n0=\",\"bodyHash\":\"lrQTO0Wtld375t3Z3sKFtUtMzQ4n1wKsKsPdAUMsscA=\",\"body\":{\"Height\":16652,\"Round\":0,\"Voter\":\"v3\",\"Type\":2,\"BlockHash\":\"0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d\",\"Sig\":null},\"sig\":\"JWpC6Kpbm3lyErKR7VNlWaBxPtaNpNhkJK5oyS9irt85/iwC4L+PrIk+i7jdJN10PNwfkhnVNqXQ4w8JM3CQkgA=\"}",
+          "validatorId": "v3",
+          "height": "0x410c",
+          "round": "0x0",
+          "blockHash": "0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d",
+          "bodyHash": "0x96b4133b45ad95ddfbe6ddd9dec285b54b4ccd0e27d702ac2ac3dd01432cb1c0",
+          "sig": "0x256a42e8aa5b9b797212b291ed536559a0713ed68da4d86424ae68c92f62aedf39fe2c02e0bf8fac893e8bb8dd24dd743cdc1f9219d536a5d0e30f093370909200"
+        }
+      ],
+      "quorum": {
+        "validators": 4,
+        "required": 3,
+        "precommits": 3
+      },
+      "validatorSet": [
+        {
+          "id": "v1",
+          "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+        },
+        {
+          "id": "v2",
+          "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+        },
+        {
+          "id": "v3",
+          "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+        },
+        {
+          "id": "v4",
+          "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+        }
+      ],
+      "validatorSetHash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "validatorSetMatchesCertificate": true,
+      "signing": {
+        "domain": "noor/v1/bft",
+        "digestPrefix": "noor/v1/bft-sign|",
+        "scheme": "digest = sha256(digestPrefix || LP(domain) || LP(chainId) || LP(type) || LP(validatorId) || valsetHash[32] || u64be(height) || u64be(round) || blockHash[32] || bodyHash[32]), where LP(x) = 4-byte big-endian length of x followed by x, bodyHash = sha256(body), and blockHash is 32 zero bytes when the envelope has none; sig is a 65-byte secp256k1 signature [R||S||V] over the digest with low-S enforced; the recovered public key (65 bytes, 0x04||X||Y) must equal the pubKeyHex of validatorSet[validatorId] brought to the same uncompressed form (pubKeyHex is served as configured: 65 bytes 0x04||X||Y, 64 bytes X||Y to be prefixed with 0x04, or 33 bytes compressed to be decompressed); valsetHash = sha256(\"noor/v1/valsethash|\" || for each validator in ascending id order: id || 0x00 || pubKeyBytes || 0x00) over the pubKeyHex bytes exactly as configured, without normalization"
+      },
+      "retention": {
+        "heights": 300000,
+        "pruned": false
+      }
+    },
+    {
+      "height": "0x4114",
+      "round": "0x0",
+      "chainId": "noortrace-2124-dev",
+      "valsetHash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "blockHash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+      "canonical": {
+        "blockHash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+        "matchesCertificate": true
+      },
+      "proposal": {
+        "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PROPOSAL\",\"validatorId\":\"v1\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16660,\"round\":0,\"blockHash\":\"HjcQCOCWgbij1aG1UV8Scbr71BiVBIhpJgjyxQC4Ye4=\",\"bodyHash\":\"dkd2LakKcgVe2IIzS2aOn6cjolj08Idi1nytgEjqjAk=\",\"body\":{\"height\":16660,\"round\":0,\"proposer\":\"v1\",\"blockHash\":\"0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee\",\"parentHash\":\"0x2865eb2c08b2e27063d95d5d6ab75f71738391168ba3112ed66360534f002285\",\"timestamp\":1792707649,\"stateRoot\":\"0x48616d165d400896d6154164d8e86e04afab65cf987d84dc48bc07c2ea38b870\",\"receiptsRoot\":\"0x3e8c30f8511077b2a5388f6f551c496dd5e5b9f22634d440aa58be73c6fb5638\",\"txRoot\":\"0x5bef787134a813028551311fa202da57e0e63873000387e4c7a8cbf0ff0d781e\",\"gasUsed\":96977,\"gasLimit\":30000000,\"baseFeeHex\":\"0x1\",\"txsRaw\":[\"AvkBKYIITHABA4MtxsCU9LFG+6cfQeBZJmj/vyZPHRhrLKiAuMRz3rStNpCQm7ojb8kSgTqb/iIup8yWBvcHubG3VqcZyIAq+PYpcPMtryaEVUG1WfhQXdreF6tRmU+rgcv+Db2Bq5Zx7gAAAAAAAAAAAAAAAFENfQ9a+9kSmrsaiZr/X5JG3ZxJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABxRQSoIZ+WlFKSLP1uxvp9ywkn+cH7NRZ+u+c2TCfksCxFLKrptlyr7vS4am3jzZPzMvEAlLWegGUYpG+WbikLEwAGg6pQ6Q75Gqxmkq2uSinOmXx0ZoD2qrnrDrbnFeK1E1m+fmP823tTyz6CbYsp6tIFLPPYZGa8LVOhjZB6rpSmpBA==\"]},\"sig\":\"33nXoMXelY+Nqa4VeTFRw3WB45mnIPiuisdboaMTT/NUhsaEcLFrCWZ0TA5zlNcH+WTZ9me/FLOtU0c0sHrttQA=\"}",
+        "validatorId": "v1",
+        "bodyHash": "0x7647762da90a72055ed882334b668e9fa723a258f4f08762d67cad8048ea8c09",
+        "sig": "0xdf79d7a0c5de958f8da9ae15793151c37581e399a720f8ae8ac75ba1a3134ff35486c68470b16b0966744c0e7394d707f964d9f667bf14b3ad534734b07aedb500"
+      },
+      "precommits": [
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v4\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16660,\"round\":0,\"blockHash\":\"HjcQCOCWgbij1aG1UV8Scbr71BiVBIhpJgjyxQC4Ye4=\",\"bodyHash\":\"aVB90ftyI/kDT1D35kvF4As20Vk/aAdIdG2JFSf939w=\",\"body\":{\"Height\":16660,\"Round\":0,\"Voter\":\"v4\",\"Type\":2,\"BlockHash\":\"0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee\",\"Sig\":null},\"sig\":\"OGtxF3Qc9bOif1nEfMMZEK3bZEg3NUf5fXjtAA3uzLw08iUvzL1+HOfVlrEnTa9sJma+5oq7G/ubEy7LJXbO0gE=\"}",
+          "validatorId": "v4",
+          "height": "0x4114",
+          "round": "0x0",
+          "blockHash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+          "bodyHash": "0x69507dd1fb7223f9034f50f7e64bc5e00b36d1593f680748746d891527fddfdc",
+          "sig": "0x386b7117741cf5b3a27f59c47cc31910addb6448373547f97d78ed000deeccbc34f2252fccbd7e1ce7d596b1274daf6c2666bee68abb1bfb9b132ecb2576ced201"
+        },
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v1\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16660,\"round\":0,\"blockHash\":\"HjcQCOCWgbij1aG1UV8Scbr71BiVBIhpJgjyxQC4Ye4=\",\"bodyHash\":\"FZK9FXCETdfugJcupXr7MXAJZRyUbWDngjHVpV5OuvA=\",\"body\":{\"Height\":16660,\"Round\":0,\"Voter\":\"v1\",\"Type\":2,\"BlockHash\":\"0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee\",\"Sig\":null},\"sig\":\"J0j+mJ5AI75fuS4PwCsEQt/j6PaiBXPCkXOVKcolZCAoDdEVqOOFLX8MV6mfOhzW6XWY6eIUtpCnzNGPLh+uqgE=\"}",
+          "validatorId": "v1",
+          "height": "0x4114",
+          "round": "0x0",
+          "blockHash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+          "bodyHash": "0x1592bd1570844dd7ee80972ea57afb317009651c946d60e78231d5a55e4ebaf0",
+          "sig": "0x2748fe989e4023be5fb92e0fc02b0442dfe3e8f6a20573c291739529ca256420280dd115a8e3852d7f0c57a99f3a1cd6e97598e9e214b690a7ccd18f2e1faeaa01"
+        },
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v3\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16660,\"round\":0,\"blockHash\":\"HjcQCOCWgbij1aG1UV8Scbr71BiVBIhpJgjyxQC4Ye4=\",\"bodyHash\":\"RJNw9LezJGMA37w7EhpcznpRDNOWEiTZCLEqyae2mQ8=\",\"body\":{\"Height\":16660,\"Round\":0,\"Voter\":\"v3\",\"Type\":2,\"BlockHash\":\"0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee\",\"Sig\":null},\"sig\":\"nvn6HdKfaCx51yM/O8amhQAAUzzw2JdOmGn0YePJkgMyl6Jpd1ux+Xrs7kqxqY2HNcWRjANZhbxQGSUNFZHRCwA=\"}",
+          "validatorId": "v3",
+          "height": "0x4114",
+          "round": "0x0",
+          "blockHash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+          "bodyHash": "0x449370f4b7b3246300dfbc3b121a5cce7a510cd3961224d908b12ac9a7b6990f",
+          "sig": "0x9ef9fa1dd29f682c79d7233f3bc6a6850000533cf0d8974e9869f461e3c992033297a269775bb1f97aecee4ab1a98d8735c5918c035985bc5019250d1591d10b00"
+        }
+      ],
+      "quorum": {
+        "validators": 4,
+        "required": 3,
+        "precommits": 3
+      },
+      "validatorSet": [
+        {
+          "id": "v1",
+          "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+        },
+        {
+          "id": "v2",
+          "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+        },
+        {
+          "id": "v3",
+          "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+        },
+        {
+          "id": "v4",
+          "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+        }
+      ],
+      "validatorSetHash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "validatorSetMatchesCertificate": true,
+      "signing": {
+        "domain": "noor/v1/bft",
+        "digestPrefix": "noor/v1/bft-sign|",
+        "scheme": "digest = sha256(digestPrefix || LP(domain) || LP(chainId) || LP(type) || LP(validatorId) || valsetHash[32] || u64be(height) || u64be(round) || blockHash[32] || bodyHash[32]), where LP(x) = 4-byte big-endian length of x followed by x, bodyHash = sha256(body), and blockHash is 32 zero bytes when the envelope has none; sig is a 65-byte secp256k1 signature [R||S||V] over the digest with low-S enforced; the recovered public key (65 bytes, 0x04||X||Y) must equal the pubKeyHex of validatorSet[validatorId] brought to the same uncompressed form (pubKeyHex is served as configured: 65 bytes 0x04||X||Y, 64 bytes X||Y to be prefixed with 0x04, or 33 bytes compressed to be decompressed); valsetHash = sha256(\"noor/v1/valsethash|\" || for each validator in ascending id order: id || 0x00 || pubKeyBytes || 0x00) over the pubKeyHex bytes exactly as configured, without normalization"
+      },
+      "retention": {
+        "heights": 300000,
+        "pruned": false
+      }
+    },
+    {
+      "height": "0x411c",
+      "round": "0x0",
+      "chainId": "noortrace-2124-dev",
+      "valsetHash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "blockHash": "0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e",
+      "canonical": {
+        "blockHash": "0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e",
+        "matchesCertificate": true
+      },
+      "proposal": {
+        "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PROPOSAL\",\"validatorId\":\"v1\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16668,\"round\":0,\"blockHash\":\"5Z7eqTaQRw83XcVO8Zy2xp0e1ekWvdel+BDhD043XT4=\",\"bodyHash\":\"V6EoEgnJHBjIg2JJEMnsF1vNq+uRe+oGXAVIen4nnvw=\",\"body\":{\"height\":16668,\"round\":0,\"proposer\":\"v1\",\"blockHash\":\"0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e\",\"parentHash\":\"0x17f8119b1fef0ef54ad7bb79a7c2ba7f798144b87c3927297657796ce3614e36\",\"timestamp\":1792707656,\"stateRoot\":\"0xa59206841f5bb033bcabc66ee5557bde1ae127cb445e5c1588d3c5da4a3eff2c\",\"receiptsRoot\":\"0x50fb8e0b920bd3ba439d52978a8488884a223593c1a778715a1eec5a99b5059c\",\"txRoot\":\"0x3713f8b4c96931f04bbff40735f354ff2d746b9e4e696ff0f5bbb714fbac281a\",\"gasUsed\":248548,\"gasLimit\":30000000,\"baseFeeHex\":\"0x1\",\"txsRaw\":[\"AvkC64IITHIBA4MtxsCUTubsrRwtrp9SVATehVVyTjw10HuAuQKEivA3MgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaClgbt4hxoob15ItyQzpEQMBDA9thA4fod9cw3bA2baq0HCQDZtmT4PKkAx9xd/Jsszpo+HZStR4Jed2GPyHFFkriJCbyVSk3nvqxlrqLX3PEcpsn2PykQJom2AOEiGCRSxbCiPKGTl4xFka8SvhOJ1Lw/h9xJmhBzmXdso+iEpiwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABq7EWQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGrsU6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHEk37QKfQAPb4egzEbmpw/mOso7W0b/gHUJdi2GMYLzSNC1eWKcersSm7VMtRQoffCFcpOqbGKPgCTlLU8XqH+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG2EpY0B1EbfQUXDj5rndLvhQ0PXqf1op19HI0ZRd3uXMOfZNJfNNlZStzLOJVi9JeRw5+IBnSKBVGHj9/H4fnfrAAaD+/zDZIJQbJiW21ZM57nhMSrtbDrDG4aIeoMKWyJ45h6BRat5zIj4JxmFYqF7O+AVSb8DYdf8ORWBeiqI8Ic7tug==\"]},\"sig\":\"xluldMVCFbDxvMCqEejbd/dzve8tV6TVik3vyo8kpYh4kvHSSfNOlOHqsaptlk7tKxNLb5o7R8iQH+ClPSPftwE=\"}",
+        "validatorId": "v1",
+        "bodyHash": "0x57a1281209c91c18c883624910c9ec175bcdabeb917bea065c05487a7e279efc",
+        "sig": "0xc65ba574c54215b0f1bcc0aa11e8db77f773bdef2d57a4d58a4defca8f24a5887892f1d249f34e94e1eab1aa6d964eed2b134b6f9a3b47c8901fe0a53d23dfb701"
+      },
+      "precommits": [
+        {
+          "line": "{\"Domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v4\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16668,\"round\":0,\"blockHash\":\"5Z7eqTaQRw83XcVO8Zy2xp0e1ekWvdel+BDhD043XT4=\",\"bodyHash\":\"cJP89p7P8yqPe+FXhXkRSAGO4PIlaWaVf95Czwz1cSU=\",\"body\":{\"Height\":16668,\"Round\":0,\"Voter\":\"v4\",\"Type\":2,\"BlockHash\":\"0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e\",\"Sig\":null},\"sig\":\"JvZTMWBwPQvWfL0jJ4TweIrvdGbCpKkSHVpCw1mxapBLvEYehq14JGZb23TlcB3m8cvn/cEpplRr/nP3vctvSAE=\"}",
+          "validatorId": "v4",
+          "height": "0x411c",
+          "round": "0x0",
+          "blockHash": "0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e",
+          "bodyHash": "0x7093fcf69ecff32a8f7be15785791148018ee0f2256966957fde42cf0cf57125",
+          "sig": "0x26f6533160703d0bd67cbd232784f0788aef7466c2a4a9121d5a42c359b16a904bbc461e86ad7824665bdb74e5701de6f1cbe7fdc129a6546bfe73f7bdcb6f4801"
+        },
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v1\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16668,\"round\":0,\"blockHash\":\"5Z7eqTaQRw83XcVO8Zy2xp0e1ekWvdel+BDhD043XT4=\",\"bodyHash\":\"HVf/QRegEFyLHY0y9w6+0cUXN22zxdLoCOmAjF0yh3w=\",\"body\":{\"Height\":16668,\"Round\":0,\"Voter\":\"v1\",\"Type\":2,\"BlockHash\":\"0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e\",\"Sig\":null},\"sig\":\"YwscN0GTEHbHS5Xv9lOjy8WlzpWDg4fDebHOoJPf/K5eDO6vpcNTOcfYO7azOHSggiUsvbu5ClswAlIxWz1N6QE=\"}",
+          "validatorId": "v1",
+          "height": "0x411c",
+          "round": "0x0",
+          "blockHash": "0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e",
+          "bodyHash": "0x1d57ff4117a0105c8b1d8d32f70ebed1c517376db3c5d2e808e9808c5d32877c",
+          "sig": "0x630b1c3741931076c74b95eff653a3cbc5a5ce95838387c379b1cea093dffcae5e0ceeafa5c35339c7d83bb6b33874a082252cbdbbb90a5b300252315b3d4de901"
+        },
+        {
+          "line": "{\"domain\":\"noor/v1/bft\",\"chainId\":\"noortrace-2124-dev\",\"type\":\"CONS_PRECOMMIT\",\"validatorId\":\"v3\",\"valsetHash\":\"pH0n9tawIx3pn7a1h8Jm7y7FC6lKmXZQbG/5j5lot1E=\",\"height\":16668,\"round\":0,\"blockHash\":\"5Z7eqTaQRw83XcVO8Zy2xp0e1ekWvdel+BDhD043XT4=\",\"bodyHash\":\"M3JNufmuMNxJ22ajRAlpUn0aC+mexEIqtGxdFmUm5Bo=\",\"body\":{\"Height\":16668,\"Round\":0,\"Voter\":\"v3\",\"Type\":2,\"BlockHash\":\"0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e\",\"Sig\":null},\"sig\":\"AKpC3kaaUfIygMxVbvMo9FTG9qAmbjsXwURkEHfZUDlvrG6KnfUbvWI3lYUfac27l6Ty/x0gV6ef/6uAPS2ZSQE=\"}",
+          "validatorId": "v3",
+          "height": "0x411c",
+          "round": "0x0",
+          "blockHash": "0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e",
+          "bodyHash": "0x33724db9f9ae30dc49db66a3440969527d1a0be99ec4422ab46c5d166526e41a",
+          "sig": "0x00aa42de469a51f23280cc556ef328f454c6f6a0266e3b17c144641077d950396fac6e8a9df51bbd623795851f69cdbb97a4f2ff1d2057a79fffab803d2d994901"
+        }
+      ],
+      "quorum": {
+        "validators": 4,
+        "required": 3,
+        "precommits": 3
+      },
+      "validatorSet": [
+        {
+          "id": "v1",
+          "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+        },
+        {
+          "id": "v2",
+          "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+        },
+        {
+          "id": "v3",
+          "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+        },
+        {
+          "id": "v4",
+          "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+        }
+      ],
+      "validatorSetHash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "validatorSetMatchesCertificate": true,
+      "signing": {
+        "domain": "noor/v1/bft",
+        "digestPrefix": "noor/v1/bft-sign|",
+        "scheme": "digest = sha256(digestPrefix || LP(domain) || LP(chainId) || LP(type) || LP(validatorId) || valsetHash[32] || u64be(height) || u64be(round) || blockHash[32] || bodyHash[32]), where LP(x) = 4-byte big-endian length of x followed by x, bodyHash = sha256(body), and blockHash is 32 zero bytes when the envelope has none; sig is a 65-byte secp256k1 signature [R||S||V] over the digest with low-S enforced; the recovered public key (65 bytes, 0x04||X||Y) must equal the pubKeyHex of validatorSet[validatorId] brought to the same uncompressed form (pubKeyHex is served as configured: 65 bytes 0x04||X||Y, 64 bytes X||Y to be prefixed with 0x04, or 33 bytes compressed to be decompressed); valsetHash = sha256(\"noor/v1/valsethash|\" || for each validator in ascending id order: id || 0x00 || pubKeyBytes || 0x00) over the pubKeyHex bytes exactly as configured, without normalization"
+      },
+      "retention": {
+        "heights": 300000,
+        "pruned": false
+      }
+    }
+  ]
+}

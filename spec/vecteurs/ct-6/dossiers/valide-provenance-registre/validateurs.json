@@ -1,0 +1,28 @@
+{
+  "version": 0,
+  "sets": [
+    {
+      "from_height": 1,
+      "to_height": null,
+      "validators": [
+        {
+          "id": "v1",
+          "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+        },
+        {
+          "id": "v2",
+          "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+        },
+        {
+          "id": "v3",
+          "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+        },
+        {
+          "id": "v4",
+          "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+        }
+      ],
+      "source": "validators.json du réseau de développement, clés publiques seulement"
+    }
+  ]
+}

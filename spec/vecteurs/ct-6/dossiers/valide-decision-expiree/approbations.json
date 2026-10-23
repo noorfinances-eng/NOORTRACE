@@ -1,0 +1,83 @@
+{
+  "version": 0,
+  "ticket": "apr-2201",
+  "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+  "approver_set": {
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "members": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "source": "comptes Hardhat 1 à 3 (vecteurs CT-1)"
+  },
+  "events": [
+    {
+      "version": 0,
+      "seq": 6,
+      "ts": "2026-11-05T09:31:47.250Z",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "recorder_key_id": "rec-test-01",
+      "prev_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+      "delegation": {
+        "launched_by": "u.martin@assureur-demo.example",
+        "on_behalf_of": "service-sinistres",
+        "scope": "sinistres:lecture,paiement,courriel",
+        "run_id": "run-2026-11-05-0007"
+      },
+      "code": {
+        "model": "fournisseur/modele@2026-09",
+        "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+        "policy_version": "2026-11-01",
+        "recorder": "0.1.0"
+      },
+      "intent": null,
+      "policy": {
+        "rule": null,
+        "decision": "sans_objet",
+        "ticket": "apr-2201",
+        "redaction": null
+      },
+      "approval": {
+        "decision": "expire",
+        "ticket": "apr-2201",
+        "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+        "threshold": {
+          "required": 2,
+          "size": 3
+        },
+        "approvers": [],
+        "signatures": [],
+        "at": "2026-11-05T09:31:47.250Z",
+        "reason": null
+      },
+      "execution": {
+        "tool": "noortrace.approbation.decision",
+        "arguments": {
+          "sha256": "0x1913cdba7fab9fe7c2e42f40a7332af66792a876ba10855a47d11b5636234da9",
+          "length": 285,
+          "redacted": false,
+          "value": {
+            "decision": "expire",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+            "ticket": "apr-2201"
+          }
+        },
+        "status": "executee",
+        "result": null,
+        "duration_ms": null,
+        "is_error": null
+      },
+      "effects": [],
+      "context": [],
+      "hash": "0xf066dd6e27eaa28192fd707e02122bf8dfbc45e8af87ac20935f94ed571a1e5c",
+      "sig": "0xfe6ee3b8dcda6b86c239a0467eed8ee1bb37e0a4413fe9d25ab800f669d41bda01d131ff201c6da2cade8f88ea19139db26ba2555d97b3a71c479db693712d09"
+    }
+  ]
+}

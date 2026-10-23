@@ -1,0 +1,39 @@
+{
+  "valid": false,
+  "target": "N-3",
+  "failed_checks": [
+    "N-3"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "echoue",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-cle-enregistreur-autre.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : N-3 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): N-3; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "Le dossier complet, vérifié avec ancres-cle-enregistreur-autre.json : la clé publique de rec-test-01 dans l'ancre est celle de rec-test-02 ; N-3 échoue, contrôle 6 en échec."
+}

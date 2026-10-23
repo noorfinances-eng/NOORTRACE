@@ -1,0 +1,381 @@
+Confrontation des vecteurs CT-6 ots/ par opentimestamps 0.4.5 et python-bitcoinlib 0.12.2 (Python 3.13.16)
+Entrées : ots/attendu.json, ots/preuves/*.ots, ots/entetes/*.json, ancres/ancres-test.json (partie bitcoin)
+
+  powLimit regtest de python-bitcoinlib (CT-6 §10.4, table des réseaux) : vecteur 57896044618658097711785492504343953926634992332820282019728792003956564819967 ; outil 57896044618658097711785492504343953926634992332820282019728792003956564819967 : concorde
+== 1. Chaînes d'en-têtes (EX-A.6)
+-- entetes/chaine.json
+  SHA-256 du fichier : vecteur 0x4c2b5496dc33b2395ee6e768595f23b56d06f9e725e7a56b789b19985430b9ba ; outil 0x4c2b5496dc33b2395ee6e768595f23b56d06f9e725e7a56b789b19985430b9ba : concorde
+  réseau : vecteur regtest ; outil regtest : concorde
+  hauteurs : vecteur (990, 1020) ; outil (990, 1020) : concorde
+  hachages des 31 en-têtes (GetHash de python-bitcoinlib = double SHA-256 de hashlib, ordre d'affichage) : vecteur {'990': '0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e', '991': '0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc', '992': '0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3', '993': '0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4', '994': '0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2', '995': '0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7', '996': '0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432', '997': '0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc', '998': '0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0', '999': '0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0', '1000': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0', '1001': '0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026', '1002': '0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265', '1003': '0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8', '1004': '0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46', '1005': '0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46', '1006': '0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278', '1007': '0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e', '1008': '0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e', '1009': '0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2', '1010': '0x10e2d03775487dde5851314b20c9243f723e04b2703050a298d8c186b671a69e', '1011': '0x1d56047e19ab8f3894f30992c553c2bbd50900be1ba6f6283aeae2c3c41e99b9', '1012': '0x2b26e4d2629b74615bb87ac5dc9f592cd856e4ba3edfb8f7818ce1bfd7e87e48', '1013': '0x3e9058d754647e87c74216de49c84984475c5d7bd21d5abc092ca437b48f7440', '1014': '0x24975ee28ffe801351850003b624ddcbd82849780193779d617cbfb3c14ef3cd', '1015': '0x482216ab73e88ed3b88434c26e77ddf3b5354fcd6ddf8b52788cec38995acba7', '1016': '0x18db635f2d60b74a79d4e3dc1f2782d713ce3ea4535ba34e6431015cdb56d0e0', '1017': '0x35110cef64d3addd42f7d6b9b4c80d8db14878a44ef5f4e778f5758e3024b160', '1018': '0x0c85cd00d467f29514045e8fec0db3f5225e44547a1b0349cdcc8aee71783ce3', '1019': '0x33c77c596f361b5b7e7a63c664a97b5099c28569c7ee793959f8961f79808a63', '1020': '0x153384e662f1a9d86056be5c0eaacea1a4ab58e4792025f5a4bc708e63917d4d'} ; outil {'990': '0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e', '991': '0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc', '992': '0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3', '993': '0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4', '994': '0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2', '995': '0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7', '996': '0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432', '997': '0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc', '998': '0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0', '999': '0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0', '1000': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0', '1001': '0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026', '1002': '0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265', '1003': '0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8', '1004': '0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46', '1005': '0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46', '1006': '0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278', '1007': '0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e', '1008': '0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e', '1009': '0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2', '1010': '0x10e2d03775487dde5851314b20c9243f723e04b2703050a298d8c186b671a69e', '1011': '0x1d56047e19ab8f3894f30992c553c2bbd50900be1ba6f6283aeae2c3c41e99b9', '1012': '0x2b26e4d2629b74615bb87ac5dc9f592cd856e4ba3edfb8f7818ce1bfd7e87e48', '1013': '0x3e9058d754647e87c74216de49c84984475c5d7bd21d5abc092ca437b48f7440', '1014': '0x24975ee28ffe801351850003b624ddcbd82849780193779d617cbfb3c14ef3cd', '1015': '0x482216ab73e88ed3b88434c26e77ddf3b5354fcd6ddf8b52788cec38995acba7', '1016': '0x18db635f2d60b74a79d4e3dc1f2782d713ce3ea4535ba34e6431015cdb56d0e0', '1017': '0x35110cef64d3addd42f7d6b9b4c80d8db14878a44ef5f4e778f5758e3024b160', '1018': '0x0c85cd00d467f29514045e8fec0db3f5225e44547a1b0349cdcc8aee71783ce3', '1019': '0x33c77c596f361b5b7e7a63c664a97b5099c28569c7ee793959f8961f79808a63', '1020': '0x153384e662f1a9d86056be5c0eaacea1a4ab58e4792025f5a4bc708e63917d4d'} : concorde
+  nVersion = 0x20000000 partout : vecteur True ; outil True : concorde
+  nBits = 0x207fffff partout : vecteur True ; outil True : concorde
+  nTime(990) = 1793880000 puis +600 s par bloc : vecteur True ; outil True : concorde
+  prev(990) = 32 octets nuls : vecteur True ; outil True : concorde
+  chaînage prev(i) = dSHA(H(i−1)) : intact ; CheckProofOfWork (paramètres regtest) en échec : aucun
+  en-têtes sans preuve de travail : vecteur [] ; outil [] : concorde
+  chaînage : vecteur [] ; outil [] : concorde
+  nNonce minimal pour chaque en-tête avec travail : vecteur [] ; outil [] : concorde
+  racine(i) = dSHA(« noortrace/vecteurs/v0/ct-6/bitcoin/racine/<i> ») hors 1001 à 1003 : vecteur [] ; outil [] : concorde
+-- entetes/chaine-sans-travail.json
+  SHA-256 du fichier : vecteur 0x43eaf50a9929675fff7395c93b3d987703bb5cdea5bb5f1793e032be95ffbbe4 ; outil 0x43eaf50a9929675fff7395c93b3d987703bb5cdea5bb5f1793e032be95ffbbe4 : concorde
+  réseau : vecteur regtest ; outil regtest : concorde
+  hauteurs : vecteur (990, 1020) ; outil (990, 1020) : concorde
+  hachages des 31 en-têtes (GetHash de python-bitcoinlib = double SHA-256 de hashlib, ordre d'affichage) : vecteur {'990': '0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e', '991': '0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc', '992': '0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3', '993': '0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4', '994': '0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2', '995': '0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7', '996': '0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432', '997': '0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc', '998': '0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0', '999': '0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0', '1000': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0', '1001': '0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026', '1002': '0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265', '1003': '0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8', '1004': '0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46', '1005': '0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46', '1006': '0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278', '1007': '0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e', '1008': '0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e', '1009': '0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2', '1010': '0x89d46acb8e9976d6ad00841ed6f0cee7068527410fcdf73c6441271ea366ccd8', '1011': '0x03dc17fadf16d6a200d1a1ba950291f33dc119777831f967c0504966a228e02a', '1012': '0x5ef3b6507a50aff22cf9bbfc24d775171b9a8815f3c7201eabd57b6b86970b9f', '1013': '0x5d002aaf538551f1af438aed2da66bbe1ea2e81b0536c1e340cadef09cabba8e', '1014': '0x76929028fb44fbb096b0c7ff13081412a18082b84843af6caa1c8be12015fa23', '1015': '0x72b9eed2453ec6627eef38787d92bf62bc8c676e90b6df7b7ffc8d137707dbfb', '1016': '0x1bbca6fa862e9458947b6d6e3b31aed23e83a01cec6b35615ba70d8d4308a139', '1017': '0x68a9484413db292a74e1c73fec3d9b99e41f4d1ef60e6cbfb87d82b2236e841d', '1018': '0x1468a48e64fc03b6d4af4067c7f2c0d36e6d1057094b4a64665779e1aaab9532', '1019': '0x7db3b6474f89c840612f5d9dafefcabfd1ea69b056f12aad32c869a5ecc7a3b7', '1020': '0x4bc612e04cb4574a20833046693afb585695e0c1764d15589aecba6a8b187507'} ; outil {'990': '0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e', '991': '0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc', '992': '0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3', '993': '0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4', '994': '0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2', '995': '0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7', '996': '0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432', '997': '0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc', '998': '0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0', '999': '0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0', '1000': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0', '1001': '0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026', '1002': '0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265', '1003': '0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8', '1004': '0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46', '1005': '0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46', '1006': '0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278', '1007': '0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e', '1008': '0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e', '1009': '0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2', '1010': '0x89d46acb8e9976d6ad00841ed6f0cee7068527410fcdf73c6441271ea366ccd8', '1011': '0x03dc17fadf16d6a200d1a1ba950291f33dc119777831f967c0504966a228e02a', '1012': '0x5ef3b6507a50aff22cf9bbfc24d775171b9a8815f3c7201eabd57b6b86970b9f', '1013': '0x5d002aaf538551f1af438aed2da66bbe1ea2e81b0536c1e340cadef09cabba8e', '1014': '0x76929028fb44fbb096b0c7ff13081412a18082b84843af6caa1c8be12015fa23', '1015': '0x72b9eed2453ec6627eef38787d92bf62bc8c676e90b6df7b7ffc8d137707dbfb', '1016': '0x1bbca6fa862e9458947b6d6e3b31aed23e83a01cec6b35615ba70d8d4308a139', '1017': '0x68a9484413db292a74e1c73fec3d9b99e41f4d1ef60e6cbfb87d82b2236e841d', '1018': '0x1468a48e64fc03b6d4af4067c7f2c0d36e6d1057094b4a64665779e1aaab9532', '1019': '0x7db3b6474f89c840612f5d9dafefcabfd1ea69b056f12aad32c869a5ecc7a3b7', '1020': '0x4bc612e04cb4574a20833046693afb585695e0c1764d15589aecba6a8b187507'} : concorde
+  nVersion = 0x20000000 partout : vecteur True ; outil True : concorde
+  nBits = 0x207fffff partout : vecteur True ; outil True : concorde
+  nTime(990) = 1793880000 puis +600 s par bloc : vecteur True ; outil True : concorde
+  prev(990) = 32 octets nuls : vecteur True ; outil True : concorde
+  chaînage prev(i) = dSHA(H(i−1)) : intact ; CheckProofOfWork (paramètres regtest) en échec : [1010]
+  en-têtes sans preuve de travail (EX-A.6 : seul 1010) : vecteur [1010] ; outil [1010] : concorde
+  chaînage : vecteur [] ; outil [] : concorde
+  nNonce minimal pour chaque en-tête avec travail : vecteur [] ; outil [] : concorde
+  racine(i) = dSHA(« noortrace/vecteurs/v0/ct-6/bitcoin/racine/<i> ») hors 1001 à 1003 : vecteur [] ; outil [] : concorde
+-- entetes/chaine-courte.json
+  SHA-256 du fichier : vecteur 0x3b159b0d1feeb692a7810e7a3e56d9fa54701a14711eaa02a9fd545e26d0b375 ; outil 0x3b159b0d1feeb692a7810e7a3e56d9fa54701a14711eaa02a9fd545e26d0b375 : concorde
+  réseau : vecteur regtest ; outil regtest : concorde
+  hauteurs : vecteur (990, 1003) ; outil (990, 1003) : concorde
+  hachages des 14 en-têtes (GetHash de python-bitcoinlib = double SHA-256 de hashlib, ordre d'affichage) : vecteur {'990': '0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e', '991': '0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc', '992': '0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3', '993': '0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4', '994': '0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2', '995': '0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7', '996': '0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432', '997': '0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc', '998': '0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0', '999': '0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0', '1000': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0', '1001': '0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026', '1002': '0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265', '1003': '0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8'} ; outil {'990': '0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e', '991': '0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc', '992': '0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3', '993': '0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4', '994': '0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2', '995': '0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7', '996': '0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432', '997': '0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc', '998': '0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0', '999': '0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0', '1000': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0', '1001': '0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026', '1002': '0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265', '1003': '0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8'} : concorde
+  nVersion = 0x20000000 partout : vecteur True ; outil True : concorde
+  nBits = 0x207fffff partout : vecteur True ; outil True : concorde
+  nTime(990) = 1793880000 puis +600 s par bloc : vecteur True ; outil True : concorde
+  prev(990) = 32 octets nuls : vecteur True ; outil True : concorde
+  chaînage prev(i) = dSHA(H(i−1)) : intact ; CheckProofOfWork (paramètres regtest) en échec : aucun
+  en-têtes sans preuve de travail : vecteur [] ; outil [] : concorde
+  chaînage : vecteur [] ; outil [] : concorde
+  nNonce minimal pour chaque en-tête avec travail : vecteur [] ; outil [] : concorde
+  racine(i) = dSHA(« noortrace/vecteurs/v0/ct-6/bitcoin/racine/<i> ») hors 1001 à 1003 : vecteur [] ; outil [] : concorde
+-- entetes/chaine-depuis-1001.json
+  SHA-256 du fichier : vecteur 0x896191ee5a0851c9fa9f07622d10a13052ca7bdba12ee5404fded0985acc60c5 ; outil 0x896191ee5a0851c9fa9f07622d10a13052ca7bdba12ee5404fded0985acc60c5 : concorde
+  réseau : vecteur regtest ; outil regtest : concorde
+  hauteurs : vecteur (1001, 1020) ; outil (1001, 1020) : concorde
+  hachages des 20 en-têtes (GetHash de python-bitcoinlib = double SHA-256 de hashlib, ordre d'affichage) : vecteur {'1001': '0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026', '1002': '0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265', '1003': '0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8', '1004': '0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46', '1005': '0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46', '1006': '0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278', '1007': '0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e', '1008': '0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e', '1009': '0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2', '1010': '0x10e2d03775487dde5851314b20c9243f723e04b2703050a298d8c186b671a69e', '1011': '0x1d56047e19ab8f3894f30992c553c2bbd50900be1ba6f6283aeae2c3c41e99b9', '1012': '0x2b26e4d2629b74615bb87ac5dc9f592cd856e4ba3edfb8f7818ce1bfd7e87e48', '1013': '0x3e9058d754647e87c74216de49c84984475c5d7bd21d5abc092ca437b48f7440', '1014': '0x24975ee28ffe801351850003b624ddcbd82849780193779d617cbfb3c14ef3cd', '1015': '0x482216ab73e88ed3b88434c26e77ddf3b5354fcd6ddf8b52788cec38995acba7', '1016': '0x18db635f2d60b74a79d4e3dc1f2782d713ce3ea4535ba34e6431015cdb56d0e0', '1017': '0x35110cef64d3addd42f7d6b9b4c80d8db14878a44ef5f4e778f5758e3024b160', '1018': '0x0c85cd00d467f29514045e8fec0db3f5225e44547a1b0349cdcc8aee71783ce3', '1019': '0x33c77c596f361b5b7e7a63c664a97b5099c28569c7ee793959f8961f79808a63', '1020': '0x153384e662f1a9d86056be5c0eaacea1a4ab58e4792025f5a4bc708e63917d4d'} ; outil {'1001': '0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026', '1002': '0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265', '1003': '0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8', '1004': '0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46', '1005': '0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46', '1006': '0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278', '1007': '0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e', '1008': '0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e', '1009': '0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2', '1010': '0x10e2d03775487dde5851314b20c9243f723e04b2703050a298d8c186b671a69e', '1011': '0x1d56047e19ab8f3894f30992c553c2bbd50900be1ba6f6283aeae2c3c41e99b9', '1012': '0x2b26e4d2629b74615bb87ac5dc9f592cd856e4ba3edfb8f7818ce1bfd7e87e48', '1013': '0x3e9058d754647e87c74216de49c84984475c5d7bd21d5abc092ca437b48f7440', '1014': '0x24975ee28ffe801351850003b624ddcbd82849780193779d617cbfb3c14ef3cd', '1015': '0x482216ab73e88ed3b88434c26e77ddf3b5354fcd6ddf8b52788cec38995acba7', '1016': '0x18db635f2d60b74a79d4e3dc1f2782d713ce3ea4535ba34e6431015cdb56d0e0', '1017': '0x35110cef64d3addd42f7d6b9b4c80d8db14878a44ef5f4e778f5758e3024b160', '1018': '0x0c85cd00d467f29514045e8fec0db3f5225e44547a1b0349cdcc8aee71783ce3', '1019': '0x33c77c596f361b5b7e7a63c664a97b5099c28569c7ee793959f8961f79808a63', '1020': '0x153384e662f1a9d86056be5c0eaacea1a4ab58e4792025f5a4bc708e63917d4d'} : concorde
+  nVersion = 0x20000000 partout : vecteur True ; outil True : concorde
+  nBits = 0x207fffff partout : vecteur True ; outil True : concorde
+  nTime(990) = 1793880000 puis +600 s par bloc : vecteur True ; outil True : concorde
+  chaînage prev(i) = dSHA(H(i−1)) : intact ; CheckProofOfWork (paramètres regtest) en échec : aucun
+  en-têtes sans preuve de travail : vecteur [] ; outil [] : concorde
+  chaînage : vecteur [] ; outil [] : concorde
+  nNonce minimal pour chaque en-tête avec travail : vecteur [] ; outil [] : concorde
+  racine(i) = dSHA(« noortrace/vecteurs/v0/ct-6/bitcoin/racine/<i> ») hors 1001 à 1003 : vecteur [] ; outil [] : concorde
+  point de contrôle de ancres-test.json (hauteur 1000, ordre d'affichage) : vecteur 0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0 ; outil 0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0 : concorde
+  bitcoin_anchor de ots/attendu.json = partie bitcoin de ancres-test.json : vecteur {'network': 'regtest', 'checkpoint': {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'}, 'min_confirmations': 6, 'source': 'point de contrôle de la chaîne regtest synthétique des vecteurs CT-6 (spec/vecteurs/ct-6/ots/entetes/chaine.json, hauteur 1000), sans valeur hors des tests'} ; outil {'network': 'regtest', 'checkpoint': {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'}, 'min_confirmations': 6, 'source': 'point de contrôle de la chaîne regtest synthétique des vecteurs CT-6 (spec/vecteurs/ct-6/ots/entetes/chaine.json, hauteur 1000), sans valeur hors des tests'} : concorde
+  chaine-courte.json = 14 premiers en-têtes de chaine.json : vecteur True ; outil True : concorde
+  chaine-depuis-1001.json = en-têtes 1001 à 1020 de chaine.json (sans la hauteur 1000 du point de contrôle) : vecteur True ; outil True : concorde
+  chaine-sans-travail.json = chaine.json jusqu'à 1009, nNonce de 1010 seul changé dans 1010 : vecteur True ; outil True : concorde
+
+== 2. Preuves .ots (EX-A.7) : lecture par opentimestamps, opérations, attestations
+  URI en attente : longueur maximale de la bibliothèque (PendingAttestation.MAX_URI_LENGTH) : vecteur 1000 ; outil 1000 : concorde
+  URI en attente : caractères admis par la bibliothèque (PendingAttestation.ALLOWED_URI_CHARS) : vecteur -./0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz ; outil -./0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz : concorde
+-- preuves/periode-1.ots (cible : aucune ; altération : aucune)
+  SHA-256 et taille : vecteur ('0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f', 316) ; outil ('0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f', 316) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
+  lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] : concorde
+  opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 16 opérations
+-- preuves/periode-2.ots (cible : aucune ; altération : aucune)
+  SHA-256 et taille : vecteur ('0xeb16dead539d000f78234d1cedda4a9168800e013a3e78e1a97ea6081bb710e0', 316) ; outil ('0xeb16dead539d000f78234d1cedda4a9168800e013a3e78e1a97ea6081bb710e0', 316) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
+  lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 ; outil 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 : concorde
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0x27b309c8a6d9ae8140d9194ee9423d666c5a20428921f9cda6e4b96f1ba2142a'}] ; outil [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0x27b309c8a6d9ae8140d9194ee9423d666c5a20428921f9cda6e4b96f1ba2142a'}] : concorde
+  opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 16 opérations
+-- preuves/periode-3.ots (cible : aucune ; altération : aucune)
+  SHA-256 et taille : vecteur ('0x4a061d21b2305142a9a8be8592b0eed9aa2d24a001a7a97b54ab8b534f387c6d', 316) ; outil ('0x4a061d21b2305142a9a8be8592b0eed9aa2d24a001a7a97b54ab8b534f387c6d', 316) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
+  lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 ; outil 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 : concorde
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1003, 'uri': None, 'result': '0xe7e968409fde386c8e145a92db9b6c3c7b9439a6437b0e4289c7a47081ae50b3'}] ; outil [{'kind': 'bitcoin', 'height': 1003, 'uri': None, 'result': '0xe7e968409fde386c8e145a92db9b6c3c7b9439a6437b0e4289c7a47081ae50b3'}] : concorde
+  opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 16 opérations
+-- preuves/o1-octet-en-trop.ots (cible : O-1 ; altération : un octet 00 après l'arbre)
+  SHA-256 et taille : vecteur ('0xad4512c241e146db792f6002543947fae9133fce32e2cc30bcf4d315f1dd7850', 317) ; outil ('0xad4512c241e146db792f6002543947fae9133fce32e2cc30bcf4d315f1dd7850', 317) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : refusee (TrailingGarbageError : Trailing garbage found after end of deserialized data)
+  lecture par python-opentimestamps présumée par attendu.json (R2-F67 (TrailingGarbageError)) : vecteur refusee ; outil refusee : concorde
+  lecture aux limites de longueur relâchées : refusée (TrailingGarbageError : Trailing garbage found after end of deserialized data)
+  attestations : vecteur [] ; outil [] : concorde
+-- preuves/o3-resultat-trop-long.ots (cible : O-3 ; altération : branche supplémentaire f0 d'un argument de 4096 octets sur l'empreinte (résultat de 4128 octets), puis 08 et une attestation en attente)
+  SHA-256 et taille : vecteur ('0x781ea6b317e9abe6a6f70f4a007caf1a888d9906529eb10163e158f90f8cd6b3', 4473) ; outil ('0x781ea6b317e9abe6a6f70f4a007caf1a888d9906529eb10163e158f90f8cd6b3', 4473) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : refusee (DeserializationError : Invalid timestamp; message invalid for op OpAppend(b'\x7f\x12?\xf4+\x19\xf9G\xfa\xdb\xeeQ\x16wB\x9a\x9c\x9a\x8a\x0f\x99,\xcekG\x8e(N}\xb3M\x96\x00\xb1\xf8\x18\x)
+  lecture par python-opentimestamps présumée par attendu.json (R2-F13, R2-F67 (message de plus de 4096 octets)) : vecteur refusee ; outil refusee : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'en_attente', 'height': None, 'uri': 'https://alice.btc.calendar.opentimestamps.org', 'result': None}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'en_attente', 'height': None, 'uri': 'https://alice.btc.calendar.opentimestamps.org', 'result': None}] : concorde
+  opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : [('OpAppend', 32, 4128), ('OpSHA256', 4128, 32)] ; plus long chemin : 16 opérations
+-- preuves/o4-mauvaise-hauteur.ots (cible : O-4 ; altération : attestation Bitcoin à la hauteur 1002 au lieu de 1001)
+  SHA-256 et taille : vecteur ('0x305dc8022c1a34354b7ad6a1e8a1ec799a6af7fb75f92285e8ff0439d8bc4e44', 316) ; outil ('0x305dc8022c1a34354b7ad6a1e8a1ec799a6af7fb75f92285e8ff0439d8bc4e44', 316) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
+  lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] ; outil [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] : concorde
+  opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 16 opérations
+-- preuves/o7-en-attente.ots (cible : O-7 ; altération : seulement une attestation en attente du calendrier https://alice.btc.calendar.opentimestamps.org)
+  SHA-256 et taille : vecteur ('0xa928d3f5bdb6a2eaa7173eae9bb6bfe2fd57513983369c953b263ddcfba39b26', 210) ; outil ('0xa928d3f5bdb6a2eaa7173eae9bb6bfe2fd57513983369c953b263ddcfba39b26', 210) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
+  lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'en_attente', 'height': None, 'uri': 'https://alice.btc.calendar.opentimestamps.org', 'result': '0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e'}] ; outil [{'kind': 'en_attente', 'height': None, 'uri': 'https://alice.btc.calendar.opentimestamps.org', 'result': '0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e'}] : concorde
+  opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 6 opérations
+-- preuves/deux-attestations.ots (cible : aucune ; altération : attestations Bitcoin aux hauteurs 1001 et 1002)
+  SHA-256 et taille : vecteur ('0xd3a21c0afb5e8d4d8e1df7ca90c6720b630bc917819c6dd890e0cc293cae7a32', 329) ; outil ('0xd3a21c0afb5e8d4d8e1df7ca90c6720b630bc917819c6dd890e0cc293cae7a32', 329) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
+  lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'bitcoin', 'height': 1002, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}] : concorde
+  opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 16 opérations
+-- preuves/attente-uri-vide.ots (cible : aucune ; altération : au bout des opérations du calendrier, une attestation en attente d'URI vide (0 octet), que la bibliothèque de référence admet (EX-10.2), à côté de la branche Bitcoin attestée à 1001)
+  SHA-256 et taille : vecteur ('0x7d872b32550ab04bc69a8f01c013a26880654f54a3f506c19a1889dff5468252', 328) ; outil ('0x7d872b32550ab04bc69a8f01c013a26880654f54a3f506c19a1889dff5468252', 328) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
+  lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'en_attente', 'height': None, 'uri': '', 'result': '0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e'}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'en_attente', 'height': None, 'uri': '', 'result': '0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e'}] : concorde
+  opérations hors profil {f0, f1, 08} : aucune ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 16 opérations
+-- preuves/branche-hors-profil.ots (cible : aucune ; altération : attestation Bitcoin à 1001 par le profil, et une seconde branche 03 (ripemd160, hors profil) finie par une attestation Bitcoin à 1003, non exécutée (EX-10.7))
+  SHA-256 et taille : vecteur ('0x63c1ff77939ab1a9ecc659d356eb598d576e730f811a57997d033fd4892a0062', 330) ; outil ('0x63c1ff77939ab1a9ecc659d356eb598d576e730f811a57997d033fd4892a0062', 330) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : acceptee
+  lecture par python-opentimestamps présumée par attendu.json (format officiel (R2-F01 à R2-F21)) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  résultat calculé par la bibliothèque sous l'opération hors profil (attestation bitcoin 1003) : 0x82a1c963939b552f8fa6b2ea7b0832301d7c0158, noté null (EX-10.7)
+  attestations (nature, hauteur, URI, résultat des opérations) : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'bitcoin', 'height': 1003, 'uri': None, 'result': None}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'result': '0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846'}, {'kind': 'bitcoin', 'height': 1003, 'uri': None, 'result': None}] : concorde
+  opérations hors profil {f0, f1, 08} : ['OpRIPEMD160'] ; longueurs hors de 1 à 4096 : aucune ; plus long chemin : 16 opérations
+
+== 3. Vérifications O-1 à O-7, cas de ots/attendu.json (statut/raison attendus et recalculés)
+-- preuves/periode-1.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu reussi                           outil reussi                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu reussi                           outil reussi                           concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('reussi', None) ; outil ('reussi', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3'] ; outil ['AV-O-3'] : concorde
+  fait file_digest : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  fait network : vecteur regtest ; outil regtest : concorde
+  fait checkpoint : vecteur {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} ; outil {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} : concorde
+  fait attestations : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'tag': None, 'status': 'reussi'}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'tag': None, 'status': 'reussi'}] : concorde
+  fait retained_height : vecteur 1001 ; outil 1001 : concorde
+  fait block_hash : vecteur 0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026 ; outil 0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026 : concorde
+  fait block_time : vecteur 2026-11-05T13:50:00Z ; outil 2026-11-05T13:50:00Z : concorde
+  fait median_bound : vecteur 2026-11-05T14:50:00Z ; outil 2026-11-05T14:50:00Z : concorde
+  fait confirmations : vecteur 20 ; outil 20 : concorde
+  fait cumulative_work : vecteur 40 ; outil 40 : concorde
+-- preuves/periode-2.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xe867be7f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu reussi                           outil reussi                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu reussi                           outil reussi                           concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('reussi', None) ; outil ('reussi', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3'] ; outil ['AV-O-3'] : concorde
+  fait file_digest : vecteur 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 ; outil 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 : concorde
+  fait network : vecteur regtest ; outil regtest : concorde
+  fait checkpoint : vecteur {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} ; outil {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} : concorde
+  fait attestations : vecteur [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'tag': None, 'status': 'reussi'}] ; outil [{'kind': 'bitcoin', 'height': 1002, 'uri': None, 'tag': None, 'status': 'reussi'}] : concorde
+  fait retained_height : vecteur 1002 ; outil 1002 : concorde
+  fait block_hash : vecteur 0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265 ; outil 0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265 : concorde
+  fait block_time : vecteur 2026-11-05T14:00:00Z ; outil 2026-11-05T14:00:00Z : concorde
+  fait median_bound : vecteur 2026-11-05T15:00:00Z ; outil 2026-11-05T15:00:00Z : concorde
+  fait confirmations : vecteur 19 ; outil 19 : concorde
+  fait cumulative_work : vecteur 38 ; outil 38 : concorde
+-- preuves/periode-3.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0x5852e3c7…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu reussi                           outil reussi                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu reussi                           outil reussi                           concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('reussi', None) ; outil ('reussi', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3'] ; outil ['AV-O-3'] : concorde
+  fait file_digest : vecteur 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 ; outil 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 : concorde
+  fait network : vecteur regtest ; outil regtest : concorde
+  fait checkpoint : vecteur {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} ; outil {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} : concorde
+  fait attestations : vecteur [{'kind': 'bitcoin', 'height': 1003, 'uri': None, 'tag': None, 'status': 'reussi'}] ; outil [{'kind': 'bitcoin', 'height': 1003, 'uri': None, 'tag': None, 'status': 'reussi'}] : concorde
+  fait retained_height : vecteur 1003 ; outil 1003 : concorde
+  fait block_hash : vecteur 0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8 ; outil 0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8 : concorde
+  fait block_time : vecteur 2026-11-05T14:10:00Z ; outil 2026-11-05T14:10:00Z : concorde
+  fait median_bound : vecteur 2026-11-05T15:10:00Z ; outil 2026-11-05T15:10:00Z : concorde
+  fait confirmations : vecteur 18 ; outil 18 : concorde
+  fait cumulative_work : vecteur 36 ; outil 36 : concorde
+-- preuves/periode-2.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu echoue                           outil echoue                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu reussi                           outil reussi                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu reussi                           outil reussi                           concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('echoue', None) ; outil ('echoue', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3'] ; outil ['AV-O-3'] : concorde
+-- preuves/periode-1.ots, en-têtes entetes/chaine-sans-travail.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-5  attendu echoue                           outil echoue                           concorde
+  O-6  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('echoue', None) ; outil ('echoue', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3'] ; outil ['AV-O-3'] : concorde
+-- preuves/periode-1.ots, en-têtes entetes/chaine-courte.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu reussi                           outil reussi                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu non_execute/ancre_absente        outil non_execute/ancre_absente        concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('non_execute', 'ancre_absente') ; outil ('non_execute', 'ancre_absente') : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3'] ; outil ['AV-O-3'] : concorde
+-- preuves/periode-1.ots, en-têtes absents, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu non_execute/partie_absente       outil non_execute/partie_absente       concorde
+  O-5  attendu non_execute/partie_absente       outil non_execute/partie_absente       concorde
+  O-6  attendu non_execute/partie_absente       outil non_execute/partie_absente       concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('non_execute', 'partie_absente') ; outil ('non_execute', 'partie_absente') : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur [] ; outil [] : concorde
+-- preuves/periode-1.ots, en-têtes entetes/chaine.json, ancres absentes, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu non_execute/ancre_absente        outil non_execute/ancre_absente        concorde
+  O-5  attendu non_execute/ancre_absente        outil non_execute/ancre_absente        concorde
+  O-6  attendu non_execute/ancre_absente        outil non_execute/ancre_absente        concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('non_execute', 'ancre_absente') ; outil ('non_execute', 'ancre_absente') : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur [] ; outil [] : concorde
+-- preuves/o1-octet-en-trop.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu echoue                           outil echoue                           concorde
+  O-2  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-3  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-4  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-5  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-6  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-7  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  statut du contrôle 5 : vecteur ('echoue', None) ; outil ('echoue', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur [] ; outil [] : concorde
+-- preuves/o3-resultat-trop-long.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu echoue                           outil echoue                           concorde
+  O-4  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('echoue', None) ; outil ('echoue', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3', 'AV-O-2'] ; outil ['AV-O-3', 'AV-O-2'] : concorde
+-- preuves/o4-mauvaise-hauteur.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu echoue                           outil echoue                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu non_execute/prerequis_en_echec   outil non_execute/prerequis_en_echec   concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('echoue', None) ; outil ('echoue', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3'] ; outil ['AV-O-3'] : concorde
+-- preuves/o7-en-attente.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu non_execute/partie_absente       outil non_execute/partie_absente       concorde
+  O-5  attendu non_execute/partie_absente       outil non_execute/partie_absente       concorde
+  O-6  attendu non_execute/partie_absente       outil non_execute/partie_absente       concorde
+  O-7  attendu non_execute/partie_absente       outil non_execute/partie_absente       concorde
+  statut du contrôle 5 : vecteur ('non_execute', 'partie_absente') ; outil ('non_execute', 'partie_absente') : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-2'] ; outil ['AV-O-2'] : concorde
+-- preuves/deux-attestations.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu reussi                           outil reussi                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu reussi                           outil reussi                           concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('reussi', None) ; outil ('reussi', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-1', 'AV-O-3'] ; outil ['AV-O-1', 'AV-O-3'] : concorde
+  fait file_digest : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  fait network : vecteur regtest ; outil regtest : concorde
+  fait checkpoint : vecteur {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} ; outil {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} : concorde
+  fait attestations : vecteur [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'tag': None, 'status': 'reussi'}, {'kind': 'bitcoin', 'height': 1002, 'uri': None, 'tag': None, 'status': 'echoue'}] ; outil [{'kind': 'bitcoin', 'height': 1001, 'uri': None, 'tag': None, 'status': 'reussi'}, {'kind': 'bitcoin', 'height': 1002, 'uri': None, 'tag': None, 'status': 'echoue'}] : concorde
+  fait retained_height : vecteur 1001 ; outil 1001 : concorde
+  fait block_hash : vecteur 0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026 ; outil 0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026 : concorde
+  fait block_time : vecteur 2026-11-05T13:50:00Z ; outil 2026-11-05T13:50:00Z : concorde
+  fait median_bound : vecteur 2026-11-05T14:50:00Z ; outil 2026-11-05T14:50:00Z : concorde
+  fait confirmations : vecteur 20 ; outil 20 : concorde
+  fait cumulative_work : vecteur 40 ; outil 40 : concorde
+-- preuves/attente-uri-vide.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu reussi                           outil reussi                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu reussi                           outil reussi                           concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('reussi', None) ; outil ('reussi', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-3', 'AV-O-2'] ; outil ['AV-O-3', 'AV-O-2'] : concorde
+  fait file_digest : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  fait network : vecteur regtest ; outil regtest : concorde
+  fait checkpoint : vecteur {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} ; outil {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} : concorde
+  fait attestations : vecteur [{'kind': 'en_attente', 'height': None, 'uri': '', 'tag': None, 'status': 'non_execute'}, {'kind': 'bitcoin', 'height': 1001, 'uri': None, 'tag': None, 'status': 'reussi'}] ; outil [{'kind': 'en_attente', 'height': None, 'uri': '', 'tag': None, 'status': 'non_execute'}, {'kind': 'bitcoin', 'height': 1001, 'uri': None, 'tag': None, 'status': 'reussi'}] : concorde
+  fait retained_height : vecteur 1001 ; outil 1001 : concorde
+  fait block_hash : vecteur 0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026 ; outil 0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026 : concorde
+  fait block_time : vecteur 2026-11-05T13:50:00Z ; outil 2026-11-05T13:50:00Z : concorde
+  fait median_bound : vecteur 2026-11-05T14:50:00Z ; outil 2026-11-05T14:50:00Z : concorde
+  fait confirmations : vecteur 20 ; outil 20 : concorde
+  fait cumulative_work : vecteur 40 ; outil 40 : concorde
+-- preuves/branche-hors-profil.ots, en-têtes entetes/chaine.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu reussi                           outil reussi                           concorde
+  O-5  attendu reussi                           outil reussi                           concorde
+  O-6  attendu reussi                           outil reussi                           concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('reussi', None) ; outil ('reussi', None) : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur ['AV-O-2', 'AV-O-3'] ; outil ['AV-O-2', 'AV-O-3'] : concorde
+  fait file_digest : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; outil 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  fait network : vecteur regtest ; outil regtest : concorde
+  fait checkpoint : vecteur {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} ; outil {'height': 1000, 'hash': '0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0'} : concorde
+  fait attestations : vecteur [{'kind': 'bitcoin', 'height': 1003, 'uri': None, 'tag': None, 'status': 'non_execute'}, {'kind': 'bitcoin', 'height': 1001, 'uri': None, 'tag': None, 'status': 'reussi'}] ; outil [{'kind': 'bitcoin', 'height': 1003, 'uri': None, 'tag': None, 'status': 'non_execute'}, {'kind': 'bitcoin', 'height': 1001, 'uri': None, 'tag': None, 'status': 'reussi'}] : concorde
+  fait retained_height : vecteur 1001 ; outil 1001 : concorde
+  fait block_hash : vecteur 0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026 ; outil 0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026 : concorde
+  fait block_time : vecteur 2026-11-05T13:50:00Z ; outil 2026-11-05T13:50:00Z : concorde
+  fait median_bound : vecteur 2026-11-05T14:50:00Z ; outil 2026-11-05T14:50:00Z : concorde
+  fait confirmations : vecteur 20 ; outil 20 : concorde
+  fait cumulative_work : vecteur 40 ; outil 40 : concorde
+-- preuves/periode-1.ots, en-têtes entetes/chaine-depuis-1001.json, ancres bitcoin de ancres/ancres-test.json, periodHash du dossier 0xae22426f…
+  O-1  attendu reussi                           outil reussi                           concorde
+  O-2  attendu reussi                           outil reussi                           concorde
+  O-3  attendu reussi                           outil reussi                           concorde
+  O-4  attendu non_execute/ancre_absente        outil non_execute/ancre_absente        concorde
+  O-5  attendu non_execute/ancre_absente        outil non_execute/ancre_absente        concorde
+  O-6  attendu non_execute/ancre_absente        outil non_execute/ancre_absente        concorde
+  O-7  attendu reussi                           outil reussi                           concorde
+  statut du contrôle 5 : vecteur ('non_execute', 'ancre_absente') ; outil ('non_execute', 'ancre_absente') : concorde
+  avertissements (liste exacte, ordre de EX-6.15) : vecteur [] ; outil [] : concorde
+
+Bilan des vérifications O- : 112 concordances, 0 discordances
+Discordances au total : 0

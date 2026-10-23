@@ -1,0 +1,1318 @@
+{
+  "description": "Vecteurs CT-6 de la famille ots (spec/CT-6-verificateur.md, annexe A.4). Les statuts sont ceux de l'implémentation de référence (scripts/lib/ots.mjs) avec la seule ancre bitcoin des fichiers d'ancres de test.",
+  "bitcoin_anchor": {
+    "network": "regtest",
+    "checkpoint": {
+      "height": 1000,
+      "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+    },
+    "min_confirmations": 6,
+    "source": "point de contrôle de la chaîne regtest synthétique des vecteurs CT-6 (spec/vecteurs/ct-6/ots/entetes/chaine.json, hauteur 1000), sans valeur hors des tests"
+  },
+  "headers": {
+    "entetes/chaine.json": {
+      "sha256": "0x4c2b5496dc33b2395ee6e768595f23b56d06f9e725e7a56b789b19985430b9ba",
+      "start_height": 990,
+      "end_height": 1020,
+      "hashes": {
+        "990": "0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e",
+        "991": "0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc",
+        "992": "0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3",
+        "993": "0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4",
+        "994": "0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2",
+        "995": "0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7",
+        "996": "0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432",
+        "997": "0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc",
+        "998": "0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0",
+        "999": "0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0",
+        "1000": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0",
+        "1001": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "1002": "0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265",
+        "1003": "0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8",
+        "1004": "0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46",
+        "1005": "0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46",
+        "1006": "0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278",
+        "1007": "0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e",
+        "1008": "0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e",
+        "1009": "0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2",
+        "1010": "0x10e2d03775487dde5851314b20c9243f723e04b2703050a298d8c186b671a69e",
+        "1011": "0x1d56047e19ab8f3894f30992c553c2bbd50900be1ba6f6283aeae2c3c41e99b9",
+        "1012": "0x2b26e4d2629b74615bb87ac5dc9f592cd856e4ba3edfb8f7818ce1bfd7e87e48",
+        "1013": "0x3e9058d754647e87c74216de49c84984475c5d7bd21d5abc092ca437b48f7440",
+        "1014": "0x24975ee28ffe801351850003b624ddcbd82849780193779d617cbfb3c14ef3cd",
+        "1015": "0x482216ab73e88ed3b88434c26e77ddf3b5354fcd6ddf8b52788cec38995acba7",
+        "1016": "0x18db635f2d60b74a79d4e3dc1f2782d713ce3ea4535ba34e6431015cdb56d0e0",
+        "1017": "0x35110cef64d3addd42f7d6b9b4c80d8db14878a44ef5f4e778f5758e3024b160",
+        "1018": "0x0c85cd00d467f29514045e8fec0db3f5225e44547a1b0349cdcc8aee71783ce3",
+        "1019": "0x33c77c596f361b5b7e7a63c664a97b5099c28569c7ee793959f8961f79808a63",
+        "1020": "0x153384e662f1a9d86056be5c0eaacea1a4ab58e4792025f5a4bc708e63917d4d"
+      }
+    },
+    "entetes/chaine-sans-travail.json": {
+      "sha256": "0x43eaf50a9929675fff7395c93b3d987703bb5cdea5bb5f1793e032be95ffbbe4",
+      "start_height": 990,
+      "end_height": 1020,
+      "hashes": {
+        "990": "0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e",
+        "991": "0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc",
+        "992": "0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3",
+        "993": "0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4",
+        "994": "0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2",
+        "995": "0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7",
+        "996": "0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432",
+        "997": "0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc",
+        "998": "0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0",
+        "999": "0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0",
+        "1000": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0",
+        "1001": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "1002": "0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265",
+        "1003": "0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8",
+        "1004": "0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46",
+        "1005": "0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46",
+        "1006": "0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278",
+        "1007": "0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e",
+        "1008": "0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e",
+        "1009": "0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2",
+        "1010": "0x89d46acb8e9976d6ad00841ed6f0cee7068527410fcdf73c6441271ea366ccd8",
+        "1011": "0x03dc17fadf16d6a200d1a1ba950291f33dc119777831f967c0504966a228e02a",
+        "1012": "0x5ef3b6507a50aff22cf9bbfc24d775171b9a8815f3c7201eabd57b6b86970b9f",
+        "1013": "0x5d002aaf538551f1af438aed2da66bbe1ea2e81b0536c1e340cadef09cabba8e",
+        "1014": "0x76929028fb44fbb096b0c7ff13081412a18082b84843af6caa1c8be12015fa23",
+        "1015": "0x72b9eed2453ec6627eef38787d92bf62bc8c676e90b6df7b7ffc8d137707dbfb",
+        "1016": "0x1bbca6fa862e9458947b6d6e3b31aed23e83a01cec6b35615ba70d8d4308a139",
+        "1017": "0x68a9484413db292a74e1c73fec3d9b99e41f4d1ef60e6cbfb87d82b2236e841d",
+        "1018": "0x1468a48e64fc03b6d4af4067c7f2c0d36e6d1057094b4a64665779e1aaab9532",
+        "1019": "0x7db3b6474f89c840612f5d9dafefcabfd1ea69b056f12aad32c869a5ecc7a3b7",
+        "1020": "0x4bc612e04cb4574a20833046693afb585695e0c1764d15589aecba6a8b187507"
+      }
+    },
+    "entetes/chaine-courte.json": {
+      "sha256": "0x3b159b0d1feeb692a7810e7a3e56d9fa54701a14711eaa02a9fd545e26d0b375",
+      "start_height": 990,
+      "end_height": 1003,
+      "hashes": {
+        "990": "0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e",
+        "991": "0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc",
+        "992": "0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3",
+        "993": "0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4",
+        "994": "0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2",
+        "995": "0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7",
+        "996": "0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432",
+        "997": "0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc",
+        "998": "0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0",
+        "999": "0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0",
+        "1000": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0",
+        "1001": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "1002": "0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265",
+        "1003": "0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8"
+      }
+    },
+    "entetes/chaine-depuis-1001.json": {
+      "sha256": "0x896191ee5a0851c9fa9f07622d10a13052ca7bdba12ee5404fded0985acc60c5",
+      "start_height": 1001,
+      "end_height": 1020,
+      "hashes": {
+        "1001": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "1002": "0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265",
+        "1003": "0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8",
+        "1004": "0x74d9ccfe713aa560e6ba27018fcccf0487d8f19f48a53b8832c9f9cac18dce46",
+        "1005": "0x4df921d04bc89d8d15bdf690285c96e355fff499f1a9ad736945670c17e29d46",
+        "1006": "0x1298822d5b29db903be271fc9497e5c6895644b6e979a6149dcd6c32aa0e1278",
+        "1007": "0x57e631d10f936a804c8855a506dc704d7e9fab5f08a2aab7756c270615ffe00e",
+        "1008": "0x6a3ec78afa517dcc08250d471cfa8c240b0c17ea5c3d7ecd6295307a2e7b746e",
+        "1009": "0x06140305d9bf1f7c52096f4948499147a2a5074bcff2af8693ffd109b18ce2b2",
+        "1010": "0x10e2d03775487dde5851314b20c9243f723e04b2703050a298d8c186b671a69e",
+        "1011": "0x1d56047e19ab8f3894f30992c553c2bbd50900be1ba6f6283aeae2c3c41e99b9",
+        "1012": "0x2b26e4d2629b74615bb87ac5dc9f592cd856e4ba3edfb8f7818ce1bfd7e87e48",
+        "1013": "0x3e9058d754647e87c74216de49c84984475c5d7bd21d5abc092ca437b48f7440",
+        "1014": "0x24975ee28ffe801351850003b624ddcbd82849780193779d617cbfb3c14ef3cd",
+        "1015": "0x482216ab73e88ed3b88434c26e77ddf3b5354fcd6ddf8b52788cec38995acba7",
+        "1016": "0x18db635f2d60b74a79d4e3dc1f2782d713ce3ea4535ba34e6431015cdb56d0e0",
+        "1017": "0x35110cef64d3addd42f7d6b9b4c80d8db14878a44ef5f4e778f5758e3024b160",
+        "1018": "0x0c85cd00d467f29514045e8fec0db3f5225e44547a1b0349cdcc8aee71783ce3",
+        "1019": "0x33c77c596f361b5b7e7a63c664a97b5099c28569c7ee793959f8961f79808a63",
+        "1020": "0x153384e662f1a9d86056be5c0eaacea1a4ab58e4792025f5a4bc708e63917d4d"
+      }
+    }
+  },
+  "proofs": [
+    {
+      "file": "preuves/periode-1.ots",
+      "sha256": "0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f",
+      "size": 316,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": null,
+      "target": null,
+      "attestations": [
+        {
+          "kind": "bitcoin",
+          "height": 1001,
+          "uri": null,
+          "result": "0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/periode-2.ots",
+      "sha256": "0xeb16dead539d000f78234d1cedda4a9168800e013a3e78e1a97ea6081bb710e0",
+      "size": 316,
+      "file_digest": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+      "alteration": null,
+      "target": null,
+      "attestations": [
+        {
+          "kind": "bitcoin",
+          "height": 1002,
+          "uri": null,
+          "result": "0x27b309c8a6d9ae8140d9194ee9423d666c5a20428921f9cda6e4b96f1ba2142a"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/periode-3.ots",
+      "sha256": "0x4a061d21b2305142a9a8be8592b0eed9aa2d24a001a7a97b54ab8b534f387c6d",
+      "size": 316,
+      "file_digest": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+      "alteration": null,
+      "target": null,
+      "attestations": [
+        {
+          "kind": "bitcoin",
+          "height": 1003,
+          "uri": null,
+          "result": "0xe7e968409fde386c8e145a92db9b6c3c7b9439a6437b0e4289c7a47081ae50b3"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/o1-octet-en-trop.ots",
+      "sha256": "0xad4512c241e146db792f6002543947fae9133fce32e2cc30bcf4d315f1dd7850",
+      "size": 317,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": "un octet 00 après l'arbre",
+      "target": "O-1",
+      "attestations": [],
+      "python_opentimestamps": {
+        "parsing": "refusee",
+        "source": "R2-F67 (TrailingGarbageError)"
+      }
+    },
+    {
+      "file": "preuves/o3-resultat-trop-long.ots",
+      "sha256": "0x781ea6b317e9abe6a6f70f4a007caf1a888d9906529eb10163e158f90f8cd6b3",
+      "size": 4473,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": "branche supplémentaire f0 d'un argument de 4096 octets sur l'empreinte (résultat de 4128 octets), puis 08 et une attestation en attente",
+      "target": "O-3",
+      "attestations": [
+        {
+          "kind": "bitcoin",
+          "height": 1001,
+          "uri": null,
+          "result": "0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846"
+        },
+        {
+          "kind": "en_attente",
+          "height": null,
+          "uri": "https://alice.btc.calendar.opentimestamps.org",
+          "result": null
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "refusee",
+        "source": "R2-F13, R2-F67 (message de plus de 4096 octets)"
+      }
+    },
+    {
+      "file": "preuves/o4-mauvaise-hauteur.ots",
+      "sha256": "0x305dc8022c1a34354b7ad6a1e8a1ec799a6af7fb75f92285e8ff0439d8bc4e44",
+      "size": 316,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": "attestation Bitcoin à la hauteur 1002 au lieu de 1001",
+      "target": "O-4",
+      "attestations": [
+        {
+          "kind": "bitcoin",
+          "height": 1002,
+          "uri": null,
+          "result": "0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/o7-en-attente.ots",
+      "sha256": "0xa928d3f5bdb6a2eaa7173eae9bb6bfe2fd57513983369c953b263ddcfba39b26",
+      "size": 210,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": "seulement une attestation en attente du calendrier https://alice.btc.calendar.opentimestamps.org",
+      "target": "O-7",
+      "attestations": [
+        {
+          "kind": "en_attente",
+          "height": null,
+          "uri": "https://alice.btc.calendar.opentimestamps.org",
+          "result": "0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/deux-attestations.ots",
+      "sha256": "0xd3a21c0afb5e8d4d8e1df7ca90c6720b630bc917819c6dd890e0cc293cae7a32",
+      "size": 329,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": "attestations Bitcoin aux hauteurs 1001 et 1002",
+      "target": null,
+      "attestations": [
+        {
+          "kind": "bitcoin",
+          "height": 1001,
+          "uri": null,
+          "result": "0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846"
+        },
+        {
+          "kind": "bitcoin",
+          "height": 1002,
+          "uri": null,
+          "result": "0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/attente-uri-vide.ots",
+      "sha256": "0x7d872b32550ab04bc69a8f01c013a26880654f54a3f506c19a1889dff5468252",
+      "size": 328,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": "au bout des opérations du calendrier, une attestation en attente d'URI vide (0 octet), que la bibliothèque de référence admet (EX-10.2), à côté de la branche Bitcoin attestée à 1001",
+      "target": null,
+      "attestations": [
+        {
+          "kind": "en_attente",
+          "height": null,
+          "uri": "",
+          "result": "0x3def099ee13c9296582949d9d40832947b2a8f882823242b36bedcc81651a20e"
+        },
+        {
+          "kind": "bitcoin",
+          "height": 1001,
+          "uri": null,
+          "result": "0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/branche-hors-profil.ots",
+      "sha256": "0x63c1ff77939ab1a9ecc659d356eb598d576e730f811a57997d033fd4892a0062",
+      "size": 330,
+      "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "alteration": "attestation Bitcoin à 1001 par le profil, et une seconde branche 03 (ripemd160, hors profil) finie par une attestation Bitcoin à 1003, non exécutée (EX-10.7)",
+      "target": null,
+      "attestations": [
+        {
+          "kind": "bitcoin",
+          "height": 1003,
+          "uri": null,
+          "result": null
+        },
+        {
+          "kind": "bitcoin",
+          "height": 1001,
+          "uri": null,
+          "result": "0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "proof": "preuves/periode-1.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": {
+        "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "network": "regtest",
+        "checkpoint": {
+          "height": 1000,
+          "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+        },
+        "attestations": [
+          {
+            "kind": "bitcoin",
+            "height": 1001,
+            "uri": null,
+            "tag": null,
+            "status": "reussi"
+          }
+        ],
+        "retained_height": 1001,
+        "block_hash": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "block_time": "2026-11-05T13:50:00Z",
+        "median_bound": "2026-11-05T14:50:00Z",
+        "confirmations": 20,
+        "cumulative_work": "40"
+      }
+    },
+    {
+      "proof": "preuves/periode-2.ots",
+      "dossier_period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": {
+        "file_digest": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+        "network": "regtest",
+        "checkpoint": {
+          "height": 1000,
+          "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+        },
+        "attestations": [
+          {
+            "kind": "bitcoin",
+            "height": 1002,
+            "uri": null,
+            "tag": null,
+            "status": "reussi"
+          }
+        ],
+        "retained_height": 1002,
+        "block_hash": "0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265",
+        "block_time": "2026-11-05T14:00:00Z",
+        "median_bound": "2026-11-05T15:00:00Z",
+        "confirmations": 19,
+        "cumulative_work": "38"
+      }
+    },
+    {
+      "proof": "preuves/periode-3.ots",
+      "dossier_period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": {
+        "file_digest": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+        "network": "regtest",
+        "checkpoint": {
+          "height": 1000,
+          "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+        },
+        "attestations": [
+          {
+            "kind": "bitcoin",
+            "height": 1003,
+            "uri": null,
+            "tag": null,
+            "status": "reussi"
+          }
+        ],
+        "retained_height": 1003,
+        "block_hash": "0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8",
+        "block_time": "2026-11-05T14:10:00Z",
+        "median_bound": "2026-11-05T15:10:00Z",
+        "confirmations": 18,
+        "cumulative_work": "36"
+      }
+    },
+    {
+      "proof": "preuves/periode-2.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [
+        "O-2"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": null
+    },
+    {
+      "proof": "preuves/periode-1.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine-sans-travail.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-5",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [
+        "O-5"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": null
+    },
+    {
+      "proof": "preuves/periode-1.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine-courte.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "non_execute",
+      "control_reason": "ancre_absente",
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": null
+    },
+    {
+      "proof": "preuves/periode-1.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": null,
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-5",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "non_execute",
+      "control_reason": "partie_absente",
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "proof": "preuves/periode-1.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": null,
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "O-5",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "non_execute",
+      "control_reason": "ancre_absente",
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "proof": "preuves/o1-octet-en-trop.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-3",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-5",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "O-1"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null
+    },
+    {
+      "proof": "preuves/o3-resultat-trop-long.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [
+        "O-3"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3",
+        "AV-O-2"
+      ],
+      "facts": null
+    },
+    {
+      "proof": "preuves/o4-mauvaise-hauteur.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [
+        "O-4"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": null
+    },
+    {
+      "proof": "preuves/o7-en-attente.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-5",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-7",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "non_execute",
+      "control_reason": "partie_absente",
+      "warnings": [
+        "AV-O-2"
+      ],
+      "facts": null
+    },
+    {
+      "proof": "preuves/deux-attestations.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-1",
+        "AV-O-3"
+      ],
+      "facts": {
+        "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "network": "regtest",
+        "checkpoint": {
+          "height": 1000,
+          "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+        },
+        "attestations": [
+          {
+            "kind": "bitcoin",
+            "height": 1001,
+            "uri": null,
+            "tag": null,
+            "status": "reussi"
+          },
+          {
+            "kind": "bitcoin",
+            "height": 1002,
+            "uri": null,
+            "tag": null,
+            "status": "echoue"
+          }
+        ],
+        "retained_height": 1001,
+        "block_hash": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "block_time": "2026-11-05T13:50:00Z",
+        "median_bound": "2026-11-05T14:50:00Z",
+        "confirmations": 20,
+        "cumulative_work": "40"
+      }
+    },
+    {
+      "proof": "preuves/attente-uri-vide.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3",
+        "AV-O-2"
+      ],
+      "facts": {
+        "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "network": "regtest",
+        "checkpoint": {
+          "height": 1000,
+          "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+        },
+        "attestations": [
+          {
+            "kind": "en_attente",
+            "height": null,
+            "uri": "",
+            "tag": null,
+            "status": "non_execute"
+          },
+          {
+            "kind": "bitcoin",
+            "height": 1001,
+            "uri": null,
+            "tag": null,
+            "status": "reussi"
+          }
+        ],
+        "retained_height": 1001,
+        "block_hash": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "block_time": "2026-11-05T13:50:00Z",
+        "median_bound": "2026-11-05T14:50:00Z",
+        "confirmations": 20,
+        "cumulative_work": "40"
+      }
+    },
+    {
+      "proof": "preuves/branche-hors-profil.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-2",
+        "AV-O-3"
+      ],
+      "facts": {
+        "file_digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "network": "regtest",
+        "checkpoint": {
+          "height": 1000,
+          "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+        },
+        "attestations": [
+          {
+            "kind": "bitcoin",
+            "height": 1003,
+            "uri": null,
+            "tag": null,
+            "status": "non_execute"
+          },
+          {
+            "kind": "bitcoin",
+            "height": 1001,
+            "uri": null,
+            "tag": null,
+            "status": "reussi"
+          }
+        ],
+        "retained_height": 1001,
+        "block_hash": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "block_time": "2026-11-05T13:50:00Z",
+        "median_bound": "2026-11-05T14:50:00Z",
+        "confirmations": 20,
+        "cumulative_work": "40"
+      }
+    },
+    {
+      "proof": "preuves/periode-1.ots",
+      "dossier_period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "headers": "entetes/chaine-depuis-1001.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "O-5",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "non_execute",
+      "control_reason": "ancre_absente",
+      "warnings": [],
+      "facts": null
+    }
+  ]
+}

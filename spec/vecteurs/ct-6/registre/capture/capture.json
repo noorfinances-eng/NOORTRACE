@@ -1,0 +1,201 @@
+{
+  "version": 0,
+  "description": "Capture unique du registre pour les vecteurs CT-6 (annexe A.5) : réponses JSON-RPC brutes du réseau de développement, clés publiques seulement.",
+  "date": "2026-10-22T22:21:03.442Z",
+  "depot_noortrace_commit": "f01364684c937370da7827c0fbd54257034465b0",
+  "noorcore": {
+    "commit": "618fcef8805ef5b4cb9291a3dd97be710e489297",
+    "correctif": "0001-noor_getCommitCertificate.patch",
+    "binaire_sha256": "0xb02a011a2fddd77b7ca6a00b8f376320dc7a419c6a5f47dcaca2a35a56ef33c6"
+  },
+  "rpc": "nœud node1 (validateur v1) du réseau de développement, JSON-RPC en boucle locale, port 8645",
+  "chain_id": "noortrace-2124-dev",
+  "evm_chain_id": 2124,
+  "contrats": {
+    "period_registry": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+    "attestation_registry": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+    "recorder_registry": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+    "curator_set_registry": "0x172076e0166d1f9cc711c77adf8488051744980c"
+  },
+  "code_contrats": {
+    "AttestationRegistry": {
+      "adresse": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+      "bloc_deploiement": 8316,
+      "egal_compilation_hors_immuables_et_metadonnees": true
+    },
+    "CuratorSetRegistry": {
+      "adresse": "0x172076e0166d1f9cc711c77adf8488051744980c",
+      "bloc_deploiement": 8320,
+      "egal_compilation_hors_immuables_et_metadonnees": true
+    },
+    "PeriodRegistry": {
+      "adresse": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+      "bloc_deploiement": 8324,
+      "egal_compilation_hors_immuables_et_metadonnees": true
+    },
+    "RecorderRegistry": {
+      "adresse": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+      "bloc_deploiement": 8328,
+      "egal_compilation_hors_immuables_et_metadonnees": true
+    }
+  },
+  "organisation": {
+    "slug": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "curator_set": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+    "approbateurs": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "seuil": 2,
+    "signataires": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    ],
+    "relayeur": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+    "blocs_amorcage": [
+      16636,
+      16640
+    ]
+  },
+  "journal": {
+    "nom": "journal-sinistres",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164"
+  },
+  "transactions": [
+    {
+      "role": "inscription",
+      "description": "inscription de rec-test-01",
+      "hash": "0x932ae471728698ae648a109858081ccfadbf20e472bd85cdc47115550dc85158",
+      "bloc": 16648,
+      "indice": 0,
+      "key_id": "rec-test-01",
+      "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "ed25519_public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "fichiers": {
+        "bloc": "bloc-16648.json",
+        "recus": [
+          "recu-0x932ae471728698ae648a109858081ccfadbf20e472bd85cdc47115550dc85158.json"
+        ],
+        "certificat": "certificat-16648.json",
+        "transactions_du_bloc": 1
+      }
+    },
+    {
+      "role": "inscription",
+      "description": "inscription de rec-test-02",
+      "hash": "0x158850e1aae6d6a6eb7125387c581d580886135a7fafbe871e4185b66beea062",
+      "bloc": 16652,
+      "indice": 0,
+      "key_id": "rec-test-02",
+      "chain_key": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+      "ed25519_public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+      "fichiers": {
+        "bloc": "bloc-16652.json",
+        "recus": [
+          "recu-0x158850e1aae6d6a6eb7125387c581d580886135a7fafbe871e4185b66beea062.json"
+        ],
+        "certificat": "certificat-16652.json",
+        "transactions_du_bloc": 1
+      }
+    },
+    {
+      "role": "inscription",
+      "description": "inscription de rec-test-03",
+      "hash": "0x3a55a9dc62d6d587a0cf6c231c5586bc323a2190a1ac27bb646c33f66825c2b2",
+      "bloc": 16656,
+      "indice": 0,
+      "key_id": "rec-test-03",
+      "chain_key": "0xe2bdcef6264103ab6c88fa3c1b5a2ceacd995b22",
+      "ed25519_public_key": "0x7fcebb9e8efd62d13a17c830ad33739c1de7fe9f1458701cb739ae15e9e62cd6",
+      "fichiers": {
+        "bloc": "bloc-16656.json",
+        "recus": [
+          "recu-0x3a55a9dc62d6d587a0cf6c231c5586bc323a2190a1ac27bb646c33f66825c2b2.json"
+        ],
+        "certificat": "certificat-16656.json",
+        "transactions_du_bloc": 1
+      }
+    },
+    {
+      "role": "ancre",
+      "description": "ancre de la période 1",
+      "hash": "0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779",
+      "bloc": 16660,
+      "indice": 0,
+      "periode": 1,
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+      "issuer": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+      "fichiers": {
+        "bloc": "bloc-16660.json",
+        "recus": [
+          "recu-0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779.json"
+        ],
+        "certificat": "certificat-16660.json",
+        "transactions_du_bloc": 1
+      }
+    },
+    {
+      "role": "ancre",
+      "description": "ancre de la période 2",
+      "hash": "0xb9bdfb0db9059c2fb4d4789e3fb28e2ee4bcf5fee0ff13cedfd96a2b79ffeb39",
+      "bloc": 16664,
+      "indice": 0,
+      "periode": 2,
+      "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+      "fingerprint": "0xb924b06ebd452df9db27c7c29305d5d1fd876bdedc1e8483a6088f006ca68ee5",
+      "issuer": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+      "fichiers": {
+        "bloc": "bloc-16664.json",
+        "recus": [
+          "recu-0xb9bdfb0db9059c2fb4d4789e3fb28e2ee4bcf5fee0ff13cedfd96a2b79ffeb39.json"
+        ],
+        "certificat": "certificat-16664.json",
+        "transactions_du_bloc": 1
+      }
+    },
+    {
+      "role": "cloture",
+      "description": "clôture de la période 1",
+      "hash": "0xd9fb0d69567fa4f5ecbf51179198fa02f30524a3275678405cfc11307374bbc0",
+      "bloc": 16668,
+      "indice": 0,
+      "periode": 1,
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "uri": "",
+      "fichiers": {
+        "bloc": "bloc-16668.json",
+        "recus": [
+          "recu-0xd9fb0d69567fa4f5ecbf51179198fa02f30524a3275678405cfc11307374bbc0.json"
+        ],
+        "certificat": "certificat-16668.json",
+        "transactions_du_bloc": 1
+      }
+    },
+    {
+      "role": "cloture",
+      "description": "clôture de la période 2",
+      "hash": "0xbb53b23f5406a11c8d62fbb29a574ce04eca719dcc14f7118582e37278ac256f",
+      "bloc": 16672,
+      "indice": 0,
+      "periode": 2,
+      "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+      "uri": "",
+      "fichiers": {
+        "bloc": "bloc-16672.json",
+        "recus": [
+          "recu-0xbb53b23f5406a11c8d62fbb29a574ce04eca719dcc14f7118582e37278ac256f.json"
+        ],
+        "certificat": "certificat-16672.json",
+        "transactions_du_bloc": 1
+      }
+    }
+  ],
+  "validateurs": {
+    "fichier": "validators.json",
+    "source": "copie de chain/runtime/validators.json (clés publiques seulement)",
+    "sha256": "0x8340716e75ce94a2a3ccaaf50ed4c29846758b36e003ec370fc7f2d35706f722"
+  }
+}

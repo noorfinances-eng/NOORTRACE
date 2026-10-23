@@ -1,0 +1,37 @@
+{
+  "valid": true,
+  "target": null,
+  "failed_checks": [],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-sans-enregistreurs.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 0,
+  "statement": {
+    "fr": "L'événement seq 7 (hachage 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14) du journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 de l'organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab est bien formé, chaîné à ses voisins seq 6 et 8 et inclus dans la période du 2026-11-05T09:00:00Z au 2026-11-05T10:00:00Z close par le manifeste 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; l'événement est signé par la clé d'enregistreur rec-test-01 et le manifeste par la clé rec-test-02, clés inscrites au registre ; l'événement a été approuvé par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier) ; selon AC de test CT-6 (unité TSA de test CT-6), le manifeste d'empreinte 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 existait au plus tard le 2026-11-05T10:00:06Z UTC ; le manifeste d'empreinte 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 existait avant la création du bloc Bitcoin 1001 (0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026, réseau regtest), sous 20 blocs dont le travail se rattache au point de contrôle 1000 du réviseur ; heure inscrite par le mineur : 2026-11-05T13:50:00Z UTC, précision non garantie par le protocole ; borne sous hypothèse : 2026-11-05T14:50:00Z UTC (réseau d'essai, sans valeur probante) ; sur le registre noortrace-2124-dev, la clôture de cette période (organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164) figure au bloc 16668 (heure déclarée par le bloc : 2026-10-22T22:20:56Z UTC), émise par le contrat PeriodRegistry 0x4ee6ecad1c2dae9f525404de8555724e3c35d07b, et son ancre 0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6 au bloc 16660 (heure déclarée 2026-10-22T22:20:49Z UTC), émise par AttestationRegistry 0xf4b146fba71f41e0592668ffbf264f1d186b2ca8 pour l'émetteur 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49, clé de chaîne inscrite au bloc 16652 pour la clé d'enregistreur rec-test-02 ; chacun de ces blocs est signé par 3 des 4 validateurs du jeu 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 que le réviseur déclare (validators.json du réseau de développement, clés publiques seulement).",
+    "en": "Event seq 7 (hash 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14) of journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 of organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab is well-formed, chained to its neighbours seq 6 and 8 and included in the period from 2026-11-05T09:00:00Z to 2026-11-05T10:00:00Z closed by manifest 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914; the event is signed by recorder key rec-test-01 and the manifest by key rec-test-02, keys registered in the registry; the event was approved by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, threshold 2 of 3 of the set declared by the dossier); according to AC de test CT-6 (unit TSA de test CT-6), the manifest with digest 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 existed no later than 2026-11-05T10:00:06Z UTC; the manifest with digest 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 existed before Bitcoin block 1001 (0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026, regtest network) was created, under 20 blocks whose work connects to the reviewer's checkpoint 1000; time written by the miner: 2026-11-05T13:50:00Z UTC, accuracy not guaranteed by the protocol; bound under assumption: 2026-11-05T14:50:00Z UTC (test network, no evidential value); on registry noortrace-2124-dev, the closing of this period (organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164) is in block 16668 (time declared by the block: 2026-10-22T22:20:56Z UTC), emitted by contract PeriodRegistry 0x4ee6ecad1c2dae9f525404de8555724e3c35d07b, and its anchor 0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6 in block 16660 (declared time 2026-10-22T22:20:49Z UTC), emitted by AttestationRegistry 0xf4b146fba71f41e0592668ffbf264f1d186b2ca8 for issuer 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49, chain key registered in block 16652 for recorder key rec-test-02; each of these blocks is signed by 3 of the 4 validators of set 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 declared by the reviewer (validators.json du réseau de développement, clés publiques seulement)."
+  },
+  "bound": null,
+  "description": "Le dossier complet, vérifié avec ancres-sans-enregistreurs.json : N-3 et N-4 ne figurent pas ; les deux clés de l'énoncé sont confirmées par les inscriptions que R-10 prouve, provenance « registre » (EX-6.8)."
+}

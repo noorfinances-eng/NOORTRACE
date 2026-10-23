@@ -215,7 +215,8 @@ bloc : interroger le leader directement).
 
 Le nœud ne garde que les **300 000 dernières hauteurs** de certificats
 (`consensus.DefaultCertRetentionHeights`, surchargeable par
-`NOOR_BFT_CERT_RETENTION_HEIGHTS`), soit ≈ 83 h à un bloc par seconde ; à chaque
+`NOOR_BFT_CERT_RETENTION_HEIGHTS`), soit ≈ 83 h à un bloc par seconde, et ≈ 73 h
+à la cadence de 1,14 bloc par seconde mesurée sur le réseau de développement ; à chaque
 commit, tout certificat sous `tête − 300 000` est supprimé. `retention.heights`
 donne la fenêtre effective du nœud interrogé, `retention.pruned` dit si la hauteur
 demandée est déjà sous la fenêtre.

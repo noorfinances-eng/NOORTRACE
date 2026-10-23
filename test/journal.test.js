@@ -837,6 +837,13 @@ describe("CT-1 : dossier de preuve", function () {
 });
 
 // ---------------------------------------------------------------------------
+// CT-6 (spec/CT-6-verificateur.md, EX-6.14) conserve le code de retour et la
+// liste des vérifications en échec de chaque dossier de CT-1, et remplace
+// explicitement le libellé du rapport lisible (section 8.5 : « vérification(s)
+// en échec ») et la sortie JSON, qui n'avait pas de schéma, par le rapport
+// rapport-verification-v0 (section 8.6 : verdict, failed_checks,
+// blocking_unexecuted, checks, event). Les attentes ci-dessous suivent ces
+// deux formats ; les codes et les listes comparés sont les mêmes qu'avant CT-6.
 describe("CT-1 : ligne de commande scripts/verify/dossier.mjs", function () {
   this.timeout(60_000);
   const racine = path.join(VECTEURS, "dossiers");
@@ -850,10 +857,10 @@ describe("CT-1 : ligne de commande scripts/verify/dossier.mjs", function () {
     const j = lancer(["verify", "dossier.mjs"], [path.join(racine, "valide-seq-7"), "--json"]);
     expect(j.code).to.equal(0);
     const rapport = JSON.parse(j.stdout);
-    expect(rapport.valide).to.equal(true);
-    expect(rapport.controlesEnEchec).to.deep.equal([]);
-    expect(rapport.controles).to.have.length(J.CONTROLES_DOSSIER.length);
-    expect(rapport.evenement.seq).to.equal(7);
+    expect(rapport.verdict).to.equal("valide");
+    expect(rapport.failed_checks).to.deep.equal([]);
+    expect(rapport.checks).to.have.length(J.CONTROLES_DOSSIER.length);
+    expect(rapport.event.seq).to.equal(7);
   });
 
   it("chaque dossier invalide : code 1 et le contrôle attendu en échec", function () {
@@ -862,23 +869,23 @@ describe("CT-1 : ligne de commande scripts/verify/dossier.mjs", function () {
       const r = lancer(["verify", "dossier.mjs"], [path.join(racine, nom), "--json"]);
       expect(r.code, nom).to.equal(1);
       const rapport = JSON.parse(r.stdout);
-      expect(rapport.valide, nom).to.equal(false);
-      expect(rapport.controlesEnEchec, nom).to.deep.equal(attendu.controles_en_echec);
+      expect(rapport.verdict, nom).to.equal("invalide");
+      expect(rapport.failed_checks, nom).to.deep.equal(attendu.controles_en_echec);
       const lisible = lancer(["verify", "dossier.mjs"], [path.join(racine, nom)]);
       expect(lisible.code, nom).to.equal(1);
-      expect(lisible.stdout, nom).to.match(new RegExp(`Résultat {6}: INVALIDE — contrôle\\(s\\) en échec : ${attendu.controles_en_echec.join(", ")}`));
+      expect(lisible.stdout, nom).to.match(new RegExp(`Résultat {6}: INVALIDE — vérification\\(s\\) en échec : ${attendu.controles_en_echec.join(", ")}`));
     }
   });
 
   it("une partie inexploitable (evenement.json = null) rend le dossier INVALIDE, code 1, sans reprendre l'index", function () {
     const r = lancer(["verify", "dossier.mjs"], [path.join(racine, "invalide-partie-nulle")]);
     expect(r.code).to.equal(1);
-    expect(r.stdout).to.match(/Résultat {6}: INVALIDE — contrôle\(s\) en échec : E-1 ; contrôle\(s\) non exécuté\(s\) sans raison admise : /);
+    expect(r.stdout).to.match(/Résultat {6}: INVALIDE — vérification\(s\) en échec : E-1 ; vérification\(s\) non exécutée\(s\) sans raison admise : /);
     expect(r.stdout).to.not.match(/^Événement/m);
     const j = JSON.parse(lancer(["verify", "dossier.mjs"], [path.join(racine, "invalide-partie-nulle"), "--json"]).stdout);
-    expect(j.valide).to.equal(false);
-    expect(j.evenement).to.equal(null);
-    expect(j.nonExecutesBloquants).to.include.members(["C-1", "M-1", "P-2"]);
+    expect(j.verdict).to.equal("invalide");
+    expect(j.event).to.equal(null);
+    expect(j.blocking_unexecuted).to.include.members(["C-1", "M-1", "P-2"]);
   });
 
   it("entrée inutilisable : code 2 (répertoire absent, répertoire sans dossier.json, dossier.json qui n'est pas du JSON, option inconnue, schémas introuvables)", function () {
@@ -887,7 +894,7 @@ describe("CT-1 : ligne de commande scripts/verify/dossier.mjs", function () {
     const r = lancer(["verify", "dossier.mjs"], [vide, "--json"]);
     expect(r.code).to.equal(2);
     expect(r.stderr).to.match(/dossier.json absent/);
-    expect(JSON.parse(r.stdout).valide).to.equal(null);
+    expect(JSON.parse(r.stdout).verdict).to.equal(null);
     fs.writeFileSync(path.join(vide, "dossier.json"), "{ pas du json");
     expect(lancer(["verify", "dossier.mjs"], [vide]).code).to.equal(2);
     expect(lancer(["verify", "dossier.mjs"], [path.join(racine, "valide-seq-7"), "--inconnue"]).code).to.equal(2);

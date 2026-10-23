@@ -1,0 +1,61 @@
+{
+  "valid": false,
+  "target": "O-1",
+  "failed_checks": [
+    "O-1"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "echoue",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-2",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "O-3",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "O-4",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "O-5",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "O-6",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "O-7",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "warnings": [],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : O-1 ; vérification(s) non exécutée(s) sans raison admise : O-2, O-3, O-4, O-5, O-6, O-7 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): O-1; check(s) not run without an admitted reason: O-2, O-3, O-4, O-5, O-6, O-7; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "preuve.ots = ots/preuves/o1-octet-en-trop.ots : un octet après l'arbre. O-5 n'est pas exécutée : pas d'AV-O-3."
+}

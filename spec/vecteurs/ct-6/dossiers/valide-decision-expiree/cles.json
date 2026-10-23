@@ -1,0 +1,15 @@
+{
+  "version": 0,
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "keys": [
+    {
+      "key_id": "rec-test-01",
+      "algorithm": "ed25519",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "valid_from": "2026-11-01T00:00:00.000Z",
+      "valid_to": null,
+      "source": "vecteurs CT-6, décisions de refus et d'expiration (graines de CT-1, spec/vecteurs/ct-1/cles/cles-test.json)"
+    }
+  ]
+}

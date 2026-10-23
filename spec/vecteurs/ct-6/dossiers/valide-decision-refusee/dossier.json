@@ -1,0 +1,96 @@
+{
+  "version": 0,
+  "event": {
+    "seq": 6,
+    "hash": "0x9a195fa25fdbdd8c4be43289667118b42876e345de5cdf1b6c0b4f9d8e7e5e75"
+  },
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "generated_at": "2026-11-06T08:30:00.000Z",
+  "parts": [
+    {
+      "name": "evenement",
+      "file": "evenement.json",
+      "sha256": "0xfe848d91ce7615de756da52d91a620b59d06b1731c282d61bd4ce1ee3c58e816",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "voisins",
+      "file": "voisins.json",
+      "sha256": "0xd9d46b36a5e3f3ce5ac8abf30a004698a85c82285827aee50fa2792de56a135f",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "chemin",
+      "file": "chemin.json",
+      "sha256": "0x85bafb252309b59db69438970f68ba74d63981d80df78501aabfd2c9845d00e4",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "manifeste",
+      "file": "manifeste.json",
+      "sha256": "0xc0288c7b6adfcc6c76f488e2f0710b294808c3f1214521211cc63cca89092760",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "manifeste_sig",
+      "file": "manifeste.sig",
+      "sha256": "0xec121e1e4eab47046a65152c91601803d1359a014a181b04d0562d1b18de4d1d",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "cles",
+      "file": "cles.json",
+      "sha256": "0x083ca7e606b12a2d234b35b336e74ec71058c0d09e88e0c3ba6c2b60f5d1fcc1",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "approbations",
+      "file": "approbations.json",
+      "sha256": "0x0024d693cb024a953581c631cdf6bbf5726359fcafe5e2383fa3c96c96c7a7f0",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "jeton_rfc3161",
+      "file": "jeton-rfc3161.der",
+      "sha256": null,
+      "present": false,
+      "reason_if_absent": "hors périmètre CT-1"
+    },
+    {
+      "name": "preuve_ots",
+      "file": "preuve.ots",
+      "sha256": null,
+      "present": false,
+      "reason_if_absent": "hors périmètre CT-1"
+    },
+    {
+      "name": "registre",
+      "file": "registre.json",
+      "sha256": null,
+      "present": false,
+      "reason_if_absent": "hors périmètre CT-1"
+    },
+    {
+      "name": "certificat_commit",
+      "file": "certificat-commit.json",
+      "sha256": null,
+      "present": false,
+      "reason_if_absent": "hors périmètre CT-1"
+    },
+    {
+      "name": "validateurs",
+      "file": "validateurs.json",
+      "sha256": null,
+      "present": false,
+      "reason_if_absent": "hors périmètre CT-1"
+    }
+  ]
+}
