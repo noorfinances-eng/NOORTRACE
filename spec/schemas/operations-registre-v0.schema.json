@@ -1,0 +1,1022 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/operations-registre.schema.json",
+  "title": "Formats des opérations du registre, version 0 (CT-4 §7 à §9)",
+  "description": "La racine est l'index de capture d'une transaction du registre (CT-4 §9.4) : les réponses JSON-RPC brutes (en-tête, reçus de toutes les transactions du bloc, certificat de commit) sont écrites à côté, telles que reçues, et l'index les désigne par leur nom et leur SHA-256. Les $defs portent la demande de signature (7.7), l'envoi d'une transaction (8.6), la sortie d'une commande des outils de référence (7.2) et le format des fichiers de vecteurs de CT-4 (annexe A). Aucune clé privée n'y figure jamais.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "role",
+    "evm_chain_id",
+    "bft_chain_id",
+    "contract",
+    "transaction_hash",
+    "block_number",
+    "block_hash",
+    "transaction_index",
+    "log_index",
+    "files",
+    "node",
+    "validator_set_hash",
+    "captured_at",
+    "attempts",
+    "checks",
+    "sending"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "role": {
+      "enum": [
+        "deploiement",
+        "jeu_approbateurs",
+        "assignation",
+        "approvisionnement",
+        "inscription",
+        "revocation",
+        "ancre",
+        "cloture",
+        "administration_jeu",
+        "reassignation"
+      ],
+      "description": "Seuls inscription, ancre et cloture deviennent des entrées de registre.json (CT-6 §11.2.1, CT-4 EX-9.8) ; deploiement sert le manifeste d'instance (evidence, CT-4 EX-4.27, RG-19) ; les autres servent le dossier d'inscription (7.10) et l'exploitation."
+    },
+    "evm_chain_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "bft_chain_id": {
+      "type": "string",
+      "pattern": "^noortrace-[1-9][0-9]{0,9}-[a-z0-9]{1,16}$",
+      "description": "Identifiant BFT de l'instance (CT-4 EX-4.6)."
+    },
+    "contract": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/adresse"
+        }
+      ],
+      "description": "Adresse du contrat appelé, ou créé pour les rôles deploiement et jeu_approbateurs ; null pour un approvisionnement (virement de NUR, RG-15)."
+    },
+    "transaction_hash": {
+      "$ref": "#/$defs/hex32"
+    },
+    "block_number": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "block_hash": {
+      "$ref": "#/$defs/hex32"
+    },
+    "transaction_index": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "log_index": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      ],
+      "description": "Indice, dans les journaux du reçu de la transaction, du journal prouvé (CP-5) ; null quand le rôle n'en a pas."
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "block",
+        "receipts",
+        "certificate"
+      ],
+      "properties": {
+        "block": {
+          "$ref": "#/$defs/fichier",
+          "description": "Réponse brute de eth_getBlockByNumber(h, false)."
+        },
+        "receipts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/fichier"
+          },
+          "description": "Réponses brutes de eth_getTransactionReceipt, une par transaction du bloc, dans l'ordre de transactions de l'en-tête."
+        },
+        "certificate": {
+          "$ref": "#/$defs/fichier",
+          "description": "Réponse brute de noor_getCommitCertificate(h)."
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rpc",
+        "validator_id"
+      ],
+      "properties": {
+        "rpc": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Point JSON-RPC interrogé, sans jeton ni secret."
+        },
+        "validator_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          ],
+          "description": "Identifiant du validateur que l'exploitant déclare derrière ce point, s'il est connu."
+        }
+      }
+    },
+    "validator_set_hash": {
+      "$ref": "#/$defs/hex32",
+      "description": "valset_hash (CT-6 EX-11.8) du jeu du manifeste d'instance (CT-4 §4.8) contre lequel CP-4 a vérifié le certificat."
+    },
+    "captured_at": {
+      "$ref": "#/$defs/horodatage"
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000,
+      "description": "Nombre d'appels à noor_getCommitCertificate pour obtenir le certificat (9.3)."
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/verification"
+      },
+      "description": "CP-1 à CP-6, dans cet ordre."
+    },
+    "sending": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/envoi"
+        }
+      ],
+      "description": "L'envoi de la transaction par l'outil, quand c'est lui qui l'a envoyée ; null pour une capture d'une transaction d'autrui."
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "adresse": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "entier_decimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,77})$"
+    },
+    "horodatage": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "fichier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "sha256"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\\.json$",
+          "description": "Nom du fichier, dans le répertoire de l'index, sans chemin."
+        },
+        "sha256": {
+          "$ref": "#/$defs/hex32",
+          "description": "SHA-256 des octets du fichier, tels que reçus du nœud."
+        }
+      }
+    },
+    "statut": {
+      "enum": [
+        "reussi",
+        "echoue",
+        "non_execute"
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "detail"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(OP|CP)-[1-9][0-9]?$"
+        },
+        "status": {
+          "$ref": "#/$defs/statut"
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signer",
+        "v",
+        "r",
+        "s"
+      ],
+      "properties": {
+        "signer": {
+          "$ref": "#/$defs/adresse"
+        },
+        "v": {
+          "enum": [
+            27,
+            28
+          ]
+        },
+        "r": {
+          "$ref": "#/$defs/hex32"
+        },
+        "s": {
+          "$ref": "#/$defs/hex32"
+        }
+      }
+    },
+    "meta_periode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "org_id",
+        "journal_id",
+        "period_hash",
+        "root",
+        "period_start",
+        "period_end",
+        "first_seq",
+        "last_seq",
+        "version",
+        "uri"
+      ],
+      "description": "PeriodRegistry.PeriodMeta, champ pour champ depuis le manifeste (CT-1 §10.4) ; bornes en entiers décimaux.",
+      "properties": {
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "period_hash": {
+          "$ref": "#/$defs/hex32"
+        },
+        "root": {
+          "$ref": "#/$defs/hex32"
+        },
+        "period_start": {
+          "$ref": "#/$defs/entier_decimal"
+        },
+        "period_end": {
+          "$ref": "#/$defs/entier_decimal"
+        },
+        "first_seq": {
+          "$ref": "#/$defs/entier_decimal"
+        },
+        "last_seq": {
+          "$ref": "#/$defs/entier_decimal"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "uri": {
+          "type": "string",
+          "pattern": "^[ -~]{0,64}$",
+          "description": "Chaîne vide ou au plus 64 caractères ASCII imprimables (RG-5)."
+        }
+      }
+    },
+    "demande_signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "operation",
+        "evm_chain_id",
+        "contract",
+        "fields",
+        "digest",
+        "eip191_digest",
+        "signer_set",
+        "signatures",
+        "prepared_at"
+      ],
+      "description": "Ce qu'un signataire reçoit, recalcule et signe (EIP-191) pour une opération du registre (CT-4 §7.7). Le signataire recalcule digest depuis fields, evm_chain_id et contract avant de signer (OP-6, EX-7.10) ; il ne signe jamais un condensé qu'il n'a pas recalculé. Les signatures sont rangées par adresse de signataire croissante (RG-13).",
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "operation": {
+          "enum": [
+            "inscription",
+            "revocation",
+            "cloture",
+            "ancre",
+            "administration_jeu"
+          ]
+        },
+        "evm_chain_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "contract": {
+          "$ref": "#/$defs/adresse",
+          "description": "Adresse du contrat qui vérifie la signature : RecorderRegistry, PeriodRegistry, AttestationRegistry ou le CuratorSet administré."
+        },
+        "fields": {
+          "type": "object"
+        },
+        "digest": {
+          "$ref": "#/$defs/hex32",
+          "description": "Condensé interne de la section 6, avant préfixe EIP-191."
+        },
+        "eip191_digest": {
+          "$ref": "#/$defs/hex32",
+          "description": "keccak256(\"\\x19Ethereum Signed Message:\\n32\" ‖ digest), le hachage que recouvre ecrecover."
+        },
+        "signer_set": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "curator_set",
+                "threshold",
+                "height",
+                "block_hash"
+              ],
+              "properties": {
+                "curator_set": {
+                  "$ref": "#/$defs/adresse"
+                },
+                "threshold": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "block_hash": {
+                  "$ref": "#/$defs/hex32"
+                }
+              }
+            }
+          ],
+          "description": "Jeu et seuil lus à la préparation, pour les opérations au seuil (inscription, revocation, cloture) ; null pour ancre et administration_jeu."
+        },
+        "signatures": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/signature"
+          }
+        },
+        "prepared_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "expires_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ],
+          "description": "Échéance de la fenêtre de signature, facultative (8.2, EX-8.19) : la console (CT-3 §13) et signer refusent de signer après ; elle ne lie ni le contrat ni un relayeur qui détient déjà les signatures."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "inscription"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fields": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "org_id",
+                  "journal_id",
+                  "chain_key",
+                  "ed25519_public_key"
+                ],
+                "properties": {
+                  "org_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "journal_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "chain_key": {
+                    "$ref": "#/$defs/adresse"
+                  },
+                  "ed25519_public_key": {
+                    "$ref": "#/$defs/hex32"
+                  }
+                }
+              },
+              "signer_set": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "revocation"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fields": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "org_id",
+                  "chain_key",
+                  "registered_at"
+                ],
+                "properties": {
+                  "org_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "chain_key": {
+                    "$ref": "#/$defs/adresse"
+                  },
+                  "registered_at": {
+                    "$ref": "#/$defs/entier_decimal",
+                    "description": "recorderOf(org_id, chain_key).registeredAt lu à la préparation."
+                  }
+                }
+              },
+              "signer_set": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "cloture"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fields": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "period_meta"
+                ],
+                "properties": {
+                  "period_meta": {
+                    "$ref": "#/$defs/meta_periode"
+                  }
+                }
+              },
+              "signer_set": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "ancre"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fields": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "fingerprint",
+                  "doc_type",
+                  "issuer"
+                ],
+                "properties": {
+                  "fingerprint": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "doc_type": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "issuer": {
+                    "$ref": "#/$defs/adresse"
+                  }
+                }
+              },
+              "signer_set": {
+                "type": "null"
+              },
+              "signatures": {
+                "type": "array",
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "administration_jeu"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fields": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "op",
+                  "arg",
+                  "nonce"
+                ],
+                "properties": {
+                  "op": {
+                    "enum": [
+                      "CuratorSet.addCurator",
+                      "CuratorSet.removeCurator",
+                      "CuratorSet.setThreshold",
+                      "CuratorSet.proposeAdmin",
+                      "CuratorSet.acceptAdmin"
+                    ]
+                  },
+                  "arg": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "nonce": {
+                    "$ref": "#/$defs/entier_decimal"
+                  }
+                }
+              },
+              "signer_set": {
+                "type": "null"
+              },
+              "signatures": {
+                "type": "array",
+                "maxItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "envoi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "nonce",
+        "type",
+        "max_fee_per_gas",
+        "max_priority_fee_per_gas",
+        "gas_limit",
+        "value",
+        "raw_transaction",
+        "transaction_hash",
+        "submitted_to",
+        "submitted_at"
+      ],
+      "description": "Transaction signée par l'outil, gardée pour la reprise (renvoi des mêmes octets, remplacement au même nonce, 8.6).",
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/adresse"
+        },
+        "to": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/adresse"
+            }
+          ]
+        },
+        "nonce": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": 2
+        },
+        "max_fee_per_gas": {
+          "$ref": "#/$defs/entier_decimal"
+        },
+        "max_priority_fee_per_gas": {
+          "$ref": "#/$defs/entier_decimal"
+        },
+        "gas_limit": {
+          "$ref": "#/$defs/entier_decimal"
+        },
+        "value": {
+          "$ref": "#/$defs/entier_decimal",
+          "description": "En wei ; nul sauf pour un approvisionnement par la trésorerie (RG-15)."
+        },
+        "raw_transaction": {
+          "type": "string",
+          "pattern": "^0x02([0-9a-f]{2})+$",
+          "minLength": 6,
+          "maxLength": 1048580,
+          "description": "Transaction de type 2 sérialisée (6.7.3), au plus 524 288 octets (borne de l'outil, 8.6) : la longueur est bornée par maxLength, pas par le motif, dont une répétition bornée au-delà de 1000 ne tient pas dans RE2."
+        },
+        "transaction_hash": {
+          "$ref": "#/$defs/hex32"
+        },
+        "submitted_to": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "submitted_at": {
+          "$ref": "#/$defs/horodatage"
+        }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "transaction_hash"
+      ],
+      "description": "Issue connue d'un envoi, fichier issue-<hachage>.json du répertoire des captures (8.6, EX-8.16) : inclusion (block_number, status), remplacement accepté (state remplacee, replaced_by) ou mise à l'écart (state ecartee) ; un envoi sans fichier d'issue est sans issue connue (OP-3).",
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "transaction_hash": {
+          "$ref": "#/$defs/hex32"
+        },
+        "block_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "enum": [
+            "0x0",
+            "0x1"
+          ]
+        },
+        "state": {
+          "enum": [
+            "remplacee",
+            "ecartee"
+          ]
+        },
+        "replaced_by": {
+          "$ref": "#/$defs/hex32",
+          "description": "Hachage du remplaçant au même nonce (state remplacee) ; l'envoi remplacé reste sans issue tant que le remplaçant n'en a pas."
+        },
+        "replaces": {
+          "$ref": "#/$defs/hex32",
+          "description": "Hachage de l'envoi que celui-ci remplaçait (state ecartee : l'original a été inclus)."
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/horodatage"
+        }
+      }
+    },
+    "sortie": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "command",
+        "result",
+        "exit_code",
+        "checks",
+        "error",
+        "outputs"
+      ],
+      "description": "Sortie standard, en JSON, d'une commande de scripts/registre/noortrace-registre.mjs (7.2).",
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "command": {
+          "enum": [
+            "etat",
+            "cles-essai",
+            "inscrire-client",
+            "approvisionner",
+            "condense",
+            "signer",
+            "inscrire-cle",
+            "revoquer-cle",
+            "manifeste-essai",
+            "ancrer",
+            "clore",
+            "administrer-jeu",
+            "reassigner",
+            "capturer",
+            "exporter",
+            "verifier",
+            "publier-jeu"
+          ]
+        },
+        "result": {
+          "enum": [
+            "reussi",
+            "deja_fait",
+            "refuse",
+            "echoue",
+            "incertain",
+            "inutilisable"
+          ]
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/verification"
+          }
+        },
+        "error": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code",
+                "check",
+                "message"
+              ],
+              "properties": {
+                "code": {
+                  "enum": [
+                    "usage",
+                    "entree_illisible",
+                    "reseau_non_developpement",
+                    "instance_illisible",
+                    "chaine_differente",
+                    "jeu_validateurs_different",
+                    "code_absent",
+                    "noeud_suiveur",
+                    "noeud_injoignable",
+                    "organisation_existante",
+                    "organisation_inconnue",
+                    "jeu_invalide",
+                    "pas_administrateur",
+                    "compte_inattendu",
+                    "solde_insuffisant",
+                    "provision_excessive",
+                    "examen_requis",
+                    "transaction_en_attente",
+                    "condense_different",
+                    "signature_non_canonique",
+                    "signataire_hors_jeu",
+                    "signatures_insuffisantes",
+                    "cle_deja_active",
+                    "cle_revoquee",
+                    "cle_ed25519_active",
+                    "cle_inconnue",
+                    "cle_chaine_non_inscrite",
+                    "empreinte_squattee",
+                    "ancre_manquante",
+                    "periode_invalide",
+                    "doublon",
+                    "discontinuite_temporelle",
+                    "discontinuite_sequence",
+                    "transaction_refusee",
+                    "transaction_annulee",
+                    "recu_absent",
+                    "certificat_indisponible",
+                    "certificat_elague",
+                    "certificat_invalide",
+                    "capture_incomplete",
+                    "cle_invalide",
+                    "demande_existante",
+                    "demande_expiree"
+                  ]
+                },
+                "check": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^(OP|CP)-[1-9][0-9]?$"
+                    }
+                  ]
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                }
+              }
+            }
+          ]
+        },
+        "outputs": {
+          "type": "object"
+        }
+      }
+    },
+    "cas_vecteur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "checks",
+        "input",
+        "expected",
+        "refusal"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "pattern": "^(RG|OP|CP)-[1-9][0-9]?$"
+          },
+          "description": "Vérifications que le cas exerce (section 6 pour RG-, 7.3 pour OP-, 9.4 pour CP-)."
+        },
+        "input": {
+          "type": "object"
+        },
+        "expected": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object"
+            }
+          ],
+          "description": "Valeurs attendues ; null pour un cas de refus, sauf : (a) famille transactions, tout cas dont input.fields est donné : expected porte la transaction recalculée et signée depuis fields (signing_payload, signing_hash, y_parity, r, s, raw_transaction, transaction_hash, from) même quand RG-15 échoue sur les frais, la chaîne, la limite de gaz ou l'objet (transactions de la capture de CT-6, EX-A.4, et cas remplacement-insuffisant, autre-chaine, frais-nuls, frais-inegaux, limite-au-dela-2-24, approvisionnement-excessif, deploiement-avec-destinataire) ; un cas donné par raw_transaction seule a expected null ; (b) familles manifestes et capture : expected.verdicts donne le verdict de chaque vérification et refusal la première en échec (et, pour manifestes, expected.registry l'ancre dérivée, nulle quand RG-20 échoue)."
+        },
+        "refusal": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "check",
+                "code"
+              ],
+              "properties": {
+                "check": {
+                  "type": "string",
+                  "pattern": "^(RG|OP|CP)-[1-9][0-9]?$"
+                },
+                "code": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                }
+              }
+            }
+          ],
+          "description": "Première vérification en échec et code d'erreur attendus ; null pour un cas valide."
+        }
+      }
+    },
+    "fichier_vecteurs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "family",
+        "description",
+        "cases"
+      ],
+      "description": "Un fichier de famille des vecteurs de CT-4 (annexe A.4).",
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "family": {
+          "enum": [
+            "identifiants",
+            "doctypes",
+            "condenses",
+            "empreintes",
+            "appels",
+            "transactions",
+            "manifestes",
+            "demandes",
+            "inscription",
+            "capture"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/cas_vecteur"
+          }
+        }
+      }
+    }
+  }
+}

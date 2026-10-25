@@ -1,0 +1,353 @@
+{
+  "version": 0,
+  "family": "inscription",
+  "description": "Dossiers d'inscription (inscription-client-v0) à toutes les étapes, valides et refusés : schéma et OP-4.",
+  "cases": [
+    {
+      "id": "relecteur-exemple-fini",
+      "description": "exemple de 7.10 : dossier fini",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/relecteur-exemple-fini.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "relecteur-exemple-0-prepare",
+      "description": "dossier préparé : toutes les étapes à faire, result nul",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/relecteur-exemple-0-prepare.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "relecteur-exemple-1-jeu-approbateurs",
+      "description": "dossier après l'étape jeu_approbateurs",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/relecteur-exemple-1-jeu-approbateurs.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "relecteur-exemple-2-assignation",
+      "description": "dossier après l'étape assignation",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/relecteur-exemple-2-assignation.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "relecteur-exemple-3-lecture-jeu",
+      "description": "dossier après l'étape lecture_jeu",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/relecteur-exemple-3-lecture-jeu.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "relecteur-exemple-4-approvisionnement",
+      "description": "dossier après l'étape approvisionnement",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/relecteur-exemple-4-approvisionnement.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "relecteur-exemple-5-inscription",
+      "description": "dossier après l'étape inscription",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/relecteur-exemple-5-inscription.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "relecteur-exemple-6-premiere-ancre",
+      "description": "dossier après l'étape premiere_ancre",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/relecteur-exemple-6-premiere-ancre.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "assureur-demo-prepare",
+      "description": "dossier de A.2 (assureur-demo, trois clés de la capture de CT-6), préparé",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/valides/assureur-demo-prepare.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": {
+        "result": "valide",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+      },
+      "refusal": null
+    },
+    {
+      "id": "schema-seuil-nul",
+      "description": "seuil 0 (schéma)",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/schema-seuil-nul.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "entree_illisible"
+      }
+    },
+    {
+      "id": "schema-slug",
+      "description": "slug hors de la grammaire (schéma)",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/schema-slug.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "entree_illisible"
+      }
+    },
+    {
+      "id": "org-id-faux",
+      "description": "org_id d'un autre slug",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/org-id-faux.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "journal-id-faux",
+      "description": "journal_id d'un autre nom",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/journal-id-faux.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "membres-non-tries",
+      "description": "membres non triés",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/membres-non-tries.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "membre-nul",
+      "description": "adresse nulle parmi les membres",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/membre-nul.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "seuil-superieur",
+      "description": "seuil 4 pour trois membres",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/seuil-superieur.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "administrateur-nul",
+      "description": "clé de gouvernance nulle",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/administrateur-nul.json",
+        "nature": "developpement",
+        "operator_accounts": []
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "administrateur-exploitant",
+      "description": "instance de production : la clé de gouvernance est un compte de l'exploitant (EX-5.6)",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/administrateur-exploitant.json",
+        "nature": "production",
+        "operator_accounts": [
+          "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+        ]
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "slug-lisible-production",
+      "description": "instance de production : slug lisible au lieu de « o- » et 32 chiffres hexadécimaux (EX-6.2)",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/slug-lisible-production.json",
+        "nature": "production",
+        "operator_accounts": [
+          "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+        ]
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "classe-d-production",
+      "description": "instance de production : clé d'enregistreur et clé de chaîne de classe de garde D (CT-2 §11.2, EX-11.19)",
+      "checks": [
+        "OP-4"
+      ],
+      "input": {
+        "file": "inscription/invalides/classe-d-production.json",
+        "nature": "production",
+        "operator_accounts": [
+          "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+        ]
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-4",
+        "code": "cle_invalide"
+      }
+    }
+  ]
+}

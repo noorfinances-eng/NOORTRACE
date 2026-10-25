@@ -1304,6 +1304,43 @@ export function validerSchema(valeur, schema, { registre = {}, fragment = "" } =
   return erreurs;
 }
 
+/** Mots-clés de validation que validerContre applique (sous-ensemble fermé de JSON Schema 2020-12). */
+export const MOTS_CLES_VALIDATION = Object.freeze(["$ref", "type", "const", "enum", "pattern", "minLength", "maxLength", "minimum", "maximum", "multipleOf", "required", "minProperties", "propertyNames", "properties", "additionalProperties", "prefixItems", "items", "minItems", "maxItems", "uniqueItems", "allOf", "anyOf", "oneOf", "not", "if", "then", "else"]);
+
+/** Mots-clés d'annotation, sans effet sur la validation. */
+const MOTS_CLES_ANNOTATION = new Set(["$id", "$schema", "$defs", "$comment", "title", "description", "examples", "default", "deprecated", "readOnly", "writeOnly"]);
+
+/**
+ * Inventaire d'un schéma : les mots-clés rencontrés hors du sous-ensemble que
+ * validerContre applique et hors des annotations, avec leur chemin. Vide pour
+ * un schéma que ce validateur applique en entier ; un mot-clé listé (contains,
+ * maxProperties, format…) serait ignoré sans bruit par validerSchema et doit
+ * être vérifié à part par l'appelant (CT-4 §7.2).
+ */
+export function motsClesHorsSousEnsemble(schema) {
+  const hors = [];
+  const connus = new Set(MOTS_CLES_VALIDATION);
+  const parcourir = (s, chemin) => {
+    if (Array.isArray(s)) {
+      s.forEach((x, i) => parcourir(x, `${chemin}/${i}`));
+      return;
+    }
+    if (!s || typeof s !== "object") return;
+    for (const [k, v] of Object.entries(s)) {
+      if (["properties", "$defs", "patternProperties"].includes(k) && v && typeof v === "object") {
+        if (k === "patternProperties") hors.push({ chemin: `${chemin}/${k}`, motCle: k });
+        for (const [nom, sous] of Object.entries(v)) parcourir(sous, `${chemin}/${k}/${nom}`);
+        continue;
+      }
+      if (["const", "enum", "default", "examples", "required"].includes(k)) continue;
+      if (!connus.has(k) && !MOTS_CLES_ANNOTATION.has(k)) hors.push({ chemin: `${chemin}/${k}`, motCle: k });
+      if (v && typeof v === "object") parcourir(v, `${chemin}/${k}`);
+    }
+  };
+  parcourir(schema, "#");
+  return hors;
+}
+
 /** Résumé d'une liste d'erreurs de schéma, pour un détail de contrôle. */
 function resumerErreurs(erreurs, max = 4) {
   const vues = erreurs.slice(0, max).map((e) => `${e.chemin} : ${e.message}`);

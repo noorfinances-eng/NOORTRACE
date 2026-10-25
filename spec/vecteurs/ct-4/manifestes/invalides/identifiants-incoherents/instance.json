@@ -1,0 +1,210 @@
+{
+  "version": 0,
+  "revision": 1,
+  "previous_sha256": null,
+  "published_at": "2026-11-01T09:00:00.000Z",
+  "nature": "production",
+  "bft_chain_id": "noortrace-1912124-vecteur2",
+  "evm_chain_id": 1912124,
+  "evm_chain_id_registration": {
+    "status": "inscrit",
+    "checked_at": "2026-11-01T08:00:00.000Z",
+    "source": "vecteur synthétique de CT-4 (annexe A.4) : identifiant fictif, aucune consultation ni inscription réelle"
+  },
+  "genesis": {
+    "file": "genese.json",
+    "sha256": "0x9f6e20eeed0bfd7345da2ba295585caeb62bbe03669bef6536e1cfffb6a0a2e9",
+    "rules_line": "chainId=noortrace-1912124-vecteur evmChainId=1912124 possEnabled=false possRewards=0x0000000000000000000000000000000000000000 possCapWei=0 possGenesisUnix=0 possHalvingSec=0 possSubperiodSec=0 possEmissionModel=noormint/v1",
+    "alloc_total_wei": "1000000000000000000"
+  },
+  "noorcore": {
+    "repository": "https://github.com/noorfinances-eng/noorchain-core",
+    "commit": "618fcef8805ef5b4cb9291a3dd97be710e489297",
+    "go_version": "1.26.9",
+    "patches": [
+      {
+        "name": "0001-noor_getCommitCertificate.patch",
+        "sha256": "0x04d4a48b28568bb6859abdfb1778985841fc547ea47649742b3b2763dd83ae82",
+        "effect": "ajoute la méthode JSON-RPC noor_getCommitCertificate ; consensus et format sur disque inchangés"
+      }
+    ],
+    "artifacts": [
+      {
+        "kind": "image",
+        "name": "noortrace/noorcore",
+        "sha256": "0xb84e431918b8898dd6598052e50e6e7ae0a1d7f0884c5d8ce98f5edf05b2e1b6",
+        "build": "vecteur synthétique : condensé fictif d'une image construite selon EX-10.1"
+      }
+    ]
+  },
+  "validator_sets": [
+    {
+      "from_height": 1,
+      "to_height": null,
+      "validators": [
+        {
+          "id": "v1",
+          "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+        },
+        {
+          "id": "v2",
+          "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+        },
+        {
+          "id": "v3",
+          "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+        },
+        {
+          "id": "v4",
+          "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+        }
+      ],
+      "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques",
+      "valset_hash": "0x53e2cd91f5b84283514694f2dd31a5f060f712960cda90140bd7b8aaea33b0ac",
+      "operators": [
+        {
+          "validator": "v1",
+          "operator": "operateur-a",
+          "site": "site-a",
+          "retention_heights": 3000000
+        },
+        {
+          "validator": "v2",
+          "operator": "operateur-b",
+          "site": "site-b",
+          "retention_heights": 3000000
+        },
+        {
+          "validator": "v3",
+          "operator": "operateur-c",
+          "site": "site-c",
+          "retention_heights": 3000000
+        },
+        {
+          "validator": "v4",
+          "operator": "operateur-d",
+          "site": "site-d",
+          "retention_heights": 3000000
+        }
+      ]
+    }
+  ],
+  "fees": {
+    "transaction_type": 2,
+    "max_fee_per_gas_wei": "1",
+    "max_priority_fee_per_gas_wei": "1",
+    "gas_limit": 3000000,
+    "gas_limit_max": 16777216,
+    "provision_days": 30,
+    "refill_below_days": 7
+  },
+  "contracts": [
+    {
+      "name": "AttestationRegistry",
+      "address": "0x041071037487a4ec03765616ffd395cb277deb46",
+      "deployer": "0x3fe8b04d740f4830417565e9d6c0903620d36cbb",
+      "nonce": 0,
+      "constructor_args": [],
+      "transaction_hash": "0x03ba4827d5ecaf3e38e8029ef3a18cb290cba575a362647b34fcd774c0bb3dfb",
+      "block_number": 101,
+      "block_hash": "0x5406935811f47873a6d9ac52cd8c2264275030acfd7cfaae0cc255b217c55469",
+      "evidence": {
+        "capture": {
+          "file": "preuves/capture-101-0-deploiement.json",
+          "sha256": "0x1d53935cb5d9db6643567c10aad3e05ae903846ce8128a980417d2704441b4f1"
+        }
+      },
+      "to_height": null
+    },
+    {
+      "name": "CuratorSetRegistry",
+      "address": "0xb010167512013831f505ea1c424ed5d617920d9b",
+      "deployer": "0x3fe8b04d740f4830417565e9d6c0903620d36cbb",
+      "nonce": 1,
+      "constructor_args": [
+        "0x71a272a1cf45cea193b923450a7af09a9f1586a5"
+      ],
+      "transaction_hash": "0xecdf7b3efda5383d25cb6757ae7e1aec58e5b5810d752925324416dbec67a49e",
+      "block_number": 105,
+      "block_hash": "0x0f5c1e2ffc1a478b5d1703340dca86988e8c82a14968543097154d99336fe362",
+      "evidence": {
+        "capture": {
+          "file": "preuves/capture-105-0-deploiement.json",
+          "sha256": "0x0ca9ac533a5f51aedffac1c7802a19dede5fe13269c0f9df0fd9a92b5e7abd79"
+        }
+      },
+      "to_height": null
+    },
+    {
+      "name": "PeriodRegistry",
+      "address": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+      "deployer": "0x3fe8b04d740f4830417565e9d6c0903620d36cbb",
+      "nonce": 2,
+      "constructor_args": [
+        "0xb010167512013831f505ea1c424ed5d617920d9b"
+      ],
+      "transaction_hash": "0x8c10ef766bc0c668b593b30b29bab5e5b690dcb7fb8972eefd9b017eb6b67c66",
+      "block_number": 109,
+      "block_hash": "0x75b396c149ed02c57a644cfc3e4751d833673e478cc95430e6519c6b3d62a728",
+      "evidence": {
+        "capture": {
+          "file": "preuves/capture-109-0-deploiement.json",
+          "sha256": "0xb1e04b06c35b8e38666843aaa203e6b6430b1bd54b40e77715c37ba74bab2c97"
+        }
+      },
+      "to_height": null
+    },
+    {
+      "name": "RecorderRegistry",
+      "address": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817",
+      "deployer": "0x3fe8b04d740f4830417565e9d6c0903620d36cbb",
+      "nonce": 3,
+      "constructor_args": [
+        "0xb010167512013831f505ea1c424ed5d617920d9b"
+      ],
+      "transaction_hash": "0xcf1612235ae5e361324cbd2454ae33259b4d72364f337d69315b4ca46b0bcbcc",
+      "block_number": 113,
+      "block_hash": "0x199ac73748936c66d347592dbc53af659c965472a96c37ba601be41f5c672fc6",
+      "evidence": {
+        "capture": {
+          "file": "preuves/capture-113-0-deploiement.json",
+          "sha256": "0x41d4ddc8aa6f8d3e00a013b113a188d90787805fb5aa7be2c9e7c0780e49dfc4"
+        }
+      },
+      "to_height": null
+    }
+  ],
+  "compilation": {
+    "solc": "0.8.20",
+    "via_ir": true,
+    "optimizer_runs": 200,
+    "source_commit": null
+  },
+  "accounts": [
+    {
+      "role": "tresorerie",
+      "address": "0xa95a82cc265f0d72f40cb040dfd644e74873d383",
+      "from_height": 0,
+      "to_height": null
+    },
+    {
+      "role": "deployeur",
+      "address": "0x3fe8b04d740f4830417565e9d6c0903620d36cbb",
+      "from_height": 0,
+      "to_height": null
+    },
+    {
+      "role": "administrateur_registre",
+      "address": "0x71a272a1cf45cea193b923450a7af09a9f1586a5",
+      "from_height": 105,
+      "to_height": null
+    },
+    {
+      "role": "relayeur",
+      "address": "0x526b68c91c74f6faa53d03d990fd97a79922d202",
+      "from_height": 0,
+      "to_height": null
+    }
+  ],
+  "source": "vecteur synthétique de CT-4 (annexe A.4) : instance de production fictive, blocs de déploiement signés par le jeu d'essai de A.2"
+}

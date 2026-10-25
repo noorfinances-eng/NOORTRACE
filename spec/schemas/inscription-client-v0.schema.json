@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/inscription-client.schema.json",
+  "title": "Dossier d'inscription d'un client au registre, version 0 (CT-4 §7)",
+  "description": "Le dossier que l'outil de référence de CT-4 lit et tient à jour pendant l'inscription d'un client : la demande (organisation, jeu d'approbateurs, journaux, clés d'enregistreur et clés de chaîne, approvisionnement), l'état de chaque étape, qui sert à la reprise, et ce que le client reçoit à la fin (result). Il ne contient aucune clé privée. Les règles que le schéma n'exprime pas (ordre et unicité des membres, org_id égal à keccak256 du slug, journal_id égal à keccak256 du nom) sont les vérifications OP-4 et la section 6 de CT-4.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "version", "instance", "organisation", "approvers", "journals", "recorders", "funding", "steps", "result", "prepared_by", "prepared_at", "source" ],
+  "properties": {
+    "version": { "const": 0 },
+    "instance": { "$ref": "#/$defs/instance" },
+    "organisation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "slug", "org_id" ],
+      "properties": {
+        "slug": { "$ref": "#/$defs/nom" },
+        "org_id": { "$ref": "#/$defs/hex32_non_nul", "description": "keccak256(UTF-8(slug)) (CT-4 section 6)." }
+      }
+    },
+    "approvers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "members", "threshold", "set_admin" ],
+      "properties": {
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/adresse" },
+          "description": "Adresses des approbateurs, en minuscules, triées par ordre croissant de leur écriture hexadécimale (CT-3 EX-8.1, pas 6) ; une personne physique par adresse (CT-3 EX-8.11)."
+        },
+        "threshold": { "type": "integer", "minimum": 1, "maximum": 64, "description": "Seuil t, 1 ≤ t ≤ nombre de membres (OP-4)." },
+        "set_admin": { "$ref": "#/$defs/adresse", "description": "Administrateur du CuratorSet de l'organisation : sa clé de gouvernance (CT-4 EX-5.6, EX-7.7), jamais un compte de l'exploitant sur une instance de production (OP-4)." }
+      }
+    },
+    "journals": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/journal" }
+    },
+    "recorders": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/cle_enregistreur" }
+    },
+    "funding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "funder", "daily_budget_gas", "amount_wei" ],
+      "properties": {
+        "funder": { "$ref": "#/$defs/adresse", "description": "Trésorerie de l'instance, compte de rôle tresorerie du manifeste d'instance (CT-4 EX-3.1, EX-4.19)." },
+        "daily_budget_gas": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Budget journalier b_k de chaque clé de chaîne, en gaz (CT-4 EX-4.19, EX-7.9)." },
+        "amount_wei": { "$ref": "#/$defs/entier_decimal", "description": "Provision P_k = provision_days × b_k + gas_limit de chaque clé de chaîne, en wei (CT-4 EX-4.19) ; jamais dépassée (EX-4.20)." }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/etape" }
+    },
+    "result": {
+      "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/resultat" } ],
+      "description": "null tant que l'inscription n'est pas faite ; ce que le client reçoit ensuite (7.10)."
+    },
+    "prepared_by": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "prepared_at": { "$ref": "#/$defs/horodatage" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 512 }
+  },
+  "$defs": {
+    "hex32": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+    "hex32_non_nul": { "type": "string", "pattern": "^0x[0-9a-f]{64}$", "description": "32 octets ; la valeur nulle est refusée par OP-4 (le motif reste exprimable sans assertion avant, pour RE2)." },
+    "adresse": { "type": "string", "pattern": "^0x[0-9a-f]{40}$", "description": "Adresse en minuscules ; l'adresse nulle est refusée par OP-4." },
+    "entier_decimal": { "type": "string", "pattern": "^(0|[1-9][0-9]{0,77})$" },
+    "hauteur": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "horodatage": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "nom": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$", "description": "Slug d'organisation ou nom de journal : grammaire de RG-1 et RG-2 (CT-4 EX-6.2, EX-6.4)." },
+    "key_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$", "description": "recorder_key_id de CT-1 §3 et CT-2 EX-11.12." },
+    "classe_garde": { "enum": [ "A", "B", "C", "D" ], "description": "Classe de garde de CT-2 §11.2 ; D refusée en production." },
+    "instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "evm_chain_id", "bft_chain_id", "genesis_sha256", "contracts", "manifest_sha256", "validator_set_hash" ],
+      "description": "L'instance, désignée par le triplet (bft_chain_id, evm_chain_id, genesis_sha256) de son manifeste (CT-4 EX-4.1).",
+      "properties": {
+        "evm_chain_id": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+        "bft_chain_id": { "type": "string", "pattern": "^noortrace-[1-9][0-9]{0,9}-[a-z0-9]{1,16}$", "description": "Identifiant BFT (CT-4 EX-4.6)." },
+        "genesis_sha256": { "$ref": "#/$defs/hex32", "description": "genesis.sha256 du manifeste ; sans manifeste, SHA-256 de chain/config/alloc-dev.json (EX-7.2)." },
+        "contracts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "curator_set_registry", "recorder_registry", "period_registry", "attestation_registry" ],
+          "properties": {
+            "curator_set_registry": { "$ref": "#/$defs/adresse" },
+            "recorder_registry": { "$ref": "#/$defs/adresse" },
+            "period_registry": { "$ref": "#/$defs/adresse" },
+            "attestation_registry": { "$ref": "#/$defs/adresse" }
+          }
+        },
+        "manifest_sha256": {
+          "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/hex32" } ],
+          "description": "SHA-256 des octets du manifeste d'instance (CT-4 §4.8) que l'outil a lu ; null sur le réseau de développement quand l'outil a lu deployments/noorcore.json (EX-7.2)."
+        },
+        "validator_set_hash": { "$ref": "#/$defs/hex32", "description": "valset_hash du jeu de validateurs du manifeste en vigueur à la préparation (CT-4 EX-4.10, CT-6 EX-11.8), égal au valsetHash des certificats (OP-1)." }
+      }
+    },
+    "journal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "name", "journal_id" ],
+      "properties": {
+        "name": { "$ref": "#/$defs/nom" },
+        "journal_id": { "$ref": "#/$defs/hex32_non_nul", "description": "keccak256(UTF-8(name)) (CT-4 section 6)." }
+      }
+    },
+    "cle_enregistreur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "key_id", "journal_id", "algorithm", "public_key", "custody_class", "backend_type", "created_at", "chain_key", "chain_key_class", "origin_proof" ],
+      "description": "Ce que le démon de l'enregistreur fournit au registre pour une clé (CT-2 EX-11.13).",
+      "properties": {
+        "key_id": { "$ref": "#/$defs/key_id" },
+        "journal_id": { "$ref": "#/$defs/hex32_non_nul" },
+        "algorithm": { "const": "ed25519" },
+        "public_key": { "$ref": "#/$defs/hex32_non_nul" },
+        "custody_class": { "$ref": "#/$defs/classe_garde" },
+        "backend_type": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "created_at": { "$ref": "#/$defs/horodatage" },
+        "chain_key": { "$ref": "#/$defs/adresse" },
+        "chain_key_class": { "$ref": "#/$defs/classe_garde" },
+        "origin_proof": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [ "format", "sha256" ],
+              "properties": {
+                "format": { "type": "string", "minLength": 1, "maxLength": 64 },
+                "sha256": { "$ref": "#/$defs/hex32" }
+              }
+            }
+          ],
+          "description": "Preuve d'origine de la clé (attestation du HSM), consignée par son empreinte ; le fichier lui-même reste chez le client (CT-2 EX-11.13)."
+        }
+      }
+    },
+    "reference_transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "transaction_hash", "block_number", "block_hash", "capture" ],
+      "properties": {
+        "transaction_hash": { "$ref": "#/$defs/hex32" },
+        "block_number": { "$ref": "#/$defs/hauteur" },
+        "block_hash": { "$ref": "#/$defs/hex32" },
+        "capture": { "$ref": "#/$defs/chemin" }
+      }
+    },
+    "chemin": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\\.json$", "description": "Nom d'un index de capture dans le répertoire des captures, sans chemin (CP-6)." },
+    "etape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "step", "subject", "state", "transaction_hash", "block_number", "block_hash", "capture", "error", "updated_at" ],
+      "properties": {
+        "step": { "enum": [ "jeu_approbateurs", "assignation", "lecture_jeu", "approvisionnement", "inscription", "premiere_ancre", "premiere_cloture" ] },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 128, "description": "Objet de l'étape : slug, adresse de clé de chaîne, key_id, ou periodHash (7.1)." },
+        "state": { "enum": [ "a_faire", "envoyee", "incluse", "capturee", "faite", "echec" ], "description": "7.6 : a_faire (rien d'envoyé) ; envoyee (envoi écrit et soumis, reçu non obtenu) ; incluse (reçu à status 0x1 et OP-11 réussi, capture non faite : --sans-capture sur le réseau Hardhat, EX-A.6) ; capturee (index de capture écrit) ; faite (étape sans transaction) ; echec (transaction incluse à status 0x0 ou relecture contredite, error renseigné)." },
+        "contract": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/adresse" } ], "description": "Adresse du contrat créé par l'étape jeu_approbateurs, écrite dès le reçu (7.6) ; absente ou nulle pour les autres étapes." },
+        "transaction_hash": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/hex32" } ] },
+        "block_number": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/hauteur" } ] },
+        "block_hash": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/hex32" } ] },
+        "capture": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/chemin" } ] },
+        "error": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [ "code", "message" ],
+              "properties": {
+                "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$" },
+                "message": { "type": "string", "minLength": 1, "maxLength": 1024 }
+              }
+            }
+          ]
+        },
+        "updated_at": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/horodatage" } ] }
+      }
+    },
+    "resultat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "curator_set", "set_deployment", "assignment", "approver_set", "set_read", "recorders", "completed_at" ],
+      "properties": {
+        "curator_set": { "$ref": "#/$defs/adresse" },
+        "set_deployment": { "$ref": "#/$defs/reference_transaction" },
+        "assignment": { "$ref": "#/$defs/reference_transaction" },
+        "approver_set": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "source", "chain_id", "registry", "set", "members", "threshold" ],
+          "description": "Objet approver_set à recopier tel quel dans la politique d'approbation du client (CT-3 §4.2, politique-approbation-v0#/$defs/jeu_approbateurs).",
+          "properties": {
+            "source": { "const": "registre" },
+            "chain_id": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+            "registry": { "$ref": "#/$defs/adresse" },
+            "set": { "$ref": "#/$defs/adresse" },
+            "members": { "type": "null" },
+            "threshold": { "type": "null" }
+          }
+        },
+        "set_read": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "height", "block_hash", "threshold", "size", "members" ],
+          "description": "Lecture du jeu faite comme CT-3 EX-8.1 après l'assignation (étape lecture_jeu) : déclarative, l'état n'est pas prouvé.",
+          "properties": {
+            "height": { "$ref": "#/$defs/hauteur" },
+            "block_hash": { "$ref": "#/$defs/hex32" },
+            "threshold": { "type": "integer", "minimum": 1, "maximum": 64 },
+            "size": { "type": "integer", "minimum": 1, "maximum": 64 },
+            "members": { "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/adresse" } }
+          }
+        },
+        "recorders": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [ "key_id", "chain_key", "funding", "registration" ],
+            "properties": {
+              "key_id": { "$ref": "#/$defs/key_id" },
+              "chain_key": { "$ref": "#/$defs/adresse" },
+              "funding": { "$ref": "#/$defs/reference_transaction" },
+              "registration": { "$ref": "#/$defs/reference_transaction" }
+            }
+          }
+        },
+        "completed_at": { "$ref": "#/$defs/horodatage" }
+      }
+    }
+  }
+}

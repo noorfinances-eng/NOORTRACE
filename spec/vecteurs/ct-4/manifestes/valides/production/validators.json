@@ -1,0 +1,20 @@
+{
+  "validators": [
+    {
+      "id": "v1",
+      "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+    },
+    {
+      "id": "v2",
+      "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+    },
+    {
+      "id": "v3",
+      "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+    },
+    {
+      "id": "v4",
+      "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+    }
+  ]
+}

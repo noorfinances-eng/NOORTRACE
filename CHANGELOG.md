@@ -6,6 +6,31 @@ is tagged.
 
 ## Unreleased
 
+- CT-4, the registry, version 0.2: the dedicated noorcore instance (genesis
+  rules checked at start-up, identifiers, validators and quorum, pinned versions,
+  instance manifest), fee-less gas and the admission guard that production
+  validators must put in front of their RPC (per-client authentication and
+  quota, balance and nonce checks) against mempool poisoning by balance-less
+  senders, the contracts and their conventions (`docType`, signed digests and
+  signature ordering, anchor fingerprints, ABI and transaction encoding),
+  client onboarding step by step, day-to-day operations, the commit
+  certificate and its capture (CP-1 to CP-6) for `registre.json`,
+  `certificat-commit.json` and `validateurs.json`, container topologies, and
+  the substitution rule (SU-1 to SU-7) that decides at gate 4 between partner
+  validators and a signed database journal. Schemas `instance-registre-v0`,
+  `inscription-client-v0` and `operations-registre-v0`.
+- CT-4 reference tool (`scripts/registre/noortrace-registre.mjs`, `npm run
+  registre`) and conventions library (`scripts/lib/conventions-registre.mjs`),
+  deterministic vectors (`spec/vecteurs/ct-4`, `npm run vecteurs:ct4`), and a
+  Go verifier written from the specification alone: 2,147 values recomputed,
+  all matching, 158 outside its scope. Continuous integration regenerates the
+  CT-4 vectors and runs that verifier. The acceptance criterion was met three
+  times: a reader with only the specification onboarded a client, anchored a
+  root and closed a period on the development network.
+- Text only: CT-1 §8 and §10.4, CT-2 EX-11.13 point control 8 to CT-6 instead
+  of CT-4; `scripts/lib/noortrace.mjs` gains an optional `setAdmin` for
+  `bootstrapOrg` (default unchanged) and `scripts/lib/journal.mjs` an
+  inventory of schema keywords outside its validator's subset.
 - CT-2, the recorder, version 0.3: aligned with CT-3. The approval service
   interface (`charger`, `evaluer`, `ouvrir`, `decisions`, `acquitter`,
   `consommer`, `expiration`), the refusal to seal a held call for a ticket

@@ -1,0 +1,205 @@
+{
+  "version": 0,
+  "instance": {
+    "evm_chain_id": 2124,
+    "bft_chain_id": "noortrace-2124-dev",
+    "genesis_sha256": "0x510e24e41cc401faa4e092338060cee0dc4629e5781a69af7a50b37edb6f4537",
+    "contracts": {
+      "curator_set_registry": "0x172076e0166d1f9cc711c77adf8488051744980c",
+      "recorder_registry": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+      "period_registry": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+      "attestation_registry": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8"
+    },
+    "manifest_sha256": null,
+    "validator_set_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751"
+  },
+  "organisation": {
+    "slug": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "approvers": {
+    "members": [
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "threshold": 2,
+    "set_admin": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+  },
+  "journals": [
+    {
+      "name": "journal-sinistres",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164"
+    }
+  ],
+  "recorders": [
+    {
+      "key_id": "rec-test-01",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "algorithm": "ed25519",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "custody_class": "D",
+      "backend_type": "fichier",
+      "created_at": "2026-10-22T22:00:00.000Z",
+      "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "chain_key_class": "D",
+      "origin_proof": null
+    },
+    {
+      "key_id": "rec-test-02",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "algorithm": "ed25519",
+      "public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+      "custody_class": "D",
+      "backend_type": "fichier",
+      "created_at": "2026-10-22T22:00:00.000Z",
+      "chain_key": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+      "chain_key_class": "D",
+      "origin_proof": null
+    },
+    {
+      "key_id": "rec-test-03",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "algorithm": "ed25519",
+      "public_key": "0x7fcebb9e8efd62d13a17c830ad33739c1de7fe9f1458701cb739ae15e9e62cd6",
+      "custody_class": "D",
+      "backend_type": "fichier",
+      "created_at": "2026-10-22T22:00:00.000Z",
+      "chain_key": "0xe2bdcef6264103ab6c88fa3c1b5a2ceacd995b22",
+      "chain_key_class": "D",
+      "origin_proof": null
+    }
+  ],
+  "funding": {
+    "funder": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+    "daily_budget_gas": 10800000,
+    "amount_wei": "327000000"
+  },
+  "steps": [
+    {
+      "step": "jeu_approbateurs",
+      "subject": "assureur-demo",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "assignation",
+      "subject": "assureur-demo",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "lecture_jeu",
+      "subject": "assureur-demo",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "approvisionnement",
+      "subject": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "approvisionnement",
+      "subject": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "approvisionnement",
+      "subject": "0xe2bdcef6264103ab6c88fa3c1b5a2ceacd995b22",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "inscription",
+      "subject": "rec-test-01",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "inscription",
+      "subject": "rec-test-02",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "inscription",
+      "subject": "rec-test-03",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "premiere_ancre",
+      "subject": "journal-sinistres",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    },
+    {
+      "step": "premiere_cloture",
+      "subject": "journal-sinistres",
+      "state": "a_faire",
+      "transaction_hash": null,
+      "block_number": null,
+      "block_hash": null,
+      "capture": null,
+      "error": null,
+      "updated_at": null
+    }
+  ],
+  "result": null,
+  "prepared_by": "générateur des vecteurs de CT-4 (A.2)",
+  "prepared_at": "2026-10-22T22:00:00.000Z",
+  "source": "dossier de A.2 : organisation assureur-demo des vecteurs de CT-1 et de la capture de CT-6, préparé"
+}

@@ -41,7 +41,7 @@ verification proves and what the reviewer must still trust.
 
 ## Status
 
-Early. Four specifications are written, each with test vectors checked by
+Early. Five specifications are written, each with test vectors checked by
 implementations written separately from the reference.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
@@ -57,6 +57,15 @@ implementations written separately from the reference.
   immediate tool error result (`isError`) carrying the ticket and its state by
   default. Rule evaluation, tickets and decision checks are implemented and
   checked.
+- **CT-4, the registry**: the dedicated noorcore instance (genesis rules checked
+  at start-up, identifiers, validators and quorum, fee-less gas with an admission
+  guard against mempool poisoning), the contracts and their conventions
+  (`docType`, signed digests, anchor fingerprints), client onboarding step by
+  step, the block commit certificate and its capture for the evidence folder,
+  container topologies, and the substitution rule that decides at gate 4 between
+  partner validators and a signed database journal. A reference command-line
+  tool (`npm run registre`) performs onboarding, anchoring, period closure and
+  capture on the development network.
 - **CT-6, the verifier**: the eight checks, the reviewer's trust anchors, verdicts
   and what each one proves and does not prove, human and JSON output, and the
   reproducible, network-free build of a future Go binary. The RFC 3161,
@@ -64,8 +73,8 @@ implementations written separately from the reference.
   their vectors are recomputed without discrepancy by OpenSSL, the official
   OpenTimestamps library and go-ethereum.
 
-CT-1, CT-2 and CT-3 vectors are also recomputed by Go verifiers written from the
-specification alone, without reading the JavaScript.
+CT-1, CT-2, CT-3 and CT-4 vectors are also recomputed by Go verifiers written
+from the specification alone, without reading the JavaScript.
 
 The registry contracts and the commit-certificate verifier exist and are tested. The
 recorder, the approval service and console, and the verifier's Go binary are
@@ -78,6 +87,7 @@ specified, not built yet.
 | `spec/` | Normative specifications, JSON schemas, test vectors |
 | `scripts/lib/` | JavaScript reference implementation |
 | `scripts/verify/` | Offline verifiers (evidence folder, commit certificate) |
+| `scripts/registre/` | CT-4 reference tool: client onboarding, anchoring, period closure, capture |
 | `contracts/` | Registry contracts (Solidity) |
 | `test/` | Tests and fixtures |
 | `chain/` | Dedicated development instance of the registry node, container image |

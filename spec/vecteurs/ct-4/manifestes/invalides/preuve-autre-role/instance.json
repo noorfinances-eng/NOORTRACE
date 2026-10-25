@@ -1,0 +1,195 @@
+{
+  "version": 0,
+  "revision": 1,
+  "previous_sha256": null,
+  "published_at": "2026-10-25T00:00:00.000Z",
+  "nature": "developpement",
+  "bft_chain_id": "noortrace-2124-dev",
+  "evm_chain_id": 2124,
+  "evm_chain_id_registration": {
+    "status": "attribue_a_un_tiers",
+    "checked_at": "2026-10-25T00:00:00.000Z",
+    "source": "ethereum-lists/chains, _data/chains/eip155-2124.json : « Metaplayerone Dubai Testnet », inscrite le 2023-04-23 (R2-F8) ; sans effet sur le réseau de développement (EX-4.7)"
+  },
+  "genesis": {
+    "file": "chain/config/alloc-dev.json",
+    "sha256": "0x510e24e41cc401faa4e092338060cee0dc4629e5781a69af7a50b37edb6f4537",
+    "rules_line": "chainId=noortrace-2124-dev evmChainId=2124 possEnabled=false possRewards=0x0000000000000000000000000000000000000000 possCapWei=0 possGenesisUnix=0 possHalvingSec=0 possSubperiodSec=0 possEmissionModel=noormint/v1",
+    "alloc_total_wei": "4000000000000000000"
+  },
+  "noorcore": {
+    "repository": "https://github.com/noorfinances-eng/noorchain-core",
+    "commit": "618fcef8805ef5b4cb9291a3dd97be710e489297",
+    "go_version": "1.26.9",
+    "patches": [
+      {
+        "name": "0001-noor_getCommitCertificate.patch",
+        "sha256": "0x04d4a48b28568bb6859abdfb1778985841fc547ea47649742b3b2763dd83ae82",
+        "effect": "ajoute la méthode JSON-RPC noor_getCommitCertificate ; consensus et format sur disque inchangés (chain/README.md, « Source de noorcore »)"
+      }
+    ],
+    "artifacts": [
+      {
+        "kind": "binaire",
+        "name": "chain/runtime/bin/noorcore",
+        "sha256": "0xb02a011a2fddd77b7ca6a00b8f376320dc7a419c6a5f47dcaca2a35a56ef33c6",
+        "build": "bash chain/scripts/build-noorcore.sh --force : clone du commit, correctifs de chain/patches/, go build ./core sans -trimpath"
+      }
+    ]
+  },
+  "validator_sets": [
+    {
+      "from_height": 1,
+      "to_height": null,
+      "validators": [
+        {
+          "id": "v1",
+          "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+        },
+        {
+          "id": "v2",
+          "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+        },
+        {
+          "id": "v3",
+          "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+        },
+        {
+          "id": "v4",
+          "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+        }
+      ],
+      "source": "chain/runtime/validators.json écrit par chain/scripts/dev-net.sh au premier démarrage ; copie publique test/fixtures/certificat-commit/validators.json",
+      "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+      "operators": [
+        {
+          "validator": "v1",
+          "operator": "NOORTRACE",
+          "site": "machine unique du réseau de développement",
+          "retention_heights": 300000
+        },
+        {
+          "validator": "v2",
+          "operator": "NOORTRACE",
+          "site": "machine unique du réseau de développement",
+          "retention_heights": 300000
+        },
+        {
+          "validator": "v3",
+          "operator": "NOORTRACE",
+          "site": "machine unique du réseau de développement",
+          "retention_heights": 300000
+        },
+        {
+          "validator": "v4",
+          "operator": "NOORTRACE",
+          "site": "machine unique du réseau de développement",
+          "retention_heights": 300000
+        }
+      ]
+    }
+  ],
+  "fees": {
+    "transaction_type": 2,
+    "max_fee_per_gas_wei": "1",
+    "max_priority_fee_per_gas_wei": "1",
+    "gas_limit": 3000000,
+    "gas_limit_max": 16777216,
+    "provision_days": 30,
+    "refill_below_days": 7
+  },
+  "contracts": [
+    {
+      "name": "AttestationRegistry",
+      "address": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+      "deployer": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "nonce": 79,
+      "constructor_args": [],
+      "transaction_hash": "0xc5a3c23d597ad5f8be5f370fde4681b9e31ba6f9e7fe24952b9ce05e779671a3",
+      "block_number": 8316,
+      "block_hash": "0x8d74ec1247ecaa63a37d374b5757ef22b532577c4bd8145e2cc13f282cf2410c",
+      "evidence": {
+        "capture": {
+          "file": "preuves/capture-16648-0-inscription.json",
+          "sha256": "0x09e340880b00498252717983f8a21675c817b6e4b0717c2d286c8b1a9a28ca0e"
+        }
+      },
+      "to_height": null
+    },
+    {
+      "name": "CuratorSetRegistry",
+      "address": "0x172076e0166d1f9cc711c77adf8488051744980c",
+      "deployer": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "nonce": 80,
+      "constructor_args": [
+        "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+      ],
+      "transaction_hash": "0x3117b9d89fb33f4db0f70038a06009a361c0af5c4427a4df2c6a083b56da4795",
+      "block_number": 8320,
+      "block_hash": null,
+      "evidence": null,
+      "to_height": null
+    },
+    {
+      "name": "PeriodRegistry",
+      "address": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+      "deployer": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "nonce": 81,
+      "constructor_args": [
+        "0x172076e0166d1f9cc711c77adf8488051744980c"
+      ],
+      "transaction_hash": "0x17ce26160f6e5a2fb3fe0fdcea79555df86da197374d1f1501454c16e4549e8e",
+      "block_number": 8324,
+      "block_hash": null,
+      "evidence": null,
+      "to_height": null
+    },
+    {
+      "name": "RecorderRegistry",
+      "address": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+      "deployer": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "nonce": 82,
+      "constructor_args": [
+        "0x172076e0166d1f9cc711c77adf8488051744980c"
+      ],
+      "transaction_hash": "0x29b3b93dbc7da2db13cfdca9f7b1fab09ebcda6c6b85785f64a8f4f38525cfa4",
+      "block_number": 8328,
+      "block_hash": null,
+      "evidence": null,
+      "to_height": null
+    }
+  ],
+  "compilation": {
+    "solc": "0.8.20",
+    "via_ir": true,
+    "optimizer_runs": 200,
+    "source_commit": null
+  },
+  "accounts": [
+    {
+      "role": "tresorerie",
+      "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "from_height": 0,
+      "to_height": null
+    },
+    {
+      "role": "deployeur",
+      "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "from_height": 0,
+      "to_height": null
+    },
+    {
+      "role": "administrateur_registre",
+      "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "from_height": 8320,
+      "to_height": null
+    },
+    {
+      "role": "relayeur",
+      "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "from_height": 0,
+      "to_height": null
+    }
+  ],
+  "source": "exemple de CT-4 §4.8 : réseau de développement de chain/README.md, déploiement du 2026-10-21 (blocs 8316 à 8328) ; blocs de déploiement non encore capturés (9.4)"
+}

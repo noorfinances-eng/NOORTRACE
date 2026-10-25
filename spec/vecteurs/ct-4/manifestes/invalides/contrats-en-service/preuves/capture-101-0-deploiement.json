@@ -1,0 +1,68 @@
+{
+  "version": 0,
+  "role": "deploiement",
+  "evm_chain_id": 1912124,
+  "bft_chain_id": "noortrace-1912124-vecteur",
+  "contract": "0x041071037487a4ec03765616ffd395cb277deb46",
+  "transaction_hash": "0x03ba4827d5ecaf3e38e8029ef3a18cb290cba575a362647b34fcd774c0bb3dfb",
+  "block_number": 101,
+  "block_hash": "0x5406935811f47873a6d9ac52cd8c2264275030acfd7cfaae0cc255b217c55469",
+  "transaction_index": 0,
+  "log_index": null,
+  "files": {
+    "block": {
+      "name": "bloc-101.json",
+      "sha256": "0x20a1fd7c814a31c5a10e1ff2bfb67825081c4d5693bd4ea7544a59d2e9953ec4"
+    },
+    "receipts": [
+      {
+        "name": "recu-0x03ba4827d5ecaf3e38e8029ef3a18cb290cba575a362647b34fcd774c0bb3dfb.json",
+        "sha256": "0x6635d65bd067823f069302807c51e13236a97ce299d53349e4bd983e4f651eaf"
+      }
+    ],
+    "certificate": {
+      "name": "certificat-101.json",
+      "sha256": "0x95e86c9cf26a728198fdbd4387cc170c3c75ddc914fa1ce5fa46248cf5bd80e2"
+    }
+  },
+  "node": {
+    "rpc": "vecteur synthétique (aucun nœud)",
+    "validator_id": "v2"
+  },
+  "validator_set_hash": "0x53e2cd91f5b84283514694f2dd31a5f060f712960cda90140bd7b8aaea33b0ac",
+  "captured_at": "2026-11-01T08:00:00.000Z",
+  "attempts": 1,
+  "checks": [
+    {
+      "id": "CP-1",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-2",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-3",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-4",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-5",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-6",
+      "status": "reussi",
+      "detail": ""
+    }
+  ],
+  "sending": null
+}

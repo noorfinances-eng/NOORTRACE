@@ -1,0 +1,23 @@
+{
+  "version": 0,
+  "operation": "administration_jeu",
+  "evm_chain_id": 2124,
+  "contract": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+  "fields": {
+    "op": "CuratorSet.proposeAdmin",
+    "arg": "0x00000000000000000000000090f79bf6eb2c4f870365e785982e1f101e93b906",
+    "nonce": "0"
+  },
+  "digest": "0xd0840fa693828406974358cd14061f33c59a826cc51f954f39972f615b816be2",
+  "eip191_digest": "0xb5315cbc45492aa1b65cfd9dfc5acb841aa28b9e67e0f6c9b9c89cdc015fdcd7",
+  "signer_set": null,
+  "prepared_at": "2026-11-05T12:00:00.000Z",
+  "signatures": [
+    {
+      "signer": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "v": 27,
+      "r": "0xb3ef6965994e86a40a9b3e6aa75d946ea0bc07aaaa620a60fe6619485cba1777",
+      "s": "0x22041b8f108007f82c87bb7e88fd3b29c66b3dd6440b880ffaa95f4bec9c162a"
+    }
+  ]
+}

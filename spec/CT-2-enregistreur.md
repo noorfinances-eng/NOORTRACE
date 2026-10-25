@@ -4975,7 +4975,7 @@ l'enregistreur n'attend pas la confirmation d'inscription
 pour écrire (le registre ne bloque jamais, section 14) mais consigne l'état
 `inscription_en_attente` jusqu'à la lecture de `recorderByPubKey` ; le
 dossier porte la validité « telle qu'annoncée » avec sa `source` (CT-1 §11.2)
-et le contrôle 8 de CT-4 fait le reste. Le démon fournit à CT-4, par sa
+et le contrôle 8 de CT-6 fait le reste. Le démon fournit à CT-4, par sa
 ligne de commande ou son API de gestion : `key_id`, clé publique (32 octets,
 hexadécimal `0x`), algorithme `ed25519`, classe de garde, type de backend,
 date de création, l'**adresse de la clé de chaîne** (`chainKey`, 20 octets,

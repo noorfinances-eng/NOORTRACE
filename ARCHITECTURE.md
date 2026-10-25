@@ -1,8 +1,9 @@
 # NOORTRACE — architecture cible
 
-Version 0.5, 23 octobre 2026. Document de conception, pas d'implémentation. Les
+Version 0.6, 25 octobre 2026. Document de conception, pas d'implémentation. Les
 spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
-l'enregistreur, CT-3 pour les approbations, CT-6 pour le vérificateur.
+l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-6 pour le
+vérificateur.
 
 ## Principe
 
@@ -226,8 +227,11 @@ donc R et tout ce qui la situe ; ancrer R seule n'engagerait que R (CT-6 §16).
    contrat PeriodRegistry, dérivé de PoSSRegistry sans le hachage des paiements, avec
    continuité par journal : chaque période commence où la précédente finit, en temps
    et en numéro de séquence. Les clés d'enregistreur sont inscrites par organisation
-   dans RecorderRegistry, sous signatures des approbateurs au seuil. Le registre donne l'ordre et la
-   consultation, pas la preuve.
+   dans RecorderRegistry, sous signatures des approbateurs au seuil. L'ancre du
+   registre est incluse avant la clôture de la période et avant la requête
+   RFC 3161 (CT-4 EX-8.4). Le registre donne l'ordre et la consultation, pas la
+   preuve ; ce qu'il prouve tient au quorum de validateurs que le réviseur
+   déclare (CT-4 §3, CT-6 §11).
 2. **Horodatage qualifié.** Une requête RFC 3161 contenant `periodHash` et un nonce
    part vers le prestataire reconnu. La réponse est un jeton CMS signé par lui, avec
    l'heure UTC, l'exactitude et son certificat. Il se vérifie avec
@@ -375,7 +379,7 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
 
-Écrit au 23 octobre 2026 :
+Écrit au 25 octobre 2026 :
 
 - la spécification CT-1 avec ses schémas, ses vecteurs, son implémentation de
   référence et son vérificateur Go indépendant ; le vérificateur de dossier ;
@@ -395,13 +399,19 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
   go-ethereum ;
 - la spécification CT-3 des approbations et ses deux schémas ; l'implémentation de
   référence de l'évaluation des règles, du cycle de vie du ticket et de la
-  vérification des décisions, avec ses vecteurs et un vérificateur Go indépendant.
+  vérification des décisions, avec ses vecteurs et un vérificateur Go indépendant ;
+- la spécification CT-4 du registre et ses trois schémas ; l'outil de référence
+  `scripts/registre/` (inscription d'un client, ancrage, clôture, capture des
+  preuves) et la bibliothèque des conventions, avec leurs vecteurs et un
+  vérificateur Go indépendant ; le parcours d'inscription rejoué sur le réseau de
+  développement par un relecteur qui n'avait que la spécification.
 
-Au 23 octobre 2026, le VPS de développement porte la chaîne dédiée et les contrats.
+Au 25 octobre 2026, le VPS de développement porte la chaîne dédiée et les contrats.
 
 À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
 le service et la console d'approbation, les clients RFC 3161 et OpenTimestamps, le
-binaire Go du vérificateur, la démonstration en une commande.
+binaire Go du vérificateur, la garde d'admission devant le RPC des validateurs de
+production (CT-4 EX-10.8), la démonstration en une commande.
 
 ## Décisions ouvertes
 
@@ -421,8 +431,15 @@ binaire Go du vérificateur, la démonstration en une commande.
    §7, §8, §11).
 5. Format d'export : close par CT-1, version 0 spécifiée avec ses vecteurs ; une
    révision issue de la revue de la porte 1 ou du prototype produira une version 1.
-6. Identifiant de la chaîne de production et premiers validateurs partenaires, après le pilote.
+6. Identifiant de la chaîne de production et premiers validateurs partenaires :
+   non close, à la porte 4. CT-4 en fixe les conditions : identifiant absent du
+   registre public des identifiants à la date du choix et inscrit avant la
+   première genèse (EX-4.7) ; aucun opérateur ni site avec plus de f validateurs
+   (EX-4.12) ; décision entre chaîne et journal signé selon les critères SU-1 à
+   SU-7 (CT-4 §11).
 7. Mode observateur de noorcore : nœud non validateur qui rejoue les blocs et vérifie
    leurs certificats chez le client, pour une copie indépendante en lecture. Chantier
    de consensus et de réseau, à chiffrer sur le code de rattrapage BFT ; déclenché si
    un client ou un réviseur l'exige. Le mode suiveur actuel n'en tient pas lieu.
+   CT-4 ne s'appuie pas sur lui : la copie indépendante est l'archive des captures
+   (CT-4 §9.5) et, en production, les validateurs partenaires (CT-4 §10.2).

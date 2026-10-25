@@ -1,0 +1,23 @@
+{
+  "chainId": 1912124,
+  "alloc": [
+    {
+      "address": "0xa95a82cc265f0d72f40cb040dfd644e74873d383",
+      "balanceWei": "1000000000000000000"
+    },
+    {
+      "address": "0xa95a82cc265f0d72f40cb040dfd644e74873d383",
+      "balanceWei": "1000000000000000000"
+    }
+  ],
+  "rules": {
+    "chainId": "noortrace-1912124-vecteur",
+    "possEnabled": false,
+    "possRewards": "0x0000000000000000000000000000000000000000",
+    "possCapWei": "0",
+    "possGenesisUnix": 0,
+    "possHalvingSec": 0,
+    "possSubperiodSec": 0,
+    "possEmissionModel": "noormint/v1"
+  }
+}

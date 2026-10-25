@@ -1,0 +1,34 @@
+{
+  "version": 0,
+  "operation": "revocation",
+  "evm_chain_id": 2124,
+  "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+  "fields": {
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+    "registered_at": "1792707638"
+  },
+  "digest": "0x63e4dfd071d6f365a39772d9ca34e9791f6426e9dfc654178d280c9a1152b9df",
+  "eip191_digest": "0x2b91a2c1dfd0be4b25e276c2816c4eee46852b4b929bb004434eaaf8f764a5e3",
+  "signer_set": {
+    "curator_set": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+    "threshold": 2,
+    "height": 16680,
+    "block_hash": "0x597c116991a4295b31497276db104d2bf6ece1eb0c95a6b7de658de8a59f07dd"
+  },
+  "prepared_at": "2026-11-05T12:00:00.000Z",
+  "signatures": [
+    {
+      "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "v": 27,
+      "r": "0x9708fd172c9889dcdf0745034ef619449b0f749e7cff0328398dd2ae0bc8e4ba",
+      "s": "0x3637682e7cf400a8c4ca891df91c4647e2610a3bba4a6ebe9f2a09242b3ba4ce"
+    },
+    {
+      "signer": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+      "v": 27,
+      "r": "0xf93d71c09b2f060e8e5f7f5329cb05f4a587f6c306c3da3d1737522ced1115e9",
+      "s": "0x2312bc88d924707e83469a4bd81ff66a19732c3b889e9b72ffec95169919f475"
+    }
+  ]
+}
