@@ -626,8 +626,8 @@ Règles :
    "cle:<new_key_id>", "amount": null, "currency": null }`.
 5. L'inscription de la nouvelle clé dans `RecorderRegistry` (signatures des
    approbateurs au seuil, `registerDigest`) et la révocation de l'ancienne
-   relèvent de CT-4 ; la cohérence entre l'événement de rotation et le registre
-   est un contrôle de CT-4 (section 11.4, contrôle 8).
+   relèvent de CT-4 (§8.4) ; la cohérence entre l'événement de rotation et le
+   registre relève du contrôle 8 (CT-6 §11).
 
 Exemple (seq 5 de l'annexe A) : `JCS(R)` et sa contresignature.
 
@@ -912,7 +912,7 @@ approbateurs signent pour la clôture, `periodDigest`, et l'empreinte ancrée da
 periodHash)`, restent en keccak256 parce que l'EVM l'impose, et sont ceux de
 `scripts/lib/noortrace.mjs`. Pour l'exemple :
 `anchorFingerprint = 0x3200e496c555b46459191c852a7f79b1e0b4156802cac2f2df7b80b0aa9d823b`.
-Le contrôle de ces valeurs contre le registre est le contrôle 8 (CT-4).
+Le contrôle de ces valeurs contre le registre est le contrôle 8 (CT-6 §11).
 
 ## 11. Dossier de preuve v0
 
@@ -1412,7 +1412,7 @@ d'export (section 12), l'enveloppe COSE, les hachages de bord dans le manifeste.
 - **La date.** Sans les contrôles 4 et 5 (CT-5), rien dans un dossier CT-1 ne
   prouve à quel moment un événement a existé ; `ts` est l'horloge de
   l'enregistreur, déclarative.
-- **L'ancre et le registre.** Sans le contrôle 8 (CT-4), rien ne prouve que le
+- **L'ancre et le registre.** Sans le contrôle 8 (CT-6), rien ne prouve que le
   manifeste a été enregistré ni que la clé de l'enregistreur était inscrite ;
   `cles.json` et `approver_set` sont déclaratifs, avec leur source.
 - **La légitimité des approbateurs.** Le contrôle 7 établit que les adresses

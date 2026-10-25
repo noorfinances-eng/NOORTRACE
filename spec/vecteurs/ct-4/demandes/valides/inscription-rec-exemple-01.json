@@ -1,0 +1,35 @@
+{
+  "version": 0,
+  "operation": "inscription",
+  "evm_chain_id": 2124,
+  "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+  "fields": {
+    "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "chain_key": "0xaf1056f6fd93594a0a71c87d3b18723232c61714",
+    "ed25519_public_key": "0xa34b5d38605d5b729c42eee01465e4e9f7a361c362561ebd8ec2f7c984463fbb"
+  },
+  "digest": "0xd0b3adc4a42e8b3d9efea626a0dcd526d88fce25c7ad9f1abc3f3577d49d00fa",
+  "eip191_digest": "0xa60aa4161f809a429ff15ba9435bfedca919005966cc6b5918faea987bfe36b5",
+  "signer_set": {
+    "curator_set": "0xa1a165880c7af8f1150efa652507ebe9561b73bd",
+    "threshold": 2,
+    "height": 20009,
+    "block_hash": "0x9d677845e821a226f80370d906f8f6a3b915fa0d4893623dba9c8de6804169b3"
+  },
+  "prepared_at": "2026-11-01T08:46:00.000Z",
+  "signatures": [
+    {
+      "signer": "0x19d8bddeed23cb80dca47e16b74dd29bc020c138",
+      "v": 27,
+      "r": "0x5364702e45a64c7580613a69e79e06bed8e7e7806a5452556194a505f191ff1c",
+      "s": "0x51f06ca186dc9703a1b681167234d8bff0cc054eed2c34cd23e0a7cc7b78dbd4"
+    },
+    {
+      "signer": "0x5747a77dda82031f8dd96a06a75c52a672a0a4c3",
+      "v": 28,
+      "r": "0x2d3b796f6cbadde20a50cbfc3591d3c347264cacabe74af4d57391e95ba78584",
+      "s": "0x04444d0bfa65f9d800437c51df16a18a6aa1bc7069c87289ea0337ad5e382082"
+    }
+  ]
+}

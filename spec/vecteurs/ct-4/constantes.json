@@ -1,0 +1,305 @@
+{
+  "version": 0,
+  "chain": {
+    "evm_chain_id": 2124,
+    "bft_chain_id": "noortrace-2124-dev"
+  },
+  "contracts": {
+    "curator_set_registry": "0x172076e0166d1f9cc711c77adf8488051744980c",
+    "recorder_registry": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+    "period_registry": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+    "attestation_registry": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8"
+  },
+  "curator_set": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+  "validator_set": {
+    "file": "test/fixtures/certificat-commit/validators.json",
+    "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751"
+  },
+  "genesis": {
+    "file": "chain/config/alloc-dev.json",
+    "sha256": "0x510e24e41cc401faa4e092338060cee0dc4629e5781a69af7a50b37edb6f4537"
+  },
+  "test_validators": {
+    "validators": [
+      {
+        "id": "v1",
+        "seed": "noortrace/vecteurs/ct4/validateur/v1",
+        "private_key": "0xf9b48887af0347985e3e896450d23970554cc46ecde7c086e498e4df3e2b8517",
+        "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+      },
+      {
+        "id": "v2",
+        "seed": "noortrace/vecteurs/ct4/validateur/v2",
+        "private_key": "0xe6205565ff5d896a3629a49c4f1ab1a91f371d42fdbb344e77e228e5d4630523",
+        "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+      },
+      {
+        "id": "v3",
+        "seed": "noortrace/vecteurs/ct4/validateur/v3",
+        "private_key": "0xe673e1ca9fd3584ee01b7a682fc2187fbe12f3cffa00b321b4a2192246d9bff6",
+        "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+      },
+      {
+        "id": "v4",
+        "seed": "noortrace/vecteurs/ct4/validateur/v4",
+        "private_key": "0x59ddb6f3304ce78f18c17a920698e31af5ce8ca887b76236df1a998a3dace930",
+        "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+      }
+    ],
+    "valset_hash": "0x53e2cd91f5b84283514694f2dd31a5f060f712960cda90140bd7b8aaea33b0ac"
+  },
+  "organisation": {
+    "slug": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "journal": {
+    "name": "journal-sinistres",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164"
+  },
+  "mnemonic": "test test test test test test test test test test test junk",
+  "accounts": [
+    {
+      "index": 0,
+      "derivation_path": "m/44'/60'/0'/0/0",
+      "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "private_key": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+    },
+    {
+      "index": 1,
+      "derivation_path": "m/44'/60'/0'/0/1",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "private_key": "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+    },
+    {
+      "index": 2,
+      "derivation_path": "m/44'/60'/0'/0/2",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "private_key": "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+    },
+    {
+      "index": 3,
+      "derivation_path": "m/44'/60'/0'/0/3",
+      "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+      "private_key": "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+    },
+    {
+      "index": 4,
+      "derivation_path": "m/44'/60'/0'/0/4",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+      "private_key": "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
+    }
+  ],
+  "approvers": {
+    "accounts": [
+      1,
+      2,
+      3
+    ],
+    "threshold": 2
+  },
+  "relayer": {
+    "account": 0
+  },
+  "recorders": [
+    {
+      "key_id": "rec-test-01",
+      "chain_key_seed": "noortrace/vecteurs/v0/cle-chaine/rec-test-01",
+      "chain_key_private": "0xda2e35b7f69680fe15647356186bbfc784c60620e57ef94abb6858299b26e4d0",
+      "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "ed25519_seed": "noortrace/vecteurs/v0/cle-enregistreur/rec-test-01",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045"
+    },
+    {
+      "key_id": "rec-test-02",
+      "chain_key_seed": "noortrace/vecteurs/v0/cle-chaine/rec-test-02",
+      "chain_key_private": "0xdfc0ece7f053fe30fb6e96ed3aa4432e9efa0007411e56a854fac7dadc0d68e6",
+      "chain_key": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+      "ed25519_seed": "noortrace/vecteurs/v0/cle-enregistreur/rec-test-02",
+      "public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3"
+    },
+    {
+      "key_id": "rec-test-03",
+      "chain_key_seed": "noortrace/vecteurs/v0/cle-chaine/rec-test-03",
+      "chain_key_private": "0x7964474d727336e7b6f55f90182698a6ed2ad716c51ee9d1e4d09715912f7607",
+      "chain_key": "0xe2bdcef6264103ab6c88fa3c1b5a2ceacd995b22",
+      "ed25519_seed": "noortrace/vecteurs/v0/cle-enregistreur/rec-test-03",
+      "public_key": "0x7fcebb9e8efd62d13a17c830ad33739c1de7fe9f1458701cb739ae15e9e62cd6"
+    }
+  ],
+  "manifests": [
+    {
+      "file": "spec/vecteurs/ct-1/manifestes/periode-1.json",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914"
+    },
+    {
+      "file": "spec/vecteurs/ct-1/manifestes/periode-2.json",
+      "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19"
+    },
+    {
+      "file": "spec/vecteurs/ct-1/manifestes/periode-3.json",
+      "period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594"
+    }
+  ],
+  "production": {
+    "evm_chain_id": 1912124,
+    "bft_chain_id": "noortrace-1912124-vecteur",
+    "accounts": {
+      "tresorerie": {
+        "seed": "noortrace/vecteurs/ct4/compte/tresorerie",
+        "private_key": "0xa7fac81baea5ff77be930961869aabd6901e55d72b9a97f08ab681425289b0af",
+        "address": "0xa95a82cc265f0d72f40cb040dfd644e74873d383"
+      },
+      "deployeur": {
+        "seed": "noortrace/vecteurs/ct4/compte/deployeur",
+        "private_key": "0xa954b220bb30866e62d383b080233499bd499a0c13d0728b4121376cf82fcd00",
+        "address": "0x3fe8b04d740f4830417565e9d6c0903620d36cbb"
+      },
+      "administrateur-registre": {
+        "seed": "noortrace/vecteurs/ct4/compte/administrateur-registre",
+        "private_key": "0xb950cc5c7fa403b3ef62bba576808e2c11d326993dc2a6742a843097e27d2bf7",
+        "address": "0x71a272a1cf45cea193b923450a7af09a9f1586a5"
+      },
+      "relayeur": {
+        "seed": "noortrace/vecteurs/ct4/compte/relayeur",
+        "private_key": "0xb4165c71436370e8d7f73baf502253d229db3b26eaf6c99072cd91037300bd92",
+        "address": "0x526b68c91c74f6faa53d03d990fd97a79922d202"
+      }
+    },
+    "creation_code": "0x600a600c600039600a6000f3602a60005260206000f3"
+  },
+  "example": {
+    "slug": "relecteur-exemple",
+    "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc",
+    "journal": "journal-principal",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "approvers": [
+      {
+        "seed": "noortrace/exemple/ct4/approbateur/1",
+        "private_key": "0x2b4efce7bfb80fb2c15966da73ba3b88584229b3b7969e05c3b2797028d80ce0",
+        "address": "0x19d8bddeed23cb80dca47e16b74dd29bc020c138"
+      },
+      {
+        "seed": "noortrace/exemple/ct4/approbateur/2",
+        "private_key": "0x8f42a926c51d5a449f6daf89fc79612397b5459d700f4a10748421a2d3b8d72e",
+        "address": "0xdd2db1636768f86c546563f0368c5c8d5c777990"
+      },
+      {
+        "seed": "noortrace/exemple/ct4/approbateur/3",
+        "private_key": "0x29bed90b609c861e3dab2c563c3026fe300eee24e9cca2c8341725650f534bf1",
+        "address": "0x5747a77dda82031f8dd96a06a75c52a672a0a4c3"
+      }
+    ],
+    "set_admin": {
+      "seed": "noortrace/exemple/ct4/admin-jeu",
+      "private_key": "0x98517fbcd69571b882013fcf892894b1b5988cf37d24ebe458e33d472aa14c88",
+      "address": "0x436b0cee00aef664dd71949195231b609dbe1314"
+    },
+    "chain_key": {
+      "seed": "noortrace/exemple/ct4/cle-chaine/rec-exemple-01",
+      "private_key": "0x3a174b351b5c1ac0f928b965edbb5202d83edc79375b29108c2ca7dafbe0f174",
+      "address": "0xaf1056f6fd93594a0a71c87d3b18723232c61714"
+    },
+    "ed25519": {
+      "seed": "noortrace/exemple/ct4/cle-enregistreur/rec-exemple-01",
+      "public_key": "0xa34b5d38605d5b729c42eee01465e4e9f7a361c362561ebd8ec2f7c984463fbb"
+    },
+    "curator_set": "0xa1a165880c7af8f1150efa652507ebe9561b73bd",
+    "labels": {
+      "transaction": "noortrace/exemple/ct4/transaction/<étape>",
+      "block": "noortrace/exemple/ct4/bloc/<h>",
+      "event": "noortrace/exemple/ct4/evenement/<i>",
+      "nonce": "noortrace/exemple/ct4/nonce/1"
+    },
+    "manifest": {
+      "version": 0,
+      "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc",
+      "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+      "period_start": 1793520000,
+      "period_end": 1793523600,
+      "first_seq": 1,
+      "last_seq": 3,
+      "count": 3,
+      "root": "0x3143833505fd6c183672aae97990ba1d50580149ec55c7558423ce66a6fc7146",
+      "prev_period_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "recorder_key_id": "rec-exemple-01",
+      "nonce": "0x4d2be8b1de5225c8ec21d2dbfe824761f896a9d1cea991b778253dd861ab1188",
+      "generated_at": "2026-11-01T09:00:01.000Z"
+    },
+    "period_hash": "0x266dd53a36a4c33232bd8dc4758eb036cc7adf8f483cb1ae8e7fc2a77034e8fb",
+    "fingerprint": "0xe9d0f7920aa2156e93aab68d210ea95738d9631d9911b544063ecda33034c18c"
+  },
+  "fees": {
+    "transaction_type": 2,
+    "max_fee_per_gas_wei": "1",
+    "max_priority_fee_per_gas_wei": "1",
+    "gas_limit": 3000000,
+    "gas_limit_max": 16777216,
+    "provision_days": 30,
+    "refill_below_days": 7
+  },
+  "capture_transactions": [
+    {
+      "role": "inscription",
+      "block_number": 16648,
+      "transaction_hash": "0x932ae471728698ae648a109858081ccfadbf20e472bd85cdc47115550dc85158",
+      "nonce": 109,
+      "max_fee_per_gas": "3",
+      "max_priority_fee_per_gas": "1",
+      "gas_limit": "3000000"
+    },
+    {
+      "role": "inscription",
+      "block_number": 16652,
+      "transaction_hash": "0x158850e1aae6d6a6eb7125387c581d580886135a7fafbe871e4185b66beea062",
+      "nonce": 110,
+      "max_fee_per_gas": "3",
+      "max_priority_fee_per_gas": "1",
+      "gas_limit": "3000000"
+    },
+    {
+      "role": "inscription",
+      "block_number": 16656,
+      "transaction_hash": "0x3a55a9dc62d6d587a0cf6c231c5586bc323a2190a1ac27bb646c33f66825c2b2",
+      "nonce": 111,
+      "max_fee_per_gas": "3",
+      "max_priority_fee_per_gas": "1",
+      "gas_limit": "3000000"
+    },
+    {
+      "role": "ancre",
+      "block_number": 16660,
+      "transaction_hash": "0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779",
+      "nonce": 112,
+      "max_fee_per_gas": "3",
+      "max_priority_fee_per_gas": "1",
+      "gas_limit": "3000000"
+    },
+    {
+      "role": "ancre",
+      "block_number": 16664,
+      "transaction_hash": "0xb9bdfb0db9059c2fb4d4789e3fb28e2ee4bcf5fee0ff13cedfd96a2b79ffeb39",
+      "nonce": 113,
+      "max_fee_per_gas": "3",
+      "max_priority_fee_per_gas": "1",
+      "gas_limit": "3000000"
+    },
+    {
+      "role": "cloture",
+      "block_number": 16668,
+      "transaction_hash": "0xd9fb0d69567fa4f5ecbf51179198fa02f30524a3275678405cfc11307374bbc0",
+      "nonce": 114,
+      "max_fee_per_gas": "3",
+      "max_priority_fee_per_gas": "1",
+      "gas_limit": "3000000"
+    },
+    {
+      "role": "cloture",
+      "block_number": 16672,
+      "transaction_hash": "0xbb53b23f5406a11c8d62fbb29a574ce04eca719dcc14f7118582e37278ac256f",
+      "nonce": 115,
+      "max_fee_per_gas": "3",
+      "max_priority_fee_per_gas": "1",
+      "gas_limit": "3000000"
+    }
+  ]
+}

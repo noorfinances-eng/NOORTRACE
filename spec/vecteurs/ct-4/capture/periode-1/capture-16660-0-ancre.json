@@ -1,0 +1,68 @@
+{
+  "version": 0,
+  "role": "ancre",
+  "evm_chain_id": 2124,
+  "bft_chain_id": "noortrace-2124-dev",
+  "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+  "transaction_hash": "0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779",
+  "block_number": 16660,
+  "block_hash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+  "transaction_index": 0,
+  "log_index": 0,
+  "files": {
+    "block": {
+      "name": "bloc-16660.json",
+      "sha256": "0x2e8466f573b7a34dd6a357a590b2a0fcbef82343800e6652bfaa6f24077bdf20"
+    },
+    "receipts": [
+      {
+        "name": "recu-0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779.json",
+        "sha256": "0xbd2d1218b3db9ea662e409c61f68dce066d723d7c5f2c2db0ad4e7f463805f75"
+      }
+    ],
+    "certificate": {
+      "name": "certificat-16660.json",
+      "sha256": "0xca5decf63eb03396006ab4449797bb52feb278b07ee495c1d5b3fcfdcbbba695"
+    }
+  },
+  "node": {
+    "rpc": "http://127.0.0.1:8645",
+    "validator_id": "v1"
+  },
+  "validator_set_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+  "captured_at": "2026-10-22T22:21:03.442Z",
+  "attempts": 1,
+  "checks": [
+    {
+      "id": "CP-1",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-2",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-3",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-4",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-5",
+      "status": "reussi",
+      "detail": ""
+    },
+    {
+      "id": "CP-6",
+      "status": "reussi",
+      "detail": ""
+    }
+  ],
+  "sending": null
+}

@@ -15,7 +15,7 @@ les décisions ouvertes qu'elle nomme.
 | CT-1 | [Modèle d'événement et formats](CT-1-evenements-et-formats.md) | version 0.2, en revue pour la porte 1 | décisions ouvertes 1 et 5 |
 | CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.3, en revue pour la porte 1 | décisions 2 et 3 |
 | CT-3 | [Approbations](CT-3-approbations.md) | version 0.2, en revue pour la porte 1 | décision 4 |
-| CT-4 | Registre | à écrire | — |
+| CT-4 | [Registre](CT-4-registre.md) | version 0.2, en revue pour la porte 1 (corrections de la revue appliquées) | — (touche les décisions 6 et 7 sans les clore, CT-4 §13) |
 | CT-5 | Ancrage | à écrire | — |
 | CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.1, en revue pour la porte 1 | — |
 | CT-7 | Sécurité et conformité | à écrire | — |
@@ -45,6 +45,9 @@ schémas ; ils ne sont pas résolus en ligne.
 | [`validateurs-v0.schema.json`](schemas/validateurs-v0.schema.json) | La partie `validateurs.json` du dossier (CT-6 §11.2.3) | — |
 | [`politique-approbation-v0.schema.json`](schemas/politique-approbation-v0.schema.json) | La politique d'approbation, membre `/policy/approval/rules` de l'ensemble de politique (CT-3 §4) ; l'exemple complet est imprimé en CT-3 §4.3 | `policy.approval.rules` du schéma de configuration (CT-2 §15) ; `jeu_approbateurs` et `separation`, repris par le schéma de ticket |
 | [`ticket-v0.schema.json`](schemas/ticket-v0.schema.json) | La trace d'un ticket que le service d'approbation persiste (CT-3 §7), et dans ses `$defs` le jeu d'approbateurs figé (§8), la fenêtre ouverte (§5.3), la remise d'une décision au noyau (`remise`, §12.5) et les formats des vecteurs de CT-3 (annexe A) | — |
+| [`instance-registre-v0.schema.json`](schemas/instance-registre-v0.schema.json) | Le manifeste d'une instance du registre que l'exploitant publie : genèse, identifiants, version de noorcore, jeux de validateurs, frais, contrats et comptes (CT-4 §4.8) ; l'exemple du réseau de développement est imprimé en CT-4 §4.8 | — |
+| [`inscription-client-v0.schema.json`](schemas/inscription-client-v0.schema.json) | Le dossier d'inscription d'un client au registre, demande et état de chaque étape (CT-4 §7) ; l'exemple complet est imprimé en CT-4 §7.10 | — |
+| [`operations-registre-v0.schema.json`](schemas/operations-registre-v0.schema.json) | L'index de capture d'une transaction du registre (CT-4 §9.4), et dans ses `$defs` la demande de signature (`demande_signature`, §7.7), l'envoi d'une transaction (`envoi`), la sortie des outils de référence (`sortie`, §7.2) et les formats des vecteurs de CT-4 (annexe A) | — |
 
 Validation d'un fichier avec ajv (les trois schémas doivent être chargés
 ensemble à cause des références croisées) :
@@ -106,6 +109,21 @@ Pour un fichier compagnon, le schéma est un `$defs` du schéma de dossier
 (par exemple `…/dossier.schema.json#/$defs/chemin`) ; `scripts/lib/journal.mjs`
 (`validerSchema`) charge les trois schémas et le vérificateur de dossier
 choisit la définition par fichier.
+
+Les trois schémas de CT-4 n'ont aucune référence croisée et se compilent en
+mode strict. Le manifeste d'instance, le dossier d'inscription et l'index de
+capture se valident seuls contre leur schéma ; un format des `$defs`
+d'`operations-registre-v0` (une demande de signature, une sortie d'outil) se
+valide par un schéma enveloppe :
+
+```bash
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s spec/schemas/instance-registre-v0.schema.json -d instance-r1.json
+echo '{"$schema":"https://json-schema.org/draft/2020-12/schema","$ref":"https://noortrace.example/schemas/v0/operations-registre.schema.json#/$defs/demande_signature"}' > demande-signature.schema.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s demande-signature.schema.json -r spec/schemas/operations-registre-v0.schema.json \
+  -d demande-inscription.json
+```
 
 ## Vecteurs de test (`vecteurs/`)
 
@@ -177,6 +195,33 @@ son attendu. Les vecteurs de CT-1, CT-2 et CT-6 ne changent pas.
 | `ct-3/decisions/` | Remises valides et invalides, dont la décision `apr-2201` des vecteurs de CT-1 (A.7) | `scelle`, ou refus avec la raison de la première vérification SG- en échec |
 | `ct-3/signatures/normalisation.json` | Formes de signature à normaliser ou à refuser (A.8) | forme normalisée, même adresse recouvrée |
 | `ct-3/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de ceux de `ct-1` et `ct-2` | zéro discordance (`go run . ..`) |
+
+### CT-4 (`vecteurs/ct-4/`)
+
+Disposition fixée par l'annexe A de [CT-4](CT-4-registre.md) (A.3, EX-A.1 à
+EX-A.8) : produits par `scripts/vecteurs/generer-ct4.mjs`
+(`npm run vecteurs:ct4`), rejoués à l'identique par `test/registreCt4.test.js`
+et confrontés par le vérificateur Go indépendant du module séparé
+`vecteurs/ct-4/verificateur-independant/` (`noortrace-ct4`) ; tout est
+déterministe (identifiants 2124 et `noortrace-2124-dev`, contrats et jeu de
+validateurs du réseau de développement, comptes Hardhat 0 à 3, clés de chaîne,
+de validateurs d'essai et d'exemple dérivées par SHA-256, signatures RFC 6979,
+CT-4 A.2). Ses entrées, lues et jamais réécrites, sont les manifestes et les
+clés de CT-1, la capture du registre de CT-6,
+`test/fixtures/certificat-commit/validators.json` et
+`chain/config/alloc-dev.json`. Les vecteurs de CT-1, CT-2, CT-3 et CT-6 ne
+changent pas.
+
+| Répertoire ou fichier | Contenu (CT-4, annexe A) | Résultat attendu |
+|---|---|---|
+| `ct-4/identifiants.json`, `ct-4/doctypes.json` | Slugs, noms de journal et libellés de `docType`, admis et refusés | `org_id`, `journal_id`, `docType`, ou refus (RG-1 à RG-3) |
+| `ct-4/empreintes.json` | Empreintes d'ancre des trois manifestes de CT-1, période vide, cas synthétiques | égalité avec `anchor_fingerprint` de CT-1 (RG-4) |
+| `ct-4/condenses.json` | Champs de clôture, six condensés internes, hachage signé, signatures et leur ordre, signatures refusées | préimages, condensés, verdicts RG-5 à RG-13 |
+| `ct-4/appels.json`, `ct-4/transactions.json` | Données d'appel et transactions de type 2 signées, dont celles de la capture de CT-6 | octets et hachages ; RG-14, RG-15 (`echoue` sur les frais des transactions de la capture) |
+| `ct-4/manifestes/` | Manifestes d'instance valides et refusés, avec leur genèse, leur jeu et leurs index de capture | verdicts RG-16 à RG-20, ancre `registry` dérivée |
+| `ct-4/demandes/`, `ct-4/inscription/` | Demandes de signature et dossiers d'inscription, valides et refusés | conformité au schéma, OP-4, OP-6, OP-7 |
+| `ct-4/capture/` | Les quatre transactions de la période 1 de la capture de CT-6, et des variantes altérées | statuts CP-2 à CP-6 ; parties exportées égales à celles de `ct-6/registre/periode-1/` |
+| `ct-4/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de ceux de `ct-1`, `ct-2` et `ct-3` | zéro discordance (`go run . ..`) |
 
 ### CT-6 (`vecteurs/ct-6/`)
 

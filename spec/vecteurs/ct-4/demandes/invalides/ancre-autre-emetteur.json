@@ -1,0 +1,23 @@
+{
+  "version": 0,
+  "operation": "ancre",
+  "evm_chain_id": 2124,
+  "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+  "fields": {
+    "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+    "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee",
+    "issuer": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49"
+  },
+  "digest": "0xb1eb8a317f588d9484ebf839effd88727b92525bdb487402c57a7f5a1fc8cbe9",
+  "eip191_digest": "0xb56e7a39c5cb2baab700bf0ea017ed29e441c4b451cd1d5fe37c47eae0dc320a",
+  "signer_set": null,
+  "prepared_at": "2026-11-05T10:00:01.000Z",
+  "signatures": [
+    {
+      "signer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "v": 27,
+      "r": "0xdfb94549e56e224a97facd61ef26833a05d995d1c7bb4291ea35b2f60d7a4549",
+      "s": "0x5b169d8c1fa14ce4dbf42475d111097b903007e2d708850dcbe0e8902c270fb8"
+    }
+  ]
+}

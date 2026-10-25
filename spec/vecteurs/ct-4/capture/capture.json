@@ -1,0 +1,560 @@
+{
+  "version": 0,
+  "family": "capture",
+  "description": "Captures des quatre transactions de la période 1 de la capture de CT-6 et variantes altérées : verdicts CP-2 à CP-6 (CP-4 hors ligne) ; export des parties (EX-9.8 à EX-9.10).",
+  "cases": [
+    {
+      "id": "periode-1-inscription-16648",
+      "description": "capture de la transaction du bloc 16648 (inscription) ; certificat vérifié contre le jeu de A.2",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/periode-1",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": null
+    },
+    {
+      "id": "periode-1-inscription-16652",
+      "description": "capture de la transaction du bloc 16652 (inscription) ; certificat vérifié contre le jeu de A.2",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/periode-1",
+        "index": "capture-16652-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": null
+    },
+    {
+      "id": "periode-1-ancre-16660",
+      "description": "capture de la transaction du bloc 16660 (ancre) ; certificat vérifié contre le jeu de A.2",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/periode-1",
+        "index": "capture-16660-0-ancre.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": null
+    },
+    {
+      "id": "periode-1-cloture-16668",
+      "description": "capture de la transaction du bloc 16668 (cloture) ; certificat vérifié contre le jeu de A.2",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/periode-1",
+        "index": "capture-16668-0-cloture.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": null
+    },
+    {
+      "id": "cp2-entete-modifie",
+      "description": "stateRoot de l'en-tête modifié : le BFTBlockHash recalculé n'est plus hash",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp2-entete-modifie",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "echoue",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-2",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp2-hash-index",
+      "description": "block_hash de l'index différent du hash de l'en-tête",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp2-hash-index",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "echoue",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-2",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp2-recu-autre-bloc",
+      "description": "blockHash du reçu de la transaction capturée différent du hash de l'en-tête (9.4, CP-2)",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp2-recu-autre-bloc",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "echoue",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-2",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp3-recu-falsifie",
+      "description": "cumulativeGasUsed du reçu modifié : receiptsRoot recalculée différente",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp3-recu-falsifie",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "echoue",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-3",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp3-recu-autre-transaction",
+      "description": "transactionHash du reçu de rang 0 différent du hachage de rang 0 de l'en-tête : le reçu désigné est celui d'une autre transaction (CP-3) ; nom et SHA-256 conformes (CP-6)",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp3-recu-autre-transaction",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "echoue",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-3",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp3-recu-autre-nom",
+      "description": "reçu identique octet pour octet, désigné sous recu-autre.json au lieu de recu-<hachage>.json : le contenu passe CP-3, le nom relève de CP-6 (9.4)",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp3-recu-autre-nom",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "echoue"
+        }
+      },
+      "refusal": {
+        "check": "CP-6",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp4-autre-jeu",
+      "description": "certificat vérifié contre le jeu d'essai de A.2 au lieu du jeu du réseau de développement",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp4-autre-jeu",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "constantes.json#/test_validators",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "echoue",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-4",
+        "code": "certificat_invalide"
+      }
+    },
+    {
+      "id": "cp4-valset-hash-index",
+      "description": "validator_set_hash de l'index différent du hachage du jeu employé (9.4, CP-4)",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp4-valset-hash-index",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "echoue",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-4",
+        "code": "certificat_invalide"
+      }
+    },
+    {
+      "id": "cp4-certificat-autre-bloc",
+      "description": "certificat du bloc 16652 sous le nom certificat-16648.json",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp4-certificat-autre-bloc",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "echoue",
+          "CP-5": "reussi",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-4",
+        "code": "certificat_invalide"
+      }
+    },
+    {
+      "id": "cp5-autre-role",
+      "description": "index de rôle ancre pour une transaction d'inscription",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp5-autre-role",
+        "index": "capture-16648-0-ancre.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "echoue",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-5",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp5-journal-absent",
+      "description": "log_index 1 : le reçu n'a qu'un journal",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp5-journal-absent",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "echoue",
+          "CP-6": "reussi"
+        }
+      },
+      "refusal": {
+        "check": "CP-5",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp6-sha256-faux",
+      "description": "SHA-256 déclaré du reçu différent de ses octets",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp6-sha256-faux",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "echoue"
+        }
+      },
+      "refusal": {
+        "check": "CP-6",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "cp6-nom-hors-convention",
+      "description": "en-tête écrit sous bloc-16648-copie.json au lieu de bloc-16648.json",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/variantes/cp6-nom-hors-convention",
+        "index": "capture-16648-0-inscription.json",
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "bft_chain_id": "noortrace-2124-dev"
+      },
+      "expected": {
+        "verdicts": {
+          "CP-2": "reussi",
+          "CP-3": "reussi",
+          "CP-4": "reussi",
+          "CP-5": "reussi",
+          "CP-6": "echoue"
+        }
+      },
+      "refusal": {
+        "check": "CP-6",
+        "code": "capture_incomplete"
+      }
+    },
+    {
+      "id": "export-periode-1",
+      "description": "parties exportées des quatre captures de la période 1 : égales, en valeurs JSON et hors source, à spec/vecteurs/ct-6/registre/periode-1/ (EX-9.8 à EX-9.10)",
+      "checks": [
+        "CP-2",
+        "CP-3",
+        "CP-4",
+        "CP-5",
+        "CP-6"
+      ],
+      "input": {
+        "directory": "capture/periode-1",
+        "indexes": [
+          "capture-16648-0-inscription.json",
+          "capture-16652-0-inscription.json",
+          "capture-16660-0-ancre.json",
+          "capture-16668-0-cloture.json"
+        ],
+        "validators": "test/fixtures/certificat-commit/validators.json",
+        "manifest": "spec/vecteurs/ct-1/manifestes/periode-1.json"
+      },
+      "expected": {
+        "reference": "spec/vecteurs/ct-6/registre/periode-1",
+        "entries": [
+          {
+            "role": "inscription",
+            "block_number": 16648,
+            "transaction_index": 0
+          },
+          {
+            "role": "inscription",
+            "block_number": 16652,
+            "transaction_index": 0
+          },
+          {
+            "role": "ancre",
+            "block_number": 16660,
+            "transaction_index": 0
+          },
+          {
+            "role": "cloture",
+            "block_number": 16668,
+            "transaction_index": 0
+          }
+        ],
+        "certificates": [
+          16648,
+          16652,
+          16660,
+          16668
+        ],
+        "sets": 1
+      },
+      "refusal": null
+    }
+  ]
+}

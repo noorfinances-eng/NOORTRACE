@@ -1,0 +1,43 @@
+{
+  "version": 0,
+  "operation": "cloture",
+  "evm_chain_id": 2124,
+  "contract": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+  "fields": {
+    "period_meta": {
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+      "period_start": "1793869200",
+      "period_end": "1793872800",
+      "first_seq": "1",
+      "last_seq": "9",
+      "version": 0,
+      "uri": ""
+    }
+  },
+  "digest": "0x21c3fd75e15d573638a5c3ec46e986cffec31b2c7b359e1f586da03022491674",
+  "eip191_digest": "0x89072ae7b6c13cf3d65d0215ee3dce6e1c533a393877e33314574e3cf9b1936e",
+  "signer_set": {
+    "curator_set": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+    "threshold": 2,
+    "height": 16664,
+    "block_hash": "0x68b5df8342ba214300c35cd6c25bf9eecb8a256181c68479a05033b91f48db85"
+  },
+  "prepared_at": "2026-11-05T10:00:01.000Z",
+  "signatures": [
+    {
+      "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "v": 28,
+      "r": "0x4937ed029f4003dbe1e83311b9a9c3f98eb28ed6d1bfe01d425d8b618c60bcd2",
+      "s": "0x342d5e58a71eaec4a6ed532d450a1f7c215ca4ea9b18a3e009394b53c5ea1fe8"
+    },
+    {
+      "signer": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+      "v": 27,
+      "r": "0x787b95e9f26376ede7bcbbb524dcdfc9d355480067c235fe479970e07081931b",
+      "s": "0x6b28ccee8077ac19d2a0ce1f82b5adadab81703b2ce8cd5bfa185ab0425054cc"
+    }
+  ]
+}

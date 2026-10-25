@@ -1,0 +1,230 @@
+{
+  "version": 0,
+  "family": "doctypes",
+  "description": "Libellés et valeurs de docType admis et refusés (RG-3, 6.4).",
+  "cases": [
+    {
+      "id": "libelle-periode",
+      "description": "le libellé de la table de EX-6.5",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/periode/v0"
+      },
+      "expected": {
+        "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+      },
+      "refusal": null
+    },
+    {
+      "id": "valeur-periode",
+      "description": "la valeur de la table, rendue à son libellé",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+      },
+      "expected": {
+        "label": "noortrace/periode/v0"
+      },
+      "refusal": null
+    },
+    {
+      "id": "libelle-hors-table",
+      "description": "libellé conforme à la grammaire mais absent de la table",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/autre/v0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_hors_table"
+      }
+    },
+    {
+      "id": "libelle-version-suivante",
+      "description": "version suivante, absente de la table (un sens nouveau est une version nouvelle, EX-6.6)",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/periode/v1"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_hors_table"
+      }
+    },
+    {
+      "id": "libelle-majuscule",
+      "description": "majuscule",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/Periode/v0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "libelle-prefixe-majuscule",
+      "description": "préfixe en majuscules",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "NOORTRACE/periode/v0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "libelle-version-zero-de-tete",
+      "description": "version à zéro de tête",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/periode/v00"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "libelle-version-quatre-chiffres",
+      "description": "version de quatre chiffres",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/periode/v1000"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "libelle-sans-version",
+      "description": "version absente",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/periode"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "libelle-accent",
+      "description": "lettre accentuée (EX-6.5 : ASCII seulement)",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/période/v0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "libelle-espace-final",
+      "description": "espace final",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/periode/v0 "
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "libelle-tiret-en-tete",
+      "description": "segment commençant par un trait d'union",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/-periode/v0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "libelle-segment-33",
+      "description": "segment de 33 caractères (48 au total)",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "label": "noortrace/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/v0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "libelle_invalide"
+      }
+    },
+    {
+      "id": "valeur-nulle",
+      "description": "la valeur nulle n'est jamais un docType (EX-6.6)",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "doc_type": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "doctype_nul"
+      }
+    },
+    {
+      "id": "valeur-hors-table",
+      "description": "keccak256 d'un libellé absent de la table",
+      "checks": [
+        "RG-3"
+      ],
+      "input": {
+        "doc_type": "0x6e07092e7e8dc738da1c61c8a2e8bac415f1c74d8279a77d153d949b685555ab"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-3",
+        "code": "doctype_hors_table"
+      }
+    }
+  ]
+}

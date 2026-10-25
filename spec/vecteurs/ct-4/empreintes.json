@@ -1,0 +1,200 @@
+{
+  "version": 0,
+  "family": "empreintes",
+  "description": "Empreintes d'ancre keccak256(org_id ‖ journal_id ‖ periodHash) (RG-4, 6.5) ; égales à anchor_fingerprint de CT-1 pour ses trois manifestes.",
+  "cases": [
+    {
+      "id": "ct1-periode-1",
+      "description": "manifeste spec/vecteurs/ct-1/manifestes/periode-1.json ; égale à anchor_fingerprint de attendu.json",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "manifest": "spec/vecteurs/ct-1/manifestes/periode-1.json"
+      },
+      "expected": {
+        "preimage": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164ae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6"
+      },
+      "refusal": null
+    },
+    {
+      "id": "ct1-periode-2",
+      "description": "manifeste spec/vecteurs/ct-1/manifestes/periode-2.json ; égale à anchor_fingerprint de attendu.json",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+        "manifest": "spec/vecteurs/ct-1/manifestes/periode-2.json"
+      },
+      "expected": {
+        "preimage": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164e867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+        "fingerprint": "0xb924b06ebd452df9db27c7c29305d5d1fd876bdedc1e8483a6088f006ca68ee5"
+      },
+      "refusal": null
+    },
+    {
+      "id": "ct1-periode-3",
+      "description": "manifeste spec/vecteurs/ct-1/manifestes/periode-3.json (période vide) ; égale à anchor_fingerprint de attendu.json",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+        "manifest": "spec/vecteurs/ct-1/manifestes/periode-3.json"
+      },
+      "expected": {
+        "preimage": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c51645852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+        "fingerprint": "0xd46dec9a01a05df44217f6762249d4ea088290266ceb8046165721c9c85b21ca"
+      },
+      "refusal": null
+    },
+    {
+      "id": "exemple-relecteur",
+      "description": "manifeste d'exemple de A.2 (relecteur-exemple, journal-principal)",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc",
+        "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+        "period_hash": "0x266dd53a36a4c33232bd8dc4758eb036cc7adf8f483cb1ae8e7fc2a77034e8fb"
+      },
+      "expected": {
+        "preimage": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b266dd53a36a4c33232bd8dc4758eb036cc7adf8f483cb1ae8e7fc2a77034e8fb",
+        "fingerprint": "0xe9d0f7920aa2156e93aab68d210ea95738d9631d9911b544063ecda33034c18c"
+      },
+      "refusal": null
+    },
+    {
+      "id": "autre-organisation",
+      "description": "même periodHash sous une autre organisation : autre empreinte",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0x71917bc4f50a62e09e2bd4bd01f694e77b055c42fee74846e2469f5a79de3b88",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914"
+      },
+      "expected": {
+        "preimage": "0x71917bc4f50a62e09e2bd4bd01f694e77b055c42fee74846e2469f5a79de3b8841c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164ae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "fingerprint": "0x76afb718d7d31e2f7a83750c013581b266118d837c90b3c21faf7c7ebdff5dc8"
+      },
+      "refusal": null
+    },
+    {
+      "id": "declaree-racine",
+      "description": "empreinte déclarée : keccak256 de la racine (on n'ancre pas la racine, 6.5)",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "fingerprint": "0x2278dbf51a2f7b7e1531d848dd14fc967ce6ae5407d0b6eb89c6e7c3400443ec"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-4",
+        "code": "empreinte_differente"
+      }
+    },
+    {
+      "id": "declaree-ordre-inverse",
+      "description": "empreinte déclarée : préimage journal_id ‖ org_id ‖ periodHash",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "fingerprint": "0x2d42c9ba94685f9410a54e47399cc5b8a03d245c1c9f62c7b9ad95a2ee7eef48"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-4",
+        "code": "empreinte_differente"
+      }
+    },
+    {
+      "id": "declaree-sha256",
+      "description": "empreinte déclarée : SHA-256 de la préimage au lieu de keccak256",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "fingerprint": "0x65693883733cf42667ab4a37a03ff26ccc1daef203007942ce59080837e0bf61"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-4",
+        "code": "empreinte_differente"
+      }
+    },
+    {
+      "id": "org-id-nul",
+      "description": "org_id nul",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-4",
+        "code": "entree_nulle"
+      }
+    },
+    {
+      "id": "journal-id-nul",
+      "description": "journal_id nul",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-4",
+        "code": "entree_nulle"
+      }
+    },
+    {
+      "id": "period-hash-nul",
+      "description": "period_hash nul",
+      "checks": [
+        "RG-4"
+      ],
+      "input": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_hash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-4",
+        "code": "entree_nulle"
+      }
+    }
+  ]
+}

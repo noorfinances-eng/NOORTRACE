@@ -1,0 +1,446 @@
+{
+  "version": 0,
+  "family": "identifiants",
+  "description": "Slugs et noms de journal admis et refusés ; org_id et journal_id (RG-1, RG-2, 6.2, 6.3).",
+  "cases": [
+    {
+      "id": "slug-assureur-demo",
+      "description": "slug des vecteurs de CT-1 §13",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "assureur-demo",
+        "production": false
+      },
+      "expected": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+      },
+      "refusal": null
+    },
+    {
+      "id": "slug-canton-demo",
+      "description": "slug d'essai de deployments/noorcore-orgs.json",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "canton-demo",
+        "production": false
+      },
+      "expected": {
+        "org_id": "0x71917bc4f50a62e09e2bd4bd01f694e77b055c42fee74846e2469f5a79de3b88"
+      },
+      "refusal": null
+    },
+    {
+      "id": "slug-relecteur-exemple",
+      "description": "slug de l'exemple de 7.10",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "relecteur-exemple",
+        "production": false
+      },
+      "expected": {
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+      },
+      "refusal": null
+    },
+    {
+      "id": "slug-un-caractere",
+      "description": "un seul caractère",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "a",
+        "production": false
+      },
+      "expected": {
+        "org_id": "0x3ac225168df54212a25c1c01fd35bebfea408fdac2e31ddd6f80a4bbf9a5f1cb"
+      },
+      "refusal": null
+    },
+    {
+      "id": "slug-chiffres",
+      "description": "chiffres seuls",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "2124",
+        "production": false
+      },
+      "expected": {
+        "org_id": "0x07cc400d9864958d2332d94cdffc692a845f67a5765b379c7f83fd89574c5af0"
+      },
+      "refusal": null
+    },
+    {
+      "id": "slug-64-caracteres",
+      "description": "64 caractères, la longueur maximale",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc",
+        "production": false
+      },
+      "expected": {
+        "org_id": "0x9b5f39e3357ee060c6139a7e99d6e1c9933b5bbf8616ef7952b3a2d403187091"
+      },
+      "refusal": null
+    },
+    {
+      "id": "slug-e2e",
+      "description": "slug d'essai e2e-<millisecondes>",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "e2e-1793520000000",
+        "production": false
+      },
+      "expected": {
+        "org_id": "0x26c2999eb37b54abe4294a6b531dc32a8075b9e574e54ad8a506ab1b164bea03"
+      },
+      "refusal": null
+    },
+    {
+      "id": "slug-production",
+      "description": "slug de production : « o- » et 32 chiffres hexadécimaux (EX-6.2)",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "o-290bfab6e6d002b0fd047e778b2c8898",
+        "production": true
+      },
+      "expected": {
+        "org_id": "0xe6652f9078e2c1261386a93de6ac5bfdd1316fc94195022953bd9b8ba9b950a0"
+      },
+      "refusal": null
+    },
+    {
+      "id": "slug-vide",
+      "description": "chaîne vide",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-65-caracteres",
+      "description": "65 caractères",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-majuscule",
+      "description": "majuscule",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "Assureur-demo",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-tiret-en-tete",
+      "description": "trait d'union au début",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "-assureur",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-tiret-en-fin",
+      "description": "trait d'union à la fin",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "assureur-",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-espace",
+      "description": "espace",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "assureur demo",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-unicode",
+      "description": "lettre accentuée (aucune normalisation Unicode)",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "assureur-démo",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-souligne",
+      "description": "trait de soulignement",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "assureur_demo",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-point",
+      "description": "point",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "assureur.demo",
+        "production": false
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "slug-production-forme",
+      "description": "slug lisible refusé pour une organisation de production (EX-6.2)",
+      "checks": [
+        "RG-1"
+      ],
+      "input": {
+        "kind": "slug",
+        "value": "assureur-demo",
+        "production": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-1",
+        "code": "slug_invalide"
+      }
+    },
+    {
+      "id": "journal-principal",
+      "description": "journal des exemples de CT-1 et de 7.10",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": "journal-principal"
+      },
+      "expected": {
+        "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b"
+      },
+      "refusal": null
+    },
+    {
+      "id": "journal-sinistres",
+      "description": "journal des vecteurs de CT-1 §13",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": "journal-sinistres"
+      },
+      "expected": {
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164"
+      },
+      "refusal": null
+    },
+    {
+      "id": "journal-01",
+      "description": "nom neutre de production (EX-6.4)",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": "journal-01"
+      },
+      "expected": {
+        "journal_id": "0x4f59becfc6c93a0fec6b8383416cfc18c209cc0206cf6fe72e0ed678e5473997"
+      },
+      "refusal": null
+    },
+    {
+      "id": "journal-majuscule",
+      "description": "majuscule",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": "Journal-principal"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-2",
+        "code": "nom_journal_invalide"
+      }
+    },
+    {
+      "id": "journal-souligne",
+      "description": "trait de soulignement",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": "journal_principal"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-2",
+        "code": "nom_journal_invalide"
+      }
+    },
+    {
+      "id": "journal-espace",
+      "description": "espace",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": "journal principal"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-2",
+        "code": "nom_journal_invalide"
+      }
+    },
+    {
+      "id": "journal-vide",
+      "description": "chaîne vide",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": ""
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-2",
+        "code": "nom_journal_invalide"
+      }
+    },
+    {
+      "id": "journal-tiret-en-tete",
+      "description": "trait d'union au début",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": "-journal"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-2",
+        "code": "nom_journal_invalide"
+      }
+    },
+    {
+      "id": "journal-65-caracteres",
+      "description": "65 caractères",
+      "checks": [
+        "RG-2"
+      ],
+      "input": {
+        "kind": "journal",
+        "value": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-2",
+        "code": "nom_journal_invalide"
+      }
+    }
+  ]
+}

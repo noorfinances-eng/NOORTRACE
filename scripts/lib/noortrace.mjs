@@ -29,7 +29,8 @@ export const CONTRACT_NAMES = ["AttestationRegistry", "CuratorSetRegistry", "Per
  * L'instance de développement de noorcore n'a pas de simulation EVM derrière
  * eth_estimateGas : elle rend une valeur fixe (21000 pour un transfert, 300000
  * pour tout appel de contrat, 5000000 pour une création). Or submitPeriod
- * consomme plus de 300000 gaz (douze emplacements de stockage, deux ecrecover) :
+ * consomme de 234 079 à 314 256 gaz mesurés selon l'URI et l'état (douze
+ * emplacements de stockage, deux ecrecover ; spec/CT-4-registre.md, 4.5) :
  * laissé à l'estimation automatique de Hardhat, l'appel tombe en épuisement de
  * gaz (status 0, gasUsed = 300000). On reprend donc la convention des scripts
  * de noorchain-core (gas: 3_000_000n), réglable par NOORTRACE_GAS_LIMIT ; le
@@ -359,10 +360,13 @@ export async function ensureDeployment(conn, { dir = deploymentsDir(), log = () 
 /**
  * Amorce une organisation : déploie un CuratorSet (admin, approbateurs, seuil)
  * et l'assigne à `orgIdOf(slug)` dans le CuratorSetRegistry. `admin` doit être
- * l'administrateur du registre (le déployeur, sauf transfert). `overrides`
- * (gasLimit…) s'applique aux deux transactions : voir txOverrides.
+ * l'administrateur du registre (le déployeur, sauf transfert). `setAdmin`,
+ * facultatif, est l'administrateur du CuratorSet (la clé de gouvernance de
+ * l'organisation, spec/CT-4-registre.md EX-5.6, EX-7.7) ; par défaut, celui
+ * de l'amorçage de développement, `admin`. `overrides` (gasLimit…)
+ * s'applique aux deux transactions : voir txOverrides.
  */
-export async function bootstrapOrg(ethers, { curatorSetRegistry, admin, slug, approvers, threshold, log = () => {}, overrides = {} }) {
+export async function bootstrapOrg(ethers, { curatorSetRegistry, admin, setAdmin = null, slug, approvers, threshold, log = () => {}, overrides = {} }) {
   if (!slug) throw new Error("bootstrapOrg : slug manquant");
   if (!Array.isArray(approvers) || approvers.length === 0) throw new Error("bootstrapOrg : au moins un approbateur est requis");
   const seuil = Number(threshold);
@@ -372,7 +376,8 @@ export async function bootstrapOrg(ethers, { curatorSetRegistry, admin, slug, ap
   const orgId = orgIdOf(slug);
 
   const CuratorSet = await ethers.getContractFactory("CuratorSet", admin);
-  const curatorSet = await CuratorSet.deploy(admin.address, approvers, seuil, overrides);
+  const administrateurDuJeu = setAdmin ?? admin.address;
+  const curatorSet = await CuratorSet.deploy(administrateurDuJeu, approvers, seuil, overrides);
   const deployRcpt = await deployReceipt(curatorSet);
   const curatorSetAddress = await curatorSet.getAddress();
   log(`CuratorSet de « ${slug} » : ${curatorSetAddress} (bloc ${deployRcpt.blockNumber})`);
@@ -387,7 +392,7 @@ export async function bootstrapOrg(ethers, { curatorSetRegistry, admin, slug, ap
       slug,
       orgId,
       curatorSet: curatorSetAddress,
-      admin: admin.address,
+      admin: administrateurDuJeu,
       approbateurs: approvers,
       seuil,
       txDeploiement: deployRcpt.hash,

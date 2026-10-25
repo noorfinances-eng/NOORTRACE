@@ -1,0 +1,189 @@
+{
+  "version": 0,
+  "instance": {
+    "evm_chain_id": 2124,
+    "bft_chain_id": "noortrace-2124-dev",
+    "genesis_sha256": "0x510e24e41cc401faa4e092338060cee0dc4629e5781a69af7a50b37edb6f4537",
+    "contracts": {
+      "curator_set_registry": "0x172076e0166d1f9cc711c77adf8488051744980c",
+      "recorder_registry": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+      "period_registry": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+      "attestation_registry": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8"
+    },
+    "manifest_sha256": null,
+    "validator_set_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751"
+  },
+  "organisation": {
+    "slug": "relecteur-exemple",
+    "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc"
+  },
+  "approvers": {
+    "members": [
+      "0x19d8bddeed23cb80dca47e16b74dd29bc020c138",
+      "0x5747a77dda82031f8dd96a06a75c52a672a0a4c3",
+      "0xdd2db1636768f86c546563f0368c5c8d5c777990"
+    ],
+    "threshold": 2,
+    "set_admin": "0x0000000000000000000000000000000000000000"
+  },
+  "journals": [
+    {
+      "name": "journal-principal",
+      "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b"
+    }
+  ],
+  "recorders": [
+    {
+      "key_id": "rec-exemple-01",
+      "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+      "algorithm": "ed25519",
+      "public_key": "0xa34b5d38605d5b729c42eee01465e4e9f7a361c362561ebd8ec2f7c984463fbb",
+      "custody_class": "D",
+      "backend_type": "fichier",
+      "created_at": "2026-11-01T08:40:00.000Z",
+      "chain_key": "0xaf1056f6fd93594a0a71c87d3b18723232c61714",
+      "chain_key_class": "D",
+      "origin_proof": null
+    }
+  ],
+  "funding": {
+    "funder": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+    "daily_budget_gas": 10800000,
+    "amount_wei": "327000000"
+  },
+  "steps": [
+    {
+      "step": "jeu_approbateurs",
+      "subject": "relecteur-exemple",
+      "state": "capturee",
+      "transaction_hash": "0x33a18d1e1bfd3159f60965659ae023244e61dabdafd71a9e9817f6e367c152a1",
+      "block_number": 20000,
+      "block_hash": "0x138aaa2e7ae431cf8b1428ffea83e6f385b9857970acd67d8dab3b3c6dcd2e78",
+      "capture": "capture-20000-0-jeu_approbateurs.json",
+      "error": null,
+      "updated_at": "2026-11-01T08:45:04.000Z"
+    },
+    {
+      "step": "assignation",
+      "subject": "relecteur-exemple",
+      "state": "capturee",
+      "transaction_hash": "0x4c12d0f20c60b690c8f0589a1b932e98d5ff8362aaa875433a9c307eabd302b8",
+      "block_number": 20004,
+      "block_hash": "0xbf49f43b2e5372a82f1205cc0be4b963dba0a1d39a2a8a448fcbdfe0a4891db4",
+      "capture": "capture-20004-0-assignation.json",
+      "error": null,
+      "updated_at": "2026-11-01T08:45:08.000Z"
+    },
+    {
+      "step": "lecture_jeu",
+      "subject": "relecteur-exemple",
+      "state": "faite",
+      "transaction_hash": null,
+      "block_number": 20005,
+      "block_hash": "0x80fe4333c28e99446e84f0e6bf5fff28581c5c2f0fd18f0b16d0278feb9126ab",
+      "capture": null,
+      "error": null,
+      "updated_at": "2026-11-01T08:45:09.000Z"
+    },
+    {
+      "step": "approvisionnement",
+      "subject": "0xaf1056f6fd93594a0a71c87d3b18723232c61714",
+      "state": "capturee",
+      "transaction_hash": "0xa5e2e12e2e7d0d473ef6a4ab1c44abfa7580fa662fb20f1db3f5ec809728035e",
+      "block_number": 20008,
+      "block_hash": "0x42465f257652a8b38f741bb4a8f48d9d9bb084d67ce5f81021a0db37d825152b",
+      "capture": "capture-20008-0-approvisionnement.json",
+      "error": null,
+      "updated_at": "2026-11-01T08:45:12.000Z"
+    },
+    {
+      "step": "inscription",
+      "subject": "rec-exemple-01",
+      "state": "capturee",
+      "transaction_hash": "0x3ab07056650f93ed3c6090cfbfdc9fa456128c684660734c781d307c9cfd0d84",
+      "block_number": 20012,
+      "block_hash": "0x042049f52611cec20e926636f887aa9fda4bc2a40c022cea929d1cdab55899cd",
+      "capture": "capture-20012-0-inscription.json",
+      "error": null,
+      "updated_at": "2026-11-01T08:52:30.000Z"
+    },
+    {
+      "step": "premiere_ancre",
+      "subject": "0x266dd53a36a4c33232bd8dc4758eb036cc7adf8f483cb1ae8e7fc2a77034e8fb",
+      "state": "capturee",
+      "transaction_hash": "0x77e86ffd2ee0c4c67f5f5964b491a9068e3b2a6c75c2fc5403b027332aec0045",
+      "block_number": 20016,
+      "block_hash": "0x9e0b7c9d3b488954e8337753936c99502e927646375546a77eff651d5fe24ca5",
+      "capture": "capture-20016-0-ancre.json",
+      "error": null,
+      "updated_at": "2026-11-01T09:00:20.000Z"
+    },
+    {
+      "step": "premiere_cloture",
+      "subject": "0x266dd53a36a4c33232bd8dc4758eb036cc7adf8f483cb1ae8e7fc2a77034e8fb",
+      "state": "capturee",
+      "transaction_hash": "0x5b9b3bc12cc93abf106e78d8f21c603c40188e38af2ddde40a8f9e23129d2ab0",
+      "block_number": 20020,
+      "block_hash": "0x31593561dd7267113583c65b2971b4f3da0de7fa15bb14c2a08a40694a911b8a",
+      "capture": "capture-20020-0-cloture.json",
+      "error": null,
+      "updated_at": "2026-11-01T09:06:41.000Z"
+    }
+  ],
+  "result": {
+    "curator_set": "0xa1a165880c7af8f1150efa652507ebe9561b73bd",
+    "set_deployment": {
+      "transaction_hash": "0x33a18d1e1bfd3159f60965659ae023244e61dabdafd71a9e9817f6e367c152a1",
+      "block_number": 20000,
+      "block_hash": "0x138aaa2e7ae431cf8b1428ffea83e6f385b9857970acd67d8dab3b3c6dcd2e78",
+      "capture": "capture-20000-0-jeu_approbateurs.json"
+    },
+    "assignment": {
+      "transaction_hash": "0x4c12d0f20c60b690c8f0589a1b932e98d5ff8362aaa875433a9c307eabd302b8",
+      "block_number": 20004,
+      "block_hash": "0xbf49f43b2e5372a82f1205cc0be4b963dba0a1d39a2a8a448fcbdfe0a4891db4",
+      "capture": "capture-20004-0-assignation.json"
+    },
+    "approver_set": {
+      "source": "registre",
+      "chain_id": 2124,
+      "registry": "0x172076e0166d1f9cc711c77adf8488051744980c",
+      "set": "0xa1a165880c7af8f1150efa652507ebe9561b73bd",
+      "members": null,
+      "threshold": null
+    },
+    "set_read": {
+      "height": 20005,
+      "block_hash": "0x80fe4333c28e99446e84f0e6bf5fff28581c5c2f0fd18f0b16d0278feb9126ab",
+      "threshold": 2,
+      "size": 3,
+      "members": [
+        "0x19d8bddeed23cb80dca47e16b74dd29bc020c138",
+        "0x5747a77dda82031f8dd96a06a75c52a672a0a4c3",
+        "0xdd2db1636768f86c546563f0368c5c8d5c777990"
+      ]
+    },
+    "recorders": [
+      {
+        "key_id": "rec-exemple-01",
+        "chain_key": "0xaf1056f6fd93594a0a71c87d3b18723232c61714",
+        "funding": {
+          "transaction_hash": "0xa5e2e12e2e7d0d473ef6a4ab1c44abfa7580fa662fb20f1db3f5ec809728035e",
+          "block_number": 20008,
+          "block_hash": "0x42465f257652a8b38f741bb4a8f48d9d9bb084d67ce5f81021a0db37d825152b",
+          "capture": "capture-20008-0-approvisionnement.json"
+        },
+        "registration": {
+          "transaction_hash": "0x3ab07056650f93ed3c6090cfbfdc9fa456128c684660734c781d307c9cfd0d84",
+          "block_number": 20012,
+          "block_hash": "0x042049f52611cec20e926636f887aa9fda4bc2a40c022cea929d1cdab55899cd",
+          "capture": "capture-20012-0-inscription.json"
+        }
+      }
+    ],
+    "completed_at": "2026-11-01T09:06:41.000Z"
+  },
+  "prepared_by": "relecteur de l'épreuve d'acceptation (exemple)",
+  "prepared_at": "2026-11-01T08:41:00.000Z",
+  "source": "exemple de CT-4 §7.10 : valeurs de transaction et de bloc synthétiques, SHA-256(UTF-8(\"noortrace/exemple/ct4/…\"))"
+}

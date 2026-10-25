@@ -1,0 +1,1523 @@
+{
+  "version": 0,
+  "family": "manifestes",
+  "description": "Manifestes d'instance valides et refusés : verdict de RG-16 à RG-20 et ancre registry dérivée (6.8, 4.8).",
+  "cases": [
+    {
+      "id": "developpement-exemple",
+      "description": "exemple de 4.8 : réseau de développement, evidence nulle, hachages des blocs 8320 à 8328 non relevés",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/valides/developpement",
+        "manifest": "instance-r1.json",
+        "previous": null,
+        "genesis": "chain/config/alloc-dev.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-2124-dev",
+          "contracts": {
+            "period_registry": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+            "attestation_registry": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+            "recorder_registry": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+                }
+              ],
+              "source": "chain/runtime/validators.json écrit par chain/scripts/dev-net.sh au premier démarrage ; copie publique test/fixtures/certificat-commit/validators.json"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-2124-dev, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": null
+    },
+    {
+      "id": "production-r1",
+      "description": "instance synthétique de production : quatre opérateurs et quatre sites, preuves de déploiement capturées et signées par le jeu d'essai de A.2",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/valides/production",
+        "manifest": "instance-r1.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": null
+    },
+    {
+      "id": "production-r2",
+      "description": "révision 2 chaînée par le SHA-256 de la révision 1",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/valides/production",
+        "manifest": "instance-r2.json",
+        "previous": "instance-r1.json",
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 2 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": null
+    },
+    {
+      "id": "schema",
+      "description": "membre obligatoire absent (fees)",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/schema",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "echoue",
+          "RG-17": "echoue",
+          "RG-18": "echoue",
+          "RG-19": "echoue",
+          "RG-20": "echoue"
+        },
+        "registry": null
+      },
+      "refusal": {
+        "check": "RG-16",
+        "code": "schema"
+      }
+    },
+    {
+      "id": "revision-mal-chainee",
+      "description": "révision 2 dont previous_sha256 n'est pas le SHA-256 de la révision 1",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/revision-mal-chainee",
+        "manifest": "instance.json",
+        "previous": "instance-r1.json",
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "echoue",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 2 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-16",
+        "code": "revision_mal_chainee"
+      }
+    },
+    {
+      "id": "genese-sha256",
+      "description": "genesis.sha256 différent du SHA-256 du document publié",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/genese-sha256",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "echoue",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-17",
+        "code": "genese_differente"
+      }
+    },
+    {
+      "id": "ligne-regles",
+      "description": "ligne de règles altérée (possEnabled=true)",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/ligne-regles",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "echoue",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-17",
+        "code": "ligne_regles_differente"
+      }
+    },
+    {
+      "id": "valset-hash",
+      "description": "valset_hash différent du hachage recalculé",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/valset-hash",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "echoue",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-18",
+        "code": "valset_hash_different"
+      }
+    },
+    {
+      "id": "domaine-de-panne",
+      "description": "un opérateur porte deux validateurs d'un jeu de quatre (f = 1) en production",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/domaine-de-panne",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "echoue",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-18",
+        "code": "domaine_de_panne"
+      }
+    },
+    {
+      "id": "arguments-constructeur",
+      "description": "PeriodRegistry construit avec l'adresse de l'administrateur au lieu de celle du CuratorSetRegistry (EX-5.2)",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/arguments-constructeur",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "echoue",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-19",
+        "code": "arguments_constructeur"
+      }
+    },
+    {
+      "id": "adresse-creation",
+      "description": "adresse d'AttestationRegistry autre que CREATE(deployer, nonce)",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/adresse-creation",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "echoue",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x30f9a521c3fd4a449aeaae9029c5d51833030474",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-19",
+        "code": "adresse_creation"
+      }
+    },
+    {
+      "id": "genese-invalide",
+      "description": "document de genèse dont alloc porte deux fois la même adresse (4.2)",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/genese-invalide",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "echoue",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-17",
+        "code": "genese_invalide"
+      }
+    },
+    {
+      "id": "regles-absentes",
+      "description": "document de genèse sans section rules : le nœud ne vérifierait rien (EX-4.2)",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/regles-absentes",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "echoue",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-17",
+        "code": "regles_invalides"
+      }
+    },
+    {
+      "id": "identifiants-incoherents",
+      "description": "bft_chain_id du manifeste différent de rules.chainId de la genèse",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/identifiants-incoherents",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "echoue",
+          "RG-18": "reussi",
+          "RG-19": "echoue",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur2",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur2, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-17",
+        "code": "identifiants_incoherents"
+      }
+    },
+    {
+      "id": "offre-differente",
+      "description": "alloc_total_wei différent de la somme des balanceWei",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/offre-differente",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "echoue",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-17",
+        "code": "offre_differente"
+      }
+    },
+    {
+      "id": "jeu-invalide",
+      "description": "clé publique d'un validateur qui n'est pas un point de secp256k1",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/jeu-invalide",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "echoue",
+          "RG-19": "echoue",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-18",
+        "code": "jeu_invalide"
+      }
+    },
+    {
+      "id": "operateurs-incoherents",
+      "description": "operators nomme un validateur absent du jeu",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/operateurs-incoherents",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "echoue",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-18",
+        "code": "operateurs_incoherents"
+      }
+    },
+    {
+      "id": "intervalles-incoherents",
+      "description": "deux jeux dont les intervalles de validité se recouvrent",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/intervalles-incoherents",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "echoue",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": 200,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            },
+            {
+              "from_height": 150,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-18",
+        "code": "intervalles_incoherents"
+      }
+    },
+    {
+      "id": "contrats-en-service",
+      "description": "deux RecorderRegistry de to_height nul : RG-19 exige exactement un contrat en service par nom, et RG-20 ne peut plus dériver l'ancre (derivation_impossible)",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/contrats-en-service",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "echoue",
+          "RG-20": "echoue"
+        },
+        "registry": null
+      },
+      "refusal": {
+        "check": "RG-19",
+        "code": "contrats_en_service"
+      }
+    },
+    {
+      "id": "preuve-absente",
+      "description": "index de capture désigné par evidence absent du répertoire des preuves",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/preuve-absente",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "echoue",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-19",
+        "code": "preuve_absente"
+      }
+    },
+    {
+      "id": "preuve-autre-role",
+      "description": "exemple de 4.8 dont la preuve d'AttestationRegistry est l'index de l'inscription du bloc 16648 (rôle inscription)",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/preuve-autre-role",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "chain/config/alloc-dev.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "echoue",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-2124-dev",
+          "contracts": {
+            "period_registry": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+            "attestation_registry": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+            "recorder_registry": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0405de9b275a0008b0013919700664ba64bab05c24fcac0585327478e88e40bbb69ffde05aca81fc8a108f62d417afe0aa22f1304861007a27d49ca57fa5189baf"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x040506c4d376fdc84b69844114a7bca3f92ffc13da0a06ce17b5383ecfb11d7368ff73aa14526179fde60236fa0555d03c8aa0906a41271268f4c1896e0322052a"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x040a9ee3f38241823ebfdde52feda9322ec271ca75338faf58b225ee547c6a696fe110f8ea7e9857654239d23eee6806ca57ad7ccae053c6de8b335426d4e2c532"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x042cc90013f733942d895a08797c90d0f64111bfe94eabe1f1890a2dac17eeb76e65c6e5fe0e31b1d2205beda58bbf85775c377b2a9342db8ace7132c719885443"
+                }
+              ],
+              "source": "chain/runtime/validators.json écrit par chain/scripts/dev-net.sh au premier démarrage ; copie publique test/fixtures/certificat-commit/validators.json"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-2124-dev, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-19",
+        "code": "preuve_invalide"
+      }
+    },
+    {
+      "id": "deploiement-avec-destinataire",
+      "description": "la transaction prouvée du bloc de déploiement d'AttestationRegistry a un destinataire",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/invalides/deploiement-avec-destinataire",
+        "manifest": "instance.json",
+        "previous": null,
+        "genesis": "genese.json"
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "echoue",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "dérivée du manifeste d'instance noortrace-1912124-vecteur, révision 1 (CT-4 RG-20) : à recouper (CT-6 §12.5)"
+        }
+      },
+      "refusal": {
+        "check": "RG-19",
+        "code": "preuve_invalide"
+      }
+    },
+    {
+      "id": "ancre-conforme",
+      "description": "ancre registry du réviseur égale, hors source, à celle que le manifeste donne",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/valides/production",
+        "manifest": "instance-r1.json",
+        "previous": null,
+        "genesis": "genese.json",
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "ancre du réviseur, recoupée (vecteur)"
+        }
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "reussi"
+        },
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x9b9548e8fe03f5ea6250dee3ad4d8e8c5ddee3d5",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "ancre du réviseur, recoupée (vecteur)"
+        }
+      },
+      "refusal": null
+    },
+    {
+      "id": "ancre-differente",
+      "description": "ancre registry du réviseur dont period_registry diffère du manifeste",
+      "checks": [
+        "RG-16",
+        "RG-17",
+        "RG-18",
+        "RG-19",
+        "RG-20"
+      ],
+      "input": {
+        "directory": "manifestes/valides/production",
+        "manifest": "instance-r1.json",
+        "previous": null,
+        "genesis": "genese.json",
+        "registry": {
+          "chain_id": "noortrace-1912124-vecteur",
+          "contracts": {
+            "period_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817",
+            "attestation_registry": "0x041071037487a4ec03765616ffd395cb277deb46",
+            "recorder_registry": "0x269afe273accd0f0cc64ed9ca718b9d0a8bb8817"
+          },
+          "validator_sets": [
+            {
+              "from_height": 1,
+              "to_height": null,
+              "validators": [
+                {
+                  "id": "v1",
+                  "pubKeyHex": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088"
+                },
+                {
+                  "id": "v2",
+                  "pubKeyHex": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf"
+                },
+                {
+                  "id": "v3",
+                  "pubKeyHex": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a"
+                },
+                {
+                  "id": "v4",
+                  "pubKeyHex": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6"
+                }
+              ],
+              "source": "jeu d'essai de CT-4 A.2 : clés de graines SHA-256(UTF-8(\"noortrace/vecteurs/ct4/validateur/v<i>\")), publiques"
+            }
+          ],
+          "source": "ancre du réviseur, recoupée (vecteur)"
+        }
+      },
+      "expected": {
+        "verdicts": {
+          "RG-16": "reussi",
+          "RG-17": "reussi",
+          "RG-18": "reussi",
+          "RG-19": "reussi",
+          "RG-20": "echoue"
+        },
+        "registry": null
+      },
+      "refusal": {
+        "check": "RG-20",
+        "code": "ancre_differente"
+      }
+    }
+  ]
+}

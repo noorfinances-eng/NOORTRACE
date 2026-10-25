@@ -22,7 +22,7 @@ jobs:
       - run: npm test
 
   vecteurs:
-    name: vecteurs CT-1, CT-2, CT-3 et CT-6, régénération déterministe et implémentations indépendantes
+    name: vecteurs CT-1, CT-2, CT-3, CT-4 et CT-6, régénération déterministe et implémentations indépendantes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,6 +72,27 @@ jobs:
       # Vérificateur Go indépendant de CT-3 (EX-A.10) : zéro discordance exigée.
       - name: vérificateur Go indépendant contre les vecteurs CT-3
         working-directory: spec/vecteurs/ct-3/verificateur-independant
+        run: |
+          gofmt -l . && test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          go run . ..
+      # Vecteurs CT-4 (spec/CT-4-registre.md, annexe A, EX-A.1 et EX-A.7) : le
+      # générateur scripts/vecteurs/generer-ct4.mjs n'efface et ne réécrit que
+      # ses propres entrées de spec/vecteurs/ct-4, jamais verificateur-independant/ ;
+      # il ne lit ni le réseau ni hh-artifacts/. Entrées lues et jamais réécrites :
+      # manifestes et clés de CT-1, capture du registre de CT-6, jeu de
+      # test/fixtures/certificat-commit/, chain/config/alloc-dev.json et
+      # l'exemple de manifeste d'instance de CT-4 §4.8.
+      - name: régénérer les vecteurs CT-4 et exiger les mêmes octets, sans fichier de plus
+        run: |
+          npm run vecteurs:ct4
+          git diff --exit-code -- spec/vecteurs/ct-4
+          test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-4)"
+      # Vérificateur Go indépendant de CT-4 (EX-A.5, EX-A.7) : zéro discordance
+      # exigée.
+      - name: vérificateur Go indépendant contre les vecteurs CT-4
+        working-directory: spec/vecteurs/ct-4/verificateur-independant
         run: |
           gofmt -l . && test -z "$(gofmt -l .)"
           go vet ./...

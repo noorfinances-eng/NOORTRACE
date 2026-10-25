@@ -1,0 +1,19 @@
+{
+  "chainId": 2124,
+  "alloc": [
+    { "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "balanceWei": "1000000000000000000" },
+    { "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "balanceWei": "1000000000000000000" },
+    { "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", "balanceWei": "1000000000000000000" },
+    { "address": "0x90F79bf6EB2c4f870365E785982E1f101E93b906", "balanceWei": "1000000000000000000" }
+  ],
+  "rules": {
+    "chainId": "noortrace-2124-dev",
+    "possEnabled": false,
+    "possRewards": "0x0000000000000000000000000000000000000000",
+    "possCapWei": "0",
+    "possGenesisUnix": 0,
+    "possHalvingSec": 0,
+    "possSubperiodSec": 0,
+    "possEmissionModel": "noormint/v1"
+  }
+}

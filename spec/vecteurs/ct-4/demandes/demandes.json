@@ -1,0 +1,473 @@
+{
+  "version": 0,
+  "family": "demandes",
+  "description": "Demandes de signature (operations-registre-v0#/$defs/demande_signature) : schéma, OP-6 (condensé recalculé), OP-7 (signatures canoniques, recouvrées, distinctes, rangées, membres et seuil).",
+  "cases": [
+    {
+      "id": "inscription-rec-exemple-01",
+      "description": "exemple de 7.7 : inscription de rec-exemple-01, deux signatures sur trois approbateurs",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/valides/inscription-rec-exemple-01.json",
+        "members": null,
+        "administrator": null,
+        "complete": true
+      },
+      "expected": {
+        "result": "valide",
+        "digest": "0xd0b3adc4a42e8b3d9efea626a0dcd526d88fce25c7ad9f1abc3f3577d49d00fa",
+        "signers": [
+          "0x19d8bddeed23cb80dca47e16b74dd29bc020c138",
+          "0x5747a77dda82031f8dd96a06a75c52a672a0a4c3"
+        ]
+      },
+      "refusal": null
+    },
+    {
+      "id": "inscription-rec-test-01",
+      "description": "inscription de rec-test-01 (A.2), Hardhat 1 et 2 rangés",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/valides/inscription-rec-test-01.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": {
+        "result": "valide",
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signers": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        ]
+      },
+      "refusal": null
+    },
+    {
+      "id": "cloture-periode-1",
+      "description": "clôture de la période 1 de CT-1, Hardhat 1 et 3 rangés",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/valides/cloture-periode-1.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": {
+        "result": "valide",
+        "digest": "0x21c3fd75e15d573638a5c3ec46e986cffec31b2c7b359e1f586da03022491674",
+        "signers": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      },
+      "refusal": null
+    },
+    {
+      "id": "revocation-rec-test-01",
+      "description": "révocation de rec-test-01, registeredAt du bloc 16648",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/valides/revocation-rec-test-01.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": {
+        "result": "valide",
+        "digest": "0x63e4dfd071d6f365a39772d9ca34e9791f6426e9dfc654178d280c9a1152b9df",
+        "signers": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      },
+      "refusal": null
+    },
+    {
+      "id": "ancre-periode-1",
+      "description": "ancre de la période 1, signée par son émetteur (clé de chaîne de rec-test-02)",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/valides/ancre-periode-1.json",
+        "members": null,
+        "administrator": null,
+        "complete": true
+      },
+      "expected": {
+        "result": "valide",
+        "digest": "0xb1eb8a317f588d9484ebf839effd88727b92525bdb487402c57a7f5a1fc8cbe9",
+        "signers": [
+          "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49"
+        ]
+      },
+      "refusal": null
+    },
+    {
+      "id": "administration-jeu-propose-admin",
+      "description": "proposeAdminSigned vers Hardhat 3, nonce 0, signé par l'administrateur du jeu (Hardhat 0)",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/valides/administration-jeu-propose-admin.json",
+        "members": null,
+        "administrator": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+        "complete": true
+      },
+      "expected": {
+        "result": "valide",
+        "digest": "0xd0840fa693828406974358cd14061f33c59a826cc51f954f39972f615b816be2",
+        "signers": [
+          "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+        ]
+      },
+      "refusal": null
+    },
+    {
+      "id": "schema-champ-en-trop",
+      "description": "membre en trop dans fields",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/schema-champ-en-trop.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-6",
+        "code": "entree_illisible"
+      }
+    },
+    {
+      "id": "schema-signature-v-0",
+      "description": "v = 0 hors de {27, 28} (schéma)",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/schema-signature-v-0.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-6",
+        "code": "entree_illisible"
+      }
+    },
+    {
+      "id": "condense-altere",
+      "description": "digest différent du recalcul",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/condense-altere.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-6",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "champs-alteres",
+      "description": "journal_id remplacé, digest gardé",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/champs-alteres.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-6",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "autre-contrat",
+      "description": "contract d'un autre registre",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/autre-contrat.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-6",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "autre-chaine",
+      "description": "identifiant EVM 2121",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/autre-chaine.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-6",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "eip191-faux",
+      "description": "eip191_digest égal au condensé nu",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/eip191-faux.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-6",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "signature-s-haut",
+      "description": "une signature à s haut",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/signature-s-haut.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-7",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signataire-hors-jeu",
+      "description": "Hardhat 4, non membre",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/signataire-hors-jeu.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-7",
+        "code": "signataire_hors_jeu"
+      }
+    },
+    {
+      "id": "signatures-insuffisantes",
+      "description": "une signature pour un seuil de 2",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/signatures-insuffisantes.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-7",
+        "code": "signatures_insuffisantes"
+      }
+    },
+    {
+      "id": "ordre-inverse",
+      "description": "signatures non rangées",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/ordre-inverse.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-7",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signataire-double",
+      "description": "même signataire deux fois",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/signataire-double.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-7",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signataire-declare-faux",
+      "description": "signer déclaré autre que l'adresse recouvrée",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/signataire-declare-faux.json",
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-7",
+        "code": "signataire_hors_jeu"
+      }
+    },
+    {
+      "id": "ancre-autre-emetteur",
+      "description": "ancre signée par la clé de chaîne de rec-test-01, émetteur rec-test-02",
+      "checks": [
+        "OP-6",
+        "OP-7"
+      ],
+      "input": {
+        "file": "demandes/invalides/ancre-autre-emetteur.json",
+        "members": null,
+        "administrator": null,
+        "complete": true
+      },
+      "expected": null,
+      "refusal": {
+        "check": "OP-7",
+        "code": "signataire_hors_jeu"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1968 @@
+{
+  "version": 0,
+  "family": "condenses",
+  "description": "Champs de clôture (RG-5), six condensés internes et leurs préimages (RG-6 à RG-11), hachage signé et signatures (RG-12), jeux de signatures au seuil (RG-13), dont les cinq opérations au seuil de la capture de CT-6 (EX-A.4).",
+  "cases": [
+    {
+      "id": "cloture-periode-1",
+      "description": "PeriodMeta de la période 1 de CT-1 (première du journal)",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        },
+        "empty": false
+      },
+      "refusal": null
+    },
+    {
+      "id": "cloture-periode-2",
+      "description": "période 2, à la suite de la période 1",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+          "root": "0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26",
+          "period_start": "1793872800",
+          "period_end": "1793876400",
+          "first_seq": "10",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        },
+        "previous": {
+          "period_end": "1793872800",
+          "last_seq": "9"
+        }
+      },
+      "expected": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+          "root": "0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26",
+          "period_start": "1793872800",
+          "period_end": "1793876400",
+          "first_seq": "10",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        },
+        "empty": false
+      },
+      "refusal": null
+    },
+    {
+      "id": "cloture-periode-3-vide",
+      "description": "période 3, vide : lastSeq + 1 = firstSeq et racine nulle",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+          "root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "period_start": "1793876400",
+          "period_end": "1793880000",
+          "first_seq": "13",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        },
+        "previous": {
+          "period_end": "1793876400",
+          "last_seq": "12"
+        }
+      },
+      "expected": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+          "root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "period_start": "1793876400",
+          "period_end": "1793880000",
+          "first_seq": "13",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        },
+        "empty": true
+      },
+      "refusal": null
+    },
+    {
+      "id": "cloture-uri-64",
+      "description": "uri de 64 caractères ASCII imprimables",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": "urn:noortrace:periode:000000000000000000000000000000000000000000"
+        }
+      },
+      "expected": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": "urn:noortrace:periode:000000000000000000000000000000000000000000"
+        },
+        "empty": false
+      },
+      "refusal": null
+    },
+    {
+      "id": "cloture-org-id-nul",
+      "description": "orgId nul",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-journal-id-nul",
+      "description": "journalId nul",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-period-hash-nul",
+      "description": "periodHash nul",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-bornes-inversees",
+      "description": "periodStart ≥ periodEnd",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793869200",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-period-end-max",
+      "description": "periodEnd = 2^64 − 1",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "18446744073709551615",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-last-seq-max",
+      "description": "lastSeq = 2^64 − 1",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "18446744073709551615",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-vide-racine",
+      "description": "période vide à racine non nulle",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793876400",
+          "period_end": "1793880000",
+          "first_seq": "13",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-racine-nulle",
+      "description": "période non vide à racine nulle",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-sequence-invalide",
+      "description": "firstSeq > lastSeq + 1",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "11",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-discontinuite-temporelle",
+      "description": "periodStart différent du periodEnd précédent",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+          "root": "0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26",
+          "period_start": "1793872800",
+          "period_end": "1793876400",
+          "first_seq": "10",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        },
+        "previous": {
+          "period_end": "1793869200",
+          "last_seq": "9"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "discontinuite_temporelle"
+      }
+    },
+    {
+      "id": "cloture-discontinuite-sequence",
+      "description": "firstSeq différent du lastSeq + 1 précédent",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+          "root": "0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26",
+          "period_start": "1793872800",
+          "period_end": "1793876400",
+          "first_seq": "10",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        },
+        "previous": {
+          "period_end": "1793872800",
+          "last_seq": "8"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "discontinuite_sequence"
+      }
+    },
+    {
+      "id": "cloture-uri-65",
+      "description": "uri de 65 caractères",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-uri-non-imprimable",
+      "description": "uri avec un saut de ligne",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": "ligne\nsuivante"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-uri-slug",
+      "description": "uri qui contient le slug de l'organisation",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": "noortrace://assureur-demo/1"
+        },
+        "slug": "assureur-demo"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "cloture-uri-journal",
+      "description": "uri qui contient le nom du journal",
+      "checks": [
+        "RG-5"
+      ],
+      "input": {
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": "noortrace://journal-sinistres/1"
+        },
+        "journal_name": "journal-sinistres"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-5",
+        "code": "periode_invalide"
+      }
+    },
+    {
+      "id": "period-digest-periode-1",
+      "description": "periodDigest de la période 1 de CT-1 (exemple de 6.6.4, bloc 16668)",
+      "checks": [
+        "RG-6"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084c4ee6ecad1c2dae9f525404de8555724e3c35d07b6e6f6f7274726163652d706572696f646541736cf76da6bd1017655efe478045529617cf26e91f7a76adc1a80aff0bf133",
+        "preimage_length": 101,
+        "digest": "0x21c3fd75e15d573638a5c3ec46e986cffec31b2c7b359e1f586da03022491674",
+        "eip191_digest": "0x89072ae7b6c13cf3d65d0215ee3dce6e1c533a393877e33314574e3cf9b1936e"
+      },
+      "refusal": null
+    },
+    {
+      "id": "period-digest-periode-2",
+      "description": "periodDigest de la période 2 de CT-1",
+      "checks": [
+        "RG-6"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+          "root": "0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26",
+          "period_start": "1793872800",
+          "period_end": "1793876400",
+          "first_seq": "10",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084c4ee6ecad1c2dae9f525404de8555724e3c35d07b6e6f6f7274726163652d706572696f646561a2d7e56e45f155aa59cf8607469235176ec9a142d02147c41a4a06e27e3626",
+        "preimage_length": 101,
+        "digest": "0xf861d8a4fa4983149295a463d5db30e3459ca9bfd6c39c2fd41e9cc6d81797cd",
+        "eip191_digest": "0xa0653aee173ef01df4d92ec034b5bffc3da39cbdb4fd7e76443f450dc47b7e10"
+      },
+      "refusal": null
+    },
+    {
+      "id": "period-digest-periode-3",
+      "description": "periodDigest de la période 3 de CT-1",
+      "checks": [
+        "RG-6"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594",
+          "root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "period_start": "1793876400",
+          "period_end": "1793880000",
+          "first_seq": "13",
+          "last_seq": "12",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084c4ee6ecad1c2dae9f525404de8555724e3c35d07b6e6f6f7274726163652d706572696f6465a60f13750f0e02033f0e834f9a0ac0f2f11ef6d430b29010e6f1772235881377",
+        "preimage_length": 101,
+        "digest": "0xe106092d800f6af249e2d17c8074b9ddfacb91186ab8b2d98f7864e05541e41d",
+        "eip191_digest": "0x8bb0015396eedabb89fbb912bf539c50253bde1db85b21d19d43c93adbc00648"
+      },
+      "refusal": null
+    },
+    {
+      "id": "period-digest-uri",
+      "description": "periodDigest avec une uri non vide (T(meta) de 384 octets)",
+      "checks": [
+        "RG-6"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": "urn:noortrace:periode:0001"
+        }
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084c4ee6ecad1c2dae9f525404de8555724e3c35d07b6e6f6f7274726163652d706572696f646592bcceb9cdbae8b01570ba36234d4300032e54065627ff0e945cd5519e52693e",
+        "preimage_length": 101,
+        "digest": "0x5dd8193ca55559282deab8d90f09cdc81fd2730bfe458c154e1edd3e922f1960",
+        "eip191_digest": "0xdb755d17c1b1b91c8a56c490b0c1e42045272b0d4150079cb1680ec2ae261566"
+      },
+      "refusal": null
+    },
+    {
+      "id": "period-digest-exemple",
+      "description": "periodDigest du manifeste d'exemple de A.2",
+      "checks": [
+        "RG-6"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+        "period_meta": {
+          "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc",
+          "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+          "period_hash": "0x266dd53a36a4c33232bd8dc4758eb036cc7adf8f483cb1ae8e7fc2a77034e8fb",
+          "root": "0x3143833505fd6c183672aae97990ba1d50580149ec55c7558423ce66a6fc7146",
+          "period_start": "1793520000",
+          "period_end": "1793523600",
+          "first_seq": "1",
+          "last_seq": "3",
+          "version": 0,
+          "uri": ""
+        }
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084c4ee6ecad1c2dae9f525404de8555724e3c35d07b6e6f6f7274726163652d706572696f646522f577b714092329e5e3aa39edca7262f68d6b5d5c2a6d16a83d72cc57482694",
+        "preimage_length": 101,
+        "digest": "0xd7dda9e39a7c6b24e46d7c6bd6bcdaeab7be5b59661ab0190744073118bc72ec",
+        "eip191_digest": "0x253ea52bd6d7743bb8d315bb3c506cb333222da2306db82f4fc884b74a41efa8"
+      },
+      "refusal": null
+    },
+    {
+      "id": "period-digest-autre-chaine",
+      "description": "condensé déclaré calculé pour l'identifiant EVM 2121",
+      "checks": [
+        "RG-6"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+        "period_meta": {
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+          "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+          "period_start": "1793869200",
+          "period_end": "1793872800",
+          "first_seq": "1",
+          "last_seq": "9",
+          "version": 0,
+          "uri": ""
+        },
+        "digest": "0xb158ffb0db8148989cda454a9a6848083b14b2c8af035b499e2f228c6f585f63"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-6",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "register-digest-rec-test-01",
+      "description": "registerDigest de rec-test-01 sous sa clé de chaîne (capture de CT-6)",
+      "checks": [
+        "RG-7"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+        "ed25519_public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cbec49fa140acaa83533fb00a2bb19bddd0290f256e6f6f7274726163652d656e726567697374726575722d696e7363726974a581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164aa2a59656361352e96ef2eed355316ef8b29dab7e2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+        "preimage_length": 198,
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "eip191_digest": "0x42a30faa83ec49fa894c8ad6fd5c6735dab9fdc9ada2dc3f232cf76ea9947856"
+      },
+      "refusal": null
+    },
+    {
+      "id": "register-digest-rec-test-02",
+      "description": "registerDigest de rec-test-02 sous sa clé de chaîne (capture de CT-6)",
+      "checks": [
+        "RG-7"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "chain_key": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+        "ed25519_public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cbec49fa140acaa83533fb00a2bb19bddd0290f256e6f6f7274726163652d656e726567697374726575722d696e7363726974a581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164510d7d0f5afbd9129abb1a899aff5f9246dd9c49fd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+        "preimage_length": 198,
+        "digest": "0x988583b32ad01d2a52e87b138d35f4ed03aaa44fb8df7d2e9fdcb90d88308715",
+        "eip191_digest": "0x381f3bacafa357f8bf394475b9a0cfcc6b8cf23ca2bbaa926bcefca7569c38fe"
+      },
+      "refusal": null
+    },
+    {
+      "id": "register-digest-rec-test-03",
+      "description": "registerDigest de rec-test-03 sous sa clé de chaîne (capture de CT-6)",
+      "checks": [
+        "RG-7"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "chain_key": "0xe2bdcef6264103ab6c88fa3c1b5a2ceacd995b22",
+        "ed25519_public_key": "0x7fcebb9e8efd62d13a17c830ad33739c1de7fe9f1458701cb739ae15e9e62cd6"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cbec49fa140acaa83533fb00a2bb19bddd0290f256e6f6f7274726163652d656e726567697374726575722d696e7363726974a581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164e2bdcef6264103ab6c88fa3c1b5a2ceacd995b227fcebb9e8efd62d13a17c830ad33739c1de7fe9f1458701cb739ae15e9e62cd6",
+        "preimage_length": 198,
+        "digest": "0x6f914533ea9f2f485b71363b1fa0bb61c4bf32cdf8806ed8a99c3cb97fc5d378",
+        "eip191_digest": "0x8b583f17e46c5a2002cf08c9f9ad37a7c525274b196db5ecb13e1949533f3e80"
+      },
+      "refusal": null
+    },
+    {
+      "id": "register-digest-rec-exemple-01",
+      "description": "registerDigest de l'exemple de 7.7",
+      "checks": [
+        "RG-7"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0x15424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc",
+        "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+        "chain_key": "0xaf1056f6fd93594a0a71c87d3b18723232c61714",
+        "ed25519_public_key": "0xa34b5d38605d5b729c42eee01465e4e9f7a361c362561ebd8ec2f7c984463fbb"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cbec49fa140acaa83533fb00a2bb19bddd0290f256e6f6f7274726163652d656e726567697374726575722d696e736372697415424c5b6d09deed88ad408275c50812e2c7cc9e142f746f936fc96b05d560fc0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64baf1056f6fd93594a0a71c87d3b18723232c61714a34b5d38605d5b729c42eee01465e4e9f7a361c362561ebd8ec2f7c984463fbb",
+        "preimage_length": 198,
+        "digest": "0xd0b3adc4a42e8b3d9efea626a0dcd526d88fce25c7ad9f1abc3f3577d49d00fa",
+        "eip191_digest": "0xa60aa4161f809a429ff15ba9435bfedca919005966cc6b5918faea987bfe36b5"
+      },
+      "refusal": null
+    },
+    {
+      "id": "register-digest-cle-chaine-nulle",
+      "description": "clé de chaîne nulle (contracts/RecorderRegistry.sol:137)",
+      "checks": [
+        "RG-7"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "chain_key": "0x0000000000000000000000000000000000000000",
+        "ed25519_public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-7",
+        "code": "entree_invalide"
+      }
+    },
+    {
+      "id": "register-digest-autre-contrat",
+      "description": "condensé déclaré calculé pour PeriodRegistry",
+      "checks": [
+        "RG-7"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+        "ed25519_public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+        "digest": "0x3f2a674a7727d8426c6a51cdfdc884d315b241f281a41a71db1ab4a07da1b10d"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-7",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "revoke-digest-rec-test-01",
+      "description": "revokeDigest de rec-test-01, registeredAt = horodatage du bloc de son RecorderRegistered",
+      "checks": [
+        "RG-8"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+        "registered_at": "1792707638"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cbec49fa140acaa83533fb00a2bb19bddd0290f256e6f6f7274726163652d656e726567697374726575722d7265766f717565a581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daabaa2a59656361352e96ef2eed355316ef8b29dab7000000006ada8c36",
+        "preimage_length": 142,
+        "digest": "0x63e4dfd071d6f365a39772d9ca34e9791f6426e9dfc654178d280c9a1152b9df",
+        "eip191_digest": "0x2b91a2c1dfd0be4b25e276c2816c4eee46852b4b929bb004434eaaf8f764a5e3"
+      },
+      "refusal": null
+    },
+    {
+      "id": "revoke-digest-rec-test-02",
+      "description": "revokeDigest de rec-test-02, registeredAt = horodatage du bloc de son RecorderRegistered",
+      "checks": [
+        "RG-8"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "chain_key": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+        "registered_at": "1792707641"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cbec49fa140acaa83533fb00a2bb19bddd0290f256e6f6f7274726163652d656e726567697374726575722d7265766f717565a581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab510d7d0f5afbd9129abb1a899aff5f9246dd9c49000000006ada8c39",
+        "preimage_length": 142,
+        "digest": "0x6c9a58efdcb77291a71bed8221c4b944abfa6ef622ca3ff9a0286bc505bb9fbf",
+        "eip191_digest": "0x7b1c713ede12365e6938ab2af3e5a70528b6c586106020d5c27880c18f0b339b"
+      },
+      "refusal": null
+    },
+    {
+      "id": "revoke-digest-avant-inscription",
+      "description": "registeredAt nul : révocation signée avant l'inscription (EX-6.11)",
+      "checks": [
+        "RG-8"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+        "registered_at": "0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-8",
+        "code": "entree_invalide"
+      }
+    },
+    {
+      "id": "revoke-digest-autre-inscription",
+      "description": "condensé déclaré pour une autre inscription (registeredAt + 1)",
+      "checks": [
+        "RG-8"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "chain_key": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+        "registered_at": "1792707638",
+        "digest": "0x85e4f3bcffaffff3e36e968490a16a74158c636a4054f4a435ba8cfb9584e631"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-8",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "anchor-digest-periode-1",
+      "description": "anchorDigest de l'empreinte de la période 1 (exemple de 6.6.4, bloc 16660)",
+      "checks": [
+        "RG-9"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+        "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+        "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cf4b146fba71f41e0592668ffbf264f1d186b2ca86e6f6f722d6174746573746174696f6e2d616e6372653690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f62970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee",
+        "preimage_length": 138,
+        "digest": "0xb1eb8a317f588d9484ebf839effd88727b92525bdb487402c57a7f5a1fc8cbe9",
+        "eip191_digest": "0xb56e7a39c5cb2baab700bf0ea017ed29e441c4b451cd1d5fe37c47eae0dc320a"
+      },
+      "refusal": null
+    },
+    {
+      "id": "anchor-digest-periode-2",
+      "description": "anchorDigest de l'empreinte de la période 2",
+      "checks": [
+        "RG-9"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+        "fingerprint": "0xb924b06ebd452df9db27c7c29305d5d1fd876bdedc1e8483a6088f006ca68ee5",
+        "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cf4b146fba71f41e0592668ffbf264f1d186b2ca86e6f6f722d6174746573746174696f6e2d616e637265b924b06ebd452df9db27c7c29305d5d1fd876bdedc1e8483a6088f006ca68ee52970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee",
+        "preimage_length": 138,
+        "digest": "0x6bca21ce1b6db2c4ad84b93e4b28134b7559a9131b1a0f5ff884eeb85d46295f",
+        "eip191_digest": "0x10674f89334fcffd822ca1113d903b92b10dad90cd254b907538fc6ac29cf46e"
+      },
+      "refusal": null
+    },
+    {
+      "id": "anchor-digest-periode-3",
+      "description": "anchorDigest de l'empreinte de la période 3",
+      "checks": [
+        "RG-9"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+        "fingerprint": "0xd46dec9a01a05df44217f6762249d4ea088290266ceb8046165721c9c85b21ca",
+        "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cf4b146fba71f41e0592668ffbf264f1d186b2ca86e6f6f722d6174746573746174696f6e2d616e637265d46dec9a01a05df44217f6762249d4ea088290266ceb8046165721c9c85b21ca2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee",
+        "preimage_length": 138,
+        "digest": "0x8916e2260a6b9cf6dc265ed364cb1e75a96482247f7b3dcf3685ffc96e2072e1",
+        "eip191_digest": "0x9728ad1c063bda94a7ecf037e5370c83987a65a9e38f14c89650362abae50662"
+      },
+      "refusal": null
+    },
+    {
+      "id": "anchor-digest-autre-contrat",
+      "description": "condensé déclaré calculé pour une autre adresse d'AttestationRegistry",
+      "checks": [
+        "RG-9"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+        "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+        "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee",
+        "digest": "0x218f02bf865557e8728012f1176d643dfb9635476d5fa9015c80ccbe60234c54"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-9",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "revoke-ancre-periode-1",
+      "description": "revokeDigest d'attestation de l'empreinte de la période 1 (aucun outil ne l'envoie en version 0)",
+      "checks": [
+        "RG-10"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+        "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cf4b146fba71f41e0592668ffbf264f1d186b2ca86e6f6f722d6174746573746174696f6e2d7265766f7175653690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+        "preimage_length": 108,
+        "digest": "0xe1100e481e9d291717ac6b562fe333948ef11a5f3996d1d16c515da6f7e5b8f5",
+        "eip191_digest": "0x8bab85ac302ec6ea5d9e5a3ccdb8681dfd0fb56652ae8e25905ec6ac72066213"
+      },
+      "refusal": null
+    },
+    {
+      "id": "revoke-ancre-etiquette-ancre",
+      "description": "condensé déclaré : celui de l'ancre, autre étiquette",
+      "checks": [
+        "RG-10"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+        "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+        "digest": "0xb1eb8a317f588d9484ebf839effd88727b92525bdb487402c57a7f5a1fc8cbe9"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-10",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "admin-op-add-curator",
+      "description": "adminOpDigest de CuratorSet.addCurator sur le CuratorSet de assureur-demo, nonce 0",
+      "checks": [
+        "RG-11"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+        "op": "CuratorSet.addCurator",
+        "arg": "0x00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a65",
+        "nonce": "0"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cc0f115a19107322cfbf1cdbc7ea011c19ebdb4f890676d1923a8a97480098534555883cdbc62ebae7fcd057b915a730b244f58da00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a650000000000000000000000000000000000000000000000000000000000000000",
+        "preimage_length": 148,
+        "digest": "0x63fef0b3eeadd94dfcdb7fe206d25133c71cbd1780e0c88ef03467f53322011d",
+        "eip191_digest": "0x6e17981b0631a32c9dd88c159a0f69eb7c7e5ec92a1976cad33761974f7427c7"
+      },
+      "refusal": null
+    },
+    {
+      "id": "admin-op-remove-curator",
+      "description": "adminOpDigest de CuratorSet.removeCurator sur le CuratorSet de assureur-demo, nonce 0",
+      "checks": [
+        "RG-11"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+        "op": "CuratorSet.removeCurator",
+        "arg": "0x00000000000000000000000090f79bf6eb2c4f870365e785982e1f101e93b906",
+        "nonce": "0"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8d4fead8aad35a3f84500546ae62a90bd1b0d5d8cc7012e79149844febf5929fc00000000000000000000000090f79bf6eb2c4f870365e785982e1f101e93b9060000000000000000000000000000000000000000000000000000000000000000",
+        "preimage_length": 148,
+        "digest": "0x47910cd45f8188c601f18a647a3246c867c69ef723666ea46cc2e0984fee11c9",
+        "eip191_digest": "0x15c76e414cc94d139a021d7fd3f88a5330f236a9a01205a7345c46a436350298"
+      },
+      "refusal": null
+    },
+    {
+      "id": "admin-op-set-threshold",
+      "description": "adminOpDigest de CuratorSet.setThreshold sur le CuratorSet de assureur-demo, nonce 0",
+      "checks": [
+        "RG-11"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+        "op": "CuratorSet.setThreshold",
+        "arg": "0x0000000000000000000000000000000000000000000000000000000000000003",
+        "nonce": "0"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cc0f115a19107322cfbf1cdbc7ea011c19ebdb4f880b84408d410e35bce630bf67e150eddb5ecf898b4009e7deeb26ae3838c38e800000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000",
+        "preimage_length": 148,
+        "digest": "0x4d39ce830e6099401b4102ef6c99cee6fbee5593bdf889d3a5fd132dba70face",
+        "eip191_digest": "0x0827070cbf09df74b2e364f7a5582d36a06e29ca2f4e0d1bf0838749c4071749"
+      },
+      "refusal": null
+    },
+    {
+      "id": "admin-op-propose-admin",
+      "description": "adminOpDigest de CuratorSet.proposeAdmin sur le CuratorSet de assureur-demo, nonce 0",
+      "checks": [
+        "RG-11"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+        "op": "CuratorSet.proposeAdmin",
+        "arg": "0x00000000000000000000000090f79bf6eb2c4f870365e785982e1f101e93b906",
+        "nonce": "0"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8c9d8d482eeca2566b117e8a890e79e8048bf35f570e2ad62132b3e967459e99500000000000000000000000090f79bf6eb2c4f870365e785982e1f101e93b9060000000000000000000000000000000000000000000000000000000000000000",
+        "preimage_length": 148,
+        "digest": "0xd0840fa693828406974358cd14061f33c59a826cc51f954f39972f615b816be2",
+        "eip191_digest": "0xb5315cbc45492aa1b65cfd9dfc5acb841aa28b9e67e0f6c9b9c89cdc015fdcd7"
+      },
+      "refusal": null
+    },
+    {
+      "id": "admin-op-accept-admin",
+      "description": "adminOpDigest de CuratorSet.acceptAdmin sur le CuratorSet de assureur-demo, nonce 0",
+      "checks": [
+        "RG-11"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+        "op": "CuratorSet.acceptAdmin",
+        "arg": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "expected": {
+        "preimage": "0x000000000000000000000000000000000000000000000000000000000000084cc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8e0d1968273ca8a1ca2680cc6bea43e6d6824797741e9a721c4588ef3bc7414b400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "preimage_length": 148,
+        "digest": "0x7e476755b067b6ddac378452cf49164bc37d782e890b38fc48a7885b76b38108",
+        "eip191_digest": "0xb4ab4b50848b4cec31e383df8958ad1473c95589fa958c16a15bc3cd7f49ece1"
+      },
+      "refusal": null
+    },
+    {
+      "id": "admin-op-inconnue",
+      "description": "opération sans étiquette du contrat",
+      "checks": [
+        "RG-11"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+        "op": "CuratorSet.setAdmin",
+        "arg": "0x00000000000000000000000090f79bf6eb2c4f870365e785982e1f101e93b906",
+        "nonce": "0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-11",
+        "code": "entree_invalide"
+      }
+    },
+    {
+      "id": "admin-op-autre-nonce",
+      "description": "condensé déclaré au nonce 1",
+      "checks": [
+        "RG-11"
+      ],
+      "input": {
+        "chain_id": 2124,
+        "contract": "0xc0f115a19107322cfbf1cdbc7ea011c19ebdb4f8",
+        "op": "CuratorSet.proposeAdmin",
+        "arg": "0x00000000000000000000000090f79bf6eb2c4f870365e785982e1f101e93b906",
+        "nonce": "0",
+        "digest": "0xcda1522dcdb39d401f6ea188b2534ccd4354e5f3fb12d65f1de0b0f5c34c702d"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-11",
+        "code": "condense_different"
+      }
+    },
+    {
+      "id": "signature-h1-inscription",
+      "description": "Hardhat 1 signe le registerDigest de rec-test-01 (RFC 6979, s bas)",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 27,
+          "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+          "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+        }
+      },
+      "expected": {
+        "eip191_digest": "0x42a30faa83ec49fa894c8ad6fd5c6735dab9fdc9ada2dc3f232cf76ea9947856",
+        "recovered": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "signature65": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d74c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf5111b"
+      },
+      "refusal": null
+    },
+    {
+      "id": "signature-h2-inscription",
+      "description": "Hardhat 2 signe le registerDigest de rec-test-01",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "v": 28,
+          "r": "0x2571cb967df0191304f3f52bdaa0bb99d14d69cf20cd980824cda8172da06ffc",
+          "s": "0x5b028842f2088e3ca3de0fce4616286f61d49f97eb908b27fb09ae7326051613"
+        },
+        "eip191_digest": "0x42a30faa83ec49fa894c8ad6fd5c6735dab9fdc9ada2dc3f232cf76ea9947856"
+      },
+      "expected": {
+        "eip191_digest": "0x42a30faa83ec49fa894c8ad6fd5c6735dab9fdc9ada2dc3f232cf76ea9947856",
+        "recovered": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "signature65": "0x2571cb967df0191304f3f52bdaa0bb99d14d69cf20cd980824cda8172da06ffc5b028842f2088e3ca3de0fce4616286f61d49f97eb908b27fb09ae73260516131c"
+      },
+      "refusal": null
+    },
+    {
+      "id": "signature-capture-16668",
+      "description": "première signature de la clôture du bloc 16668 (Hardhat 1), telle que la transaction la porte",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x21c3fd75e15d573638a5c3ec46e986cffec31b2c7b359e1f586da03022491674",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 28,
+          "r": "0x4937ed029f4003dbe1e83311b9a9c3f98eb28ed6d1bfe01d425d8b618c60bcd2",
+          "s": "0x342d5e58a71eaec4a6ed532d450a1f7c215ca4ea9b18a3e009394b53c5ea1fe8"
+        }
+      },
+      "expected": {
+        "eip191_digest": "0x89072ae7b6c13cf3d65d0215ee3dce6e1c533a393877e33314574e3cf9b1936e",
+        "recovered": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "signature65": "0x4937ed029f4003dbe1e83311b9a9c3f98eb28ed6d1bfe01d425d8b618c60bcd2342d5e58a71eaec4a6ed532d450a1f7c215ca4ea9b18a3e009394b53c5ea1fe81c"
+      },
+      "refusal": null
+    },
+    {
+      "id": "signature-ancre-rec-test-02",
+      "description": "la clé de chaîne de rec-test-02 signe l'anchorDigest de la période 1 (signature de 6.6.4)",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0xb1eb8a317f588d9484ebf839effd88727b92525bdb487402c57a7f5a1fc8cbe9",
+        "signature": {
+          "signer": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+          "v": 28,
+          "r": "0x51412a0867e5a514a48b3f5bb1be9f72c249fe707ecd459faef9cd9309f92c0b",
+          "s": "0x114b2aba6d972afbbd2e1a9b78f364fcccbc40252d67a01946291be59b8a42c4"
+        }
+      },
+      "expected": {
+        "eip191_digest": "0xb56e7a39c5cb2baab700bf0ea017ed29e441c4b451cd1d5fe37c47eae0dc320a",
+        "recovered": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+        "signature65": "0x51412a0867e5a514a48b3f5bb1be9f72c249fe707ecd459faef9cd9309f92c0b114b2aba6d972afbbd2e1a9b78f364fcccbc40252d67a01946291be59b8a42c41c"
+      },
+      "refusal": null
+    },
+    {
+      "id": "signature-s-haut",
+      "description": "forme malléable : s remplacé par n − s et v inversé (même signataire recouvré)",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 28,
+          "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+          "s": "0xb3bf0a534ded828266b91c6ce8dc5271301a2d532acd44061f8bfd2e0caa4c30"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signature-v-29",
+      "description": "v = 29",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 29,
+          "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+          "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signature-v-0",
+      "description": "v = 0 (identifiant de récupération sans le décalage 27)",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 0,
+          "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+          "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signature-r-nul",
+      "description": "r = 0",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 27,
+          "r": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signature-s-nul",
+      "description": "s = 0",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 27,
+          "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+          "s": "0x0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signature-r-hors-ordre",
+      "description": "r = n",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 27,
+          "r": "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+          "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "signature-sans-prefixe",
+      "description": "signature du condensé nu, sans préfixe EIP-191 : recouvre une autre adresse",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 27,
+          "r": "0x59e6620ea3033fb00e9c339480adafec6a2e47bdd43824c82f60005eb10c43cc",
+          "s": "0x7f06573de1a9b27a9c472dc0560ed77d5f05d3db3401c50b507770f77bb492ea"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signataire_different"
+      }
+    },
+    {
+      "id": "signature-signataire-declare-faux",
+      "description": "signataire déclaré Hardhat 3 pour une signature de Hardhat 1",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+          "v": 27,
+          "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+          "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+        }
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signataire_different"
+      }
+    },
+    {
+      "id": "signature-hachage-signe-faux",
+      "description": "hachage signé déclaré : le condensé nu",
+      "checks": [
+        "RG-12"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signature": {
+          "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "v": 27,
+          "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+          "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+        },
+        "eip191_digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "hachage_signe_different"
+      }
+    },
+    {
+      "id": "seuil-h1-h2-ranges",
+      "description": "Hardhat 1 et 2 au seuil 2, rangées par adresse croissante (Hardhat 2 puis Hardhat 1)",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 28,
+            "r": "0x2571cb967df0191304f3f52bdaa0bb99d14d69cf20cd980824cda8172da06ffc",
+            "s": "0x5b028842f2088e3ca3de0fce4616286f61d49f97eb908b27fb09ae7326051613"
+          },
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2
+      },
+      "expected": {
+        "signers": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        ]
+      },
+      "refusal": null
+    },
+    {
+      "id": "seuil-h2-h3-ranges",
+      "description": "Hardhat 2 et 3 au seuil 2",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 28,
+            "r": "0x2571cb967df0191304f3f52bdaa0bb99d14d69cf20cd980824cda8172da06ffc",
+            "s": "0x5b028842f2088e3ca3de0fce4616286f61d49f97eb908b27fb09ae7326051613"
+          },
+          {
+            "signer": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+            "v": 27,
+            "r": "0xa7168514bc03a2e67d5587ccfcc68996990fb6283433bb520438e0477dbe9937",
+            "s": "0x4195121c55ce80ca0e916472960e4df034d8cb0309623bd8b6324a2464f9a4ff"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2
+      },
+      "expected": {
+        "signers": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      },
+      "refusal": null
+    },
+    {
+      "id": "seuil-ordre-inverse",
+      "description": "Hardhat 1 puis Hardhat 2 : autre ordre (le contrat l'accepte, RG-13 non)",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+          },
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 28,
+            "r": "0x2571cb967df0191304f3f52bdaa0bb99d14d69cf20cd980824cda8172da06ffc",
+            "s": "0x5b028842f2088e3ca3de0fce4616286f61d49f97eb908b27fb09ae7326051613"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "ordre_signatures"
+      }
+    },
+    {
+      "id": "seuil-hors-jeu",
+      "description": "Hardhat 4, non membre",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+            "v": 28,
+            "r": "0xa3edee5796a3726187d2794455cb8b8d00fa0e833cf9f7ee3be6d6379483dc80",
+            "s": "0x5a82abeecbd5cf509ceae0df61c09dc1f2a3916ddb05cb92c78de96c77537a65"
+          },
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "signataire_hors_jeu"
+      }
+    },
+    {
+      "id": "seuil-doublon",
+      "description": "deux fois Hardhat 1",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+          },
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "signataire_double"
+      }
+    },
+    {
+      "id": "seuil-une-signature",
+      "description": "une signature pour un seuil de 2",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "nombre_signatures"
+      }
+    },
+    {
+      "id": "seuil-trois-signatures",
+      "description": "trois signatures pour un seuil de 2 : exactement t exigées",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 28,
+            "r": "0x2571cb967df0191304f3f52bdaa0bb99d14d69cf20cd980824cda8172da06ffc",
+            "s": "0x5b028842f2088e3ca3de0fce4616286f61d49f97eb908b27fb09ae7326051613"
+          },
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+          },
+          {
+            "signer": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+            "v": 27,
+            "r": "0xa7168514bc03a2e67d5587ccfcc68996990fb6283433bb520438e0477dbe9937",
+            "s": "0x4195121c55ce80ca0e916472960e4df034d8cb0309623bd8b6324a2464f9a4ff"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "nombre_signatures"
+      }
+    },
+    {
+      "id": "seuil-s-haut",
+      "description": "une signature à s haut dans le jeu",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 28,
+            "r": "0x2571cb967df0191304f3f52bdaa0bb99d14d69cf20cd980824cda8172da06ffc",
+            "s": "0x5b028842f2088e3ca3de0fce4616286f61d49f97eb908b27fb09ae7326051613"
+          },
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 28,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0xb3bf0a534ded828266b91c6ce8dc5271301a2d532acd44061f8bfd2e0caa4c30"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-12",
+        "code": "signature_non_canonique"
+      }
+    },
+    {
+      "id": "capture-16648-ordre",
+      "description": "signatures de la transaction du bloc 16648 (inscription), dans l'ordre de la transaction : Hardhat 1 puis Hardhat 2 (EX-A.4)",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x90362e40306221d7f95b803857dab38f80d1ddb9b59c51441f464cb0334d1108",
+        "signatures": [
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x6e9f19b6543e0f1c927b86a9a41904b04e7171f94decd8db3e1c80a0a14218d7",
+            "s": "0x4c40f5acb2127d7d9946e3931723ad8d8a94af93847b5c35a046615ec38bf511"
+          },
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 28,
+            "r": "0x2571cb967df0191304f3f52bdaa0bb99d14d69cf20cd980824cda8172da06ffc",
+            "s": "0x5b028842f2088e3ca3de0fce4616286f61d49f97eb908b27fb09ae7326051613"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2,
+        "transaction_hash": "0x932ae471728698ae648a109858081ccfadbf20e472bd85cdc47115550dc85158"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "ordre_signatures"
+      }
+    },
+    {
+      "id": "capture-16652-ordre",
+      "description": "signatures de la transaction du bloc 16652 (inscription), dans l'ordre de la transaction : Hardhat 1 puis Hardhat 2 (EX-A.4)",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x988583b32ad01d2a52e87b138d35f4ed03aaa44fb8df7d2e9fdcb90d88308715",
+        "signatures": [
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 28,
+            "r": "0x1210d1365875fbbf50428ca64965ca7e59099d9cc36481b221fe0ed3d6cfe38c",
+            "s": "0x3ef7f4bc898549184e1eb087548b87f0246fc7372ecd3319b1c32930eaddc9fd"
+          },
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 28,
+            "r": "0x4998861291d93b305778c790708672cb03c436ed1209b88ecde9276a98742796",
+            "s": "0x0a64ae98e524692c34fee10c644cc69093adee5b747caeab0dd10f882f3631ac"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2,
+        "transaction_hash": "0x158850e1aae6d6a6eb7125387c581d580886135a7fafbe871e4185b66beea062"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "ordre_signatures"
+      }
+    },
+    {
+      "id": "capture-16656-ordre",
+      "description": "signatures de la transaction du bloc 16656 (inscription), dans l'ordre de la transaction : Hardhat 1 puis Hardhat 2 (EX-A.4)",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x6f914533ea9f2f485b71363b1fa0bb61c4bf32cdf8806ed8a99c3cb97fc5d378",
+        "signatures": [
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 27,
+            "r": "0x46c0ee5c534e5b3cabef7928baab665f6e556556429026ab5130ea853a757835",
+            "s": "0x4811fb062ce79ae6b36d26c1a16e8c02054039c424a6d6bc1befb08de79ea9ac"
+          },
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 27,
+            "r": "0x466b2061a26ea719272ae2d26dea4244970d9db93716f5b965aed08fcd243c5f",
+            "s": "0x35cc59052baa9b6c554387a0ac1689dd80e1f4417732a4942700fb1c93233372"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2,
+        "transaction_hash": "0x3a55a9dc62d6d587a0cf6c231c5586bc323a2190a1ac27bb646c33f66825c2b2"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "ordre_signatures"
+      }
+    },
+    {
+      "id": "capture-16668-ordre",
+      "description": "signatures de la transaction du bloc 16668 (cloture), dans l'ordre de la transaction : Hardhat 1 puis Hardhat 2 (EX-A.4)",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0x21c3fd75e15d573638a5c3ec46e986cffec31b2c7b359e1f586da03022491674",
+        "signatures": [
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 28,
+            "r": "0x4937ed029f4003dbe1e83311b9a9c3f98eb28ed6d1bfe01d425d8b618c60bcd2",
+            "s": "0x342d5e58a71eaec4a6ed532d450a1f7c215ca4ea9b18a3e009394b53c5ea1fe8"
+          },
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 27,
+            "r": "0x612963407511b7d05170e3e6b9dd2ef850d0f5ea7f5a29d7d1c8d1945ddee5cc",
+            "s": "0x39f64d25f34d9594adccb389562f49791c39f8806748a0551878fdfc7e1f9dfa"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2,
+        "transaction_hash": "0xd9fb0d69567fa4f5ecbf51179198fa02f30524a3275678405cfc11307374bbc0"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "ordre_signatures"
+      }
+    },
+    {
+      "id": "capture-16672-ordre",
+      "description": "signatures de la transaction du bloc 16672 (cloture), dans l'ordre de la transaction : Hardhat 1 puis Hardhat 2 (EX-A.4)",
+      "checks": [
+        "RG-12",
+        "RG-13"
+      ],
+      "input": {
+        "digest": "0xf861d8a4fa4983149295a463d5db30e3459ca9bfd6c39c2fd41e9cc6d81797cd",
+        "signatures": [
+          {
+            "signer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "v": 28,
+            "r": "0x03a4f28296b6b4114e93af36d88d5010a4e0b2c0564a5740b86f96ff28ab0b7b",
+            "s": "0x61d302e02ca6740c4499da7e255fddaa895ea961b5b2fecedeb66614ce8a83a9"
+          },
+          {
+            "signer": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "v": 28,
+            "r": "0xc8960164583692a91fc67f0f20dc26dc8b31b6715c12ae0ca4537f4488a10056",
+            "s": "0x081e1b5de3d34ca266c8af19a96d08d38fb9e5cd06c556a2d38680bdb68e8c45"
+          }
+        ],
+        "members": [
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "threshold": 2,
+        "transaction_hash": "0xbb53b23f5406a11c8d62fbb29a574ce04eca719dcc14f7118582e37278ac256f"
+      },
+      "expected": null,
+      "refusal": {
+        "check": "RG-13",
+        "code": "ordre_signatures"
+      }
+    }
+  ]
+}

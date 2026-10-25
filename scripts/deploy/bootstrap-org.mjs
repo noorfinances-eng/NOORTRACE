@@ -13,6 +13,12 @@
 //
 // Sur le réseau Hardhat en mémoire, les contrats sont déployés à la volée
 // (rien n'y survit d'une exécution à l'autre).
+//
+// Outil de développement, hors de la section 7 de spec/CT-4-registre.md : il
+// laisse le déployeur administrateur du jeu (EX-5.6) et remplace, après un
+// avertissement, le jeu d'une organisation existante. L'inscription d'un client
+// suit l'outil de référence scripts/registre/noortrace-registre.mjs
+// (inscrire-client), qui ne réutilise jamais un slug (EX-6.3, EX-7.6).
 
 import { fileURLToPath } from "node:url";
 import { isAddress } from "ethers";
