@@ -77,11 +77,16 @@ def sha256_ossl(octets):
 
 
 def erreurs(sortie):
+    """Raisons d'échec d'openssl, dans son ordre, chacune une fois. Les erreurs
+    de la bibliothèque système (« system library », par exemple un fichier de
+    configuration ou un magasin de certificats par défaut absent, qu'OpenSSL
+    3.5 empile à chaque échec) tiennent à l'environnement, pas au jeton : elles
+    sont écartées."""
     out = []
     for l in sortie.splitlines():
-        m = re.match(r"error:[0-9A-F]+:[^:]*:[^:]*:([^:]*):", l)
-        if m and m.group(1) not in out:
-            out.append(m.group(1))
+        m = re.match(r"error:[0-9A-F]+:([^:]*):[^:]*:([^:]*):", l)
+        if m and m.group(1) != "system library" and m.group(2) not in out:
+            out.append(m.group(2))
     return out
 
 

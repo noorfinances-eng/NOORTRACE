@@ -51,3 +51,10 @@ de `reponses.json` (20 réponses DER, 8 réponses HTTP représentées sans
 objet), 17 dossiers de CT-6 à partie `points-de-controle.json` (15 jetons
 vérifiés, dont ceux du point contresigné de 09:35 et du point de clôture ; 2
 sans jeton), 0 discordance, 0 limite de l'outil.
+
+Les raisons d'échec d'openssl sont lues dans son ordre, chacune une fois.
+Les erreurs de la bibliothèque système (« system library ») sont écartées :
+elles tiennent à l'environnement, pas au jeton. OpenSSL 3.5 en empile une à
+chaque échec de vérification (« No such file or directory », pour un
+magasin de certificats par défaut absent), qu'OpenSSL 3.0 n'émet pas ; le
+verdict comparé reste le même avec les deux versions.
