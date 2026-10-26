@@ -25,6 +25,18 @@
 //   node scripts/vecteurs/capturer-ct6.mjs [--rpc http://127.0.0.1:8645]
 //        [--sortie spec/vecteurs/ct-6/registre/capture]
 //        [--deploiement deployments/noorcore.json] [--remplacer]
+//   node scripts/vecteurs/capturer-ct6.mjs --ancre-point <points de contrôle de la période 1>
+//        [--rpc …] [--sortie …] [--deploiement …]
+//
+// Complément de capture (CT-6 révision 0.2, EX-A.15) : --ancre-point lit la
+// série des points de CT-1 (spec/vecteurs/ct-1/points-de-controle/periode-1.json),
+// choisit le point couvrant de l'événement seq 7 (plus petit tree_size > 6),
+// ancre son checkpointHash par AttestationRegistry.anchor(keccak256(org_id ‖
+// journal_id ‖ checkpointHash), docType noortrace/point-de-controle/v0), émise
+// par la clé de chaîne de la clé qui a signé le point, capture le bloc, ses
+// reçus et son certificat, et ajoute UNE transaction (rôle
+// ancre_point_de_controle) à capture.json ; les blocs déjà capturés ne sont ni
+// relus ni réécrits. Exécuté une fois, sur le réseau où la capture a été faite.
 //
 // La capture est une ENTRÉE des vecteurs : le générateur
 // (scripts/vecteurs/ct6/registre.mjs) la lit et ne la réécrit jamais. On ne la
@@ -47,8 +59,8 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Contract, ContractFactory, HDNodeWallet, JsonRpcProvider, Wallet } from "ethers";
-import { clePubliqueEd25519, hachageManifeste } from "../lib/journal.mjs";
-import { DOC_TYPE_PERIODE, anchorFingerprint, journalIdOf, orgIdOf, periodDigest, periodMetaDuManifeste, registerDigest, signDigest, signDigestBy } from "../lib/noortrace.mjs";
+import { choisirPointCouvrant, clePubliqueEd25519, empreinteAncrePoint, hachageManifeste, hachagePointDeControle } from "../lib/journal.mjs";
+import { DOC_TYPE_PERIODE, DOC_TYPE_POINT_DE_CONTROLE, anchorFingerprint, journalIdOf, orgIdOf, periodDigest, periodMetaDuManifeste, registerDigest, signDigest, signDigestBy } from "../lib/noortrace.mjs";
 
 const RACINE = fileURLToPath(new URL("../../", import.meta.url));
 const MNEMONIQUE_TEST = "test test test test test test test test test test test junk";
@@ -74,12 +86,16 @@ function sha256Hex(octets) {
 }
 
 function analyserArguments(argv) {
-  const options = { rpc: "http://127.0.0.1:8645", sortie: path.join(RACINE, "spec/vecteurs/ct-6/registre/capture"), deploiement: path.join(RACINE, "deployments", "noorcore.json"), remplacer: false };
+  const options = { rpc: "http://127.0.0.1:8645", sortie: path.join(RACINE, "spec/vecteurs/ct-6/registre/capture"), deploiement: path.join(RACINE, "deployments", "noorcore.json"), remplacer: false, ancrePoint: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const [nom, valeurEgal] = a.startsWith("--") ? a.slice(2).split(/=(.*)/s, 2) : [null, null];
     if (nom === "remplacer") options.remplacer = true;
-    else if (nom === "rpc" || nom === "sortie" || nom === "deploiement") {
+    else if (nom === "ancre-point") {
+      const v = valeurEgal ?? argv[++i];
+      if (!v) throw new Refus("--ancre-point attend le fichier des points de contrôle");
+      options.ancrePoint = v;
+    } else if (nom === "rpc" || nom === "sortie" || nom === "deploiement") {
       const v = valeurEgal ?? argv[++i];
       if (!v) throw new Refus(`--${nom} attend une valeur`);
       options[nom] = v;
@@ -125,12 +141,124 @@ function codeEgalCompilation(codeDeploye, art) {
   return true;
 }
 
+/**
+ * Outils de capture d'un bloc (EX-13.8) : `capturer(hauteur)` écrit l'en-tête,
+ * les reçus de toutes les transactions du bloc et le certificat de commit tels
+ * que reçus ; `envoyer(role, description, promesse, extra)` attend le reçu
+ * d'une transaction, capture son bloc et consigne la transaction.
+ */
+function outilsCapture({ options, sortie, transactions, blocsCaptures }) {
+  async function capturer(hauteur) {
+    const h = "0x" + hauteur.toString(16);
+    const bloc = await rpcBrut(options.rpc, "eth_getBlockByNumber", [h, false]);
+    if (!bloc.valeur.result) throw new Refus(`bloc ${hauteur} introuvable`);
+    fs.writeFileSync(path.join(sortie, `bloc-${hauteur}.json`), bloc.octets);
+    const fichiersRecus = [];
+    for (const tx of bloc.valeur.result.transactions) {
+      const recu = await rpcBrut(options.rpc, "eth_getTransactionReceipt", [tx]);
+      if (!recu.valeur.result) throw new Refus(`reçu de ${tx} introuvable`);
+      const nom = `recu-${tx}.json`;
+      fs.writeFileSync(path.join(sortie, nom), recu.octets);
+      fichiersRecus.push(nom);
+    }
+    // Le certificat est écrit juste après que le bloc devient durable : réessayer
+    // sur la réponse transitoire « not yet persisted » (chain/README.md).
+    let certificat;
+    for (let essai = 0; essai < 100; essai++) {
+      certificat = await rpcBrut(options.rpc, "noor_getCommitCertificate", [h]);
+      if (certificat.valeur.result) break;
+      const message = String(certificat.valeur.error?.message ?? "");
+      if (!message.includes("not yet persisted")) throw new Refus(`certificat du bloc ${hauteur} : ${message}`);
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    if (!certificat.valeur.result) throw new Refus(`certificat du bloc ${hauteur} toujours absent`);
+    fs.writeFileSync(path.join(sortie, `certificat-${hauteur}.json`), certificat.octets);
+    blocsCaptures.add(hauteur);
+    return { bloc: `bloc-${hauteur}.json`, recus: fichiersRecus, certificat: `certificat-${hauteur}.json`, transactions_du_bloc: bloc.valeur.result.transactions.length };
+  }
+
+  async function envoyer(role, description, promesse, extra = {}) {
+    const tx = await promesse;
+    const recu = await tx.wait();
+    if (recu.status !== 1) throw new Refus(`${description} : transaction ${tx.hash} en échec (status ${recu.status})`);
+    const fichiers = await capturer(recu.blockNumber);
+    transactions.push({ role, description, hash: tx.hash.toLowerCase(), bloc: recu.blockNumber, indice: recu.index, ...extra, fichiers });
+    console.error(`${description} : ${tx.hash} au bloc ${recu.blockNumber}`);
+  }
+
+  return { capturer, envoyer };
+}
+
+/**
+ * Complément EX-A.15 : ancre du point de contrôle couvrant l'événement seq 7
+ * (plus petit tree_size > 6 de la série de la période 1), émise par la clé de
+ * chaîne de la clé qui a signé le point ; capture de son bloc ; une transaction
+ * de plus (rôle ancre_point_de_controle) dans capture.json, le reste inchangé.
+ */
+async function ancrerPoint({ options, sortie, fournisseur, attestation, enregistreurs, orgId, journalId }) {
+  const fichierPoints = path.resolve(options.ancrePoint);
+  const points = JSON.parse(fs.readFileSync(fichierPoints, "utf8"));
+  if (!Array.isArray(points)) throw new Refus(`${fichierPoints} : tableau de points de contrôle attendu`);
+  const LEAF_INDEX_SEQ_7 = 6;
+  const point = choisirPointCouvrant(points, LEAF_INDEX_SEQ_7);
+  if (!point) throw new Refus("aucun point de la série ne couvre la feuille 6 (seq 7)");
+  if (point.org_id !== orgId || point.journal_id !== journalId) throw new Refus("point d'une autre organisation ou d'un autre journal");
+  const checkpointHash = hachagePointDeControle(point);
+  const empreinte = empreinteAncrePoint(orgId, journalId, checkpointHash);
+  const signataire = enregistreurs.find((e) => e.key_id === point.key_id);
+  if (!signataire) throw new Refus(`clé ${point.key_id} du point inconnue de la capture`);
+  const emetteur = signataire.cleChaine.connect(fournisseur);
+
+  const description = JSON.parse(fs.readFileSync(path.join(sortie, "capture.json"), "utf8"));
+  // La transaction du point ne rejoint pas `transactions` (lue telle quelle par
+  // le générateur de CT-4, figé) : elle va sous la clé séparée `points_de_controle`.
+  if ((description.points_de_controle ?? []).length > 0 || description.transactions.some((t) => t.role === "ancre_point_de_controle")) throw new Refus("capture.json porte déjà une transaction ancre_point_de_controle : le complément ne s'exécute qu'une fois");
+  if (await attestation.isAnchored(empreinte)) throw new Refus(`empreinte du point ${empreinte} déjà ancrée sur ce réseau`);
+  const inscription = description.transactions.find((t) => t.role === "inscription" && t.key_id === point.key_id);
+  if (!inscription || inscription.chain_key !== emetteur.address.toLowerCase()) throw new Refus(`la clé de chaîne de ${point.key_id} n'est pas celle inscrite dans la capture`);
+
+  const transactions = [];
+  const blocsCaptures = new Set();
+  const { envoyer } = outilsCapture({ options, sortie, transactions, blocsCaptures });
+  const condense = await attestation.anchorDigest(empreinte, DOC_TYPE_POINT_DE_CONTROLE);
+  const sig = await signDigest(emetteur, condense);
+  await envoyer("ancre_point_de_controle", `ancre du point de contrôle ${point.checkpoint_ts} (tree_size ${point.tree_size})`, attestation.anchor(empreinte, DOC_TYPE_POINT_DE_CONTROLE, emetteur.address, sig, { gasLimit: LIMITE_GAZ }), {
+    periode: 1,
+    key_id: point.key_id,
+    checkpoint_ts: point.checkpoint_ts,
+    tree_size: point.tree_size,
+    last_seq: point.last_seq,
+    checkpoint_hash: checkpointHash,
+    fingerprint: empreinte,
+    doc_type: DOC_TYPE_POINT_DE_CONTROLE,
+    issuer: emetteur.address.toLowerCase(),
+    points_source: path.relative(RACINE, fichierPoints),
+  });
+  let commitDepot = null;
+  try {
+    commitDepot = execFileSync("git", ["-C", RACINE, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  } catch {
+    commitDepot = null;
+  }
+  // Ordre des clés conservé : ... transactions, points_de_controle, validateurs, complements.
+  const { validateurs, complements = [], ...debut } = description;
+  Object.keys(description).forEach((k) => delete description[k]);
+  Object.assign(description, { ...debut, points_de_controle: [...(debut.points_de_controle ?? []), ...transactions], validateurs });
+  description.complements = [...complements, { objet: "ancre du point de contrôle couvrant seq 7 (CT-6 révision 0.2, EX-A.15)", date: new Date().toISOString(), depot_noortrace_commit: commitDepot, transactions: transactions.map((t) => t.hash) }];
+  fs.writeFileSync(path.join(sortie, "capture.json"), JSON.stringify(description, null, 2) + "\n");
+  console.error(`Complément écrit sous ${sortie} : ${transactions.length} transaction, ${blocsCaptures.size} bloc.`);
+  return 0;
+}
+
 async function principal() {
   const options = analyserArguments(process.argv.slice(2));
   const sortie = path.resolve(options.sortie);
-  if (fs.existsSync(sortie) && fs.readdirSync(sortie).some((f) => f !== "CAPTURE.md") && !options.remplacer) {
+  const complement = options.ancrePoint !== null;
+  if (complement && options.remplacer) throw new Refus("--ancre-point complète la capture existante : --remplacer n'a pas de sens ici");
+  if (!complement && fs.existsSync(sortie) && fs.readdirSync(sortie).some((f) => f !== "CAPTURE.md") && !options.remplacer) {
     throw new Refus(`${sortie} n'est pas vide : la capture est une entrée, on ne la remplace qu'en connaissance de cause (--remplacer)`);
   }
+  if (complement && !fs.existsSync(path.join(sortie, "capture.json"))) throw new Refus(`${sortie}/capture.json absent : le complément --ancre-point s'ajoute à une capture existante`);
 
   const fournisseur = new JsonRpcProvider(options.rpc, Number(CHAIN_ID_EVM), { staticNetwork: true, batchMaxCount: 1 });
   const reseau = await rpcBrut(options.rpc, "eth_chainId", []);
@@ -175,6 +303,9 @@ async function principal() {
   const periodes = instance("PeriodRegistry");
   const inscriptions = instance("RecorderRegistry");
 
+  // Complément EX-A.15 : l'ancre du point de contrôle couvrant seq 7, sur le réseau existant.
+  if (complement) return await ancrerPoint({ options, sortie, fournisseur, attestation, enregistreurs, orgId, journalId });
+
   // Préconditions : rien de ce que la capture écrit n'existe déjà sur la chaîne.
   if (await curatorSets.isRegistered(orgId)) throw new Refus(`l'organisation ${SLUG} est déjà amorcée sur ce réseau : recapturer sur un réseau neuf (CAPTURE.md)`);
   for (const m of manifestes) {
@@ -188,45 +319,7 @@ async function principal() {
   const transactions = [];
   const blocsCaptures = new Set();
   const surcharges = { gasLimit: LIMITE_GAZ };
-
-  // Capture immédiate d'un bloc : en-tête, reçus de toutes ses transactions, certificat.
-  async function capturer(hauteur) {
-    const h = "0x" + hauteur.toString(16);
-    const bloc = await rpcBrut(options.rpc, "eth_getBlockByNumber", [h, false]);
-    if (!bloc.valeur.result) throw new Refus(`bloc ${hauteur} introuvable`);
-    fs.writeFileSync(path.join(sortie, `bloc-${hauteur}.json`), bloc.octets);
-    const fichiersRecus = [];
-    for (const tx of bloc.valeur.result.transactions) {
-      const recu = await rpcBrut(options.rpc, "eth_getTransactionReceipt", [tx]);
-      if (!recu.valeur.result) throw new Refus(`reçu de ${tx} introuvable`);
-      const nom = `recu-${tx}.json`;
-      fs.writeFileSync(path.join(sortie, nom), recu.octets);
-      fichiersRecus.push(nom);
-    }
-    // Le certificat est écrit juste après que le bloc devient durable : réessayer
-    // sur la réponse transitoire « not yet persisted » (chain/README.md).
-    let certificat;
-    for (let essai = 0; essai < 100; essai++) {
-      certificat = await rpcBrut(options.rpc, "noor_getCommitCertificate", [h]);
-      if (certificat.valeur.result) break;
-      const message = String(certificat.valeur.error?.message ?? "");
-      if (!message.includes("not yet persisted")) throw new Refus(`certificat du bloc ${hauteur} : ${message}`);
-      await new Promise((r) => setTimeout(r, 200));
-    }
-    if (!certificat.valeur.result) throw new Refus(`certificat du bloc ${hauteur} toujours absent`);
-    fs.writeFileSync(path.join(sortie, `certificat-${hauteur}.json`), certificat.octets);
-    blocsCaptures.add(hauteur);
-    return { bloc: `bloc-${hauteur}.json`, recus: fichiersRecus, certificat: `certificat-${hauteur}.json`, transactions_du_bloc: bloc.valeur.result.transactions.length };
-  }
-
-  async function envoyer(role, description, promesse, extra = {}) {
-    const tx = await promesse;
-    const recu = await tx.wait();
-    if (recu.status !== 1) throw new Refus(`${description} : transaction ${tx.hash} en échec (status ${recu.status})`);
-    const fichiers = await capturer(recu.blockNumber);
-    transactions.push({ role, description, hash: tx.hash.toLowerCase(), bloc: recu.blockNumber, indice: recu.index, ...extra, fichiers });
-    console.error(`${description} : ${tx.hash} au bloc ${recu.blockNumber}`);
-  }
+  const { envoyer } = outilsCapture({ options, sortie, transactions, blocsCaptures });
 
   // 1. L'organisation (non capturée : elle n'entre dans aucun dossier).
   const art = artefact("CuratorSet");

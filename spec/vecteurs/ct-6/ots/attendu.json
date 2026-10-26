@@ -133,6 +133,44 @@
         "1019": "0x33c77c596f361b5b7e7a63c664a97b5099c28569c7ee793959f8961f79808a63",
         "1020": "0x153384e662f1a9d86056be5c0eaacea1a4ab58e4792025f5a4bc708e63917d4d"
       }
+    },
+    "entetes/chaine-points.json": {
+      "sha256": "0x3fc7c146aa312a74f1d46cafc843ae24672e0b4ebde0aac82234bc7d08ab2ada",
+      "start_height": 990,
+      "end_height": 1020,
+      "hashes": {
+        "990": "0x3d51b33de0788a3ed58740925a60bc682392e3d36ec59bfe85d1703dd70e683e",
+        "991": "0x63314befcf46f5b481d0651106398f3e974c5a25f067725b48eb6ed4e40797cc",
+        "992": "0x51ccadc24832990ecafa259f4b306ff311812e9f41923f50d1a00a78c509b2a3",
+        "993": "0x462fcc6d2744ce7c7011472a1a3f3ddfab847752a4cde326ccb83b10452b1bf4",
+        "994": "0x528ebffd53fb43c62aaf7249304bd09c62cfb4a30f83d9e684019c7251d4fde2",
+        "995": "0x2de8794a890e487e07d9fb29f6b96cf437666ec05a0f8c93d22052ad078467a7",
+        "996": "0x23717ab49afe0a7743e1db9a4ed70046cc887f78dfb82e8d42bf7d3597460432",
+        "997": "0x64cfd9d3645ec3fdc1216063df2e5d91335e793088a3430bc35c6b6426439dfc",
+        "998": "0x189c7e7b7485ebc3a420cdb4f12e2e09fbdd0a5aa15b83f2482391653ef5e6b0",
+        "999": "0x1fd9290c7d9549fd2631e0cb0635a5f8073104cf97e97f2d63a29889190d0aa0",
+        "1000": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0",
+        "1001": "0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026",
+        "1002": "0x2f0dbccbe029ac3eea7ae54255593efbb64bee3ff7acd3966c7f8b5ae0263265",
+        "1003": "0x395e2361d09083926ac97d6ddb16a9644645c0627355a31a00bdb23f9be434e8",
+        "1004": "0x103a3e5ed8957363710b4a21d5d954ca17aa82c0b575a7de5b089c5116af404e",
+        "1005": "0x25c0d4927a52b1378f636aa57394a3a62bb4ff95c33491239d8616b0f107f0eb",
+        "1006": "0x731e582b22dee0a0549b24b61f320ddc464586ad05c331f4bc2c115a4295c66e",
+        "1007": "0x70eab2a66ad5eb98d16fbcf4117252e3857b74e8372a15c54d37d964c5d28a00",
+        "1008": "0x0641e4224f40305a713b4d1fedaa67e042145827c7aacf6f761865986693fb78",
+        "1009": "0x5be19af01b242f33bbd79642e2b98e2f4d6d774c234ee9260378f6571805e8f8",
+        "1010": "0x4ed4ac39df241b2202bee261965690af2c8be946740eb16c6484808ac5ee26ec",
+        "1011": "0x326899868ae0b305ebf3d92ef24c1225ccd825507c490f817e1bb145872d9a92",
+        "1012": "0x376ecd843db9eedcae408859e22932820ae995636afad4a77646489aeb771ec1",
+        "1013": "0x3c581cc4db45d21456c55b0214344f4da4563855fe15bc21b20352cd92f88086",
+        "1014": "0x7f3bee4a313c8b8777548d5788dfb4a7f962c7005703daad3a2187999b307288",
+        "1015": "0x28d2609c4a43ef141fc22c2ca6cd2ddb554be608c59d7a2c6fe28a360beaa204",
+        "1016": "0x6cbcacce257cc919be094143efe48f77926ec54e59813da8872603c5207ebd7f",
+        "1017": "0x24f82cbfff07104563875b02bfe56881978abaf5386eec950eccceb12b91e9d7",
+        "1018": "0x630c11cccb6bf7550327b9af7eb48c6c459a0717f1b2c733ce6b21193b70144a",
+        "1019": "0x5c03fccdeeef96e08152c113c60eb0d5d480dd0ead30648c2ff0c450d7e474bd",
+        "1020": "0x33ecfa4321259c93dafb35b505e896164323657fc207dad12fc2829c46e2a42c"
+      }
     }
   },
   "proofs": [
@@ -346,6 +384,46 @@
           "height": 1001,
           "uri": null,
           "result": "0xe943961c1284310b86a765d37c8d5ce938603b9ee5c5368b8c111540ee813846"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/point-periode-1.ots",
+      "sha256": "0x559c12fd7a8b11d11cc2f804be2b23ee5d97b797ad3209901d2d9590156d3961",
+      "size": 316,
+      "file_digest": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "alteration": null,
+      "target": null,
+      "attestations": [
+        {
+          "kind": "bitcoin",
+          "height": 1004,
+          "uri": null,
+          "result": "0x65b1d35513bc9d638497085ece4e631e1ff22fcd6466886b7b5caec64a63bb81"
+        }
+      ],
+      "python_opentimestamps": {
+        "parsing": "acceptee",
+        "source": "format officiel (R2-F01 à R2-F21)"
+      }
+    },
+    {
+      "file": "preuves/point-periode-1-en-attente.ots",
+      "sha256": "0x5c69f4a86b49d23f5a5fc655d787b50d14941e4a80aba235c4fb0ce22e021246",
+      "size": 210,
+      "file_digest": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "alteration": "preuve du point de contrôle avec une seule attestation en attente du calendrier https://alice.btc.calendar.opentimestamps.org (K-9 non exécutée, O-7)",
+      "target": null,
+      "attestations": [
+        {
+          "kind": "en_attente",
+          "height": null,
+          "uri": "https://alice.btc.calendar.opentimestamps.org",
+          "result": "0x90134da02939e8711b5b009dfa607b1ec63573bd5b2a6454a959478158526b6f"
         }
       ],
       "python_opentimestamps": {
@@ -1313,6 +1391,248 @@
       "control_reason": "ancre_absente",
       "warnings": [],
       "facts": null
+    },
+    {
+      "proof": "preuves/point-periode-1.ots",
+      "dossier_period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "headers": "entetes/chaine-points.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": {
+        "file_digest": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "network": "regtest",
+        "checkpoint": {
+          "height": 1000,
+          "hash": "0x30f16c707dbc79c93c3d9d5279170f623d3f0d691735c0670ea90bb16087b3a0"
+        },
+        "attestations": [
+          {
+            "kind": "bitcoin",
+            "height": 1004,
+            "uri": null,
+            "tag": null,
+            "status": "reussi"
+          }
+        ],
+        "retained_height": 1004,
+        "block_hash": "0x103a3e5ed8957363710b4a21d5d954ca17aa82c0b575a7de5b089c5116af404e",
+        "block_time": "2026-11-05T14:20:00Z",
+        "median_bound": "2026-11-05T15:20:00Z",
+        "confirmations": 17,
+        "cumulative_work": "34"
+      },
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "check": "K-9"
+      }
+    },
+    {
+      "proof": "preuves/point-periode-1-en-attente.ots",
+      "dossier_period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "headers": "entetes/chaine-points.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-5",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        },
+        {
+          "id": "O-7",
+          "status": "non_execute",
+          "reason": "partie_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "non_execute",
+      "control_reason": "partie_absente",
+      "warnings": [
+        "AV-O-2"
+      ],
+      "facts": null,
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "check": "K-9"
+      }
+    },
+    {
+      "proof": "preuves/periode-1.ots",
+      "dossier_period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "headers": "entetes/chaine-points.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [
+        "O-2"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": null,
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "check": "K-9"
+      }
+    },
+    {
+      "proof": "preuves/point-periode-1.ots",
+      "dossier_period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "headers": "entetes/chaine.json",
+      "anchors": "bitcoin de ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "O-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-4",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "O-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "O-6",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "O-7",
+          "status": "reussi",
+          "reason": null
+        }
+      ],
+      "failed_checks": [
+        "O-4"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [
+        "AV-O-3"
+      ],
+      "facts": null,
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "check": "K-9"
+      }
     }
   ]
 }

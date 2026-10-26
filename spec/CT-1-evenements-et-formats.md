@@ -1,7 +1,11 @@
 # CT-1 — Modèle d'événement et formats
 
-Version 0.2, 21 octobre 2026 (révision après la confrontation de l'implémentation
-de référence `scripts/lib/journal.mjs` et du vérificateur indépendant Go de
+Version 0.3, 25 octobre 2026 (révision 0.3 : point de contrôle de la période en
+cours, preuve de cohérence RFC 9162 et partie facultative
+`points-de-controle.json` du dossier, sections 10.5 à 10.9, 11.2, 11.4 et 17 ;
+rien du format v0 n'est retiré ni modifié. La version 0.2 du 21 octobre 2026
+avait suivi la confrontation de l'implémentation de référence
+`scripts/lib/journal.mjs` et du vérificateur indépendant Go de
 `spec/vecteurs/ct-1/verificateur-independant`). Spécification normative, soumise
 à la revue de la porte 1 du plan de projet (document interne). Elle met en œuvre la section « Modèle
 d'événement » et la chaîne de traitement de l'[architecture cible](../ARCHITECTURE.md)
@@ -31,6 +35,11 @@ CT-1 fixe, pour la version 0 du format :
    que CT-1 rend exécutables ;
 9. les correspondances d'export, en tables, sans implémentation ;
 10. les clés et comptes de test des vecteurs.
+11. (révision 0.3) le point de contrôle de la période en cours, tête signée de
+    l'arbre à cadence courte, sa preuve de cohérence avec le manifeste et la
+    partie facultative `points-de-controle.json` du dossier (sections 10.5 à
+    10.9, 11.2 et 11.4) ; l'ancrage des points relève de CT-5, leur
+    vérification de CT-6 (révision 0.2).
 
 Hors périmètre : la capture (CT-2), le langage de règles et le cycle de vie des
 tickets (CT-3), le registre (CT-4), les ancres RFC 3161 et OpenTimestamps
@@ -50,6 +59,8 @@ liste de ce que cette version ne couvre pas.
 | Manifeste | Objet qui décrit une période ; son hachage `periodHash` est ce que `PeriodRegistry` enregistre. |
 | Racine | Racine de l'arbre de Merkle des événements d'une période, 32 octets. |
 | Chemin d'audit | Preuve d'inclusion d'une feuille dans l'arbre, RFC 6962 §2.1.1. |
+| Point de contrôle | (révision 0.3) Tête signée de l'arbre de la période en cours : racine des `n` premières feuilles, dernier `seq` couvert et son `hash`, instant, chaînage au point précédent de la période ; produit par l'enregistreur à cadence courte, ancré par CT-5. Section 10.5. |
+| Preuve de cohérence | (révision 0.3) Liste de nœuds qui prouve que l'arbre des `m` premières feuilles est un préfixe de l'arbre de `n ≥ m` feuilles, RFC 9162 §2.1.4. Section 10.7. |
 | Dossier | Répertoire exporté pour un événement, avec tout ce qu'il faut pour le vérifier hors ligne. |
 | Vérificateur | Programme hors ligne de CT-6 qui exécute les contrôles de la section 11.4. |
 | Approbateur | Personne dont l'adresse secp256k1 est membre du jeu d'approbateurs de l'organisation (`CuratorSet`) ; signe en EIP-191. |
@@ -67,6 +78,7 @@ liste de ce que cette version ne couvre pas.
 | Identifiants de clés | Chaîne `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`. | `rec-test-01` |
 | `org_id`, `journal_id` | 32 octets, ceux que `RecorderRegistry` et `PeriodRegistry` connaissent (`keccak256(slug)` et `keccak256(nom)` dans `scripts/lib/noortrace.mjs`, mais opaques pour CT-1 : n'importe quels 32 octets non nuls). | `0xa581bb78…daab` |
 | Valeur nulle | `null` JSON. Une clé optionnelle par le sens est toujours présente, à `null` : la forme d'un objet est fixe. Deux exceptions, et deux seulement : `media_type` et `value` d'une référence (section 5.4) sont **absentes** quand elles ne s'appliquent pas, jamais `null` (le schéma refuse `"media_type": null`, E-1). | `"on_behalf_of": null` |
+| Octets en base64 (révision 0.3) | Réservé aux deux fichiers binaires embarqués dans `points-de-controle.json` (jeton RFC 3161 en DER, preuve `.ots`) : base64 de la RFC 4648 §4, alphabet standard, remplissage `=`, sans saut de ligne ; les octets décodés sont le fichier tel qu'il a été produit, jamais réencodé (CT-6 EX-13.3). Partout ailleurs, les octets restent en hexadécimal `0x`. | `MIIINAYJ…RYkA==` |
 
 Les fichiers JSON sont en UTF-8 sans marque d'ordre d'octets. Leur mise en forme
 (indentation, ordre des clés) est libre : seule la forme canonique compte pour les
@@ -576,6 +588,14 @@ Le dossier de preuve n'emporte que les voisins immédiats (section 11) : le
 vérificateur contrôle donc C-1 et C-2 sur trois événements, et s'en remet au
 chemin de Merkle et au manifeste pour le reste de la période.
 
+Révision 0.3 : la dernière ligne de la table reste vraie pour la chaîne seule.
+L'heure qu'elle cite est la fenêtre des ancres horaires de la clôture. Quand
+l'enregistreur produit des points de contrôle (section 10.5) et que CT-5 les
+ancre à l'extérieur, la réécriture par qui détient la clé n'est plus possible
+sans détection au-delà du dernier point ancré : la fenêtre est bornée par la
+cadence des points et le délai d'obtention de l'ancre, non plus par l'heure
+(section 10.9).
+
 ## 8. Rotation de clé
 
 Une rotation est un événement du journal, `execution.tool =
@@ -914,6 +934,392 @@ periodHash)`, restent en keccak256 parce que l'EVM l'impose, et sont ceux de
 `anchorFingerprint = 0x3200e496c555b46459191c852a7f79b1e0b4156802cac2f2df7b80b0aa9d823b`.
 Le contrôle de ces valeurs contre le registre est le contrôle 8 (CT-6 §11).
 
+### 10.5 Point de contrôle (révision 0.3)
+
+Le manifeste n'engage la période qu'à sa clôture, une fois par heure : entre
+deux clôtures, qui détient la clé de l'enregistreur peut réécrire et signer de
+nouveau toute la période en cours (section 7.2, CT-6 §3.4). Le **point de
+contrôle** réduit cette fenêtre. C'est une tête signée de l'arbre de Merkle de
+la période en cours, que l'enregistreur produit à cadence courte et que CT-5
+ancre à l'extérieur (registre, autorité RFC 3161, OpenTimestamps) : un
+événement couvert par un point ancré ne peut plus être réécrit sans que l'ancre
+le contredise.
+
+Règles :
+
+1. **Cadence.** L'enregistreur produit un point de contrôle à chaque instant
+   `period_start + j × checkpoint_interval_s`, `j = 0 … 3600 /
+   checkpoint_interval_s − 1` (paramètre de la configuration de
+   l'enregistreur, CT-2 révision 0.4, EX-12.24 ; défaut : 60 ; diviseur de
+   3600), à la tolérance d'alignement de 1 s près (`checkpoint_ts` dans
+   `[instant, instant + 1 s]`), et un point à la clôture de la période, avant
+   ou avec le manifeste ; deux points alignés consécutifs sont donc distants
+   d'au plus `checkpoint_interval_s` + 1 s. Le point de clôture suit le
+   dernier point aligné de `checkpoint_interval_s` (à la tolérance
+   d'alignement près) plus le délai de production de la clôture après
+   `period_end`, que la règle 1 ne borne pas ; le constat de cadence (CT-5
+   AN-2) signale l'écart quand il dépasse `checkpoint_interval_s` + 1 s. Une
+   période compte au plus `3600 /
+   checkpoint_interval_s + 1` points (précision de la révision 0.3 faite avec
+   CT-5 révision 0.2 ; le format ne change pas). Un point sans nouvel
+   événement est permis et attendu (preuve de vie) ; il ne change que
+   `checkpoint_ts` et `prev_checkpoint_hash`. La cadence n'est ni un contrôle
+   du vérificateur de dossier, qui ne voit qu'un point (section 11), ni une
+   condition de validité de la série (règles 2 à 5) : un arrêt légitime de
+   l'enregistreur produit un écart ; elle se constate sur la série, par la
+   supervision (CT-2) et par CT-5 (constat de cadence et alerte
+   `point_manquant`, CT-5 AN-2, 8.9). La série de l'exemple de 10.8 est
+   volontairement incomplète (quatre points pour la période 1) ; les séries
+   des vecteurs (section 13) sont alignées, un point par minute et la
+   clôture.
+2. **Contenu.** Le point d'indice de taille `n` engage les `n` premiers
+   événements de la période, dans l'ordre des `seq` : `root` est la racine
+   RFC 6962 de `D[0..n-1]` par la règle de hachage de la section 9.1, les
+   feuilles étant les mêmes que celles du manifeste ; `tree_size = n` ;
+   `last_seq = first_seq + n − 1` (`first_seq` du manifeste de la période) ;
+   `last_hash` est le `hash` de l'événement `last_seq`, tête de la chaîne au
+   moment du point. Pour `n = 0` (aucun événement encore dans la période),
+   `root` vaut 32 octets nuls (convention de la section 9.2),
+   `last_seq = first_seq − 1` et `last_hash` est le `hash` de ce dernier
+   événement, qui appartient à la période précédente, ou 32 octets nuls si le
+   journal est vide.
+3. **Chaîne des points.** Les points d'une période se chaînent par
+   `prev_checkpoint_hash` : le `checkpointHash` (section 10.6) du point
+   précédent de la même période, 32 octets nuls pour le premier point de la
+   période. Le long de la chaîne, `tree_size` ne décroît jamais et
+   `checkpoint_ts` ne décroît jamais ; `checkpoint_ts ≥ period_start`. Chaque
+   période ouvre une nouvelle chaîne : les périodes se chaînent entre elles par
+   `prev_period_hash` (section 10.3), non par les points.
+4. **Dernier point.** Le dernier point d'une période a `tree_size = count`,
+   `root = root` et `last_seq = last_seq` du manifeste : c'est la jonction
+   entre la série des points et le manifeste, et c'est elle qui rend la preuve
+   de cohérence de la section 10.7 applicable à tout point de la période.
+5. **Clé.** `key_id` est la clé de l'enregistreur en vigueur à
+   `checkpoint_ts`, par la règle de `recorder_key_id` du manifeste
+   (section 10.1) : la clé du dernier événement de `seq ≤ last_seq`, ou
+   `new_key_id` si cet événement est une rotation. Même espace de noms que
+   `recorder_key_id` ; la clé est trouvée dans `cles.json` (section 11).
+   Cette phrase dit ce que l'exportateur doit fournir ; quand la clé du point
+   manque dans un `cles.json` exploitable, l'échec est porté par K-3, non par
+   E-8 (section 11.4), et le dossier est invalide, puisque K-3 échoue dans le
+   contrôle 6.
+6. **Ce que le point ne porte pas.** Ni nonce ni `first_seq` : `first_seq` se
+   déduit de `last_seq − tree_size + 1`, et l'unicité de deux points de même
+   contenu est donnée par `checkpoint_ts` et par le chaînage. Ni signature de
+   tiers : les ancres du point sont portées à côté (CT-5 ; section 11.2).
+
+Noms des règles de série. La vérification d'une série de points d'une
+période contre son manifeste (`verifierSeriePointsDeControle` de la
+référence ; famille `points-de-controle/` de la section 13, champ
+`rules_failed`) nomme chaque écart par l'une de ces règles : `chainage`
+(règle 3, `prev_checkpoint_hash`), `tree_size_decroissant` et
+`checkpoint_ts_decroissant` (règle 3), `period_start` (en-tête du point ou
+`checkpoint_ts < period_start`, règle 3), `root`, `last_seq` et `last_hash`
+(règle 2), `dernier_point` (règle 4), `cle_en_vigueur` (règle 5 : `key_id`
+n'est pas la clé en vigueur), `signature` (signature invalide sous la clé
+désignée), `validite_cle` (règle 5 : `checkpoint_ts` hors de l'intervalle
+`valid_from`, `valid_to` de la clé dans `cles.json`, comme E-8 pour un
+événement). La cadence (règle 1) n'a pas de nom de règle : c'est un constat
+de CT-5, non un écart de validité.
+
+<!-- schema: point-de-controle -->
+```json
+{
+  "version": 0,
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+  "period_start": 1793710800,
+  "tree_size": 4,
+  "root": "0x22264c23c7f8fea323dd1998376576e0fa4d14c67dc577dc7a01e5ae9c2e4cf6",
+  "last_seq": 4,
+  "last_hash": "0x471dab56146ae2e4c678120af7faf5eed7b1f8e5db3657226de97614bde4dc00",
+  "checkpoint_ts": "2026-11-03T13:53:00.000Z",
+  "prev_checkpoint_hash": "0xfbc4715789d5bfeec5b3a0b44e26d13236a726950e92e03a2fce8c6f7b4284f4",
+  "key_id": "rec-test-01",
+  "sig": "0x29f6f3f6463ecba15185a160d923033e48d4c15f97f747105894b0dd49a3e021b489a9b6591416fcc71f68e174a251d9cf790fcbac39b6fdc74fd6a61f49870f"
+}
+```
+
+| Clé | Type | Contraintes |
+|---|---|---|
+| `version` | entier | Constante `0`. |
+| `org_id`, `journal_id` | hex 32 octets | Ceux des événements et du manifeste. |
+| `period_start` | secondes UNIX | Le `period_start` du manifeste de la période (heure UTC pleine). |
+| `tree_size` | entier ≥ 0 | `n`, nombre d'événements de la période engagés par le point ; `≤ count` du manifeste. |
+| `root` | hex 32 octets | Racine RFC 6962 des `n` premières feuilles (section 9.1) ; 32 octets nuls si et seulement si `n = 0`. |
+| `last_seq` | entier ≥ 0 | `first_seq + n − 1` ; `first_seq − 1` si `n = 0`. |
+| `last_hash` | hex 32 octets | `hash` de l'événement `last_seq` (tête de chaîne) ; 32 octets nuls si `last_seq = 0`. |
+| `checkpoint_ts` | horodatage | Instant de production, horloge de l'enregistreur : déclaratif, comme `ts` et `generated_at`. Seule une contresignature extérieure date le point (section 10.9). |
+| `prev_checkpoint_hash` | hex 32 octets | `checkpointHash` du point précédent de la même période ; 32 octets nuls pour le premier. |
+| `key_id` | identifiant de clé | Clé Ed25519 qui a produit `sig` (règle 5). |
+| `sig` | hex 64 octets | Section 10.6. Portée **dans** l'objet, à la différence du manifeste : le point circule seul vers les ancres. |
+
+Schéma : `schemas/point-de-controle-v0.schema.json`. Les relations
+arithmétiques et le chaînage ne sont pas exprimables dans le schéma ; ce sont
+les vérifications K-1 à K-6 de la section 11.4.
+
+### 10.6 Hachage et signature du point
+
+```text
+K'             = point privé de sa clé sig (onze clés)
+C_K            = JCS(K'), UTF-8
+checkpointHash = SHA-256( P_K || C_K )
+P_K            = octets UTF-8 de "noortrace/point-de-controle/v0\n"
+               = 6e6f6f7274726163652f706f696e742d64652d636f6e74726f6c652f76300a   (31 octets)
+sig            = Ed25519.Sign( sk(key_id), P_SK || C_K )
+P_SK           = octets UTF-8 de "noortrace/signature-point-de-controle/v0\n"
+               = 6e6f6f7274726163652f7369676e61747572652d706f696e742d64652d636f6e74726f6c652f76300a   (41 octets)
+```
+
+Ed25519 « pur », mêmes règles de vérification qu'en section 6.2. Le hachage ne
+couvre pas la signature : `checkpointHash` est l'empreinte que les ancres
+portent (jeton RFC 3161 sur `checkpointHash`, empreinte d'ancre
+`keccak256(org_id ‖ journal_id ‖ checkpointHash)` au registre avec le `docType`
+`noortrace/point-de-controle/v0`, fichier `P_K ‖ C_K` pour OpenTimestamps),
+exactement comme `periodHash` l'est pour le manifeste (section 10.4). Ces deux
+préfixes s'ajoutent aux six de l'annexe B ; aucun préfixe existant ne change.
+
+Exemple : le point `K2` ci-dessus (quatre événements engagés, signé par
+`rec-test-01`).
+
+```text
+C_K            = {"checkpoint_ts":"2026-11-03T13:53:00.000Z","journal_id":"0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b","key_id":"rec-test-01","last_hash":"0x471dab56146ae2e4c678120af7faf5eed7b1f8e5db3657226de97614bde4dc00","last_seq":4,"org_id":"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab","period_start":1793710800,"prev_checkpoint_hash":"0xfbc4715789d5bfeec5b3a0b44e26d13236a726950e92e03a2fce8c6f7b4284f4","root":"0x22264c23c7f8fea323dd1998376576e0fa4d14c67dc577dc7a01e5ae9c2e4cf6","tree_size":4,"version":0}
+checkpointHash = 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff
+sig            = 0x29f6f3f6463ecba15185a160d923033e48d4c15f97f747105894b0dd49a3e021b489a9b6591416fcc71f68e174a251d9cf790fcbac39b6fdc74fd6a61f49870f   (clé rec-test-01)
+```
+
+### 10.7 Preuve de cohérence (RFC 9162 §2.1.4)
+
+Le manifeste engage les `N = count` feuilles de la période ; un point de
+contrôle de taille `n < N` engage les `n` premières. La preuve de cohérence
+entre `root(n)` et `R = root(N)` établit que l'arbre du point est un **préfixe**
+de l'arbre du manifeste : les `n` premières feuilles sont les mêmes dans les
+deux. Un événement d'indice de feuille `i < n`, prouvé inclus dans `R` par
+`chemin.json` (section 9.3), est donc couvert par le point sans second chemin
+d'inclusion : c'est ce que la partie `points-de-controle.json` exploite
+(section 11.2). Pour `n = N`, la preuve est vide et les racines sont égales.
+
+Génération, RFC 9162 §2.1.4.1 (identique à RFC 6962 §2.1.2) ; `k` est la plus
+grande puissance de deux strictement inférieure à `n` :
+
+```text
+PROOF(m, D[0..n-1])             = SUBPROOF(m, D[0..n-1], vrai)                                 0 < m < n
+SUBPROOF(m, D[0..m-1], vrai)    = {}                                                           m = n, racine déjà connue
+SUBPROOF(m, D[0..m-1], faux)    = { MTH(D[0..m-1]) }                                           m = n, racine à fournir
+SUBPROOF(m, D[0..n-1], b)       = SUBPROOF(m, D[0..k-1], b)        || { MTH(D[k..n-1]) }       si m ≤ k
+                                = SUBPROOF(m − k, D[k..n-1], faux) || { MTH(D[0..k-1]) }       si m > k
+```
+
+La preuve compte au plus `⌈log2 n⌉ + 1` nœuds. Les cas `m = 0` et `m > n` ne
+sont pas définis ; `m = n` donne la preuve vide. La période vide (`n = 0`,
+racine nulle, section 9.2) n'a pas de tête RFC 6962 : aucune preuve ne part
+d'elle ni n'y mène. Certaines implémentations acceptent pourtant une preuve
+vide depuis une taille nulle : `transparency-dev/merkle` v0.0.2
+(`proof.VerifyConsistency`, « Any size greater than 0 is consistent with size
+0 ») le fait sans lire `first_root`, ce que la branche principale du même
+dépôt refuse ; la confrontation de CT-5 (annexe A.6, `confrontation/coherence`)
+relève ce cas comme une limite de l'outil. Le rejet de `m = 0` ci-dessous est
+donc délibéré : il évite qu'une racine nulle de NOORTRACE soit confondue avec
+la racine RFC 6962 de l'arbre vide, `SHA-256("")`.
+
+Vérification, algorithme de la RFC 9162 §2.1.4.2, reproduit pour qu'il n'y ait
+pas à la lire (la RFC 6962 ne donne pas d'algorithme de vérification) :
+
+```text
+entrées : m = first_size, n = second_size, first_root, second_root, path[0..p-1]
+si m = 0 ou n < m : rejeter                                 (hors de la définition)
+si m = n : accepter si et seulement si path est vide et first_root = second_root
+si path est vide : rejeter
+si m est une puissance de 2 : préposer first_root à path    (la racine de l'ancien arbre n'y figure pas)
+fn ← m − 1 ; sn ← n − 1
+tant que fn est impair : fn ← fn >> 1 ; sn ← sn >> 1
+fr ← path[0] ; sr ← path[0]
+pour chaque h de path à partir du deuxième élément, dans l'ordre :
+    si sn = 0 : rejeter                                     (chemin trop long)
+    si fn est impair ou fn = sn :
+        fr ← SHA-256(0x01 || h || fr)                       (h est à gauche, dans les deux arbres)
+        sr ← SHA-256(0x01 || h || sr)
+        tant que fn n'est pas impair et fn ≠ 0 : fn ← fn >> 1 ; sn ← sn >> 1
+    sinon :
+        sr ← SHA-256(0x01 || sr || h)                       (h est à droite, dans le second arbre seulement)
+    fn ← fn >> 1 ; sn ← sn >> 1
+accepter si et seulement si fr = first_root et sr = second_root et sn = 0
+```
+
+Le vérificateur DOIT exécuter cet algorithme, et non recalculer les deux
+racines en devinant la position des nœuds : il garantit que `path` a
+exactement la longueur attendue pour `(m, n)` et refuse un nœud en trop, un
+nœud manquant, un nœud permuté, des racines échangées et des tailles qui ne
+correspondent pas à la preuve (K-5). Une implémentation écrite d'après ce texte
+reproduit nœud pour nœud les vecteurs de cohérence publiés par les
+implémentations de référence de Certificate Transparency (arbres de huit
+feuilles de 0 à 16 octets, preuves `(1, 8)`, `(6, 8)`, `(2, 5)`, `(6, 7)`) et
+refuse leurs sondes de corruption ; ces vecteurs et leurs sondes sont à
+rejouer dans `test/journal.test.js` (section 17).
+
+### 10.8 Exemple numérique complet
+
+Série des points de l'exemple de référence (annexe A ; feuilles, nœuds et
+racine de la section 9.4). La série est volontairement courte pour rester
+lisible : un enregistreur à la cadence par défaut produirait un point par
+minute, les points supplémentaires étant des preuves de vie qui ne changent
+que `checkpoint_ts` et `prev_checkpoint_hash`. `K2` est l'exemple de la
+section 10.5 ; `K4` est le point de clôture de la période 1 (`tree_size = 5 =
+count`, `root` = racine du manifeste, signé par `rec-test-02`, clé en vigueur
+après la rotation de seq 5) ; `K5` et `K6` sont les deux points de la période
+vide (`tree_size = 0`, racine nulle, `last_hash` = `hash` de seq 5, tête de
+chaîne héritée de la période 1).
+
+| Point | `tree_size` | `root` | `last_seq` | `checkpoint_ts` | `prev_checkpoint_hash` | `key_id` | `checkpointHash` | `sig` |
+|---|---|---|---|---|---|---|---|---|
+| K1 | 2 | `0xa5b5b030de6510a06da18b109b73e7b85c4afe3e6d0fb89b4bd9b53b3d42f79e` | 2 | `2026-11-03T13:42:00.000Z` | `0x0000000000000000000000000000000000000000000000000000000000000000` | `rec-test-01` | `0xfbc4715789d5bfeec5b3a0b44e26d13236a726950e92e03a2fce8c6f7b4284f4` | `0x96c006c0f2be56f834413b6ee08961badd810c893bbdd9d40bb5d48bd498f7d66b89cb29979e0907e48b4ec33250e7f0b89f89447f0d4f57d78b11cf6675c409` |
+| K2 | 4 | `0x22264c23c7f8fea323dd1998376576e0fa4d14c67dc577dc7a01e5ae9c2e4cf6` | 4 | `2026-11-03T13:53:00.000Z` | `0xfbc4715789d5bfeec5b3a0b44e26d13236a726950e92e03a2fce8c6f7b4284f4` | `rec-test-01` | `0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff` | `0x29f6f3f6463ecba15185a160d923033e48d4c15f97f747105894b0dd49a3e021b489a9b6591416fcc71f68e174a251d9cf790fcbac39b6fdc74fd6a61f49870f` |
+| K3 | 4 | `0x22264c23c7f8fea323dd1998376576e0fa4d14c67dc577dc7a01e5ae9c2e4cf6` | 4 | `2026-11-03T13:54:00.000Z` | `0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff` | `rec-test-01` | `0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867` | `0x8e37a2cf042ceacaab8d81df08591802228330d76e398a2fe1813ec10b6d2bb9c68282f3e6a481a4723ec76fd48179f76568cfec12e7c1ba32d2120cbf2a4c0a` |
+| K4 | 5 | `0x6782bad9bd4717caf61b261a0a7f86fa9263f4b5b76c1d80d4c3bfbe0512ed06` | 5 | `2026-11-03T14:00:00.250Z` | `0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867` | `rec-test-02` | `0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107` | `0xe2dd1ae0b182e6da7d34a6ebb611dc8a628297a09b03e987e921f8c71659c572fcf70b428f678380fb4c05d73bf6118a41d5e25ffb7d10eb8e689a426c63e80e` |
+| K5 | 0 | `0x0000000000000000000000000000000000000000000000000000000000000000` | 5 | `2026-11-03T14:01:00.000Z` | `0x0000000000000000000000000000000000000000000000000000000000000000` | `rec-test-02` | `0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153` | `0x7bd3835f0f686cdd5141f0d0d590b293a09724cd1bce9b6ffd3e337f3dfa189f77945264ca4a0743d6e5e35c164dc7f81f64b877974b497a567094b6a130730f` |
+| K6 | 0 | `0x0000000000000000000000000000000000000000000000000000000000000000` | 5 | `2026-11-03T15:00:00.112Z` | `0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153` | `rec-test-02` | `0xd6e22871885b68962dadee69f9fa2ff3a76949d23550d1682d3564bcc705474d` | `0x4993daaf14482da9001d4eb6123dab4720cfa62f8da39e8ecc9a7cdd547d67c520acaaddddfa6684e6a1a368ae0f4e982c019c254ecf2e64f8aff26a591c0d02` |
+
+Le premier point de la période vide, complet :
+
+<!-- schema: point-de-controle -->
+```json
+{
+  "version": 0,
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+  "period_start": 1793714400,
+  "tree_size": 0,
+  "root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "last_seq": 5,
+  "last_hash": "0x506e54e1ec35a6432114fc06947b23c753ce6d5cf4260354b7fdbed011b04f05",
+  "checkpoint_ts": "2026-11-03T14:01:00.000Z",
+  "prev_checkpoint_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "key_id": "rec-test-02",
+  "sig": "0x7bd3835f0f686cdd5141f0d0d590b293a09724cd1bce9b6ffd3e337f3dfa189f77945264ca4a0743d6e5e35c164dc7f81f64b877974b497a567094b6a130730f"
+}
+```
+
+```text
+C_K            = {"checkpoint_ts":"2026-11-03T14:01:00.000Z","journal_id":"0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b","key_id":"rec-test-02","last_hash":"0x506e54e1ec35a6432114fc06947b23c753ce6d5cf4260354b7fdbed011b04f05","last_seq":5,"org_id":"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab","period_start":1793714400,"prev_checkpoint_hash":"0x0000000000000000000000000000000000000000000000000000000000000000","root":"0x0000000000000000000000000000000000000000000000000000000000000000","tree_size":0,"version":0}
+checkpointHash = 0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153
+```
+
+Racines des préfixes de l'arbre de la période 1 (`MTH(D[0..m-1])`, notation de
+la section 9.4) :
+
+| `m` | Racine | Valeur |
+|---|---|---|
+| 1 | `L(0)` | `0xd5e2098df5be8721f7343aab8ad414a5bea5b55bb0fb0e72eb8fb9bb6c3f5a8b` |
+| 2 | `N01` | `0xa5b5b030de6510a06da18b109b73e7b85c4afe3e6d0fb89b4bd9b53b3d42f79e` |
+| 3 | `N012 = SHA-256(01 ‖ N01 ‖ L(2))` | `0x3f18df046e3c8dbff1ec006b9533cb0be82d756c347c8838a25f03bfda5cd399` |
+| 4 | `N0123` | `0x22264c23c7f8fea323dd1998376576e0fa4d14c67dc577dc7a01e5ae9c2e4cf6` |
+| 5 | racine | `0x6782bad9bd4717caf61b261a0a7f86fa9263f4b5b76c1d80d4c3bfbe0512ed06` |
+
+Preuves de cohérence vers la racine (`n = 5`, `k = 4`) :
+
+| `PROOF(m, D[5])` | Dérivation | Nœuds, dans l'ordre |
+|---|---|---|
+| `m = 1` | `SUBPROOF(1, D[0..3], vrai) ‖ {L(4)}` → `SUBPROOF(1, D[0..1], vrai) ‖ {N23} ‖ {L(4)}` → `{L(1)}` puis `N23`, `L(4)` | `[L(1), N23, L(4)]` |
+| `m = 2` | `SUBPROOF(2, D[0..3], vrai) ‖ {L(4)}` → `SUBPROOF(2, D[0..1], vrai) = {}` puis `N23`, `L(4)` | `[N23, L(4)]` |
+| `m = 3` | `SUBPROOF(3, D[0..3], vrai) ‖ {L(4)}` → `3 > 2` : `SUBPROOF(1, D[2..3], faux) ‖ {N01}` → `{L(2)} ‖ {L(3)}` | `[L(2), L(3), N01, L(4)]` |
+| `m = 4` | `SUBPROOF(4, D[0..3], vrai) = {}` puis `L(4)` | `[L(4)]` |
+
+Valeurs :
+
+```text
+PROOF(1, D[5]) = ["0x3ef9fdf53c5fd27d37c20efdce9d0d8bfcfd459d491e5cb66dd3f384540d270c", "0x2fb61705d23c09d71bebc1a297940ce119c3bda5b3357d39d76043cb554cfea8", "0xa93b6b900d821b68a351fb3e8e986f8298a21254f1c348f108843f7ede2f1ec0"]
+PROOF(2, D[5]) = ["0x2fb61705d23c09d71bebc1a297940ce119c3bda5b3357d39d76043cb554cfea8", "0xa93b6b900d821b68a351fb3e8e986f8298a21254f1c348f108843f7ede2f1ec0"]
+PROOF(3, D[5]) = ["0x8380b74438d71a5fb81aa3b62f1c7e0b06cb0e9c73f5d5a42f44372e203fbf3e", "0x3617a8c28e38e476cc671a109baf783cd70e1f24eca0278280a215b28f1c55db", "0xa5b5b030de6510a06da18b109b73e7b85c4afe3e6d0fb89b4bd9b53b3d42f79e", "0xa93b6b900d821b68a351fb3e8e986f8298a21254f1c348f108843f7ede2f1ec0"]
+PROOF(4, D[5]) = ["0xa93b6b900d821b68a351fb3e8e986f8298a21254f1c348f108843f7ede2f1ec0"]
+```
+
+Déroulé de la vérification de `PROOF(3, D[5])` (`m = 3` n'est pas une
+puissance de deux : rien n'est préposé) : `fn = 2`, `sn = 4`, `fn` pair, pas de
+décalage initial, `fr = sr = L(2)`.
+
+| Étape | `h` | Condition | `fr` | `sr` | `fn, sn` après |
+|---|---|---|---|---|---|
+| 1 | `L(3)` | `fn = 2` pair, `fn ≠ sn` | `L(2)` | `SHA-256(01 ‖ L(2) ‖ L(3)) = N23` | `1, 2` |
+| 2 | `N01` | `fn = 1` impair | `SHA-256(01 ‖ N01 ‖ L(2)) = N012` | `SHA-256(01 ‖ N01 ‖ N23) = N0123` | `0, 1` |
+| 3 | `L(4)` | `fn = 0` pair, `fn ≠ sn` | `N012` | `SHA-256(01 ‖ N0123 ‖ L(4)) = racine` | `0, 0` |
+
+`fr = N012 = first_root`, `sr = racine = second_root`, `sn = 0` : la preuve est
+acceptée.
+
+Déroulé de `PROOF(4, D[5])`, le cas du point `K2` (`m = 4` est une puissance de
+deux) : `first_root = N0123` est préposé, `path = [N0123, L(4)]` ; `fn = 3`,
+`sn = 4` ; `fn` impair → décalages jusqu'à `fn = 0`, `sn = 1` ;
+`fr = sr = N0123`. Pour `h = L(4)` : `sn ≠ 0`, `fn = 0` pair et `fn ≠ sn`, donc
+`sr = SHA-256(01 ‖ N0123 ‖ L(4)) = racine`, puis `fn = 0`, `sn = 0`.
+`fr = N0123`, `sr = racine`, `sn = 0` : acceptée. Sans la préposition, `path`
+n'aurait qu'un élément et `fr`, `sr` vaudraient `L(4)` : refusée, comme il se
+doit.
+
+### 10.9 Ce qu'un point de contrôle prouve et ne prouve pas
+
+Un point de contrôle **signé** par l'enregistreur n'est qu'une attribution :
+qui détient la clé peut en produire autant qu'il veut, à n'importe quel
+`checkpoint_ts`. Ce qui donne au point sa valeur est ce que CT-5 y attache,
+pièce par pièce :
+
+| Ancre du point | Ce qu'elle prouve, quand sa vérification réussit | Ce qu'elle ne prouve pas |
+|---|---|---|
+| Jeton RFC 3161 sur `checkpointHash` | Le point, donc les `n` premiers événements de la période (par `root`) et la tête de chaîne (`last_hash`), existaient au plus tard à `genTime` augmenté de la précision du jeton, selon l'autorité qui l'a signé (CT-6 §9, EX-9.20 ; qualification selon le fichier d'ancres du réviseur). | Que l'autorité est digne de confiance (fichier d'ancres, hypothèses H3 et H4 de CT-6) ; une borne « pas avant » ; la date de l'événement lui-même (`ts` reste déclaratif). Un jeton d'un serveur interne, non qualifié, prouve seulement qu'une clé contrôlée par l'exploitant a signé ce condensé et cette heure déclarée : il s'étiquette tel quel dans le fichier d'ancres et dans l'énoncé (CT-6 §7). |
+| Ancre au registre (`AttestationRegistry.anchor`, empreinte `keccak256(org_id ‖ journal_id ‖ checkpointHash)`, `docType` `noortrace/point-de-controle/v0`) | Sous les hypothèses H6 et H7 de CT-6 : l'ordre, entre les blocs, de l'empreinte du point par rapport aux autres empreintes ancrées, et l'unicité de cette empreinte sur la chaîne. | Aucune date : l'horodatage d'un bloc est celui de son proposant (CT-6 §7, §11.8). Aucune position : le registre accepte toute empreinte nouvelle, et qui tient la clé de l'enregistreur et la clé de chaîne peut ancrer une autre série ; seul le contrôle de complétude au registre sur la série publiée le révèle (CT-5 EX-10.7, AN-61). |
+| Preuve OpenTimestamps du fichier `P_K ‖ C_K` | Le point existait avant la création d'un bloc Bitcoin, sous `k` confirmations, indépendamment de toute autorité (CT-6 §10). | La preuve n'existe qu'à l'inclusion dans Bitcoin (plusieurs heures après la soumission) ; avant, l'attestation est en attente et ne prouve rien. |
+
+**Fenêtre de réécriture.** Soit un événement de `ts = t_e`. Qui détient la clé
+de l'enregistreur peut réécrire et signer de nouveau tout ce qui n'est pas
+encore engagé par une ancre extérieure. La fenêtre pendant laquelle une
+réécriture de cet événement reste indétectable est `W = T − t_e`, où `T` est
+l'instant de la première ancre extérieure qui engage l'événement. Avec les
+seules ancres horaires (manifeste), `T` est l'instant du jeton de la clôture :
+`W ≤ 3600 s + d_clôture + d_jeton` (CT-6 §3.4). Avec des points de contrôle
+ancrés par un moyen, la borne générale est `W ≤ c_moyen + d_moyen`, où
+`c_moyen` est l'intervalle entre deux ancres successives de ce moyen et
+`d_moyen` son délai d'obtention : `c_K` (60 s) pour le registre, qui ancre
+chaque point engageant un nouvel événement, d'où un ordre (non une date) à
+`60 s + d_registre` ; `c_T` (300 s) pour le jeton, CT-5 contresignant, à chaque
+échéance de 300 s (CT-5 §4.2), le premier point produit à partir de cette
+échéance s'il engage un nouvel événement, d'où une date à `300 s + d_jeton`
+(CT-5 EX-3.5 décompose `d_jeton`). L'ancre au registre ne fournit aucun
+instant `T` : `60 s + d_registre` est la durée de conception `W_ordre` de
+CT-5 §3.3, mesurée par l'exploitant (CT-5 P-2) ; ce n'est pas une borne de
+`W` qu'un dossier prouve. Seules les ancres qui datent fournissent `T` : le
+jeton, dont l'instant `genTime` augmenté de la précision est prouvé selon son
+autorité (K-7) ; la création du bloc Bitcoin termine aussi la fenêtre (K-9),
+sans que cet instant soit prouvé. Le manifeste de la période reste
+contresigné par le prestataire qualifié de la clôture (CT-5 EX-3.4) ; le point
+de clôture n'a de jeton propre que s'il est sélectionné par une échéance
+antérieure (CT-5 EX-4.3) ou par le repli de clôture (CT-5 EX-4.2). Après `T`,
+une réécriture de l'événement, du point ou d'un point antérieur de la chaîne
+change `root`, `last_hash` ou `prev_checkpoint_hash`, donc `checkpointHash`, que
+l'ancre ne porte plus : elle devient détectable. Confrontée à l'ancre
+d'origine (dossier d'origine qui porte la partie, ou série et ancres
+publiées), la version réécrite ne passe plus K-2, K-5 et K-7 (ou K-9, ou K-8
+et R-11 de CT-6 ; section 11.4). Présentée seule, elle peut passer le
+vérificateur : sans la partie, avec la seule borne de la clôture ; avec un
+nouveau point contresigné plus tard, avec ses K- et un `T` postérieur, que le
+rapport montre (`rewrite_window_end`, CT-6 EX-6.17). C'est le sens de CT-6
+§7.9 : détectable par quiconque détient le dossier d'origine, non détectée.
+Avant `T`, rien ne l'empêche, et le vérificateur de dossier le dit (CT-6
+§7).
+
+**Ce que le dossier ne montre pas.** Le dossier (section 11.2) ne porte que le
+point qui couvre l'événement prouvé, avec sa preuve de cohérence vers le
+manifeste et ses ancres : il prouve que cet événement était engagé par ce point
+à l'instant de l'ancre. Il ne porte pas la série : le chaînage
+(`prev_checkpoint_hash`), la monotonie de `tree_size` et de `checkpoint_ts` et
+la cadence se contrôlent sur la série des points, chez le client et par CT-5 ;
+un point inséré ou antidaté dans une série déjà ancrée ne chaîne plus les
+points ancrés et contredit leur preuve de cohérence, mais c'est la série qui
+le montre, pas un dossier. Le dossier ne prouve pas non plus que le point est
+le premier à couvrir l'événement : l'exportateur choisit, parmi les points de
+`tree_size > i`, celui qui porte la meilleure ancre (jeton, puis `.ots`
+complète, puis registre, section 11.2 ; CT-5 EX-10.2), et la borne `T` est
+celle de ce point. Il ne prouve pas non plus qu'aucune autre série n'a été
+ancrée pour la même période (CT-5 EX-10.7).
+
 ## 11. Dossier de preuve v0
 
 ### 11.1 Forme
@@ -971,6 +1377,31 @@ validateurs) ; dans les vecteurs de CT-1 elles sont absentes avec la raison
 `approbations.json` est absent, avec la raison « aucune approbation liée »,
 quand `approval` de l'événement prouvé vaut `null`.
 
+Révision 0.3 : une **treizième partie facultative**, `points_de_controle`
+(`points-de-controle.json`, section 11.2), peut suivre les douze, toujours en
+treizième position, présente avec son SHA-256 ou absente avec une raison
+(« aucun point de contrôle », par exemple). Un index à douze parties reste
+valide : les dossiers produits avant la révision 0.3 et ceux dont
+l'exportateur ne connaît pas la partie ne changent pas de verdict (K-1 à
+K-9 ne sont pas exécutées et ne figurent pas au rapport, CT-6 EX-5.7). Avec la
+partie, l'index du dossier de référence ci-dessus reçoit la ligne suivante après
+`validateurs`, tout le reste étant inchangé (`generated_at` compris) :
+
+```json
+{"name": "points_de_controle", "file": "points-de-controle.json", "sha256": "0xe9340e56c7c7ad6d7b1e168ad1e5d8616f3aa6dfc31e46a49860c89f38460a05", "present": true, "reason_if_absent": null}
+```
+
+et, quand l'exportateur déclare la partie sans la fournir :
+
+```json
+{"name": "points_de_controle", "file": "points-de-controle.json", "sha256": null, "present": false, "reason_if_absent": "aucun point de contrôle"}
+```
+
+Le schéma `dossier-v0.schema.json` admet les deux formes de l'index (douze
+parties exactement, ou treize dont la treizième est `points_de_controle`) ;
+un index à quatorze parties, ou dont la treizième porte un autre nom ou un
+autre fichier, est invalide (D-1).
+
 ### 11.2 Fichiers
 
 | Fichier | Schéma | Contenu |
@@ -988,6 +1419,7 @@ quand `approval` de l'événement prouvé vaut `null`.
 | `registre.json` | `registre-v0.schema.json` (CT-6 §11.2.1) | Entrées des transactions prouvées (inscription de clé, `anchor`, `submitPeriod`) : en-tête et tous les reçus de leur bloc, index du reçu et du journal prouvés ; aucune valeur d'état. Produit par CT-4. |
 | `certificat-commit.json` | `registre-v0.schema.json#/$defs/certificat_commit` (CT-6 §11.2.2) | Un certificat de commit (`noor_getCommitCertificate`) par bloc nommé dans `registre.json`. Produit par CT-4. |
 | `validateurs.json` | `validateurs-v0.schema.json` (CT-6 §11.2.3) | Jeux de validateurs déclarés, avec leurs hauteurs de validité. Produit par CT-4. |
+| `points-de-controle.json` | `#/$defs/points_de_controle` | (révision 0.3, facultative) `{ "version": 0, "checkpoint", "checkpoint_hash", "consistency", "anchors" }`. `checkpoint` : un point de contrôle (section 10.5) de `tree_size` strictement supérieur à `leaf_index` de `chemin.json`, choisi par l'exportateur dans cet ordre de préférence (révision 0.3 précisée avec CT-5 révision 0.2, EX-10.2) : un point qui porte un jeton RFC 3161, à défaut une preuve `.ots` complète, à défaut une ancre au registre, à défaut un point sans ancre ; à rang égal le plus petit `tree_size`, puis le premier de la série (plus petit `checkpoint_ts`) ; le vérificateur accepte tout point qui couvre l'événement (K-4) ; `checkpoint_hash` : son `checkpointHash` (section 10.6), recalculé par le vérificateur ; `consistency` : la preuve de cohérence de la section 10.7, `{ "version": 0, "first_size" = tree_size, "second_size" = count du manifeste, "first_root" = root du point, "second_root" = root du manifeste, "path" }`, vide si `tree_size = count` ; `anchors` : `rfc3161` (`{ "token" }`, `TimeStampToken` DER en base64 dont le `messageImprint` est (SHA-256, `checkpoint_hash`)), `registry` (référence de l'ancre du point au registre : `chain_id`, `contract`, `fingerprint = keccak256(org_id ‖ journal_id ‖ checkpoint_hash)`, `doc_type`, `block_number`, `block_hash`, `transaction_hash`, `log_index` ; entiers de la section 3, non les quantités hexadécimales de `registre.json`), `ots` (`{ "proof" }`, fichier `.ots` en base64 sur `P_K ‖ C_K`) ; chaque ancre non fournie vaut `null`. Une seule disposition : le jeton et la preuve sont embarqués en base64 (section 3) plutôt que placés dans des fichiers séparés, pour que la partie n'en fasse qu'une (un SHA-256 dans l'index, D-2) et que les parties v0 restent douze. La preuve d'inclusion de la transaction du registre (en-tête, reçus, certificat de commit) n'est pas dans cette partie : CT-6 (révision 0.2) fixe comment `registre.json` et `certificat-commit.json` la portent (vérification K-8) ; sans elle, la référence `registry` est déclarative. Le point est produit par CT-2 (révision 0.4, 12.10) ; ses ancres par CT-5 (jeton, preuve) et CT-4 (référence au registre). Pour la référence au registre : le composant d'ancrage de CT-5 décide quand l'ancre du point part (CT-5 EX-4.6, EX-9.3) et l'envoie avec la clé de chaîne de CT-2 ; CT-4 fixe la transaction, la conduite d'envoi (§8.6) et la capture (§9.4) ; l'exportateur lit la référence dans l'index de capture de CT-4 (CT-5 EX-10.3). |
 
 Exemple de `cles.json` du dossier de référence :
 
@@ -1114,6 +1546,95 @@ complète ; son SHA-256 est celui que `dossier.json` de la section 11.1 déclare
 }
 ```
 
+Exemple de `points-de-controle.json` (révision 0.3) du dossier de référence
+(seq 4, `leaf_index = 3`) : le point `K2` de la section 10.8 (`tree_size = 4`,
+premier point qui couvre la feuille 3), la preuve `PROOF(4, D[5])` et, pour
+ancre, un jeton RFC 3161 sur `checkpointHash` produit par l'autorité
+d'horodatage de test de CT-6 (`spec/vecteurs/ct-6/rfc3161/cles`, clés
+publiques, sans valeur hors des tests ; RSA-3072, politique
+`1.3.6.1.4.1.99999.1.1`, `genTime` `2026-11-03T13:53:02Z`, précision 1 s,
+numéro de série 1001, nonce de la section 13, certificat de l'unité inclus
+comme l'exige CT-6 EX-13.1). Les ancres au registre et OpenTimestamps ne sont
+pas fournies (`null`). Le fichier est écrit par
+`JSON.stringify(objet, null, 2)` suivi d'un saut de ligne, comme les autres
+parties ; son SHA-256,
+`0xe9340e56c7c7ad6d7b1e168ad1e5d8616f3aa6dfc31e46a49860c89f38460a05`, est celui
+que la ligne de la section 11.1 déclare.
+
+<!-- schema: points_de_controle -->
+```json
+{
+  "version": 0,
+  "checkpoint": {
+    "version": 0,
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "period_start": 1793710800,
+    "tree_size": 4,
+    "root": "0x22264c23c7f8fea323dd1998376576e0fa4d14c67dc577dc7a01e5ae9c2e4cf6",
+    "last_seq": 4,
+    "last_hash": "0x471dab56146ae2e4c678120af7faf5eed7b1f8e5db3657226de97614bde4dc00",
+    "checkpoint_ts": "2026-11-03T13:53:00.000Z",
+    "prev_checkpoint_hash": "0xfbc4715789d5bfeec5b3a0b44e26d13236a726950e92e03a2fce8c6f7b4284f4",
+    "key_id": "rec-test-01",
+    "sig": "0x29f6f3f6463ecba15185a160d923033e48d4c15f97f747105894b0dd49a3e021b489a9b6591416fcc71f68e174a251d9cf790fcbac39b6fdc74fd6a61f49870f"
+  },
+  "checkpoint_hash": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+  "consistency": {
+    "version": 0,
+    "first_size": 4,
+    "second_size": 5,
+    "first_root": "0x22264c23c7f8fea323dd1998376576e0fa4d14c67dc577dc7a01e5ae9c2e4cf6",
+    "second_root": "0x6782bad9bd4717caf61b261a0a7f86fa9263f4b5b76c1d80d4c3bfbe0512ed06",
+    "path": [
+      "0xa93b6b900d821b68a351fb3e8e986f8298a21254f1c348f108843f7ede2f1ec0"
+    ]
+  },
+  "anchors": {
+    "rfc3161": {
+      "token": "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"
+    },
+    "registry": null,
+    "ots": null
+  }
+}
+```
+
+Le jeton décodé fait 2104 octets (SHA-256
+`0x0a7cd7a11ffdea5b7ec14f0e9af35588bf8fdfa7fb70ac9b82b6be2d0a389f91`) ; il
+passe T-1 à T-10 de CT-6 avec le fichier d'ancres de test
+`spec/vecteurs/ct-6/ancres/ancres-test.json` (T-11 non exécutée : autorité
+non déclarée qualifiée), ce qui donne `upper_bound = 2026-11-03T13:53:03Z` ;
+et, une fois le base64 décodé dans un fichier, `openssl ts -verify -digest
+6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff -token_in -in
+<fichier> -CAfile ac-test.pem -untrusted tsa-test.pem` rend « Verification:
+OK ». La même partie avec les trois ancres à `null` (point et preuve seuls)
+est valide aussi ; son SHA-256 est
+`0x1c10718bce466f0f8bd31501209f7dcabd675d9c83b0eb0c81e20a1b5b86aa65`.
+
+Forme d'une référence `registry` (valeurs illustratives : identifiant de
+chaîne du réseau de développement de CT-4, adresse, bloc et transaction à
+zéro ; aucune transaction de ce nom n'existe), avec l'empreinte et le
+`docType` que le point `K2` recevrait :
+
+```json
+{
+  "chain_id": 2124,
+  "contract": "0x0000000000000000000000000000000000000000",
+  "fingerprint": "0x7f721a4526c614882ff41ac33792c6d05fa7fb6dd98bc1c369d0e277029f4e44",
+  "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+  "block_number": 0,
+  "block_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "transaction_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "log_index": 0
+}
+```
+
+`doc_type` est `keccak256(UTF-8("noortrace/point-de-controle/v0"))`, libellé
+que CT-4 §6.4 inscrit dans sa table en révision 0.3 ; `fingerprint` est
+`keccak256(org_id ‖ journal_id ‖ checkpoint_hash)` sur 96 octets, comme en
+section 10.4.
+
 ### 11.3 Les huit contrôles de l'architecture
 
 | N° | Contrôle de l'architecture | Pièces | Exécutable avec |
@@ -1132,6 +1653,15 @@ borné : « cet événement est bien formé, chaîné à ses voisins, inclus dan
 période close par ce manifeste signé par cette clé, et approuvé par ces
 adresses » ; il ne dit rien sur la date ni sur l'ancre. Le vérificateur DOIT
 énoncer cette borne dans sa sortie quand des parties sont absentes.
+
+Révision 0.3 : quand la partie `points-de-controle.json` est présente, les
+vérifications K-1 à K-9 de la section 11.4 s'ajoutent aux contrôles 2, 3, 4,
+5, 6 et 8 (colonne « Contrôle de l'architecture ») ; les huit contrôles
+restent huit. CT-6 (révision 0.2) fixe en un seul endroit dans quels contrôles
+elles comptent, la raison de non-exécution quand la partie est absente, et la
+proposition qu'elles ajoutent à l'énoncé : « couvert par un point de contrôle
+horodaté au plus tard le … ; une réécriture postérieure à cet instant serait
+détectée », dont la section 10.9 dit la portée exacte.
 
 ### 11.4 Contrôles du vérificateur, numérotés
 
@@ -1157,6 +1687,16 @@ dépendent de la partie sont alors non exécutés, sans raison admise, et le
 dossier est invalide. Le vérificateur ne reprend rien d'une partie inexploitable
 dans son rapport (pas de `seq` ni de `hash` lus dans l'index à la place de
 `evenement.json`).
+
+Révision 0.3 : `points-de-controle.json` présent mais inexploitable, ou
+contraire à son schéma ou à ses relations au manifeste → K-1 ; quand K-1
+n'a pas réussi (en échec, ou non exécutée faute de P-1 réussie), K-2 à K-9
+ne sont pas exécutées, sans raison admise (`prerequis_en_echec` dans le
+rapport de CT-6, EX-5.9), y compris quand une ancre vaut `null` : la raison
+admise « partie absente » d'une ancre nulle ne vaut qu'avec K-1 réussie ; le
+dossier est invalide, et seul K-1 est en échec (dossiers
+`invalide-k1-double-defaut` de CT-1 et de CT-6). K-4 n'est pas exécutée,
+sans raison admise, quand M-3 n'a pas réussi.
 
 | Id | Contrôle | Contrôle de l'architecture |
 |---|---|---|
@@ -1188,10 +1728,37 @@ dans son rapport (pas de `seq` ni de `hash` lus dans l'index à la place de
 | A-2 | Chaque événement de `events` passe E-1 à E-11 ; `execution.tool = "noortrace.approbation.decision"` ; `approval` égal, clé pour clé, à celui de l'événement prouvé ; `execution.arguments.value = A` (section 6.3). Si l'événement prouvé n'est pas une décision : chaque décision a `seq` < `seq` de l'événement prouvé et `approval.at ≤ ts` de l'événement prouvé (la décision précède l'appel relayé qui en découle). Si l'événement prouvé est une décision : il figure dans `events` (hash recalculé égal). | 7 |
 | A-3 | Approbateurs distincts, tous membres de `approver_set.members`, en nombre ≥ `threshold.required` ; `threshold` de l'événement = `approver_set.threshold` ; `required ≤ size = longueur de members`. Pour `decision = "refuse"`, mêmes règles ; pour `expire`, aucune signature. | 7 |
 | A-4 | `request_hash` : si l'événement de demande est dans le dossier (voisin), son `hash` recalculé = `request_hash` et son `execution.status = "retenue"` ; sinon, non vérifiable, signalé. | 7 |
+| K-1 | (révision 0.3) `points-de-controle.json` valide contre `#/$defs/points_de_controle` (le point contre `point-de-controle-v0.schema.json`) ; `checkpoint.org_id` et `journal_id` égaux à ceux de l'événement ; `checkpoint.period_start = manifeste.period_start` ; `1 ≤ tree_size ≤ manifeste.count` ; `last_seq = manifeste.first_seq + tree_size − 1` ; `root` non nulle ; `checkpoint_ts ≥ period_start` (instants, section 3). | 3 |
+| K-2 | (révision 0.3) `checkpointHash` recalculé (section 10.6) = `checkpoint_hash` déclaré. | 3 |
+| K-3 | (révision 0.3) `checkpoint.sig` valide sous la clé publique `key_id` de `cles.json`, sur `P_SK ‖ C_K` ; `checkpoint_ts` dans `[valid_from, valid_to]` (bornes incluses) de cette clé ; `cles.json` inexploitable (E-8) : non exécuté, l'échec étant porté par E-8 ; clé `key_id` absente d'un `cles.json` exploitable : échec (CT-6 §5.4 ; la section 11.2 n'exige pas que `cles.json` porte la clé du point, E-8 ne porte donc pas cet échec). | 6 |
+| K-4 | (révision 0.3) Couverture : `chemin.leaf_index < tree_size` (soit `seq ≤ last_seq`) et `ts` de l'événement prouvé ≤ `checkpoint_ts` (instants à la milliseconde). | 3 |
+| K-5 | (révision 0.3) `consistency.first_size = tree_size`, `second_size = manifeste.count`, `first_root = checkpoint.root`, `second_root = manifeste.root` ; l'algorithme de la section 10.7 sur `(first_size, second_size, first_root, second_root, path)` accepte (preuve vide et racines égales si `tree_size = count`). | 3 |
+| K-6 | (révision 0.3) `last_hash` : si l'événement de `seq = last_seq` est dans le dossier (événement prouvé ou voisin), son `hash` recalculé (E-7) = `last_hash` ; sinon, non vérifiable, signalé (comme A-4). | 2 |
+| K-7 | (révision 0.3) `anchors.rfc3161` non nul : `token` décodé (base64 canonique, remplissage exact), puis vérifications T-1 à T-11 de CT-6 §9 avec `checkpoint_hash` recalculé pour empreinte attendue à la place de `periodHash` ; `null` : non exécuté, partie absente. | 4 |
+| K-8 | (révision 0.3) `anchors.registry` non nul : `fingerprint = keccak256(org_id ‖ journal_id ‖ checkpoint_hash)` recalculée ; `doc_type` égal à la valeur de la table CT-4 §6.4 pour `noortrace/point-de-controle/v0` ; `contract` égal à celui du fichier d'ancres (CT-6 §12) et `chain_id` (identifiant EVM) rapporté sans être comparé, le fichier d'ancres n'en portant pas (CT-6 EX-11.25) ; inclusion de la transaction par les vérifications R- de CT-6 §11 quand `registre.json` et `certificat-commit.json` en portent l'entrée (CT-6, révision 0.2), sinon référence déclarative, signalée ; `null` : non exécuté, partie absente. | 8 |
+| K-9 | (révision 0.3) `anchors.ots` non nul : `proof` décodé (base64 canonique), puis vérifications O-1 à O-7 de CT-6 §10 avec `checkpoint_hash` pour empreinte de fichier (fichier horodaté : `P_K ‖ C_K`) ; `null` : non exécuté, partie absente. | 5 |
 
 Les contrôles des parties réservées (4, 5, 8) sont spécifiés par CT-6
 (vérifications `T-`, `O-`, `R-` et `N-`) ; CT-5 et CT-4 produisent les
 parties.
+
+Les vérifications K-1 à K-9 (révision 0.3) ne s'exécutent que si la partie
+`points_de_controle` est déclarée présente. Partie absente avec raison, ou
+index à douze parties : les neuf ne sont pas exécutées et ne figurent pas au
+rapport (alignement sur CT-6 EX-5.7 ; la partie absente figure dans
+`absent_parts` quand elle est déclarée), et le verdict d'un dossier antérieur
+à la révision 0.3 ne change pas. K-1 à K-6 sont exécutables avec les seules
+pièces du dossier ; K-7, K-8 et K-9 réutilisent les vérifications `T-`, `R-` et
+`O-` de CT-6 sur une autre empreinte que `periodHash`, avec les mêmes ancres du
+réviseur, et chacune est non exécutée, raison admise, quand son ancre vaut
+`null`. Une vérification K-7 réussie fournit à l'énoncé l'instant `upper_bound`
+du jeton du point, borne de la fenêtre de réécriture de la section 10.9, quand
+les conditions du fragment FK de CT-6 (EX-6.16) sont réunies : contrôles 1, 3
+et 6 réussis, K-1 à K-5 réussies, K-6 réussie ou non exécutée pour la raison
+`piece_hors_dossier` ; sans K-7 réussie, le fragment ne porte que la clause
+Bitcoin (K-9) ou la clause registre (K-8 avec inclusion prouvée), et aucune
+date n'est prouvée au point. CT-6 (révision 0.2) fixe la phrase et dans quels
+contrôles les K- comptent.
 
 ### 11.5 Vecteurs de dossiers publiés
 
@@ -1257,6 +1824,21 @@ Les journaux altérés (`journal-supprime`, `journal-modifie`, `journal-insere`,
 `journal-insere-sans-cle`, `journal-reordonne`) portent de même un
 `attendu.json` avec les diagnostics nommés et la liste exacte des contrôles en
 échec de la table 7.2.
+
+Révision 0.3 : les vecteurs de la révision s'ajoutent sans changer les
+quarante dossiers ci-dessus (section 17) : famille `points-de-controle/`
+(séries complètes des points des trois périodes des vecteurs, hachages,
+signatures, preuves de cohérence vers le manifeste), famille
+`merkle/coherence.json` (preuves de cohérence entre les arbres publiés de
+`merkle/arbres.json`, dont `PROOF(5, D[8])` et `PROOF(8, D[12])`, et cas
+refusés : `m = 0`, `m > n`, chemin tronqué, nœud en trop, racines échangées)
+et des dossiers portant la partie `points-de-controle.json`, valides et
+invalides, au moins un par vérification K-1 à K-6 (K-7 à K-9 relèvent des
+vecteurs de CT-6), dont `valide-seq-7-point-de-cloture` (point de clôture,
+`tree_size = count`, preuve vide et racines égales, K-6 non exécutée,
+`piece_hors_dossier`) et `invalide-k1-double-defaut` (membre hors schéma et
+chemin tronqué : seul K-1 en échec, K-2 à K-9 non exécutées). `INDEX.md` les
+décrit.
 
 ## 12. Correspondances d'export
 
@@ -1336,6 +1918,7 @@ Constantes de l'exemple de référence (annexe A) :
 | `journal_id` | `keccak256(UTF-8("journal-principal"))` | `0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b` |
 | Nonce période 1 | `SHA-256(UTF-8("noortrace/vecteurs/v0/nonce/periode-1"))` | `0xcfcd0a8277074d0839e4469fdced701c0fdf2855f1001e17d3fada335da05547` |
 | Nonce période 2 | `SHA-256(UTF-8("noortrace/vecteurs/v0/nonce/periode-2"))` | `0x2b2b0095b99b60b2b3baae78815fd1590b4c01c6e63304ab0a682e5f6270f86d` |
+| Nonce RFC 3161 du jeton de l'exemple de `points-de-controle.json` (révision 0.3, section 11.2) | 64 premiers bits de `SHA-256(UTF-8("noortrace/vecteurs/v0/ct-1/nonce-tsa/point-de-controle/exemple"))`, entier non signé | `0x74a6f4979421411e` (8405674686396055838) ; autorité : clés `tsa-test` et `ac-test` de `spec/vecteurs/ct-6/rfc3161/cles`, numéro de série 1001, `genTime` `20261103135302Z` |
 
 Constantes des vecteurs publiés (`spec/vecteurs/ct-1/cles/cles-test.json`, qui
 porte aussi les graines, les clés privées PKCS#8 et les comptes) :
@@ -1375,6 +1958,8 @@ l'identique par `test/journal.test.js`) sont disposés ainsi :
 | `journal-supprime/`, `journal-modifie/`, `journal-insere/`, `journal-insere-sans-cle/`, `journal-reordonne/` | le journal altéré | diagnostics et contrôles de la table 7.2 |
 | `merkle/arbres.json` | arbres de 0, 1, 2, 3, 5, 8, 12 et 1000 feuilles, racines, preuves d'inclusion | égalité, preuves acceptées |
 | `manifestes/` | trois périodes consécutives (dont une vide), signatures, `anchorFingerprint`, `PeriodMeta`, continuité, un manifeste discontinu | égalité, P-5 |
+| `points-de-controle/` (révision 0.3) | séries complètes des points des trois périodes, `checkpointHash`, signatures, preuves de cohérence vers chaque manifeste, chaînage | égalité, signatures et preuves acceptées, chaînage et monotonie |
+| `merkle/coherence.json` (révision 0.3) | preuves de cohérence entre les arbres publiés de `arbres.json` ; cas refusés | égalité, acceptation, refus |
 | `dossiers/` | les dossiers de la section 11.5 | `valide` ou liste exacte des contrôles en échec |
 
 Le vérificateur indépendant Go de `spec/vecteurs/ct-1/verificateur-independant`
@@ -1441,6 +2026,16 @@ d'export (section 12), l'enveloppe COSE, les hachages de bord dans le manifeste.
   un réviseur demande à contrôler la jonction sans les événements.
 - **La compression, le chiffrement et le transport** des dossiers.
 - **Les nombres non entiers** dans toute structure hachée.
+- **La cadence, la file et les prestataires des points de contrôle**
+  (révision 0.3). CT-1 fixe le format du point, sa preuve de cohérence et les
+  vérifications K- ; l'intervalle (`checkpoint_interval_s`), la production à
+  la clôture et la copie des points relèvent de CT-2 ; les cadences
+  d'ancrage, la file d'attente, la reprise et le choix des prestataires
+  relèvent de CT-5 ; la vérification de la partie dans les contrôles et
+  l'énoncé relèvent de CT-6 (révision 0.2).
+- **La série des points.** Le dossier ne porte qu'un point : le chaînage,
+  la monotonie et la cadence se contrôlent sur la série, hors du dossier
+  (section 10.9).
 
 ## 16. Alignement avec le dépôt
 
@@ -1459,6 +2054,62 @@ Points du dépôt que cette spécification a rendus caducs, avec leur état :
 `scripts/lib/journal.mjs` qui le fait) ; ses `periodDigest`, `registerDigest`,
 `revokeDigest` et `anchorFingerprint` sont conformes à cette spécification tels
 quels.
+
+## 17. Révisions
+
+**Version 0.1** (octobre 2026) : première rédaction, soumise à la porte 1.
+
+**Version 0.2** (21 octobre 2026) : révision après la confrontation de
+l'implémentation de référence et du vérificateur indépendant Go (section 16) :
+constantes de l'exemple distinguées de celles des vecteurs (section 13), tous
+les symptômes rapportés (section 7.2), famille `jcs/`, cascades listées dans
+les `attendu.json` (section 11.5), renvois textuels à CT-4 et CT-6.
+
+**Version 0.3** (25 octobre 2026). Ajouts seuls ; aucun format v0 (événement,
+manifeste, dossier à douze parties, objets `A` et `R`, signatures, six
+préfixes de domaine) n'est retiré ni modifié, et les quarante dossiers de la
+section 11.5 gardent leur verdict et leur liste exacte de contrôles en échec :
+
+- **Point de contrôle** (sections 10.5, 10.6) : nouveau document, tête signée
+  de l'arbre de la période en cours à cadence courte (défaut 60 s, et à la
+  clôture), onze clés sous le hachage et la signature dans l'objet, préfixes
+  `noortrace/point-de-controle/v0\n` et
+  `noortrace/signature-point-de-controle/v0\n`, règles de chaînage et de
+  monotonie, dernier point égal au manifeste, point sans événement admis ;
+  schéma `point-de-controle-v0.schema.json`.
+- **Preuve de cohérence** (section 10.7) : algorithmes de génération et de
+  vérification de la RFC 9162 §2.1.4 reproduits, cas de bord fixés,
+  obligation d'exécuter l'algorithme ; exemple complet (section 10.8).
+- **Partie facultative `points-de-controle.json`** (sections 11.1, 11.2) :
+  treizième partie du dossier, index à douze ou treize parties, point couvrant
+  l'événement, preuve de cohérence vers le manifeste, ancres embarquées en
+  base64 (jeton RFC 3161, référence au registre, preuve OpenTimestamps) ;
+  `dossier-v0.schema.json` étendu de façon compatible (`$defs`
+  `points_de_controle`, `preuve_coherence`, `ancre_rfc3161_point`,
+  `ancre_registre_point`, `ancre_ots_point`, `base64`).
+- **Vérifications K-1 à K-9** (section 11.4), portée des ancres d'un point et
+  fenêtre de réécriture (section 10.9), convention base64 (section 3), note de
+  la section 7.2, termes (section 2), constantes et familles de vecteurs
+  (sections 11.5 et 13), limites (section 15).
+
+Alignement de la révision 0.3 avec le dépôt. « fait » : dans ce lot ; « à
+faire » : attendu d'un autre lot ou d'une autre spécification, nommé ; aucune
+ligne ne change de format.
+
+| Emplacement | Avant | Attendu par la révision 0.3 | État |
+|---|---|---|---|
+| `spec/schemas/point-de-controle-v0.schema.json` | — | schéma du point (section 10.5), draft 2020-12, mode strict | fait |
+| `spec/schemas/dossier-v0.schema.json` | douze parties exactement | index à douze ou treize parties (`oneOf` de deux tuples, mode strict), `$defs` de la partie et de ses ancres ; les 40 dossiers de CT-1 et les 50 de CT-6 restent valides | fait |
+| `scripts/lib/journal.mjs` | arbre, inclusion, manifeste, dossier à douze parties | préfixes `P_K`, `P_SK` ; construction, hachage, signature et vérification d'un point ; `preuveCoherence`, `verifierCoherence` (section 10.7) ; partie `points_de_controle` (treizième, facultative) dans `indexDossier` et `verifierDossier` ; K-1 à K-6 (K-7 à K-9 dans `verificateur.mjs`, avec `horodatage.mjs`, `registre.mjs`, `ots.mjs` sur `checkpoint_hash`) ; `choisirPointCouvrant` avec les ancres (section 11.2) ; prérequis de K-2 à K-9 (section 11.4) ; registre de schémas à quatre entrées | fait (lot CT-5 ; précisions de la revue faites) |
+| `scripts/vecteurs/generer-ct1.mjs`, `spec/vecteurs/ct-1/INDEX.md` | familles de la section 13 | familles `points-de-controle/` et `merkle/coherence.json`, dossiers avec la partie (section 11.5), dont `valide-seq-7-point-de-cloture` et `invalide-k1-double-defaut` ; deux générations identiques ; les entrées existantes inchangées octet pour octet | fait |
+| `test/journal.test.js` | inclusion confrontée aux vecteurs de Certificate Transparency | cohérence confrontée aux mêmes vecteurs publics (section 10.7 : `(1, 1)`, `(1, 8)`, `(6, 8)`, `(2, 5)`, `(6, 7)` et leurs sondes, toute paire `1 ≤ m ≤ n ≤ 64`) ; `PROOF(1..4, D[5])`, `MTH(D[0:3])`, K1 à K6 de la section 10.8 ; exemples annotés `point-de-controle` et `points_de_controle` de ce document validés et recalculés ; rejeu de `merkle/coherence.json` et de `points-de-controle/attendu.json` ; `choisirPointCouvrant` | fait |
+| `spec/vecteurs/ct-1/verificateur-independant` | douze parties exactement (`dossier.go`) ; inclusion seule (`merkle.go`) | treizième partie facultative ; point, hachage, signature ; cohérence ; K-1 à K-6 (K-7 à K-9 hors périmètre, comme les contrôles 4, 5 et 8) ; nouvelles familles de vecteurs ; aucune K- au rapport sans la partie (section 11.4, CT-6 EX-5.7) | fait |
+| CT-6 (révision 0.2) | huit contrôles sans la partie ; exemples des sections 8.5 et 8.6 (empreinte de `dossier-v0.schema.json`) | vérification de la partie (K-1 à K-9) dans les contrôles, raison de non-exécution, proposition d'énoncé, section 7 ; exemple JSON de la section 8.6 à régénérer, l'empreinte du schéma de dossier ayant changé avec cette révision | fait (CT-6 révision 0.2, 2026-10-25 : §5.4, §7.9, §9.9, §10.9, §11.9, §13.4) ; exemple 8.6 à régénérer avec le code |
+| CT-4 §6.4 | une ligne (`noortrace/periode/v0`) | ligne `noortrace/point-de-controle/v0` = `0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178`, ancre d'un point de contrôle (section 11.2) | fait (CT-4 révision 0.3, texte : table de §6.4 et EX-6.6 ; constante des bibliothèques faite ; vecteur `doctypes.json` et `ancrer --point` à faire, CT-5 §9.5) |
+| CT-5 | — | production des ancres des points (registre, RFC 3161 au plus toutes les 300 s par défaut, OpenTimestamps), file d'attente et reprise sans bloquer l'agent, conservation, contraintes des prestataires, formule de coût | fait (CT-5 version 0.2, 2026-10-26) ; code et vecteurs faits |
+| CT-2 | pas de point de contrôle ; contresignature interne « à la minute » de l'architecture non formatée | production des points (`checkpoint_interval_s`, alignement, clôture), série `points/periode-<period_start>.ndjson`, copie WORM des points avec les segments (§12.6) | fait (CT-2 révision 0.4, 12.10) ; code de l'enregistreur à faire |
+| `spec/README.md` | CT-1 version 0.2 ; table des schémas sans le point ; commandes `ajv` sans `-r point-de-controle-v0.schema.json` | CT-1 version 0.3 ; ligne du schéma du point ; `-r spec/schemas/point-de-controle-v0.schema.json` dans toute commande qui charge le schéma de dossier (le schéma de dossier le référence par son `$id`) | fait (index et vecteurs) |
+| `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | « contresignature interne à la minute en option » ; fenêtre de réécriture « une heure » | point de contrôle formaté par CT-1 0.3 et ancré par CT-5 ; fenêtre bornée au point (section 10.9) ; révision 0.3 au journal des changements | à faire (documents racine) |
 
 ## Annexe A — Les cinq événements de l'exemple de référence
 
@@ -1755,6 +2406,11 @@ Seq 5 — rotation de clé (dernier événement de la période, signé par
 | `periodHash` période 2 (vide) | `0x3ed80e52f0d52f184986da64ba009947998cfd41624899ad5137594c58f9be4b` |
 | `anchorFingerprint` période 1 | `0x3200e496c555b46459191c852a7f79b1e0b4156802cac2f2df7b80b0aa9d823b` |
 | `D_A` (ticket apr-1192) | `0x59b49949b9e97d7e3fd9d46a3992476dd2cc27c48e25ef77b467816d144f37a7` |
+| `P_K` (point de contrôle, révision 0.3) | `6e6f6f7274726163652f706f696e742d64652d636f6e74726f6c652f76300a` |
+| `P_SK` (signature de point de contrôle, révision 0.3) | `6e6f6f7274726163652f7369676e61747572652d706f696e742d64652d636f6e74726f6c652f76300a` |
+| `checkpointHash` K1 … K6 (section 10.8) | `0xfbc4715789d5bfeec5b3a0b44e26d13236a726950e92e03a2fce8c6f7b4284f4`, `0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff`, `0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867`, `0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107`, `0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153`, `0xd6e22871885b68962dadee69f9fa2ff3a76949d23550d1682d3564bcc705474d` |
+| `docType` `noortrace/point-de-controle/v0` | `0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178` |
+| `anchorFingerprint` du point K2 | `0x7f721a4526c614882ff41ac33792c6d05fa7fb6dd98bc1c369d0e277029f4e44` |
 
 Les huit points de petit ordre de la courbe (encodages canoniques, RFC 8032
 §5.1.2), refusés comme clé publique `A` (section 6.2) :

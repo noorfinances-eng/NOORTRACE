@@ -1,6 +1,6 @@
 {
   "version": 0,
-  "description": "Vecteurs CT-6 de la famille registre (spec/CT-6-verificateur.md, section 11 et annexe A) : recalculs sur la capture unique du réseau de développement, vecteurs de trie synthétiques, ancres de test du contrôle 8 et statuts attendus de R-1 à R-10 et N-4. Les heures des blocs sont celles de la capture (octobre 2026), antérieures aux dates fictives des manifestes (novembre 2026) : sans effet, aucune vérification ne les compare (EX-A.9).",
+  "description": "Vecteurs CT-6 de la famille registre (spec/CT-6-verificateur.md, section 11 et annexe A) : recalculs sur la capture unique du réseau de développement (sept blocs du 2026-10-22 et, révision 0.2, le bloc de l'ancre du point de contrôle couvrant seq 7, EX-A.15), vecteurs de trie synthétiques, ancres de test du contrôle 8 et statuts attendus de R-1 à R-11 et N-4. Les heures des blocs sont celles de la capture (octobre 2026), antérieures aux dates fictives des manifestes (novembre 2026) : sans effet, aucune vérification ne les compare (EX-A.9).",
   "capture": {
     "date": "2026-10-22T22:21:03.442Z",
     "chain_id": "noortrace-2124-dev",
@@ -36,14 +36,54 @@
     "sujets": {
       "cloture": "0x6d6cb8da98056d2abd84165b9f6d64d8097b1e28deaf23013228f6bdd5370fba",
       "ancre": "0x4450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706e",
-      "inscription": "0xe29e846d78f0b22a87c669add67dec8daa3b0935e6f4c96d7f627a60e7ae44ec"
+      "inscription": "0xe29e846d78f0b22a87c669add67dec8daa3b0935e6f4c96d7f627a60e7ae44ec",
+      "ancre_point_de_controle": "0x4450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706e"
     },
     "signatures": {
       "cloture": "PeriodSubmitted(uint256,bytes32,bytes32,bytes32,bytes32,uint64,uint64,uint64,uint64,uint32,address,string,uint64)",
       "ancre": "Anchored(bytes32,address,bytes32)",
-      "inscription": "RecorderRegistered(bytes32,address,bytes32,bytes32,address)"
+      "inscription": "RecorderRegistered(bytes32,address,bytes32,bytes32,address)",
+      "ancre_point_de_controle": "Anchored(bytes32,address,bytes32)"
     },
-    "doc_type_periode": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+    "doc_type_periode": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee",
+    "doc_type_point_de_controle": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+  },
+  "checkpoint_anchor": {
+    "transaction": {
+      "role": "ancre_point_de_controle",
+      "description": "ancre du point de contrôle 2026-11-05T09:32:00.000Z (tree_size 8)",
+      "hash": "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135",
+      "bloc": 18928,
+      "indice": 0,
+      "periode": 1,
+      "key_id": "rec-test-01",
+      "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+      "tree_size": 8,
+      "last_seq": 8,
+      "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+      "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+      "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "points_source": "spec/vecteurs/ct-1/points-de-controle/periode-1.json",
+      "fichiers": {
+        "bloc": "bloc-18928.json",
+        "recus": [
+          "recu-0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135.json"
+        ],
+        "certificat": "certificat-18928.json",
+        "transactions_du_bloc": 1
+      }
+    },
+    "reference": {
+      "chain_id": 2124,
+      "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+      "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+      "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+      "block_number": 18928,
+      "block_hash": "0x3bbf473dc07a2b10039d0064472ea7205e412b6d038dbb4d7e9219e09e70612b",
+      "transaction_hash": "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135",
+      "log_index": 0
+    }
   },
   "blocs": [
     {
@@ -314,6 +354,43 @@
           "v4",
           "v1",
           "v3"
+        ]
+      }
+    },
+    {
+      "height": 18928,
+      "role": "ancre_point_de_controle",
+      "key_id": "rec-test-01",
+      "periode": 1,
+      "transaction_hash": "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135",
+      "transaction_index": 0,
+      "bft_preimage": "0x6e6f6f722f76312f626674626c6f636b68617368cd4d9d3ea8ca54592cd93bc047beb5ef9745e6a48af86be0d8bb07274f926f4b00000000000049f0000000006adeac0ccf8f6624a9f8a2596a64d5855aa7e922fc3e1b6ae77f9fc922b244fb5cf4765d203ea98a09fff937f445fbdf7e17f7d771df99903f271021c5453ce6895701a5d6aa475698d5f2e0424d99c2c3b8de6ff984799ae3a67ce2cd590bfa20f3b9d70000000000017ad10000000001c9c3800000000000000000000000000000000000000000000000000000000000000001",
+      "bft_block_hash": "0x3bbf473dc07a2b10039d0064472ea7205e412b6d038dbb4d7e9219e09e70612b",
+      "block_hash_served": "0x3bbf473dc07a2b10039d0064472ea7205e412b6d038dbb4d7e9219e09e70612b",
+      "receipts_root": "0xd6aa475698d5f2e0424d99c2c3b8de6ff984799ae3a67ce2cd590bfa20f3b9d7",
+      "receipts_root_served": "0xd6aa475698d5f2e0424d99c2c3b8de6ff984799ae3a67ce2cd590bfa20f3b9d7",
+      "receipt_encodings": [
+        "0x02f901a70183017ad1b9010000100000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000080000000000000000000000000100000000000000000000000000000002000000000000000000000400100000000000000000000000000000000000000000000000000000000000000400200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000f89df89b94f4b146fba71f41e0592668ffbf264f1d186b2ca8f863a04450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706ea012923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339a0000000000000000000000000aa2a59656361352e96ef2eed355316ef8b29dab7a072c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      ],
+      "block_time": "2026-10-26T01:25:32Z",
+      "emitter": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+      "event": {
+        "name": "Anchored",
+        "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+        "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+        "docType": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      },
+      "certificate": {
+        "chain_id": "noortrace-2124-dev",
+        "round": 0,
+        "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+        "valset_hash_recomputed": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+        "proposer": "v1",
+        "precommit_signers": [
+          "v1",
+          "v3",
+          "v2",
+          "v4"
         ]
       }
     }
@@ -1153,6 +1230,403 @@
           }
         ]
       }
+    },
+    {
+      "nom": "periode-1-point, ancres-test.json, partie points-de-controle.json rattachée",
+      "parties": "periode-1-point",
+      "validateurs_present": true,
+      "manifeste": "spec/vecteurs/ct-1/manifestes/periode-1.json",
+      "ancres": "ancres-test.json",
+      "modifications_ancres": [],
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "key_id": "rec-test-01",
+        "reference": {
+          "chain_id": 2124,
+          "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+          "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+          "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+          "block_number": 18928,
+          "block_hash": "0x3bbf473dc07a2b10039d0064472ea7205e412b6d038dbb4d7e9219e09e70612b",
+          "transaction_hash": "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135",
+          "log_index": 0
+        }
+      },
+      "control_status": "reussi",
+      "control_reason": null,
+      "failed_checks": [],
+      "not_executed": [],
+      "warnings": [],
+      "n4_present": true,
+      "statuses": {
+        "R-1": "reussi",
+        "R-2": "reussi",
+        "R-3": "reussi",
+        "R-4": "reussi",
+        "R-5": "reussi",
+        "R-6": "reussi",
+        "R-7": "reussi",
+        "R-8": "reussi",
+        "R-9": "reussi",
+        "R-10": "reussi",
+        "R-11": "reussi",
+        "N-4": "reussi"
+      },
+      "statement": {
+        "fr": "sur le registre noortrace-2124-dev, la clôture de cette période (organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164) figure au bloc 16668 (heure déclarée par le bloc : 2026-10-22T22:20:56Z UTC), émise par le contrat PeriodRegistry 0x4ee6ecad1c2dae9f525404de8555724e3c35d07b, et son ancre 0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6 au bloc 16660 (heure déclarée 2026-10-22T22:20:49Z UTC), émise par AttestationRegistry 0xf4b146fba71f41e0592668ffbf264f1d186b2ca8 pour l'émetteur 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49, clé de chaîne inscrite au bloc 16652 pour la clé d'enregistreur rec-test-02, que le réviseur tient pour la clé de chaîne de rec-test-02 ; chacun de ces blocs est signé par 3 des 4 validateurs du jeu 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 que le réviseur déclare (validators.json du réseau de développement, clés publiques seulement)",
+        "en": "on registry noortrace-2124-dev, the closing of this period (organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164) is in block 16668 (time declared by the block: 2026-10-22T22:20:56Z UTC), emitted by contract PeriodRegistry 0x4ee6ecad1c2dae9f525404de8555724e3c35d07b, and its anchor 0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6 in block 16660 (declared time 2026-10-22T22:20:49Z UTC), emitted by AttestationRegistry 0xf4b146fba71f41e0592668ffbf264f1d186b2ca8 for issuer 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49, chain key registered in block 16652 for recorder key rec-test-02, which the reviewer holds as the chain key of rec-test-02; each of these blocks is signed by 3 of the 4 validators of set 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 declared by the reviewer (validators.json du réseau de développement, clés publiques seulement)"
+      },
+      "facts": {
+        "chain_id": "noortrace-2124-dev",
+        "entries": [
+          {
+            "role": "inscription",
+            "block_number": 16648,
+            "block_hash": "0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2",
+            "block_time": "2026-10-22T22:20:38Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0x932ae471728698ae648a109858081ccfadbf20e472bd85cdc47115550dc85158",
+            "emitter": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+            "event": {
+              "name": "RecorderRegistered",
+              "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+              "chainKey": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+              "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+              "ed25519PubKey": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+              "publisher": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+            }
+          },
+          {
+            "role": "inscription",
+            "block_number": 16652,
+            "block_hash": "0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d",
+            "block_time": "2026-10-22T22:20:41Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0x158850e1aae6d6a6eb7125387c581d580886135a7fafbe871e4185b66beea062",
+            "emitter": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+            "event": {
+              "name": "RecorderRegistered",
+              "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+              "chainKey": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+              "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+              "ed25519PubKey": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+              "publisher": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+            }
+          },
+          {
+            "role": "ancre",
+            "block_number": 16660,
+            "block_hash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+            "block_time": "2026-10-22T22:20:49Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779",
+            "emitter": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+            "event": {
+              "name": "Anchored",
+              "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+              "issuer": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+              "docType": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+            }
+          },
+          {
+            "role": "cloture",
+            "block_number": 16668,
+            "block_hash": "0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e",
+            "block_time": "2026-10-22T22:20:56Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0xd9fb0d69567fa4f5ecbf51179198fa02f30524a3275678405cfc11307374bbc0",
+            "emitter": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+            "event": {
+              "name": "PeriodSubmitted",
+              "id": 5,
+              "periodHash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+              "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+              "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+              "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+              "periodStart": 1793869200,
+              "periodEnd": 1793872800,
+              "firstSeq": 1,
+              "lastSeq": 9,
+              "version": 0,
+              "publisher": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+              "uri": "",
+              "publishedAt": 1792707656
+            }
+          },
+          {
+            "role": "ancre_point_de_controle",
+            "block_number": 18928,
+            "block_hash": "0x3bbf473dc07a2b10039d0064472ea7205e412b6d038dbb4d7e9219e09e70612b",
+            "block_time": "2026-10-26T01:25:32Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135",
+            "emitter": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+            "event": {
+              "name": "Anchored",
+              "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+              "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+              "docType": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+            }
+          }
+        ],
+        "certificates": [
+          {
+            "height": 16648,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v3",
+              "v4"
+            ]
+          },
+          {
+            "height": 16652,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v3",
+              "v4"
+            ]
+          },
+          {
+            "height": 16660,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v3",
+              "v4"
+            ]
+          },
+          {
+            "height": 16668,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v3",
+              "v4"
+            ]
+          },
+          {
+            "height": 18928,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v2",
+              "v3",
+              "v4"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "nom": "periode-1-point, ancres-test.json, sans partie points-de-controle.json",
+      "parties": "periode-1-point",
+      "validateurs_present": true,
+      "manifeste": "spec/vecteurs/ct-1/manifestes/periode-1.json",
+      "ancres": "ancres-test.json",
+      "modifications_ancres": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "failed_checks": [],
+      "not_executed": [
+        {
+          "id": "R-11",
+          "reason": "partie_absente"
+        }
+      ],
+      "warnings": [],
+      "n4_present": true,
+      "statuses": {
+        "R-1": "reussi",
+        "R-2": "reussi",
+        "R-3": "reussi",
+        "R-4": "reussi",
+        "R-5": "reussi",
+        "R-6": "reussi",
+        "R-7": "reussi",
+        "R-8": "reussi",
+        "R-9": "reussi",
+        "R-10": "reussi",
+        "R-11": "non_execute:partie_absente",
+        "N-4": "reussi"
+      },
+      "statement": {
+        "fr": "sur le registre noortrace-2124-dev, la clôture de cette période (organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164) figure au bloc 16668 (heure déclarée par le bloc : 2026-10-22T22:20:56Z UTC), émise par le contrat PeriodRegistry 0x4ee6ecad1c2dae9f525404de8555724e3c35d07b, et son ancre 0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6 au bloc 16660 (heure déclarée 2026-10-22T22:20:49Z UTC), émise par AttestationRegistry 0xf4b146fba71f41e0592668ffbf264f1d186b2ca8 pour l'émetteur 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49, clé de chaîne inscrite au bloc 16652 pour la clé d'enregistreur rec-test-02, que le réviseur tient pour la clé de chaîne de rec-test-02 ; chacun de ces blocs est signé par 3 des 4 validateurs du jeu 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 que le réviseur déclare (validators.json du réseau de développement, clés publiques seulement)",
+        "en": "on registry noortrace-2124-dev, the closing of this period (organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164) is in block 16668 (time declared by the block: 2026-10-22T22:20:56Z UTC), emitted by contract PeriodRegistry 0x4ee6ecad1c2dae9f525404de8555724e3c35d07b, and its anchor 0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6 in block 16660 (declared time 2026-10-22T22:20:49Z UTC), emitted by AttestationRegistry 0xf4b146fba71f41e0592668ffbf264f1d186b2ca8 for issuer 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49, chain key registered in block 16652 for recorder key rec-test-02, which the reviewer holds as the chain key of rec-test-02; each of these blocks is signed by 3 of the 4 validators of set 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 declared by the reviewer (validators.json du réseau de développement, clés publiques seulement)"
+      },
+      "facts": {
+        "chain_id": "noortrace-2124-dev",
+        "entries": [
+          {
+            "role": "inscription",
+            "block_number": 16648,
+            "block_hash": "0x73f5b9980d64ce2b8c63d20d3590281cf09eec86a980fe4293eca4157fcc2da2",
+            "block_time": "2026-10-22T22:20:38Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0x932ae471728698ae648a109858081ccfadbf20e472bd85cdc47115550dc85158",
+            "emitter": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+            "event": {
+              "name": "RecorderRegistered",
+              "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+              "chainKey": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+              "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+              "ed25519PubKey": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+              "publisher": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+            }
+          },
+          {
+            "role": "inscription",
+            "block_number": 16652,
+            "block_hash": "0x73483f231f12206f373d70201b0be12ec5610f14ebf7745a64e2e19c18f7f27d",
+            "block_time": "2026-10-22T22:20:41Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0x158850e1aae6d6a6eb7125387c581d580886135a7fafbe871e4185b66beea062",
+            "emitter": "0xbec49fa140acaa83533fb00a2bb19bddd0290f25",
+            "event": {
+              "name": "RecorderRegistered",
+              "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+              "chainKey": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+              "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+              "ed25519PubKey": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+              "publisher": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+            }
+          },
+          {
+            "role": "ancre",
+            "block_number": 16660,
+            "block_hash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+            "block_time": "2026-10-22T22:20:49Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779",
+            "emitter": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+            "event": {
+              "name": "Anchored",
+              "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+              "issuer": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+              "docType": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+            }
+          },
+          {
+            "role": "cloture",
+            "block_number": 16668,
+            "block_hash": "0xe59edea93690470f375dc54ef19cb6c69d1ed5e916bdd7a5f810e10f4e375d3e",
+            "block_time": "2026-10-22T22:20:56Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0xd9fb0d69567fa4f5ecbf51179198fa02f30524a3275678405cfc11307374bbc0",
+            "emitter": "0x4ee6ecad1c2dae9f525404de8555724e3c35d07b",
+            "event": {
+              "name": "PeriodSubmitted",
+              "id": 5,
+              "periodHash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+              "orgId": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+              "journalId": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+              "root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+              "periodStart": 1793869200,
+              "periodEnd": 1793872800,
+              "firstSeq": 1,
+              "lastSeq": 9,
+              "version": 0,
+              "publisher": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+              "uri": "",
+              "publishedAt": 1792707656
+            }
+          },
+          {
+            "role": "ancre_point_de_controle",
+            "block_number": 18928,
+            "block_hash": "0x3bbf473dc07a2b10039d0064472ea7205e412b6d038dbb4d7e9219e09e70612b",
+            "block_time": "2026-10-26T01:25:32Z",
+            "transaction_index": 0,
+            "transaction_hash_declared": "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135",
+            "emitter": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+            "event": {
+              "name": "Anchored",
+              "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+              "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+              "docType": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+            }
+          }
+        ],
+        "certificates": [
+          {
+            "height": 16648,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v3",
+              "v4"
+            ]
+          },
+          {
+            "height": 16652,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v3",
+              "v4"
+            ]
+          },
+          {
+            "height": 16660,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v3",
+              "v4"
+            ]
+          },
+          {
+            "height": 16668,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v3",
+              "v4"
+            ]
+          },
+          {
+            "height": 18928,
+            "valset_hash": "0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751",
+            "set_source": "validators.json du réseau de développement, clés publiques seulement",
+            "set_size": 4,
+            "quorum": 3,
+            "signers": [
+              "v1",
+              "v2",
+              "v3",
+              "v4"
+            ]
+          }
+        ]
+      }
     }
   ],
   "variantes": [
@@ -1578,6 +2052,52 @@
         "R-9": "reussi",
         "R-10": "reussi",
         "N-4": "echoue"
+      }
+    },
+    {
+      "nom": "invalide-r11-ancre-de-periode",
+      "cible": "R-11",
+      "description": "entrée ancre de la période 1 dupliquée sous le rôle ancre_point_de_controle (même bloc, même certificat) ; la référence de la partie porte l'empreinte et le docType du point mais désigne ce bloc et cette transaction : règle 1 de R-11 en échec (docType de période), l'entrée étant authentique (R-6, R-7)",
+      "parties": "variantes/invalide-r11-ancre-de-periode",
+      "validateurs_present": true,
+      "manifeste": "spec/vecteurs/ct-1/manifestes/periode-1.json",
+      "ancres": "ancres-test.json",
+      "modifications_ancres": [],
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "key_id": "rec-test-01",
+        "reference": {
+          "chain_id": 2124,
+          "contract": "0xf4b146fba71f41e0592668ffbf264f1d186b2ca8",
+          "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+          "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+          "block_number": 16660,
+          "block_hash": "0x1e371008e09681b8a3d5a1b5515f1271bafbd418950488692608f2c500b861ee",
+          "transaction_hash": "0x70edd263160e4fcd6c6887ac21daf4556720ef662facdf9bb12292366f120779",
+          "log_index": 0
+        }
+      },
+      "control_status": "echoue",
+      "control_reason": null,
+      "failed_checks": [
+        "R-11"
+      ],
+      "not_executed": [],
+      "warnings": [],
+      "n4_present": true,
+      "statuses": {
+        "R-1": "reussi",
+        "R-2": "reussi",
+        "R-3": "reussi",
+        "R-4": "reussi",
+        "R-5": "reussi",
+        "R-6": "reussi",
+        "R-7": "reussi",
+        "R-8": "reussi",
+        "R-9": "reussi",
+        "R-10": "reussi",
+        "R-11": "echoue",
+        "N-4": "reussi"
       }
     },
     {

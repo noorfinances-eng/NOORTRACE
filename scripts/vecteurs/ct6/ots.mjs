@@ -47,15 +47,18 @@ function flux(texte, n) {
   for (let i = 0, total = 0; total < n; i++, total += 32) parties.push(etiquette(`${texte}/${i}`));
   return Buffer.concat(parties).subarray(0, n);
 }
+// `sujet` : « periode-N » pour les manifestes, « point-de-controle/periode-1 » pour le point couvrant (EX-A.14).
 const ETIQ = {
-  nonce: (n) => `noortrace/vecteurs/v0/ct-6/ots/nonce/periode-${n}`,
-  calendrier: (n, k) => `noortrace/vecteurs/v0/ct-6/ots/calendrier/periode-${n}/${k}`,
-  transactionAvant: (n) => `noortrace/vecteurs/v0/ct-6/ots/transaction/periode-${n}/avant`,
-  transactionApres: (n) => `noortrace/vecteurs/v0/ct-6/ots/transaction/periode-${n}/apres`,
-  bloc: (n, k) => `noortrace/vecteurs/v0/ct-6/ots/bloc/periode-${n}/${k}`,
+  nonce: (sujet) => `noortrace/vecteurs/v0/ct-6/ots/nonce/${sujet}`,
+  calendrier: (sujet, k) => `noortrace/vecteurs/v0/ct-6/ots/calendrier/${sujet}/${k}`,
+  transactionAvant: (sujet) => `noortrace/vecteurs/v0/ct-6/ots/transaction/${sujet}/avant`,
+  transactionApres: (sujet) => `noortrace/vecteurs/v0/ct-6/ots/transaction/${sujet}/apres`,
+  bloc: (sujet, k) => `noortrace/vecteurs/v0/ct-6/ots/bloc/${sujet}/${k}`,
   racine: (i) => `noortrace/vecteurs/v0/ct-6/bitcoin/racine/${i}`,
   argumentLong: "noortrace/vecteurs/v0/ct-6/ots/argument-long",
 };
+export const SUJET_POINT = "point-de-controle/periode-1";
+export const HAUTEUR_POINT = 1004;
 const { append: F0, prepend: F1, sha256: S8 } = O.OP;
 
 // ---------------------------------------------------------------------------
@@ -69,24 +72,28 @@ const { append: F0, prepend: F1, sha256: S8 } = O.OP;
  * SHA-256), deux niveaux de l'arbre de Merkle du bloc (double SHA-256).
  */
 export function operationsPeriode(n) {
+  return operationsSujet(`periode-${n}`);
+}
+/** Mêmes opérations pour un sujet quelconque (période ou point de contrôle, EX-A.14). */
+export function operationsSujet(sujet) {
   return {
     calendrier: [
-      { op: F0, argument: etiquette(ETIQ.nonce(n)).subarray(0, 16) },
+      { op: F0, argument: etiquette(ETIQ.nonce(sujet)).subarray(0, 16) },
       { op: S8 },
-      { op: F1, argument: etiquette(ETIQ.calendrier(n, 0)) },
+      { op: F1, argument: etiquette(ETIQ.calendrier(sujet, 0)) },
       { op: S8 },
-      { op: F0, argument: etiquette(ETIQ.calendrier(n, 1)) },
+      { op: F0, argument: etiquette(ETIQ.calendrier(sujet, 1)) },
       { op: S8 },
     ],
     bitcoin: [
-      { op: F1, argument: flux(ETIQ.transactionAvant(n), 45) },
-      { op: F0, argument: flux(ETIQ.transactionApres(n), 27) },
+      { op: F1, argument: flux(ETIQ.transactionAvant(sujet), 45) },
+      { op: F0, argument: flux(ETIQ.transactionApres(sujet), 27) },
       { op: S8 },
       { op: S8 },
-      { op: F1, argument: etiquette(ETIQ.bloc(n, 0)) },
+      { op: F1, argument: etiquette(ETIQ.bloc(sujet, 0)) },
       { op: S8 },
       { op: S8 },
-      { op: F0, argument: etiquette(ETIQ.bloc(n, 1)) },
+      { op: F0, argument: etiquette(ETIQ.bloc(sujet, 1)) },
       { op: S8 },
       { op: S8 },
     ],
@@ -97,10 +104,16 @@ export const rejouer = (operations, message) => operations.reduce((m, o) => O.ap
 const bitcoin = (hauteur) => ({ type: "attestation", attestation: { genre: "bitcoin", hauteur } });
 const enAttente = (uri) => ({ type: "attestation", attestation: { genre: "en_attente", uri } });
 
-/** Les preuves de ots/preuves (EX-A.7) et le résultat de chaque attestation Bitcoin. */
-export function preuvesTest(manifestes) {
+/**
+ * Les preuves de ots/preuves (EX-A.7) et le résultat de chaque attestation
+ * Bitcoin. `point` (révision 0.2, EX-A.14) : { checkpointHash } du point couvrant
+ * seq 7 ; ajoute point-periode-1.ots (attestation à 1004) et
+ * point-periode-1-en-attente.ots ; `racinesPoint` ne porte que la racine 1004.
+ */
+export function preuvesTest(manifestes, point = null) {
   const preuves = {};
   const racines = {};
+  const racinesPoint = {};
   for (const { n, periodHash } of manifestes) {
     const ops = operationsPeriode(n);
     const empreinte = Buffer.from(periodHash.slice(2), "hex");
@@ -133,7 +146,14 @@ export function preuvesTest(manifestes) {
     cible: null,
     periode: 1,
   };
-  return { preuves, racines };
+  if (point) {
+    const opsP = operationsSujet(SUJET_POINT);
+    const eP = Buffer.from(point.checkpointHash.slice(2), "hex");
+    racinesPoint[HAUTEUR_POINT] = rejouer([...opsP.calendrier, ...opsP.bitcoin], eP);
+    preuves["point-periode-1"] = { octets: O.encoderOts(eP, O.chemin([...opsP.calendrier, ...opsP.bitcoin], [bitcoin(HAUTEUR_POINT)])), alteration: null, cible: null, periode: "point" };
+    preuves["point-periode-1-en-attente"] = { octets: O.encoderOts(eP, O.chemin(opsP.calendrier, [enAttente(URI_CALENDRIER)])), alteration: `preuve du point de contrôle avec une seule attestation en attente du calendrier ${URI_CALENDRIER} (K-9 non exécutée, O-7)`, cible: null, periode: "point" };
+  }
+  return { preuves, racines, racinesPoint };
 }
 
 // ---------------------------------------------------------------------------
@@ -196,14 +216,14 @@ const PYTHON_PRESUME = {
  * Écrit la famille ots dans `<racine>/ots` : entetes/, preuves/, attendu.json.
  * Rend { preuves, entetes, ancre, attendu } pour le générateur principal.
  */
-export function genererOts({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-6"), repertoireCT1 } = {}) {
+export function genererOts({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-6"), repertoireCT1, point = null } = {}) {
   const dossier = path.join(racine, "ots");
   fs.rmSync(dossier, { recursive: true, force: true });
   fs.mkdirSync(path.join(dossier, "entetes"), { recursive: true });
   fs.mkdirSync(path.join(dossier, "preuves"));
 
   const manifestes = manifestesCT1(repertoireCT1);
-  const { preuves, racines } = preuvesTest(manifestes);
+  const { preuves, racines, racinesPoint } = preuvesTest(manifestes, point);
   const chaine = chaineTest(racines);
   const source = "chaîne regtest synthétique des vecteurs CT-6 (scripts/vecteurs/ct6/ots.mjs), sans valeur hors des tests";
   const entetes = {
@@ -212,6 +232,13 @@ export function genererOts({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs"
     "chaine-courte": fichierEntetes(chaine.slice(0, HAUTEUR_FIN_COURTE - HAUTEUR_DEBUT + 1), `${source} ; hauteurs ${HAUTEUR_DEBUT} à ${HAUTEUR_FIN_COURTE}`),
     "chaine-depuis-1001": { ...fichierEntetes(chaine.slice(HAUTEUR_POINT_CONTROLE + 1 - HAUTEUR_DEBUT), `${source} ; hauteurs ${HAUTEUR_POINT_CONTROLE + 1} à ${HAUTEUR_FIN} : le point de contrôle ${HAUTEUR_POINT_CONTROLE} n'y est pas (EX-10.9, règle 3)`), start_height: HAUTEUR_POINT_CONTROLE + 1 },
   };
+  // Révision 0.2 (EX-A.14) : chaine-points.json, en-têtes 990 à 1003 identiques à chaine.json, racine 1004 =
+  // résultat des opérations de point-periode-1.ots, en-têtes 1004 à 1020 recalculés.
+  if (point) {
+    const chainePoints = chaineTest({ ...racines, ...racinesPoint });
+    for (let i = 0; i < HAUTEUR_POINT - HAUTEUR_DEBUT; i++) if (!chainePoints[i].equals(chaine[i])) throw new Error(`chaine-points : en-tête ${HAUTEUR_DEBUT + i} différent de chaine.json`);
+    entetes["chaine-points"] = fichierEntetes(chainePoints, `${source} ; racine de l'en-tête ${HAUTEUR_POINT} égale au résultat des opérations de preuves/point-periode-1.ots (point de contrôle du journal, EX-A.14), en-têtes ${HAUTEUR_DEBUT} à ${HAUTEUR_POINT - 1} identiques à chaine.json`);
+  }
   for (const [id, e] of Object.entries(entetes)) fs.writeFileSync(path.join(dossier, "entetes", `${id}.json`), JSON.stringify(e, null, 2) + "\n");
   for (const [id, p] of Object.entries(preuves)) fs.writeFileSync(path.join(dossier, "preuves", `${id}.ots`), p.octets);
 
@@ -237,8 +264,17 @@ export function genererOts({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs"
     ["attente-uri-vide", 1, "chaine", ancres, [], "reussi", null],
     ["branche-hors-profil", 1, "chaine", ancres, [], "reussi", null],
     ["periode-1", 1, "chaine-depuis-1001", ancres, [], "non_execute", "ancre_absente"],
+    // Preuves du point de contrôle (EX-A.14), vérifiées sur checkpoint_hash (K-9, EX-10.16).
+    ...(point
+      ? [
+          ["point-periode-1", "point", "chaine-points", ancres, [], "reussi", null],
+          ["point-periode-1-en-attente", "point", "chaine-points", ancres, [], "non_execute", "partie_absente"],
+          ["periode-1", "point", "chaine-points", ancres, ["O-2"], "echoue", null],
+          ["point-periode-1", "point", "chaine", ancres, ["O-4"], "echoue", null],
+        ]
+      : []),
   ].map(([preuve, periode, nomEntetes, a, echecs, statut, raison]) => {
-    const ph = manifestes[periode - 1].periodHash;
+    const ph = periode === "point" ? point.checkpointHash : manifestes[periode - 1].periodHash;
     const r = O.evaluerPreuve(preuves[preuve].octets, { periodHash: ph, entetes: nomEntetes ? entetes[nomEntetes] : null, ancres: a });
     const obtenus = r.checks.filter((x) => x.status === "echoue").map((x) => x.id);
     if (JSON.stringify(obtenus) !== JSON.stringify(echecs) || r.status !== statut || r.reason !== raison) throw new Error(`vecteur ots ${preuve} (période ${periode}, ${nomEntetes}) : échecs ${JSON.stringify(obtenus)}, contrôle ${r.status}/${r.reason}, attendus ${JSON.stringify(echecs)} ${statut}/${raison}`);
@@ -253,6 +289,7 @@ export function genererOts({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs"
       control_reason: r.reason,
       warnings: r.warnings.map((w) => w.id),
       facts: r.facts,
+      ...(periode === "point" ? { checkpoint: { checkpoint_hash: ph, check: "K-9" } } : {}),
     };
   });
 

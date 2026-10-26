@@ -22,7 +22,7 @@ jobs:
       - run: npm test
 
   vecteurs:
-    name: vecteurs CT-1, CT-2, CT-3, CT-4 et CT-6, régénération déterministe et implémentations indépendantes
+    name: vecteurs CT-1 à CT-6, régénération déterministe et implémentations indépendantes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -110,6 +110,25 @@ jobs:
           npm run vecteurs:ct6
           git diff --exit-code -- spec/vecteurs/ct-6
           test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-6)"
+      # Vecteurs CT-5 (spec/CT-5-ancrage.md, annexe A, EX-A.1 et EX-A.7) : le
+      # générateur scripts/vecteurs/generer-ct5.mjs n'efface et ne réécrit que
+      # ses propres entrées de spec/vecteurs/ct-5, jamais verificateur-independant/
+      # ni confrontation/. Entrées lues et jamais réécrites : l'exemple de
+      # référence de CT-1, les manifestes et clés de spec/vecteurs/ct-1, les clés
+      # de l'autorité de test de CT-6 et deux preuves de spec/vecteurs/ct-6/ots.
+      - name: régénérer les vecteurs CT-5 et exiger les mêmes octets, sans fichier de plus
+        run: |
+          npm run vecteurs:ct5
+          git diff --exit-code -- spec/vecteurs/ct-5
+          test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-5)"
+      # Vérificateur Go indépendant de CT-5 (EX-A.4, EX-A.7) : zéro discordance exigée.
+      - name: vérificateur Go indépendant contre les vecteurs CT-5
+        working-directory: spec/vecteurs/ct-5/verificateur-independant
+        run: |
+          gofmt -l . && test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          go run . ..
       - name: vérificateur de référence sur le dossier complet CT-6 et un dossier CT-1 (codes 0 et 3)
         run: |
           node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet \
@@ -122,15 +141,16 @@ jobs:
 
   # Confrontation des vecteurs CT-6 par des implémentations tierces
   # (spec/CT-6-verificateur.md, annexe A.8 ; spec/vecteurs/ct-6/confrontation/).
-  # Les sorties publiées (confrontation/sorties/) viennent d'OpenSSL 3.0.13 et
-  # de python-opentimestamps 0.4.5 ; ici, chaque programme est rejoué avec
-  # l'OpenSSL de l'exécuteur et la même version d'opentimestamps, et doit
-  # rendre le code 0 (aucune discordance). La confrontation du registre
+  # Les sorties publiées (confrontation/sorties/) viennent d'OpenSSL 3.0.13,
+  # de python-opentimestamps 0.4.5 et de transparency-dev/merkle v0.0.2 ; ici,
+  # chaque programme est rejoué avec l'OpenSSL de l'exécuteur, la même version
+  # d'opentimestamps et la même version du module Go, et doit rendre le code 0
+  # (aucune discordance). La confrontation du registre
   # (go-ethereum et noorcore) exige une copie de noorchain-core : elle n'est
   # pas rejouée ici, et test/confrontation.test.js vérifie que sa sortie
   # publiée porte sur les vecteurs du dépôt.
   confrontation:
-    name: vecteurs CT-6 confrontés à openssl et à python-opentimestamps
+    name: vecteurs CT-5 et CT-6 confrontés à openssl, à python-opentimestamps et à transparency-dev/merkle
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -139,9 +159,40 @@ jobs:
           set -o pipefail
           openssl version
           python3 -I spec/vecteurs/ct-6/confrontation/rfc3161/confronter_rfc3161.py spec/vecteurs/ct-6 "$(mktemp -d)" | tail -12
+      # CT-5 (spec/CT-5-ancrage.md, annexe A.6) : requêtes TimeStampReq et
+      # réponses TimeStampResp par openssl (ts -query, asn1parse, ts -reply,
+      # ts -verify), jetons des dossiers de CT-6 à partie points-de-controle.json
+      # compris (CT-6 EX-A.17).
+      - name: CT-5 requetes et reponses par openssl (ts -query, asn1parse, ts -reply, ts -verify)
+        run: |
+          set -o pipefail
+          python3 -I spec/vecteurs/ct-5/confrontation/requetes/confronter_requetes.py spec/vecteurs/ct-5 "$(mktemp -d)" | tail -4
+          python3 -I spec/vecteurs/ct-5/confrontation/reponses/confronter_reponses.py spec/vecteurs/ct-5 "$(mktemp -d)" | tail -6
       - name: ots par python-opentimestamps 0.4.5 (environnement virtuel, hors ligne après installation)
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/pip" install --only-binary :all: opentimestamps==0.4.5 python-bitcoinlib==0.12.2
           set -o pipefail
           "$RUNNER_TEMP/venv/bin/python" -I spec/vecteurs/ct-6/confrontation/ots/confronter_ots.py spec/vecteurs/ct-6 | tail -6
+          "$RUNNER_TEMP/venv/bin/python" -I spec/vecteurs/ct-5/confrontation/ots/confronter_ots.py spec/vecteurs/ct-5 | tail -4
+      # Version de Go épinglée à celle des sorties publiées (en-tête de
+      # sorties/coherence.txt : go1.24.7) ; ce job, seul de la CI, accède au
+      # réseau (pip et mandataire de modules Go), CT-5 EX-A.7.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.7"
+          cache-dependency-path: spec/vecteurs/ct-5/confrontation/coherence/go.sum
+      # CT-5 (annexe A.6) et CT-1 §10.7 : preuves de cohérence RFC 9162 des
+      # vecteurs CT-1 révision 0.3 (merkle/coherence.json, points-de-controle/
+      # attendu.json, parties points-de-controle.json des dossiers de CT-1 et de
+      # CT-6) confrontées à l'implémentation de référence transparency-dev/merkle
+      # v0.0.2 : racines et preuves régénérées nœud pour nœud, verdicts de
+      # proof.VerifyConsistency, sondes de corruption. Le module Go est résolu
+      # par le proxy de modules (go.sum épinglé), comme pip pour opentimestamps.
+      - name: CT-1 preuves de cohérence par transparency-dev/merkle v0.0.2 (RFC 6962 et 9162)
+        working-directory: spec/vecteurs/ct-5/confrontation/coherence
+        run: |
+          set -o pipefail
+          gofmt -l . && test -z "$(gofmt -l .)"
+          go vet ./...
+          go run . ../../../ct-1 ../../../ct-6 | tail -4

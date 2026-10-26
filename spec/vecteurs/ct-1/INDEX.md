@@ -6,7 +6,7 @@ produit exactement les mêmes octets. Les clés JSON sont en anglais (formats de
 CT-1) ; les descriptions, en français. Chaque répertoire porte un `attendu.json`
 qui dit ce qu'un vérificateur conforme doit obtenir.
 
-Le générateur n'écrit que les entrées décrites ici (`INDEX.md`, `cles`, `jcs`, `journal-valide`, `journal-supprime`, `journal-modifie`, `journal-insere`, `journal-insere-sans-cle`, `journal-reordonne`, `merkle`, `manifestes`, `dossiers`),
+Le générateur n'écrit que les entrées décrites ici (`INDEX.md`, `cles`, `jcs`, `journal-valide`, `journal-supprime`, `journal-modifie`, `journal-insere`, `journal-insere-sans-cle`, `journal-reordonne`, `merkle`, `manifestes`, `points-de-controle`, `dossiers`),
 qu'il efface et réécrit à chaque exécution ; toute autre entrée du répertoire
 est laissée telle quelle (le vérificateur indépendant Go de
 `verificateur-independant/`, par exemple, qui confronte tous ces vecteurs).
@@ -77,6 +77,13 @@ et le dernier ; toutes les feuilles pour n = 5, la forme de l'exemple de
 CT-1 §9.4). La période vide a la racine nulle (convention NOORTRACE de
 `PeriodRegistry`), distinguée de SHA-256("") de la RFC 6962.
 
+`coherence.json` (révision 0.3) : preuves de cohérence RFC 9162 §2.1.4 (CT-1
+§10.7) entre les arbres de `arbres.json`, paires `(1, 2)`, `(2, 3)`, `(3, 5)`,
+`(5, 8)`, `(8, 12)`, `(4, 8)`, `(4, 12)`, `(1, 12)`, `(12, 12)` (preuve vide), et
+sondes refusées (`m = 0`, `m > n`, chemin tronqué, nœud en trop, racines
+échangées, chemin vide, `m = n` avec chemin). Chaque cas donne `first_size`,
+`second_size`, `first_root`, `second_root`, `path`, `valid` et `reason`.
+
 ## `manifestes/`
 
 Trois périodes consécutives du journal : `periode-1.json` (seq 1 à 9, signé par
@@ -87,11 +94,34 @@ la période 1 avec `first_seq` 11 et un `prev_period_hash` faux. `attendu.json` 
 forme canonique, `periodHash`, signature, `anchorFingerprint` et `PeriodMeta` de
 chaque période, continuité attendue, erreurs du manifeste discontinu.
 
+## `points-de-controle/` (révision 0.3)
+
+Séries complètes des points de contrôle (CT-1 §10.5 à §10.8) des trois
+périodes : `periode-N.json` est le tableau des points, un par minute depuis
+`period_start` (cadence par défaut de 60 s, à `:00.000`, points sans nouvel
+événement compris) puis le point de clôture à `generated_at` du manifeste
+(`tree_size = count`) ; 61 points par période. `tree_size` compte les
+événements de la période horodatés au plus tard à `checkpoint_ts` ; la clé est
+celle en vigueur (règle 5 : la rotation de seq 9 à 2026-11-05T09:59:58.000Z fait signer le
+point de clôture de la période 1 par `rec-test-02`) ; la période 3, vide, ne
+porte que des points `tree_size = 0` dont `last_hash` est le hash de seq 12.
+`attendu.json` donne, pour chaque point, `checkpoint_hash`, la forme canonique
+`C_K`, le `prev_checkpoint_hash` attendu, la clé et la preuve de cohérence vers
+la racine du manifeste (`null` pour `tree_size = 0`), et pour chaque série
+invalide de `invalides/` (dérivée de la période 1) les règles violées
+(`rules_failed` : `chainage`, `tree_size_decroissant`,
+`checkpoint_ts_decroissant`, `dernier_point`, `cle_en_vigueur`,
+`validite_cle`, `signature`, `last_hash`) et les erreurs de l'implémentation
+de référence.
+
 ## `dossiers/`
 
 Chaque sous-répertoire est un dossier de preuve v0 complet (les douze parties
 déclarées dans `dossier.json`, les cinq parties réservées à CT-4 et CT-5
-absentes avec la raison « hors périmètre CT-1 ») plus un fichier
+absentes avec la raison « hors périmètre CT-1 » ; révision 0.3 : les
+dossiers `*-point-de-controle`, `*-partie-declaree-absente` et `invalide-k*`
+déclarent une treizième partie `points-de-controle.json`, vérifications K-1 à
+K-6, ancres à `null`) plus un fichier
 `attendu.json`, étranger au dossier et ignoré par le vérificateur, qui donne le
 verdict attendu : `valide`, `controle` (le contrôle visé), `controles_en_echec`
 (la liste **exacte** des contrôles en échec, dans l'ordre de CT-1 §11.4) et une
@@ -144,6 +174,16 @@ manifestes et le dossier sont recalculés.
 | `invalide-cle-hors-validite/` | **E-11** | cles.json annonce rec-test-01 valide à partir de 09:31:48.500Z : l'événement prouvé (09:31:48.006Z) et son voisin précédent sont signés avant la validité annoncée. |
 | `invalide-rotation-contresignature/` | **E-10** | Dossier de l'événement de rotation (seq 9) d'un journal rejoué où counter_sig a été produite par l'ancienne clé : la contresignature ne vérifie pas sous new_public_key. |
 | `invalide-ts-voisin/` | **C-1** | Journal rejoué où seq 6 porte ts 09:31:48.500Z, postérieur au ts de seq 7 (09:31:48.006Z) : les horodatages décroissent le long de la chaîne. |
+| `valide-seq-7-point-de-controle/` | valide | Dossier de seq 7 avec la treizième partie (révision 0.3) : point de contrôle de 09:32:00.000Z, premier point de la série de la période 1 qui couvre la feuille 6 (tree_size 8, last_seq 8, signé par rec-test-01), preuve de cohérence de huit feuilles vers neuf, aucune ancre (les trois à null). K-1 à K-6 réussies (K-6 exécutée : l'événement last_seq, seq 8, est le voisin suivant) ; K-7 à K-9 non exécutées, ancre absente ; A-4 non exécuté comme dans valide-seq-7. |
+| `valide-seq-7-partie-declaree-absente/` | valide | Dossier de seq 7 dont l'index déclare treize parties, la treizième absente avec la raison « aucun point de contrôle » : verdict identique à valide-seq-7, K-1 à K-9 non exécutées pour une raison admise (partie absente). |
+| `invalide-k1-point-autre-periode/` | **K-1** | Le point porte le period_start de la période 2 (re-signé, checkpoint_hash recalculé) : il ne décrit pas la période du manifeste, et son checkpoint_ts (09:32:00.000Z) précède ce period_start. |
+| `invalide-k2-checkpoint-hash/` | **K-2** | checkpoint_hash déclaré n'est pas SHA-256(P_K || C_K) du point : l'empreinte que les ancres porteraient n'est pas celle de ce point. |
+| `invalide-k3-signature-point/` | **K-3** | Le point annonce key_id rec-test-01 mais sa signature est produite par rec-test-02 (corps inchangé : checkpoint_hash juste, K-2 passe) : signature invalide sous la clé annoncée. |
+| `invalide-k4-point-trop-court/` | **K-4** | Le point joint (2026-11-05T09:31:48.000Z, tree_size 6, last_seq 6, chaîné au point de 09:31:00.000Z) ne couvre pas la feuille 6 de l'événement prouvé (seq 7, 09:31:48.006Z) : preuve de cohérence correcte de six feuilles vers neuf (K-5), last_hash vérifié sur le voisin précédent (K-6), mais leaf_index n'est pas strictement inférieur à tree_size et ts est postérieur à checkpoint_ts. |
+| `invalide-k5-coherence-tronquee/` | **K-5** | Le dernier nœud de consistency.path est retiré : l'algorithme de CT-1 §10.7 ne retombe pas sur les deux racines (chemin trop court pour (8, 9)). |
+| `invalide-k6-last-hash/` | **K-6** | last_hash du point réécrit (point re-signé, checkpoint_hash recalculé : K-2 et K-3 passent) : l'événement last_seq (seq 8) est le voisin suivant et son hash recalculé n'est pas celui que le point annonce. |
+| `valide-seq-7-point-de-cloture/` | valide | Dossier de seq 7 dont la treizième partie porte le point de clôture de la période 1 (2026-11-05T10:00:00.300Z, tree_size 9 = count) : preuve de cohérence de neuf feuilles vers neuf, chemin vide et racines égales (CT-1 §10.7, m = n) ; K-1 à K-5 réussies ; K-6 non exécutée pour une raison admise (l'événement last_seq, seq 9, est hors du dossier) ; K-7 à K-9 non exécutées, ancres nulles. |
+| `invalide-k1-double-defaut/` | **K-1** | La partie porte un membre « extra » hors du schéma et un chemin de cohérence tronqué : K-1 échoue sur le schéma ; K-2 à K-9 ne sont pas exécutées (prérequis K-1 en échec), si bien que le chemin tronqué n'est pas examiné et K-5 n'est pas en échec. |
 
 Vérification d'un dossier : `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7`
 (code 0), `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux --json`

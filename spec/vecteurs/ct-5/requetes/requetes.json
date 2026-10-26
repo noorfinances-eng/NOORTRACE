@@ -1,0 +1,109 @@
+{
+  "version": 0,
+  "family": "requetes",
+  "description": "Requêtes TimeStampReq construites octet pour octet (CT-5 EX-5.1 et annexe A.4) : version 1, messageImprint (SHA-256 avec paramètres NULL, empreinte), reqPolicy facultatif, nonce de 64 bits dérivé d'une étiquette, certReq TRUE.",
+  "cases": [
+    {
+      "id": "requete-point-k2",
+      "description": "La requête d'EX-5.1 : checkpointHash du point K2 de CT-1 §10.5, nonce de CT-1 §13 (0x74a6f4979421411e), à laquelle le jeton de CT-1 §11.2 répond.",
+      "input": {
+        "digest": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+        "nonce_label": "noortrace/vecteurs/v0/ct-1/nonce-tsa/point-de-controle/exemple",
+        "policy_oid": null,
+        "cert_req": true
+      },
+      "expected": {
+        "nonce": "0x74a6f4979421411e",
+        "der": "0x30430201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff020874a6f4979421411e0101ff",
+        "size": 69,
+        "sha256": "0xe0b39a0b23569bd3fe112fd45811fea46585c7bb7ceda295f57617e405a4ff40",
+        "file": "requete-point-k2.tsq"
+      }
+    },
+    {
+      "id": "point-k2-exemple",
+      "description": "Point K2 de l'exemple de référence de CT-1 (checkpointHash), première tentative, sans politique.",
+      "input": {
+        "digest": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+        "nonce_label": "noortrace/vecteurs/v0/ct-5/nonce-tsa/journal-principal/point/6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff/1",
+        "policy_oid": null,
+        "cert_req": true
+      },
+      "expected": {
+        "nonce": "0x018032ff0d74cfda",
+        "der": "0x30430201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff0208018032ff0d74cfda0101ff",
+        "size": 69,
+        "sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "file": "point-k2-exemple.tsq"
+      }
+    },
+    {
+      "id": "point-k2-exemple-politique-interne",
+      "description": "Même empreinte, politique du serveur interne de test 1.3.6.1.4.1.99999.1.1.",
+      "input": {
+        "digest": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+        "nonce_label": "noortrace/vecteurs/v0/ct-5/nonce-tsa/journal-principal/point/6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff/1",
+        "policy_oid": "1.3.6.1.4.1.99999.1.1",
+        "cert_req": true
+      },
+      "expected": {
+        "nonce": "0x018032ff0d74cfda",
+        "der": "0x304f0201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff060a2b06010401868d1f01010208018032ff0d74cfda0101ff",
+        "size": 81,
+        "sha256": "0x5a0dc94d0164a9a084c7114174908dc7a3b757ee1cbb12ceeb212b6c1386c4b8",
+        "file": "point-k2-exemple-politique-interne.tsq"
+      }
+    },
+    {
+      "id": "periode-1-reference",
+      "description": "periodHash de la période 1 de l'exemple de référence de CT-1, première tentative (nonce à bit haut : 70 octets).",
+      "input": {
+        "digest": "0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1",
+        "nonce_label": "noortrace/vecteurs/v0/ct-5/nonce-tsa/journal-principal/periode/a864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1/1",
+        "policy_oid": null,
+        "cert_req": true
+      },
+      "expected": {
+        "nonce": "0xf144cca6ec50dcdb",
+        "der": "0x30440201013031300d060960864801650304020105000420a864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1020900f144cca6ec50dcdb0101ff",
+        "size": 70,
+        "sha256": "0xd8fc9ff1a6908df641f9bd6e6a6c72e90eacda3837e6b8cc78d82d9f92919399",
+        "file": "periode-1-reference.tsq"
+      }
+    },
+    {
+      "id": "periode-1-reference-tentative-2",
+      "description": "Même empreinte, deuxième tentative : nonce frais.",
+      "input": {
+        "digest": "0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1",
+        "nonce_label": "noortrace/vecteurs/v0/ct-5/nonce-tsa/journal-principal/periode/a864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1/2",
+        "policy_oid": null,
+        "cert_req": true
+      },
+      "expected": {
+        "nonce": "0xe514f7e31f6ba99e",
+        "der": "0x30440201013031300d060960864801650304020105000420a864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1020900e514f7e31f6ba99e0101ff",
+        "size": 70,
+        "sha256": "0xef6b5679e25d26b16320e1f5ee8339284683f4e70704e11431f2afa325f1f924",
+        "file": "periode-1-reference-tentative-2.tsq"
+      }
+    },
+    {
+      "id": "periode-1-vecteurs",
+      "description": "periodHash de la période 1 des vecteurs CT-1 (journal-sinistres), première tentative.",
+      "input": {
+        "digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "nonce_label": "noortrace/vecteurs/v0/ct-5/nonce-tsa/journal-sinistres/periode/ae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914/1",
+        "policy_oid": null,
+        "cert_req": true
+      },
+      "expected": {
+        "nonce": "0x29ccc3c9db80e87b",
+        "der": "0x30430201013031300d060960864801650304020105000420ae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914020829ccc3c9db80e87b0101ff",
+        "size": 69,
+        "sha256": "0xdc30519d2596c2df5a87c7f0b6ddde6b1dea95d42737424200532c73be747fd9",
+        "file": "periode-1-vecteurs.tsq"
+      }
+    }
+  ]
+}

@@ -27,7 +27,9 @@ func VerifierVecteurs(racine string, strict bool) *Rapport {
 	familleJCS(rap, racine)
 	journal := familleJournaux(rap, racine, cles, strict)
 	familleArbres(rap, racine)
+	familleCoherence(rap, racine)
 	familleManifestes(rap, racine, cles, journal, strict)
+	famillePointsDeControle(rap, racine, cles, journal)
 	familleDossiers(rap, racine, strict)
 	return rap
 }
@@ -1144,4 +1146,290 @@ func familleDossiers(rap *Rapport, racine string, strict bool) {
 			rap.Detail("    %s", b)
 		}
 	}
+}
+
+// ---------------------------------------------------------------- cohérence
+
+// familleCoherence lit merkle/coherence.json (révision 0.3, CT-1 §10.7) :
+// { leaves, cases: [{ name, first_size, second_size, first_root, second_root,
+// path, valid, reason }] }. Pour un cas valide, la preuve est régénérée nœud
+// pour nœud et les racines recalculées ; pour tout cas, l'algorithme de
+// vérification de §10.7 doit accepter ou refuser comme annoncé.
+func familleCoherence(rap *Rapport, racine string) {
+	f := filepath.Join(racine, "merkle", "coherence.json")
+	if !fichierExiste(f) {
+		rap.Note("famille cohérence : aucun fichier merkle/coherence.json")
+		return
+	}
+	nom := relatif(racine, f)
+	v := lireFichierJSON(rap, f)
+	if v == nil {
+		return
+	}
+	leaves := v.Get("leaves")
+	if leaves == nil || leaves.Kind != KindArray {
+		rap.Erreur("%s : champ leaves attendu", nom)
+		return
+	}
+	var D [][]byte
+	for i, l := range leaves.Arr {
+		b, err := OctetsHex(chaineDe(l, ""), -1)
+		if l.Kind != KindString || err != nil {
+			rap.Erreur("%s : leaves[%d] n'est pas de l'hexadécimal 0x", nom, i)
+			return
+		}
+		D = append(D, b)
+	}
+	cas := v.Get("cases")
+	if cas == nil || cas.Kind != KindArray {
+		rap.Erreur("%s : champ cases attendu", nom)
+		return
+	}
+	for i, c := range cas.Arr {
+		etiq := fmt.Sprintf("%s · %s", nom, chaineDe(c, "name"))
+		if etiq == nom+" · " {
+			etiq = fmt.Sprintf("%s · cases[%d]", nom, i)
+		}
+		m, _ := entierDe(c, "first_size")
+		n, _ := entierDe(c, "second_size")
+		valide := c.Get("valid") != nil && c.Get("valid").Kind == KindBool && c.Get("valid").Bool
+		var path [][]byte
+		var pathAttendu []string
+		if p := c.Get("path"); p != nil && p.Kind == KindArray {
+			for _, x := range p.Arr {
+				pathAttendu = append(pathAttendu, chaineDe(x, ""))
+				b, _ := OctetsHex(chaineDe(x, ""), 32)
+				path = append(path, b)
+			}
+		}
+		fr, _ := OctetsHex(chaineDe(c, "first_root"), 32)
+		sr, _ := OctetsHex(chaineDe(c, "second_root"), 32)
+		if valide {
+			if n < 0 || n > int64(len(D)) || m < 1 || m > n {
+				rap.Erreur("%s : tailles (%d, %d) hors des feuilles", etiq, m, n)
+				continue
+			}
+			preuve, err := PreuveCoherence(int(m), D[:n])
+			if err != nil {
+				rap.Comparer("coherence", etiq, fmt.Sprintf("PROOF(%d, D[%d])", m, n), strings.Join(pathAttendu, " "), "refusée : "+err.Error())
+				continue
+			}
+			var obtenu []string
+			for _, b := range preuve {
+				obtenu = append(obtenu, Hex0x(b))
+			}
+			rap.Comparer("coherence", etiq, fmt.Sprintf("PROOF(%d, D[%d])", m, n), strings.Join(pathAttendu, " "), strings.Join(obtenu, " "))
+			rap.Comparer("coherence", etiq, "first_root = MTH(D[0..m-1])", chaineDe(c, "first_root"), Hex0x(Racine(D[:m])))
+			rap.Comparer("coherence", etiq, "second_root = MTH(D[0..n-1])", chaineDe(c, "second_root"), Hex0x(Racine(D[:n])))
+		}
+		attendu := "acceptée"
+		if !valide {
+			attendu = "refusée"
+		}
+		obtenu := "acceptée"
+		if err := VerifierCoherence(uint64(m), uint64(n), fr, sr, path); err != nil {
+			obtenu = "refusée"
+		}
+		if m <= 0 || n < m {
+			// Hors de la définition : la génération refuse aussi.
+			if _, err := PreuveCoherence(int(m), D[:max64(0, min64(n, int64(len(D))))]); err == nil {
+				obtenu = "générée hors définition"
+			}
+		}
+		rap.Comparer("coherence", etiq, fmt.Sprintf("vérification §10.7 (%d, %d)%s", m, n, raisonTexte(chaineDe(c, "reason"))), attendu, obtenu)
+	}
+}
+
+func raisonTexte(r string) string {
+	if r == "" {
+		return ""
+	}
+	return " · " + r
+}
+
+func min64(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max64(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// ------------------------------------------------------- points de contrôle
+
+// famillePointsDeControle lit points-de-controle/ (révision 0.3, CT-1 §10.5 à
+// §10.8) : attendu.json { periodes: [{ file, manifest, period_start, count,
+// last, points: [{ index, checkpoint_ts, tree_size, last_seq, key_id,
+// prev_checkpoint_hash, canonical, checkpoint_hash, sig, consistency }] }],
+// invalides: [{ file, manifest, rules_failed }] }. Chaque série valide est
+// contrôlée (règles de §10.5) et chaque point recalculé : forme canonique,
+// checkpointHash, chaînage, clé en vigueur, signature, preuve de cohérence
+// vers la racine du manifeste ; chaque série invalide doit violer exactement
+// les règles annoncées.
+func famillePointsDeControle(rap *Rapport, racine string, cles *JeuCles, journal []*Value) {
+	dir := filepath.Join(racine, "points-de-controle")
+	fa := filepath.Join(dir, "attendu.json")
+	if !fichierExiste(fa) {
+		rap.Note("famille points de contrôle : aucun fichier points-de-controle/attendu.json")
+		return
+	}
+	attendu := lireFichierJSON(rap, fa)
+	if attendu == nil {
+		return
+	}
+	lirePoints := func(chemin string) []*Value {
+		v := lireFichierJSON(rap, chemin)
+		if v == nil {
+			return nil
+		}
+		if v.Kind != KindArray {
+			rap.Erreur("%s : tableau de points attendu", relatif(racine, chemin))
+			return nil
+		}
+		return v.Arr
+	}
+	lireManifesteDe := func(chemin string) *Manifeste {
+		v := lireFichierJSON(rap, chemin)
+		if v == nil {
+			return nil
+		}
+		return LireManifeste(v)
+	}
+	if periodes := attendu.Get("periodes"); periodes != nil && periodes.Kind == KindArray {
+		for _, pe := range periodes.Arr {
+			nom := "points-de-controle/" + chaineDe(pe, "file")
+			points := lirePoints(filepath.Join(dir, chaineDe(pe, "file")))
+			mf := lireManifesteDe(filepath.Join(dir, chaineDe(pe, "manifest")))
+			if points == nil || mf == nil {
+				continue
+			}
+			if c, ok := entierDe(pe, "count"); ok {
+				rap.Comparer("points", nom, "nombre de points", fmt.Sprint(c), fmt.Sprint(len(points)))
+			}
+			rap.Comparer("points", nom, "period_start", fmt.Sprint(entierOuZero(pe, "period_start")), fmt.Sprint(mf.PeriodStart))
+			regles, erreurs := ControlerSerie(points, mf, journal, cles)
+			obtenu := "valide"
+			if len(regles) > 0 {
+				obtenu = strings.Join(regles, ",") + " (" + strings.Join(erreurs, " ; ") + ")"
+			}
+			rap.Comparer("points", nom, "série (§10.5, règles 2 à 5)", "valide", obtenu)
+			var D [][]byte
+			if journal != nil {
+				D, _ = hashesPeriode(journal, mf)
+			}
+			if last := pe.Get("last"); last != nil && len(points) > 0 {
+				d := LirePoint(points[len(points)-1])
+				rap.Comparer("points", nom, "dernier point : tree_size", fmt.Sprint(entierOuZero(last, "tree_size")), fmt.Sprint(d.TreeSize))
+				rap.Comparer("points", nom, "dernier point : root", chaineDe(last, "root"), d.Root)
+				rap.Comparer("points", nom, "dernier point : last_seq", fmt.Sprint(entierOuZero(last, "last_seq")), fmt.Sprint(d.LastSeq))
+			}
+			att := pe.Get("points")
+			if att == nil || att.Kind != KindArray || len(att.Arr) != len(points) {
+				rap.Erreur("%s : attendu.points de longueur différente de la série", nom)
+				continue
+			}
+			for i, a := range att.Arr {
+				etiq := fmt.Sprintf("%s · point[%d] (%s)", nom, i, chaineDe(a, "checkpoint_ts"))
+				v := points[i]
+				pt := LirePoint(v)
+				hash, c, err := CheckpointHash(v)
+				if err != nil {
+					rap.Erreur("%s : %v", etiq, err)
+					continue
+				}
+				rap.Comparer("points", etiq, "forme canonique C_K", chaineDe(a, "canonical"), string(c))
+				rap.Comparer("points", etiq, "checkpointHash", chaineDe(a, "checkpoint_hash"), Hex0x(hash))
+				prev := Zero32
+				if i > 0 {
+					if h, _, err := CheckpointHash(points[i-1]); err == nil {
+						prev = Hex0x(h)
+					}
+				}
+				rap.Comparer("points", etiq, "prev_checkpoint_hash", chaineDe(a, "prev_checkpoint_hash"), prev)
+				rap.Comparer("points", etiq, "prev_checkpoint_hash du point", pt.PrevHash, prev)
+				rap.Comparer("points", etiq, "tree_size", fmt.Sprint(entierOuZero(a, "tree_size")), fmt.Sprint(pt.TreeSize))
+				rap.Comparer("points", etiq, "last_seq", fmt.Sprint(entierOuZero(a, "last_seq")), fmt.Sprint(pt.LastSeq))
+				if journal != nil {
+					if en := CleEnVigueur(journal, pt.LastSeq); en != "" {
+						rap.Comparer("points", etiq, "clé en vigueur (§10.5, règle 5)", chaineDe(a, "key_id"), en)
+					}
+				}
+				rap.Comparer("points", etiq, "key_id du point", chaineDe(a, "key_id"), pt.KeyID)
+				if cles != nil {
+					if cle := cles.Trouver(pt.KeyID); cle == nil {
+						rap.Comparer("points", etiq, "signature", "valide", "clé absente")
+					} else {
+						rap.Comparer("points", etiq, "signature Ed25519 sous "+pt.KeyID, "acceptée", acceptee(VerifierSignaturePoint(v, cle)))
+						rap.Comparer("points", etiq, "sig", chaineDe(a, "sig"), pt.Sig)
+					}
+				}
+				cons := a.Get("consistency")
+				if cons == nil || cons.IsNull() {
+					rap.Comparer("points", etiq, "preuve de cohérence : aucune", "tree_size = 0", fmt.Sprintf("tree_size = %d", pt.TreeSize))
+					continue
+				}
+				if D == nil {
+					rap.Note("%s : journal absent, preuve de cohérence non recalculée", etiq)
+					continue
+				}
+				fs, _ := entierDe(cons, "first_size")
+				ss, _ := entierDe(cons, "second_size")
+				rap.Comparer("points", etiq, "consistency (first_size, second_size)", fmt.Sprintf("(%d, %d)", fs, ss), fmt.Sprintf("(%d, %d)", pt.TreeSize, mf.Count))
+				if pt.TreeSize < 1 || pt.TreeSize > int64(len(D)) {
+					rap.Erreur("%s : tree_size %d hors des feuilles", etiq, pt.TreeSize)
+					continue
+				}
+				preuve, err := PreuveCoherence(int(pt.TreeSize), D)
+				if err != nil {
+					rap.Erreur("%s : %v", etiq, err)
+					continue
+				}
+				var obtenu, attenduPath []string
+				var path [][]byte
+				for _, b := range preuve {
+					obtenu = append(obtenu, Hex0x(b))
+				}
+				for _, x := range cons.Get("path").Arr {
+					attenduPath = append(attenduPath, chaineDe(x, ""))
+					b, _ := OctetsHex(chaineDe(x, ""), 32)
+					path = append(path, b)
+				}
+				rap.Comparer("points", etiq, fmt.Sprintf("PROOF(%d, D[%d])", pt.TreeSize, mf.Count), strings.Join(attenduPath, " "), strings.Join(obtenu, " "))
+				rap.Comparer("points", etiq, "consistency.first_root = root du point", chaineDe(cons, "first_root"), pt.Root)
+				rap.Comparer("points", etiq, "consistency.second_root = root du manifeste", chaineDe(cons, "second_root"), mf.Root)
+				fr, _ := OctetsHex(chaineDe(cons, "first_root"), 32)
+				sr, _ := OctetsHex(chaineDe(cons, "second_root"), 32)
+				rap.Comparer("points", etiq, "vérification §10.7", "acceptée", acceptee(VerifierCoherence(uint64(fs), uint64(ss), fr, sr, path)))
+			}
+		}
+	}
+	if invalides := attendu.Get("invalides"); invalides != nil && invalides.Kind == KindArray {
+		for _, inv := range invalides.Arr {
+			nom := "points-de-controle/" + chaineDe(inv, "file")
+			points := lirePoints(filepath.Join(dir, chaineDe(inv, "file")))
+			mf := lireManifesteDe(filepath.Join(dir, chaineDe(inv, "manifest")))
+			if points == nil || mf == nil {
+				continue
+			}
+			var attendues []string
+			if rf := inv.Get("rules_failed"); rf != nil && rf.Kind == KindArray {
+				for _, x := range rf.Arr {
+					attendues = append(attendues, chaineDe(x, ""))
+				}
+			}
+			regles, _ := ControlerSerie(points, mf, journal, cles)
+			rap.Comparer("points", nom, "règles violées (§10.5)", strings.Join(attendues, ","), strings.Join(regles, ","))
+		}
+	}
+}
+
+func entierOuZero(v *Value, cle string) int64 {
+	n, _ := entierDe(v, cle)
+	return n
 }

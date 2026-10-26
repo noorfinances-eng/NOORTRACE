@@ -374,6 +374,8 @@ for m in (1, 2, 3):
 NONCE = {}
 for m in (1, 2, 3):
     NONCE[m] = sha256_ossl(("noortrace/vecteurs/v0/ct-6/nonce-tsa/periode-%d" % m).encode())[:18]
+# jetons des points de contrôle (révision 0.2, EX-A.13) : étiquette propre
+NONCE_POINT = sha256_ossl(b"noortrace/vecteurs/v0/ct-6/nonce-tsa/point-de-controle/periode-1")[:18]
 
 LECTURES = {}
 for tok in ATTENDU["tokens"]:
@@ -393,12 +395,15 @@ for tok in ATTENDU["tokens"]:
     comparer("empreinte (messageImprint)", tok["period_hash"], t["empreinte"])
     comparer("algorithme de l'empreinte", "sha256", t["algo_empreinte"])
     comparer("genTime", tok["gen_time"], t["gen_time"])
-    comparer("serialNumber", tok["serial_number"], t["numero"])
+    comparer("serialNumber", "0x%x" % int(tok["serial_number"], 16), "0x%x" % int(t["numero"], 16) if t["numero"] else t["numero"])
     comparer("version de TSTInfo", "1", t["version"])
     comparer("politique (EX-A.5)", "1.3.6.1.4.1.99999.1.1", t["politique"])
     comparer("précision (EX-A.5 : 1 s)", "0x01 seconds, unspecified millis, unspecified micros", t["precision"])
-    n = int(re.search(r"periode-(\d)", f).group(1)) if "periode-" in f else 1
-    comparer("nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-%d »)" % n, NONCE[n], t["nonce"])
+    if tok.get("checkpoint"):
+        comparer("nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/point-de-controle/periode-1 ») (jeton d'un point, EX-A.13)", NONCE_POINT, t["nonce"])
+    else:
+        n = int(re.search(r"periode-(\d)", f).group(1)) if "periode-" in f else 1
+        comparer("nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-%d »)" % n, NONCE[n], t["nonce"])
     if certs:
         comparer("tsa (directoryName) = sujet du certificat du jeton", "DirName:" + sujet_compat(certs[0]), t["tsa"])
     else:

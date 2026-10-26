@@ -1,0 +1,40 @@
+{
+  "valid": false,
+  "target": "K-8",
+  "failed_checks": [
+    "K-8"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "echoue"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3",
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine-points.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : K-8 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): K-8; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "anchors.registry.contract = adresse de PeriodRegistry : K-8 échoue, contrôle 8 en échec ; R-11 réussie (l'entrée, elle, est émise par AttestationRegistry)."
+}

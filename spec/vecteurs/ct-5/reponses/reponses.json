@@ -1,0 +1,1299 @@
+{
+  "version": 0,
+  "family": "reponses",
+  "description": "Réponses TimeStampResp de l'autorité de test de CT-6 (ac-test.pem, tsa-test.pem, politique 1.3.6.1.4.1.99999.1.1) et réponses HTTP représentées, classées selon CT-5 EX-5.10 à EX-5.12 (AN-8 à AN-11). Les vérifications T-1 à T-9 sont exécutées par horodatage.mjs ; `checks_passed` les déclare pour un lecteur qui ne les refait pas. `retry` est l'attente de reprise d'EX-8.9 pour une première reprise (k = late_responses_before + 1), gigue nulle.",
+  "provider": {
+    "id": "tsa-test",
+    "accepted_policies": [
+      "1.3.6.1.4.1.99999.1.1"
+    ],
+    "anchor_certificates": [
+      "../../ct-6/rfc3161/cles/ac-test.pem"
+    ],
+    "qualified": null
+  },
+  "freshness": {
+    "max_response_delay_s": 60,
+    "clock_tolerance_s": 120
+  },
+  "retry": {
+    "initial_ms": 5000,
+    "factor": 2,
+    "max_ms": 300000,
+    "jitter_ms": 250
+  },
+  "cases": [
+    {
+      "id": "granted-requete-point-k2",
+      "description": "Le jeton de CT-1 §11.2 lui-même (genTime 2026-11-03T13:53:02Z, numéro de série 1001, nonce de CT-1 §13), reconstruit à l'identique par l'autorité de test : réponse granted.",
+      "input": {
+        "request": "../requetes/requete-point-k2.tsq",
+        "request_sha256": "0xe0b39a0b23569bd3fe112fd45811fea46585c7bb7ceda295f57617e405a4ff40",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "granted-requete-point-k2.tsr",
+        "response_sha256": "0x28ca7fd59f87368de3855b080fd326c813b740738cf91580f3c9d18b4fc5443a",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "obtenue",
+        "error_code": null,
+        "class": null,
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x74a6f4979421411e",
+        "imprint_matches": true,
+        "token": "granted-requete-point-k2.der",
+        "token_sha256": "0x0a7cd7a11ffdea5b7ec14f0e9af35588bf8fdfa7fb70ac9b82b6be2d0a389f91",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "granted-point-k2-exemple",
+      "description": "granted de l'autorité de test à la requête point-k2-exemple (sans politique demandée ; la politique de l'autorité est admise).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "granted-point-k2-exemple.tsr",
+        "response_sha256": "0xa0063aa3b8cabd41f31cf7b2e858755fc095af38c062b0ca909c348df831161a",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "obtenue",
+        "error_code": null,
+        "class": null,
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "granted-point-k2-exemple.der",
+        "token_sha256": "0x044fdcf97b1abcdc25d8cb0961832ceec31556eb955a0f32d452544097f370eb",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "granted-point-k2-exemple-politique-interne",
+      "description": "granted à la requête qui demande la politique 1.3.6.1.4.1.99999.1.1 : le jeton porte la même politique.",
+      "input": {
+        "request": "../requetes/point-k2-exemple-politique-interne.tsq",
+        "request_sha256": "0x5a0dc94d0164a9a084c7114174908dc7a3b757ee1cbb12ceeb212b6c1386c4b8",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "granted-point-k2-exemple-politique-interne.tsr",
+        "response_sha256": "0xec62a249043abd82385f67c4e874ed16b9b76901a46e7ab6aa558281d90096ae",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "obtenue",
+        "error_code": null,
+        "class": null,
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "granted-point-k2-exemple-politique-interne.der",
+        "token_sha256": "0x30951c162edf0bac766d20e5117aef09ef432561ba312a4dc572268006a71f88",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "granted-periode-1-reference",
+      "description": "granted sur le periodHash de la période 1 de référence (genTime 14:00:05).",
+      "input": {
+        "request": "../requetes/periode-1-reference.tsq",
+        "request_sha256": "0xd8fc9ff1a6908df641f9bd6e6a6c72e90eacda3837e6b8cc78d82d9f92919399",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2114,
+          "retry_after_s": null
+        },
+        "response": "granted-periode-1-reference.tsr",
+        "response_sha256": "0x4f5d340c283e90d7757d9ad62be5c82b69ee288216aa2b23b6a20cdf35d10bfd",
+        "sent_at": "2026-11-03T14:00:04.000Z",
+        "received_at": "2026-11-03T14:00:05.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "obtenue",
+        "error_code": null,
+        "class": null,
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0xf144cca6ec50dcdb",
+        "imprint_matches": true,
+        "token": "granted-periode-1-reference.der",
+        "token_sha256": "0xcfbcca0074fbc7debaedb626edf4f3b69dcb1d0bf69efacde49985b25abedd56",
+        "token_size": 2105,
+        "gen_time": "2026-11-03T14:00:05Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T14:00:06.000Z",
+        "retry": null,
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "granted-periode-1-reference-tentative-2",
+      "description": "granted à la deuxième tentative (nonce frais).",
+      "input": {
+        "request": "../requetes/periode-1-reference-tentative-2.tsq",
+        "request_sha256": "0xef6b5679e25d26b16320e1f5ee8339284683f4e70704e11431f2afa325f1f924",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2114,
+          "retry_after_s": null
+        },
+        "response": "granted-periode-1-reference-tentative-2.tsr",
+        "response_sha256": "0xa2dfed102e943055072e92d7d496d27afbd6674c3e714b6e2b3e87ec97e701fc",
+        "sent_at": "2026-11-03T14:00:09.000Z",
+        "received_at": "2026-11-03T14:00:10.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "obtenue",
+        "error_code": null,
+        "class": null,
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0xe514f7e31f6ba99e",
+        "imprint_matches": true,
+        "token": "granted-periode-1-reference-tentative-2.der",
+        "token_sha256": "0x5b0a3ff02290e39f20205e11ddd902ca341ffb332608f6cf90c4cbce7ed85378",
+        "token_size": 2105,
+        "gen_time": "2026-11-03T14:00:10Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T14:00:11.000Z",
+        "retry": null,
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "granted-periode-1-vecteurs",
+      "description": "granted sur le periodHash de la période 1 des vecteurs CT-1 (genTime 2026-11-05T10:00:05Z).",
+      "input": {
+        "request": "../requetes/periode-1-vecteurs.tsq",
+        "request_sha256": "0xdc30519d2596c2df5a87c7f0b6ddde6b1dea95d42737424200532c73be747fd9",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "granted-periode-1-vecteurs.tsr",
+        "response_sha256": "0x51c5b5d035a331ba929cab86521ef38a72d1067c8e03b0f36c5252b37a1734bd",
+        "sent_at": "2026-11-05T10:00:04.000Z",
+        "received_at": "2026-11-05T10:00:05.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "obtenue",
+        "error_code": null,
+        "class": null,
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x29ccc3c9db80e87b",
+        "imprint_matches": true,
+        "token": "granted-periode-1-vecteurs.der",
+        "token_sha256": "0x55501ecc5983e79867684d00c6647e9538edf6453acd37a808d4d1deeedf4e7a",
+        "token_size": 2104,
+        "gen_time": "2026-11-05T10:00:05Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-05T10:00:06.000Z",
+        "retry": null,
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "granted-nonce-different",
+      "description": "granted dont le nonce du TSTInfo diffère de celui de la requête (nonce + 1) : étape 4, erreur permanente nonce_different, alerte, relève (EX-5.10) ; openssl ts -verify -queryfile répond « nonce mismatch ».",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "granted-nonce-different.tsr",
+        "response_sha256": "0x4f89d561ff6e128d77167e9c04a4bd0e14d76846c133a6e514c221c6fb650ac1",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "nonce_different",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfdb",
+        "imprint_matches": true,
+        "token": "granted-nonce-different.der",
+        "token_sha256": "0x319c18207765e06c449156e94505876b9e2a6dd19eaf0dee81ca14bcb976fd8a",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": "nonce mismatch"
+      }
+    },
+    {
+      "id": "granted-sans-nonce",
+      "description": "granted sans nonce dans le TSTInfo : nonce_absent, permanente (EX-5.10, étape 4).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2103,
+          "retry_after_s": null
+        },
+        "response": "granted-sans-nonce.tsr",
+        "response_sha256": "0x71185433ab0b31c5c6b241724706ac873987af320559fffc99ab909dffb704e0",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "nonce_absent",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": true,
+        "token": "granted-sans-nonce.der",
+        "token_sha256": "0x6f18e1946e55d4cf175472061907245000b4ddb521a89523773472bc9b87d174",
+        "token_size": 2094,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "granted-autre-empreinte",
+      "description": "granted sur une autre empreinte (le periodHash de la période 1 de référence) : empreinte_differente, permanente (EX-5.10, étape 3).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "granted-autre-empreinte.tsr",
+        "response_sha256": "0x8fec77c14cacf087adbdff92b58c9d3a3e44b093a26d46c4bbabc9d066293297",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "empreinte_differente",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": false,
+        "token": "granted-autre-empreinte.der",
+        "token_sha256": "0xffca6a2c6c28f9f03038fb6fdbd57eb0b83e14dfec05f388397063f9acb59510",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "granted-politique-hors-liste",
+      "description": "granted sous la politique 1.3.6.1.4.1.99999.1.2, hors accepted_policies du prestataire : politique_refusee, permanente (EX-5.10, étape 5).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "granted-politique-hors-liste.tsr",
+        "response_sha256": "0xa7cf1474ddec7ba7dafbee78935077d87eb8b1e613dfecf964616141f2c889bf",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "politique_refusee",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "granted-politique-hors-liste.der",
+        "token_sha256": "0x751b12eb9f58cdbee3af0d487a408de78d61065fa7778431920a02757ae4df36",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "granted-politique-differente",
+      "description": "La requête demandait 1.3.6.1.4.1.99999.1.1, le jeton porte 1.3.6.1.4.1.99999.1.2 : politique_differente, permanente (EX-5.4, EX-5.10 étape 5).",
+      "input": {
+        "request": "../requetes/point-k2-exemple-politique-interne.tsq",
+        "request_sha256": "0x5a0dc94d0164a9a084c7114174908dc7a3b757ee1cbb12ceeb212b6c1386c4b8",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "granted-politique-differente.tsr",
+        "response_sha256": "0x10482d14557b4c9fea912e8bf4de1f347a8f9a77fa3ee855ea862ff56013cf26",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "politique_differente",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "granted-politique-differente.der",
+        "token_sha256": "0xf77bfefa4cadaa8a3d55cd48507abfb8db5455a94c9de4e1a7e408bd6c6ff5ab",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "rejet-unacceptedPolicy",
+      "description": "PKIStatus 2 (rejection), PKIFailureInfo unacceptedPolicy, statusString d'openssl ts, 50 octets : echec_unacceptedPolicy, permanente, la requête est en cause (EX-5.12).",
+      "input": {
+        "request": "../requetes/point-k2-exemple-politique-interne.tsq",
+        "request_sha256": "0x5a0dc94d0164a9a084c7114174908dc7a3b757ee1cbb12ceeb212b6c1386c4b8",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 50,
+          "retry_after_s": null
+        },
+        "response": "rejet-unacceptedPolicy.tsr",
+        "response_sha256": "0xea1506a06d0e856b9c1f9941ba184a3c978701ce638d2ee472a6c0e6d7ab3292",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "echec_unacceptedPolicy",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 2,
+        "failure_info": "unacceptedPolicy",
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "rejet-badAlg",
+      "description": "PKIStatus 2, PKIFailureInfo badAlg : echec_badAlg, permanente (EX-5.12).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 57,
+          "retry_after_s": null
+        },
+        "response": "rejet-badAlg.tsr",
+        "response_sha256": "0x8fe683dc755fdab2a36a1945b92a1fd284efa1f8a32cb1e242d7db40d9158454",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "echec_badAlg",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 2,
+        "failure_info": "badAlg",
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "rejet-timeNotAvailable",
+      "description": "PKIStatus 2, PKIFailureInfo timeNotAvailable : echec_timeNotAvailable, transitoire, rejouée avec un nouveau nonce (EX-5.12).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 12,
+          "retry_after_s": null
+        },
+        "response": "rejet-timeNotAvailable.tsr",
+        "response_sha256": "0x2e3b0b20afb4a1c21bf39ef299b8b5f090b38ccdc72b71da5b1c59f213ed87b9",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_transitoire",
+        "error_code": "echec_timeNotAvailable",
+        "class": "transitoire",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 2,
+        "failure_info": "timeNotAvailable",
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": {
+          "delay_ms": 5000,
+          "reason": "backoff"
+        },
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "waiting",
+      "description": "PKIStatus 3 (waiting), sans jeton : statut_3, transitoire (EX-5.12).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 7,
+          "retry_after_s": null
+        },
+        "response": "waiting.tsr",
+        "response_sha256": "0xe7793cd09f2a06fbd0c51ba83a7e061dc55263db72436b82c62ffcf8ab093bf1",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_transitoire",
+        "error_code": "statut_3",
+        "class": "transitoire",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 3,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": {
+          "delay_ms": 5000,
+          "reason": "backoff"
+        },
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "statut-5",
+      "description": "PKIStatus 5 (revocationNotification) : statut_5, permanente, alerte critique, relève immédiate (EX-5.12).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 7,
+          "retry_after_s": null
+        },
+        "response": "statut-5.tsr",
+        "response_sha256": "0x1b31e682b648d380ca61a4bb5c9941220251ad32c5e26ca6c8f44038a8f38d37",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "statut_5",
+        "class": "permanente",
+        "critical": true,
+        "warnings": [],
+        "pki_status": 5,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "t6-signature",
+      "description": "granted dont le dernier octet de la signature est inversé : T-6 échoue à l'acquisition, verification_T-6, permanente, le jeton est conservé comme pièce (EX-5.10, étape 6).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "t6-signature.tsr",
+        "response_sha256": "0x0a2698d40932b816b70fd156dea3f111b9333d06a6753b80e5f7ccbd12ba6edf",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "verification_T-6",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "t6-signature.der",
+        "token_sha256": "0x60826e8e39b4c94d0d397c3b90f392ec2151f2c1695b757be21c6d6e2f615a75",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "http-503-retry-after-30",
+      "description": "Réponse HTTP 503 avec Retry-After: 30 (représentée, sans corps) : http_503, transitoire, reprise à 30 s (EX-5.12, EX-8.9).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 503,
+          "content_type": "application/timestamp-reply",
+          "body_size": 0,
+          "retry_after_s": 30
+        },
+        "response": null,
+        "response_sha256": null,
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_transitoire",
+        "error_code": "http_503",
+        "class": "transitoire",
+        "critical": false,
+        "warnings": [],
+        "pki_status": null,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": {
+          "delay_ms": 30000,
+          "reason": "retry_after"
+        },
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "http-429",
+      "description": "HTTP 429 sans Retry-After : http_429, transitoire, attente de retry (5 s à la première reprise, gigue nulle ici).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 429,
+          "content_type": "application/timestamp-reply",
+          "body_size": 0,
+          "retry_after_s": null
+        },
+        "response": null,
+        "response_sha256": null,
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_transitoire",
+        "error_code": "http_429",
+        "class": "transitoire",
+        "critical": false,
+        "warnings": [],
+        "pki_status": null,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": {
+          "delay_ms": 5000,
+          "reason": "backoff"
+        },
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "http-408",
+      "description": "HTTP 408 : http_408, transitoire, rejouée immédiatement une fois (EX-8.9).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 408,
+          "content_type": "application/timestamp-reply",
+          "body_size": 0,
+          "retry_after_s": null
+        },
+        "response": null,
+        "response_sha256": null,
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_transitoire",
+        "error_code": "http_408",
+        "class": "transitoire",
+        "critical": false,
+        "warnings": [],
+        "pki_status": null,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": {
+          "delay_ms": 0,
+          "reason": "immediat"
+        },
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "http-404",
+      "description": "HTTP 404 : http_404, permanente, jamais rejouée sans modification (EX-5.12).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 404,
+          "content_type": "application/timestamp-reply",
+          "body_size": 0,
+          "retry_after_s": null
+        },
+        "response": null,
+        "response_sha256": null,
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "http_404",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": null,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "http-401",
+      "description": "HTTP 401 : http_401, permanente, alerte (secret d'accès en cause, section 13).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 401,
+          "content_type": "application/timestamp-reply",
+          "body_size": 0,
+          "retry_after_s": null
+        },
+        "response": null,
+        "response_sha256": null,
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "http_401",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": null,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "type-contenu",
+      "description": "HTTP 200 de Content-Type text/html : type_contenu, permanente (EX-5.5).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "text/html",
+          "body_size": 512,
+          "retry_after_s": null
+        },
+        "response": null,
+        "response_sha256": null,
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "type_contenu",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": null,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "corps-trop-long",
+      "description": "HTTP 200 dont le corps fait 131 073 octets (représenté) : taille, permanente, sans lecture (EX-5.5, EX-5.12).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 131073,
+          "retry_after_s": null
+        },
+        "response": null,
+        "response_sha256": null,
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:53:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": []
+      },
+      "expected": {
+        "outcome": "echec_permanente",
+        "error_code": "taille",
+        "class": "permanente",
+        "critical": false,
+        "warnings": [],
+        "pki_status": null,
+        "failure_info": null,
+        "nonce_in_response": null,
+        "imprint_matches": null,
+        "token": null,
+        "token_sha256": null,
+        "token_size": null,
+        "gen_time": null,
+        "accuracy_s": null,
+        "upper_bound": null,
+        "retry": null,
+        "openssl_verify": null
+      }
+    },
+    {
+      "id": "reponse-tardive-1",
+      "description": "granted valable reçu 63 s après l'envoi (max_response_delay_s 60) : reponse_tardive, le jeton est conservé sans être promu, nouvelle tentative avec un nouveau nonce (EX-5.11).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "reponse-tardive-1.tsr",
+        "response_sha256": "0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:54:03.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "reponse_tardive",
+        "error_code": "reponse_tardive",
+        "class": "transitoire",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "reponse-tardive-1.der",
+        "token_sha256": "0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": {
+          "delay_ms": 5000,
+          "reason": "backoff"
+        },
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "reponse-tardive-2",
+      "description": "Deuxième réponse tardive consécutive : encore reponse_tardive (attente de reprise 10 s).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "reponse-tardive-2.tsr",
+        "response_sha256": "0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:54:03.000Z",
+        "late_responses_before": 1,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "reponse_tardive",
+        "error_code": "reponse_tardive",
+        "class": "transitoire",
+        "critical": false,
+        "warnings": [],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "reponse-tardive-2.der",
+        "token_sha256": "0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": {
+          "delay_ms": 10000,
+          "reason": "backoff"
+        },
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "reponse-tardive-3",
+      "description": "Troisième réponse tardive consécutive : promue avec l'avertissement reponse_tardive, pour ne pas priver la période d'ancre (EX-5.11).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "reponse-tardive-3.tsr",
+        "response_sha256": "0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137",
+        "sent_at": "2026-11-03T13:53:00.000Z",
+        "received_at": "2026-11-03T13:54:03.000Z",
+        "late_responses_before": 2,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "obtenue",
+        "error_code": null,
+        "class": null,
+        "critical": false,
+        "warnings": [
+          "reponse_tardive"
+        ],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "reponse-tardive-3.der",
+        "token_sha256": "0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": "OK"
+      }
+    },
+    {
+      "id": "horloge-suspecte",
+      "description": "granted dont le genTime (13:53:02) s'écarte de 182 s de l'instant d'envoi (13:50:00), au-delà de clock_tolerance_s (120) : promu, marqué horloge_suspecte (EX-5.11).",
+      "input": {
+        "request": "../requetes/point-k2-exemple.tsq",
+        "request_sha256": "0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a",
+        "http": {
+          "status": 200,
+          "content_type": "application/timestamp-reply",
+          "body_size": 2113,
+          "retry_after_s": null
+        },
+        "response": "horloge-suspecte.tsr",
+        "response_sha256": "0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137",
+        "sent_at": "2026-11-03T13:50:00.000Z",
+        "received_at": "2026-11-03T13:50:02.000Z",
+        "late_responses_before": 0,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ]
+      },
+      "expected": {
+        "outcome": "obtenue",
+        "error_code": null,
+        "class": null,
+        "critical": false,
+        "warnings": [
+          "horloge_suspecte"
+        ],
+        "pki_status": 0,
+        "failure_info": null,
+        "nonce_in_response": "0x018032ff0d74cfda",
+        "imprint_matches": true,
+        "token": "horloge-suspecte.der",
+        "token_sha256": "0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8",
+        "token_size": 2104,
+        "gen_time": "2026-11-03T13:53:02Z",
+        "accuracy_s": 1,
+        "upper_bound": "2026-11-03T13:53:03.000Z",
+        "retry": null,
+        "openssl_verify": "OK"
+      }
+    }
+  ]
+}

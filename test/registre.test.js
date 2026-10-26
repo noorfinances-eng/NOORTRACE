@@ -38,7 +38,7 @@ function parties(p) {
   return { registre: o(p.registre), certificat_commit: o(p.certificat_commit), validateurs: o(p.validateurs) };
 }
 
-function controle(p, { periode = 1, ancres = ANCRES_TEST, cles = CLES, langue = "fr", periodHash, manifeste } = {}) {
+function controle(p, { periode = 1, ancres = ANCRES_TEST, cles = CLES, langue = "fr", periodHash, manifeste, pointDeControle = null } = {}) {
   const m = manifeste === undefined ? MANIFESTES[periode - 1] : manifeste;
   return R.verifierControle8({
     parties: p.registre !== undefined && p.registre?.present === undefined ? parties(p) : p,
@@ -48,6 +48,7 @@ function controle(p, { periode = 1, ancres = ANCRES_TEST, cles = CLES, langue = 
     ancres,
     schemas: SCHEMAS,
     langue,
+    pointDeControle,
   });
 }
 
@@ -741,14 +742,16 @@ describe("CT-6 contrôle 8 : rejeu des vecteurs spec/vecteurs/ct-6/registre", fu
       validateurs: j.validateurs_present ? o("validateurs.json") : { present: false, raison: "absent de ce jeu" },
     };
   };
+  // `checkpoint` (révision 0.2, EX-11.24) : la partie points-de-controle.json rattachée, rejouée comme paramètre pointDeControle.
+  const pointDeControleDe = (j) => (j.checkpoint ? { orgId: MANIFESTES[0].org_id, journalId: MANIFESTES[0].journal_id, keyId: j.checkpoint.key_id, checkpointHash: j.checkpoint.checkpoint_hash, reference: j.checkpoint.reference } : null);
   const rejouer = (j) => {
     const periode = Number(/periode-(\d)/.exec(j.manifeste)[1]);
     const ancres = j.ancres ? G.appliquerModifications(ANCRES_TEST, j.modifications_ancres) : null;
-    return controle(lireParties(j), { periode, ancres });
+    return controle(lireParties(j), { periode, ancres, pointDeControle: pointDeControleDe(j) });
   };
 
   it("chaque jeu de parties valide : statuts, avertissements, faits et énoncé de attendu.json", function () {
-    expect(ATTENDU.jeux_de_parties).to.have.length(5);
+    expect(ATTENDU.jeux_de_parties).to.have.length(7);
     for (const j of ATTENDU.jeux_de_parties) {
       const r = rejouer(j);
       expect(G.resumer(r), j.nom).to.deep.equal({ control_status: j.control_status, control_reason: j.control_reason, failed_checks: j.failed_checks, not_executed: j.not_executed, warnings: j.warnings, n4_present: j.n4_present });
@@ -759,7 +762,7 @@ describe("CT-6 contrôle 8 : rejeu des vecteurs spec/vecteurs/ct-6/registre", fu
 
   it("chaque variante : une seule vérification visée en échec (ou un avertissement), et les non-exécutions qui en dépendent", function () {
     const cibles = ATTENDU.variantes.map((v) => v.cible).filter(Boolean);
-    expect(cibles).to.deep.equal(["R-1", "R-2", "R-3", "R-4", "R-5", "R-6", "R-7", "R-8", "R-9", "R-10", "N-4"]);
+    expect(cibles).to.deep.equal(["R-1", "R-2", "R-3", "R-4", "R-5", "R-6", "R-7", "R-8", "R-9", "R-10", "N-4", "R-11"]);
     for (const v of ATTENDU.variantes) {
       const r = rejouer(v);
       const resume = G.resumer(r);
@@ -769,11 +772,13 @@ describe("CT-6 contrôle 8 : rejeu des vecteurs spec/vecteurs/ct-6/registre", fu
     }
   });
 
-  it("la capture : sept transactions, un fichier par réponse JSON-RPC, validators.json sans clé privée, rien d'autre", function () {
+  it("la capture : sept transactions, une ancre de point de contrôle sous points_de_controle, un fichier par réponse JSON-RPC, validators.json sans clé privée, rien d'autre", function () {
     const d = CAPTURE.description;
     expect(d.transactions.map((t) => t.role)).to.deep.equal(["inscription", "inscription", "inscription", "ancre", "ancre", "cloture", "cloture"]);
+    expect(d.points_de_controle.map((t) => t.role)).to.deep.equal(["ancre_point_de_controle"]);
+    expect(G.transactionPoint(CAPTURE)).to.equal(d.points_de_controle[0]);
     const attendus = new Set(["capture.json", "validators.json", "CAPTURE.md"]);
-    for (const t of d.transactions) {
+    for (const t of G.transactionsCapturees(d)) {
       attendus.add(t.fichiers.bloc).add(t.fichiers.certificat);
       for (const f of t.fichiers.recus) attendus.add(f);
     }

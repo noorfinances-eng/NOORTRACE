@@ -12,11 +12,13 @@ spécification ou une faute de l'une des deux.
 Module propre `noortrace-ct2` (`go 1.24`), bibliothèque standard uniquement.
 Le module CT-1 (`spec/vecteurs/ct-1/verificateur-independant`) n'est pas
 modifié : son code est **copié** ici (fichiers `ct1_*.go`, lui-même écrit sans
-le JavaScript), avec trois adaptations signalées en tête des fichiers :
-`ct1_json.go` retient la position en octets de chaque valeur (pour comparer
-les octets relayés, EX-4.20), `ct1_rapport.go` a un titre paramétrable et un
-libellé général pour les valeurs hors périmètre, `ct1_reference_test.go` lit
-les vecteurs CT-1 dans `../../ct-1` (le test prouve que la copie est fidèle).
+le JavaScript), à jour de la révision 0.3 de CT-1 (point de contrôle, preuve
+de cohérence, treizième partie du dossier, K-1 à K-6), avec trois adaptations
+signalées en tête des fichiers : `ct1_json.go` retient la position en octets
+de chaque valeur (pour comparer les octets relayés, EX-4.20), `ct1_rapport.go`
+a un titre paramétrable et un libellé général pour les valeurs hors
+périmètre, `ct1_reference_test.go` et `ct1_point_test.go` lisent les vecteurs
+CT-1 dans `../../ct-1` (ces tests prouvent que la copie est fidèle).
 
 ## Usage
 

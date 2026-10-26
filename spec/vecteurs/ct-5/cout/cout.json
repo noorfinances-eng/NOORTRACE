@@ -1,0 +1,304 @@
+{
+  "version": 0,
+  "family": "cout",
+  "description": "Cas de la formule de coût de CT-5 §12 (comptages de CT-5 §4.6) : nombres de jetons et d'ancres par journal et par an, coûts en unités symboliques p (aucun prix réel : unit_price_qualified = 1, unit_price_second_rank = 0,2, subscription_fee = 10 000 sont des unités, jamais un prix).",
+  "cases": [
+    {
+      "id": "defaut-second-rang-a1",
+      "description": "Cadences par défaut, points contresignés par un prestataire de second rang à p_s = 0,2 p_q, activité a = 1, un journal.",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 1,
+        "checkpoints_provider_role": "second_rang",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 8760,
+        "second_rank_tokens_per_journal": 96360,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 28032,
+        "cost_total": 28032
+      }
+    },
+    {
+      "id": "defaut-second-rang-a025",
+      "description": "Idem, activité a = 0,25 (nouveaux événements à un quart des échéances).",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 0.25,
+        "checkpoints_provider_role": "second_rang",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 8760,
+        "second_rank_tokens_per_journal": 24090,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 13578,
+        "cost_total": 13578
+      }
+    },
+    {
+      "id": "points-chez-principal-a025",
+      "description": "Points contresignés par le prestataire principal (qualifié), a = 0,25.",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 0.25,
+        "checkpoints_provider_role": "principal",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 32850,
+        "second_rank_tokens_per_journal": 0,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 32850,
+        "cost_total": 32850
+      }
+    },
+    {
+      "id": "points-chez-principal-a1-dix-journaux",
+      "description": "Points chez le principal, a = 1, dix journaux : les maxima de la table CT-5 §4.6.",
+      "input": {
+        "journals": 10,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 1,
+        "checkpoints_provider_role": "principal",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 105120,
+        "second_rank_tokens_per_journal": 0,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 105120,
+        "cost_total": 1051200
+      }
+    },
+    {
+      "id": "serveur-interne",
+      "description": "Points contresignés par le serveur interne (p_s = 0) ; seule la clôture horaire est facturée.",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 1,
+        "checkpoints_provider_role": "interne",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 8760,
+        "second_rank_tokens_per_journal": 96360,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 8760,
+        "cost_total": 8760
+      }
+    },
+    {
+      "id": "forfait-avec-quota",
+      "description": "Forfait annuel F = 10 000 p couvrant Q = 10 000 jetons qualifiés, points chez le second rang à p_s = 0,2, a = 1.",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 1,
+        "checkpoints_provider_role": "second_rang",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 10000,
+        "subscription_quota": 10000,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 8760,
+        "second_rank_tokens_per_journal": 96360,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 29272,
+        "cost_total": 29272
+      }
+    },
+    {
+      "id": "forfait-depasse-points-principal",
+      "description": "Forfait F = 10 000 p, Q = 10 000, points chez le principal, a = 1 : dépassement facturé au jeton.",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 1,
+        "checkpoints_provider_role": "principal",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 10000,
+        "subscription_quota": 10000,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 105120,
+        "second_rank_tokens_per_journal": 0,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 105120,
+        "cost_total": 105120
+      }
+    },
+    {
+      "id": "sans-points",
+      "description": "c_T = 3600 (aucun point contresigné) et aucune ancre de point au registre : coût de la version antérieure.",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 3600,
+        "activity_ratio": 1,
+        "checkpoints_provider_role": "aucun",
+        "countersign_idle": false,
+        "registry_checkpoints": "aucun",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 8760,
+        "second_rank_tokens_per_journal": 0,
+        "registry_anchors_per_journal": 8760,
+        "gas_upper_bound_per_journal": 3602401080,
+        "cost_per_journal": 8760,
+        "cost_total": 8760
+      }
+    },
+    {
+      "id": "preuve-de-vie",
+      "description": "countersign_idle vrai : chaque échéance produit un jeton de second rang, quelle que soit l'activité.",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 0.1,
+        "checkpoints_provider_role": "second_rang",
+        "countersign_idle": true,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 8760,
+        "second_rank_tokens_per_journal": 96360,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 28032,
+        "cost_total": 28032
+      }
+    },
+    {
+      "id": "reprises-facturees",
+      "description": "Dix pour cent de requêtes facturées en plus (r = 0,1), points chez le principal, a = 0,5.",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8760,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 300,
+        "activity_ratio": 0.5,
+        "checkpoints_provider_role": "principal",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0.1
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 56940,
+        "second_rank_tokens_per_journal": 0,
+        "registry_anchors_per_journal": 543120,
+        "gas_upper_bound_per_journal": 55423030800,
+        "cost_per_journal": 62634,
+        "cost_total": 62634
+      }
+    },
+    {
+      "id": "cadence-une-minute-principal",
+      "description": "c_T = 60 (une échéance par minute), points chez le principal, a = 1, année bissextile (8 784 h).",
+      "input": {
+        "journals": 1,
+        "hours_per_year": 8784,
+        "checkpoint_interval_s": 60,
+        "rfc3161_checkpoint_interval_s": 60,
+        "activity_ratio": 1,
+        "checkpoints_provider_role": "principal",
+        "countersign_idle": false,
+        "registry_checkpoints": "nouveaux_evenements",
+        "unit_price_qualified": 1,
+        "unit_price_second_rank": 0.2,
+        "subscription_fee": 0,
+        "subscription_quota": null,
+        "billable_retry_ratio": 0
+      },
+      "expected": {
+        "qualified_tokens_per_journal": 527040,
+        "second_rank_tokens_per_journal": 0,
+        "registry_anchors_per_journal": 544608,
+        "gas_upper_bound_per_journal": 55574874720,
+        "cost_per_journal": 527040,
+        "cost_total": 527040
+      }
+    }
+  ]
+}

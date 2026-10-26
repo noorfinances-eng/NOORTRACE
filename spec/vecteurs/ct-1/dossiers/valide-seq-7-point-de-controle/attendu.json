@@ -1,0 +1,6 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "description": "Dossier de seq 7 avec la treizième partie (révision 0.3) : point de contrôle de 09:32:00.000Z, premier point de la série de la période 1 qui couvre la feuille 6 (tree_size 8, last_seq 8, signé par rec-test-01), preuve de cohérence de huit feuilles vers neuf, aucune ancre (les trois à null). K-1 à K-6 réussies (K-6 exécutée : l'événement last_seq, seq 8, est le voisin suivant) ; K-7 à K-9 non exécutées, ancre absente ; A-4 non exécuté comme dans valide-seq-7."
+}

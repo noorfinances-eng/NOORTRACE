@@ -2,9 +2,9 @@
 //
 // Usage : verificateur-independant [-strict] [-json] [-v] <racine des vecteurs>
 //
-// Pour chaque famille de vecteurs (clés, jcs, evenements, chaines, arbres,
-// manifestes, dossiers), recalcule tout depuis la spécification et confronte
-// à chaque valeur attendue. Code de retour 0 si et seulement si tout
+// Pour chaque famille de vecteurs (clés, jcs, journaux, arbres, cohérence,
+// manifestes, points de contrôle, dossiers), recalcule tout depuis la
+// spécification et confronte à chaque valeur attendue. Code de retour 0 si et seulement si tout
 // concorde ; 1 en cas de discordance ou d'erreur ; 2 si l'usage est incorrect
 // ou la racine introuvable.
 

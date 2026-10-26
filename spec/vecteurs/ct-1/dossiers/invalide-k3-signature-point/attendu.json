@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "K-3",
+  "controles_en_echec": [
+    "K-3"
+  ],
+  "description": "Le point annonce key_id rec-test-01 mais sa signature est produite par rec-test-02 (corps inchangé : checkpoint_hash juste, K-2 passe) : signature invalide sous la clé annoncée."
+}

@@ -8,6 +8,7 @@ import { PROJECT_ROOT } from "../scripts/lib/noortrace.mjs";
 import * as J from "../scripts/lib/journal.mjs";
 import * as H from "../scripts/lib/horodatage.mjs";
 import * as G from "../scripts/vecteurs/ct6/rfc3161.mjs";
+import { contextePointDeControle } from "../scripts/vecteurs/generer-ct6.mjs";
 
 // CONTRÔLE 4 DE CT-6 (spec/CT-6-verificateur.md §9) : lecteur DER borné,
 // TimeStampToken et TSTInfo, vérifications T-1 à T-11, statut du contrôle,
@@ -143,7 +144,7 @@ describe("CT-6 contrôle 4 : vecteurs spec/vecteurs/ct-6/rfc3161 (annexe A.3)", 
   });
 
   it("chaque cas de attendu.json est rejoué : statuts T-1 à T-11, contrôle 4, avertissements et faits identiques", function () {
-    expect(ATTENDU.cases.length).to.equal(20);
+    expect(ATTENDU.cases.length).to.equal(24);
     for (const c of ATTENDU.cases) {
       const ancres = c.anchors ? ANCRES[path.basename(c.anchors, ".json")] : null;
       const r = H.verifierJeton(fs.readFileSync(path.join(VECTEURS, c.token)), { periodHash: c.dossier_period_hash, ancres });
@@ -157,8 +158,9 @@ describe("CT-6 contrôle 4 : vecteurs spec/vecteurs/ct-6/rfc3161 (annexe A.3)", 
 
   it("une variante par vérification visée : la seule vérification en échec est la cible", function () {
     const cibles = ATTENDU.tokens.filter((j) => j.target);
-    expect(cibles.map((j) => j.target)).to.deep.equal(["T-1", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-1", "T-1"]);
-    for (const j of cibles) expect(echecs(verifier(fs.readFileSync(path.join(VECTEURS, j.file)))), j.file).to.deep.equal([j.target]);
+    expect(cibles.map((j) => j.target)).to.deep.equal(["T-1", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-1", "T-1", "T-6"]);
+    // Le jeton du point de contrôle (EX-A.13) se vérifie sur checkpoint_hash, non sur le period_hash de la période 1.
+    for (const j of cibles) expect(echecs(verifier(fs.readFileSync(path.join(VECTEURS, j.file)), j.checkpoint ? { periodHash: j.checkpoint.checkpoint_hash } : {})), j.file).to.deep.equal([j.target]);
     expect(echecs(verifier(jetonFichier("periode-2")))).to.deep.equal(["T-2"]);
     expect(echecs(verifier(jetonFichier("periode-1"), { ancres: ANCRES["ancres-tsa-revoquee"] }))).to.deep.equal(["T-10"]);
   });
@@ -554,12 +556,13 @@ describe("CT-6 contrôle 4 : génération déterministe des vecteurs rfc3161", f
     const a = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-ct6-rfc3161-"));
     const b = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-ct6-rfc3161-"));
     try {
-      G.genererRfc3161({ racine: a });
-      G.genererRfc3161({ racine: b });
+      const point = contextePointDeControle();
+      G.genererRfc3161({ racine: a, point });
+      G.genererRfc3161({ racine: b, point });
       const la = lister(path.join(a, "rfc3161"));
       expect(la).to.deep.equal(lister(path.join(b, "rfc3161")));
       expect(la).to.deep.equal(lister(VECTEURS));
-      expect(Object.keys(la).length).to.equal(26);
+      expect(Object.keys(la).length).to.equal(28);
     } finally {
       fs.rmSync(a, { recursive: true, force: true });
       fs.rmSync(b, { recursive: true, force: true });

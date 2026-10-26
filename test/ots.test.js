@@ -8,6 +8,7 @@ import * as J from "../scripts/lib/journal.mjs";
 import * as O from "../scripts/lib/ots.mjs";
 import * as G from "../scripts/vecteurs/ct6/ots.mjs";
 import { manifestesCT1 } from "../scripts/vecteurs/ct6/rfc3161.mjs";
+import { contextePointDeControle } from "../scripts/vecteurs/generer-ct6.mjs";
 
 // CONTRÔLE 5 DE CT-6 (spec/CT-6-verificateur.md §10) : format .ots officiel,
 // exécution des opérations du profil v0, en-têtes Bitcoin (double SHA-256,
@@ -193,7 +194,7 @@ describe("CT-6 contrôle 5 : vecteurs spec/vecteurs/ct-6/ots (annexe A.4)", func
   });
 
   it("chaque cas de attendu.json est rejoué : statuts O-1 à O-7, contrôle 5, avertissements et faits identiques", function () {
-    expect(ATTENDU.cases.length).to.equal(16);
+    expect(ATTENDU.cases.length).to.equal(20);
     for (const c of ATTENDU.cases) {
       const r = O.verifierPreuve(fs.readFileSync(path.join(VECTEURS, c.proof)), { periodHash: c.dossier_period_hash, entetes: c.headers ? lireJSON(c.headers) : null, ancres: c.anchors ? ANCRES : null });
       const etiquette = `${c.proof} ${c.headers} ${c.anchors}`;
@@ -313,12 +314,13 @@ describe("CT-6 contrôle 5 : génération déterministe des vecteurs ots", funct
     const a = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-ct6-ots-"));
     const b = fs.mkdtempSync(path.join(os.tmpdir(), "noortrace-ct6-ots-"));
     try {
-      G.genererOts({ racine: a });
-      G.genererOts({ racine: b });
+      const point = contextePointDeControle();
+      G.genererOts({ racine: a, point });
+      G.genererOts({ racine: b, point });
       const la = lister(path.join(a, "ots"));
       expect(la).to.deep.equal(lister(path.join(b, "ots")));
       expect(la).to.deep.equal(lister(VECTEURS));
-      expect(Object.keys(la).length).to.equal(15);
+      expect(Object.keys(la).length).to.equal(18);
     } finally {
       fs.rmSync(a, { recursive: true, force: true });
       fs.rmSync(b, { recursive: true, force: true });

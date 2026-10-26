@@ -1,9 +1,9 @@
 # NOORTRACE — architecture cible
 
-Version 0.6, 25 octobre 2026. Document de conception, pas d'implémentation. Les
+Version 0.7, 26 octobre 2026. Document de conception, pas d'implémentation. Les
 spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
-l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-6 pour le
-vérificateur.
+l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-5 pour
+l'ancrage, CT-6 pour le vérificateur.
 
 ## Principe
 
@@ -32,10 +32,14 @@ trois rôles.
    instant et son motif deviennent des événements du même journal. Les jeux
    d'approbateurs, repris des contrats de curateurs de NOORCHAIN, fournissent ce
    mécanisme : bornés, tracés, contestables.
-4. **Ancrage.** Toutes les heures, l'empreinte du manifeste de la période, qui
-   engage la racine de Merkle de ses événements, est horodatée par un prestataire
-   de confiance qualifié ZertES et eIDAS, puis ancrée sur un registre public
-   gratuit. Seule cette empreinte quitte le client.
+4. **Ancrage.** Toutes les minutes, l'enregistreur signe un point de contrôle
+   qui engage la tête de son journal ; chaque point qui engage un nouvel
+   événement est ancré au registre, et toutes les cinq minutes au plus un point
+   est contresigné par une autorité d'horodatage (CT-5). Toutes les heures,
+   l'empreinte du manifeste de la période, qui engage la racine de Merkle de ses
+   événements, est horodatée par un prestataire de confiance qualifié ZertES et
+   eIDAS, puis ancrée sur un registre public gratuit. Seules ces empreintes
+   quittent le client.
 5. **Dossier de preuve.** À la demande, pour un incident, une revue ou une requête
    du régulateur, le client exporte les événements concernés, les preuves d'inclusion
    et les jetons d'horodatage.
@@ -242,12 +246,46 @@ donc R et tout ce qui la situe ; ancrer R seule n'engagerait que R (CT-6 §16).
    preuve après confirmation. La vérification se fait avec les en-têtes de blocs
    Bitcoin, depuis un nœud ou une source d'en-têtes.
 
-En option, un serveur RFC 3161 interne, non qualifié, contresigne la chaîne toutes les
-minutes pour l'ordre fin entre deux ancres qualifiées. Il figure dans le dossier comme
-indice, étiqueté non qualifié, jamais comme preuve.
+En option, un serveur RFC 3161 interne, non qualifié, peut contresigner les
+points de contrôle à la place du prestataire qualifié (CT-5 §7). Il figure dans
+le dossier comme indice, étiqueté non qualifié, jamais comme preuve, et n'est
+admis que si le modèle de menace exclut l'opérateur.
 
-Ce que les tiers voient : une empreinte de 32 octets par heure et par journal.
-Jamais un argument, jamais un document.
+### Points de contrôle : borner la fenêtre de réécriture à quelques minutes
+
+Tant qu'un événement n'est engagé par aucune ancre extérieure, qui détient la
+clé de l'enregistreur peut le réécrire et le signer de nouveau. Avec les seules
+ancres horaires, cette fenêtre atteint une heure plus le délai du jeton. Les
+points de contrôle la réduisent (CT-1 §10.5 à §10.9, CT-5) :
+
+- **Point de contrôle.** Toutes les 60 s, alignées sur le début de la période,
+  l'enregistreur signe un point qui porte la taille de l'arbre, sa racine, le
+  dernier événement et le point précédent ; un dernier point engage exactement
+  les feuilles du manifeste. Une preuve de cohérence RFC 9162 relie un point
+  à la racine finale de la période.
+- **Registre.** Chaque point qui engage un nouvel événement est ancré par
+  `anchor`, sous une empreinte distincte de celle de la période : au plus 62
+  ancres par heure et par journal, manifeste compris. Le registre ordonne, il
+  ne date pas.
+- **Horodatage.** Toutes les 300 s, le premier point produit à partir de
+  l'échéance est contresigné par une autorité RFC 3161, s'il engage un nouvel
+  événement : au plus onze jetons de points par heure en fonctionnement
+  nominal, plus le jeton qualifié de la clôture, inchangé. La fenêtre de
+  réécriture pour la date tombe ainsi à 300 s plus le délai du jeton ; le dossier porte cette borne, que le
+  vérificateur énonce (CT-6 §7.9).
+- **Prestataire des points.** Le prestataire qualifié principal par défaut, ou
+  un prestataire extérieur de second rang ; le serveur interne de l'option
+  ci-dessus n'est admis que si le modèle de menace exclut l'opérateur, ce que la
+  fiche publiée du prestataire consigne (CT-5 EX-4.10, EX-10.6).
+- **Hors dossier.** La série publiée des points, avec les journaux `Anchored`
+  du registre, permet un contrôle de complétude : une série réécrite et ancrée
+  à part y laisse des ancres orphelines (CT-5 EX-10.7).
+
+Le coût suit une formule publiée, le prix unitaire restant un paramètre
+(CT-5 §12) ; un journal sans activité ne coûte que sa clôture horaire.
+
+Ce que les tiers voient : des empreintes de 32 octets, celle de la période et
+celles des points. Jamais un argument, jamais un document.
 
 ### Dossier et vérification
 
@@ -362,24 +400,24 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | L'agent efface ou falsifie ses traces | Journal en ajout seul, hors de son contexte d'exécution, chaîné et signé |
 | L'agent contourne l'enregistreur | Pare-feu : seuls le mandataire MCP et la passerelle, ou le mandataire ICAP, joignent les outils et l'API du modèle ; ce qui ne traverse pas l'enregistreur n'est pas journalisé, et le dossier ne prétend pas le contraire |
 | L'opérateur réécrit l'historique après coup | Racines horodatées par un tiers qualifié : toute réécriture casse les preuves d'inclusion |
-| L'enregistreur lui-même est compromis | Clé selon la classe de garde, vérification de chaque signature, copies WORM, rotation d'urgence ; les ancres horaires bornent la fenêtre de réécriture ; contresignature interne à la minute en option |
+| L'enregistreur lui-même est compromis | Clé selon la classe de garde, vérification de chaque signature, copies WORM, rotation d'urgence ; les points de contrôle contresignés bornent la fenêtre de réécriture à 300 s plus le délai du jeton pour la date (CT-5 §3.3), les ancres horaires restant la borne quand ils manquent ; contrôle de complétude au registre hors dossier (CT-5 EX-10.7) |
 | Le fournisseur NOORTRACE triche ou disparaît | Vérification hors ligne, sans son concours ; ce qu'il faut encore croire de lui est énoncé en CT-6 §3.4 et §7.8 ; registre substituable ; format ouvert |
 | Le fournisseur sert une histoire falsifiée par son RPC | Certificat de commit du bloc vérifié hors ligne contre le jeu de validateurs ; validateurs partenaires en production |
 | Manipulation de l'horloge | Temps issu du jeton d'horodatage qualifié, pas de l'hôte ; `ts` jamais décroissant, et un saut en avant mesuré contre l'horloge monotone bloque l'écrivain (CT-2 EX-7.13) |
-| Fuite de données via les empreintes | Seules des racines de Merkle sortent du périmètre du client ; rédaction avant hachage, jamais de hachage du clair |
+| Fuite de données via les empreintes | Seules des empreintes de manifestes et de points de contrôle sortent du périmètre du client ; rédaction avant hachage, jamais de hachage du clair |
 
 ## Ce qui est réutilisé de noorchain-core
 
 | Dépôt noorchain-core | Usage |
 |---|---|
-| `contracts/poss/AttestationRegistry.sol` | Registre des ancres de période : `anchor`, `lookup`, `isAnchored` |
+| `contracts/poss/AttestationRegistry.sol` | Registre des ancres de période et de points de contrôle : `anchor`, `lookup`, `isAnchored` |
 | `contracts/poss/CuratorSet.sol`, `CuratorSetRegistry.sol` | Jeux d'approbateurs par client, seuil, administration reprise par le client |
 | `contracts/poss/PoSSRegistry.sol` | Modèle de PeriodRegistry, dérivé sans le champ des paiements, avec continuité par journal ; dans `contracts/` |
 | `dapps/curators-hub` | Base de la console d'approbation et de revue, signature EIP-191, page de vérification |
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
 
-Écrit au 25 octobre 2026 :
+Écrit au 26 octobre 2026 :
 
 - la spécification CT-1 avec ses schémas, ses vecteurs, son implémentation de
   référence et son vérificateur Go indépendant ; le vérificateur de dossier ;
@@ -406,10 +444,20 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
   vérificateur Go indépendant ; le parcours d'inscription rejoué sur le réseau de
   développement par un relecteur qui n'avait que la spécification.
 
-Au 25 octobre 2026, le VPS de développement porte la chaîne dédiée et les contrats.
+- la spécification CT-5 de l'ancrage et ses trois schémas, avec les révisions
+  de CT-1 (point de contrôle, preuve de cohérence, treizième partie du dossier),
+  de CT-2 (production des points) et de CT-6 (vérifications K-7 à K-9) ; le
+  planificateur de référence à horloge injectée, avec ses vecteurs, recalculés
+  par un vérificateur Go indépendant et confrontés à OpenSSL, à la bibliothèque
+  officielle d'OpenTimestamps et à une implémentation publique de la RFC 9162.
+
+La conception se fait sur l'instance de développement locale ; un VPS de
+développement n'est requis qu'à la construction de l'enregistreur, quand il
+ancre pour de vrai.
 
 À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
-le service et la console d'approbation, les clients RFC 3161 et OpenTimestamps, le
+le service et la console d'approbation, le composant d'ancrage avec ses clients
+RFC 3161 et OpenTimestamps, le
 binaire Go du vérificateur, la garde d'admission devant le RPC des validateurs de
 production (CT-4 EX-10.8), la démonstration en une commande.
 

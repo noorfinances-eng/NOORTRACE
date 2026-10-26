@@ -224,9 +224,20 @@ export function encoderArbre(arbre) {
   });
   return Buffer.concat(parties);
 }
+/**
+ * Ordre des attestations de la bibliothèque de référence (notary.py,
+ * TimeAttestation.__lt__ ; CT-5 EX-6.4, règle 2) : par étiquette (8 octets),
+ * puis, à étiquette égale, par hauteur pour Bitcoin, par URI (comparaison de
+ * chaînes, PendingAttestation.__lt__) pour les attestations en attente, par
+ * charge pour une étiquette inconnue.
+ */
 function comparerAttestations(a, b) {
-  if (a.genre === "bitcoin" && b.genre === "bitcoin") return a.hauteur - b.hauteur;
-  return Buffer.compare(encoderAttestation(a), encoderAttestation(b));
+  const etiquette = (x) => (x.genre === "bitcoin" ? ETIQUETTE_BITCOIN : x.genre === "en_attente" ? ETIQUETTE_EN_ATTENTE : x.etiquette);
+  const c = Buffer.compare(etiquette(a), etiquette(b));
+  if (c !== 0) return c;
+  if (a.genre === "bitcoin") return a.hauteur - b.hauteur;
+  if (a.genre === "en_attente") return a.uri < b.uri ? -1 : a.uri > b.uri ? 1 : 0;
+  return Buffer.compare(a.charge, b.charge);
 }
 
 /** Fichier .ots complet : en-tête, version 01, opération 08, empreinte, arbre. */

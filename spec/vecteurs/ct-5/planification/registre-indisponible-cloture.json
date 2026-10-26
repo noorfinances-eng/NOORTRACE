@@ -1,0 +1,2928 @@
+{
+  "version": 0,
+  "id": "registre-indisponible-cloture",
+  "description": "Journal des vecteurs, période 1 (un point par minute) ; le registre n'inclut plus rien à partir de l'ancre du point de 09:13 (inclusion_alert_s porté à 1800 s pour raccourcir la trace). L'ancre du point de 09:32 attend la clé (a_envoyer) puis est remplacée par celle du point de clôture (EX-9.5, rattrapage). À la clôture, le jeton de la période attend l'inclusion de son ancre ; squat_wait_s après la clôture, le point de clôture (tree_size 9, aucune échéance ne l'a sélectionné) reçoit un jeton_point de repli auprès du prestataire des points (EX-4.2, EX-8.4 règle 2), envoyé squat_wait_s plus tard avec ordre_ancres_non_respecte, ce qui borne la date du dernier intervalle. Le registre revient à 10:20 : ancre de la période, jeton qualifié de la clôture, puis ancre du point de clôture.",
+  "config": {
+    "checkpoint_interval_s": 60,
+    "rfc3161": {
+      "providers": [
+        {
+          "id": "qtsa-principal",
+          "role": "principal",
+          "policy_oid": null,
+          "qualified": true,
+          "min_interval_ms": 0,
+          "request_timeout_ms": 10000
+        },
+        {
+          "id": "qtsa-secours",
+          "role": "secours",
+          "policy_oid": null,
+          "qualified": true,
+          "min_interval_ms": 0,
+          "request_timeout_ms": 10000
+        },
+        {
+          "id": "tsa-interne",
+          "role": "interne",
+          "policy_oid": "1.3.6.1.4.1.99999.1.1",
+          "qualified": false,
+          "min_interval_ms": 0,
+          "request_timeout_ms": 5000
+        }
+      ],
+      "manifest": {
+        "fallback_after_s": 300
+      },
+      "checkpoints": {
+        "interval_s": 300,
+        "provider_role": "interne",
+        "fallback_after_s": 120,
+        "countersign_idle": false
+      },
+      "freshness": {
+        "max_response_delay_s": 60,
+        "clock_tolerance_s": 120
+      },
+      "retry": {
+        "initial_ms": 5000,
+        "factor": 2,
+        "max_ms": 300000,
+        "jitter_ms": 250
+      }
+    },
+    "registry": {
+      "checkpoints": "nouveaux_evenements",
+      "squat_wait_s": 5,
+      "inclusion_alert_s": 1800
+    },
+    "opentimestamps": {
+      "enabled": true,
+      "calendars": [
+        "https://alice.btc.calendar.opentimestamps.org",
+        "https://bob.btc.calendar.opentimestamps.org"
+      ],
+      "min_responses": 2,
+      "timeout_ms": 5000,
+      "checkpoint": "aucun",
+      "upgrade": {
+        "first_after_s": 21600,
+        "interval_s": 1800,
+        "give_up_after_s": 1209600
+      }
+    },
+    "queue": {
+      "max_pending": 100000,
+      "anchor_pending_alert_s": 7200
+    }
+  },
+  "jitter_ms": [],
+  "queue_before": [],
+  "inputs": [
+    {
+      "t": "2026-11-05T08:59:30.000Z",
+      "type": "demarrage",
+      "data": {}
+    },
+    {
+      "t": "2026-11-05T09:00:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0xc69b7c56c709e31911a286ecd629482c37a30f488b220a0fe50deffff22331aa",
+        "checkpoint_ts": "2026-11-05T09:00:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:01:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0x834ae6808ef373f4e117dedeb882a505c656454213ab42f0551f936b5efbd89d",
+        "checkpoint_ts": "2026-11-05T09:01:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:02:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0xa2f67f15b446644f53b6556da498bf09790a7c0019acb73efa2c477a0e2ff5e3",
+        "checkpoint_ts": "2026-11-05T09:02:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:03:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0xb1652372ce5b680a1fcd25f6fe6098907100eb3164e536a86b355f109bee57a5",
+        "checkpoint_ts": "2026-11-05T09:03:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:04:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0xbc369437e8f0aa9b9f5dcde13427fe3d1edb15b40e6b0b5f95ac9eee7be18073",
+        "checkpoint_ts": "2026-11-05T09:04:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:05:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0x0298d9fdd094ee152a306f8117c91dae8bf5f00d78742d90e729396e2adfa5f9",
+        "checkpoint_ts": "2026-11-05T09:05:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:06:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0x8bc779e62783a8c27c7112433daa2e3f18258cca4f0ed2fe1d030437dce04dd2",
+        "checkpoint_ts": "2026-11-05T09:06:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:07:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0xd0faed6e4cb8146c299adee8dc805ea7610225deb5d82cae524098627b0d31f9",
+        "checkpoint_ts": "2026-11-05T09:07:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:08:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0x5b1ffc165548bc7dcb5d4b1fca5bfd79b71ab5ef09e6430a0569e85c10856a89",
+        "checkpoint_ts": "2026-11-05T09:08:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:09:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0x74f94fec9ef0097320ebccdbe957e3ed4e41170a07b5126c6c8edbc4078be9c3",
+        "checkpoint_ts": "2026-11-05T09:09:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:10:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0xb1adee6da1fb15e46331fe888a830787504b7e7a58b4721166949c088c54d7b2",
+        "checkpoint_ts": "2026-11-05T09:10:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:11:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0xd90332b1d22b26a08a885effc48f97efb84ab87ffe6886c50a6981220114b3b0",
+        "checkpoint_ts": "2026-11-05T09:11:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:12:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 0,
+        "checkpoint_hash": "0xb0a6658b2b6cc64dd2fb172f1984d3cc4bdd9b05ee92c0b061274d2f1a4d634f",
+        "checkpoint_ts": "2026-11-05T09:12:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:13:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+        "checkpoint_ts": "2026-11-05T09:13:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:14:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x52e9187b951455f93795472f48cb02df872f96e7c39f7621549cddcbdc958e02",
+        "checkpoint_ts": "2026-11-05T09:14:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+        "checkpoint_ts": "2026-11-05T09:15:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:02.000Z",
+      "type": "reponse_rfc3161",
+      "data": {
+        "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+        "attempt": 1,
+        "transport": "reponse",
+        "http_status": 200,
+        "pki_status": 0,
+        "failure_info": null,
+        "retry_after_s": null,
+        "nonce_in_response": "0x8b4eab22d904e891",
+        "imprint_matches": true,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ],
+        "gen_time": "2026-11-05T09:15:01Z",
+        "accuracy_s": 1,
+        "token_sha256": "0xc428f2ee9a2be7444280b7ba1f1809cd9763dca27e5109d63420295e423a5a2a",
+        "token_size": 2104
+      }
+    },
+    {
+      "t": "2026-11-05T09:16:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x9f54c3d1e5dd4c64faf5e07a3239c2c10805bc524423831d263a4326cc458774",
+        "checkpoint_ts": "2026-11-05T09:16:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:17:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0xf0406f425233bd2ff89586bb42d1998e5abce3cae1b2bbcbd0ce73b231314119",
+        "checkpoint_ts": "2026-11-05T09:17:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:18:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x4720663dc90e25219aae3f1bda77004e1fb4b3f234a9b38592195bc1aac1bc1c",
+        "checkpoint_ts": "2026-11-05T09:18:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:19:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x9d32043ecbcba723f0291b3ed76e663da0eafbdc94095dc9b68e1a1c4566add5",
+        "checkpoint_ts": "2026-11-05T09:19:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:20:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x8d13225a53a1e9e9d854bd46456a98d2f62ef8f90c6240769e46b894a1ca0b32",
+        "checkpoint_ts": "2026-11-05T09:20:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:21:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x98d44b086b1a85837a3a7fac60adca7a0cb9188b457ac68abf21da75acbd6563",
+        "checkpoint_ts": "2026-11-05T09:21:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:22:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x63a0966239f248f3b736cdc390e9063087a633ac2360575ea44a6c9ea770e6bb",
+        "checkpoint_ts": "2026-11-05T09:22:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:23:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x44383f3d112b2496f8a350b1d89339bf6443b1d3e7af710cf4f924b9cb880210",
+        "checkpoint_ts": "2026-11-05T09:23:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:24:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0xc9cf440afb5771657c469d5620adb9089215290ec818e866787f25328ca1920a",
+        "checkpoint_ts": "2026-11-05T09:24:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:25:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x97646354c6d1ebfd7b50b5ae6521d7fb6f8b638bf70b5fa31c199288b05fe776",
+        "checkpoint_ts": "2026-11-05T09:25:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:26:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0xeb785ca103d9d8c98fde215b52e29d311126578de0fe762ccea9effa972f7dba",
+        "checkpoint_ts": "2026-11-05T09:26:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:27:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x5cfdb495ab6762f9d543c286a2acb271e357e2d14a52bfe65fbb6b5773c62fc2",
+        "checkpoint_ts": "2026-11-05T09:27:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:28:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0xc2e340d930895c09ff5e29cc9543b7d24d17236353a0634f9b8d0673b5d887cb",
+        "checkpoint_ts": "2026-11-05T09:28:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:29:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0xd41b76e5df5dcc0a447518642d4fa0f6783a9b0abaf1e64a5f8861311035187d",
+        "checkpoint_ts": "2026-11-05T09:29:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:30:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x99c6e24c9630867061fb6bf9bc3198e9d75e7d7a0e589a2ee4f2d5cfc444ebc0",
+        "checkpoint_ts": "2026-11-05T09:30:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:31:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 5,
+        "checkpoint_hash": "0x2736575e328f93f4ef12f7c5d398386884648258dab3fb7d8d9ce0b196ee62cd",
+        "checkpoint_ts": "2026-11-05T09:31:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:32:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "checkpoint_ts": "2026-11-05T09:32:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:33:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x35136dce42ec8961db91d2ce8a3ca0d7a06caacdabb4d1b56ead1710b9819953",
+        "checkpoint_ts": "2026-11-05T09:33:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:34:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x19b7e40f165e89e37b16edf4fd4ba5a9edd35eada7aa8ef8b9b5f908acb1967b",
+        "checkpoint_ts": "2026-11-05T09:34:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+        "checkpoint_ts": "2026-11-05T09:35:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:02.000Z",
+      "type": "reponse_rfc3161",
+      "data": {
+        "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+        "attempt": 1,
+        "transport": "reponse",
+        "http_status": 200,
+        "pki_status": 0,
+        "failure_info": null,
+        "retry_after_s": null,
+        "nonce_in_response": "0x10265f56198c8bc5",
+        "imprint_matches": true,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ],
+        "gen_time": "2026-11-05T09:35:01Z",
+        "accuracy_s": 1,
+        "token_sha256": "0x5d1d24562a372a83277305897704fef0c0c6efe0b92024f8b7467025c55b6d7b",
+        "token_size": 2104
+      }
+    },
+    {
+      "t": "2026-11-05T09:36:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x618c68526941d0ab6613975387f24ca9a3446da7adf05bdb03558865388f3b16",
+        "checkpoint_ts": "2026-11-05T09:36:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:37:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x78b5f92ce598b35f4c9bf9d76300b0cb889c1a5e11a45328364ccede0becab12",
+        "checkpoint_ts": "2026-11-05T09:37:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:38:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xbfd1c5836d145fb54ba1c1b7b65599d85357514cdba5eb4b5bd3c1f58761ae8c",
+        "checkpoint_ts": "2026-11-05T09:38:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:39:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x505be3eff126f0b794e26cca7140bac5464cee8a72dd5dece883f671baff27c1",
+        "checkpoint_ts": "2026-11-05T09:39:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:40:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xf4d7ea371540dcbba60b9e02ecd41aabd1d40506e274fd8e18236a017ed24d78",
+        "checkpoint_ts": "2026-11-05T09:40:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:41:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xe62c44628873ac0ad7f11cf309f2e5b908da7ce2b3d8140cc1f28a7cf4338971",
+        "checkpoint_ts": "2026-11-05T09:41:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:42:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xb061034f235244be63884aec3752ca93f44193d11631e672caadeb2b5270fdd9",
+        "checkpoint_ts": "2026-11-05T09:42:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:43:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x7b3f0b78c50229de428e362d873c3918b1d328ecf030c3ce923b481b294e56f3",
+        "checkpoint_ts": "2026-11-05T09:43:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:44:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x08683cc31b118914a6c5db2df2d65edd368816aa1e2766f9f95b91f443c8dc47",
+        "checkpoint_ts": "2026-11-05T09:44:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:45:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xd485bb554d9caa5dbb48177f399c465a2d58921727a9491287b8462d296a45de",
+        "checkpoint_ts": "2026-11-05T09:45:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:46:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xf2b265e0da6ae03f4075c5bb6a726d35fa8a93d7682f453f7fe73cd1e0785dae",
+        "checkpoint_ts": "2026-11-05T09:46:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:47:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x77dc6117e4adcc6e0f3e9c4992de64f90df2948e164a7094b9a67d0d8201c18b",
+        "checkpoint_ts": "2026-11-05T09:47:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:48:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x6832564314ca417ace729a589d4e829fd9e1af006ae6901b781d48887a485228",
+        "checkpoint_ts": "2026-11-05T09:48:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:49:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xfb8aecc933d0636e02c14c575b11c730364e08001dfab71bd66c79b31aa9b1fe",
+        "checkpoint_ts": "2026-11-05T09:49:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:50:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x5a8bc7076ae019c69a1b2526d6485cd374592e9296439f9eaedc86b62bccd066",
+        "checkpoint_ts": "2026-11-05T09:50:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:51:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x852ccf21cb9b150ed71be454fba683514fbb18e83ca3972c1fcb280be78c80f3",
+        "checkpoint_ts": "2026-11-05T09:51:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:52:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x81846e4d61cf508ab779373e7c135f7595b334508dd633ce4651613b769497de",
+        "checkpoint_ts": "2026-11-05T09:52:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:53:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x2ddc333a094bd125231ae10d191e167ced735a64d5f2437a75e502426c2cde6c",
+        "checkpoint_ts": "2026-11-05T09:53:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:54:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x5b5044bc97bad9ca703ebacba1a94502d271095d58e0c5ceab4bdcc85a337441",
+        "checkpoint_ts": "2026-11-05T09:54:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:55:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x428945bea203c8e76962d7fbe7e5945ce41753a260194069af79740ababc88ee",
+        "checkpoint_ts": "2026-11-05T09:55:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:56:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xc3961c107300e1dfc79ed7cba8f5e1dbce65f816a351517a630633a6ee4782a0",
+        "checkpoint_ts": "2026-11-05T09:56:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:57:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0xa190dcd75e59dc440a5b1b5546fb70c2a2354cebe9757448393784c6878820c4",
+        "checkpoint_ts": "2026-11-05T09:57:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:58:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x7b9398d306687b4babd9121dab74e3690b997b3deaf04d2e2d2d1dd03e6c3947",
+        "checkpoint_ts": "2026-11-05T09:58:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:59:00.000Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 8,
+        "checkpoint_hash": "0x88ff909d9c3f5d93965660aa138fae01ef2f7fae0db281e19e70ce35381011d7",
+        "checkpoint_ts": "2026-11-05T09:59:00.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "type": "point_produit",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "tree_size": 9,
+        "checkpoint_hash": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+        "checkpoint_ts": "2026-11-05T10:00:00.300Z"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "type": "periode_close",
+      "data": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "period_hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "generated_at": "2026-11-05T10:00:00.300Z"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:01.000Z",
+      "type": "reponse_ots",
+      "data": {
+        "request_id": "ots_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "calendars_answered": 2,
+        "attestation": "en_attente",
+        "proof_sha256": "0xca13b040ec3090109fecf4f667335dacfa35723176dc4756b418d17b9d54b5dc",
+        "proof_size": 233
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:12.000Z",
+      "type": "reponse_rfc3161",
+      "data": {
+        "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+        "attempt": 1,
+        "transport": "reponse",
+        "http_status": 200,
+        "pki_status": 0,
+        "failure_info": null,
+        "retry_after_s": null,
+        "nonce_in_response": "0x5dd6ca45eb083424",
+        "imprint_matches": true,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ],
+        "gen_time": "2026-11-05T10:00:11Z",
+        "accuracy_s": 1,
+        "token_sha256": "0x666d1872c1f8c142a0b3a32c7a399ac16a902b554b89ecad13a667a666e3b466",
+        "token_size": 2104
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:00.000Z",
+      "type": "inclusion_registre",
+      "data": {
+        "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+        "block_number": 30013,
+        "capture_sha256": "0xe6923a14c31d7b64aabaa67e7dcb099ca48e20ddb886153e551ba5cbcd8701cc"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "type": "inclusion_registre",
+      "data": {
+        "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "block_number": 31201,
+        "capture_sha256": "0x8d5735744103133677b5557a957e7fb33eb4e3839773630a2ce1e4a6cd180ecc"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:04.000Z",
+      "type": "reponse_rfc3161",
+      "data": {
+        "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "attempt": 1,
+        "transport": "reponse",
+        "http_status": 200,
+        "pki_status": 0,
+        "failure_info": null,
+        "retry_after_s": null,
+        "nonce_in_response": "0x29ccc3c9db80e87b",
+        "imprint_matches": true,
+        "checks_passed": [
+          "T-1",
+          "T-2",
+          "T-3",
+          "T-4",
+          "T-5",
+          "T-6",
+          "T-7",
+          "T-8",
+          "T-9"
+        ],
+        "gen_time": "2026-11-05T10:20:03Z",
+        "accuracy_s": 1,
+        "token_sha256": "0x60c908cc1952d1d343c7b63ce1f4640bfd8926b1fc9e5003cd13d49747a11fbe",
+        "token_size": 3082
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:06.000Z",
+      "type": "inclusion_registre",
+      "data": {
+        "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+        "block_number": 31203,
+        "capture_sha256": "0x3ef639fa43a2ef589be55ea7a69754256fec06eb524e490b8ae8d979cab6ed28"
+      }
+    },
+    {
+      "t": "2026-11-05T10:21:00.000Z",
+      "type": "arret",
+      "data": {}
+    }
+  ],
+  "expected": [
+    {
+      "t": "2026-11-05T08:59:30.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "anchoring_started",
+        "queue_entries": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:00:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:01:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:02:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:03:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:04:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:05:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 1,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:05:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:05:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 1,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:05:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          1
+        ],
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:06:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:07:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:08:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:09:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:10:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 2,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:10:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:10:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 2,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:10:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          2
+        ],
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:11:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:12:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 0
+      }
+    },
+    {
+      "t": "2026-11-05T09:13:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-05T09:13:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T09:13:00.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      }
+    },
+    {
+      "t": "2026-11-05T09:14:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 3,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:00.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "detail": {
+        "k": 3,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:00.000Z",
+      "action": "envoyer_rfc3161",
+      "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "detail": {
+        "provider": "tsa-interne",
+        "attempt": 1,
+        "digest": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+        "nonce": "0x8b4eab22d904e891",
+        "policy_oid": "1.3.6.1.4.1.99999.1.1",
+        "request_sha256": "0xe0e39b4d7856ae1a42526f827e34a565500f81200d276991ca9c45429b91e1ff",
+        "request_size": 82
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:02.000Z",
+      "action": "stocker",
+      "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "detail": {
+        "sha256": "0xc428f2ee9a2be7444280b7ba1f1809cd9763dca27e5109d63420295e423a5a2a",
+        "size": 2104,
+        "bound": "2026-11-05T09:15:02.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:02.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:02.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "detail": {
+        "k": 3,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-05T09:15:02.000Z",
+      "action": "journaliser",
+      "request_id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "detail": {
+        "event": "checkpoint_countersigned",
+        "tree_size": 5,
+        "provider": "tsa-interne",
+        "deadlines": [
+          3
+        ],
+        "d_jeton_s": 2,
+        "d_point_s": 0,
+        "d_attente_s": 0,
+        "d_releve_s": 0,
+        "d_tsa_s": 2
+      }
+    },
+    {
+      "t": "2026-11-05T09:16:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:17:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:18:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:19:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:20:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 4,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:20:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:20:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 4,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:20:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          4
+        ],
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:21:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:22:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:23:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:24:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:25:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 5,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:25:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:25:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 5,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:25:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          5
+        ],
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:26:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:27:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:28:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:29:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:30:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 6,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:30:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:30:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 6,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:30:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          6
+        ],
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:31:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 5
+      }
+    },
+    {
+      "t": "2026-11-05T09:32:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-05T09:32:00.000Z",
+      "action": "programmer",
+      "request_id": "ancre_registre_point:0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "detail": {
+        "next_at": "2026-11-05T09:32:00.000Z",
+        "reason": "attente_nonce"
+      }
+    },
+    {
+      "t": "2026-11-05T09:33:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:34:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 7,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:00.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "detail": {
+        "k": 7,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:00.000Z",
+      "action": "envoyer_rfc3161",
+      "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "detail": {
+        "provider": "tsa-interne",
+        "attempt": 1,
+        "digest": "0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+        "nonce": "0x10265f56198c8bc5",
+        "policy_oid": "1.3.6.1.4.1.99999.1.1",
+        "request_sha256": "0xf6589f5e20222fc267305250155d9866a66622b2629d3967fc05cf39511aa723",
+        "request_size": 81
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:02.000Z",
+      "action": "stocker",
+      "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "detail": {
+        "sha256": "0x5d1d24562a372a83277305897704fef0c0c6efe0b92024f8b7467025c55b6d7b",
+        "size": 2104,
+        "bound": "2026-11-05T09:35:02.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:02.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:02.000Z",
+      "action": "echeance",
+      "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "detail": {
+        "k": 7,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-05T09:35:02.000Z",
+      "action": "journaliser",
+      "request_id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "detail": {
+        "event": "checkpoint_countersigned",
+        "tree_size": 8,
+        "provider": "tsa-interne",
+        "deadlines": [
+          7
+        ],
+        "d_jeton_s": 2,
+        "d_point_s": 0,
+        "d_attente_s": 0,
+        "d_releve_s": 0,
+        "d_tsa_s": 2
+      }
+    },
+    {
+      "t": "2026-11-05T09:36:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:37:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:38:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:39:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:40:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 8,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:40:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:40:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 8,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:40:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          8
+        ],
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:41:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:42:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:43:00.000Z",
+      "action": "alerter",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "code": "inclusion_late",
+        "severity": "mineure"
+      }
+    },
+    {
+      "t": "2026-11-05T09:43:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T09:43:00.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      }
+    },
+    {
+      "t": "2026-11-05T09:43:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:44:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:45:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 9,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:45:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:45:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 9,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:45:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          9
+        ],
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:46:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:47:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:48:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:49:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:50:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 10,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:50:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:50:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 10,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:50:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          10
+        ],
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:51:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:52:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:53:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:54:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:55:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 11,
+        "state": "ouverte"
+      }
+    },
+    {
+      "t": "2026-11-05T09:55:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:55:00.000Z",
+      "action": "echeance",
+      "request_id": null,
+      "detail": {
+        "k": 11,
+        "state": "sans_objet"
+      }
+    },
+    {
+      "t": "2026-11-05T09:55:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "deadline_sans_objet",
+        "reason": "aucun_nouvel_evenement",
+        "deadlines": [
+          11
+        ],
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:56:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:57:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:58:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T09:59:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "checkpoint_not_anchored",
+        "reason": "aucun_nouvel_evenement",
+        "tree_size": 8
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "remplacer",
+      "request_id": "ancre_registre_point:0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "detail": {
+        "replaced_by": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "detail": {
+        "state": "remplacee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "journaliser",
+      "request_id": "ancre_registre_point:0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "detail": {
+        "event": "anchor_replaced",
+        "replaced_by": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "programmer",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "next_at": "2026-11-05T10:00:00.300Z",
+        "reason": "attente_nonce"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "attente_registre"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "ecrire_file",
+      "request_id": "ots_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "a_envoyer"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "programmer",
+      "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "next_at": "2026-11-05T10:00:00.300Z",
+        "reason": "attente_nonce"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "programmer",
+      "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "next_at": "2026-11-05T10:30:00.300Z",
+        "reason": "attente_registre"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "ecrire_file",
+      "request_id": "ots_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:00.300Z",
+      "action": "soumettre_ots",
+      "request_id": "ots_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "nonce": "0x5a33ed527a4088ec05bfbc5927c272a8",
+        "calendars": [
+          "https://alice.btc.calendar.opentimestamps.org",
+          "https://bob.btc.calendar.opentimestamps.org"
+        ]
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:01.000Z",
+      "action": "stocker",
+      "request_id": "ots_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "sha256": "0xca13b040ec3090109fecf4f667335dacfa35723176dc4756b418d17b9d54b5dc",
+        "size": 233,
+        "bound": null
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:01.000Z",
+      "action": "ecrire_file",
+      "request_id": "ots_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "en_attente"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:01.000Z",
+      "action": "programmer",
+      "request_id": "ots_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "next_at": "2026-11-05T16:00:01.000Z",
+        "reason": "mise_a_niveau"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:05.300Z",
+      "action": "journaliser",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "event": "checkpoint_closing_fallback",
+        "tree_size": 9,
+        "period_request": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "squat_wait_s": 5
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:05.300Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "state": "attente_registre"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:05.300Z",
+      "action": "programmer",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "next_at": "2026-11-05T10:00:10.300Z",
+        "reason": "attente_registre"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:10.300Z",
+      "action": "journaliser",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "event": "ordre_ancres_non_respecte",
+        "tree_size": 9,
+        "squat_wait_s": 5
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:10.300Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:10.300Z",
+      "action": "envoyer_rfc3161",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "provider": "tsa-interne",
+        "attempt": 1,
+        "digest": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+        "nonce": "0x5dd6ca45eb083424",
+        "policy_oid": "1.3.6.1.4.1.99999.1.1",
+        "request_sha256": "0x367ffc934f53dba246deccd874a731cb16c34aed9d4c047fe58614c0c551dd7c",
+        "request_size": 81
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:12.000Z",
+      "action": "stocker",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "sha256": "0x666d1872c1f8c142a0b3a32c7a399ac16a902b554b89ecad13a667a666e3b466",
+        "size": 2104,
+        "bound": "2026-11-05T10:00:12.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:12.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-05T10:00:12.000Z",
+      "action": "journaliser",
+      "request_id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "event": "checkpoint_countersigned",
+        "tree_size": 9,
+        "provider": "tsa-interne",
+        "deadlines": [],
+        "d_jeton_s": 12,
+        "d_point_s": 0,
+        "d_attente_s": 10,
+        "d_releve_s": 0,
+        "d_tsa_s": 2,
+        "closing_fallback": true
+      }
+    },
+    {
+      "t": "2026-11-05T10:13:00.000Z",
+      "action": "alerter",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "code": "inclusion_late",
+        "severity": "majeure"
+      }
+    },
+    {
+      "t": "2026-11-05T10:13:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:13:00.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:00.000Z",
+      "action": "stocker",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "sha256": "0xe6923a14c31d7b64aabaa67e7dcb099ca48e20ddb886153e551ba5cbcd8701cc",
+        "size": 4096,
+        "bound": null
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:00.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:00.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "fingerprint": "0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6",
+        "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "stocker",
+      "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "sha256": "0x8d5735744103133677b5557a957e7fb33eb4e3839773630a2ce1e4a6cd180ecc",
+        "size": 4096,
+        "bound": null
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "envoyer_rfc3161",
+      "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "provider": "qtsa-principal",
+        "attempt": 1,
+        "digest": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "nonce": "0x29ccc3c9db80e87b",
+        "policy_oid": null,
+        "request_sha256": "0xdc30519d2596c2df5a87c7f0b6ddde6b1dea95d42737424200532c73be747fd9",
+        "request_size": 69
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "state": "envoyee"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:02.000Z",
+      "action": "envoyer_registre",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+        "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:04.000Z",
+      "action": "stocker",
+      "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "sha256": "0x60c908cc1952d1d343c7b63ce1f4640bfd8926b1fc9e5003cd13d49747a11fbe",
+        "size": 3082,
+        "bound": "2026-11-05T10:20:04.000Z"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:04.000Z",
+      "action": "ecrire_file",
+      "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:04.000Z",
+      "action": "echeance",
+      "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "k": 12,
+        "state": "satisfaite"
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:04.000Z",
+      "action": "journaliser",
+      "request_id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "detail": {
+        "event": "period_timestamped",
+        "provider": "qtsa-principal",
+        "d_jeton_s": 1204
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:06.000Z",
+      "action": "stocker",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "sha256": "0x3ef639fa43a2ef589be55ea7a69754256fec06eb524e490b8ae8d979cab6ed28",
+        "size": 4096,
+        "bound": null
+      }
+    },
+    {
+      "t": "2026-11-05T10:20:06.000Z",
+      "action": "ecrire_file",
+      "request_id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "detail": {
+        "state": "obtenue"
+      }
+    },
+    {
+      "t": "2026-11-05T10:21:00.000Z",
+      "action": "journaliser",
+      "request_id": null,
+      "detail": {
+        "event": "anchoring_stopped",
+        "queue_entries": 9
+      }
+    }
+  ],
+  "queue_after": [
+    {
+      "version": 0,
+      "id": "ancre_registre_point:0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+      "kind": "ancre_registre_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+        "tree_size": 5,
+        "declared_at": "2026-11-05T09:13:00.000Z"
+      },
+      "deadlines": [],
+      "state": "obtenue",
+      "created_at": "2026-11-05T09:13:00.000Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": null,
+          "started_at": "2026-11-05T09:13:00.000Z",
+          "nonce": null,
+          "correlation_id": "ancre_registre_point:c505ad36f41bf04f:1",
+          "outcome": "echec_transitoire",
+          "error_code": "recu_absent",
+          "http_status": null,
+          "pki_status": null,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": "2026-11-05T09:43:00.000Z",
+          "detail": "aucun recu en 1800 s"
+        },
+        {
+          "n": 2,
+          "provider": null,
+          "started_at": "2026-11-05T09:43:00.000Z",
+          "nonce": null,
+          "correlation_id": "ancre_registre_point:c505ad36f41bf04f:2",
+          "outcome": "echec_transitoire",
+          "error_code": "recu_absent",
+          "http_status": null,
+          "pki_status": null,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": "2026-11-05T10:13:00.000Z",
+          "detail": "aucun recu en 1800 s"
+        },
+        {
+          "n": 3,
+          "provider": null,
+          "started_at": "2026-11-05T10:13:00.000Z",
+          "nonce": null,
+          "correlation_id": "ancre_registre_point:c505ad36f41bf04f:3",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": null,
+          "pki_status": null,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "ancre incluse au bloc 30013"
+        }
+      ],
+      "result": {
+        "sha256": "0xe6923a14c31d7b64aabaa67e7dcb099ca48e20ddb886153e551ba5cbcd8701cc",
+        "size": 4096,
+        "provider": null,
+        "obtained_at": "2026-11-05T10:20:00.000Z",
+        "bound": null
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "jeton_point:0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+      "kind": "jeton_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+        "tree_size": 5,
+        "declared_at": "2026-11-05T09:15:00.000Z"
+      },
+      "deadlines": [
+        3
+      ],
+      "state": "obtenue",
+      "created_at": "2026-11-05T09:15:00.000Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": "tsa-interne",
+          "started_at": "2026-11-05T09:15:00.000Z",
+          "nonce": "0x8b4eab22d904e891",
+          "correlation_id": "jeton_point:20d5c60573019c58:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": 200,
+          "pki_status": 0,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "granted ; T-1 a T-9 reussies"
+        }
+      ],
+      "result": {
+        "sha256": "0xc428f2ee9a2be7444280b7ba1f1809cd9763dca27e5109d63420295e423a5a2a",
+        "size": 2104,
+        "provider": "tsa-interne",
+        "obtained_at": "2026-11-05T09:15:02.000Z",
+        "bound": "2026-11-05T09:15:02.000Z"
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "ancre_registre_point:0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "kind": "ancre_registre_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "tree_size": 8,
+        "declared_at": "2026-11-05T09:32:00.000Z"
+      },
+      "deadlines": [],
+      "state": "remplacee",
+      "created_at": "2026-11-05T09:32:00.000Z",
+      "due_at": null,
+      "attempts": [],
+      "result": null,
+      "replaced_by": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe"
+    },
+    {
+      "version": 0,
+      "id": "jeton_point:0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+      "kind": "jeton_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+        "tree_size": 8,
+        "declared_at": "2026-11-05T09:35:00.000Z"
+      },
+      "deadlines": [
+        7
+      ],
+      "state": "obtenue",
+      "created_at": "2026-11-05T09:35:00.000Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": "tsa-interne",
+          "started_at": "2026-11-05T09:35:00.000Z",
+          "nonce": "0x10265f56198c8bc5",
+          "correlation_id": "jeton_point:d9520825f33d7f2d:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": 200,
+          "pki_status": 0,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "granted ; T-1 a T-9 reussies"
+        }
+      ],
+      "result": {
+        "sha256": "0x5d1d24562a372a83277305897704fef0c0c6efe0b92024f8b7467025c55b6d7b",
+        "size": 2104,
+        "provider": "tsa-interne",
+        "obtained_at": "2026-11-05T09:35:02.000Z",
+        "bound": "2026-11-05T09:35:02.000Z"
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "ancre_registre_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "kind": "ancre_registre_periode",
+      "subject": {
+        "kind": "periode",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "tree_size": null,
+        "declared_at": "2026-11-05T10:00:00.300Z"
+      },
+      "deadlines": [],
+      "state": "obtenue",
+      "created_at": "2026-11-05T10:00:00.300Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": null,
+          "started_at": "2026-11-05T10:20:00.000Z",
+          "nonce": null,
+          "correlation_id": "ancre_registre_periode:ae22426f25529379:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": null,
+          "pki_status": null,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "ancre incluse au bloc 31201"
+        }
+      ],
+      "result": {
+        "sha256": "0x8d5735744103133677b5557a957e7fb33eb4e3839773630a2ce1e4a6cd180ecc",
+        "size": 4096,
+        "provider": null,
+        "obtained_at": "2026-11-05T10:20:02.000Z",
+        "bound": null
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "ancre_registre_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "kind": "ancre_registre_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+        "tree_size": 9,
+        "declared_at": "2026-11-05T10:00:00.300Z"
+      },
+      "deadlines": [],
+      "state": "obtenue",
+      "created_at": "2026-11-05T10:00:00.300Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": null,
+          "started_at": "2026-11-05T10:20:02.000Z",
+          "nonce": null,
+          "correlation_id": "ancre_registre_point:c3240f32131acca5:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": null,
+          "pki_status": null,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "ancre incluse au bloc 31203"
+        }
+      ],
+      "result": {
+        "sha256": "0x3ef639fa43a2ef589be55ea7a69754256fec06eb524e490b8ae8d979cab6ed28",
+        "size": 4096,
+        "provider": null,
+        "obtained_at": "2026-11-05T10:20:06.000Z",
+        "bound": null
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "jeton_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "kind": "jeton_periode",
+      "subject": {
+        "kind": "periode",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "tree_size": null,
+        "declared_at": "2026-11-05T10:00:00.300Z"
+      },
+      "deadlines": [],
+      "state": "obtenue",
+      "created_at": "2026-11-05T10:00:00.300Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": "qtsa-principal",
+          "started_at": "2026-11-05T10:20:02.000Z",
+          "nonce": "0x29ccc3c9db80e87b",
+          "correlation_id": "jeton_periode:ae22426f25529379:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": 200,
+          "pki_status": 0,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "granted ; T-1 a T-9 reussies"
+        }
+      ],
+      "result": {
+        "sha256": "0x60c908cc1952d1d343c7b63ce1f4640bfd8926b1fc9e5003cd13d49747a11fbe",
+        "size": 3082,
+        "provider": "qtsa-principal",
+        "obtained_at": "2026-11-05T10:20:04.000Z",
+        "bound": "2026-11-05T10:20:04.000Z"
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "ots_periode:0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "kind": "ots_periode",
+      "subject": {
+        "kind": "periode",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+        "tree_size": null,
+        "declared_at": "2026-11-05T10:00:00.300Z"
+      },
+      "deadlines": [],
+      "state": "en_attente",
+      "created_at": "2026-11-05T10:00:00.300Z",
+      "due_at": "2026-11-05T16:00:01.000Z",
+      "attempts": [
+        {
+          "n": 1,
+          "provider": null,
+          "started_at": "2026-11-05T10:00:00.300Z",
+          "nonce": null,
+          "correlation_id": "ots_periode:ae22426f25529379:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": null,
+          "pki_status": null,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": "2026-11-05T16:00:01.000Z",
+          "detail": "2 calendriers ; attestation en attente"
+        }
+      ],
+      "result": {
+        "sha256": "0xca13b040ec3090109fecf4f667335dacfa35723176dc4756b418d17b9d54b5dc",
+        "size": 233,
+        "provider": null,
+        "obtained_at": "2026-11-05T10:00:01.000Z",
+        "bound": null
+      },
+      "replaced_by": null
+    },
+    {
+      "version": 0,
+      "id": "jeton_point:0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+      "kind": "jeton_point",
+      "subject": {
+        "kind": "point",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "period_start": 1793869200,
+        "hash": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+        "tree_size": 9,
+        "declared_at": "2026-11-05T10:00:00.300Z"
+      },
+      "deadlines": [],
+      "state": "obtenue",
+      "created_at": "2026-11-05T10:00:05.300Z",
+      "due_at": null,
+      "attempts": [
+        {
+          "n": 1,
+          "provider": "tsa-interne",
+          "started_at": "2026-11-05T10:00:10.300Z",
+          "nonce": "0x5dd6ca45eb083424",
+          "correlation_id": "jeton_point:c3240f32131acca5:1",
+          "outcome": "obtenue",
+          "error_code": null,
+          "http_status": 200,
+          "pki_status": 0,
+          "failure_info": null,
+          "retry_after_s": null,
+          "next_at": null,
+          "detail": "granted ; T-1 a T-9 reussies"
+        }
+      ],
+      "result": {
+        "sha256": "0x666d1872c1f8c142a0b3a32c7a399ac16a902b554b89ecad13a667a666e3b466",
+        "size": 2104,
+        "provider": "tsa-interne",
+        "obtained_at": "2026-11-05T10:00:12.000Z",
+        "bound": "2026-11-05T10:00:12.000Z"
+      },
+      "replaced_by": null
+    }
+  ]
+}

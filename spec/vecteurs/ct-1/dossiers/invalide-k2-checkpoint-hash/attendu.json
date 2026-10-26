@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "K-2",
+  "controles_en_echec": [
+    "K-2"
+  ],
+  "description": "checkpoint_hash déclaré n'est pas SHA-256(P_K || C_K) du point : l'empreinte que les ancres porteraient n'est pas celle de ce point."
+}

@@ -23,6 +23,9 @@ var (
 	PrefixeSignatureManifeste = []byte("noortrace/signature-manifeste/v0\n")
 	PrefixeApprobation        = []byte("noortrace/approbation/v0\n")
 	PrefixeSignatureRotation  = []byte("noortrace/signature-rotation/v0\n")
+	// Révision 0.3 (§10.6) : point de contrôle.
+	PrefixePoint          = []byte("noortrace/point-de-controle/v0\n")
+	PrefixeSignaturePoint = []byte("noortrace/signature-point-de-controle/v0\n")
 )
 
 // Préfixes de dérivation des clés et nonces de test (§13).

@@ -12,12 +12,12 @@ les décisions ouvertes qu'elle nomme.
 
 | Réf. | Document | État | Clôt |
 |---|---|---|---|
-| CT-1 | [Modèle d'événement et formats](CT-1-evenements-et-formats.md) | version 0.2, en revue pour la porte 1 | décisions ouvertes 1 et 5 |
-| CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.3, en revue pour la porte 1 | décisions 2 et 3 |
+| CT-1 | [Modèle d'événement et formats](CT-1-evenements-et-formats.md) | version 0.3 (révision 0.3 : point de contrôle, preuve de cohérence, partie facultative `points-de-controle.json`), en revue pour la porte 1 | décisions ouvertes 1 et 5 |
+| CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.4 (révision 0.4 : production des points de contrôle, `checkpoint_interval_s`, `anchoring.ancrage`), en revue pour la porte 1 | décisions 2 et 3 |
 | CT-3 | [Approbations](CT-3-approbations.md) | version 0.2, en revue pour la porte 1 | décision 4 |
-| CT-4 | [Registre](CT-4-registre.md) | version 0.2, en revue pour la porte 1 (corrections de la revue appliquées) | — (touche les décisions 6 et 7 sans les clore, CT-4 §13) |
-| CT-5 | Ancrage | à écrire | — |
-| CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.1, en revue pour la porte 1 | — |
+| CT-4 | [Registre](CT-4-registre.md) | version 0.3 (révision 0.3 minimale : libellé de `docType` du point de contrôle, §6.4 ; corrections de la revue appliquées en 0.2), en revue pour la porte 1 | — (touche les décisions 6 et 7 sans les clore, CT-4 §13) |
+| CT-5 | [Ancrage](CT-5-ancrage.md) | version 0.2 (révision 0.2 : corrections de la revue de la version 0.1), en revue pour la porte 1 | — (met en œuvre les points 2 et 3 de la section « Ancrage » de l'architecture et fixe la cadence des ancres des points de contrôle) |
+| CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.2 (révision 0.2 : vérification de la partie `points-de-controle.json`), en revue pour la porte 1 | — |
 | CT-7 | Sécurité et conformité | à écrire | — |
 | CT-8 | Déploiement et exploitation | à écrire | — |
 | CT-9 | Plan de tests | à écrire | — |
@@ -35,7 +35,8 @@ schémas ; ils ne sont pas résolus en ligne.
 |---|---|---|
 | [`evenement-v0.schema.json`](schemas/evenement-v0.schema.json) | Un événement de journal (CT-1 §5) | `voisins`, `approbations` du schéma de dossier |
 | [`manifeste-v0.schema.json`](schemas/manifeste-v0.schema.json) | Un manifeste de période (CT-1 §10) | — |
-| [`dossier-v0.schema.json`](schemas/dossier-v0.schema.json) | L'index `dossier.json` d'un dossier de preuve (CT-1 §11), et dans ses `$defs` les fichiers compagnons `voisins`, `chemin`, `manifeste_sig`, `cles`, `approbations` | — |
+| [`dossier-v0.schema.json`](schemas/dossier-v0.schema.json) | L'index `dossier.json` d'un dossier de preuve (CT-1 §11 ; douze parties, ou treize avec `points_de_controle` depuis CT-1 révision 0.3), et dans ses `$defs` les fichiers compagnons `voisins`, `chemin`, `manifeste_sig`, `cles`, `approbations` et la partie facultative `points_de_controle` (`preuve_coherence`, ancres embarquées) ; il référence le schéma du point par son `$id` | — |
+| [`point-de-controle-v0.schema.json`](schemas/point-de-controle-v0.schema.json) | Un point de contrôle de la période en cours (CT-1 §10.5, révision 0.3) ; l'exemple complet est imprimé en CT-1 §10.5 | `checkpoint` de `$defs/points_de_controle` du schéma de dossier |
 | [`politique-redaction-v0.schema.json`](schemas/politique-redaction-v0.schema.json) | Une politique de rédaction avant hachage (CT-2 §10) ; l'exemple complet `pii-v1` est imprimé en CT-2 §10.9 | `policy.redaction` du schéma de configuration |
 | [`configuration-enregistreur-v0.schema.json`](schemas/configuration-enregistreur-v0.schema.json) | Le document unique de configuration de l'enregistreur (CT-2 §15), dont l'ensemble de politique `policy` ; l'exemple complet est imprimé en CT-2 §15.3 ; il référence les schémas de politique de rédaction et de politique d'approbation | — |
 | [`rapport-verification-v0.schema.json`](schemas/rapport-verification-v0.schema.json) | La sortie JSON du vérificateur (`--json`) : rapport (codes 0, 1, 3) ou rapport d'erreur (code 2) (CT-6 §8.6) | — |
@@ -48,14 +49,18 @@ schémas ; ils ne sont pas résolus en ligne.
 | [`instance-registre-v0.schema.json`](schemas/instance-registre-v0.schema.json) | Le manifeste d'une instance du registre que l'exploitant publie : genèse, identifiants, version de noorcore, jeux de validateurs, frais, contrats et comptes (CT-4 §4.8) ; l'exemple du réseau de développement est imprimé en CT-4 §4.8 | — |
 | [`inscription-client-v0.schema.json`](schemas/inscription-client-v0.schema.json) | Le dossier d'inscription d'un client au registre, demande et état de chaque étape (CT-4 §7) ; l'exemple complet est imprimé en CT-4 §7.10 | — |
 | [`operations-registre-v0.schema.json`](schemas/operations-registre-v0.schema.json) | L'index de capture d'une transaction du registre (CT-4 §9.4), et dans ses `$defs` la demande de signature (`demande_signature`, §7.7), l'envoi d'une transaction (`envoi`), la sortie des outils de référence (`sortie`, §7.2) et les formats des vecteurs de CT-4 (annexe A) | — |
+| [`ancrage-v0.schema.json`](schemas/ancrage-v0.schema.json) | Le document unique de configuration de l'ancrage (CT-5 §4.4) : prestataires RFC 3161 et leur statut qualifié mesurable, cadences, fraîcheur, reprise, registre, OpenTimestamps, file ; l'exemple complet est imprimé en CT-5 §4.4 | — |
+| [`planificateur-ancrage-v0.schema.json`](schemas/planificateur-ancrage-v0.schema.json) | Une trace normative du planificateur d'ancrage (CT-5 §8.10 : projection de la configuration, entrées, actions attendues, file finale), et dans ses `$defs` une demande de la file (`demande`), les cas de coût et de requête et le fichier de famille des vecteurs de CT-5 (annexe A) ; la trace de référence est imprimée en CT-5 §8.10 | — |
 
-Validation d'un fichier avec ajv (les trois schémas doivent être chargés
-ensemble à cause des références croisées) :
+Validation d'un fichier avec ajv (les quatre schémas de CT-1 doivent être
+chargés ensemble à cause des références croisées ; depuis CT-1 révision 0.3,
+le schéma de dossier référence celui du point de contrôle) :
 
 ```bash
 npx --yes ajv-cli@5 validate --spec=draft2020 \
   -s spec/schemas/evenement-v0.schema.json \
   -r spec/schemas/manifeste-v0.schema.json -r spec/schemas/dossier-v0.schema.json \
+  -r spec/schemas/point-de-controle-v0.schema.json \
   -d mon-evenement.json
 ```
 
@@ -106,9 +111,26 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
 ```
 
 Pour un fichier compagnon, le schéma est un `$defs` du schéma de dossier
-(par exemple `…/dossier.schema.json#/$defs/chemin`) ; `scripts/lib/journal.mjs`
-(`validerSchema`) charge les trois schémas et le vérificateur de dossier
-choisit la définition par fichier.
+(par exemple `…/dossier.schema.json#/$defs/chemin`, ou
+`#/$defs/points_de_controle` pour la partie facultative de CT-1 révision 0.3) ;
+`scripts/lib/journal.mjs` (`validerSchema`) charge les quatre schémas et le
+vérificateur de dossier choisit la définition par fichier.
+
+Les deux schémas de CT-5 n'ont aucune référence croisée et se compilent en
+mode strict. Une configuration d'ancrage se valide seule ; une trace du
+planificateur se valide contre la racine de `planificateur-ancrage-v0`, et
+une demande de la file ou un fichier de famille des vecteurs par un schéma
+enveloppe qui désigne `#/$defs/demande` ou `#/$defs/fichier_vecteurs` :
+
+```bash
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s spec/schemas/ancrage-v0.schema.json -d ma-configuration-ancrage.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s spec/schemas/planificateur-ancrage-v0.schema.json -d ma-trace.json
+echo '{"$schema":"https://json-schema.org/draft/2020-12/schema","$ref":"https://noortrace.example/schemas/v0/planificateur-ancrage.schema.json#/$defs/demande"}' > demande.schema.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s demande.schema.json -r spec/schemas/planificateur-ancrage-v0.schema.json -d ma-demande.json
+```
 
 Les trois schémas de CT-4 n'ont aucune référence croisée et se compilent en
 mode strict. Le manifeste d'instance, le dossier d'inscription et l'index de
@@ -144,6 +166,7 @@ approbateurs). Disposition, fixée par CT-1 §13 :
 | `ct-1/merkle/arbres.json` | Arbres de 0, 1, 2, 3, 5, 8, 12 et 1000 feuilles : racine, preuves d'inclusion | égalité, preuves acceptées |
 | `ct-1/manifestes/` | Trois périodes consécutives (dont une vide), `periodHash`, signatures, `anchorFingerprint`, `PeriodMeta`, continuité, un manifeste discontinu | égalité, P-5 |
 | `ct-1/dossiers/` | Deux dossiers valides et au moins un dossier invalide par contrôle de CT-1 §11.4 (§11.5) | `valide` ou liste exacte des contrôles en échec |
+| `ct-1/points-de-controle/`, `ct-1/merkle/coherence.json` (révision 0.3) | Séries complètes des points des trois périodes (`checkpointHash`, signatures, chaînage, preuves de cohérence vers chaque manifeste) et séries invalides nommées par règle ; preuves de cohérence entre les arbres publiés et cas refusés ; dix dossiers de la révision 0.3 (neuf portent la partie `points-de-controle.json`, un la déclare absente ; CT-1 §11.5, §13), dont le point de clôture et le double défaut de K-1 | égalité, acceptation, refus ; les quarante dossiers existants inchangés ; confrontés à `transparency-dev/merkle` v0.0.2 (`vecteurs/ct-5/confrontation/coherence/`) |
 | `ct-1/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, qui recalcule et confronte toutes ces valeurs | zéro discordance (`go run . ..`) |
 
 L'exemple numérique complet de CT-1 (sections 5.5, 6.4, 9.4, 10, 11 et annexes)
@@ -223,6 +246,35 @@ changent pas.
 | `ct-4/capture/` | Les quatre transactions de la période 1 de la capture de CT-6, et des variantes altérées | statuts CP-2 à CP-6 ; parties exportées égales à celles de `ct-6/registre/periode-1/` |
 | `ct-4/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de ceux de `ct-1`, `ct-2` et `ct-3` | zéro discordance (`go run . ..`) |
 
+### CT-5 (`vecteurs/ct-5/`)
+
+Disposition fixée par l'annexe A de [CT-5](CT-5-ancrage.md) (A.1 à A.8,
+EX-A.1 à EX-A.7) : produits par `scripts/vecteurs/generer-ct5.mjs`
+(`npm run vecteurs:ct5`), rejoués à l'identique par `test/ancrage.test.js`
+avec l'implémentation de référence `scripts/lib/ancrage.mjs`, confrontés par
+le vérificateur Go indépendant du module séparé
+`vecteurs/ct-5/verificateur-independant/` (`noortrace-ct5`) et par OpenSSL
+(`openssl ts -query`, `openssl ts -verify`) et `python-opentimestamps`
+(resérialisation identique) ; tout est déterministe (nonces, gigues,
+identifiants de corrélation et instants dérivés d'étiquettes, CT-5 A.2 ;
+constantes dans `constantes.json`). Le générateur, le module Go, les tests et
+la confrontation (`vecteurs/ct-5/confrontation/`, sorties publiées) sont en
+place (CT-5 §14) ; les vecteurs de CT-2, CT-3 et CT-4 ne changent pas, ceux de
+CT-1 (révision 0.3) et de CT-6 (révision 0.2) s'étendent sans modifier un
+fichier existant.
+
+| Répertoire ou fichier | Contenu (CT-5, annexe A) | Résultat attendu |
+|---|---|---|
+| `ct-5/requetes/` | Requêtes `TimeStampReq` DER construites octet pour octet (CT-5 EX-5.1 : SHA-256 à `NULL` explicite, nonce de 64 bits dérivé d'une étiquette, `reqPolicy` facultatif, `certReq` vrai), dont `requete-point-k2.tsq` à laquelle le jeton de CT-1 §11.2 répond ; cas refusés par le constructeur (AN-5, AN-6) | octets exacts ; `openssl ts -query -in -text` |
+| `ct-5/reponses/` | Réponses `TimeStampResp` de l'autorité de test de CT-6 et jetons extraits, valides et invalides (nonce différent ou absent, autre empreinte, politique refusée, rejets `unacceptedPolicy` et `badAlg`, statuts 3 et 5, signature altérée, réponses HTTP représentées, réponses tardives, `genTime` hors tolérance) | issue d'EX-5.13, code d'EX-5.10, classe et attente de reprise (AN-8 à AN-11) ; `openssl ts -verify -queryfile` |
+| `ct-5/ots/` | `point-k2-minimal.ots` (exemple d'EX-6.4), `point-k2-en-attente.ots`, `periode-1-en-attente.ots`, paire de mise à niveau | octets exacts ; O-1 à O-3 réussies, O-7 non exécutée ; resérialisation identique par `python-opentimestamps` (AN-17 à AN-19) |
+| `ct-5/planification/` | Les vingt et une traces normatives de CT-5 §8.10 et annexe A.3 (heure nominale, prestataire injoignable, refus permanent et relève, réponse tardive, horloge suspecte, échéance remplacée, registre indisponible, redémarrage, mise à niveau OpenTimestamps, preuve de vie, file pleine, `min_interval_ms` ; révision 0.2 : refus puis preuve de vie, avec et sans redémarrage, file perdue, bascule d'époque, avec fichier perdu, registre indisponible à la clôture, mi-période à `n_T` impair, réponse hors profil, point manquant) | `expected` et `queue_after` reproduits à l'identique par `rejouerTrace` (AN-2, AN-4, AN-12, AN-13, AN-32 à AN-43, AN-49, AN-58) |
+| `ct-5/reprise/` | Files avant et après `demarrage` (une demande par ligne, JCS intégral), fichiers d'époque | lignes finales égales ; une seule demande par `id` ; fusion des époques (AN-33) |
+| `ct-5/completude/completude.json` | Quatre cas du contrôle de complétude au registre (CT-5 EX-10.7) : série complète, série réécrite et ancres orphelines, ancres hors d'ordre, émetteur, `docType` et fenêtre de blocs | `complete`, `orphans`, `out_of_order`, `attached` (AN-61) |
+| `ct-5/cout/cout.json` | Les onze cas de CT-5 §12.3, à prix symbolique | six grandeurs par cas ; avec `a = 1`, égalité avec la table de CT-5 §4.6 (AN-59, AN-60) |
+| `ct-5/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de ceux de `ct-1` à `ct-4` | zéro discordance (`go run . ..`) |
+| `ct-5/confrontation/` | Programmes et sorties d'OpenSSL, de `python-opentimestamps` et de `transparency-dev/merkle` v0.0.2 (preuves de cohérence des vecteurs de CT-1 et des dossiers de CT-1 et CT-6, A.6) | concordance ; `test/confrontation.test.js` |
+
 ### CT-6 (`vecteurs/ct-6/`)
 
 Disposition, générateur et confrontation fixés par l'annexe A de
@@ -243,5 +295,5 @@ décrits dans [`vecteurs/ct-6/INDEX.md`](vecteurs/ct-6/INDEX.md) ;
 | `ct-6/rfc3161/` | AC et TSA de test à clés RSA fixes et publiques, pour les tests seulement ; jetons sur le `periodHash` des trois manifestes de CT-1, `genTime` et numéros de série fixes ; une variante invalide par vérification T- ; CRL de test (A.3) | statuts de T-1 à T-11 ; `openssl ts -verify` |
 | `ct-6/ots/` | Chaîne d'en-têtes Bitcoin synthétique `regtest`, preuve de travail réelle à la cible minimale ; preuves `.ots` au format officiel sur `periodHash` ; une variante invalide par vérification O- (A.4) | statuts de O-1 à O-7 ; `python-opentimestamps` |
 | `ct-6/registre/` | Capture unique du réseau de développement (entrée) ; parties `registre.json`, `certificat-commit.json` et `validateurs.json` dérivées pour les périodes 1 et 2 (A.5) | hachages de blocs, racines des reçus, journaux décodés ; go-ethereum et noorcore |
-| `ct-6/dossiers/` | `valide-seq-7-complet` (le dossier CT-1 `valide-seq-7` complété des cinq parties réservées) et ses variantes, et deux dossiers de décision refusée et expirée, chacun avec son `attendu.json` (A.7) | verdict, liste exacte des vérifications en échec, statuts des huit contrôles, avertissements dans l'ordre de EX-6.15, énoncé et borne |
+| `ct-6/dossiers/` | `valide-seq-7-complet` (le dossier CT-1 `valide-seq-7` complété des cinq parties réservées) et ses variantes, et deux dossiers de décision refusée et expirée, chacun avec son `attendu.json` (A.7) ; révision 0.2 : dix-huit dossiers avec la partie `points-de-controle.json` (dix-sept la portent, un la déclare absente), valides et invalides, au moins un par vérification K-7 à K-9, dont le point contresigné de 09:35 retenu par le choix du point couvrant (CT-5 EX-10.2), le point de clôture et le double défaut de K-1 ; les cinquante dossiers existants inchangés (EX-A.13 à EX-A.17) | verdict, liste exacte des vérifications en échec, statuts des huit contrôles, avertissements dans l'ordre de EX-6.15, énoncé et borne (fragment FK et `facts.checkpoint` pour les dossiers avec la partie) |
 | `ct-6/confrontation/` | Programmes et sorties des implémentations tierces : OpenSSL (`rfc3161/`), python-opentimestamps (`ots/`), go-ethereum et noorcore (`registre/`) (A.8) | concordance avec les `attendu.json` ; `test/confrontation.test.js` relie les sorties publiées aux vecteurs |

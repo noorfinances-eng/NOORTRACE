@@ -9,8 +9,10 @@
 //                             (scripts/lib/horodatage.mjs) ;
 //   contrôle 5              : preuve OpenTimestamps et en-têtes Bitcoin, O-1 à
 //                             O-7 (scripts/lib/ots.mjs) ;
-//   contrôle 8              : registre et certificats de commit, R-1 à R-10
+//   contrôle 8              : registre et certificats de commit, R-1 à R-11
 //                             (scripts/lib/registre.mjs) ;
+//   K-1 à K-9               : partie facultative points-de-controle.json (CT-1
+//                             révision 0.3, CT-6 révision 0.2) ;
 //   N-1 à N-4               : fichier d'ancres du réviseur, fichier d'en-têtes,
 //                             clés d'enregistreur et clé de chaîne.
 //
@@ -117,6 +119,7 @@ function aide(langue) {
       "  --langue            language of the readable report and of the JSON texts (fr by default)",
       "  --json              JSON report (schema rapport-verification-v0) instead of the readable report",
       "  --detail            readable report: every check, not only those that did not pass",
+      "The optional thirteenth part points-de-controle.json (journal checkpoint, CT-1 revision 0.3) is verified by K-1 to K-9 when the index declares it present.",
       "Exit codes: 0 valid, 1 invalid, 2 unusable input, 3 incomplete (--exiger).",
     ].join("\n");
   }
@@ -135,6 +138,7 @@ function aide(langue) {
     "  --langue            langue du rapport lisible et des textes du rapport JSON (fr par défaut)",
     "  --json              rapport JSON (schéma rapport-verification-v0) au lieu du rapport lisible",
     "  --detail            rapport lisible : toutes les vérifications, pas seulement celles qui n'ont pas réussi",
+    "La treizième partie facultative points-de-controle.json (point de contrôle du journal, CT-1 révision 0.3) est vérifiée par K-1 à K-9 quand l'index la déclare présente.",
     "Codes de retour : 0 valide, 1 invalide, 2 entrée inutilisable, 3 incomplet (--exiger).",
   ].join("\n");
 }
@@ -226,7 +230,7 @@ function principal(argv, etat) {
   etat.inputs = inputs;
 
   // 1. Schémas, fichier d'ancres (N-1), fichier d'en-têtes (N-2), entrées à part (EX-5.2).
-  // verifier.schemas : les huit schémas embarqués, dans l'ordre fixé (section 8.6), quelles que soient les options.
+  // verifier.schemas : les neuf schémas embarqués, dans l'ordre fixé (section 8.6, EX-8.9), quelles que soient les options.
   const { registre: schemas, empreintes } = chargerSchemas(repertoireSchemas);
   etat.schemas = V.FICHIERS_SCHEMAS.map(({ id }) => ({ id, sha256: empreintes.get(id) }));
 
@@ -282,7 +286,7 @@ function principal(argv, etat) {
     };
   }
 
-  // 2. Le dossier : dossier.json et les douze parties, chacune dans sa limite (EX-4.1, EX-4.13).
+  // 2. Le dossier : dossier.json, les douze parties et la treizième facultative, chacune dans sa limite (EX-4.1, EX-4.13, EX-4.14).
   let entrees;
   try {
     entrees = fs.readdirSync(repertoire, { withFileTypes: true });

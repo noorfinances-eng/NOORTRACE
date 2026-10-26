@@ -1,0 +1,40 @@
+{
+  "valid": false,
+  "target": "K-7",
+  "failed_checks": [
+    "K-7"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "echoue",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3",
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine-points.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : K-7 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): K-7; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "Le jeton de la clôture (rfc3161/jetons/periode-1.der) embarqué comme jeton du point : T-2 du point en échec, K-7 échoue, contrôle 4 en échec ; les T- de la clôture restent réussies."
+}

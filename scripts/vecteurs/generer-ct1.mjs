@@ -3,7 +3,8 @@
 // dans spec/vecteurs/ct-1/ : clés de test, cas limites de la forme canonique,
 // journal fictif d'un assureur (douze événements), journaux altérés avec leur
 // diagnostic, arbres de Merkle, manifestes de période, dossiers de preuve
-// valides et invalides (au moins un par contrôle de CT-1 §11.4), et l'index
+// valides et invalides (au moins un par contrôle de CT-1 §11.4), séries de
+// points de contrôle et preuves de cohérence (révision 0.3), et l'index
 // INDEX.md qui les décrit.
 //
 //   node scripts/vecteurs/generer-ct1.mjs [--sortie <répertoire>]
@@ -258,8 +259,8 @@ function construireJournal(variante = {}) {
   return { evenements, periodes, cles, A };
 }
 
-/** Le dossier de l'événement `seq` d'un journal construit. */
-function dossierPour(jeu, seq) {
+/** Le dossier de l'événement `seq` d'un journal construit ; `point` (facultatif) : un point signé qui le couvre, pour la treizième partie (CT-1 révision 0.3). */
+function dossierPour(jeu, seq, { point = null, anchors = {}, raisons = {} } = {}) {
   const ev = jeu.evenements.find((e) => e.seq === seq);
   const periode = jeu.periodes.find((p) => p.manifeste.first_seq <= seq && seq <= p.manifeste.last_seq);
   const approbations =
@@ -278,7 +279,9 @@ function dossierPour(jeu, seq) {
     manifesteSig: periode.sig,
     cles: jeu.cles,
     approbations,
+    pointsDeControle: point ? J.construirePartiePointsDeControle({ point, feuillesPeriode: periode.hashes, anchors }) : null,
     generated_at: GENERATED_AT_DOSSIER,
+    raisons,
   });
 }
 
@@ -295,7 +298,7 @@ function ecrire(relatif, contenu) {
 }
 const ecrireJSON = (relatif, valeur) => ecrire(relatif, J.texteJSON(valeur));
 
-const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier"].map((n) => JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "spec", "schemas", `${n}-v0.schema.json`), "utf8"))));
+const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle"].map((n) => JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "spec", "schemas", `${n}-v0.schema.json`), "utf8"))));
 
 function exiger(condition, message) {
   if (!condition) throw new Error(`génération interrompue : ${message}`);
@@ -305,7 +308,7 @@ function exiger(condition, message) {
 // réécrire (aucun fichier périmé ne survit) et laisse intact tout ce que
 // d'autres déposent dans le répertoire des vecteurs (par exemple un
 // vérificateur indépendant).
-export const ENTREES_GENEREES = ["INDEX.md", "cles", "jcs", "journal-valide", "journal-supprime", "journal-modifie", "journal-insere", "journal-insere-sans-cle", "journal-reordonne", "merkle", "manifestes", "dossiers"];
+export const ENTREES_GENEREES = ["INDEX.md", "cles", "jcs", "journal-valide", "journal-supprime", "journal-modifie", "journal-insere", "journal-insere-sans-cle", "journal-reordonne", "merkle", "manifestes", "points-de-controle", "dossiers"];
 for (const entree of ENTREES_GENEREES) fs.rmSync(path.join(SORTIE, entree), { recursive: true, force: true });
 fs.mkdirSync(SORTIE, { recursive: true });
 
@@ -467,6 +470,45 @@ function vecteurChaine(nom, evenements, attendus, controles, description) {
       arbre(1000, feuilles1000, [0, 1, 499, 500, 998, 999], "mille feuilles synthétiques"),
     ],
   });
+
+  // 4 bis. Preuves de cohérence (CT-1 §10.7, révision 0.3) entre les arbres publiés ci-dessus.
+  const coherence = (m, n, description) => {
+    const cas = { name: `(${m}, ${n})`, description, first_size: m, second_size: n, first_root: J.racineMerkle(hashes.slice(0, m)), second_root: J.racineMerkle(hashes.slice(0, n)), path: J.preuveCoherence(hashes.slice(0, n), m), valid: true, reason: null };
+    exiger(J.verifierCoherence(cas), `preuve de cohérence ${cas.name} refusée`);
+    return cas;
+  };
+  const refuse = (name, description, modif, reason) => {
+    const base = coherence(3, 5, "");
+    const cas = { ...base, ...modif, name, description, valid: false, reason };
+    exiger(!J.verifierCoherence(cas), `cas refusé ${name} accepté`);
+    return cas;
+  };
+  const acceptes = [
+    coherence(1, 2, "une feuille vers deux : k = 1, la preuve est L(1)"),
+    coherence(2, 3, "deux feuilles vers trois : m = k = 2, préfixe entier, la preuve est L(2)"),
+    coherence(3, 5, "trois feuilles vers cinq : m > k = 2, descente à droite avec racine à fournir (quatre nœuds)"),
+    coherence(5, 8, "PROOF(5, D[8]) : m > k = 4, quatre nœuds"),
+    coherence(8, 12, "PROOF(8, D[12]) : m = k = 8, un seul nœud (racine des feuilles 8 à 11)"),
+    coherence(4, 8, "m = 4 puissance de deux vers un arbre complet : un nœud, first_root préposé à la vérification"),
+    coherence(4, 12, "m = 4 puissance de deux vers douze feuilles : deux nœuds"),
+    coherence(1, 12, "une feuille vers douze : quatre nœuds, le maximum pour n = 12 (⌈log2 12⌉ = 4, sans préposition de L(0) puisque m = 1 est une puissance de deux)"),
+    coherence(12, 12, "m = n : preuve vide, racines égales"),
+  ];
+  const refuses = [
+    refuse("(0, 5)", "m = 0 n'est pas défini : rejet avant tout calcul", { first_size: 0, first_root: J.HASH_NUL, path: [] }, "m = 0"),
+    refuse("(5, 3)", "m > n : rejet avant tout calcul (racines et chemin de (3, 5), tailles échangées)", { first_size: 5, second_size: 3 }, "n < m"),
+    refuse("(3, 5) chemin tronqué", "dernier nœud de PROOF(3, D[5]) retiré : sn ne retombe pas à 0", { path: acceptes[2].path.slice(0, -1) }, "chemin trop court"),
+    refuse("(3, 5) nœud en trop", "un nœud ajouté à la fin de PROOF(3, D[5]) : sn vaut déjà 0", { path: [...acceptes[2].path, acceptes[2].path[0]] }, "chemin trop long"),
+    refuse("(3, 5) racines échangées", "first_root et second_root permutés", { first_root: acceptes[2].second_root, second_root: acceptes[2].first_root }, "racines échangées"),
+    refuse("(3, 5) chemin vide", "chemin vide alors que m < n", { path: [] }, "chemin vide"),
+    refuse("(3, 3) chemin non vide", "m = n avec un chemin non vide : la preuve de m = n est vide", { first_size: 3, second_size: 3, second_root: acceptes[2].first_root }, "m = n avec chemin"),
+  ];
+  ecrireJSON("merkle/coherence.json", {
+    version: 0,
+    description: "Preuves de cohérence RFC 9162 §2.1.4 (CT-1 §10.7, révision 0.3) entre les arbres de arbres.json (feuilles : hash des événements de journal-valide). Chaque cas donne first_size, second_size, first_root, second_root, path ; valid dit si l'algorithme de vérification de CT-1 §10.7 doit accepter, reason nomme le refus. Les preuves acceptées sont PROOF(first_size, D[0..second_size-1]) recalculées nœud pour nœud ; les refusées sont des sondes dérivées de (3, 5).",
+    leaves: hashes,
+    cases: [...acceptes, ...refuses],
+  });
 }
 
 // 5. Manifestes ------------------------------------------------------------
@@ -510,6 +552,124 @@ function vecteurChaine(nom, evenements, attendus, controles, description) {
     erreurs: c.erreurs,
   };
   ecrireJSON("manifestes/attendu.json", attendu);
+}
+
+// 5 bis. Points de contrôle (CT-1 révision 0.3, §10.5 à §10.8) ------------------
+// Pour chaque période : un point par minute à partir de period_start (à :00.000,
+// cadence par défaut de 60 s), puis le point de clôture à generated_at du
+// manifeste (tree_size = count). tree_size est le nombre d'événements de la
+// période horodatés au plus tard à checkpoint_ts ; la clé est celle en vigueur
+// (règle 5 : clé du dernier événement de seq <= last_seq, new_key_id après une
+// rotation ; avant tout événement du journal, la première clé de cles.json).
+const CLE_PAR_ID = Object.fromEntries(Object.entries(CLES).map(([id, k]) => [id, k.clePrivee]));
+function corpsSerie(jeu, periode) {
+  const precedents = jeu.evenements.filter((e) => e.seq < periode.manifeste.first_seq);
+  const lastHashJournal = precedents.length ? precedents[precedents.length - 1].hash : J.HASH_NUL;
+  const instants = [];
+  for (let t = periode.period_start * 1000; t < (periode.period_start + 3600) * 1000; t += 60000) instants.push(J.horodatage(t));
+  instants.push(periode.manifeste.generated_at);
+  return instants.map((checkpoint_ts) => {
+    const tK = J.msHorodatage(checkpoint_ts);
+    const tree_size = checkpoint_ts === periode.manifeste.generated_at ? periode.manifeste.count : periode.events.filter((e) => J.msHorodatage(e.ts) <= tK).length;
+    const last_seq = periode.manifeste.first_seq + tree_size - 1;
+    const key_id = J.cleEnVigueurPoint(jeu.evenements, last_seq) ?? jeu.cles.keys[0].key_id;
+    return J.construirePointDeControle({ org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: periode.period_start, first_seq: periode.manifeste.first_seq, hashes: periode.hashes, tree_size, checkpoint_ts, key_id, last_hash_journal: lastHashJournal });
+  });
+}
+/** Chaîne et signe une liste de corps de points (prev_checkpoint_hash recalculé, signature par la clé key_id). */
+function chainerPoints(corps, { signataires = {} } = {}) {
+  const points = [];
+  let prev = J.HASH_NUL;
+  corps.forEach((c, i) => {
+    const signe = J.signerPointDeControle({ ...c, prev_checkpoint_hash: prev }, signataires[i] ?? CLE_PAR_ID[c.key_id]);
+    points.push(signe);
+    prev = J.hachagePointDeControle(signe);
+  });
+  return points;
+}
+const SERIES = {};
+{
+  const attendu = { version: 0, description: "Séries complètes des points de contrôle des trois périodes de journal-valide (CT-1 §10.5 à §10.8) : un point par minute depuis period_start (cadence par défaut, points sans nouvel événement compris) puis le point de clôture à generated_at du manifeste. Pour chaque point : checkpoint_hash, forme canonique C_K, prev_checkpoint_hash attendu, clé en vigueur, preuve de cohérence vers la racine du manifeste (null pour tree_size = 0 : aucune preuve ne part d'une racine nulle). Les séries invalides (invalides/) violent chacune une règle de la série ; rules_failed les nomme.", periodes: [], invalides: [] };
+  for (const periode of jeu.periodes) {
+    const points = chainerPoints(corpsSerie(jeu, periode));
+    SERIES[periode.numero] = points;
+    const serie = J.verifierSeriePointsDeControle(points, periode.manifeste, { evenements: jeu.evenements, cles: jeu.cles });
+    exiger(serie.valide, `série de la période ${periode.numero} refusée : ${JSON.stringify(serie.erreurs)}`);
+    for (const pt of points) exiger(J.validerSchema(pt, SCHEMAS[J.ID_SCHEMA_POINT_DE_CONTROLE], { registre: SCHEMAS }).length === 0, `point hors schéma (période ${periode.numero}, ${pt.checkpoint_ts})`);
+    ecrireJSON(`points-de-controle/periode-${periode.numero}.json`, points);
+    attendu.periodes.push({
+      file: `periode-${periode.numero}.json`,
+      manifest: `../manifestes/periode-${periode.numero}.json`,
+      period_start: periode.period_start,
+      count: points.length,
+      last: { tree_size: periode.manifeste.count, root: periode.manifeste.root, last_seq: periode.manifeste.last_seq },
+      points: points.map((pt, i) => {
+        const consistency = pt.tree_size > 0 ? J.preuveCoherenceDossier(periode.hashes, pt.tree_size) : null;
+        if (consistency) exiger(J.verifierCoherence(consistency), "preuve de cohérence du point refusée");
+        return { index: i, checkpoint_ts: pt.checkpoint_ts, tree_size: pt.tree_size, last_seq: pt.last_seq, key_id: pt.key_id, prev_checkpoint_hash: i === 0 ? J.HASH_NUL : J.hachagePointDeControle(points[i - 1]), canonical: J.canonicaliserJCS(J.corpsPointDeControle(pt)), checkpoint_hash: J.hachagePointDeControle(pt), sig: pt.sig, consistency };
+      }),
+    });
+  }
+  // Séries invalides, dérivées de la période 1 (61 points : minutes 09:00 à 09:59, clôture à 10:00:00.300).
+  const REGLES = [
+    [/prev_checkpoint_hash/, "chainage"], [/tree_size .* décroît/, "tree_size_decroissant"], [/checkpoint_ts .* antérieur au précédent/, "checkpoint_ts_decroissant"],
+    [/^dernier point/, "dernier_point"], [/clé en vigueur attendue/, "cle_en_vigueur"], [/signature invalide/, "signature"], [/hors de la validité/, "validite_cle"],
+    [/racine recalculée/, "root"], [/last_hash/, "last_hash"], [/last_seq .* différent de first_seq/, "last_seq"], [/period_start/, "period_start"],
+  ];
+  const reglesDe = (erreurs) => [...new Set(erreurs.map((e) => REGLES.find(([re]) => re.test(e))?.[1] ?? "autre"))];
+  const periode1 = jeu.periodes[0];
+  const corps1 = corpsSerie(jeu, periode1);
+  const indicePoint = (tree_size) => corps1.findIndex((c) => c.tree_size === tree_size);
+  const serieInvalide = (nom, points, rules, description) => {
+    const r = J.verifierSeriePointsDeControle(points, periode1.manifeste, { evenements: jeu.evenements, cles: jeu.cles });
+    exiger(!r.valide && JSON.stringify(reglesDe(r.erreurs)) === JSON.stringify(rules), `${nom} : règles ${JSON.stringify(reglesDe(r.erreurs))}, attendues ${JSON.stringify(rules)} ; ${JSON.stringify(r.erreurs)}`);
+    ecrireJSON(`points-de-controle/invalides/${nom}.json`, points);
+    attendu.invalides.push({ file: `invalides/${nom}.json`, manifest: "../manifestes/periode-1.json", description, rules_failed: rules, errors: r.erreurs });
+  };
+  {
+    const c = corps1.map((x) => ({ ...x }));
+    const i = indicePoint(8) + 1;
+    c[i].checkpoint_ts = J.horodatage(J.msHorodatage(c[i - 1].checkpoint_ts) - 60000);
+    serieInvalide("periode-1-antidate", chainerPoints(c), ["checkpoint_ts_decroissant"], `Le point d'indice ${i} est antidaté d'une minute par rapport au précédent (série rechaînée et re-signée) : checkpoint_ts décroît le long de la chaîne.`);
+  }
+  {
+    const c = corps1.map((x) => ({ ...x }));
+    const i = indicePoint(8) + 1;
+    c[i] = { ...J.construirePointDeControle({ org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: periode1.period_start, first_seq: 1, hashes: periode1.hashes, tree_size: 7, checkpoint_ts: c[i].checkpoint_ts, key_id: c[i].key_id }) };
+    serieInvalide("periode-1-tree-size-decroissant", chainerPoints(c), ["tree_size_decroissant"], `Le point d'indice ${i} n'engage que sept événements alors que le précédent en engage huit (root, last_seq et last_hash recalculés pour sept, série rechaînée) : tree_size décroît.`);
+  }
+  {
+    const points = chainerPoints(corps1);
+    const i = 20;
+    const faux = J.signerPointDeControle({ ...J.corpsPointDeControle(points[i]), prev_checkpoint_hash: J.sha256(Buffer.from("prev_checkpoint_hash faux", "utf8")) }, CLE_PAR_ID[points[i].key_id]);
+    let prev = J.hachagePointDeControle(faux);
+    const rechaines = corps1.slice(i + 1).map((c) => {
+      const signe = J.signerPointDeControle({ ...c, prev_checkpoint_hash: prev }, CLE_PAR_ID[c.key_id]);
+      prev = J.hachagePointDeControle(signe);
+      return signe;
+    });
+    serieInvalide("periode-1-chainage-faux", [...points.slice(0, i), faux, ...rechaines], ["chainage"], `Le point d'indice ${i} porte un prev_checkpoint_hash qui n'est pas le checkpointHash du point précédent (re-signé ; les points suivants sont chaînés à lui) : la chaîne est rompue en un seul endroit.`);
+  }
+  {
+    const points = chainerPoints(corps1);
+    serieInvalide("periode-1-sans-cloture", points.slice(0, -1), ["dernier_point"], "Le point de clôture (10:00:00.300Z, tree_size 9) est retiré : le dernier point (09:59:00.000Z) n'engage que huit événements et ne rejoint pas le manifeste (règle 4).");
+  }
+  {
+    const points = chainerPoints(corps1, { signataires: { 10: CLES["rec-test-02"].clePrivee } });
+    serieInvalide("periode-1-signature", points, ["signature"], "Le point d'indice 10 (09:10:00.000Z) annonce key_id rec-test-01 mais est signé par rec-test-02 : signature invalide sous la clé annoncée.");
+  }
+  {
+    const c = corps1.map((x) => ({ ...x }));
+    c[c.length - 1].key_id = "rec-test-01";
+    serieInvalide("periode-1-cle-perimee", chainerPoints(c), ["cle_en_vigueur", "validite_cle"], "Le point de clôture est signé par rec-test-01 (key_id et signature cohérents) alors que la rotation de seq 9 (09:59:58.000Z) a mis rec-test-02 en vigueur et clos la validité de rec-test-01 avant 10:00:00.300Z.");
+  }
+  {
+    const c = corps1.map((x) => ({ ...x }));
+    const i = indicePoint(8);
+    c[i].last_hash = J.sha256(Buffer.from("last_hash faux", "utf8"));
+    serieInvalide("periode-1-last-hash", chainerPoints(c), ["last_hash"], `Le point d'indice ${i} (premier point à engager seq 8) porte un last_hash qui n'est pas le hash de seq 8 (re-signé, série rechaînée) : la tête de chaîne annoncée n'est pas celle du journal.`);
+  }
+  ecrireJSON("points-de-controle/attendu.json", attendu);
 }
 
 // 6. Dossiers ------------------------------------------------------------
@@ -769,6 +929,81 @@ const invalide = (controle, controles_en_echec, description) => ({ valide: false
   }
 }
 
+// 6 bis. Dossiers avec la partie points-de-controle.json (CT-1 révision 0.3, §11.2, K-1 à K-6).
+// Les quarante dossiers ci-dessus ne changent pas ; ceux-ci s'y ajoutent.
+{
+  const point = J.choisirPointCouvrant(SERIES[1], 6); // seq 7 : leaf_index 6 ; premier point qui le couvre : 09:32:00.000Z, tree_size 8 (seq 8 est horodaté 09:31:49.120Z)
+  exiger(point.tree_size === 8 && point.checkpoint_ts === T(9, 32, 0, 0), "point couvrant seq 7 inattendu");
+  const valide = dossierPour(jeu, 7, { point });
+  const attenduK = (k) => ({ valide: true, controle: null, controles_en_echec: [], ...k });
+  ecrireDossier("valide-seq-7-point-de-controle", valide.fichiers, attenduK({ description: "Dossier de seq 7 avec la treizième partie (révision 0.3) : point de contrôle de 09:32:00.000Z, premier point de la série de la période 1 qui couvre la feuille 6 (tree_size 8, last_seq 8, signé par rec-test-01), preuve de cohérence de huit feuilles vers neuf, aucune ancre (les trois à null). K-1 à K-6 réussies (K-6 exécutée : l'événement last_seq, seq 8, est le voisin suivant) ; K-7 à K-9 non exécutées, ancre absente ; A-4 non exécuté comme dans valide-seq-7." }));
+  const F = valide.fichiers;
+  const lirePoints = (fichiers) => lireF(fichiers, "points-de-controle.json");
+  const reindexer = (fichiers) => J.reindexerDossier(fichiers).fichiers;
+  const resignerPoint = (pt, id = pt.key_id) => J.signerPointDeControle(J.corpsPointDeControle(pt), CLE_PAR_ID[id]);
+  const partieAvec = (pk, { recalculerHash = true } = {}) => ({ ...pk, checkpoint_hash: recalculerHash ? J.hachagePointDeControle(pk.checkpoint) : pk.checkpoint_hash });
+
+  ecrireDossier("valide-seq-7-partie-declaree-absente", dossierPour(jeu, 7, { raisons: { points_de_controle: J.RAISON_AUCUN_POINT } }).fichiers, attenduK({ description: `Dossier de seq 7 dont l'index déclare treize parties, la treizième absente avec la raison « ${J.RAISON_AUCUN_POINT} » : verdict identique à valide-seq-7, K-1 à K-9 non exécutées pour une raison admise (partie absente).` }));
+  // K-1 : period_start d'une autre période, point re-signé.
+  {
+    const pk = lirePoints(F);
+    pk.checkpoint = resignerPoint({ ...pk.checkpoint, period_start: DEBUT_P2 });
+    ecrireDossier("invalide-k1-point-autre-periode", reindexer(remplacer(F, "points-de-controle.json", partieAvec(pk))), invalide("K-1", ["K-1"], "Le point porte le period_start de la période 2 (re-signé, checkpoint_hash recalculé) : il ne décrit pas la période du manifeste, et son checkpoint_ts (09:32:00.000Z) précède ce period_start."));
+  }
+  // K-2 : checkpoint_hash réécrit.
+  {
+    const pk = lirePoints(F);
+    pk.checkpoint_hash = J.sha256(Buffer.from("checkpoint_hash faux", "utf8"));
+    ecrireDossier("invalide-k2-checkpoint-hash", reindexer(remplacer(F, "points-de-controle.json", pk)), invalide("K-2", ["K-2"], "checkpoint_hash déclaré n'est pas SHA-256(P_K || C_K) du point : l'empreinte que les ancres porteraient n'est pas celle de ce point."));
+  }
+  // K-3 : point signé par rec-test-02 avec key_id rec-test-01.
+  {
+    const pk = lirePoints(F);
+    pk.checkpoint = resignerPoint(pk.checkpoint, "rec-test-02");
+    ecrireDossier("invalide-k3-signature-point", reindexer(remplacer(F, "points-de-controle.json", partieAvec(pk))), invalide("K-3", ["K-3"], "Le point annonce key_id rec-test-01 mais sa signature est produite par rec-test-02 (corps inchangé : checkpoint_hash juste, K-2 passe) : signature invalide sous la clé annoncée."));
+  }
+  // K-4 : point trop court (tree_size 6 <= leaf_index 6), preuve de cohérence correcte. La série
+  // par minute passe de cinq à huit événements entre 09:31 et 09:32 : le point est produit à part,
+  // entre seq 6 (09:31:47.250Z) et seq 7 (09:31:48.006Z), chaîné au point de 09:31:00.000Z.
+  {
+    const precedent = SERIES[1].find((pt) => pt.checkpoint_ts === T(9, 31, 0, 0));
+    exiger(precedent && precedent.tree_size === 5, "point de 09:31:00.000Z inattendu");
+    const court = J.signerPointDeControle(J.construirePointDeControle({ org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: DEBUT_P1, first_seq: 1, hashes: jeu.periodes[0].hashes, tree_size: 6, checkpoint_ts: T(9, 31, 48, 0), prev_checkpoint_hash: J.hachagePointDeControle(precedent), key_id: "rec-test-01" }), CLE_PAR_ID["rec-test-01"]);
+    ecrireDossier("invalide-k4-point-trop-court", dossierPour(jeu, 7, { point: court }).fichiers, invalide("K-4", ["K-4"], `Le point joint (${court.checkpoint_ts}, tree_size 6, last_seq 6, chaîné au point de 09:31:00.000Z) ne couvre pas la feuille 6 de l'événement prouvé (seq 7, 09:31:48.006Z) : preuve de cohérence correcte de six feuilles vers neuf (K-5), last_hash vérifié sur le voisin précédent (K-6), mais leaf_index n'est pas strictement inférieur à tree_size et ts est postérieur à checkpoint_ts.`));
+  }
+  // K-5 : dernier nœud du chemin de cohérence retiré.
+  {
+    const pk = lirePoints(F);
+    exiger(pk.consistency.path.length >= 1, "chemin de cohérence vide");
+    pk.consistency.path = pk.consistency.path.slice(0, -1);
+    ecrireDossier("invalide-k5-coherence-tronquee", reindexer(remplacer(F, "points-de-controle.json", pk)), invalide("K-5", ["K-5"], "Le dernier nœud de consistency.path est retiré : l'algorithme de CT-1 §10.7 ne retombe pas sur les deux racines (chemin trop court pour (8, 9))."));
+  }
+  // K-6 : last_hash réécrit, point re-signé, checkpoint_hash recalculé ; l'événement last_seq (seq 8) est le voisin suivant.
+  {
+    const pk = lirePoints(F);
+    pk.checkpoint = resignerPoint({ ...pk.checkpoint, last_hash: J.sha256(Buffer.from("last_hash faux", "utf8")) });
+    ecrireDossier("invalide-k6-last-hash", reindexer(remplacer(F, "points-de-controle.json", partieAvec(pk))), invalide("K-6", ["K-6"], "last_hash du point réécrit (point re-signé, checkpoint_hash recalculé : K-2 et K-3 passent) : l'événement last_seq (seq 8) est le voisin suivant et son hash recalculé n'est pas celui que le point annonce."));
+  }
+  // n = N : le point de clôture (tree_size = count = 9) ; preuve de cohérence vide, racines égales (CT-1 §10.7) ;
+  // l'événement last_seq (seq 9) n'est pas dans le dossier de seq 7 : K-6 non exécutée, pièce hors dossier (raison admise).
+  {
+    const cloture = SERIES[1][SERIES[1].length - 1];
+    exiger(cloture.tree_size === jeu.periodes[0].hashes.length && cloture.last_seq === 9, "point de clôture de la période 1 inattendu");
+    const d = dossierPour(jeu, 7, { point: cloture });
+    const pk = lirePoints(d.fichiers);
+    exiger(pk.consistency.path.length === 0 && pk.consistency.first_root === pk.consistency.second_root, "preuve de cohérence du point de clôture : chemin vide et racines égales attendus");
+    ecrireDossier("valide-seq-7-point-de-cloture", d.fichiers, attenduK({ description: `Dossier de seq 7 dont la treizième partie porte le point de clôture de la période 1 (${cloture.checkpoint_ts}, tree_size 9 = count) : preuve de cohérence de neuf feuilles vers neuf, chemin vide et racines égales (CT-1 §10.7, m = n) ; K-1 à K-5 réussies ; K-6 non exécutée pour une raison admise (l'événement last_seq, seq 9, est hors du dossier) ; K-7 à K-9 non exécutées, ancres nulles.` }));
+  }
+  // K-1 en échec (membre hors schéma à la racine de la partie) avec un second défaut (chemin de cohérence tronqué) :
+  // K-2 à K-9 ne sont pas exécutées, sans raison admise (CT-1 §11.4, CT-6 EX-5.9) ; seule K-1 est en échec.
+  {
+    const pk = lirePoints(F);
+    pk.extra = "membre hors du schéma dossier-v0 ($defs/points_de_controle)";
+    pk.consistency.path = pk.consistency.path.slice(0, -1);
+    ecrireDossier("invalide-k1-double-defaut", reindexer(remplacer(F, "points-de-controle.json", pk)), invalide("K-1", ["K-1"], "La partie porte un membre « extra » hors du schéma et un chemin de cohérence tronqué : K-1 échoue sur le schéma ; K-2 à K-9 ne sont pas exécutées (prérequis K-1 en échec), si bien que le chemin tronqué n'est pas examiné et K-5 n'est pas en échec."));
+  }
+}
+
 // 7. INDEX.md ------------------------------------------------------------
 const dossiersEcrits = [...new Set(ecrits.filter((f) => f.startsWith("dossiers/")).map((f) => f.split("/")[1]))];
 const lignesDossiers = dossiersEcrits.map((d) => {
@@ -856,6 +1091,13 @@ et le dernier ; toutes les feuilles pour n = 5, la forme de l'exemple de
 CT-1 §9.4). La période vide a la racine nulle (convention NOORTRACE de
 \`PeriodRegistry\`), distinguée de SHA-256("") de la RFC 6962.
 
+\`coherence.json\` (révision 0.3) : preuves de cohérence RFC 9162 §2.1.4 (CT-1
+§10.7) entre les arbres de \`arbres.json\`, paires \`(1, 2)\`, \`(2, 3)\`, \`(3, 5)\`,
+\`(5, 8)\`, \`(8, 12)\`, \`(4, 8)\`, \`(4, 12)\`, \`(1, 12)\`, \`(12, 12)\` (preuve vide), et
+sondes refusées (\`m = 0\`, \`m > n\`, chemin tronqué, nœud en trop, racines
+échangées, chemin vide, \`m = n\` avec chemin). Chaque cas donne \`first_size\`,
+\`second_size\`, \`first_root\`, \`second_root\`, \`path\`, \`valid\` et \`reason\`.
+
 ## \`manifestes/\`
 
 Trois périodes consécutives du journal : \`periode-1.json\` (seq 1 à 9, signé par
@@ -866,11 +1108,34 @@ la période 1 avec \`first_seq\` 11 et un \`prev_period_hash\` faux. \`attendu.j
 forme canonique, \`periodHash\`, signature, \`anchorFingerprint\` et \`PeriodMeta\` de
 chaque période, continuité attendue, erreurs du manifeste discontinu.
 
+## \`points-de-controle/\` (révision 0.3)
+
+Séries complètes des points de contrôle (CT-1 §10.5 à §10.8) des trois
+périodes : \`periode-N.json\` est le tableau des points, un par minute depuis
+\`period_start\` (cadence par défaut de 60 s, à \`:00.000\`, points sans nouvel
+événement compris) puis le point de clôture à \`generated_at\` du manifeste
+(\`tree_size = count\`) ; 61 points par période. \`tree_size\` compte les
+événements de la période horodatés au plus tard à \`checkpoint_ts\` ; la clé est
+celle en vigueur (règle 5 : la rotation de seq 9 à ${TS_ROTATION} fait signer le
+point de clôture de la période 1 par \`rec-test-02\`) ; la période 3, vide, ne
+porte que des points \`tree_size = 0\` dont \`last_hash\` est le hash de seq 12.
+\`attendu.json\` donne, pour chaque point, \`checkpoint_hash\`, la forme canonique
+\`C_K\`, le \`prev_checkpoint_hash\` attendu, la clé et la preuve de cohérence vers
+la racine du manifeste (\`null\` pour \`tree_size = 0\`), et pour chaque série
+invalide de \`invalides/\` (dérivée de la période 1) les règles violées
+(\`rules_failed\` : \`chainage\`, \`tree_size_decroissant\`,
+\`checkpoint_ts_decroissant\`, \`dernier_point\`, \`cle_en_vigueur\`,
+\`validite_cle\`, \`signature\`, \`last_hash\`) et les erreurs de l'implémentation
+de référence.
+
 ## \`dossiers/\`
 
 Chaque sous-répertoire est un dossier de preuve v0 complet (les douze parties
 déclarées dans \`dossier.json\`, les cinq parties réservées à CT-4 et CT-5
-absentes avec la raison « ${J.RAISON_HORS_PERIMETRE} ») plus un fichier
+absentes avec la raison « ${J.RAISON_HORS_PERIMETRE} » ; révision 0.3 : les
+dossiers \`*-point-de-controle\`, \`*-partie-declaree-absente\` et \`invalide-k*\`
+déclarent une treizième partie \`points-de-controle.json\`, vérifications K-1 à
+K-6, ancres à \`null\`) plus un fichier
 \`attendu.json\`, étranger au dossier et ignoré par le vérificateur, qui donne le
 verdict attendu : \`valide\`, \`controle\` (le contrôle visé), \`controles_en_echec\`
 (la liste **exacte** des contrôles en échec, dans l'ordre de CT-1 §11.4) et une

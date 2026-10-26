@@ -1,0 +1,86 @@
+{
+  "valid": true,
+  "target": null,
+  "failed_checks": [],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "non_execute",
+    "5": "non_execute",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "non_execute"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "K-7",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "K-8",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "K-9",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "T-7",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "T-10",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-4",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-5",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-6",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-2",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-4",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-5",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-8",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [],
+  "anchors": null,
+  "bitcoin_headers": "../../ots/entetes/chaine-points.json",
+  "exit_code": 0,
+  "statement": {
+    "fr": "L'événement seq 7 (hachage 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14) du journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 de l'organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab est bien formé, chaîné à ses voisins seq 6 et 8 et inclus dans la période du 2026-11-05T09:00:00Z au 2026-11-05T10:00:00Z close par le manifeste 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; l'événement est signé par la clé d'enregistreur rec-test-01 et le manifeste par la clé rec-test-02, clés déclarées par le dossier ; l'événement a été approuvé par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier) ; ce dossier ne prouve rien sur sa date (contrôles 4 et 5) ni sur son inscription au registre (contrôle 8).",
+    "en": "Event seq 7 (hash 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14) of journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 of organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab is well-formed, chained to its neighbours seq 6 and 8 and included in the period from 2026-11-05T09:00:00Z to 2026-11-05T10:00:00Z closed by manifest 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914; the event is signed by recorder key rec-test-01 and the manifest by key rec-test-02, keys declared by the dossier; the event was approved by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, threshold 2 of 3 of the set declared by the dossier); this dossier proves nothing about its date (controls 4 and 5) or its registration in the registry (control 8)."
+  },
+  "bound": {
+    "fr": "verdict borné : contrôle 4 non exécuté (ancre_absente), contrôle 5 non exécuté (ancre_absente), contrôle 8 non exécuté (ancre_absente)",
+    "en": "bounded verdict: control 4 not run (ancre_absente), control 5 not run (ancre_absente), control 8 not run (ancre_absente)"
+  },
+  "description": "Comme valide-point-de-controle-complet, vérifié sans fichier d'ancres (avec chaine-points.json) : K-7, K-8 et K-9 non exécutées (ancre_absente) comme les contrôles 4, 5 et 8 ; pas de FK ; les K- ne changent aucun statut (EX-5.8) ; aucun avertissement (O-5 non exécutée)."
+}

@@ -59,6 +59,8 @@ export function txOverrides(conn) {
 
 /** Type de document des ancres de période dans AttestationRegistry. */
 export const DOC_TYPE_PERIODE = keccak256(toUtf8Bytes("noortrace/periode/v0"));
+/** Type de document des ancres d'un point de contrôle du journal (CT-1 §10.6, CT-4 §6.4 révision 0.3, CT-5 §9). */
+export const DOC_TYPE_POINT_DE_CONTROLE = keccak256(toUtf8Bytes("noortrace/point-de-controle/v0"));
 
 /** Étiquettes de domaine des condensés, identiques à celles des contrats. */
 export const TAG_PERIODE = "noortrace-periode";

@@ -20,7 +20,7 @@ import * as J from "../scripts/lib/journal.mjs";
 
 const SPEC = path.join(PROJECT_ROOT, "spec");
 const VECTEURS = path.join(SPEC, "vecteurs", "ct-1");
-const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
+const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
 const lireJSON = (fichier) => J.analyserJSONStrict(fs.readFileSync(fichier));
 const lireDossier = (repertoire) => Object.fromEntries(fs.readdirSync(repertoire).filter((f) => f !== "attendu.json").map((f) => [f, fs.readFileSync(path.join(repertoire, f))]));
 const graine = (id) => J.sha256(Buffer.from(`noortrace/vecteurs/v0/cle-enregistreur/${id}`, "utf8"));
@@ -548,6 +548,219 @@ describe("CT-1 : arbre de Merkle RFC 6962 et preuves d'inclusion", function () {
 });
 
 // ---------------------------------------------------------------------------
+// CT-1 révision 0.3 : preuve de cohérence (§10.7) et points de contrôle (§10.5,
+// §10.6, §10.8, §10.9), rejoués ici comme §10.7 le demande. Les preuves de
+// cohérence des huit feuilles de Certificate Transparency sont celles des
+// vecteurs publiés de transparency-dev/merkle (proof/verify_test.go,
+// consistencyProofs, licence Apache 2.0), dont google/trillian v1.3.13 porte
+// les quatre premières à l'identique ; les autres
+// valeurs sont lues dans spec/CT-1-evenements-et-formats.md et spec/vecteurs/ct-1.
+describe("CT-1 : preuve de cohérence RFC 9162 §2.1.4 et points de contrôle (révision 0.3)", function () {
+  const md = fs.readFileSync(path.join(SPEC, "CT-1-evenements-et-formats.md"), "utf8");
+  const FEUILLES_CT = ["0x", "0x00", "0x10", "0x2021", "0x3031", "0x40414243", "0x5051525354555657", "0x606162636465666768696a6b6c6d6e6f"];
+  const racineCT = (n) => J.racineMerkle(FEUILLES_CT.slice(0, n));
+  const COHERENCE_CT = [
+    { m: 1, n: 1, path: [] },
+    { m: 1, n: 8, path: ["0x96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", "0x5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", "0x6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4"] },
+    { m: 6, n: 8, path: ["0x0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a", "0xca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", "0xd37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7"] },
+    { m: 2, n: 5, path: ["0x5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", "0xbc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b"] },
+    { m: 6, n: 7, path: ["0x0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a", "0xb08693ec2e721597130641e8211e7eedccb4c26413963eee6c1e2ed16ffb1a5f", "0xd37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7"] },
+  ];
+  const AUTRE = "0xabacaba000000000000000000000000000000000000000000060061e00123456";
+  const altere = (h) => "0x" + (parseInt(h[2], 16) ^ 1).toString(16) + h.slice(3);
+  /** Les sondes refusées d'une preuve valide (CT-1 §10.7, sans second_size + 1, sans objet dans un dossier). */
+  function sondes(p) {
+    const { first_size: m, second_size: n, first_root: fr, second_root: sr, path: chemin } = p;
+    const out = [];
+    const avec = (nom, modif) => out.push([nom, { ...p, ...modif }]);
+    if (m > 1) avec("first_size - 1", { first_size: m - 1 });
+    if (m + 1 < n) avec("first_size + 1", { first_size: m + 1 });
+    avec("second_size × 2", { second_size: 2 * n });
+    if (Math.floor(n / 2) !== n) avec("⌊second_size / 2⌋", { second_size: Math.floor(n / 2) });
+    if (fr !== sr) avec("racines échangées", { first_root: sr, second_root: fr });
+    if (chemin.length) {
+      avec("chemin vide", { path: [] });
+      avec("nœud en trop au début", { path: [AUTRE, ...chemin] });
+      avec("nœud en trop à la fin", { path: [...chemin, AUTRE] });
+      avec("chemin tronqué", { path: chemin.slice(0, -1) });
+      chemin.forEach((h, i) => avec(`nœud ${i} altéré`, { path: chemin.map((x, j) => (j === i ? altere(x) : x)) }));
+    } else {
+      avec("nœud en trop", { path: [AUTRE] });
+      avec("autre seconde racine", { second_root: AUTRE });
+    }
+    return out;
+  }
+
+  it("preuves (1, 1), (1, 8), (6, 8), (2, 5) et (6, 7) des huit feuilles de Certificate Transparency, nœud pour nœud, et leurs sondes refusées", function () {
+    for (const { m, n, path: attendu } of COHERENCE_CT) {
+      const etiquette = `PROOF(${m}, D[${n}])`;
+      expect(J.preuveCoherence(FEUILLES_CT.slice(0, n), m), etiquette).to.deep.equal(attendu);
+      const p = { first_size: m, second_size: n, first_root: racineCT(m), second_root: racineCT(n), path: attendu };
+      expect(J.verifierCoherence(p), etiquette).to.equal(true);
+      for (const [nom, s] of sondes(p)) expect(J.verifierCoherence(s), `${etiquette} : ${nom}`).to.equal(false);
+    }
+    // Bornes (§10.7) : m = 0 et m > n n'ont pas de preuve ; m = n rend un chemin vide.
+    expect(() => J.preuveCoherence(FEUILLES_CT, 0)).to.throw(J.ErreurFormat);
+    expect(() => J.preuveCoherence(FEUILLES_CT, 9)).to.throw(J.ErreurFormat);
+    expect(J.preuveCoherence(FEUILLES_CT, 8)).to.deep.equal([]);
+    expect(J.verifierCoherence({ first_size: 0, second_size: 8, first_root: J.HASH_NUL, second_root: racineCT(8), path: [] })).to.equal(false);
+    expect(J.verifierCoherence({ first_size: 8, second_size: 8, first_root: racineCT(8), second_root: racineCT(8), path: [] })).to.equal(true);
+    expect(J.verifierCoherence({ first_size: "1", second_size: 8, first_root: racineCT(1), second_root: racineCT(8), path: COHERENCE_CT[1].path })).to.equal(false);
+  });
+
+  it("toute paire 1 ≤ m ≤ n ≤ 64 : la preuve calculée est acceptée, ses sondes refusées, dont (5, 6), (9, 10) et (10, 11)", function () {
+    this.timeout(60_000);
+    const feuilles = Array.from({ length: 64 }, (_, i) => J.sha256(Buffer.from(`noortrace/test/coherence/${i}`, "utf8")));
+    const racines = [null, ...feuilles.map((_, i) => J.racineMerkle(feuilles.slice(0, i + 1)))];
+    let paires = 0;
+    for (let n = 1; n <= 64; n++) {
+      for (let m = 1; m <= n; m++) {
+        const p = J.preuveCoherenceDossier(feuilles.slice(0, n), m);
+        expect([p.first_size, p.second_size, p.first_root, p.second_root], `(${m}, ${n})`).to.deep.equal([m, n, racines[m], racines[n]]);
+        expect(J.verifierCoherence(p), `(${m}, ${n})`).to.equal(true);
+        for (const [nom, s] of sondes(p)) expect(J.verifierCoherence(s), `(${m}, ${n}) : ${nom}`).to.equal(false);
+        paires++;
+      }
+    }
+    expect(paires).to.equal(2080);
+  });
+
+  it("l'exemple de §10.8 : PROOF(1..4, D[5]) et MTH(D[0:3]) de l'arbre de la période 1 de l'annexe A", function () {
+    const D = EXEMPLE.evenements.map((e) => e.hash);
+    for (let m = 1; m <= 4; m++) {
+      const ligne = md.match(new RegExp(`^PROOF\\(${m}, D\\[5\\]\\) = (\\[.*\\])$`, "m"));
+      expect(ligne, `PROOF(${m}, D[5]) dans §10.8`).to.not.equal(null);
+      const attendu = JSON.parse(ligne[1]);
+      expect(J.preuveCoherence(D, m), `PROOF(${m}, D[5])`).to.deep.equal(attendu);
+      expect(J.verifierCoherence({ first_size: m, second_size: 5, first_root: J.racineMerkle(D.slice(0, m)), second_root: J.racineMerkle(D), path: attendu })).to.equal(true);
+    }
+    expect(J.racineMerkle(D.slice(0, 3))).to.equal("0x3f18df046e3c8dbff1ec006b9533cb0be82d756c347c8838a25f03bfda5cd399");
+    expect(md).to.include("0x3f18df046e3c8dbff1ec006b9533cb0be82d756c347c8838a25f03bfda5cd399");
+  });
+
+  it("les points K1 à K6 de §10.8 : construction, checkpointHash, signature, forme canonique de K2 (§10.6) et objet complet de K5", function () {
+    const lignes = [...md.matchAll(/^\| (K[1-6]) \| (\d+) \| `(0x[0-9a-f]{64})` \| (\d+) \| `([^`]+)` \| `(0x[0-9a-f]{64})` \| `([^`]+)` \| `(0x[0-9a-f]{64})` \| `(0x[0-9a-f]{128})` \|$/gm)];
+    expect(lignes.map((l) => l[1])).to.deep.equal(["K1", "K2", "K3", "K4", "K5", "K6"]);
+    const [m1, m2] = EXEMPLE.manifestes;
+    const hashes = EXEMPLE.evenements.map((e) => e.hash);
+    const points = {};
+    for (const [, nom, tree_size, root, last_seq, checkpoint_ts, prev, key_id, checkpointHash, sig] of lignes) {
+      const periode2 = nom === "K5" || nom === "K6";
+      const m = periode2 ? m2 : m1;
+      const corps = J.construirePointDeControle({ org_id: m.org_id, journal_id: m.journal_id, period_start: m.period_start, first_seq: m.first_seq, hashes: periode2 ? [] : hashes, tree_size: Number(tree_size), checkpoint_ts, prev_checkpoint_hash: prev, key_id, last_hash_journal: hashes[4] });
+      expect([corps.root, corps.last_seq], nom).to.deep.equal([root, Number(last_seq)]);
+      const signe = J.signerPointDeControle(corps, (key_id === "rec-test-01" ? CLE_01 : CLE_02).clePrivee);
+      expect(J.hachagePointDeControle(signe), nom).to.equal(checkpointHash);
+      expect(signe.sig, nom).to.equal(sig);
+      expect(J.verifierSignaturePointDeControle(signe, PUBS[key_id]), nom).to.equal(true);
+      expect(J.verifierSignaturePointDeControle(signe, PUBS[key_id === "rec-test-01" ? "rec-test-02" : "rec-test-01"]), nom).to.equal(false);
+      expect(J.validerSchema(signe, SCHEMAS[J.ID_SCHEMA_POINT_DE_CONTROLE], { registre: SCHEMAS }), nom).to.deep.equal([]);
+      points[nom] = signe;
+    }
+    // Chaînage : prev_checkpoint_hash de chaque point = checkpointHash du précédent de sa période.
+    expect(points.K2.prev_checkpoint_hash).to.equal(J.hachagePointDeControle(points.K1));
+    expect(points.K4.prev_checkpoint_hash).to.equal(J.hachagePointDeControle(points.K3));
+    expect(points.K6.prev_checkpoint_hash).to.equal(J.hachagePointDeControle(points.K5));
+    // Forme canonique C_K de K2 (§10.6).
+    const ck = md.match(/^C_K {12}= (\{.*\})$/m);
+    expect(ck).to.not.equal(null);
+    expect(J.canonicaliserJCS(J.corpsPointDeControle(points.K2))).to.equal(ck[1]);
+    // K5 imprimé en entier (« Le premier point de la période vide, complet »).
+    const blocs = blocsSpec("point-de-controle");
+    expect(blocs.length).to.be.at.least(2);
+    expect(blocs.some((b) => JSON.stringify(b) === JSON.stringify(points.K5)), "K5 complet de §10.8").to.equal(true);
+    expect(blocs.some((b) => JSON.stringify(b) === JSON.stringify(points.K2)), "K2 complet de §10.5").to.equal(true);
+    for (const b of blocs) expect(J.validerSchema(b, SCHEMAS[J.ID_SCHEMA_POINT_DE_CONTROLE], { registre: SCHEMAS })).to.deep.equal([]);
+    // Série de l'annexe A (période 1 : K1 à K4) : valide sous le manifeste ; une série sans le point de clôture ne l'est pas.
+    expect(J.verifierSeriePointsDeControle([points.K1, points.K2, points.K3, points.K4], m1).valide).to.equal(true);
+    expect(J.verifierSeriePointsDeControle([points.K5, points.K6], m2).valide).to.equal(true);
+    const sansCloture = J.verifierSeriePointsDeControle([points.K1, points.K2, points.K3], m1);
+    expect(sansCloture.valide).to.equal(false);
+    expect(sansCloture.erreurs.join(" ; ")).to.match(/dernier point/);
+  });
+
+  it("l'exemple annoté points_de_controle de §11.1 : SHA-256 déclaré (0xe934…0a05), et la même partie sans ancre (0x1c10…aa65)", function () {
+    const [partie] = blocsSpec("points_de_controle");
+    const octets = Buffer.from(JSON.stringify(partie, null, 2) + "\n", "utf8");
+    expect(J.sha256(octets)).to.equal("0xe9340e56c7c7ad6d7b1e168ad1e5d8616f3aa6dfc31e46a49860c89f38460a05");
+    const sansAncre = { ...partie, anchors: { rfc3161: null, registry: null, ots: null } };
+    expect(J.sha256(Buffer.from(JSON.stringify(sansAncre, null, 2) + "\n", "utf8"))).to.equal("0x1c10718bce466f0f8bd31501209f7dcabd675d9c83b0eb0c81e20a1b5b86aa65");
+    const D = EXEMPLE.evenements.map((e) => e.hash);
+    expect(partie.consistency).to.deep.equal(J.preuveCoherenceDossier(D, 4));
+    expect(partie.checkpoint_hash).to.equal(J.hachagePointDeControle(partie.checkpoint));
+    expect(J.choisirPointCouvrant([partie.checkpoint], 3)).to.equal(partie.checkpoint);
+  });
+
+  it("rejoue merkle/coherence.json : preuves recalculées nœud pour nœud et verdict de chaque sonde", function () {
+    const v = lireJSON(path.join(VECTEURS, "merkle", "coherence.json"));
+    expect(v.cases.length).to.be.at.least(10);
+    for (const c of v.cases) {
+      const p = { first_size: c.first_size, second_size: c.second_size, first_root: c.first_root, second_root: c.second_root, path: c.path };
+      expect(J.verifierCoherence(p), c.name).to.equal(c.valid);
+      if (c.valid) {
+        expect(J.preuveCoherence(v.leaves.slice(0, c.second_size), c.first_size), c.name).to.deep.equal(c.path);
+        expect([J.racineMerkle(v.leaves.slice(0, c.first_size)), J.racineMerkle(v.leaves.slice(0, c.second_size))], c.name).to.deep.equal([c.first_root, c.second_root]);
+      }
+    }
+  });
+
+  it("rejoue points-de-controle/attendu.json : séries valides (hash, forme canonique, chaînage, signature, cohérence) et séries invalides (mêmes erreurs)", function () {
+    const v = lireJSON(path.join(VECTEURS, "points-de-controle", "attendu.json"));
+    const evenements = lireJSON(path.join(VECTEURS, "journal-valide", "evenements.json"));
+    const cles = lireJSON(path.join(VECTEURS, "journal-valide", "cles.json"));
+    const repertoire = path.join(VECTEURS, "points-de-controle");
+    expect(v.periodes).to.have.length(3);
+    for (const p of v.periodes) {
+      const points = lireJSON(path.join(repertoire, p.file));
+      const manifeste = lireJSON(path.join(repertoire, p.manifest));
+      expect(points, p.file).to.have.length(p.count);
+      expect(J.verifierSeriePointsDeControle(points, manifeste, { evenements, cles }), p.file).to.deep.equal({ valide: true, erreurs: [] });
+      const feuilles = evenements.filter((e) => e.seq >= manifeste.first_seq && e.seq <= manifeste.last_seq).sort((a, b) => a.seq - b.seq).map((e) => e.hash);
+      points.forEach((pt, i) => {
+        const a = p.points[i];
+        const etiquette = `${p.file}[${i}]`;
+        expect(J.canonicaliserJCS(J.corpsPointDeControle(pt)), etiquette).to.equal(a.canonical);
+        expect(J.hachagePointDeControle(pt), etiquette).to.equal(a.checkpoint_hash);
+        expect([pt.sig, pt.key_id, pt.prev_checkpoint_hash, pt.tree_size, pt.last_seq], etiquette).to.deep.equal([a.sig, a.key_id, a.prev_checkpoint_hash, a.tree_size, a.last_seq]);
+        expect(J.verifierSignaturePointDeControle(pt, cles.keys.find((k) => k.key_id === pt.key_id).public_key), etiquette).to.equal(true);
+        if (a.consistency) {
+          expect(J.preuveCoherenceDossier(feuilles, pt.tree_size), etiquette).to.deep.equal(a.consistency);
+          expect(J.verifierCoherence(a.consistency), etiquette).to.equal(true);
+        } else expect(pt.tree_size, etiquette).to.equal(0);
+      });
+      expect(points.at(-1)).to.include({ tree_size: p.last.tree_size, root: p.last.root, last_seq: p.last.last_seq });
+    }
+    expect(v.invalides.length).to.be.at.least(5);
+    for (const inv of v.invalides) {
+      const r = J.verifierSeriePointsDeControle(lireJSON(path.join(repertoire, inv.file)), lireJSON(path.join(repertoire, inv.manifest)), { evenements, cles });
+      expect(r.valide, inv.file).to.equal(false);
+      expect(r.erreurs, inv.file).to.deep.equal(inv.errors);
+    }
+  });
+
+  it("choisirPointCouvrant (CT-5 EX-10.2, CT-1 §11.2) : jeton promu, puis .ots complète, puis registre, puis sans ancre ; à rang égal le plus petit tree_size, puis le premier de la série", function () {
+    const points = lireJSON(path.join(VECTEURS, "points-de-controle", "periode-1.json"));
+    const a = (ts) => points.find((p) => p.checkpoint_ts === `2026-11-05T${ts}:00.000Z`);
+    const h = (p) => J.hachagePointDeControle(p);
+    // Sans ancres : le premier point de plus petit tree_size > 6 (09:32, tree_size 8).
+    expect(J.choisirPointCouvrant(points, 6)).to.equal(a("09:32"));
+    // Série de CT-5 (c_T = 300) : 09:32 ancré au registre seul, 09:35 contresigné à D_7 et non ancré au registre.
+    const ancres = { [h(a("09:32"))]: { registry: true }, [h(a("09:35"))]: { rfc3161: true } };
+    expect(J.choisirPointCouvrant(points, 6, ancres)).to.equal(a("09:35"));
+    expect(J.choisirPointCouvrant(points, 6, new Map(Object.entries(ancres)))).to.equal(a("09:35"));
+    // .ots complète avant registre ; registre avant aucun ancre.
+    expect(J.choisirPointCouvrant(points, 6, { [h(a("09:32"))]: { registry: true }, [h(a("09:40"))]: { ots: true } })).to.equal(a("09:40"));
+    expect(J.choisirPointCouvrant(points, 6, { [h(a("09:33"))]: { registry: true } })).to.equal(a("09:33"));
+    // Deux jetons : le plus petit tree_size, puis le premier de la série.
+    expect(J.choisirPointCouvrant(points, 6, { [h(a("09:40"))]: { rfc3161: true }, [h(a("09:35"))]: { rfc3161: true }, [h(points.at(-1))]: { rfc3161: true } })).to.equal(a("09:35"));
+    // Le point de clôture n'est retenu que s'il est le seul porteur d'un jeton.
+    expect(J.choisirPointCouvrant(points, 6, { [h(points.at(-1))]: { rfc3161: true } })).to.equal(points.at(-1));
+    // Aucun point ne couvre la feuille 9 (tree_size 9 au plus).
+    expect(J.choisirPointCouvrant(points, 9)).to.equal(null);
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe("CT-1 : manifeste de période", function () {
   it("l'exemple de la section 10 : construction, forme canonique, periodHash, signature, période vide, continuité, anchorFingerprint", function () {
     const [m1, m2] = EXEMPLE.manifestes;
@@ -685,7 +898,10 @@ describe("CT-1 : dossier de preuve", function () {
     const a4 = rapport.controles.find((c) => c.id === "A-4");
     expect(a4.execute).to.equal(false);
     expect(a4.detail).to.match(/non vérifiable/);
-    expect(rapport.controles.filter((c) => c.id !== "A-4").every((c) => c.execute && c.ok === true)).to.equal(true);
+    expect(rapport.controles.filter((c) => c.id !== "A-4" && !c.id.startsWith("K-")).every((c) => c.execute && c.ok === true)).to.equal(true);
+    // Révision 0.3 : sans partie points-de-controle.json, K-1 à K-9 ne s'exécutent pas (partie absente).
+    expect(rapport.controles.filter((c) => c.id.startsWith("K-")).map((c) => [c.id, c.execute, c.ok])).to.deep.equal(["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"].map((id) => [id, false, null]));
+    // Révision 0.3 : l'index de la section 11.1 garde ses douze parties ; la treizième (points-de-controle.json) est facultative et n'y est pas déclarée.
     expect(rapport.partiesAbsentes.map((p) => p.file)).to.deep.equal(["jeton-rfc3161.der", "preuve.ots", "registre.json", "certificat-commit.json", "validateurs.json"]);
     expect(rapport.borne).to.match(/rien n'est prouvé sur la date/);
     expect(rapport.evenement).to.deep.equal({ seq: 4, hash: EXEMPLE.evenements[3].hash, ts: EXEMPLE.evenements[3].ts, tool: "sap.payments.create" });
@@ -828,8 +1044,9 @@ describe("CT-1 : dossier de preuve", function () {
       if (attendu.controle) expect(attendu.controles_en_echec, nom).to.include(attendu.controle);
     }
     const cibles = noms.map((n) => lireJSON(path.join(racine, n, "attendu.json")).controle).filter(Boolean);
-    for (const c of J.CONTROLES_DOSSIER) expect(cibles, `au moins un dossier vise ${c.id} (section 11.5)`).to.include(c.id);
-    expect(noms.filter((n) => n.startsWith("valide-"))).to.deep.equal(["valide-seq-6", "valide-seq-7"]);
+    // K-7 à K-9 sont les vérifications des ancres du point (CT-6 révision 0.2) : aucun dossier de CT-1 ne les vise.
+    for (const c of J.CONTROLES_DOSSIER.filter((x) => !["K-7", "K-8", "K-9"].includes(x.id))) expect(cibles, `au moins un dossier vise ${c.id} (section 11.5)`).to.include(c.id);
+    expect(noms.filter((n) => n.startsWith("valide-"))).to.deep.equal(["valide-seq-6", "valide-seq-7", "valide-seq-7-partie-declaree-absente", "valide-seq-7-point-de-cloture", "valide-seq-7-point-de-controle"]);
     const valide = J.verifierDossier(lireDossier(path.join(racine, "valide-seq-7")), { schemas: SCHEMAS });
     expect(valide.evenement.seq).to.equal(7);
     expect(valide.controles.find((c) => c.id === "A-3").detail).to.match(/2 approbateur\(s\) distinct\(s\) sur un seuil de 2\/3/);
@@ -859,7 +1076,8 @@ describe("CT-1 : ligne de commande scripts/verify/dossier.mjs", function () {
     const rapport = JSON.parse(j.stdout);
     expect(rapport.verdict).to.equal("valide");
     expect(rapport.failed_checks).to.deep.equal([]);
-    expect(rapport.checks).to.have.length(J.CONTROLES_DOSSIER.length);
+    // Le rapport de CT-6 n'énumère K-1 à K-9 que pour un dossier qui porte la partie points-de-controle.json (révision 0.2).
+    expect(rapport.checks).to.have.length(J.CONTROLES_DOSSIER.filter((c) => !c.id.startsWith("K-")).length);
     expect(rapport.event.seq).to.equal(7);
   });
 

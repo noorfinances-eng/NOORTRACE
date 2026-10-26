@@ -1210,6 +1210,12 @@
         }
       }
     },
+    "checkpoint_interval_s": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 3600,
+      "description": "Révision 0.4 de CT-2 (facultatif, défaut 60) : cadence des points de contrôle de CT-1 §10.5, diviseur de 3600 (CT-2 EX-12.24, règle hors schéma vérifiée au démarrage)."
+    },
     "lease": {
       "type": "object",
       "additionalProperties": false,
@@ -1507,6 +1513,18 @@
               }
             }
           }
+        },
+        "ancrage": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "Révision 0.4 de CT-2 (facultatif) : chemin du document ancrage-v0 de CT-5 (EX-4.8), validé au démarrage avec la configuration ; null ou absent tant que le composant d'ancrage n'est pas déployé."
         }
       }
     },

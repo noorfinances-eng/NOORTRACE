@@ -1,0 +1,402 @@
+Confrontation des vecteurs CT-5 reponses/ par OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+Entrées : reponses/reponses.json, reponses/*.tsr, reponses/*.der, requetes/*.tsq, ../ct-6/rfc3161/cles/{ac-test,tsa-test}.pem, ../ct-6/dossiers/*/points-de-controle.json et attendu.json
+
+== 1. Réponses TimeStampResp (EX-5.10 à EX-5.12) : openssl ts -reply -text, -token_out, ts -verify -queryfile
+-- granted-requete-point-k2 (requête requete-point-k2.tsq)
+  SHA-256 du fichier : vecteur 0x28ca7fd59f87368de3855b080fd326c813b740738cf91580f3c9d18b4fc5443a ; openssl 0x28ca7fd59f87368de3855b080fd326c813b740738cf91580f3c9d18b4fc5443a : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x74a6f4979421411e ; openssl 0x74a6f4979421411e : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1001
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x0a7cd7a11ffdea5b7ec14f0e9af35588bf8fdfa7fb70ac9b82b6be2d0a389f91 ; openssl 0x0a7cd7a11ffdea5b7ec14f0e9af35588bf8fdfa7fb70ac9b82b6be2d0a389f91 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/granted-requete-point-k2.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-point-k2-exemple (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0xa0063aa3b8cabd41f31cf7b2e858755fc095af38c062b0ca909c348df831161a ; openssl 0xa0063aa3b8cabd41f31cf7b2e858755fc095af38c062b0ca909c348df831161a : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1002
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x044fdcf97b1abcdc25d8cb0961832ceec31556eb955a0f32d452544097f370eb ; openssl 0x044fdcf97b1abcdc25d8cb0961832ceec31556eb955a0f32d452544097f370eb : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/granted-point-k2-exemple.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-point-k2-exemple-politique-interne (requête point-k2-exemple-politique-interne.tsq)
+  SHA-256 du fichier : vecteur 0xec62a249043abd82385f67c4e874ed16b9b76901a46e7ab6aa558281d90096ae ; openssl 0xec62a249043abd82385f67c4e874ed16b9b76901a46e7ab6aa558281d90096ae : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1003
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x30951c162edf0bac766d20e5117aef09ef432561ba312a4dc572268006a71f88 ; openssl 0x30951c162edf0bac766d20e5117aef09ef432561ba312a4dc572268006a71f88 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/granted-point-k2-exemple-politique-interne.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-periode-1-reference (requête periode-1-reference.tsq)
+  SHA-256 du fichier : vecteur 0x4f5d340c283e90d7757d9ad62be5c82b69ee288216aa2b23b6a20cdf35d10bfd ; openssl 0x4f5d340c283e90d7757d9ad62be5c82b69ee288216aa2b23b6a20cdf35d10bfd : concorde
+  taille du corps : vecteur 2114 ; openssl 2114 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0xf144cca6ec50dcdb ; openssl 0xf144cca6ec50dcdb : concorde
+  genTime : vecteur 2026-11-03T14:00:05Z ; openssl 2026-11-03T14:00:05Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1004
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0xcfbcca0074fbc7debaedb626edf4f3b69dcb1d0bf69efacde49985b25abedd56 ; openssl 0xcfbcca0074fbc7debaedb626edf4f3b69dcb1d0bf69efacde49985b25abedd56 : concorde
+  jeton extrait : taille : vecteur 2105 ; openssl 2105 : concorde
+  jeton extrait = fichier reponses/granted-periode-1-reference.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-periode-1-reference-tentative-2 (requête periode-1-reference-tentative-2.tsq)
+  SHA-256 du fichier : vecteur 0xa2dfed102e943055072e92d7d496d27afbd6674c3e714b6e2b3e87ec97e701fc ; openssl 0xa2dfed102e943055072e92d7d496d27afbd6674c3e714b6e2b3e87ec97e701fc : concorde
+  taille du corps : vecteur 2114 ; openssl 2114 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0xe514f7e31f6ba99e ; openssl 0xe514f7e31f6ba99e : concorde
+  genTime : vecteur 2026-11-03T14:00:10Z ; openssl 2026-11-03T14:00:10Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1005
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x5b0a3ff02290e39f20205e11ddd902ca341ffb332608f6cf90c4cbce7ed85378 ; openssl 0x5b0a3ff02290e39f20205e11ddd902ca341ffb332608f6cf90c4cbce7ed85378 : concorde
+  jeton extrait : taille : vecteur 2105 ; openssl 2105 : concorde
+  jeton extrait = fichier reponses/granted-periode-1-reference-tentative-2.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-periode-1-vecteurs (requête periode-1-vecteurs.tsq)
+  SHA-256 du fichier : vecteur 0x51c5b5d035a331ba929cab86521ef38a72d1067c8e03b0f36c5252b37a1734bd ; openssl 0x51c5b5d035a331ba929cab86521ef38a72d1067c8e03b0f36c5252b37a1734bd : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x29ccc3c9db80e87b ; openssl 0x29ccc3c9db80e87b : concorde
+  genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1006
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x55501ecc5983e79867684d00c6647e9538edf6453acd37a808d4d1deeedf4e7a ; openssl 0x55501ecc5983e79867684d00c6647e9538edf6453acd37a808d4d1deeedf4e7a : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/granted-periode-1-vecteurs.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-nonce-different (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x4f89d561ff6e128d77167e9c04a4bd0e14d76846c133a6e514c221c6fb650ac1 ; openssl 0x4f89d561ff6e128d77167e9c04a4bd0e14d76846c133a6e514c221c6fb650ac1 : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfdb ; openssl 0x018032ff0d74cfdb : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1007
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x319c18207765e06c449156e94505876b9e2a6dd19eaf0dee81ca14bcb976fd8a ; openssl 0x319c18207765e06c449156e94505876b9e2a6dd19eaf0dee81ca14bcb976fd8a : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/granted-nonce-different.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur nonce mismatch ; openssl nonce mismatch : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-sans-nonce (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x71185433ab0b31c5c6b241724706ac873987af320559fffc99ab909dffb704e0 ; openssl 0x71185433ab0b31c5c6b241724706ac873987af320559fffc99ab909dffb704e0 : concorde
+  taille du corps : vecteur 2103 ; openssl 2103 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur None ; openssl None : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1008
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x6f18e1946e55d4cf175472061907245000b4ddb521a89523773472bc9b87d174 ; openssl 0x6f18e1946e55d4cf175472061907245000b4ddb521a89523773472bc9b87d174 : concorde
+  jeton extrait : taille : vecteur 2094 ; openssl 2094 : concorde
+  jeton extrait = fichier reponses/granted-sans-nonce.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : nonce not returned ; classement de CT-5 : nonce_absent
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-autre-empreinte (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x8fec77c14cacf087adbdff92b58c9d3a3e44b093a26d46c4bbabc9d066293297 ; openssl 0x8fec77c14cacf087adbdff92b58c9d3a3e44b093a26d46c4bbabc9d066293297 : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur False ; openssl False : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1009
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0xffca6a2c6c28f9f03038fb6fdbd57eb0b83e14dfec05f388397063f9acb59510 ; openssl 0xffca6a2c6c28f9f03038fb6fdbd57eb0b83e14dfec05f388397063f9acb59510 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/granted-autre-empreinte.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : message imprint mismatch ; classement de CT-5 : empreinte_differente
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- granted-politique-hors-liste (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0xa7cf1474ddec7ba7dafbee78935077d87eb8b1e613dfecf964616141f2c889bf ; openssl 0xa7cf1474ddec7ba7dafbee78935077d87eb8b1e613dfecf964616141f2c889bf : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.2 ; numéro de série : 1010
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x751b12eb9f58cdbee3af0d487a408de78d61065fa7778431920a02757ae4df36 ; openssl 0x751b12eb9f58cdbee3af0d487a408de78d61065fa7778431920a02757ae4df36 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/granted-politique-hors-liste.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : OK ; classement de CT-5 : politique_refusee
+  politique lue par openssl (1.3.6.1.4.1.99999.1.2) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur True ; openssl True : concorde
+-- granted-politique-differente (requête point-k2-exemple-politique-interne.tsq)
+  SHA-256 du fichier : vecteur 0x10482d14557b4c9fea912e8bf4de1f347a8f9a77fa3ee855ea862ff56013cf26 ; openssl 0x10482d14557b4c9fea912e8bf4de1f347a8f9a77fa3ee855ea862ff56013cf26 : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.2 ; numéro de série : 1011
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0xf77bfefa4cadaa8a3d55cd48507abfb8db5455a94c9de4e1a7e408bd6c6ff5ab ; openssl 0xf77bfefa4cadaa8a3d55cd48507abfb8db5455a94c9de4e1a7e408bd6c6ff5ab : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/granted-politique-differente.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : policy mismatch ; classement de CT-5 : politique_differente
+  politique lue par openssl (1.3.6.1.4.1.99999.1.2) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur True ; openssl True : concorde
+-- rejet-unacceptedPolicy (requête point-k2-exemple-politique-interne.tsq)
+  SHA-256 du fichier : vecteur 0xea1506a06d0e856b9c1f9941ba184a3c978701ce638d2ee472a6c0e6d7ab3292 ; openssl 0xea1506a06d0e856b9c1f9941ba184a3c978701ce638d2ee472a6c0e6d7ab3292 : concorde
+  taille du corps : vecteur 50 ; openssl 50 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 2) : vecteur Rejected. ; openssl Rejected. : concorde
+  Failure info (PKIFailureInfo unacceptedPolicy) : vecteur the requested TSA policy is not supported by the TSA ; openssl the requested TSA policy is not supported by the TSA : concorde
+  TimeStampToken présent : vecteur False ; openssl False : concorde
+  openssl ts -verify -queryfile : no time stamp token (aucun jeton à vérifier)
+-- rejet-badAlg (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x8fe683dc755fdab2a36a1945b92a1fd284efa1f8a32cb1e242d7db40d9158454 ; openssl 0x8fe683dc755fdab2a36a1945b92a1fd284efa1f8a32cb1e242d7db40d9158454 : concorde
+  taille du corps : vecteur 57 ; openssl 57 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 2) : vecteur Rejected. ; openssl Rejected. : concorde
+  Failure info (PKIFailureInfo badAlg) : vecteur unrecognized or unsupported algorithm identifier ; openssl unrecognized or unsupported algorithm identifier : concorde
+  TimeStampToken présent : vecteur False ; openssl False : concorde
+  openssl ts -verify -queryfile : no time stamp token (aucun jeton à vérifier)
+-- rejet-timeNotAvailable (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x2e3b0b20afb4a1c21bf39ef299b8b5f090b38ccdc72b71da5b1c59f213ed87b9 ; openssl 0x2e3b0b20afb4a1c21bf39ef299b8b5f090b38ccdc72b71da5b1c59f213ed87b9 : concorde
+  taille du corps : vecteur 12 ; openssl 12 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 2) : vecteur Rejected. ; openssl Rejected. : concorde
+  Failure info (PKIFailureInfo timeNotAvailable) : vecteur the TSA's time source is not available ; openssl the TSA's time source is not available : concorde
+  TimeStampToken présent : vecteur False ; openssl False : concorde
+  openssl ts -verify -queryfile : no time stamp token (aucun jeton à vérifier)
+-- waiting (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0xe7793cd09f2a06fbd0c51ba83a7e061dc55263db72436b82c62ffcf8ab093bf1 ; openssl 0xe7793cd09f2a06fbd0c51ba83a7e061dc55263db72436b82c62ffcf8ab093bf1 : concorde
+  taille du corps : vecteur 7 ; openssl 7 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 3) : vecteur Waiting. ; openssl Waiting. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur False ; openssl False : concorde
+  openssl ts -verify -queryfile : no time stamp token (aucun jeton à vérifier)
+-- statut-5 (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x1b31e682b648d380ca61a4bb5c9941220251ad32c5e26ca6c8f44038a8f38d37 ; openssl 0x1b31e682b648d380ca61a4bb5c9941220251ad32c5e26ca6c8f44038a8f38d37 : concorde
+  taille du corps : vecteur 7 ; openssl 7 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 5) : vecteur Revoked. ; openssl Revoked. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur False ; openssl False : concorde
+  openssl ts -verify -queryfile : no time stamp token (aucun jeton à vérifier)
+-- t6-signature (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x0a2698d40932b816b70fd156dea3f111b9333d06a6753b80e5f7ccbd12ba6edf ; openssl 0x0a2698d40932b816b70fd156dea3f111b9333d06a6753b80e5f7ccbd12ba6edf : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1012
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x60826e8e39b4c94d0d397c3b90f392ec2151f2c1695b757be21c6d6e2f615a75 ; openssl 0x60826e8e39b4c94d0d397c3b90f392ec2151f2c1695b757be21c6d6e2f615a75 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/t6-signature.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : invalid padding; padding check failed; RSA lib; signature failure ; classement de CT-5 : verification_T-6 (T-6 : signature altérée relevée par openssl)
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- http-503-retry-after-30 (requête point-k2-exemple.tsq)
+  réponse HTTP représentée (statut 503, application/timestamp-reply) : aucun octet de TimeStampResp, sans objet pour openssl
+-- http-429 (requête point-k2-exemple.tsq)
+  réponse HTTP représentée (statut 429, application/timestamp-reply) : aucun octet de TimeStampResp, sans objet pour openssl
+-- http-408 (requête point-k2-exemple.tsq)
+  réponse HTTP représentée (statut 408, application/timestamp-reply) : aucun octet de TimeStampResp, sans objet pour openssl
+-- http-404 (requête point-k2-exemple.tsq)
+  réponse HTTP représentée (statut 404, application/timestamp-reply) : aucun octet de TimeStampResp, sans objet pour openssl
+-- http-401 (requête point-k2-exemple.tsq)
+  réponse HTTP représentée (statut 401, application/timestamp-reply) : aucun octet de TimeStampResp, sans objet pour openssl
+-- type-contenu (requête point-k2-exemple.tsq)
+  réponse HTTP représentée (statut 200, text/html) : aucun octet de TimeStampResp, sans objet pour openssl
+-- corps-trop-long (requête point-k2-exemple.tsq)
+  réponse HTTP représentée (statut 200, application/timestamp-reply) : aucun octet de TimeStampResp, sans objet pour openssl
+-- reponse-tardive-1 (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137 ; openssl 0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137 : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1013
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8 ; openssl 0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/reponse-tardive-1.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- reponse-tardive-2 (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137 ; openssl 0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137 : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1013
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8 ; openssl 0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/reponse-tardive-2.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- reponse-tardive-3 (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137 ; openssl 0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137 : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1013
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8 ; openssl 0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/reponse-tardive-3.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+-- horloge-suspecte (requête point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137 ; openssl 0x01743009596528ae922bfa81e06ea2bd3223e5a3cd707a9ddaed8a8cf9b24137 : concorde
+  taille du corps : vecteur 2113 ; openssl 2113 : concorde
+  openssl ts -reply -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Status (PKIStatus 0) : vecteur Granted. ; openssl Granted. : concorde
+  Failure info (PKIFailureInfo None) : vecteur None ; openssl None : concorde
+  TimeStampToken présent : vecteur True ; openssl True : concorde
+  messageImprint = empreinte de la requête (imprint_matches) : vecteur True ; openssl True : concorde
+  nonce du TSTInfo : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  genTime : vecteur 2026-11-03T13:53:02Z ; openssl 2026-11-03T13:53:02Z : concorde
+  accuracy (secondes) : vecteur 1 ; openssl 1.0 : concorde
+  politique du jeton : 1.3.6.1.4.1.99999.1.1 ; numéro de série : 1013
+  jeton extrait (openssl ts -reply -token_out) : SHA-256 : vecteur 0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8 ; openssl 0x61da4ceb2d495150ee3996dfa14920b1a50e9d4188e8a9b993f68188c3342aa8 : concorde
+  jeton extrait : taille : vecteur 2104 ; openssl 2104 : concorde
+  jeton extrait = fichier reponses/horloge-suspecte.der : vecteur True ; openssl True : concorde
+  openssl ts -verify -queryfile (à genTime) : vecteur OK ; openssl OK : concorde
+  politique lue par openssl (1.3.6.1.4.1.99999.1.1) hors accepted_policies <=> refus de l'étape 5 (politique_refusee ou politique_differente) : vecteur False ; openssl False : concorde
+
+== 2. Jetons embarqués dans les dossiers de CT-6 révision 0.2 (points-de-controle.json, CT-6 EX-A.17) : openssl ts -verify -digest <checkpoint_hash> -token_in
+-- dossiers/invalide-k1-double-defaut (vérifications en échec attendues : K-1)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/invalide-k1-partie-inexploitable (vérifications en échec attendues : K-1)
+  aucun jeton dans la partie (sans objet)
+-- dossiers/invalide-k7-base64-non-canonique (vérifications en échec attendues : K-7)
+  base64 canonique (réencodage identique) : False ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  base64 non canonique (réencodage différent) <=> K-7 attendue en échec : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in sur les octets décodés : vecteur OK ; openssl OK : concorde
+-- dossiers/invalide-k7-jeton-autre-empreinte (vérifications en échec attendues : K-7)
+  base64 canonique (réencodage identique) : True ; jeton de 2103 octets, SHA-256 0xdbfb99a9cd7a6b022614b62957cd4f9e17a168a43efa7dee729503937af58d13
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur False ; openssl False : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in (K-7 attendue en échec) : vecteur FAILED ; openssl FAILED : concorde
+  raison d'openssl : message imprint mismatch
+-- dossiers/invalide-k7-jeton-signature (vérifications en échec attendues : K-7)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x8bb6b5ede744f6ef4162523c5f6e1436f237205b70a74baa31d496bfe279e428
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in (K-7 attendue en échec) : vecteur FAILED ; openssl FAILED : concorde
+  raison d'openssl : invalid padding; padding check failed; RSA lib; signature failure
+-- dossiers/invalide-k8-contrat (vérifications en échec attendues : K-8)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/invalide-k8-empreinte (vérifications en échec attendues : K-8)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/invalide-k9-preuve-autre-empreinte (vérifications en échec attendues : K-9)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/invalide-r11-ancre-de-periode (vérifications en échec attendues : R-11)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/valide-point-de-controle-complet (vérifications en échec attendues : aucune)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/valide-point-de-controle-jeton-seul (vérifications en échec attendues : aucune)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/valide-point-de-controle-ots-en-attente (vérifications en échec attendues : aucune)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/valide-point-de-controle-point-contresigne (vérifications en échec attendues : aucune)
+  base64 canonique (réencodage identique) : True ; jeton de 2104 octets, SHA-256 0xf834b0eb113a9a79cd56e59fd02177590113ce4804761a06928b41ee9cefb79e
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/valide-point-de-controle-point-de-cloture (vérifications en échec attendues : aucune)
+  base64 canonique (réencodage identique) : True ; jeton de 2104 octets, SHA-256 0x233ca642f5cf6bff3792dd11217263893ea3041d9bd1fd9373e1710175db469e
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/valide-point-de-controle-reference-declarative (vérifications en échec attendues : aucune)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/valide-point-de-controle-sans-ancre (vérifications en échec attendues : aucune)
+  aucun jeton dans la partie (sans objet)
+-- dossiers/valide-point-de-controle-sans-ancres-reviseur (vérifications en échec attendues : aucune)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+
+Discordances au total : 0
+Limites de l'outil relevées : 0

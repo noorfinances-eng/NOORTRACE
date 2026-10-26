@@ -218,6 +218,44 @@
         "presumed_result": "Verification: OK",
         "source": "relevé par la confrontation (A.8)"
       }
+    },
+    {
+      "file": "jetons/point-periode-1.der",
+      "sha256": "0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf",
+      "period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "gen_time": "2026-11-05T09:32:02Z",
+      "serial_number": "0x3e9",
+      "alteration": null,
+      "target": null,
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/point-periode-1.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "Verification: OK",
+        "source": "EX-A.13 ; relevé par la confrontation (A.8, EX-A.17)"
+      },
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+        "note": "jeton d'un point de contrôle du journal (EX-A.13) : period_hash est ici le checkpoint_hash, empreinte attendue par K-7 (EX-9.22)"
+      }
+    },
+    {
+      "file": "jetons/k7-point-signature.der",
+      "sha256": "0x8bb6b5ede744f6ef4162523c5f6e1436f237205b70a74baa31d496bfe279e428",
+      "period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "gen_time": "2026-11-05T09:32:02Z",
+      "serial_number": "0x3e9",
+      "alteration": "jeton du point de contrôle dont le dernier octet de la signature est inversé (xor ff) : K-7 par T-6",
+      "target": "T-6",
+      "openssl_ts_verify": {
+        "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/k7-point-signature.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
+        "presumed_result": "invalid padding / signature failure",
+        "source": "relevé par la confrontation (A.8, EX-A.17)"
+      },
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+        "note": "jeton d'un point de contrôle du journal (EX-A.13) : period_hash est ici le checkpoint_hash, empreinte attendue par K-7 (EX-9.22)"
+      }
     }
   ],
   "openssl_ts_verify_other_period": {
@@ -1741,6 +1779,323 @@
       "control_reason": null,
       "warnings": [],
       "facts": null
+    },
+    {
+      "token": "jetons/point-periode-1.der",
+      "dossier_period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "reussi",
+      "control_reason": null,
+      "warnings": [],
+      "facts": {
+        "authority": "AC de test CT-6",
+        "tsu_certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+        "tsu_subject_cn": "TSA de test CT-6",
+        "gen_time": "2026-11-05T09:32:02Z",
+        "accuracy": {
+          "seconds": 1,
+          "millis": null,
+          "micros": null
+        },
+        "upper_bound": "2026-11-05T09:32:03Z",
+        "policy": "1.3.6.1.4.1.99999.1.1",
+        "serial_number": "0x03e9",
+        "digest_algorithm": "sha256",
+        "signature_algorithm": "sha256WithRSAEncryption",
+        "key_bits": 3072,
+        "qualified_claim": false,
+        "qualified": null,
+        "revocation": [
+          {
+            "certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+            "evidence": "crl",
+            "issued_at": "2026-11-06T00:00:00Z"
+          }
+        ]
+      },
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+        "check": "K-7"
+      }
+    },
+    {
+      "token": "jetons/point-periode-1.der",
+      "dossier_period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "anchors": null,
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [],
+      "control_status": "non_execute",
+      "control_reason": "ancre_absente",
+      "warnings": [],
+      "facts": null,
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+        "check": "K-7"
+      }
+    },
+    {
+      "token": "jetons/k7-point-signature.der",
+      "dossier_period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "prerequis_en_echec"
+        }
+      ],
+      "failed_checks": [
+        "T-6"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null,
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+        "check": "K-7"
+      }
+    },
+    {
+      "token": "jetons/periode-1.der",
+      "dossier_period_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "anchors": "ancres/ancres-test.json",
+      "checks": [
+        {
+          "id": "T-1",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-2",
+          "status": "echoue",
+          "reason": null
+        },
+        {
+          "id": "T-3",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-4",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-5",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-6",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-7",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-8",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-9",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-10",
+          "status": "reussi",
+          "reason": null
+        },
+        {
+          "id": "T-11",
+          "status": "non_execute",
+          "reason": "ancre_absente"
+        }
+      ],
+      "failed_checks": [
+        "T-2"
+      ],
+      "control_status": "echoue",
+      "control_reason": null,
+      "warnings": [],
+      "facts": null,
+      "checkpoint": {
+        "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+        "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+        "check": "K-7"
+      }
     }
   ]
 }

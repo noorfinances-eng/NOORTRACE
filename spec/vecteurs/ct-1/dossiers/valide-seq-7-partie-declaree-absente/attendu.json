@@ -1,0 +1,6 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "description": "Dossier de seq 7 dont l'index déclare treize parties, la treizième absente avec la raison « aucun point de contrôle » : verdict identique à valide-seq-7, K-1 à K-9 non exécutées pour une raison admise (partie absente)."
+}

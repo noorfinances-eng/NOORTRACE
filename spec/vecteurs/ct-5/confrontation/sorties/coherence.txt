@@ -1,0 +1,297 @@
+Confrontation des preuves de cohérence RFC 9162 §2.1.4 (CT-1 §10.7 ; CT-5 annexe A.6) par github.com/transparency-dev/merkle v0.0.2 (rfc6962.DefaultHasher, testonly.Tree, proof.VerifyConsistency), go1.24.7
+Entrées : ct-1/merkle/coherence.json, ct-1/points-de-controle/attendu.json, ct-1/manifestes/periode-{1,2,3}.json, ct-1/journal-valide/attendu.json, ct-1/dossiers/*/points-de-controle.json, ct-6/dossiers/*/points-de-controle.json et leurs attendu.json
+
+== 1. Vecteurs publics de transparency-dev/merkle v0.0.2 (proof/verify_test.go) : huit feuilles, racines, preuves de cohérence, sondes
+  racine de l'arbre vide (EmptyRoot = SHA-256 de la chaîne vide) : vecteur 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 ; bibliothèque 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 : concorde
+  racine de l'arbre de 1 feuille(s) : vecteur 0x6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d ; bibliothèque 0x6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d : concorde
+  racine de l'arbre de 2 feuille(s) : vecteur 0xfac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125 ; bibliothèque 0xfac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125 : concorde
+  racine de l'arbre de 3 feuille(s) : vecteur 0xaeb6bcfe274b70a14fb067a5e5578264db0fa9b51af5e0ba159158f329e06e77 ; bibliothèque 0xaeb6bcfe274b70a14fb067a5e5578264db0fa9b51af5e0ba159158f329e06e77 : concorde
+  racine de l'arbre de 4 feuille(s) : vecteur 0xd37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7 ; bibliothèque 0xd37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7 : concorde
+  racine de l'arbre de 5 feuille(s) : vecteur 0x4e3bbb1f7b478dcfe71fb631631519a3bca12c9aefca1612bfce4c13a86264d4 ; bibliothèque 0x4e3bbb1f7b478dcfe71fb631631519a3bca12c9aefca1612bfce4c13a86264d4 : concorde
+  racine de l'arbre de 6 feuille(s) : vecteur 0x76e67dadbcdf1e10e1b74ddc608abd2f98dfb16fbce75277b5232a127f2087ef ; bibliothèque 0x76e67dadbcdf1e10e1b74ddc608abd2f98dfb16fbce75277b5232a127f2087ef : concorde
+  racine de l'arbre de 7 feuille(s) : vecteur 0xddb89be403809e325750d3d263cd78929c2942b7942a34b77e122c9594a74c8c ; bibliothèque 0xddb89be403809e325750d3d263cd78929c2942b7942a34b77e122c9594a74c8c : concorde
+  racine de l'arbre de 8 feuille(s) : vecteur 0x5dc9da79a70659a9ad559cb701ded9a2ab9d823aad2f4960cfe370eff4604328 ; bibliothèque 0x5dc9da79a70659a9ad559cb701ded9a2ab9d823aad2f4960cfe370eff4604328 : concorde
+-- PROOF(1, D[1]) : 0 nœud(s) publié(s)
+  preuve générée par la bibliothèque (testonly.Tree.ConsistencyProof), nœud pour nœud : vecteur [] ; bibliothèque [] : concorde
+  proof.VerifyConsistency sur la preuve publiée : vecteur acceptee ; bibliothèque acceptee : concorde
+-- PROOF(1, D[8]) : 3 nœud(s) publié(s)
+  preuve générée par la bibliothèque (testonly.Tree.ConsistencyProof), nœud pour nœud : vecteur [0x96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7 0x5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e 0x6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4] ; bibliothèque [0x96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7 0x5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e 0x6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4] : concorde
+  proof.VerifyConsistency sur la preuve publiée : vecteur acceptee ; bibliothèque acceptee : concorde
+  sondes de corruption refusées (11 sondes) : vecteur 11 ; bibliothèque 11 : concorde
+-- PROOF(6, D[8]) : 3 nœud(s) publié(s)
+  preuve générée par la bibliothèque (testonly.Tree.ConsistencyProof), nœud pour nœud : vecteur [0x0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a 0xca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0 0xd37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7] ; bibliothèque [0x0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a 0xca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0 0xd37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7] : concorde
+  proof.VerifyConsistency sur la preuve publiée : vecteur acceptee ; bibliothèque acceptee : concorde
+  sondes de corruption refusées (11 sondes) : vecteur 11 ; bibliothèque 11 : concorde
+-- PROOF(2, D[5]) : 2 nœud(s) publié(s)
+  preuve générée par la bibliothèque (testonly.Tree.ConsistencyProof), nœud pour nœud : vecteur [0x5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e 0xbc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b] ; bibliothèque [0x5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e 0xbc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b] : concorde
+  proof.VerifyConsistency sur la preuve publiée : vecteur acceptee ; bibliothèque acceptee : concorde
+  sondes de corruption refusées (10 sondes) : vecteur 10 ; bibliothèque 10 : concorde
+-- PROOF(6, D[7]) : 3 nœud(s) publié(s)
+  preuve générée par la bibliothèque (testonly.Tree.ConsistencyProof), nœud pour nœud : vecteur [0x0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a 0xb08693ec2e721597130641e8211e7eedccb4c26413963eee6c1e2ed16ffb1a5f 0xd37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7] ; bibliothèque [0x0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a 0xb08693ec2e721597130641e8211e7eedccb4c26413963eee6c1e2ed16ffb1a5f 0xd37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7] : concorde
+  proof.VerifyConsistency sur la preuve publiée : vecteur acceptee ; bibliothèque acceptee : concorde
+  sondes de corruption refusées (11 sondes) : vecteur 11 ; bibliothèque 11 : concorde
+
+== 2. ct-1/merkle/coherence.json (CT-1 §10.7) : arbre des douze feuilles de journal-valide, racines, preuves régénérées, verdicts
+  SHA-256 de ct-1/merkle/coherence.json : 0x3ff85ee2245e214f0620dc13a51effd1d16204ff13fde82f5c0eda76b8531f9d
+  12 feuilles (hash des événements, données des feuilles : SHA-256(0x00 ‖ hash)), 16 cas
+-- (1, 2) : attendu acceptee
+  first_root = racine de l'arbre de 1 feuille(s) : vecteur 0x933e569c51519a287535c762378e751437722d5c1b6a88624f2181a6733552a9 ; bibliothèque 0x933e569c51519a287535c762378e751437722d5c1b6a88624f2181a6733552a9 : concorde
+  second_root = racine de l'arbre de 2 feuille(s) : vecteur 0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc ; bibliothèque 0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0x0780116f46d0fd4d6c3b7d87a1bb0dfd07e16c2ad8ea859efe8ea0477923e58e] ; bibliothèque [0x0780116f46d0fd4d6c3b7d87a1bb0dfd07e16c2ad8ea859efe8ea0477923e58e] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (2, 3) : attendu acceptee
+  first_root = racine de l'arbre de 2 feuille(s) : vecteur 0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc ; bibliothèque 0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc : concorde
+  second_root = racine de l'arbre de 3 feuille(s) : vecteur 0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc ; bibliothèque 0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832] ; bibliothèque [0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (3, 5) : attendu acceptee
+  first_root = racine de l'arbre de 3 feuille(s) : vecteur 0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc ; bibliothèque 0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc : concorde
+  second_root = racine de l'arbre de 5 feuille(s) : vecteur 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 ; bibliothèque 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832 0x75f5e95a01c5af90f356d143ca97476069d4cf6f90cefe35830c54d67937c77c 0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc 0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9] ; bibliothèque [0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832 0x75f5e95a01c5af90f356d143ca97476069d4cf6f90cefe35830c54d67937c77c 0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc 0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (5, 8) : attendu acceptee
+  first_root = racine de l'arbre de 5 feuille(s) : vecteur 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 ; bibliothèque 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 : concorde
+  second_root = racine de l'arbre de 8 feuille(s) : vecteur 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d ; bibliothèque 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9 0xa9066f46c18ce1a98df37e3eb9a0eb6c57691f947888df06c7413376aeaa6778 0xcf219c1e3c453425c4cc643666651cf2c07c722d12f66f805e4e95c54bdbcc12 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d] ; bibliothèque [0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9 0xa9066f46c18ce1a98df37e3eb9a0eb6c57691f947888df06c7413376aeaa6778 0xcf219c1e3c453425c4cc643666651cf2c07c722d12f66f805e4e95c54bdbcc12 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (8, 12) : attendu acceptee
+  first_root = racine de l'arbre de 8 feuille(s) : vecteur 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d ; bibliothèque 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d : concorde
+  second_root = racine de l'arbre de 12 feuille(s) : vecteur 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 ; bibliothèque 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd] ; bibliothèque [0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (4, 8) : attendu acceptee
+  first_root = racine de l'arbre de 4 feuille(s) : vecteur 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d ; bibliothèque 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d : concorde
+  second_root = racine de l'arbre de 8 feuille(s) : vecteur 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d ; bibliothèque 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238] ; bibliothèque [0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (4, 12) : attendu acceptee
+  first_root = racine de l'arbre de 4 feuille(s) : vecteur 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d ; bibliothèque 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d : concorde
+  second_root = racine de l'arbre de 12 feuille(s) : vecteur 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 ; bibliothèque 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238 0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd] ; bibliothèque [0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238 0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (1, 12) : attendu acceptee
+  first_root = racine de l'arbre de 1 feuille(s) : vecteur 0x933e569c51519a287535c762378e751437722d5c1b6a88624f2181a6733552a9 ; bibliothèque 0x933e569c51519a287535c762378e751437722d5c1b6a88624f2181a6733552a9 : concorde
+  second_root = racine de l'arbre de 12 feuille(s) : vecteur 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 ; bibliothèque 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0x0780116f46d0fd4d6c3b7d87a1bb0dfd07e16c2ad8ea859efe8ea0477923e58e 0xe048294b5c655195d63522a0b5384627721564df8528113028b1101ae045969f 0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238 0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd] ; bibliothèque [0x0780116f46d0fd4d6c3b7d87a1bb0dfd07e16c2ad8ea859efe8ea0477923e58e 0xe048294b5c655195d63522a0b5384627721564df8528113028b1101ae045969f 0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238 0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (12, 12) : attendu acceptee
+  first_root = racine de l'arbre de 12 feuille(s) : vecteur 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 ; bibliothèque 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 : concorde
+  second_root = racine de l'arbre de 12 feuille(s) : vecteur 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 ; bibliothèque 0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54 : concorde
+  path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [] ; bibliothèque [] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- (0, 5) : attendu refusee (m = 0)
+  proof.VerifyConsistency : vecteur refusee ; bibliothèque acceptee : limite de l'outil (v0.0.2 accepte size1 = 0 avec une preuve vide sans lire first_root ; la branche main le refuse ; CT-1 §10.7 rejette m = 0 avant tout calcul)
+-- (5, 3) : attendu refusee (n < m)
+  proof.VerifyConsistency : vecteur refusee ; bibliothèque refusee : concorde
+  motif de la bibliothèque : refusee (size2 (5) < size1 (3))
+-- (3, 5) chemin tronqué : attendu refusee (chemin trop court)
+  proof.VerifyConsistency : vecteur refusee ; bibliothèque refusee : concorde
+  motif de la bibliothèque : refusee (wrong proof size 3, want 4)
+-- (3, 5) nœud en trop : attendu refusee (chemin trop long)
+  proof.VerifyConsistency : vecteur refusee ; bibliothèque refusee : concorde
+  motif de la bibliothèque : refusee (wrong proof size 5, want 4)
+-- (3, 5) racines échangées : attendu refusee (racines échangées)
+  proof.VerifyConsistency : vecteur refusee ; bibliothèque refusee : concorde
+  motif de la bibliothèque : refusee (RootMismatchError : la racine recalculée diffère de la racine attendue)
+-- (3, 5) chemin vide : attendu refusee (chemin vide)
+  proof.VerifyConsistency : vecteur refusee ; bibliothèque refusee : concorde
+  motif de la bibliothèque : refusee (empty proof)
+-- (3, 3) chemin non vide : attendu refusee (m = n avec chemin)
+  proof.VerifyConsistency : vecteur refusee ; bibliothèque refusee : concorde
+  motif de la bibliothèque : refusee (size1=size2, but proof is not empty)
+
+== 3. ct-1/points-de-controle/attendu.json : racine des manifestes et preuves de cohérence des séries (CT-1 §10.5 à §10.8)
+-- periode-1.json (manifeste periode-1.json : period_start 1793869200, count 9, 61 point(s))
+  feuilles de la période (seq de first_seq à last_seq de journal-valide) : vecteur 9 ; bibliothèque 9 : concorde
+  root du manifeste = racine de l'arbre de 9 feuille(s) : vecteur 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b ; bibliothèque 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b : concorde
+  last.root = racine de l'arbre de last.tree_size feuille(s) : vecteur 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b ; bibliothèque 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b : concorde
+  points de tree_size 0 sans preuve (aucune preuve ne part d'une racine nulle) : vecteur 13 ; bibliothèque 13 : concorde
+  (5, 9) : 19 point(s) de tree_size 5, même preuve vers count 9 : vecteur true ; bibliothèque true : concorde
+  (5, 9) : first_root = racine de l'arbre de 5 feuille(s) : vecteur 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 ; bibliothèque 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 : concorde
+  (5, 9) : second_root = root du manifeste : vecteur 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b ; bibliothèque 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b : concorde
+  (5, 9) : path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9 0xa9066f46c18ce1a98df37e3eb9a0eb6c57691f947888df06c7413376aeaa6778 0xcf219c1e3c453425c4cc643666651cf2c07c722d12f66f805e4e95c54bdbcc12 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d 0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9 0xa9066f46c18ce1a98df37e3eb9a0eb6c57691f947888df06c7413376aeaa6778 0xcf219c1e3c453425c4cc643666651cf2c07c722d12f66f805e4e95c54bdbcc12 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d 0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  (5, 9) : proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+  (8, 9) : 28 point(s) de tree_size 8, même preuve vers count 9 : vecteur true ; bibliothèque true : concorde
+  (8, 9) : first_root = racine de l'arbre de 8 feuille(s) : vecteur 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d ; bibliothèque 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d : concorde
+  (8, 9) : second_root = root du manifeste : vecteur 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b ; bibliothèque 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b : concorde
+  (8, 9) : path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  (8, 9) : proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+  (9, 9) : 1 point(s) de tree_size 9, même preuve vers count 9 : vecteur true ; bibliothèque true : concorde
+  (9, 9) : first_root = racine de l'arbre de 9 feuille(s) : vecteur 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b ; bibliothèque 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b : concorde
+  (9, 9) : second_root = root du manifeste : vecteur 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b ; bibliothèque 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b : concorde
+  (9, 9) : path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [] ; bibliothèque [] : concorde
+  (9, 9) : proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- periode-2.json (manifeste periode-2.json : period_start 1793872800, count 3, 61 point(s))
+  feuilles de la période (seq de first_seq à last_seq de journal-valide) : vecteur 3 ; bibliothèque 3 : concorde
+  root du manifeste = racine de l'arbre de 3 feuille(s) : vecteur 0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26 ; bibliothèque 0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26 : concorde
+  last.root = racine de l'arbre de last.tree_size feuille(s) : vecteur 0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26 ; bibliothèque 0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26 : concorde
+  points de tree_size 0 sans preuve (aucune preuve ne part d'une racine nulle) : vecteur 5 ; bibliothèque 5 : concorde
+  (3, 3) : 56 point(s) de tree_size 3, même preuve vers count 3 : vecteur true ; bibliothèque true : concorde
+  (3, 3) : first_root = racine de l'arbre de 3 feuille(s) : vecteur 0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26 ; bibliothèque 0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26 : concorde
+  (3, 3) : second_root = root du manifeste : vecteur 0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26 ; bibliothèque 0x3cca959ef2a8a0d4ff7ff99c9433a411101f3d7d6b05bfd548683a08b8562f26 : concorde
+  (3, 3) : path = preuve générée par la bibliothèque, nœud pour nœud : vecteur [] ; bibliothèque [] : concorde
+  (3, 3) : proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- periode-3.json (manifeste periode-3.json : period_start 1793876400, count 0, 61 point(s))
+  feuilles de la période (seq de first_seq à last_seq de journal-valide) : vecteur 0 ; bibliothèque 0 : concorde
+  période vide : racine nulle (convention NOORTRACE, CT-1 §9.2), aucune feuille, aucune preuve de cohérence
+  points sans preuve (consistency null) : vecteur 61 ; bibliothèque 61 : concorde
+
+== 4. Dossiers à partie points-de-controle.json (CT-1 §11.2, CT-6 révision 0.2) : preuve de cohérence vérifiée et régénérée
+-- ct-1/dossiers/invalide-k1-double-defaut (vérifications en échec attendues : K-1)
+  SHA-256 de points-de-controle.json : 0x28ce8124a53ce44007104d420a7c6925bd635965c56e81e0b3acea7a6f88a6c1
+  consistency : (8, 9), 0 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, pour information (K-1 attendue en échec) : false
+  K-1 attendue en échec : K-5 n'est pas exécutée par le vérificateur (prérequis en échec) ; verdict de la bibliothèque pour information : refusee (empty proof)
+-- ct-1/dossiers/invalide-k1-point-autre-periode (vérifications en échec attendues : K-1)
+  SHA-256 de points-de-controle.json : 0x2bb5b3fb71c70e40a9c52ff8b5eb4a8e329886d6789a8ef4dcd11d4eb427a353
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, pour information (K-1 attendue en échec) : true
+  K-1 attendue en échec : K-5 n'est pas exécutée par le vérificateur (prérequis en échec) ; verdict de la bibliothèque pour information : acceptee
+-- ct-1/dossiers/invalide-k2-checkpoint-hash (vérifications en échec attendues : K-2)
+  SHA-256 de points-de-controle.json : 0x65e6ef195fb3a7de09acfb109727f2114d323cbb0404b2602cc2dbd7938a91a5
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-1/dossiers/invalide-k3-signature-point (vérifications en échec attendues : K-3)
+  SHA-256 de points-de-controle.json : 0x9bb275daef3d6dbc7dd65dbde5ffc7f898b13644ed07ad39e7519d2f55747fe3
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-1/dossiers/invalide-k4-point-trop-court (vérifications en échec attendues : K-4)
+  SHA-256 de points-de-controle.json : 0xde97de3ec488e213d102023bec499f64384ce313c6e2fc42f71ea308cc4f1319
+  consistency : (6, 9), 4 nœud(s) ; point : tree_size 6, root 0x5330fe8e4ba70ebd5e55815affa922dc7d892b49ccb34b5a68a0483125ebd615
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0xf6055a428ccbc0cd700f7a8270cb94064f29d538c30b756810fcfc3255ddd8d5 0xcf219c1e3c453425c4cc643666651cf2c07c722d12f66f805e4e95c54bdbcc12 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d 0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0xf6055a428ccbc0cd700f7a8270cb94064f29d538c30b756810fcfc3255ddd8d5 0xcf219c1e3c453425c4cc643666651cf2c07c722d12f66f805e4e95c54bdbcc12 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d 0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0xf6055a428ccbc0cd700f7a8270cb94064f29d538c30b756810fcfc3255ddd8d5 0xcf219c1e3c453425c4cc643666651cf2c07c722d12f66f805e4e95c54bdbcc12 0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d 0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-1/dossiers/invalide-k5-coherence-tronquee (vérifications en échec attendues : K-5)
+  SHA-256 de points-de-controle.json : 0x8d32111ba020d10c2557169ee4bde1b320c37ef878525f94d2d483cb9d2482d6
+  consistency : (8, 9), 0 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path diffère de la preuve régénérée (K-5 attendue en échec) : vecteur true ; bibliothèque true : concorde
+  proof.VerifyConsistency : vecteur refusee ; bibliothèque refusee : concorde
+  motif de la bibliothèque : refusee (empty proof)
+-- ct-1/dossiers/invalide-k6-last-hash (vérifications en échec attendues : K-6)
+  SHA-256 de points-de-controle.json : 0x6bb480010add5a3333e4c8585edadeba6ba1eada537e5d83652ded72aa7d7843
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-1/dossiers/valide-seq-7-point-de-cloture (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0xdfc020b8eb7175a03ab8e06b8abd4e8bddea33a1d204f1cc1110d23f08c5a76c
+  consistency : (9, 9), 0 nœud(s) ; point : tree_size 9, root 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : []
+  path = preuve régénérée, nœud pour nœud : vecteur [] ; bibliothèque [] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-1/dossiers/valide-seq-7-point-de-controle (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0xc1eb77457c3e87ece1ca480f1ef3fad01a122f0c6cd42c9bbdb75c0d625c9127
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/invalide-k1-double-defaut (vérifications en échec attendues : K-1)
+  SHA-256 de points-de-controle.json : 0x4482e98c44362888d393e73e29923bc2aa133acfe4286e0405617653254f83d2
+  consistency : (8, 9), 0 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, pour information (K-1 attendue en échec) : false
+  K-1 attendue en échec : K-5 n'est pas exécutée par le vérificateur (prérequis en échec) ; verdict de la bibliothèque pour information : refusee (empty proof)
+-- ct-6/dossiers/invalide-k1-partie-inexploitable (vérifications en échec attendues : K-1)
+  SHA-256 de points-de-controle.json : 0x38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed
+  partie « null » : aucune preuve à confronter (sans objet)
+-- ct-6/dossiers/invalide-k7-base64-non-canonique (vérifications en échec attendues : K-7)
+  SHA-256 de points-de-controle.json : 0x84ae96faf68984c8a01d89d1b10b52ef4d1589635e15d1f4f1b4306cd024ec15
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/invalide-k7-jeton-autre-empreinte (vérifications en échec attendues : K-7)
+  SHA-256 de points-de-controle.json : 0x274418de699a749d04e36290364bf4d3bbc6251635148d936dc9880fdb0e7c2b
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/invalide-k7-jeton-signature (vérifications en échec attendues : K-7)
+  SHA-256 de points-de-controle.json : 0x1f17076c62ecb3f633118b42d201c15518b682df9218f678264182a63e1e2537
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/invalide-k8-contrat (vérifications en échec attendues : K-8)
+  SHA-256 de points-de-controle.json : 0x7b4f2b92b374d96a9bcccbe9b26fb5f9a1245d1a87b0c950d7b59f76738a195c
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/invalide-k8-empreinte (vérifications en échec attendues : K-8)
+  SHA-256 de points-de-controle.json : 0x46f2ac59c5140e70afad772448ba2a91761af5e56e49c1acbc67ffd58b4828cd
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/invalide-k9-preuve-autre-empreinte (vérifications en échec attendues : K-9)
+  SHA-256 de points-de-controle.json : 0xdfc820dd70086b14224d63e82b18b9d2f8bd054d2d335420c87fa1d00450b688
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/invalide-r11-ancre-de-periode (vérifications en échec attendues : R-11)
+  SHA-256 de points-de-controle.json : 0x2fe772a054b9c68c25c917b1451aa5d0f0a562c66c0b4ac19670158bbdf3accc
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-complet (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0x817e9756dcd57635a27a68fc36cf9602a7d7373e719571b6136e5f8eff25ea4f
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-jeton-seul (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0x9a29f95d90a2607443746a048434341d4f9e954775f13107c86764cdc5163bcc
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-ots-en-attente (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0x7996032a13449e325d4da8c85688a22bc644bbbfeae92ad0ad783eb84ba797f1
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-point-contresigne (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0x4bcb1c2e06c6790cce4792116a6d71f3df185557dfe4b292d732249d0764cde5
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-point-de-cloture (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0x873ce78e1b52d4f4dea7348c38f3a71f1ab98189dbe5b1cca785c9e90d9dc2ef
+  consistency : (9, 9), 0 nœud(s) ; point : tree_size 9, root 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : []
+  path = preuve régénérée, nœud pour nœud : vecteur [] ; bibliothèque [] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-reference-declarative (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0x817e9756dcd57635a27a68fc36cf9602a7d7373e719571b6136e5f8eff25ea4f
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-sans-ancre (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0xc1eb77457c3e87ece1ca480f1ef3fad01a122f0c6cd42c9bbdb75c0d625c9127
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-sans-ancres-reviseur (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0x817e9756dcd57635a27a68fc36cf9602a7d7373e719571b6136e5f8eff25ea4f
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+
+Discordances au total : 0
+Limites de l'outil relevées : 1
+  - (0, 5) : transparency-dev/merkle v0.0.2 accepte size1 = 0 avec une preuve vide (first_root non lu) là où CT-1 §10.7 rejette m = 0 ; la branche main de la bibliothèque le refuse
