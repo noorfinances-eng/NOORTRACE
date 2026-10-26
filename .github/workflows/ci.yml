@@ -143,13 +143,16 @@ jobs:
   # (spec/CT-3-approbations.md, EX-13.36, EX-A.11) : Playwright 1.56.1, la
   # version mesurée de console/LISEZMOI.md, est installé sans être ajouté à
   # package.json, puis son Chromium et les dépendances système du navigateur ;
-  # ce travail accède au réseau pour ces deux téléchargements.
+  # ce travail accède au réseau pour ces deux téléchargements. Il tourne sur un
+  # exécuteur Ubuntu 24.04 : Playwright 1.56.1 refuse d'installer Chromium sur
+  # Ubuntu 26.04, le système d'ubuntu-latest (« Playwright does not support
+  # chromium on ubuntu26.04-x64 »).
   # NOORTRACE_EXIGER_CHROMIUM=1 rend le saut impossible : si Playwright ou
   # Chromium ne se lancent pas, le test échoue au lieu d'être mis en attente,
   # et la dernière commande refuse toute ligne « pending » du rapport.
   console-chromium:
     name: console de référence de CT-3 dans Chromium par Playwright 1.56.1, sans saut
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       NOORTRACE_EXIGER_CHROMIUM: "1"
     steps:

@@ -60,7 +60,9 @@ dépendance du dépôt : le test le charge s'il est installé sur le poste, et s
 saute avec un message sinon, ou si Chromium ne se lance pas ; il n'installe
 aucun navigateur. Sous `NOORTRACE_EXIGER_CHROMIUM=1`, le saut est impossible :
 la même condition fait échouer le test. L'intégration continue a un travail
-propre, `console-chromium` (`.github/workflows/ci.yml`), qui installe
+propre, `console-chromium` (`.github/workflows/ci.yml`), sur un exécuteur
+Ubuntu 24.04 (Playwright 1.56.1 n'installe pas Chromium sur Ubuntu 26.04),
+qui installe
 Playwright 1.56.1 sans l'ajouter à `package.json`
 (`npm install --no-save playwright@1.56.1`), puis son Chromium
 (`npx playwright install --with-deps chromium`), pose
