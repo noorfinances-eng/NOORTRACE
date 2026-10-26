@@ -6061,8 +6061,9 @@ message, si `require("playwright")` échoue ou si Chromium ne se lance pas.
 Quand la variable d'environnement `NOORTRACE_EXIGER_CHROMIUM` vaut `1`, le
 saut est impossible : la même condition fait **échouer** le test, avec le
 même message. L'intégration continue a un travail propre à ce test
-(`.github/workflows/ci.yml`, travail `console-chromium`) : il installe
-Playwright à la version mesurée sans l'ajouter à `package.json`
+(`.github/workflows/ci.yml`, travail `console-chromium`, sur un exécuteur
+Ubuntu 24.04, système que Playwright 1.56.1 prend en charge, au contraire
+d'Ubuntu 26.04) : il installe Playwright à la version mesurée sans l'ajouter à `package.json`
 (`npm install --no-save playwright@1.56.1`), puis son Chromium et ses
 dépendances système (`npx playwright install --with-deps chromium`), ce qui
 demande l'accès au réseau, pose `NOORTRACE_EXIGER_CHROMIUM=1` et lance
