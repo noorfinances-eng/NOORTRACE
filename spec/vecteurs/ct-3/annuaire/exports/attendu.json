@@ -1,0 +1,213 @@
+{
+  "version": 0,
+  "cases": [
+    {
+      "file": "reference.json",
+      "description": "L'annuaire de référence : aucun écart.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": []
+    },
+    {
+      "file": "preuve-autre-cle.json",
+      "description": "La preuve du compte 2 porte la signature, par la clé du compte 1, de son propre message : preuve_invalide ; le rejeu de l'inscription correspondante échoue (opération 3).",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "preuve_invalide",
+          "pointer": "/entries/1/addresses/0/proof"
+        },
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/2"
+        }
+      ]
+    },
+    {
+      "file": "preuve-identite-differente.json",
+      "description": "La preuve du compte 2 est un message, signé par le compte 2, au nom d'approbateur-1 : preuve_discordante ; le rejeu de l'inscription échoue (opération 3).",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "preuve_discordante",
+          "pointer": "/entries/1/addresses/0/proof"
+        },
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/2"
+        }
+      ]
+    },
+    {
+      "file": "deux-adresses-actives.json",
+      "description": "Le compte 4 de l'entrée apb-0002 est marqué actif à côté du compte 2 : deux_adresses_actives ; le rejeu donne un autre état (/entries).",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/entries"
+        },
+        {
+          "code": "deux_adresses_actives",
+          "pointer": "/entries/1/addresses"
+        }
+      ]
+    },
+    {
+      "file": "adresse-dans-deux-entrees.json",
+      "description": "Le compte 1 figure aussi, révoqué, dans l'entrée apb-0003 : adresse_double ; sa preuve y nomme une autre identité (preuve_discordante) ; le rejeu donne un autre état.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/entries"
+        },
+        {
+          "code": "adresse_double",
+          "pointer": "/entries/2/addresses/1/address"
+        },
+        {
+          "code": "preuve_discordante",
+          "pointer": "/entries/2/addresses/1/proof"
+        }
+      ]
+    },
+    {
+      "file": "identite-double.json",
+      "description": "L'entrée apb-0003 porte l'identité d'approbateur-1 : identite_double ; sa preuve nomme u.martin (preuve_discordante) ; le rejeu donne un autre état.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/entries"
+        },
+        {
+          "code": "preuve_discordante",
+          "pointer": "/entries/2/addresses/0/proof"
+        },
+        {
+          "code": "identite_double",
+          "pointer": "/entries/2/session_identity"
+        }
+      ]
+    },
+    {
+      "file": "identifiant-double.json",
+      "description": "L'entrée apb-0003 porte l'identifiant apb-0002 : identifiant_double ; l'inscription de l'opération 7 ne trouve plus sa preuve et ne se rejoue pas.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "identifiant_double",
+          "pointer": "/entries/2/id"
+        },
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/6"
+        }
+      ]
+    },
+    {
+      "file": "auto-validation.json",
+      "description": "approbateur-1, ajouté aux administrateurs, a validé sa propre adresse : auto_validation ; l'opération 2 ne se rejoue pas.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "auto_validation",
+          "pointer": "/entries/0/addresses/0/validated_by"
+        },
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/1"
+        }
+      ]
+    },
+    {
+      "file": "revision-faux.json",
+      "description": "revision vaut 8 pour neuf opérations : revision_incoherente.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "revision_incoherente",
+          "pointer": "/revision"
+        }
+      ]
+    },
+    {
+      "file": "operations-non-rejouees.json",
+      "description": "L'opération 6 révoque le compte 3 dans l'entrée apb-0002, qui ne l'a pas : elle ne se rejoue pas (adresse inconnue).",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/5"
+        }
+      ]
+    },
+    {
+      "file": "schema.json",
+      "description": "Document sans le membre operations : non conforme au schéma, une seule erreur schema.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "schema",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "file": "administrateurs-recopies.json",
+      "description": "Le réglage administrators passe de admin-1 à admin-1 et admin-2 : opération 10 changer_administrateurs (by configuration, before et after), puis admin-2 désactive apb-0002 (opération 11) : aucun écart ; le rejeu juge admin-2 administrateur à partir de l'opération 10 (EX-13.37).",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": []
+    },
+    {
+      "file": "administrateurs-sans-operation.json",
+      "description": "administrators vaut admin-2 seul, sans opération changer_administrateurs : le rejeu part de cette liste, et la validation de l'opération 2 par admin-1 ne se rejoue pas.",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/operations/1"
+        }
+      ]
+    },
+    {
+      "file": "administrateurs-differents-du-rejeu.json",
+      "description": "administrateurs-recopies.json dont administrators est ramené à admin-1 seul sans nouvelle opération : le rejeu aboutit à admin-1 et admin-2 (/administrators).",
+      "checks": [
+        "AN-9"
+      ],
+      "errors": [
+        {
+          "code": "operations_incoherentes",
+          "pointer": "/administrators"
+        }
+      ]
+    }
+  ]
+}

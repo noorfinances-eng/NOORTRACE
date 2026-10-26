@@ -1,0 +1,127 @@
+{
+  "version": 0,
+  "id": "adresse-jamais-reattribuee",
+  "description": "Le compte 4, révoqué dans l'entrée apb-0002, préparé par u.martin : adresse_deja_attribuee dès preparer_inscription ; la même adresse préparée par sa propre personne l'est aussi.",
+  "checks": [
+    "AN-7"
+  ],
+  "initial": "annuaires/reference.json",
+  "steps": [
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T11:00:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example u.martin",
+        "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
+      },
+      "challenges": [
+        "af4b73d9cb3b9babb094a4ccc089fd9d"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "adresse_deja_attribuee",
+        "response": null,
+        "revision": 9,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [
+              "u.martin@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T11:01:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-2",
+        "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
+      },
+      "challenges": [
+        "3779791e337ae94714b4a608a30aabbc"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "adresse_deja_attribuee",
+        "response": null,
+        "revision": 9,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [
+              "u.martin@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

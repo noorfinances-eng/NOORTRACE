@@ -1,0 +1,47 @@
+{
+  "version": 0,
+  "id": "apr-c0-542-approuve-compte-1",
+  "description": "D_A dont le premier octet est nul (ticket apr-c0-542, plus petit k ≥ 1) : une conversion par entier ou par texte le perdrait (EX-9.22).",
+  "checks": [
+    "CS-3",
+    "CS-5"
+  ],
+  "input": {
+    "a": {
+      "decision": "approuve",
+      "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "request_hash": "0xd3620aa8af23a0d83931eb2db11403b2947430cbd89c3387781bce95ab06823b",
+      "ticket": "apr-c0-542"
+    },
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "account": 1
+  },
+  "expected": {
+    "digests": {
+      "a": {
+        "decision": "approuve",
+        "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "request_hash": "0xd3620aa8af23a0d83931eb2db11403b2947430cbd89c3387781bce95ab06823b",
+        "ticket": "apr-c0-542"
+      },
+      "jcs": "{\"decision\":\"approuve\",\"journal_id\":\"0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1\",\"org_id\":\"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\",\"request_hash\":\"0xd3620aa8af23a0d83931eb2db11403b2947430cbd89c3387781bce95ab06823b\",\"ticket\":\"apr-c0-542\"}",
+      "d_a": "0x00d9060ac22cf499a79777dfeb7fa339783ac23f12571712c02663d9acdca5c7",
+      "fingerprint": "00d9060a…acdca5c7",
+      "groups": "00d9060a c22cf499 a79777df eb7fa339 783ac23f 12571712 c02663d9 acdca5c7",
+      "h": "0x26bce2558952fd423bd730286f17a754c71a61df5a467b1a465a7c018ad68239",
+      "h_fingerprint": "26bce255…8ad68239",
+      "utf8": false
+    },
+    "preimage": "0x19457468657265756d205369676e6564204d6573736167653a0a333200d9060ac22cf499a79777dfeb7fa339783ac23f12571712c02663d9acdca5c7",
+    "request": {
+      "method": "personal_sign",
+      "params": [
+        "0x00d9060ac22cf499a79777dfeb7fa339783ac23f12571712c02663d9acdca5c7",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ]
+    },
+    "signature": "0x015e03c4f8654929f3503bfd21efa0a16b053ed6fb8f41fa9d0dd410fbfa2a4e58c327df937912e9351111e6bbf1af42680bd4260104d63e33e9370b2f60bdcd1c"
+  }
+}

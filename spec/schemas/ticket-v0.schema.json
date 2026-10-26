@@ -75,7 +75,7 @@
       ]
     },
     "raison": {
-      "description": "Raisons de refus d'une entrée, d'un vote ou d'une remise (CT-3 table 12.8).",
+      "description": "Raisons de refus d'une entrée, d'un vote ou d'une remise (CT-3 table 12.8) ; session_non_autorisee est le refus, par le canal de la console, d'une méthode d'une identité de session sans accès au ticket ou d'un vote d'une adresse qui n'est pas celle de la session (CT-3 EX-12.14, EX-12.16, révision 0.3). Les raisons propres à l'annuaire sont dans annuaire-approbateurs-v0 ($defs/code_erreur_annuaire).",
       "enum": [
         "requete_invalide",
         "non_pret",
@@ -103,7 +103,8 @@
         "approbateur_double",
         "seuil_different_du_jeu",
         "expire_avec_signatures",
-        "mode_degrade"
+        "mode_degrade",
+        "session_non_autorisee"
       ]
     },
     "cause_illisible": {
@@ -1628,6 +1629,19 @@
                       {
                         "type": "string",
                         "maxLength": 1024
+                      }
+                    ]
+                  },
+                  "session_identity": {
+                    "description": "Identité de session de la requête retirer du canal de la console, gardée telle quelle (EX-12.19) ; facultative dans une trace (les traces de la version 0.2 ne la portent pas).",
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
                       }
                     ]
                   }

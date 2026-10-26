@@ -19,7 +19,8 @@
     "vecteurs:ct4": "node scripts/vecteurs/generer-ct4.mjs",
     "vecteurs:ct5": "node scripts/vecteurs/generer-ct5.mjs",
     "vecteurs:ct6": "node scripts/vecteurs/generer-ct6.mjs",
-    "registre": "node scripts/registre/noortrace-registre.mjs"
+    "registre": "node scripts/registre/noortrace-registre.mjs",
+    "console:empreintes": "node scripts/console/empreintes.mjs"
   },
   "license": "Apache-2.0",
   "devDependencies": {

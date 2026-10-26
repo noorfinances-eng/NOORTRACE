@@ -36,7 +36,9 @@ verification proves and what the reviewer must still trust.
   noorcore's BFT hash, not Ethereum's). Checkpoints that commit to new events are
   recorded in the same registry, and at most one every 5 minutes is time-stamped (CT-5).
 - **Human approval before sensitive actions.** Threshold-signed decisions are events of
-  the same journal, and the action is held until they exist.
+  the same journal, and the action is held until they exist. Each approver is a named
+  person, authenticated by the client's identity system, who signs with their own key
+  in their own wallet (CT-3).
 - **An open evidence format and an offline verifier.** One event proves itself,
   revealing no other event than its neighbours and its linked approval
   decisions, with a verifier that needs no network and no noortrace. Among its
@@ -72,7 +74,14 @@ implementations written separately from the reference.
   approver sees before signing, and the proxy's behaviour while waiting: an
   immediate tool error result (`isError`) carrying the ticket and its state by
   default. Rule evaluation, tickets and decision checks are implemented and
-  checked.
+  checked. Revision 0.3 adds approval from the session of a named person
+  authenticated by the client's identity system, an approver directory where
+  each address is enrolled by proof of possession, the signing paths (browser
+  wallet, hardware wallet through it, mobile wallet when the organisation opts
+  in, encrypted key file), and a local check where the console recomputes the
+  signed digest and refuses to have anything else signed. A reference console
+  (`console/`, `scripts/lib/console.mjs`) is tested end to end in Chromium;
+  its signatures are confronted with ethers and eth-account.
 - **CT-4, the registry**: the dedicated noorcore instance (genesis rules checked
   at start-up, identifiers, validators and quorum, fee-less gas with an admission
   guard against mempool poisoning), the contracts and their conventions
@@ -100,9 +109,10 @@ implementations written separately from the reference.
 CT-1, CT-2, CT-3, CT-4 and CT-5 vectors are also recomputed by Go verifiers
 written from the specification alone, without reading the JavaScript.
 
-The registry contracts and the commit-certificate verifier exist and are tested. The
-recorder, the approval service and console, the anchoring component with its
-network clients, and the verifier's Go binary are specified, not built yet.
+The registry contracts, the commit-certificate verifier and the reference approval
+console exist and are tested. The recorder, the approval service and the operating
+console, the anchoring component with its network clients, and the verifier's Go
+binary are specified, not built yet.
 
 ## Layout
 
@@ -112,6 +122,7 @@ network clients, and the verifier's Go binary are specified, not built yet.
 | `scripts/lib/` | JavaScript reference implementation |
 | `scripts/verify/` | Offline verifiers (evidence folder, commit certificate) |
 | `scripts/registre/` | CT-4 reference tool: client onboarding, anchoring, period closure, capture |
+| `console/` | CT-3 reference approval console: a static page with a strict content security policy |
 | `contracts/` | Registry contracts (Solidity) |
 | `test/` | Tests and fixtures |
 | `chain/` | Dedicated development instance of the registry node, container image |

@@ -11,12 +11,15 @@ import (
 // VerifierVecteurs rejoue toutes les familles de l'annexe A.
 func VerifierVecteurs(racine string) *Rapport {
 	r := NouveauRapport(racine, FamConstantes, FamFormat, FamSchemas, FamPolitiques, FamInvalides, FamEvaluation,
-		FamCandidats, FamAcceptation, FamTickets, FamDecisions, FamSignatures)
+		FamCandidats, FamAcceptation, FamTickets, FamDecisions, FamSignatures, FamAnnuaire, FamConsole, FamAcceptationConsole)
 	dirSchemas := filepath.Join(racine, "..", "..", "schemas")
 	sch, err := ChargerSchemas(
 		filepath.Join(dirSchemas, "politique-approbation-v0.schema.json"),
 		filepath.Join(dirSchemas, "ticket-v0.schema.json"),
-		filepath.Join(dirSchemas, "evenement-v0.schema.json"))
+		filepath.Join(dirSchemas, "evenement-v0.schema.json"),
+		filepath.Join(dirSchemas, "annuaire-approbateurs-v0.schema.json"),
+		filepath.Join(dirSchemas, "console-approbation-v0.schema.json"),
+		filepath.Join(dirSchemas, "console-service-v0.schema.json"))
 	if err != nil {
 		r.Erreur("schémas introuvables à côté des vecteurs (%s) : %v", dirSchemas, err)
 		return r
@@ -46,5 +49,8 @@ func VerifierVecteurs(racine string) *Rapport {
 	connues = append(connues, familleDecisions(c)...)
 	couvertureRemisesValides(c)
 	familleSignatures(c, connues)
+	familleAnnuaire(c)
+	familleConsole(c)
+	familleAcceptationConsole(c)
 	return r
 }

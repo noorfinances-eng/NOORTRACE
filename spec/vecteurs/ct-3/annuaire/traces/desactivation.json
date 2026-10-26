@@ -1,0 +1,458 @@
+{
+  "version": 0,
+  "id": "desactivation",
+  "description": "Désactivation d'une entrée : son adresse active est révoquée (cause desactivation), son défi en cours est effacé (nonce_inconnu), une préparation est refusée (identite_desactivee) ; réactivation sans adresse rétablie, puis nouvelle inscription validée ; désactivation et réactivation répétées refusées (etat_incompatible).",
+  "checks": [
+    "AN-6",
+    "AN-7"
+  ],
+  "initial": "annuaires/vide.json",
+  "steps": [
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T08:00:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      },
+      "challenges": [
+        "549e5080e145645b69b2441636004f56"
+      ],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "fields": {
+            "origin": "https://console.assureur-demo.example",
+            "org": "assureur-demo",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "identity": "oidc https://idp.assureur-demo.example approbateur-1",
+            "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "issued_at": "2026-11-10T08:00:00.000Z",
+            "expires_at": "2026-11-10T08:10:00.000Z",
+            "nonce": "549e5080e145645b69b2441636004f56"
+          },
+          "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x70997970c51812dc3a010c7d01b50e0d17dc79c8\nEmis le: 2026-11-10T08:00:00.000Z\nExpire le: 2026-11-10T08:10:00.000Z\nNonce: 549e5080e145645b69b2441636004f56"
+        },
+        "revision": 0,
+        "entries": []
+      }
+    },
+    {
+      "method": "inscrire",
+      "at": "2026-11-10T08:00:30.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x70997970c51812dc3a010c7d01b50e0d17dc79c8\nEmis le: 2026-11-10T08:00:00.000Z\nExpire le: 2026-11-10T08:10:00.000Z\nNonce: 549e5080e145645b69b2441636004f56",
+        "signature": "0xc1f8f97f9265e207e66ed851d198da2be4224b78f2eb83172b9c3730f66bb4922debc4d2a3048ba0e2fd3778983c90345d8215e2d5d3eb6cfe4cb71f0b63b7681c"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "state": "en_attente",
+          "revision": 1
+        },
+        "revision": 1,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "en_attente"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "valider",
+      "at": "2026-11-10T08:05:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "state": "active",
+          "revision": 2
+        },
+        "revision": 2,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T08:10:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      },
+      "challenges": [
+        "e9bd41539cb386f239b6f766e54a37c6"
+      ],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "fields": {
+            "origin": "https://console.assureur-demo.example",
+            "org": "assureur-demo",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "identity": "oidc https://idp.assureur-demo.example approbateur-1",
+            "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "issued_at": "2026-11-10T08:10:00.000Z",
+            "expires_at": "2026-11-10T08:20:00.000Z",
+            "nonce": "e9bd41539cb386f239b6f766e54a37c6"
+          },
+          "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\nEmis le: 2026-11-10T08:10:00.000Z\nExpire le: 2026-11-10T08:20:00.000Z\nNonce: e9bd41539cb386f239b6f766e54a37c6"
+        },
+        "revision": 2,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "desactiver",
+      "at": "2026-11-10T08:11:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "reason": "Absence prolongée"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "active": false,
+          "requester_identities": [],
+          "revision": 3
+        },
+        "revision": 3,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": false,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "inscrire",
+      "at": "2026-11-10T08:12:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\nEmis le: 2026-11-10T08:10:00.000Z\nExpire le: 2026-11-10T08:20:00.000Z\nNonce: e9bd41539cb386f239b6f766e54a37c6",
+        "signature": "0x3c07f55509f8eac4b99bf3904f13b590b4be40010cc530b99578c9a940cb78d564c9ba8fab7b157dc1e9eeb25e230d8e6491eea0eb431433d804d56a1999b77f1b"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "nonce_inconnu",
+        "response": null,
+        "revision": 3,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": false,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T08:13:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      },
+      "challenges": [
+        "cdc0981fc3c55f30c9a45c178f72c318"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "identite_desactivee",
+        "response": null,
+        "revision": 3,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": false,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "desactiver",
+      "at": "2026-11-10T08:14:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "reason": null
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "etat_incompatible",
+        "response": null,
+        "revision": 3,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": false,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "reactiver",
+      "at": "2026-11-10T09:00:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "reason": "Retour"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "active": true,
+          "requester_identities": [],
+          "revision": 4
+        },
+        "revision": 4,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "reactiver",
+      "at": "2026-11-10T09:01:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "reason": null
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "etat_incompatible",
+        "response": null,
+        "revision": 4,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T09:10:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      },
+      "challenges": [
+        "aebe2d28280bbc78429cee679777dc1c"
+      ],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "fields": {
+            "origin": "https://console.assureur-demo.example",
+            "org": "assureur-demo",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "identity": "oidc https://idp.assureur-demo.example approbateur-1",
+            "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+            "issued_at": "2026-11-10T09:10:00.000Z",
+            "expires_at": "2026-11-10T09:20:00.000Z",
+            "nonce": "aebe2d28280bbc78429cee679777dc1c"
+          },
+          "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\nEmis le: 2026-11-10T09:10:00.000Z\nExpire le: 2026-11-10T09:20:00.000Z\nNonce: aebe2d28280bbc78429cee679777dc1c"
+        },
+        "revision": 4,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "inscrire",
+      "at": "2026-11-10T09:10:30.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\nEmis le: 2026-11-10T09:10:00.000Z\nExpire le: 2026-11-10T09:20:00.000Z\nNonce: aebe2d28280bbc78429cee679777dc1c",
+        "signature": "0x923fd5d48ee40531fffb124b8ac5ed97f1f90f32b7e15aebf905d3d1084dcfd66742133d819b2a805fc66206163580b836059f658de3ad73024f97f4575707811c"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "state": "en_attente",
+          "revision": 5
+        },
+        "revision": 5,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              },
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "en_attente"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "valider",
+      "at": "2026-11-10T09:15:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "state": "active",
+          "revision": 6
+        },
+        "revision": 6,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              },
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

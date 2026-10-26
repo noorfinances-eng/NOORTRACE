@@ -1,6 +1,6 @@
 # NOORTRACE — architecture cible
 
-Version 0.8, 26 octobre 2026. Document de conception, pas d'implémentation. Les
+Version 0.9, 26 octobre 2026. Document de conception, pas d'implémentation. Les
 spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
 l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-5 pour
 l'ancrage, CT-6 pour le vérificateur.
@@ -202,7 +202,15 @@ Quand la sortie est « à approuver » :
 1. Le mandataire ne transmet pas l'appel. Il crée un ticket, le journalise, et
    notifie les approbateurs du client dans la console reprise du hub.
 2. Chaque approbateur signe sa décision avec sa clé, en EIP-191, dans son
-   portefeuille ; la console reprise du hub ne garde aucune clé (CT-3 §13). Le
+   portefeuille ; la console reprise du hub ne garde aucune clé (CT-3 §13).
+   L'approbateur est une personne nommée, authentifiée par le système
+   d'identité du client et liée à son adresse par l'annuaire des approbateurs,
+   où l'adresse est inscrite par preuve de possession (CT-3 §13.4, §13.5). Il
+   signe par l'un des parcours de CT-3 §13.9 : portefeuille de navigateur,
+   portefeuille matériel par lui, portefeuille mobile si l'organisation l'ouvre,
+   fichier de clé chiffré ; avant la signature, la console recalcule l'objet
+   signé et son condensé `D_A`, et refuse de faire signer si le service a
+   calculé autre chose (CT-3 §9.6). Le
    seuil, par exemple deux sur trois, est celui du jeu d'approbateurs du client
    dans le contrat CuratorSet : jeu épinglé par la politique, lu à l'ouverture du
    ticket et reconfirmé avant la décision ; un seuil abaissé pendant l'attente ne
@@ -421,7 +429,7 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | `contracts/poss/AttestationRegistry.sol` | Registre des ancres de période et de points de contrôle : `anchor`, `lookup`, `isAnchored` |
 | `contracts/poss/CuratorSet.sol`, `CuratorSetRegistry.sol` | Jeux d'approbateurs par client, seuil, administration reprise par le client |
 | `contracts/poss/PoSSRegistry.sol` | Modèle de PeriodRegistry, dérivé sans le champ des paiements, avec continuité par journal ; dans `contracts/` |
-| `dapps/curators-hub` | Base de la console d'approbation et de revue, signature EIP-191, page de vérification |
+| `dapps/curators-hub` | Base de la console d'approbation et de revue, signature EIP-191, page de vérification ; n'en sont repris ni la garde des clés par le serveur, ni le lien de session par le nom affiché, ni l'inscription d'une adresse sans preuve de possession (CT-3 §13.1) |
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
 
@@ -462,14 +470,20 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
   de CT-2 (production des points) et de CT-6 (vérifications K-7 à K-9) ; le
   planificateur de référence à horloge injectée, avec ses vecteurs, recalculés
   par un vérificateur Go indépendant et confrontés à OpenSSL, à la bibliothèque
-  officielle d'OpenTimestamps et à une implémentation publique de la RFC 9162.
+  officielle d'OpenTimestamps et à une implémentation publique de la RFC 9162 ;
+- la révision 0.3 de CT-3 : approbation par une personne nommée depuis sa
+  session, annuaire des approbateurs et inscription par preuve de possession,
+  parcours de signature dans le portefeuille de l'approbateur, contrôle local de
+  `D_A` ; la console de référence (bibliothèque `scripts/lib/console.mjs`, page
+  `console/`, test de bout en bout dans Chromium), avec ses vecteurs, recalculés
+  par le vérificateur Go indépendant et confrontés à ethers et à eth-account.
 
 La conception se fait sur l'instance de développement locale ; un VPS de
 développement n'est requis qu'à la construction de l'enregistreur, quand il
 ancre pour de vrai.
 
 À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
-le service et la console d'approbation, le composant d'ancrage avec ses clients
+le service d'approbation et la console d'exploitation, le composant d'ancrage avec ses clients
 RFC 3161 et OpenTimestamps, le
 binaire Go du vérificateur, la garde d'admission devant le RPC des validateurs de
 production (CT-4 EX-10.8), la démonstration en une commande.

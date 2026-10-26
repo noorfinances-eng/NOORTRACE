@@ -1,0 +1,38 @@
+{
+  "version": 0,
+  "id": "v-0",
+  "description": "v = 0 : normalisé en v = 27, accepté.",
+  "checks": [
+    "CS-6",
+    "CS-7"
+  ],
+  "input": {
+    "a": {
+      "decision": "approuve",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+      "ticket": "apr-2201"
+    },
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "reason": "Constat et facture concordants",
+    "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+    "response": {
+      "result": "0x6e8fb398cce443d4b4343245ac27679e1e460c1c441c0115a21055ec4f1dba09588f3b13b0cc7a9e0d8e1f20133ea0aac9eee9b88f8626ec3a6deafaddec41cd00"
+    }
+  },
+  "expected": {
+    "outcome": "accepte",
+    "reason": null,
+    "signature": "0x6e8fb398cce443d4b4343245ac27679e1e460c1c441c0115a21055ec4f1dba09588f3b13b0cc7a9e0d8e1f20133ea0aac9eee9b88f8626ec3a6deafaddec41cd1b",
+    "recovered": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "vote": {
+      "ticket": "apr-2201",
+      "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "decision": "approuve",
+      "signature": "0x6e8fb398cce443d4b4343245ac27679e1e460c1c441c0115a21055ec4f1dba09588f3b13b0cc7a9e0d8e1f20133ea0aac9eee9b88f8626ec3a6deafaddec41cd1b",
+      "reason": "Constat et facture concordants",
+      "session_identity": "oidc https://idp.assureur-demo.example approbateur-1"
+    }
+  }
+}

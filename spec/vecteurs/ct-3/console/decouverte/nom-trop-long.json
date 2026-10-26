@@ -1,0 +1,46 @@
+{
+  "version": 0,
+  "id": "nom-trop-long",
+  "description": "Nom de 65 caractères : annonce_invalide.",
+  "checks": [
+    "CS-8"
+  ],
+  "input": {
+    "announcements": [
+      {
+        "info": {
+          "uuid": "a1d55917-319e-436e-a677-02e56006f01d",
+          "name": "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-f"
+        },
+        "provider": "p1"
+      },
+      {
+        "info": {
+          "uuid": "f640b56f-09d0-487c-89fa-5639b2c5d4ec",
+          "name": "Portefeuille b",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-b"
+        },
+        "provider": "p2"
+      }
+    ]
+  },
+  "expected": {
+    "providers": [
+      {
+        "uuid": "f640b56f-09d0-487c-89fa-5639b2c5d4ec",
+        "name": "Portefeuille b",
+        "rdns": "com.exemple.portefeuille-b",
+        "provider": "p2"
+      }
+    ],
+    "rejected": [
+      {
+        "index": 0,
+        "reason": "annonce_invalide"
+      }
+    ]
+  }
+}

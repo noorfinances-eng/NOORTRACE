@@ -234,6 +234,48 @@ func familleSchemas(c *Contexte) {
 		}
 		c.validerSchema(fic, RefTicket+"#/$defs/trace", v, ex+" (les remises et fenêtres attendues comprises : $defs/attendu_pas)")
 	}
+	// Révision 0.3 (EX-A.3) : annuaire-approbateurs-v0 et console-approbation-v0.
+	for _, fic := range append(c.fichiers("annuaire/annuaires/*.json"), c.fichiers("annuaire/exports/*.json")...) {
+		if strings.HasSuffix(fic, "/attendu.json") || strings.HasSuffix(fic, "exports/schema.json") {
+			continue
+		}
+		if v, ok := c.lire(fic); ok {
+			c.validerSchema(fic, RefAnnuaire, v, ex+" : « les annuaires de annuaire/annuaires/ et annuaire/exports/ (sauf le cas schema) par le schéma racine »")
+		}
+	}
+	for _, x := range [][2]string{
+		{"annuaire/messages.json", "fichier_messages"},
+		{"annuaire/inscriptions.json", "fichier_inscriptions"},
+		{"annuaire/domaines.json", "fichier_domaines"},
+		{"annuaire/controles-vote.json", "fichier_controles_vote"},
+		{"annuaire/controles-canal.json", "fichier_controles_canal"},
+		{"annuaire/exports/attendu.json", "attendu_exports"},
+	} {
+		if v, ok := c.lire(x[0]); ok {
+			c.validerSchema(x[0], RefAnnuaire+"#/$defs/"+x[1], v, ex)
+		}
+	}
+	for _, fic := range c.fichiers("annuaire/traces/*.json") {
+		if v, ok := c.lire(fic); ok {
+			c.validerSchema(fic, RefAnnuaire+"#/$defs/trace_annuaire", v, ex)
+		}
+	}
+	for _, x := range [][2]string{
+		{"console/modeles/*.json", "cas_modele"},
+		{"console/requetes/*.json", "cas_requete"},
+		{"console/reponses/*.json", "cas_reponse"},
+		{"console/decouverte/*.json", "cas_decouverte"},
+		{"console/fichiers-cle/*.json", "cas_fichier_cle"},
+	} {
+		for _, fic := range c.fichiers(x[0]) {
+			if v, ok := c.lire(fic); ok {
+				c.validerSchema(fic, RefConsole+"#/$defs/"+x[1], v, ex+" ; EX-A.16")
+			}
+		}
+	}
+	if v, ok := c.lire("acceptation-console-attendu.json"); ok {
+		c.validerSchema("acceptation-console-attendu.json", RefConsole+"#/$defs/attendu_acceptation_console", v, ex)
+	}
 	for _, fic := range append(c.fichiers("decisions/valides/*.json"), c.fichiers("decisions/invalides/*.json")...) {
 		v, ok := c.lire(fic)
 		if !ok {

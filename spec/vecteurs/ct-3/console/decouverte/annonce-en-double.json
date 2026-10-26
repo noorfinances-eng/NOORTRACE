@@ -1,0 +1,81 @@
+{
+  "version": 0,
+  "id": "annonce-en-double",
+  "description": "Deux portefeuilles s'annoncent ; le premier se réannonce (même objet, sans effet), puis un troisième objet reprend son uuid : les deux annonces de cet uuid par des objets différents sont écartées et l'uuid est exclu.",
+  "checks": [
+    "CS-8"
+  ],
+  "input": {
+    "announcements": [
+      {
+        "info": {
+          "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+          "name": "Portefeuille a",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p1"
+      },
+      {
+        "info": {
+          "uuid": "f640b56f-09d0-487c-89fa-5639b2c5d4ec",
+          "name": "Portefeuille b",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-b"
+        },
+        "provider": "p2"
+      },
+      {
+        "info": {
+          "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+          "name": "Portefeuille a",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p1"
+      },
+      {
+        "info": {
+          "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+          "name": "Portefeuille a",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p3"
+      },
+      {
+        "info": {
+          "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+          "name": "Portefeuille a",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p1"
+      }
+    ]
+  },
+  "expected": {
+    "providers": [
+      {
+        "uuid": "f640b56f-09d0-487c-89fa-5639b2c5d4ec",
+        "name": "Portefeuille b",
+        "rdns": "com.exemple.portefeuille-b",
+        "provider": "p2"
+      }
+    ],
+    "rejected": [
+      {
+        "index": 0,
+        "reason": "annonce_en_double"
+      },
+      {
+        "index": 3,
+        "reason": "annonce_en_double"
+      },
+      {
+        "index": 4,
+        "reason": "annonce_en_double"
+      }
+    ]
+  }
+}

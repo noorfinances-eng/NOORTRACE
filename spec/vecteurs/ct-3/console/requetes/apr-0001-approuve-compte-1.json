@@ -1,0 +1,47 @@
+{
+  "version": 0,
+  "id": "apr-0001-approuve-compte-1",
+  "description": "Compte 1 sur le ticket apr-0001 de decisions/valides/approbation-2-sur-3.json.",
+  "checks": [
+    "CS-3",
+    "CS-5"
+  ],
+  "input": {
+    "a": {
+      "decision": "approuve",
+      "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+      "ticket": "apr-0001"
+    },
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "account": 1
+  },
+  "expected": {
+    "digests": {
+      "a": {
+        "decision": "approuve",
+        "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+        "ticket": "apr-0001"
+      },
+      "jcs": "{\"decision\":\"approuve\",\"journal_id\":\"0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1\",\"org_id\":\"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\",\"request_hash\":\"0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16\",\"ticket\":\"apr-0001\"}",
+      "d_a": "0xce13c3f15c3eab4c81a4735828741b0acf205a46e59d6894ed2e7589b5777d0d",
+      "fingerprint": "ce13c3f1…b5777d0d",
+      "groups": "ce13c3f1 5c3eab4c 81a47358 28741b0a cf205a46 e59d6894 ed2e7589 b5777d0d",
+      "h": "0x9079b529368f08023b43a2b61a7ab9f92c3c42a28cefe10dfc161b48835ca728",
+      "h_fingerprint": "9079b529…835ca728",
+      "utf8": false
+    },
+    "preimage": "0x19457468657265756d205369676e6564204d6573736167653a0a3332ce13c3f15c3eab4c81a4735828741b0acf205a46e59d6894ed2e7589b5777d0d",
+    "request": {
+      "method": "personal_sign",
+      "params": [
+        "0xce13c3f15c3eab4c81a4735828741b0acf205a46e59d6894ed2e7589b5777d0d",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ]
+    },
+    "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c"
+  }
+}

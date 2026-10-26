@@ -1,0 +1,371 @@
+{
+  "version": 0,
+  "id": "alias-demandeur",
+  "description": "lier_demandeur d'un nouvel alias, double liaison refusée (demandeur_deja_lie), delier_demandeur, valeur inconnue refusée (demandeur_inconnu) ; une identité de session avec « ? » dans l'émetteur est refusée (identite_invalide) ; une entrée inconnue aussi (entree_inconnue).",
+  "checks": [
+    "AN-1",
+    "AN-6",
+    "AN-7"
+  ],
+  "initial": "annuaires/reference.json",
+  "steps": [
+    {
+      "method": "lier_demandeur",
+      "at": "2026-11-10T11:00:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0002",
+        "launched_by": "u.dupont@assureur-demo.example"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0002",
+          "active": true,
+          "requester_identities": [
+            "u.dupont@assureur-demo.example"
+          ],
+          "revision": 10
+        },
+        "revision": 10,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [
+              "u.dupont@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [
+              "u.martin@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "lier_demandeur",
+      "at": "2026-11-10T11:01:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "launched_by": "u.martin@assureur-demo.example"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "demandeur_deja_lie",
+        "response": null,
+        "revision": 10,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [
+              "u.dupont@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [
+              "u.martin@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "delier_demandeur",
+      "at": "2026-11-10T11:02:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0003",
+        "launched_by": "u.martin@assureur-demo.example"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0003",
+          "active": true,
+          "requester_identities": [],
+          "revision": 11
+        },
+        "revision": 11,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [
+              "u.dupont@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "delier_demandeur",
+      "at": "2026-11-10T11:03:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0003",
+        "launched_by": "x.inconnu@assureur-demo.example"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "demandeur_inconnu",
+        "response": null,
+        "revision": 11,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [
+              "u.dupont@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "lier_demandeur",
+      "at": "2026-11-10T11:04:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example?x=1 admin-1",
+        "entry": "apb-0003",
+        "launched_by": "u.martin@assureur-demo.example"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "identite_invalide",
+        "response": null,
+        "revision": 11,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [
+              "u.dupont@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "lier_demandeur",
+      "at": "2026-11-10T11:05:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-9999",
+        "launched_by": "u.martin@assureur-demo.example"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "entree_inconnue",
+        "response": null,
+        "revision": 11,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [
+              "u.dupont@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

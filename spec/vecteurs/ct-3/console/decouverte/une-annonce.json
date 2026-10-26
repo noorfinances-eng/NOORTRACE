@@ -1,0 +1,32 @@
+{
+  "version": 0,
+  "id": "une-annonce",
+  "description": "Une seule annonce : proposée, jamais présélectionnée.",
+  "checks": [
+    "CS-8"
+  ],
+  "input": {
+    "announcements": [
+      {
+        "info": {
+          "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+          "name": "Portefeuille a",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p1"
+      }
+    ]
+  },
+  "expected": {
+    "providers": [
+      {
+        "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+        "name": "Portefeuille a",
+        "rdns": "com.exemple.portefeuille-a",
+        "provider": "p1"
+      }
+    ],
+    "rejected": []
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "version": 0,
+  "id": "autre-adresse",
+  "description": "Signature valide du compte 2 : adresse_differente, l'adresse recouvrée est affichée, aucun vote.",
+  "checks": [
+    "CS-6",
+    "CS-7"
+  ],
+  "input": {
+    "a": {
+      "decision": "approuve",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+      "ticket": "apr-2201"
+    },
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "reason": "Constat et facture concordants",
+    "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+    "response": {
+      "result": "0x5635ca9bfbe1f348e2d67293766fba0d055c9c5b17ddfe2278f4da25ca772cbd79f82642a21e539a1ee256d1056255899c1e8d90938c3c3aeeb0315a4cd687591b"
+    }
+  },
+  "expected": {
+    "outcome": "refuse",
+    "reason": "adresse_differente",
+    "signature": null,
+    "recovered": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+    "vote": null
+  }
+}

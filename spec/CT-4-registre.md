@@ -1,8 +1,10 @@
 # CT-4 — Registre
 
-Version 0.3, 2026-10-25 (révision 0.3 minimale, textuelle : libellé de
-`docType` du point de contrôle du journal, 6.4 et EX-6.6 ; la version 0.2 du
-même jour appliquait les corrections de la revue). Spécification normative,
+Version 0.4, 2026-10-26 (révision 0.4 minimale, textuelle : les condensés du
+registre ne se signent pas dans la console de CT-3, qui ne fait signer que
+l'objet `A` des tickets et le texte d'inscription d'une adresse ; l'outil de
+signature des approbateurs est nommé, EX-7.3, 8.1, EX-8.5, EX-8.19, 8.3 et
+sections 12 à 14 ; version 0.3 du 2026-10-25). Spécification normative,
 soumise à la revue de la porte 1 du plan de projet (document interne). Elle met
 en œuvre le point 1 de la section « Ancrage » et la section « Instance dédiée »
 de l'[architecture cible](../ARCHITECTURE.md). Elle s'appuie sur les formats v0
@@ -136,6 +138,23 @@ l'exemple d'EX-4.19 (`24 × 62` appels `anchor` par jour à la cadence par
 défaut, ancres de périodes comprises ; CT-5 §4.3, révision 0.2) et la ligne
 « Débit d'une clé » de la section 12 (au plus 63 opérations par période et par
 journal) sont attendus d'une révision suivante (CT-5 §9.5).
+La version 0.4, du 2026-10-26, est minimale et textuelle : elle applique la
+révision 0.3 de CT-3, dont la console ne fait signer que l'objet `A` des
+tickets (son condensé `D_A`) et le texte d'inscription d'une adresse, jamais un
+condensé du registre (CT-3 EX-9.9, EX-13.16, point 3) ; la proposition de la
+section 13 qui confiait à cette console la signature des demandes de clôture
+et d'inscription n'est pas adoptée par CT-3 (CT-3 §15.2). Les condensés du
+registre (`registerDigest`, `revokeDigest`, `periodDigest`) se signent hors de
+la console de CT-3, par un outil qui satisfait EX-7.10 : en version 0, le seul
+outil livré est la commande `signer` de l'outil de référence
+(`scripts/registre/noortrace-registre.mjs`, 7.2, 7.7), qui désigne la clé par
+une référence (EX-7.3) ; aucun outil qui signe ces condensés dans le
+portefeuille d'un approbateur n'est livré. Les passages qui nommaient la
+console de CT-3 pour cette signature sont corrigés : EX-7.3, la table de 8.1,
+EX-8.5, EX-8.19 (point 3), 8.3, les menaces « Demande signée rejouée » et
+« Empreinte prise » de la section 12, les lignes de la section 13 adressées à CT-3 et la section 14.
+Aucune règle n'est ajoutée ni retirée ; aucun schéma, aucun vecteur de
+`spec/vecteurs/ct-4`, aucun outil ne change.
 
 ## 1. Objet, périmètre et relations
 
@@ -1906,7 +1925,10 @@ instance de `nature` `developpement` dont l'identifiant EVM est 2124 (réseau
 de développement, EX-7.2) ou 31337 (réseau Hardhat en mémoire des tests,
 EX-A.6) ; l'option `--sans-capture`, elle, reste propre à 31337 (EX-A.6).
 En production, les clés sont gardées selon CT-2 §11 et CT-7, et les
-approbateurs signent dans leur portefeuille (CT-3 §13), en suivant EX-7.10 ;
+approbateurs signent hors de la console de CT-3, qui ne fait signer que
+l'objet `A` des tickets et le texte d'inscription d'une adresse (CT-3 EX-9.9,
+EX-13.16, point 3), avec un outil qui satisfait EX-7.10 ; la version 0 ne livre
+aucun outil qui signe ces condensés dans le portefeuille d'un approbateur.
 `signer` est l'outil de développement : il écrit sur la sortie d'erreur les
 champs en clair de la demande (`fields`, `signer_set`) avant de signer, mais
 n'affiche rien dans un portefeuille. `fichier:` et `env:` chargent la clé en
@@ -2788,7 +2810,7 @@ fait est un défaut de l'une ou de l'autre, consigné comme tel.
 | Enregistreur (CT-2) | manifeste et sa signature | événements de la période | `manifeste.json`, `manifeste.sig` (CT-1 §10) | chaque heure UTC |
 | Enregistreur, clé de chaîne | ancre (`anchor`), capture | manifeste | index de capture (9.4) | chaque période, dès le manifeste |
 | Enregistreur | demande de signature de clôture | manifeste, jeu lu | `demande_signature` `cloture` | chaque période |
-| Approbateurs, par la console (CT-3 §13) | signature de la clôture | demande, recalculée (EX-7.10) | signatures EIP-191 | chaque période, au seuil |
+| Approbateurs, hors de la console de CT-3, par un outil conforme à EX-7.10 (en version 0, la commande `signer` de l'outil de référence, 7.2, 7.7) | signature de la clôture | demande, recalculée (EX-7.10) | signatures EIP-191 | chaque période, au seuil |
 | Enregistreur, clé de chaîne | clôture (`submitPeriod`), capture | demande signée | index de capture | dès le seuil atteint |
 | Approbateurs | inscription, révocation d'une clé | demande `inscription`, `revocation` | signatures | à la rotation (8.4) |
 | Administrateur du jeu (client) | `…Signed` du `CuratorSet` | demande `administration_jeu` | signature | au changement de membres ou de seuil (8.5) |
@@ -2840,11 +2862,14 @@ l'ancrer sous son adresse (8.3). L'enregistreur ne remet donc `periodHash` à
 aucune partie avant l'inclusion de l'ancre.
 
 **EX-8.5** Les demandes de signature de clôture sont présentées une à une ;
-un approbateur PEUT en signer plusieurs dans une même séance de la console,
-chacune recalculée et lue (EX-7.10). La présentation de ces demandes par la
-console et leur transport entre l'enregistreur et le service d'approbation ne
-sont pas fixés par cette version : la demande de signature en est l'objet
-échangé (section 14 ; propositions pour CT-2 et CT-3 en 13).
+un approbateur PEUT en signer plusieurs dans une même séance de son outil de
+signature, chacune recalculée et lue (EX-7.10). Cet outil n'est pas la
+console de CT-3, qui ne fait signer aucun condensé du registre (CT-3 EX-9.9,
+EX-13.16, point 3) ; en version 0, c'est la commande `signer` de l'outil de
+référence (7.2, 7.7). La présentation de ces demandes et leur transport entre
+l'enregistreur et les approbateurs ne sont pas fixés par cette version : la
+demande de signature en est l'objet échangé (section 14 ; proposition pour
+CT-2 en 13).
 
 **EX-8.19** Une demande de clôture signée est une autorisation sans échéance
 pour le contrat : `periodDigest` ne couvre que `PeriodMeta`
@@ -2860,11 +2885,11 @@ Règles : (1) l'enregistreur n'émet qu'une demande de clôture par position
 dossier ; (2) s'il doit refaire le manifeste (7.11, possible seulement avant
 que le manifeste suivant ne chaîne `prev_period_hash`, CT-1 §10.3), il
 déclare d'abord la demande précédente abandonnée (fichier détruit chez lui,
-incident consigné avec son `periodHash`, approbateurs et console informés)
+incident consigné avec son `periodHash`, approbateurs informés)
 et relaie la version voulue dès le seuil atteint, l'enregistrement de la
 version voulue étant la seule neutralisation que le contrat offre ; (3)
-`condense cloture` écrit `expires_at` (défaut : 24 h), que la console
-(CT-3 §13, proposition en 13) et `signer` (`demande_expiree`) refusent de
+`condense cloture` écrit `expires_at` (défaut : 24 h), que `signer`
+(`demande_expiree`), et tout outil de signature conforme à EX-7.10, refusent de
 dépasser : c'est une borne de la fenêtre de signature pour les honnêtes, qui
 ne lie ni le contrat ni un relayeur détenant déjà les signatures ; la borne
 contractuelle est une proposition (section 14) ; (4) `clore` copie la
@@ -2891,7 +2916,8 @@ un accès RPC en écriture (EX-4.20, EX-10.3) : l'adversaire est l'exploitant,
 un client, un relayeur ou leur complice, pas un approbateur, un horodateur ou
 un calendrier seuls. Avant l'inclusion, l'empreinte est calculable par
 quiconque détient `periodHash` (`org_id` et `journal_id` sont publics, 5.7) :
-l'hôte de l'enregistreur ; la console et les approbateurs (EX-7.10 l'exige) ;
+l'hôte de l'enregistreur ; l'outil de signature et les approbateurs (EX-7.10
+l'exige) ;
 le transport des demandes (EX-8.5) ; l'horodateur RFC 3161, dont le
 `messageImprint` est `periodHash` (CT-6 EX-13.1, CT-6 T-2) ; le mandataire
 TLS devant le validateur (EX-10.3) et tout intermédiaire du chemin RPC côté
@@ -3734,11 +3760,11 @@ la chaîne de production après le pilote (« Instance dédiée »).
 | Clé de l'administrateur du registre | une seule clé réassigne le jeu de toute organisation (R1-F46), vers toute adresse non nulle (3.5) ; chargée en mémoire par l'outil (EX-7.3) | épinglage du jeu par CT-3 (CT-3 EX-8.6) ; réassignation sur demande écrite, nouveau jeu administré par la même clé de gouvernance et répondant comme un `CuratorSet`, capturée (EX-8.10) ; notification et surveillance de `CuratorSetAssigned` (EX-5.4, EX-8.12) ; garde en HSM (EX-5.4, CT-7) et réassignation cosignée par le jeu en place proposée (section 14) |
 | Trésorerie | toute l'offre sur un seul compte chaud dont la clé signe en ligne chaque virement ; `--budget-jour` libre sans plafond du manifeste ; examen d'EX-8.18 local au répertoire des captures (8.7) | destinataires admis et plafond `fees.max_daily_budget_gas` (EX-8.20) ; trésorerie froide et compte d'approvisionnement borné proposés (EX-8.20, section 14) ; registre d'approvisionnements de l'exploitant (EX-8.20) ; cérémonie CT-7 |
 | Dossier d'inscription non authentifié | aucune signature du client ni preuve de possession des clés : un fichier de clés altéré fait inscrire d'autres clés et approvisionner une autre clé de chaîne (EX-7.8) | contrôle du client avant toute politique (EX-7.17) ; demande signée et preuves de possession proposées (section 14) |
-| Demande signée rejouée | une demande de clôture ou d'inscription signée au seuil est relayable par quiconque la détient, sans échéance (EX-8.19) | une demande par position, abandon consigné, `expires_at` pour la console et `signer`, copie de la demande relayée, `demande_existante` (EX-8.19) ; échéance vérifiée par le contrat proposée (section 14) |
+| Demande signée rejouée | une demande de clôture ou d'inscription signée au seuil est relayable par quiconque la détient, sans échéance (EX-8.19) | une demande par position, abandon consigné, `expires_at` pour `signer` et tout outil de signature conforme à EX-7.10, copie de la demande relayée, `demande_existante` (EX-8.19) ; échéance vérifiée par le contrat proposée (section 14) |
 | Substitution d'adresses | un manifeste d'instance ou un fichier de déploiement d'une autre chaîne | OP-1 (EX-4.9 : identifiants, jeu, code présent, bloc de déploiement) ; adresses recoupées avec les captures de déploiement (RG-19, 9.7) ; R-8 de CT-6 sur l'ancre du réviseur |
 | Rejeu entre chaînes | transaction non protégée acceptée et incluse (R1-F33) ; l'identifiant EVM 2124 est inscrit pour une autre chaîne dans le registre public des identifiants (R2-F8) | jamais de transaction non protégée (EX-4.8, EX-8.13) ; clés distinctes par instance (EX-4.8) ; condensés liés à `block.chainid` et à l'adresse du contrat (section 6) ; certificats liés à l'identifiant BFT, comparé par CT-6 R-4 |
 | Rejeu entre organisations | une signature d'une organisation présentée pour une autre | `orgId` dans chaque condensé au seuil (section 6) ; `periodHash` unique par organisation (`PeriodRegistry`) |
-| Empreinte prise | ancre unique pour toute la chaîne (R1-F43) ; `periodHash` est vu avant inclusion par la console, les approbateurs, l'horodateur RFC 3161 et le chemin RPC (8.3) ; il faut à l'attaquant un expéditeur approvisionné et l'accès en écriture | ancre incluse et capturée avant toute remise de `periodHash` (EX-8.4, `condense cloture`) ; aucun intermédiaire côté client pour les ancres (EX-10.5) ; RPC fermés derrière la garde (EX-10.8) ; conduite de EX-8.6 ; ordre proposé à CT-2 et CT-5 (13) ; empreinte liée à l'émetteur proposée (section 14) |
+| Empreinte prise | ancre unique pour toute la chaîne (R1-F43) ; `periodHash` est vu avant inclusion par l'outil de signature, les approbateurs, l'horodateur RFC 3161 et le chemin RPC (8.3) ; il faut à l'attaquant un expéditeur approvisionné et l'accès en écriture | ancre incluse et capturée avant toute remise de `periodHash` (EX-8.4, `condense cloture`) ; aucun intermédiaire côté client pour les ancres (EX-10.5) ; RPC fermés derrière la garde (EX-10.8) ; conduite de EX-8.6 ; ordre proposé à CT-2 et CT-5 (13) ; empreinte liée à l'émetteur proposée (section 14) |
 | Faille d'un contrat | aucune mise à niveau en place ; le contrôle 8 dépend du code et des événements figés (EX-5.9, EX-5.10) | redéploiement à une nouvelle adresse après une faille établie, nouvelle révision du manifeste (EX-4.25) ; un dossier réparti entre deux générations de contrats ne passe pas R-8 (EX-5.9 ; section 14) |
 | Réorganisation | `finalized` et `safe` rendent la tête ; la « hauteur finalisée » interne vaut tête − 64 (R1-F15) | un bloc est décidé quand son certificat porte un quorum vérifié (CP-4) ; aucun outil ne s'appuie sur `finalized` |
 | Panne d'un validateur | quorum de 3 sur 4 : une panne tolérée ; délais de tour de 2 s doublés jusqu'à × 32 (R1-F10, R1-F11) ; les transactions qu'il détient attendent son retour (déduction ; R1, point non vérifié 2) | soumission à plusieurs validateurs (EX-8.15), renvoi des mêmes octets (EX-8.16) |
@@ -3773,10 +3799,10 @@ appliqué.
 | CT-2 EX-11.13 | « le contrôle 8 de CT-4 fait le reste » | « le contrôle 8 de CT-6 fait le reste » | fait (renvoi textuel) |
 | CT-2 §15, `anchoring.registry.rpc_url` | un seul point RPC | une liste de points de validateurs d'opérateurs distincts (EX-8.15, DOIT en production) ; schéma de configuration figé en version 0.3 | proposition |
 | CT-2 §9 et CT-5 : ordre des ancres | la racine est remise « à l'ancrage (CT-5) et au registre (CT-4) » sans ordre ; le jeton RFC 3161 révèle `periodHash` en clair (CT-6 EX-13.1) | ancre du registre incluse d'abord, puis requête RFC 3161 ; OpenTimestamps peut partir en parallèle (nonce avant les calendriers) ; ou risque accepté écrit (8.3, EX-8.4) | proposition |
-| CT-3 §13 (console) | signe toute demande présentée | refuse une demande dont `expires_at` est passé et une seconde clôture pour une position (`org_id`, `journal_id`, `first_seq`) déjà signée (EX-8.19) | proposition |
+| CT-3 §13 (console) | signe toute demande présentée | sans objet : la console de CT-3 ne fait signer que l'objet `A` des tickets et le texte d'inscription d'une adresse, jamais un condensé du registre (CT-3 EX-9.9, EX-13.16, point 3) ; le refus d'une demande dont `expires_at` est passé est celui de `signer` (`demande_expiree`), et le refus d'une seconde clôture pour une position (`org_id`, `journal_id`, `first_seq`) déjà signée (EX-8.19) reste proposé à tout outil de signature conforme à EX-7.10 | non adoptée par CT-3 0.3 (révision 0.4) |
 | CT-6 EX-11.2, `scripts/verify/README.md` (table des tolérances) | « transactions brutes du bloc entier » dans le corps signé, sans membre ni encodage | nommer le membre `txsRaw` (base64 standard, une transaction par élément dans l'ordre du bloc) et les membres des corps `Proposal` et `Vote` (9.2) | proposition (CT-6 inchangé dans ce lot) |
 | CT-8 : sauvegarde et supervision des validateurs | sauvegarde des bases « à définir » | interdire la restauration de `db/leveldb` et de l'état de consensus et tout instantané à chaud (une sauvegarde ne sert qu'à l'analyse) ; superviser la taille de la mempool, `transaction underpriced` sur un envoi conforme à EX-4.15 et `noor_bft_equivocations_total` (EX-10.8, EX-10.9) ; `--bft-recovery-reset` n'existe qu'en profil `dev` (`core/main.go:778-790`) | proposition |
-| CT-2 et CT-3 : signatures de clôture et d'inscription | ni l'enregistreur ni le service d'approbation ne fixent comment les approbateurs reçoivent et signent `periodDigest` et `registerDigest` | l'enregistreur prépare la demande de signature (EX-8.5, `#/$defs/demande_signature`) et la remet au service d'approbation ; la console la recalcule, l'affiche en clair (EX-7.10) et rend les signatures ; le registre ne bloque jamais (EX-8.1) | proposition |
+| CT-2 et CT-3 : signatures de clôture et d'inscription | ni l'enregistreur ni le service d'approbation ne fixent comment les approbateurs reçoivent et signent `periodDigest` et `registerDigest` | l'enregistreur prépare la demande de signature (EX-8.5, `#/$defs/demande_signature`) et la remet aux approbateurs ; un outil de signature conforme à EX-7.10, hors de la console de CT-3 (en version 0, la commande `signer` de l'outil de référence), la recalcule, l'affiche en clair et rend les signatures ; la console de CT-3 n'y prend pas part (CT-3 EX-9.9, EX-13.16, point 3) ; le registre ne bloque jamais (EX-8.1) | proposition à CT-2 ; non adoptée par CT-3 0.3 pour la console (révision 0.4) |
 | CT-3 EX-8.5 (« noorcore n'a pas `eth_subscribe` ») | exact en HTTP et pour la spécification RPC documentée | le binaire sert `eth_subscribe` (`newHeads`, `logs`) en WebSocket, hors du contrat documenté (R1-F55) : le sondage reste la règle | proposition (note) |
 | `scripts/lib/noortrace.mjs`, commentaire de gaz de `submitPeriod` (l. 31-34 de l'arbre de travail) | « submitPeriod consomme plus de 300000 gaz » | « de 234 079 à 314 256 gaz mesurés » (R1-F35, capture de CT-6) ; la limite explicite reste nécessaire | fait |
 | `scripts/lib/noortrace.mjs`, `bootstrapOrg` | administrateur du `CuratorSet` = déployeur | paramètre facultatif `setAdmin` d'administrateur du jeu (EX-7.7), défaut inchangé pour `bootstrap-org.mjs` et `dev-roundtrip.mjs` | fait (outil de référence) |
@@ -3869,9 +3895,10 @@ Décisions de l'architecture touchées :
 - **La signature horaire des clôtures par des personnes** : en version 0, le
   jeu de l'organisation, une personne par clé (CT-3 EX-8.11) ; un jeu propre
   aux clôtures ou une délégation bornée demanderait un autre contrat.
-- **Le transport des demandes de signature** entre l'enregistreur, le service
-  d'approbation et la console (EX-8.5), et plusieurs points RPC dans la
-  configuration de l'enregistreur (13).
+- **Le transport des demandes de signature** entre l'enregistreur et les
+  approbateurs, et un outil qui les signe dans le portefeuille d'un
+  approbateur, hors de la console de CT-3 (EX-8.5), et plusieurs points RPC
+  dans la configuration de l'enregistreur (13).
 - **`AttestationRegistry.revoke`** : aucun outil ne l'appelle ; une ancre de
   période n'est pas révoquée en version 0 (EX-6.13), et le sens d'une ancre
   révoquée n'est défini ni par CT-1 ni par CT-6.

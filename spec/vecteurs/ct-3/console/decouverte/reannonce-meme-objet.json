@@ -1,0 +1,56 @@
+{
+  "version": 0,
+  "id": "reannonce-meme-objet",
+  "description": "Un portefeuille se réannonce par le même objet à chaque eip6963:requestProvider : sans effet.",
+  "checks": [
+    "CS-8"
+  ],
+  "input": {
+    "announcements": [
+      {
+        "info": {
+          "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+          "name": "Portefeuille a",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p1"
+      },
+      {
+        "info": {
+          "uuid": "f640b56f-09d0-487c-89fa-5639b2c5d4ec",
+          "name": "Portefeuille b",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-b"
+        },
+        "provider": "p2"
+      },
+      {
+        "info": {
+          "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+          "name": "Portefeuille a",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p1"
+      }
+    ]
+  },
+  "expected": {
+    "providers": [
+      {
+        "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+        "name": "Portefeuille a",
+        "rdns": "com.exemple.portefeuille-a",
+        "provider": "p1"
+      },
+      {
+        "uuid": "f640b56f-09d0-487c-89fa-5639b2c5d4ec",
+        "name": "Portefeuille b",
+        "rdns": "com.exemple.portefeuille-b",
+        "provider": "p2"
+      }
+    ],
+    "rejected": []
+  }
+}

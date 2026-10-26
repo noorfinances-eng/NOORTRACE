@@ -14,8 +14,8 @@ les décisions ouvertes qu'elle nomme.
 |---|---|---|---|
 | CT-1 | [Modèle d'événement et formats](CT-1-evenements-et-formats.md) | version 0.3 (révision 0.3 : point de contrôle, preuve de cohérence, partie facultative `points-de-controle.json`), en revue pour la porte 1 | décisions ouvertes 1 et 5 |
 | CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.5 (révision 0.5 : API Gemini à la passerelle, SDK Python et TypeScript, adaptateurs de cadres, ingestion OpenTelemetry, gel juridique des copies WORM, coût par agent ; révision 0.4 : production des points de contrôle), en revue pour la porte 1 | décisions 2 et 3 |
-| CT-3 | [Approbations](CT-3-approbations.md) | version 0.2, en revue pour la porte 1 | décision 4 |
-| CT-4 | [Registre](CT-4-registre.md) | version 0.3 (révision 0.3 minimale : libellé de `docType` du point de contrôle, §6.4 ; corrections de la revue appliquées en 0.2), en revue pour la porte 1 | — (touche les décisions 6 et 7 sans les clore, CT-4 §13) |
+| CT-3 | [Approbations](CT-3-approbations.md) | version 0.3 (révision 0.3 : personne nommée par le système d'identité du client, annuaire des approbateurs et inscription par preuve de possession, recopie du réglage `administrators` comme opération de l'annuaire, parcours de signature par portefeuille, contrôle local avant et après la signature, canal de la console et ordre de ses refus, effets connus après exécution, console de référence et son test Chromium en intégration continue), en revue pour la porte 1 | décision 4 |
+| CT-4 | [Registre](CT-4-registre.md) | version 0.4 (révision 0.4 minimale, textuelle : les condensés du registre se signent hors de la console de CT-3, par la commande `signer` de l'outil de référence ou un outil conforme à EX-7.10 ; révision 0.3 : libellé de `docType` du point de contrôle, §6.4 ; corrections de la revue appliquées en 0.2), en revue pour la porte 1 | — (touche les décisions 6 et 7 sans les clore, CT-4 §13) |
 | CT-5 | [Ancrage](CT-5-ancrage.md) | version 0.2 (révision 0.2 : corrections de la revue de la version 0.1), en revue pour la porte 1 | — (met en œuvre les points 2 et 3 de la section « Ancrage » de l'architecture et fixe la cadence des ancres des points de contrôle) |
 | CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.2 (révision 0.2 : vérification de la partie `points-de-controle.json`), en revue pour la porte 1 | — |
 | CT-7 | Sécurité et conformité | à écrire | — |
@@ -47,7 +47,10 @@ schémas ; ils ne sont pas résolus en ligne.
 | [`registre-v0.schema.json`](schemas/registre-v0.schema.json) | La partie `registre.json` du dossier (CT-6 §11.2.1), et dans ses `$defs` la partie `certificat-commit.json` (`certificat_commit`, §11.2.2) | — |
 | [`validateurs-v0.schema.json`](schemas/validateurs-v0.schema.json) | La partie `validateurs.json` du dossier (CT-6 §11.2.3) | — |
 | [`politique-approbation-v0.schema.json`](schemas/politique-approbation-v0.schema.json) | La politique d'approbation, membre `/policy/approval/rules` de l'ensemble de politique (CT-3 §4) ; l'exemple complet est imprimé en CT-3 §4.3 | `policy.approval.rules` du schéma de configuration (CT-2 §15) ; `jeu_approbateurs` et `separation`, repris par le schéma de ticket |
-| [`ticket-v0.schema.json`](schemas/ticket-v0.schema.json) | La trace d'un ticket que le service d'approbation persiste (CT-3 §7), et dans ses `$defs` le jeu d'approbateurs figé (§8), la fenêtre ouverte (§5.3), la remise d'une décision au noyau (`remise`, §12.5) et les formats des vecteurs de CT-3 (annexe A) | — |
+| [`ticket-v0.schema.json`](schemas/ticket-v0.schema.json) | La trace d'un ticket que le service d'approbation persiste (CT-3 §7), et dans ses `$defs` le jeu d'approbateurs figé (§8), la fenêtre ouverte (§5.3), la remise d'une décision au noyau (`remise`, §12.5) et les formats des vecteurs de CT-3 (annexe A) ; depuis CT-3 révision 0.3, `$defs/raison` admet `session_non_autorisee` et l'entrée `retirer` porte `session_identity`, facultatif (EX-12.19) | `console-approbation-v0`, `annuaire-approbateurs-v0`, `console-service-v0` |
+| [`console-approbation-v0.schema.json`](schemas/console-approbation-v0.schema.json) | Les méthodes `consulter` et `voter` du canal de la console (CT-3 §12.9, révision 0.3), le modèle d'affichage et les codes de la console (§9.6, §9.7), la requête `personal_sign`, la réponse du portefeuille, l'annonce EIP-6963, le fichier de clé chiffré (§13.9 à §13.14), et les formats des vecteurs `console/` et de l'épreuve de lecture (annexe A.11) ; il référence les schémas d'événement et de ticket | — |
+| [`annuaire-approbateurs-v0.schema.json`](schemas/annuaire-approbateurs-v0.schema.json) | L'annuaire des approbateurs d'une organisation : entrées, adresses, preuves de possession, opérations (CT-3 §13.4 à §13.8, révision 0.3) ; l'exemple complet est imprimé en CT-3 §13.4 ; dans ses `$defs`, l'identité de session, le message d'inscription et les formats des vecteurs `annuaire/` (annexe A.10) | `console-service-v0` |
+| [`console-service-v0.schema.json`](schemas/console-service-v0.schema.json) | Les autres méthodes du canal de la console : `tickets`, `recuser`, `retirer`, `annuaire`, `preparer_inscription`, `inscrire`, `valider`, `revoquer`, `desactiver`, `reactiver`, `lier_demandeur`, `delier_demandeur`, la méthode `session` du serveur de console, et la forme d'une erreur (CT-3 §12.9, révision 0.3) | — |
 | [`instance-registre-v0.schema.json`](schemas/instance-registre-v0.schema.json) | Le manifeste d'une instance du registre que l'exploitant publie : genèse, identifiants, version de noorcore, jeux de validateurs, frais, contrats et comptes (CT-4 §4.8) ; l'exemple du réseau de développement est imprimé en CT-4 §4.8 | — |
 | [`inscription-client-v0.schema.json`](schemas/inscription-client-v0.schema.json) | Le dossier d'inscription d'un client au registre, demande et état de chaque étape (CT-4 §7) ; l'exemple complet est imprimé en CT-4 §7.10 | — |
 | [`operations-registre-v0.schema.json`](schemas/operations-registre-v0.schema.json) | L'index de capture d'une transaction du registre (CT-4 §9.4), et dans ses `$defs` la demande de signature (`demande_signature`, §7.7), l'envoi d'une transaction (`envoi`), la sortie des outils de référence (`sortie`, §7.2) et les formats des vecteurs de CT-4 (annexe A) | — |
@@ -106,7 +109,9 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
   -d certificat-commit.json
 ```
 
-Les deux schémas de CT-3 se compilent en mode strict. Une politique
+Les cinq schémas de CT-3 se compilent en mode strict ; ceux de la console
+(`console-approbation-v0`, `annuaire-approbateurs-v0`, `console-service-v0`)
+se chargent avec ceux de l'événement et du ticket, et entre eux. Une politique
 d'approbation se valide seule contre son schéma (la partie « schéma » de CT-3
 EX-4.2 ; les règles que le schéma n'exprime pas relèvent du service) ; le
 schéma de ticket se charge avec celui de l'événement et celui de la politique,
@@ -217,7 +222,7 @@ le module Go de `ct-1` ne changent pas.
 ### CT-3 (`vecteurs/ct-3/`)
 
 Disposition fixée par l'annexe A de [CT-3](CT-3-approbations.md) (A.3,
-EX-A.1 à EX-A.11) : produits par `scripts/vecteurs/generer-ct3.mjs`
+EX-A.1 à EX-A.19) : produits par `scripts/vecteurs/generer-ct3.mjs`
 (`npm run vecteurs:ct3`), rejoués à l'identique par
 `test/approbation.test.js` avec l'implémentation de référence
 `scripts/lib/approbation.mjs`, et confrontés par le vérificateur Go
@@ -225,7 +230,10 @@ indépendant du module séparé `vecteurs/ct-3/verificateur-independant/`
 (`noortrace-ct3`) ; tout est déterministe (comptes Hardhat 1 à 4, adresses
 de registre, de jeu et de bloc synthétiques dérivées par SHA-256, horodatages
 fixes, CT-3 A.2). L'index généré `vecteurs/ct-3/INDEX.md` liste chaque cas et
-son attendu. Les vecteurs de CT-1, CT-2 et CT-6 ne changent pas.
+son attendu. Les vecteurs de CT-1, CT-2, CT-4, CT-5 et CT-6 ne changent pas.
+Depuis la révision 0.3, les familles `annuaire/` et `console/` sont rejouées
+par la bibliothèque de la console de référence `scripts/lib/console.mjs`
+dans `test/console.test.js`.
 
 | Répertoire ou fichier | Contenu (CT-3, annexe A) | Résultat attendu |
 |---|---|---|
@@ -235,6 +243,10 @@ son attendu. Les vecteurs de CT-1, CT-2 et CT-6 ne changent pas.
 | `ct-3/tickets/` | Traces de cycle de vie, entrée par entrée (A.6) | état de chaque ticket, réponses, remises, fenêtres (TK-1 à TK-13) |
 | `ct-3/decisions/` | Remises valides et invalides, dont la décision `apr-2201` des vecteurs de CT-1 (A.7) | `scelle`, ou refus avec la raison de la première vérification SG- en échec |
 | `ct-3/signatures/normalisation.json` | Formes de signature à normaliser ou à refuser (A.8) | forme normalisée, même adresse recouvrée |
+| `ct-3/annuaire/` (révision 0.3) | Annuaires, messages et vérifications d'inscription, séparation des domaines, traces d'opérations, contrôles de la console et du canal, annuaires exportés (A.10) | raison attendue de chaque cas, dans l'ordre fixé (AN-1 à AN-10) |
+| `ct-3/console/` (révision 0.3) | Modèles d'affichage depuis une vue de ticket, requêtes `personal_sign`, réponses du portefeuille et votes, découverte EIP-6963, fichiers de clé chiffrés (A.11) | modèle, requête, verdict et vote attendus (CS-1 à CS-9) |
+| `ct-3/acceptation-console/` et `ct-3/acceptation-console-attendu.json` (révision 0.3) | L'épreuve de lecture de la console : consigne pour l'approbateur et l'intégrateur ; la grille dans un fichier à part (A.11) | chaque réponse contient tous ses éléments |
+| `ct-3/confrontation/` (révision 0.3) | Scripts et sorties publiées de la confrontation des signatures par eth-account 0.14.0 et par ethers 6.17.0 ; jamais écrit par le générateur (EX-A.18) | aucune `discordance` ; écarts de forme inscrits |
 | `ct-3/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de ceux de `ct-1` et `ct-2` | zéro discordance (`go run . ..`) |
 
 ### CT-4 (`vecteurs/ct-4/`)

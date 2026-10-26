@@ -1,11 +1,13 @@
-// Validateur JSON Schema 2020-12 réduit aux mots-clés qu'emploient les trois
-// schémas que CT-3 cite : politique-approbation-v0, ticket-v0 et, par
-// renvoi, evenement-v0 (CT-1). Un mot-clé inconnu est une erreur du
+// Validateur JSON Schema 2020-12 réduit aux mots-clés qu'emploient les
+// schémas que CT-3 cite : politique-approbation-v0, ticket-v0, et, depuis la
+// révision 0.3, annuaire-approbateurs-v0, console-approbation-v0 et
+// console-service-v0 ; par renvoi, evenement-v0 (CT-1). Un mot-clé inconnu est une erreur du
 // vérificateur, jamais ignoré en silence.
 //
 // Mots-clés : $id, $ref (local « #/$defs/… » ou absolu par $id), $defs,
 // type, enum, const, pattern, minLength, maxLength (en points de code),
-// minimum, maximum, minItems, maxItems, uniqueItems, items, required,
+// minimum, maximum, minItems, maxItems, uniqueItems, prefixItems, items
+// (appliqué aux éléments qui suivent ceux de prefixItems), required,
 // properties, additionalProperties, propertyNames, maxProperties, allOf,
 // anyOf, oneOf, not, if/then ; annotations : $schema, title, description.
 //
@@ -248,10 +250,22 @@ func (s *Schemas) valider(c contexteSchema, inst *Value, ptr string, errs *[]str
 					}
 				}
 			}
-		case "items":
+		case "prefixItems":
 			if inst.Kind == KindArray {
 				for i, e := range inst.Arr {
-					s.valider(sous(sv), e, fmt.Sprintf("%s/%d", ptr, i), errs)
+					if i < len(sv.Arr) {
+						s.valider(sous(sv.Arr[i]), e, fmt.Sprintf("%s/%d", ptr, i), errs)
+					}
+				}
+			}
+		case "items":
+			if inst.Kind == KindArray {
+				debut := 0
+				if pi := sch.Get("prefixItems"); pi != nil && pi.Kind == KindArray {
+					debut = len(pi.Arr)
+				}
+				for i := debut; i < len(inst.Arr); i++ {
+					s.valider(sous(sv), inst.Arr[i], fmt.Sprintf("%s/%d", ptr, i), errs)
 				}
 			}
 		case "required":

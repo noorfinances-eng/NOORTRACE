@@ -6,6 +6,46 @@ is tagged.
 
 ## Unreleased
 
+- CT-3, approvals, revision 0.3: a named person, authenticated by the
+  client's identity system, approves from their session while the signature
+  is still made by their own key in their own wallet, never by a server; the
+  signed object of a vote is unchanged (`A`, `D_A`, EIP-191 version `0x45`).
+  The revision specifies the canonical session identity and
+  re-authentication; the organisation's approver directory, one active
+  address per person; enrolment of an address by proof of possession (a
+  readable `personal_sign` text, distinct from any vote, validated by another
+  administrator), rotation and revocation; four signing paths (browser wallet
+  through EIP-1193 and EIP-6963, hardware wallet through it, WalletConnect v2
+  when the organisation opts in, encrypted key file) with each failure and its
+  answer; the console's local check, which recomputes `A`, `JCS(A)` and `D_A`
+  and refuses to have anything else signed; and the console channel to the
+  service, which refuses a vote from an address other than the session's
+  (new refusal reason `session_non_autorisee`). New schemas
+  `console-approbation-v0`, `annuaire-approbateurs-v0` and
+  `console-service-v0`; `ticket-v0` extended compatibly.
+- CT-3 reference console: a dependency-free library
+  (`scripts/lib/console.mjs`), a static page (`console/`) under a strict
+  content security policy with subresource integrity, and an end-to-end test
+  in Chromium through Playwright 1.56.1, run in continuous integration by a
+  new `console-chromium` job that fails instead of skipping. A deterministic
+  differential test (`test/console-primitives.test.js`) compares the
+  library's hashing, key derivation, encryption and secp256k1 primitives with
+  node:crypto, @noble/hashes, @noble/curves and ethers: 2,673 comparisons, no
+  difference. The library's secp256k1 signing is not constant-time; CT-3
+  §14.9 states the risk and recommends a hardware wallet. New vector families
+  `annuaire/` and `console/` and a reading test `acceptation-console/`;
+  existing CT-3 vectors unchanged except `INDEX.md`. The CT-3 Go verifier
+  recomputes 7,149 values, all matching, 84 outside its scope. Every
+  signature and key file of the vectors is confronted with ethers 6.17.0 and
+  eth-account 0.14.0, without discrepancy.
+- CT-4, the registry, revision 0.4, textual only: the registry digests
+  (`periodDigest`, `registerDigest`, `revokeDigest`) are signed outside the
+  CT-3 console, by the `signer` command of the CT-4 reference tool or any tool
+  that meets CT-4 EX-7.10; version 0 ships no tool that signs them in an
+  approver's wallet. No CT-4 vector changes.
+- CT-5, anchoring: annex EX-A.7 now names the two continuous integration jobs
+  that reach the network beyond installing dependencies (`confrontation` and
+  `console-chromium`). Text only.
 - CT-2, the recorder, revision 0.5: Gemini `generateContent` and
   `streamGenerateContent` move to version 0 at the model gateway (routes,
   `x-goog-api-key`, `alt=sse` streams, consolidation, extraction, errors in the

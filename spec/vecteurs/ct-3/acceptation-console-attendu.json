@@ -1,0 +1,277 @@
+{
+  "version": 0,
+  "roles": [
+    {
+      "role": "approbateur",
+      "sections": [
+        "9",
+        "13"
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "question": "Comment vous inscrivez-vous ?",
+          "elements": [
+            {
+              "element": "Se connecter à la console par le système d'identité de l'organisation, en se réauthentifiant si la console le demande.",
+              "rules": [
+                "EX-13.2",
+                "EX-13.8"
+              ]
+            },
+            {
+              "element": "Choisir explicitement son portefeuille dans la liste des portefeuilles annoncés, puis le compte à inscrire, sans présélection.",
+              "rules": [
+                "EX-13.22",
+                "EX-13.23"
+              ]
+            },
+            {
+              "element": "Lire le message d'inscription affiché ligne par ligne : origine égale à celle de la console ouverte, organisation, sa propre identité, l'adresse du compte choisi, l'expiration, et la mention « Ce message n'est pas un vote ».",
+              "rules": [
+                "EX-13.12",
+                "EX-13.13",
+                "EX-13.14"
+              ]
+            },
+            {
+              "element": "Signer le message dans le portefeuille (personal_sign sur le texte), qui montre le même texte, et refuser dans le portefeuille si une ligne diffère.",
+              "rules": [
+                "EX-13.12",
+                "EX-13.15"
+              ]
+            },
+            {
+              "element": "L'adresse reste en attente jusqu'à sa validation par un administrateur autre que soi.",
+              "rules": [
+                "EX-13.17"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "q2",
+          "question": "Comment signez-vous depuis la console avec votre portefeuille ?",
+          "elements": [
+            {
+              "element": "Lire la demande sur un même écran, puis choisir sa décision, approuve ou refuse, sans choix présélectionné.",
+              "rules": [
+                "EX-9.4",
+                "EX-9.5"
+              ]
+            },
+            {
+              "element": "Choisir explicitement son portefeuille (jamais un portefeuille choisi d'office) et son adresse active.",
+              "rules": [
+                "EX-13.22",
+                "EX-13.23"
+              ]
+            },
+            {
+              "element": "La console redemande la vue après le choix, refait ses contrôles et n'offre la signature que si tout concorde.",
+              "rules": [
+                "EX-9.15"
+              ]
+            },
+            {
+              "element": "Le portefeuille reçoit une requête personal_sign sur les 32 octets de D_A et montre 64 chiffres hexadécimaux.",
+              "rules": [
+                "EX-13.24",
+                "EX-9.20"
+              ]
+            },
+            {
+              "element": "Comparer l'empreinte affichée par la console à l'écran du portefeuille, ou de l'appareil pour un portefeuille matériel, avant de confirmer.",
+              "rules": [
+                "EX-9.20",
+                "EX-13.26"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "q3",
+          "question": "Que vérifiez-vous avant de signer ?",
+          "elements": [
+            {
+              "element": "Les arguments et leur marque, « vérifié » ou « non vérifiable par la console ».",
+              "rules": [
+                "EX-9.4",
+                "EX-9.16"
+              ]
+            },
+            {
+              "element": "La règle déclenchée et la délégation ; l'intention marquée « déclarée par l'agent, non vérifiée ».",
+              "rules": [
+                "EX-9.4"
+              ]
+            },
+            {
+              "element": "Les 8 premiers et les 8 derniers chiffres du message montré par le portefeuille, égaux à l'empreinte de la console ; les huit groupes pour une objection ou un montant élevé.",
+              "rules": [
+                "EX-9.18",
+                "EX-9.20"
+              ]
+            },
+            {
+              "element": "Sur un appareil qui montre « Message hash », comparer cette valeur à l'empreinte de H et non à celle de D_A.",
+              "rules": [
+                "EX-9.18",
+                "EX-9.20"
+              ]
+            },
+            {
+              "element": "Le portefeuille montre un message en hexadécimal, et non une transaction ni des données typées.",
+              "rules": [
+                "EX-9.20"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "q4",
+          "question": "Que faites-vous si l'empreinte diffère ?",
+          "elements": [
+            {
+              "element": "Refuser la requête dans le portefeuille et ne pas réessayer depuis cette page.",
+              "rules": [
+                "EX-9.20"
+              ]
+            },
+            {
+              "element": "Prévenir l'administrateur de l'organisation par un autre canal que la console.",
+              "rules": [
+                "EX-9.20"
+              ]
+            },
+            {
+              "element": "Refuser dans le portefeuille n'est pas voter refuse : aucun vote n'est envoyé ; pour s'opposer, signer refuse depuis une console saine.",
+              "rules": [
+                "EX-9.20",
+                "EX-13.29"
+              ]
+            },
+            {
+              "element": "Si la console affiche elle-même empreinte_divergente, il n'y a rien à signer ; prévenir l'administrateur.",
+              "rules": [
+                "EX-9.17",
+                "EX-9.20"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "integrateur",
+      "sections": [
+        "7.4",
+        "9",
+        "12",
+        "13"
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "question": "Quels messages la page, le portefeuille et le service échangent-ils, dans quel ordre, et avec quel contenu exact ?",
+          "elements": [
+            {
+              "element": "consulter { ticket, session_identity } vers le service, qui rend la vue du ticket ; la console applique EX-9.15 et affiche le modèle.",
+              "rules": [
+                "EX-12.14",
+                "EX-9.15"
+              ]
+            },
+            {
+              "element": "Découverte EIP-6963 (eip6963:requestProvider, annonces eip6963:announceProvider), choix explicite, puis eth_requestAccounts.",
+              "rules": [
+                "EX-13.22",
+                "EX-13.23"
+              ]
+            },
+            {
+              "element": "personal_sign avec params [\"0x\" et les 64 chiffres minuscules de D_A, adresse en minuscules] : la donnée d'abord, l'adresse ensuite ; 66 puis 42 caractères.",
+              "rules": [
+                "EX-13.24",
+                "EX-9.7"
+              ]
+            },
+            {
+              "element": "Le portefeuille signe la préimage EIP-191 de 60 octets et rend r ‖ s ‖ v de 65 octets, ou une erreur EIP-1193.",
+              "rules": [
+                "EX-13.24",
+                "EX-9.21"
+              ]
+            },
+            {
+              "element": "La console vérifie la réponse (forme, normalisation, recouvrement, adresse) avant tout envoi.",
+              "rules": [
+                "EX-9.21"
+              ]
+            },
+            {
+              "element": "voter { ticket, approver, decision, signature normalisée, reason, session_identity } ; réponse { ticket, state } ou l'erreur de 12.8.",
+              "rules": [
+                "EX-12.16",
+                "EX-9.21"
+              ]
+            },
+            {
+              "element": "Les neuf pas dans cet ordre, et l'inscription : preparer_inscription, reconstruction du texte, personal_sign sur ses octets, inscrire.",
+              "rules": [
+                "EX-13.13",
+                "EX-13.15"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "q2",
+          "question": "Que refuse la console, et à quel moment ?",
+          "elements": [
+            {
+              "element": "Avant toute signature, les treize contrôles d'EX-9.15, dans l'ordre, sur une vue redemandée après le choix : état, événement, pièce, champs liés, arguments, condensés, jeu, décision, annuaire, membre, éligibilité, session du demandeur, motif.",
+              "rules": [
+                "EX-9.15"
+              ]
+            },
+            {
+              "element": "Un D_A différent de digests du service : aucune signature, jamais la valeur du service.",
+              "rules": [
+                "EX-9.17"
+              ]
+            },
+            {
+              "element": "Les contrôles d'annuaire d'EX-13.18 : jeu non figé, identité inconnue ou désactivée, adresse non attribuée, hors du jeu, session du demandeur.",
+              "rules": [
+                "EX-13.18"
+              ]
+            },
+            {
+              "element": "Après le portefeuille, toute réponse de forme refusée (longueur, r, s, v hors de {0, 1, 27, 28}) ou qui ne recouvre pas l'adresse choisie.",
+              "rules": [
+                "EX-9.21",
+                "EX-9.22"
+              ]
+            },
+            {
+              "element": "Les pannes et codes EIP-1193 de 13.14 (4001, 4100, 4200, 4900, 4901, autre code, réponse invalide, délai), sans jamais transmettre une panne comme un vote.",
+              "rules": [
+                "EX-13.29",
+                "EX-13.30"
+              ]
+            },
+            {
+              "element": "Jamais window.ethereum sans choix explicite, jamais eth_sign ni eth_signTypedData, jamais la signature du D_A du service.",
+              "rules": [
+                "EX-13.20",
+                "EX-13.22",
+                "EX-9.17"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

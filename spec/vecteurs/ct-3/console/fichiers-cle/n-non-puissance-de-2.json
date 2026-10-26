@@ -1,0 +1,38 @@
+{
+  "version": 0,
+  "id": "n-non-puissance-de-2",
+  "description": "scrypt n = 1 000, qui n'est pas une puissance de 2 : fichier_cle_non_pris_en_charge.",
+  "checks": [
+    "CS-9"
+  ],
+  "input": {
+    "keystore": {
+      "crypto": {
+        "cipher": "aes-128-ctr",
+        "cipherparams": {
+          "iv": "6d2525ce347b410c9dca274c349e82bf"
+        },
+        "ciphertext": "771c3ba6fc84e50e935fdad8a4ccb3bcf3eaa9d31bc4736678f7e9d323126400",
+        "kdf": "scrypt",
+        "kdfparams": {
+          "dklen": 32,
+          "n": 1000,
+          "p": 1,
+          "r": 8,
+          "salt": "d7bf79fd62baf448b978c535d2f1a71334a763b6c860a13ef9fceba2397a57e0"
+        },
+        "mac": "abe0e3cbfd07811dbcc532a9036b8c645276bcfa77bb489eb05c2c47e5454b8c"
+      },
+      "id": "328216f3-d4b8-4b89-99df-1165514f4819",
+      "version": 3
+    },
+    "password": "noortrace/vecteurs/ct3/console/mot-de-passe",
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+  },
+  "expected": {
+    "outcome": "refuse",
+    "reason": "fichier_cle_non_pris_en_charge",
+    "address": null,
+    "warnings": []
+  }
+}
