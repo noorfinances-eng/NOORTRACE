@@ -1,0 +1,1813 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/console-approbation.schema.json",
+  "title": "console-approbation-v0",
+  "description": "Messages entre la console d'approbation et le service (consulter, voter), modèle d'affichage, requête de signature EIP-1193, réponse du portefeuille, annonce EIP-6963, fichier de clé chiffré, et formes des vecteurs de la famille console/ (CT-3 révision 0.3, sections 9.6, 9.7, 12.9, 13.9 à 13.15, annexe A.11) ; les autres méthodes du canal de la console sont dans console-service-v0. Les clés JSON sont en anglais, les valeurs énumérées en français sans accent.",
+  "type": "object",
+  "$defs": {
+    "adresse": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/adresse"
+    },
+    "hex32": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/hex32"
+    },
+    "horodatage": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/horodatage"
+    },
+    "identifiant_ticket": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/identifiant_ticket"
+    },
+    "decision_vote": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/decision_vote"
+    },
+    "signature": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/signature"
+    },
+    "signature_brute": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/signature_brute"
+    },
+    "approver_set": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/approver_set"
+    },
+    "etat": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/etat"
+    },
+    "evenement": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json"
+    },
+    "effet_vue": {
+      "description": "Effet déclaré prévu de la vue d'un ticket (CT-3 EX-12.14) : le gabarit d'effets de l'outil (CT-2 EX-7.6) évalué sur les arguments, avant l'exécution. Mêmes membres que l'effet de CT-1 ($defs/effect d'evenement-v0, inchangé), plus unresolved, propre à la vue : les membres dont le pointeur vers le résultat (/result/…) ne peut pas être résolu avant l'exécution, chacun avec son pointeur ; la valeur d'un tel membre est null dans la vue, et la console l'affiche « connu après exécution » (EX-9.4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "action",
+        "object",
+        "amount",
+        "currency",
+        "unresolved"
+      ],
+      "properties": {
+        "system": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "action": {
+          "enum": [
+            "lecture",
+            "ecriture",
+            "suppression",
+            "envoi",
+            "execution"
+          ]
+        },
+        "object": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          ]
+        },
+        "amount": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{1,8})?$"
+            }
+          ]
+        },
+        "currency": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            }
+          ]
+        },
+        "unresolved": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "member",
+              "pointer"
+            ],
+            "properties": {
+              "member": {
+                "enum": [
+                  "object",
+                  "amount",
+                  "currency"
+                ]
+              },
+              "pointer": {
+                "type": "string",
+                "pattern": "^/result(/.*)?$",
+                "maxLength": 4096
+              }
+            }
+          }
+        }
+      }
+    },
+    "delegation": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/delegation"
+    },
+    "session_identity": {
+      "description": "Identité de session de l'approbateur (EX-13.2, EX-12.4) ; sa forme canonique est celle d'EX-13.7 (annuaire-approbateurs-v0, $defs/identite_session), que le service vérifie après la forme du corps (identite_invalide, EX-12.13) ; ici la forme de ticket-v0.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "motif": {
+      "description": "Motif facultatif d'un vote : la console refuse plus de 1 024 caractères avant de demander une signature (motif_trop_long, EX-9.10).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "maxLength": 1024
+        }
+      ]
+    },
+    "pointeur": {
+      "description": "Pointeur JSON (RFC 6901) depuis la racine des arguments ; la chaîne vide désigne les arguments eux-mêmes.",
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^(/([^~/]|~[01])*)*$"
+    },
+    "requete_consulter": {
+      "description": "Requête consulter de la console (CT-3 12.9) : POST <base>/v0/consulter.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "session_identity"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "session_identity": {
+          "$ref": "#/$defs/session_identity"
+        }
+      }
+    },
+    "vue_ticket": {
+      "description": "Réponse à consulter : ce que le service sert à la console pour un ticket actif (CT-3 12.9, EX-9.4, EX-9.6). Rien de ce qui est lié à la signature n'y est cru sans contrôle : la console le recalcule depuis retained_event et arguments_piece.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "ticket",
+        "state",
+        "org_id",
+        "journal_id",
+        "request_hash",
+        "request",
+        "retained_event",
+        "arguments_piece",
+        "rule",
+        "opening",
+        "effects",
+        "deadline",
+        "contest",
+        "approver_set",
+        "effective_required",
+        "added_members",
+        "eligible",
+        "votes",
+        "separation",
+        "digests"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "state": {
+          "$ref": "#/$defs/etat"
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "request_hash": {
+          "description": "Hachage de l'événement retenue que le ticket a reçu par ouvrir (12.4).",
+          "$ref": "#/$defs/hex32"
+        },
+        "request": {
+          "description": "Membres de la requête evaluer du ticket (CT-2 EX-7.4) que la console affiche ; arguments en clair.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tool_announced",
+            "tool_original",
+            "server_alias",
+            "class",
+            "arguments",
+            "intent",
+            "delegation",
+            "policy_version"
+          ],
+          "properties": {
+            "tool_announced": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+            },
+            "tool_original": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "server_alias": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+            },
+            "class": {
+              "enum": [
+                "lecture",
+                "ecriture"
+              ]
+            },
+            "arguments": {
+              "description": "Valeur JSON en clair."
+            },
+            "intent": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "maxLength": 4096
+                }
+              ]
+            },
+            "delegation": {
+              "$ref": "#/$defs/delegation"
+            },
+            "policy_version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        },
+        "retained_event": {
+          "$ref": "#/$defs/evenement"
+        },
+        "arguments_piece": {
+          "description": "Octets de la pièce « arguments » rédigée, en base64 (RFC 4648 §4), ou null quand la référence est en ligne (12.4).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9+/]*={0,2}$"
+            }
+          ]
+        },
+        "rule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy_rule",
+            "name",
+            "description",
+            "level",
+            "contest_ms"
+          ],
+          "properties": {
+            "policy_rule": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "description": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              ]
+            },
+            "level": {
+              "enum": [
+                "fenetre",
+                "revue"
+              ]
+            },
+            "contest_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 86400000
+            }
+          }
+        },
+        "opening": {
+          "description": "Pour un ticket ouvrant : ce que la décision ouvrira (EX-5.4) ; null sinon.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tool",
+                "when",
+                "same_arguments",
+                "max_calls",
+                "duration_ms"
+              ],
+              "properties": {
+                "tool": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "when": {
+                  "description": "Condition de la règle, telle que la politique l'écrit (section 4), ou null."
+                },
+                "same_arguments": {
+                  "type": "array",
+                  "maxItems": 64,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pointer",
+                      "value"
+                    ],
+                    "properties": {
+                      "pointer": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "max_calls": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10000
+                },
+                "duration_ms": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86400000
+                }
+              }
+            }
+          ]
+        },
+        "effects": {
+          "description": "Effets déclarés prévus (EX-12.14) : un pointeur vers le résultat non résolu avant l'exécution est listé dans unresolved, la valeur du membre étant null.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/effet_vue"
+          }
+        },
+        "deadline": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "contest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "window_end",
+            "objections",
+            "last_threshold_at"
+          ],
+          "properties": {
+            "window_end": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/horodatage"
+                }
+              ]
+            },
+            "objections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "approver",
+                  "at"
+                ],
+                "properties": {
+                  "approver": {
+                    "$ref": "#/$defs/adresse"
+                  },
+                  "at": {
+                    "$ref": "#/$defs/horodatage"
+                  }
+                }
+              }
+            },
+            "last_threshold_at": {
+              "description": "Dernier instant où le seuil doit être atteint pour que la fenêtre finisse avant l'échéance (EX-10.9) ; null si contest_ms vaut 0.",
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/horodatage"
+                }
+              ]
+            }
+          }
+        },
+        "approver_set": {
+          "description": "Jeu figé ; null tant qu'il n'est pas figé (EX-8.4).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/approver_set"
+            }
+          ]
+        },
+        "effective_required": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        },
+        "added_members": {
+          "description": "Membres ajoutés au jeu depuis l'ouverture, par un nouveau gel (EX-8.6).",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        },
+        "eligible": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        },
+        "votes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "approver",
+              "decision",
+              "reason",
+              "at"
+            ],
+            "properties": {
+              "approver": {
+                "$ref": "#/$defs/adresse"
+              },
+              "decision": {
+                "$ref": "#/$defs/decision_vote"
+              },
+              "reason": {
+                "$ref": "#/$defs/motif"
+              },
+              "at": {
+                "$ref": "#/$defs/horodatage"
+              }
+            }
+          }
+        },
+        "separation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "self_approval",
+            "requester_declared",
+            "requester_addresses",
+            "requester_directory_addresses"
+          ],
+          "properties": {
+            "self_approval": {
+              "enum": [
+                "interdite",
+                "permise"
+              ]
+            },
+            "requester_declared": {
+              "type": "boolean"
+            },
+            "requester_addresses": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/adresse"
+              }
+            },
+            "requester_directory_addresses": {
+              "description": "Adresses actives que l'annuaire attribue aux entrées dont requester_identities contient le launched_by du ticket, triées (EX-12.15) ; elles servent à l'avertissement separation_incomplete (EX-13.18).",
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/adresse"
+              }
+            }
+          }
+        },
+        "digests": {
+          "description": "D_A calculés par le service pour les deux décisions (EX-9.6) : un contrôle croisé, jamais la valeur que la console fait signer.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "approuve",
+            "refuse"
+          ],
+          "properties": {
+            "approuve": {
+              "$ref": "#/$defs/hex32"
+            },
+            "refuse": {
+              "$ref": "#/$defs/hex32"
+            }
+          }
+        }
+      }
+    },
+    "requete_voter": {
+      "description": "Requête voter de la console : POST <base>/v0/voter ; exactement les données (data) de l'entrée voter de 7.4 ($defs/entree de ticket-v0) : kind et at n'y figurent pas, at étant l'instant de réception, et un corps qui porte kind est refusé (requete_invalide, EX-12.1) ; signature telle que 7.4 l'admet, que la console envoie normalisée (EX-9.21) et que le service normalise de toute façon (EX-9.3) ; motif dont le service compte les points de code (motif_trop_long, EX-9.10) (EX-12.16).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "approver",
+        "decision",
+        "signature",
+        "reason",
+        "session_identity"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "approver": {
+          "$ref": "#/$defs/adresse"
+        },
+        "decision": {
+          "$ref": "#/$defs/decision_vote"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature_brute"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 4096
+            }
+          ]
+        },
+        "session_identity": {
+          "$ref": "#/$defs/session_identity"
+        }
+      }
+    },
+    "reponse_voter": {
+      "description": "Réponse à un vote accepté ; un vote refusé reçoit l'erreur de 12.8 dont le code est la raison d'EX-9.10.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "state"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "state": {
+          "$ref": "#/$defs/etat"
+        }
+      }
+    },
+    "code_console": {
+      "description": "Raisons pour lesquelles la console ne demande pas de signature, n'envoie pas de vote ni d'inscription, ou constate une panne du portefeuille (CT-3 9.6, 9.7, 13.7, 13.14). Les raisons communes avec 12.8 et EX-13.15 ont le même sens. message_invalide, origine_differente et identite_differente sont les refus, par la console, d'un texte d'inscription servi par le service (EX-13.13) ; adresse_differente est soit l'adresse d'un tel texte différente du compte choisi, soit l'adresse recouvrée d'une signature différente de l'adresse choisie (EX-9.21) ; annonce_invalide est une annonce EIP-6963 ignorée (EX-13.22, pas 2).",
+      "enum": [
+        "evenement_invalide",
+        "piece_invalide",
+        "champ_different",
+        "argument_different",
+        "argument_absent_de_l_affichage",
+        "empreinte_divergente",
+        "ticket_clos_aux_votes",
+        "jeu_non_fige",
+        "identite_inconnue",
+        "identite_desactivee",
+        "adresse_non_attribuee",
+        "hors_jeu",
+        "auto_approbation",
+        "recuse",
+        "session_du_demandeur",
+        "motif_trop_long",
+        "decision_absente",
+        "aucun_fournisseur",
+        "fournisseur_non_choisi",
+        "annonce_invalide",
+        "annonce_en_double",
+        "adresse_non_exposee",
+        "refus_approbateur",
+        "non_autorise",
+        "methode_non_prise_en_charge",
+        "deconnecte",
+        "chaine_deconnectee",
+        "erreur_portefeuille",
+        "reponse_invalide",
+        "delai_depasse",
+        "signature_invalide",
+        "adresse_differente",
+        "fichier_cle_invalide",
+        "fichier_cle_non_pris_en_charge",
+        "mot_de_passe_ou_mac",
+        "cle_invalide",
+        "message_invalide",
+        "origine_differente",
+        "identite_differente"
+      ]
+    },
+    "condenses": {
+      "description": "Ce que la console calcule et affiche pour une décision (CT-3 9.6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "a",
+        "jcs",
+        "d_a",
+        "fingerprint",
+        "groups",
+        "h",
+        "h_fingerprint",
+        "utf8"
+      ],
+      "properties": {
+        "a": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "decision",
+            "journal_id",
+            "org_id",
+            "request_hash",
+            "ticket"
+          ],
+          "properties": {
+            "decision": {
+              "$ref": "#/$defs/decision_vote"
+            },
+            "journal_id": {
+              "$ref": "#/$defs/hex32"
+            },
+            "org_id": {
+              "$ref": "#/$defs/hex32"
+            },
+            "request_hash": {
+              "$ref": "#/$defs/hex32"
+            },
+            "ticket": {
+              "$ref": "#/$defs/identifiant_ticket"
+            }
+          }
+        },
+        "jcs": {
+          "type": "string",
+          "minLength": 1
+        },
+        "d_a": {
+          "$ref": "#/$defs/hex32"
+        },
+        "fingerprint": {
+          "description": "Empreinte abrégée : 8 premiers chiffres, U+2026, 8 derniers, sans 0x.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}…[0-9a-f]{8}$"
+        },
+        "groups": {
+          "description": "Les 64 chiffres en 8 groupes de 8 séparés par une espace.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}( [0-9a-f]{8}){7}$"
+        },
+        "h": {
+          "$ref": "#/$defs/hex32"
+        },
+        "h_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}…[0-9a-f]{8}$"
+        },
+        "utf8": {
+          "description": "Vrai si les 32 octets de D_A sont de l'UTF-8 valide (avertissement condense_utf8).",
+          "type": "boolean"
+        }
+      }
+    },
+    "modele_affichage": {
+      "description": "Modèle d'affichage d'EX-9.4 que la console tire d'une vue de ticket et du contexte de session (CT-3 9.6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "ticket",
+        "state",
+        "org_id",
+        "journal_id",
+        "tool",
+        "arguments",
+        "effects",
+        "rule",
+        "opening",
+        "intent",
+        "intent_status",
+        "delegation",
+        "separation_banner",
+        "request",
+        "digests",
+        "decision",
+        "approver",
+        "deadline",
+        "remaining_ms",
+        "contest",
+        "approver_set",
+        "effective_required",
+        "votes",
+        "warnings",
+        "blocking",
+        "signable"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "state": {
+          "$ref": "#/$defs/etat"
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "announced",
+            "original",
+            "server_alias",
+            "class"
+          ],
+          "properties": {
+            "announced": {
+              "type": "string"
+            },
+            "original": {
+              "type": "string"
+            },
+            "server_alias": {
+              "type": "string"
+            },
+            "class": {
+              "enum": [
+                "lecture",
+                "ecriture"
+              ]
+            }
+          }
+        },
+        "arguments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pointer",
+              "value",
+              "status"
+            ],
+            "properties": {
+              "pointer": {
+                "$ref": "#/$defs/pointeur"
+              },
+              "value": {},
+              "status": {
+                "enum": [
+                  "verifie",
+                  "non_verifiable",
+                  "different"
+                ]
+              }
+            }
+          }
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/effet_vue"
+          }
+        },
+        "rule": {
+          "$ref": "#/$defs/vue_ticket/properties/rule"
+        },
+        "opening": {
+          "$ref": "#/$defs/vue_ticket/properties/opening"
+        },
+        "intent": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "intent_status": {
+          "description": "Marque de l'intention (EX-9.4, contrôle 4 d'EX-9.15) : en_clair quand l'événement retenu porte l'intention en chaîne ou ne la porte pas (« déclarée par l'agent, non vérifiée ») ; reference_non_verifiable quand il la porte par une référence (« non vérifiable par la console »).",
+          "enum": [
+            "en_clair",
+            "reference_non_verifiable"
+          ]
+        },
+        "delegation": {
+          "$ref": "#/$defs/delegation"
+        },
+        "separation_banner": {
+          "type": "boolean"
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "request_hash",
+            "seq",
+            "ts"
+          ],
+          "properties": {
+            "request_hash": {
+              "$ref": "#/$defs/hex32"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "ts": {
+              "$ref": "#/$defs/horodatage"
+            }
+          }
+        },
+        "digests": {
+          "description": "null quand le contrôle 2 d'EX-9.15 (événement retenue, EX-9.6 a) échoue : la console ne forme pas A sur un événement qu'elle n'a pas vérifié. Dès que le contrôle 2 passe, A est formé et les condensés sont calculés, même si les contrôles 3 ou 4 échouent (EX-9.17).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "approuve",
+                "refuse"
+              ],
+              "properties": {
+                "approuve": {
+                  "$ref": "#/$defs/condenses"
+                },
+                "refuse": {
+                  "$ref": "#/$defs/condenses"
+                }
+              }
+            }
+          ]
+        },
+        "decision": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/decision_vote"
+            }
+          ]
+        },
+        "approver": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/adresse"
+            }
+          ]
+        },
+        "deadline": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "remaining_ms": {
+          "description": "Temps restant jusqu'à deadline à l'instant du contexte, en millisecondes, nul sans échéance (le « temps restant » d'EX-9.4) ; 2 829 904 pour la vue de 12.9 à 2026-11-05T09:25:00.000Z.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "contest": {
+          "$ref": "#/$defs/vue_ticket/properties/contest"
+        },
+        "approver_set": {
+          "$ref": "#/$defs/vue_ticket/properties/approver_set"
+        },
+        "effective_required": {
+          "$ref": "#/$defs/vue_ticket/properties/effective_required"
+        },
+        "votes": {
+          "$ref": "#/$defs/vue_ticket/properties/votes"
+        },
+        "warnings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "condense_utf8",
+              "separation_non_verifiable",
+              "membres_ajoutes",
+              "separation_incomplete"
+            ]
+          }
+        },
+        "blocking": {
+          "description": "Raisons qui interdisent de demander une signature, dans l'ordre des contrôles de 9.6 ; vide si et seulement si signable est vrai.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code_console"
+          }
+        },
+        "signable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "requete_signature": {
+      "description": "Argument de request() d'EIP-1193 pour un vote (CT-3 EX-13.24) : personal_sign, la donnée d'abord (0x et 64 chiffres minuscules), l'adresse ensuite (minuscules).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "params"
+      ],
+      "properties": {
+        "method": {
+          "const": "personal_sign"
+        },
+        "params": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/hex32"
+            },
+            {
+              "$ref": "#/$defs/adresse"
+            }
+          ],
+          "items": false
+        }
+      }
+    },
+    "reponse_portefeuille": {
+      "description": "Issue d'une requête EIP-1193, telle que la console la reçoit : promesse tenue (result) ou rompue (error). Une erreur sans code numérique a code null.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result"
+          ],
+          "properties": {
+            "result": {}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "error"
+          ],
+          "properties": {
+            "error": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code",
+                "message"
+              ],
+              "properties": {
+                "code": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ]
+                },
+                "message": {
+                  "type": "string",
+                  "maxLength": 4096
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "annonce_eip6963": {
+      "description": "Membre info du detail d'un événement eip6963:announceProvider (EIP-6963, R4-F5) ; provider désigne, dans les vecteurs, l'objet fournisseur par un nom, deux annonces de même provider désignant le même objet.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "info",
+        "provider"
+      ],
+      "properties": {
+        "info": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "uuid",
+            "name",
+            "icon",
+            "rdns"
+          ],
+          "properties": {
+            "uuid": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "icon": {
+              "type": "string"
+            },
+            "rdns": {
+              "type": "string"
+            }
+          }
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "fichier_cle": {
+      "description": "Fichier de clé chiffré (Web3 Secret Storage, version 3) que la console admet (CT-3 EX-13.28). Hexadécimal sans 0x.",
+      "type": "object",
+      "required": [
+        "crypto",
+        "id",
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "const": 3
+        },
+        "id": {
+          "type": "string"
+        },
+        "crypto": {
+          "type": "object",
+          "required": [
+            "cipher",
+            "cipherparams",
+            "ciphertext",
+            "kdf",
+            "kdfparams",
+            "mac"
+          ],
+          "properties": {
+            "cipher": {
+              "type": "string"
+            },
+            "cipherparams": {
+              "type": "object"
+            },
+            "ciphertext": {
+              "type": "string"
+            },
+            "kdf": {
+              "type": "string"
+            },
+            "kdfparams": {
+              "type": "object"
+            },
+            "mac": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "cas_modele": {
+      "description": "Vecteur console/modeles/<id>.json (CS-1 à CS-4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "description",
+        "checks",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^CS-[1-9]$"
+          }
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "view",
+            "session",
+            "decision",
+            "approver",
+            "reason",
+            "now"
+          ],
+          "properties": {
+            "view": {
+              "$ref": "#/$defs/vue_ticket"
+            },
+            "session": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "session_identity",
+                "entry",
+                "addresses",
+                "is_requester"
+              ],
+              "properties": {
+                "session_identity": {
+                  "$ref": "#/$defs/session_identity"
+                },
+                "entry": {
+                  "description": "État de l'entrée de l'annuaire de la session (contrôle 9 d'EX-9.15) : absente (identite_inconnue), desactivee (identite_desactivee) ou active ; addresses est alors l'adresse active de l'entrée, ou vide.",
+                  "enum": [
+                    "absente",
+                    "active",
+                    "desactivee"
+                  ]
+                },
+                "addresses": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/adresse"
+                  }
+                },
+                "is_requester": {
+                  "type": "boolean",
+                  "description": "Vrai si le launched_by du ticket est dans requester_identities de l'entrée de la session (contrôle 12 d'EX-9.15)."
+                }
+              }
+            },
+            "decision": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/decision_vote"
+                }
+              ]
+            },
+            "approver": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/adresse"
+                }
+              ]
+            },
+            "reason": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "now": {
+              "$ref": "#/$defs/horodatage"
+            }
+          }
+        },
+        "expected": {
+          "$ref": "#/$defs/modele_affichage"
+        }
+      }
+    },
+    "cas_requete": {
+      "description": "Vecteur console/requetes/<id>.json (CS-3, CS-5) : de A à la requête personal_sign, avec la préimage EIP-191 et la signature attendue d'une clé de test (RFC 6979).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "description",
+        "checks",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^CS-[1-9]$"
+          }
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "a",
+            "approver",
+            "account"
+          ],
+          "properties": {
+            "a": {
+              "$ref": "#/$defs/condenses/properties/a"
+            },
+            "approver": {
+              "$ref": "#/$defs/adresse"
+            },
+            "account": {
+              "description": "Indice du compte de test de A.2 qui signe.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "digests",
+            "preimage",
+            "request",
+            "signature"
+          ],
+          "properties": {
+            "digests": {
+              "$ref": "#/$defs/condenses"
+            },
+            "preimage": {
+              "description": "0x19 ‖ « Ethereum Signed Message:\\n32 » ‖ D_A : 60 octets.",
+              "type": "string",
+              "pattern": "^0x19457468657265756d205369676e6564204d6573736167653a0a3332[0-9a-f]{64}$"
+            },
+            "request": {
+              "$ref": "#/$defs/requete_signature"
+            },
+            "signature": {
+              "$ref": "#/$defs/signature"
+            }
+          }
+        }
+      }
+    },
+    "cas_reponse": {
+      "description": "Vecteur console/reponses/<id>.json (CS-6, CS-7) : réponse du portefeuille, verdict de la console et vote construit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "description",
+        "checks",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^CS-[1-9]$"
+          }
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "a",
+            "approver",
+            "reason",
+            "session_identity",
+            "response"
+          ],
+          "properties": {
+            "a": {
+              "$ref": "#/$defs/condenses/properties/a"
+            },
+            "approver": {
+              "$ref": "#/$defs/adresse"
+            },
+            "reason": {
+              "$ref": "#/$defs/motif"
+            },
+            "session_identity": {
+              "$ref": "#/$defs/session_identity"
+            },
+            "response": {
+              "$ref": "#/$defs/reponse_portefeuille"
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "outcome",
+            "reason",
+            "signature",
+            "recovered",
+            "vote"
+          ],
+          "properties": {
+            "outcome": {
+              "enum": [
+                "accepte",
+                "refuse"
+              ]
+            },
+            "reason": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/code_console"
+                }
+              ]
+            },
+            "signature": {
+              "description": "Forme normalisée envoyée au service, ou null.",
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/signature"
+                }
+              ]
+            },
+            "recovered": {
+              "description": "Adresse recouvrée sur H, ou null si la forme est refusée avant le recouvrement.",
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/adresse"
+                }
+              ]
+            },
+            "vote": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/requete_voter"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "cas_decouverte": {
+      "description": "Vecteur console/decouverte/<id>.json (CS-8) : suite d'annonces EIP-6963 et liste que la console propose au choix.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "description",
+        "checks",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^CS-[1-9]$"
+          }
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "announcements"
+          ],
+          "properties": {
+            "announcements": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/annonce_eip6963"
+              }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "providers",
+            "rejected"
+          ],
+          "properties": {
+            "providers": {
+              "description": "Fournisseurs proposés, dans l'ordre de leur première annonce.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "uuid",
+                  "name",
+                  "rdns",
+                  "provider"
+                ],
+                "properties": {
+                  "uuid": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "rdns": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "rejected": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "index",
+                  "reason"
+                ],
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "enum": [
+                      "annonce_en_double",
+                      "annonce_invalide"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "cas_fichier_cle": {
+      "description": "Vecteur console/fichiers-cle/<id>.json (CS-9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "description",
+        "checks",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^CS-[1-9]$"
+          }
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "keystore",
+            "password",
+            "approver"
+          ],
+          "properties": {
+            "keystore": {},
+            "password": {
+              "type": "string"
+            },
+            "approver": {
+              "$ref": "#/$defs/adresse"
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "outcome",
+            "reason",
+            "address",
+            "warnings"
+          ],
+          "properties": {
+            "outcome": {
+              "enum": [
+                "accepte",
+                "refuse"
+              ]
+            },
+            "reason": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/code_console"
+                }
+              ]
+            },
+            "address": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/adresse"
+                }
+              ]
+            },
+            "warnings": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "derivation_faible"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "attendu_acceptation_console": {
+      "description": "Grille de l'épreuve de lecture de la console (CT-3 EX-A.17) : pour chaque rôle, les sections qu'il reçoit et, pour chaque question, les éléments que sa réponse doit contenir, chacun avec la règle qui le fonde.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "roles"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "sections",
+              "questions"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "approbateur",
+                  "integrateur"
+                ]
+              },
+              "sections": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                }
+              },
+              "questions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "question",
+                    "elements"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^q[0-9]+$"
+                    },
+                    "question": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "element",
+                          "rules"
+                        ],
+                        "properties": {
+                          "element": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "rules": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

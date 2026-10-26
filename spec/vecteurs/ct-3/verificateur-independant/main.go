@@ -4,9 +4,11 @@
 //
 // Recalcule, famille par famille selon l'annexe A de CT-3 (constantes,
 // schémas, politiques, politiques refusées, évaluation, candidats, épreuve
-// d'acceptation, traces de tickets, remises, normalisation des signatures),
-// chaque valeur que les vecteurs déclarent, depuis la seule spécification
-// (CT-3, et CT-1 pour A, D_A et E-9), et confronte. Code de retour 0 si et
+// d'acceptation, traces de tickets, remises, normalisation des signatures,
+// et, depuis la révision 0.3, annuaire des approbateurs, console et épreuve
+// de lecture de la console), chaque valeur que les vecteurs déclarent,
+// depuis la seule spécification (CT-3, et CT-1 pour A, D_A, E-9, le hachage
+// et la signature d'un événement), et confronte. Code de retour 0 si et
 // seulement si tout concorde ; 1 en cas de discordance ou d'erreur ; 2 si
 // l'usage est incorrect ou la racine introuvable (EX-A.10).
 

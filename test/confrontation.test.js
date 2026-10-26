@@ -345,3 +345,117 @@ describe("CT-2 : sorties publiées de la confrontation par des outils tiers (ann
     });
   }
 });
+
+// ---------------------------------------------------------------------------
+// CT-3 (spec/CT-3-approbations.md, révision 0.3, EX-A.14, EX-A.18, EX-A.19) :
+// sorties publiées de spec/vecteurs/ct-3/confrontation/ (jamais écrites par le
+// générateur), par ethers (celui du dépôt) et par eth-account 0.14.0. Les deux
+// programmes n'importent rien de scripts/ ; leurs lignes portent sur les mêmes
+// signatures, dans le même ordre, avec les mêmes adresses attendues. Le
+// script ethers est toujours rejoué ; le script eth-account l'est quand un
+// interpréteur Python porte exactement les versions d'exigences.txt
+// (NOORTRACE_PYTHON_CONFRONTATION, sinon python3).
+// ---------------------------------------------------------------------------
+
+describe("CT-3 : sorties publiées de la confrontation des signatures par des outils tiers (EX-A.18)", function () {
+  const CT3 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-3");
+  const CONFRONTATION3 = path.join(CT3, "confrontation");
+  const SORTIES3 = path.join(CONFRONTATION3, "sorties");
+  const sortieEthers = () => lire(SORTIES3, "ethers.txt");
+  const sortieEthAccount = () => lire(SORTIES3, "eth-account.txt");
+  const exigences = () =>
+    lire(CONFRONTATION3, "eth-account", "exigences.txt")
+      .split("\n")
+      .filter((l) => /^[A-Za-z0-9_.-]+==/.test(l))
+      .map((l) => l.split("=="));
+  const versionExigee = (p) => exigences().find(([n]) => n === p)[1];
+  const lignesSignatures = (texte) => texte.split("\n").filter((l) => l !== "" && !l.startsWith("# ")).map((l) => l.split(" | "));
+  const BILAN = /^# bilan : (\d+) signatures et fichiers ; concorde (\d+), acceptee_par_la_bibliotheque (\d+), refusee_par_la_bibliotheque (\d+), discordance 0$/m;
+
+  it("deux sorties publiées, aucun chemin local, aucune discordance ; en-têtes aux versions d'ethers du dépôt et d'exigences.txt", function () {
+    expect(fs.readdirSync(SORTIES3).sort()).to.deep.equal(["eth-account.txt", "ethers.txt"]);
+    for (const f of fs.readdirSync(SORTIES3)) {
+      const texte = lire(SORTIES3, f);
+      expect(texte, f).not.to.match(/\/home\/|\/tmp\/|\/root\/|[A-Z]:\\/);
+      expect(texte, f).not.to.match(/\| discordance$/m);
+      expect(texte, f).to.match(BILAN);
+      const [, total, ...parts] = texte.match(BILAN).map(Number);
+      expect(lignesSignatures(texte).length, f).to.equal(total);
+      expect(parts.reduce((a, b) => a + b, 0), f).to.equal(total);
+    }
+    const version = lireJSON(PROJECT_ROOT, "node_modules", "ethers", "package.json").version;
+    expect(sortieEthers().split("\n")[0]).to.equal(`# Confrontation des signatures des vecteurs CT-3 par ethers ${version} (verifyMessage, decryptKeystoreJsonSync)`);
+    expect(versionExigee("eth-account")).to.equal("0.14.0");
+    expect(sortieEthAccount().split("\n")[0]).to.equal(
+      `# Confrontation des signatures des vecteurs CT-3 par eth-account ${versionExigee("eth-account")} (eth-keys ${versionExigee("eth-keys")}, eth-keyfile ${versionExigee("eth-keyfile")} ; Account.recover_message, encode_defunct, Account.decrypt)`,
+    );
+  });
+
+  it("les deux programmes n'importent rien de scripts/ ; eth-account par encode_defunct(hexstr=) pour un vote et (primitive=) pour une inscription", function () {
+    const js = lire(CONFRONTATION3, "ethers", "confronter_ethers.mjs");
+    const importsJs = js.split("\n").filter((l) => /^\s*import\b|\bimport\(|\brequire\(/.test(l));
+    expect(importsJs.length).to.be.above(0);
+    for (const l of importsJs) expect(l).to.match(/^import [^;]+ from "(node:[a-z]+|ethers)";$/);
+    const py = lire(CONFRONTATION3, "eth-account", "confronter_eth_account.py");
+    const importsPy = py.split("\n").filter((l) => /^\s*(import|from)\s/.test(l));
+    for (const l of importsPy) expect(l).to.match(/^(import (hashlib|importlib\.metadata|json|os|sys)|from eth_account(\.messages)? import (Account|encode_defunct))$/);
+    expect(py).to.include("encode_defunct(hexstr=d_a)");
+    expect(py).to.include('encode_defunct(primitive=texte.encode("utf-8"))');
+    expect(py).not.to.match(/encode_defunct\(text=d_a|primitive=int\(/);
+  });
+
+  it("ethers.txt et eth-account.txt portent sur les vecteurs du dépôt : mêmes signatures, même ordre, mêmes adresses attendues ; une ligne par requête, inscription et preuve de l'annuaire de référence", function () {
+    const e = lignesSignatures(sortieEthers());
+    const a = lignesSignatures(sortieEthAccount());
+    expect(a.map((l) => [l[0], l[1], l[2], l[4]])).to.deep.equal(e.map((l) => [l[0], l[1], l[2], l[4]]));
+    const fichiers = (...p) => fs.readdirSync(path.join(CT3, ...p)).filter((f) => f.endsWith(".json")).sort();
+    for (const sortie of [sortieEthers(), sortieEthAccount()]) {
+      for (const f of fichiers("console", "requetes")) expect(sortie, f).to.match(new RegExp(`^console/requetes \\| ${echapper(f)} \\| 0 \\| 0x[0-9a-f]{40} \\| 0x[0-9a-f]{40} \\| concorde$`, "m"));
+      for (const c of lireJSON(CT3, "annuaire", "inscriptions.json").cases) expect(sortie, c.id).to.include(`annuaire/inscriptions | ${c.id} | 0 |`);
+      const ref = lireJSON(CT3, "annuaire", "annuaires", "reference.json");
+      ref.entries.forEach((en, i) => en.addresses.forEach((ad, k) => expect(sortie).to.include(`annuaire/annuaires | reference.json#/entries/${i}/addresses/${k} | 0 | ${ad.address} | ${ad.address} | concorde`)));
+      for (const c of lireJSON(CT3, "signatures", "normalisation.json").cases) expect(sortie, c.id).to.include(`signatures | normalisation.json#${c.id} | 0 |`);
+      for (const f of ["pbkdf2-valide.json", "scrypt-valide.json", "cle-compte-2.json"]) expect(sortie, f).to.match(new RegExp(`^console/fichiers-cle \\| ${echapper(f)} \\| 0 \\| 0x[0-9a-f]{40} \\| 0x[0-9a-f]{40} \\| concorde$`, "m"));
+      // D_A dont le premier octet est nul (EX-9.22) : recouvré sans perte.
+      expect(sortie).to.match(/^console\/requetes \| apr-c0-542-approuve-compte-1\.json \| 0 \| 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 \| 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 \| concorde$/m);
+    }
+  });
+
+  it("écarts attendus d'EX-9.22 : ethers refuse s haut et accepte v = 37 et 64 octets ; eth-account accepte v = 37, v = 38, et s haut ou v ∈ {0, 1} présentés au noyau", function () {
+    const s = sortieEthers();
+    // R4-F37, R4-F38.
+    expect(s).to.match(/^console\/reponses \| s-haut-normalisee\.json \| 0 \| refusée \| 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 \| refusee_par_la_bibliotheque$/m);
+    expect(s).to.match(/^console\/reponses \| v-37\.json \| 0 \| 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 \| forme refusée par CT-3 \| acceptee_par_la_bibliotheque$/m);
+    expect(s).to.match(/^console\/reponses \| longueur-64\.json \| 0 \| 0x[0-9a-f]{40} \| forme refusée par CT-3 \| acceptee_par_la_bibliotheque$/m);
+    // R4-F40, R4-F41.
+    const a = sortieEthAccount();
+    expect(a).to.match(/^console\/reponses \| s-haut-normalisee\.json \| 0 \| 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 \| 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 \| concorde$/m);
+    expect(a).to.match(/^console\/reponses \| v-37\.json \| 0 \| 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 \| forme refusée par CT-3 \| acceptee_par_la_bibliotheque$/m);
+    expect(a).to.match(/^console\/reponses \| v-38\.json \| 0 \| 0x[0-9a-f]{40} \| forme refusée par CT-3 \| acceptee_par_la_bibliotheque$/m);
+    expect(a).to.match(/^console\/reponses \| longueur-64\.json \| 0 \| refusée \| forme refusée par CT-3 \| concorde$/m);
+    expect(a).to.match(/^console\/reponses \| v-29\.json \| 0 \| refusée \| forme refusée par CT-3 \| concorde$/m);
+    expect(a).to.match(/^decisions \| invalides\/sg5-s-haut\.json \| 1 \| 0x[0-9a-f]{40} \| forme refusée par CT-3 \| acceptee_par_la_bibliotheque$/m);
+    expect(a).not.to.match(/\| refusee_par_la_bibliotheque$/m);
+  });
+
+  it("rejeu de ethers/confronter_ethers.mjs : code 0, sortie égale à sorties/ethers.txt", function () {
+    this.timeout(120_000);
+    const r = spawnSync(process.execPath, [path.join(CONFRONTATION3, "ethers", "confronter_ethers.mjs"), path.relative(PROJECT_ROOT, CT3)], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
+    expect(r.status, r.stderr).to.equal(0);
+    expect(r.stdout).to.equal(sortieEthers());
+  });
+
+  it("rejeu de eth-account/confronter_eth_account.py (interpréteur aux versions d'exigences.txt présent) : code 0, sortie égale à sorties/eth-account.txt", function () {
+    this.timeout(180_000);
+    const ex = exigences();
+    const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
+    const code = `import importlib.metadata as m, json\nout = {}\nfor p in ${JSON.stringify(ex.map(([p]) => p))}:\n    try: out[p] = m.version(p)\n    except m.PackageNotFoundError: out[p] = None\nprint(json.dumps(out))`;
+    const versions = spawnSync(python, ["-I", "-c", code], { encoding: "utf8" });
+    if (versions.error || versions.status !== 0) this.skip();
+    const lues = JSON.parse(versions.stdout);
+    if (!ex.every(([p, v]) => lues[p] === v)) this.skip();
+    const r = spawnSync(python, ["-I", path.join(CONFRONTATION3, "eth-account", "confronter_eth_account.py"), CT3], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    expect(r.status, r.stdout.split("\n").slice(-4).join("\n") + r.stderr).to.equal(0);
+    expect(r.stdout).to.equal(sortieEthAccount());
+  });
+});

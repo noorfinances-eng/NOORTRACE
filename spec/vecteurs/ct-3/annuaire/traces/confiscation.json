@@ -1,0 +1,173 @@
+{
+  "version": 0,
+  "id": "confiscation",
+  "description": "approbateur-2 prépare, sous sa propre session, l'inscription du compte 1, dont le détenteur signe sans le lire le texte qui nomme approbateur-2 : acceptée, en attente dans l'entrée apb-0001 d'approbateur-2 (EX-13.15 ne voit que la preuve de possession) ; approbateur-1, détenteur du compte 1, reçoit adresse_deja_attribuee ; admin-1 révoque l'adresse avec un motif ; approbateur-1 reçoit toujours adresse_deja_attribuee : l'adresse est confisquée, son détenteur change de clé (EX-13.10, EX-13.17).",
+  "checks": [
+    "AN-3",
+    "AN-6",
+    "AN-7"
+  ],
+  "initial": "annuaires/vide.json",
+  "steps": [
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T08:00:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-2",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      },
+      "challenges": [
+        "1889162b005da61b8809fd60cb581e2a"
+      ],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "fields": {
+            "origin": "https://console.assureur-demo.example",
+            "org": "assureur-demo",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "identity": "oidc https://idp.assureur-demo.example approbateur-2",
+            "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+            "issued_at": "2026-11-10T08:00:00.000Z",
+            "expires_at": "2026-11-10T08:10:00.000Z",
+            "nonce": "1889162b005da61b8809fd60cb581e2a"
+          },
+          "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-2\nAdresse: 0x70997970c51812dc3a010c7d01b50e0d17dc79c8\nEmis le: 2026-11-10T08:00:00.000Z\nExpire le: 2026-11-10T08:10:00.000Z\nNonce: 1889162b005da61b8809fd60cb581e2a"
+        },
+        "revision": 0,
+        "entries": []
+      }
+    },
+    {
+      "method": "inscrire",
+      "at": "2026-11-10T08:00:30.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-2",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-2\nAdresse: 0x70997970c51812dc3a010c7d01b50e0d17dc79c8\nEmis le: 2026-11-10T08:00:00.000Z\nExpire le: 2026-11-10T08:10:00.000Z\nNonce: 1889162b005da61b8809fd60cb581e2a",
+        "signature": "0x6928dc5bd947c0a4ecce81454ceaefea1febf1a6e5753ae232d774b707d566035a132727898321b02cf20ca523389007b8a038da6997d93319a9a32bf778e6fa1b"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "state": "en_attente",
+          "revision": 1
+        },
+        "revision": 1,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "en_attente"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T08:05:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      },
+      "challenges": [
+        "38ed9578134ad2a675adba5dda1dc786"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "adresse_deja_attribuee",
+        "response": null,
+        "revision": 1,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "en_attente"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "revoquer",
+      "at": "2026-11-10T08:10:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "reason": "Adresse inscrite au nom d'une autre personne (confiscation signalée)"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "state": "revoquee",
+          "revision": 2
+        },
+        "revision": 2,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "preparer_inscription",
+      "at": "2026-11-10T08:15:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      },
+      "challenges": [
+        "a893ee1d301c691741f1976f6a93da41"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "adresse_deja_attribuee",
+        "response": null,
+        "revision": 2,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -6,9 +6,9 @@
 //   npm run vecteurs:ct3
 //
 // --sortie doit nommer un répertoire inexistant, vide, ou dont chaque entrée de
-// premier niveau est l'une de celles que le générateur écrit (ENTREES_GENEREES)
-// ou verificateur-independant/ ; sinon le générateur refuse sans rien effacer.
-// Il n'efface jamais que ses propres entrées.
+// premier niveau est l'une de celles que le générateur écrit (ENTREES_GENEREES),
+// verificateur-independant/ ou confrontation/ ; sinon le générateur refuse sans
+// rien effacer. Il n'efface jamais que ses propres entrées.
 //
 // Familles (annexe A.3) :
 //
@@ -22,13 +22,22 @@
 //   tickets/                   traces de cycle de vie (A.6) ;
 //   decisions/                 remises valides et invalides (A.7) ;
 //   signatures/                normalisation d'EX-9.3 (A.8) ;
+//   annuaire/                  annuaires, messages et inscriptions, opérations,
+//                              contrôles de la console, exports (A.10, AN-1 à
+//                              AN-9 ; scripts/vecteurs/ct3/annuaire.mjs) ;
+//   console/                   modèles d'affichage, requêtes personal_sign,
+//                              réponses du portefeuille, découverte EIP-6963,
+//                              fichiers de clé (A.11, CS-1 à CS-9 ;
+//                              scripts/vecteurs/ct3/console.mjs) ;
+//   acceptation-console/       l'épreuve de lecture de la console (EX-A.17) ;
+//   acceptation-console-attendu.json  sa grille, hors du répertoire ;
 //   INDEX.md                   chaque cas et son attendu.
 //
 // Tout est déterministe (EX-A.1) : comptes 1 à 4 du mnémonique public de
 // Hardhat, adresses de registre, de jeu, de bloc, de demande et d'événement
 // dérivées par SHA-256 d'étiquettes fixes, horodatages fixes, signatures
 // secp256k1 RFC 6979. Le générateur efface et réécrit ses entrées
-// (ENTREES_GENEREES), jamais verificateur-independant/.
+// (ENTREES_GENEREES), jamais verificateur-independant/ ni confrontation/.
 //
 // Une partie des attendus est posée par conception (règle, décision et
 // ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et
@@ -46,13 +55,19 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { HDNodeWallet, Signature, hashMessage, keccak256, toUtf8Bytes } from "ethers";
 import * as J from "../lib/journal.mjs";
 import * as A from "../lib/approbation.mjs";
+import { familleAnnuaire, ORIGINE, EMETTEUR, ADMIN, INSTANT_BASE_ANNUAIRE, TTL_INSCRIPTION, ETIQUETTE_NONCE, IDENTITE_COMPTE } from "./ct3/annuaire.mjs";
+import { familleConsole, CONSIGNE_CONSOLE, GABARIT_CONSOLE, ATTENDU_ACCEPTATION_CONSOLE, MOT_DE_PASSE, ETIQUETTE_FICHIER_CLE, ETIQUETTE_DECOUVERTE, ETIQUETTE_ZERO, ETIQUETTE_EN_LIGNE } from "./ct3/console.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 export const REPERTOIRE_CT3 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-3");
 const REPERTOIRE_SCHEMAS = path.join(PROJECT_ROOT, "spec", "schemas");
 const REPERTOIRE_CT1 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-1");
 /** Les seules entrées de premier niveau que le générateur écrit, et donc les seules qu'il efface (EX-A.1) ; verificateur-independant/ n'en est pas. */
-export const ENTREES_GENEREES = ["INDEX.md", "acceptation", "acceptation-attendu.json", "candidats", "constantes.json", "decisions", "evaluation", "politiques", "politiques-invalides", "signatures", "tickets"];
+export const ENTREES_GENEREES = ["INDEX.md", "acceptation", "acceptation-attendu.json", "acceptation-console", "acceptation-console-attendu.json", "annuaire", "candidats", "console", "constantes.json", "decisions", "evaluation", "politiques", "politiques-invalides", "signatures", "tickets"];
+/** Entrées de premier niveau que le générateur tolère sans jamais les lire ni les écrire (EX-A.1). */
+export const ENTREES_TOLEREES = ["confrontation", "verificateur-independant"];
+/** Les six schémas qui décrivent les familles annuaire/ et console/ (A.3). */
+export const FICHIERS_SCHEMAS_CONSOLE = [...A.FICHIERS_SCHEMAS, "console-approbation-v0.schema.json", "annuaire-approbateurs-v0.schema.json", "console-service-v0.schema.json"];
 /** Troisième ligne d'INDEX.md : la marque d'un répertoire produit par ce générateur. */
 const MARQUE_INDEX = "Produit par `scripts/vecteurs/generer-ct3.mjs`";
 
@@ -66,6 +81,16 @@ const sha = (etiquette) => J.sha256(Buffer.from(etiquette, "utf8"));
 /** Les trois schémas de CT-3, chargés depuis spec/schemas. */
 export function chargerSchemas(repertoire = REPERTOIRE_SCHEMAS) {
   return A.registreSchemas(A.FICHIERS_SCHEMAS.map((f) => JSON.parse(fs.readFileSync(path.join(repertoire, f), "utf8"))));
+}
+
+/**
+ * Validation d'une valeur contre un schéma de spec/schemas par son nom court
+ * (evenement, ticket, console-approbation, annuaire-approbateurs,
+ * console-service) et, s'il est donné, l'un de ses $defs. Rend les erreurs.
+ */
+export function validateurSchemas(repertoire = REPERTOIRE_SCHEMAS) {
+  const registre = J.registreSchemas(FICHIERS_SCHEMAS_CONSOLE.map((f) => JSON.parse(fs.readFileSync(path.join(repertoire, f), "utf8"))));
+  return (valeur, nom, def = null) => J.validerSchema(valeur, registre[`https://noortrace.example/schemas/v0/${nom}.schema.json`], { registre, fragment: def ? `#/$defs/${def}` : "" });
 }
 
 // ---------------------------------------------------------------------------
@@ -1469,13 +1494,13 @@ function conceptionNormalisation() {
 // ---------------------------------------------------------------------------
 
 const code = (s) => "`" + s + "`";
-function index({ constantes, politiques, invalides, evaluations, candidats, acceptation, tickets, decisions, normalisation }) {
+function index({ constantes, politiques, invalides, evaluations, candidats, acceptation, tickets, decisions, normalisation, an, co }) {
   const L = [];
   L.push("# Vecteurs CT-3 — approbations");
   L.push("");
   L.push(MARQUE_INDEX + " (`npm run vecteurs:ct3`) ; ne pas l'éditer à la main. Spécification : [`spec/CT-3-approbations.md`](../../CT-3-approbations.md), annexe A. Rejoués par `test/approbation.test.js` avec l'implémentation de référence `scripts/lib/approbation.mjs`.");
   L.push("");
-  L.push("Le générateur n'efface et ne réécrit que ses propres entrées de premier niveau (`constantes.json`, `INDEX.md`, `acceptation-attendu.json` et les répertoires `acceptation/`, `candidats/`, `decisions/`, `evaluation/`, `politiques/`, `politiques-invalides/`, `signatures/`, `tickets/`), jamais `verificateur-independant/` (EX-A.1). Une partie des attendus est posée par conception dans le générateur (règle, décision et ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et raison de chaque entrée ; décision, signataires, motif et source de chaque remise ; tickets des fenêtres) et confrontée à l'implémentation de référence avant d'être écrite. Le reste (seuil et membres d'une remise, objet approval rendu à une ré-émission, bornes et restant des fenêtres, jeu des réponses nouveau) sort de l'implémentation de référence sans contrôle de conception : le vérificateur Go indépendant (`verificateur-independant/`) le recalcule.");
+  L.push("Le générateur n'efface et ne réécrit que ses propres entrées de premier niveau (`constantes.json`, `INDEX.md`, `acceptation-attendu.json`, `acceptation-console-attendu.json` et les répertoires `acceptation/`, `acceptation-console/`, `annuaire/`, `candidats/`, `console/`, `decisions/`, `evaluation/`, `politiques/`, `politiques-invalides/`, `signatures/`, `tickets/`), jamais `verificateur-independant/` ni `confrontation/` (EX-A.1). Les familles `annuaire/` et `console/` (révision 0.3) sont rejouées par `test/console.test.js` avec la bibliothèque de la console de référence `scripts/lib/console.mjs` ; leurs textes, condensés et signatures attendus sont calculés par `scripts/lib/journal.mjs`, ethers et `node:crypto`, indépendamment de `console.mjs`, puis confrontés à elle. Une partie des attendus est posée par conception dans le générateur (règle, décision et ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et raison de chaque entrée ; décision, signataires, motif et source de chaque remise ; tickets des fenêtres) et confrontée à l'implémentation de référence avant d'être écrite. Le reste (seuil et membres d'une remise, objet approval rendu à une ré-émission, bornes et restant des fenêtres, jeu des réponses nouveau) sort de l'implémentation de référence sans contrôle de conception : le vérificateur Go indépendant (`verificateur-independant/`) le recalcule.");
   L.push("");
   L.push("## Constantes (A.2, `constantes.json`)");
   L.push("");
@@ -1560,7 +1585,133 @@ function index({ constantes, politiques, invalides, evaluations, candidats, acce
   L.push("|---|---|");
   for (const c of normalisation) L.push(`| ${code(c.id)} | ${c.expected ? "forme normalisée" : "refusée (" + c.reason + ")"} |`);
   L.push("");
+  indexAnnuaire(L, an);
+  indexConsole(L, co);
   return L.join("\n");
+}
+
+const abrege = (h) => `${h.slice(0, 10)}…${h.slice(-8)}`;
+const sortie = (accepted, reason) => (accepted ? "acceptée" : `refus : ${reason}`);
+
+function indexAnnuaire(L, an) {
+  L.push("## annuaire/ (A.10, AN-1 à AN-10)");
+  L.push("");
+  L.push("Constantes propres à la famille, absentes de `constantes.json`, qui ne change pas :");
+  L.push("");
+  L.push("| Grandeur | Valeur |");
+  L.push("|---|---|");
+  L.push(`| Origine de la console | ${code(ORIGINE)} (domaine réservé \`.example\`) |`);
+  L.push(`| Émetteur d'identité | ${code(EMETTEUR)} |`);
+  L.push(`| Identités de session | ${code(IDENTITE_COMPTE[1])} (compte 1), ${code(IDENTITE_COMPTE[2])} (compte 2, et compte 4 révoqué dans la référence), ${code(IDENTITE_COMPTE[3])} (compte 3), ${code(IDENTITE_COMPTE[4])} (compte 4, cas hors de la référence) |`);
+  L.push(`| Administrateur (sans adresse) | ${code(ADMIN)} |`);
+  L.push(`| Alias de demandeur | ${code(DEMANDEUR)}, lié à l'entrée de ${code(IDENTITE_COMPTE[3])} |`);
+  L.push(`| Nonce d'inscription \`k\` | 16 premiers octets de SHA-256 de ${code(ETIQUETTE_NONCE)}, en hexadécimal minuscule |`);
+  L.push(`| Instant de base, validité d'un message | ${code(INSTANT_BASE_ANNUAIRE)}, \`registration_ttl_ms\` ${TTL_INSCRIPTION} |`);
+  L.push("| Identifiant d'une entrée créée | `apb-` suivi, en décimal sur 4 chiffres complétés de zéros à gauche, du nombre d'entrées de l'annuaire avant la création augmenté de un (A.10 ; en exploitation, 64 bits aléatoires ou époque, EX-13.9) |");
+  L.push("");
+  L.push("| Annuaire de départ | Contenu |");
+  L.push("|---|---|");
+  for (const [f, d] of Object.entries(an.descriptionsAnnuaires)) L.push(`| ${code("annuaires/" + f)} | ${d} |`);
+  L.push("");
+  L.push("### `messages.json` (AN-1, AN-2)");
+  L.push("");
+  L.push("| Cas | Attendu | Ce qu'il exerce |");
+  L.push("|---|---|---|");
+  for (const c of an.messages.cases) L.push(`| ${code(c.id)} | ${c.expected.valid ? `valide, ${c.expected.length} octets, préimage ${c.expected.preimage_length}, condensé ${code(abrege(c.expected.eip191_digest))}` : "message_invalide"} | ${c.description} |`);
+  L.push("");
+  L.push(`### \`inscriptions.json\` (AN-3, AN-4, AN-5, AN-7) — annuaire ${code(an.inscriptions.annuaire)}`);
+  L.push("");
+  L.push("Chaque cas part des défis qu'il donne ; la raison est la première dans l'ordre d'EX-13.15. `requete_invalide` est exercée par la trace `inscription-validation` : une requête hors de `requete_inscrire` ne serait pas conforme à `$defs/fichier_inscriptions`.");
+  L.push("");
+  L.push("| Cas | Attendu | Ce qu'il exerce |");
+  L.push("|---|---|---|");
+  for (const c of an.inscriptions.cases) L.push(`| ${code(c.id)} | ${c.expected.accepted ? `acceptée, entrée ${code(c.expected.entry)}` : c.expected.reason} | ${c.description} |`);
+  L.push("");
+  L.push("### `domaines.json` (AN-5)");
+  L.push("");
+  L.push("| Cas | Adresse recouvrée | Attendu |");
+  L.push("|---|---|---|");
+  for (const c of an.domaines.cases) L.push(`| ${code(c.id)} | ${code(c.expected.recovered)} | ${c.expected.reason} |`);
+  L.push("");
+  L.push("### `traces/` (AN-6, AN-7)");
+  L.push("");
+  L.push("Chaque pas : méthode, instant, sort, `revision` après le pas.");
+  L.push("");
+  for (const t of an.traces) {
+    L.push(`#### ${code(t.id + ".json")} (${t.checks.join(", ")}) — départ ${code(t.initial)}`);
+    L.push("");
+    L.push(t.description);
+    L.push("");
+    t.steps.forEach((p, i) => L.push(`${i + 1}. ${p.method} ${p.at.slice(11, 23)} → ${sortie(p.expected.accepted, p.expected.reason)}, revision ${p.expected.revision}`));
+    L.push("");
+  }
+  L.push(`### \`controles-vote.json\` (AN-8) — annuaire ${code(an.controlesVote.annuaire)}`);
+  L.push("");
+  L.push("| Cas | Action | Attendu | Avertissement |");
+  L.push("|---|---|---|---|");
+  for (const c of an.controlesVote.cases) L.push(`| ${code(c.id)} | ${c.action} | ${c.expected.allowed ? "autorisé" : c.expected.reason} | ${c.expected.warnings.map((w) => w.code).join(", ") || "—"} |`);
+  L.push("");
+  L.push(`### \`controles-canal.json\` (AN-10) — annuaire ${code(an.controlesCanal.annuaire)}`);
+  L.push("");
+  L.push("Contrôle de l'identité de session par le service sur le canal de la console, avant que l'entrée de 7.4 ne soit formée (EX-12.14, EX-12.16, EX-12.19).");
+  L.push("");
+  L.push("| Cas | Méthode | Attendu | Ce qu'il exerce |");
+  L.push("|---|---|---|---|");
+  for (const c of an.controlesCanal.cases) L.push(`| ${code(c.id)} | ${c.method} | ${c.expected.reason ?? "passe"} | ${c.description} |`);
+  L.push("");
+  L.push("### `exports/` (AN-9)");
+  L.push("");
+  L.push("| Fichier | Écarts attendus (`exports/attendu.json`) | Ce qu'il exerce |");
+  L.push("|---|---|---|");
+  for (const c of an.exportsAttendu.cases) L.push(`| ${code(c.file)} | ${c.errors.map((e) => `${e.code}${e.pointer ? " " + code(e.pointer) : ""}`).join(" ; ") || "aucun"} | ${c.description} |`);
+  L.push("");
+}
+
+function indexConsole(L, co) {
+  L.push("## console/ (A.11, CS-1 à CS-9)");
+  L.push("");
+  L.push("| Grandeur | Valeur |");
+  L.push("|---|---|");
+  L.push(`| Ticket de CT-1 | \`apr-2201\` : événement seq 5 et pièce « arguments » de \`spec/vecteurs/ct-1/journal-valide\`, lus et jamais réécrits |`);
+  L.push(`| Demande à référence en ligne | ticket \`apr-0901\`, \`journal-approbations\`, \`prev_hash\` = SHA-256 de ${code(ETIQUETTE_EN_LIGNE)}, scellée par la clé de test \`rec-test-01\` de CT-1 |`);
+  L.push(`| D_A à premier octet nul | \`request_hash\` = SHA-256 de ${code(ETIQUETTE_ZERO)}, ticket \`apr-c0-${co.kZero}\` (plus petit k ≥ 1) |`);
+  L.push(`| Fichiers de clé | mot de passe ${code(MOT_DE_PASSE)} ; sel, iv (16 premiers octets) et uuid (16 premiers octets, bits de version 4) tirés de SHA-256 de ${code(ETIQUETTE_FICHIER_CLE)} ; \`c\` = 1 024, scrypt \`n\` = 1 024, \`r\` = 8, \`p\` = 1 |`);
+  L.push(`| Découverte | uuid tirés de SHA-256 de ${code(ETIQUETTE_DECOUVERTE)} (bits de version 4 posés), icône \`data:image/svg+xml;base64,…\` minimale |`);
+  L.push("");
+  L.push("### `modeles/` (CS-1 à CS-4)");
+  L.push("");
+  L.push("| Cas | blocking | warnings | Ce qu'il exerce |");
+  L.push("|---|---|---|---|");
+  for (const c of co.modeles) L.push(`| ${code(c.id)} | ${c.expected.blocking.join(", ") || "vide (signable)"} | ${c.expected.warnings.join(", ") || "—"} | ${c.description} |`);
+  L.push("");
+  L.push("### `requetes/` (CS-3, CS-5)");
+  L.push("");
+  L.push("| Cas | D_A | Empreinte | Signature attendue |");
+  L.push("|---|---|---|---|");
+  for (const c of co.requetes) L.push(`| ${code(c.id)} | ${code(c.expected.digests.d_a)} | ${code(c.expected.digests.fingerprint)} | ${code(abrege(c.expected.signature))} |`);
+  L.push("");
+  L.push("### `reponses/` (CS-6, CS-7)");
+  L.push("");
+  L.push("| Cas | Verdict | Ce qu'il exerce |");
+  L.push("|---|---|---|");
+  for (const c of co.reponses) L.push(`| ${code(c.id)} | ${c.expected.outcome === "accepte" ? "acceptée, vote envoyé" : c.expected.reason} | ${c.description} |`);
+  L.push("");
+  L.push("### `decouverte/` (CS-8)");
+  L.push("");
+  L.push("| Cas | Proposés | Écartés | Ce qu'il exerce |");
+  L.push("|---|---|---|---|");
+  for (const c of co.decouverte) L.push(`| ${code(c.id)} | ${c.expected.providers.map((p) => p.provider).join(", ") || "—"} | ${c.expected.rejected.map((r) => `${r.index} ${r.reason}`).join(", ") || "—"} | ${c.description} |`);
+  L.push("");
+  L.push("### `fichiers-cle/` (CS-9)");
+  L.push("");
+  L.push("| Cas | Verdict | Avertissement |");
+  L.push("|---|---|---|");
+  for (const c of co.fichiersCle) L.push(`| ${code(c.id)} | ${c.expected.outcome === "accepte" ? "accepté, " + code(c.expected.address) : c.expected.reason} | ${c.expected.warnings.join(", ") || "—"} |`);
+  L.push("");
+  L.push("## acceptation-console/ et acceptation-console-attendu.json (EX-A.17)");
+  L.push("");
+  L.push("Le répertoire `acceptation-console/` est ce que reçoit chaque lecteur (consigne et gabarit de réponse) ; la grille des éléments attendus, chacun avec la règle qui le fonde, est dans `acceptation-console-attendu.json`, que les lecteurs ne reçoivent pas. Cet index ne la reproduit pas.");
+  L.push("");
 }
 
 // ---------------------------------------------------------------------------
@@ -1574,7 +1725,7 @@ function index({ constantes, politiques, invalides, evaluations, candidats, acce
 export function racineAdmise(racine) {
   if (!fs.existsSync(racine)) return;
   exiger(fs.statSync(racine).isDirectory(), `${racine} n'est pas un répertoire`);
-  const etrangeres = fs.readdirSync(racine).filter((e) => !ENTREES_GENEREES.includes(e) && e !== "verificateur-independant").sort();
+  const etrangeres = fs.readdirSync(racine).filter((e) => !ENTREES_GENEREES.includes(e) && !ENTREES_TOLEREES.includes(e)).sort();
   exiger(etrangeres.length === 0, `${racine} porte des entrées que le générateur n'écrit pas (${etrangeres.slice(0, 3).join(", ")}) : nommer un répertoire vide ou déjà produit par lui`);
 }
 
@@ -1698,8 +1849,33 @@ export function genererCt3({ racine = REPERTOIRE_CT3 } = {}) {
   });
   ecrire(path.join("signatures", "normalisation.json"), { version: 0, cases: normalisation.map(({ id, signature, expected, reason }) => ({ id, signature, expected, reason })) });
 
-  ecrire("INDEX.md", index({ constantes, politiques, invalides, evaluations, candidats, acceptation: accCas.map(([id, , , , , ce]) => [id, ce]), tickets, decisions, normalisation }));
-  return { politiques: Object.keys(politiques).length, invalides: invalides.length, evaluation: Object.values(evaluations).reduce((n, d) => n + d.cases.length, 0), candidats: Object.values(candidats).reduce((n, d) => n + d.cases.length, 0), tickets: tickets.length, decisions: decisions.length, normalisation: normalisation.length };
+  // Familles de la révision 0.3 : annuaire/ (A.10) et console/ (A.11), épreuve de lecture (EX-A.17).
+  const valider = validateurSchemas();
+  const MD = fs.readFileSync(path.join(PROJECT_ROOT, "spec", "CT-3-approbations.md"), "utf8");
+  const ctx = { COMPTES, ADR, ORG, ORG_ID, JOURNAL_ID, REGISTRE, JEU, BLOC, DEMANDE, DEMANDEUR, V1, exiger, valider, MD };
+  const an = familleAnnuaire(ctx);
+  for (const [f, doc] of Object.entries(an.annuaires)) ecrire(path.join("annuaire", "annuaires", f), doc);
+  ecrire(path.join("annuaire", "messages.json"), an.messages);
+  ecrire(path.join("annuaire", "inscriptions.json"), an.inscriptions);
+  ecrire(path.join("annuaire", "domaines.json"), an.domaines);
+  for (const t of an.traces) ecrire(path.join("annuaire", "traces", `${t.id}.json`), t);
+  ecrire(path.join("annuaire", "controles-vote.json"), an.controlesVote);
+  ecrire(path.join("annuaire", "controles-canal.json"), an.controlesCanal);
+  for (const [f, doc] of Object.entries(an.fichiersExports)) ecrire(path.join("annuaire", "exports", f), doc);
+  ecrire(path.join("annuaire", "exports", "attendu.json"), an.exportsAttendu);
+  const EV_CT1 = JSON.parse(fs.readFileSync(path.join(REPERTOIRE_CT1, "journal-valide", "evenements.json"), "utf8"));
+  const PIECES_CT1 = JSON.parse(fs.readFileSync(path.join(REPERTOIRE_CT1, "journal-valide", "pieces.json"), "utf8")).pieces;
+  const co = familleConsole({ ...ctx, EV_CT1, PIECES_CT1 });
+  for (const [rep, liste] of [["modeles", co.modeles], ["requetes", co.requetes], ["reponses", co.reponses], ["decouverte", co.decouverte], ["fichiers-cle", co.fichiersCle]]) for (const c of liste) ecrire(path.join("console", rep, `${c.id}.json`), c);
+  exiger(valider(ATTENDU_ACCEPTATION_CONSOLE, "console-approbation", "attendu_acceptation_console").length === 0, "acceptation-console-attendu.json non conforme");
+  const regles = new Set([...MD.matchAll(/\*\*(EX-[0-9A]+\.[0-9]+)\*\*/g)].map((m) => m[1]));
+  for (const r of ATTENDU_ACCEPTATION_CONSOLE.roles.flatMap((x) => x.questions.flatMap((q) => q.elements.flatMap((e) => e.rules)))) exiger(regles.has(r), `épreuve de la console : règle ${r} absente de CT-3`);
+  ecrire(path.join("acceptation-console", "consigne.md"), CONSIGNE_CONSOLE);
+  ecrire(path.join("acceptation-console", "gabarit-reponse.md"), GABARIT_CONSOLE);
+  ecrire("acceptation-console-attendu.json", ATTENDU_ACCEPTATION_CONSOLE);
+
+  ecrire("INDEX.md", index({ constantes, politiques, invalides, evaluations, candidats, acceptation: accCas.map(([id, , , , , ce]) => [id, ce]), tickets, decisions, normalisation, an, co }));
+  return { politiques: Object.keys(politiques).length, invalides: invalides.length, evaluation: Object.values(evaluations).reduce((n, d) => n + d.cases.length, 0), candidats: Object.values(candidats).reduce((n, d) => n + d.cases.length, 0), tickets: tickets.length, decisions: decisions.length, normalisation: normalisation.length, annuaire: an.messages.cases.length + an.inscriptions.cases.length + an.domaines.cases.length + an.traces.length + an.controlesVote.cases.length + an.controlesCanal.cases.length + an.exportsAttendu.cases.length, console: co.modeles.length + co.requetes.length + co.reponses.length + co.decouverte.length + co.fichiersCle.length };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
@@ -1710,5 +1886,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   }
   const racine = i !== -1 ? path.resolve(process.argv[i + 1]) : REPERTOIRE_CT3;
   const r = genererCt3({ racine });
-  process.stdout.write(`ct-3 : ${r.politiques} politiques valides, ${r.invalides} invalides, ${r.evaluation} cas d'évaluation, ${r.candidats} cas de candidats, 10 cas d'acceptation, ${r.tickets} traces, ${r.decisions} remises, ${r.normalisation} signatures sous ${racine}\n`);
+  process.stdout.write(`ct-3 : ${r.politiques} politiques valides, ${r.invalides} invalides, ${r.evaluation} cas d'évaluation, ${r.candidats} cas de candidats, 10 cas d'acceptation, ${r.tickets} traces, ${r.decisions} remises, ${r.normalisation} signatures, ${r.annuaire} cas d'annuaire, ${r.console} cas de console sous ${racine}\n`);
 }

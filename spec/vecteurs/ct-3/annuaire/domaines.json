@@ -1,0 +1,43 @@
+{
+  "version": 0,
+  "cases": [
+    {
+      "id": "inscription-comme-vote",
+      "description": "La signature d'inscription du compte 1 (exemple d'EX-13.12) présentée comme vote approuve sur l'objet A d'apr-0001 : elle recouvre une autre adresse que le compte 1 (signature_invalide).",
+      "checks": [
+        "AN-5"
+      ],
+      "kind": "inscription_comme_vote",
+      "A": {
+        "decision": "approuve",
+        "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+        "ticket": "apr-0001"
+      },
+      "message": null,
+      "signature": "0x8f799ab2a84552c45d92dbbb89107933a01e8ea1ad2628656cf1acae8a326e2b1e422a677308bd27d4821637bafa04f9338b07b3b19368ec10472caeaa0afbca1c",
+      "claimed_address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "expected": {
+        "recovered": "0xfac296ad1fc770d69ff4d1f69b67efbba7ae46f9",
+        "reason": "signature_invalide"
+      }
+    },
+    {
+      "id": "vote-comme-inscription",
+      "description": "La signature du vote approuve du compte 1 sur apr-0001 (trace approuve-sans-contestation) présentée comme inscription sur le message d'exemple : elle recouvre une autre adresse (signature_invalide).",
+      "checks": [
+        "AN-5"
+      ],
+      "kind": "vote_comme_inscription",
+      "A": null,
+      "message": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example approbateur-1\nAdresse: 0x70997970c51812dc3a010c7d01b50e0d17dc79c8\nEmis le: 2026-11-10T08:00:00.000Z\nExpire le: 2026-11-10T08:10:00.000Z\nNonce: dbcddc22164b049171cc7a6cda847ff2",
+      "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+      "claimed_address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "expected": {
+        "recovered": "0x8768051a828bb4301030920c9b69759b08e64bde",
+        "reason": "signature_invalide"
+      }
+    }
+  ]
+}

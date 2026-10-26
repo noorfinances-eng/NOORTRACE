@@ -1,0 +1,253 @@
+{
+  "version": 0,
+  "id": "revocation",
+  "description": "Révocation par un tiers refusée (revocation_non_autorisee), par la personne (cause personne), par un administrateur (cause administrateur), puis révocation répétée (etat_incompatible).",
+  "checks": [
+    "AN-6"
+  ],
+  "initial": "annuaires/reference.json",
+  "steps": [
+    {
+      "method": "revoquer",
+      "at": "2026-11-10T11:00:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example u.martin",
+        "entry": "apb-0001",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "reason": null
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "revocation_non_autorisee",
+        "response": null,
+        "revision": 9,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "active"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [
+              "u.martin@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "revoquer",
+      "at": "2026-11-10T11:01:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+        "entry": "apb-0001",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "reason": "Clé perdue"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0001",
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "state": "revoquee",
+          "revision": 10
+        },
+        "revision": 10,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "active"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [
+              "u.martin@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "revoquer",
+      "at": "2026-11-10T11:02:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0002",
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "reason": "Départ annoncé"
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": true,
+        "reason": null,
+        "response": {
+          "entry": "apb-0002",
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "state": "revoquee",
+          "revision": 11
+        },
+        "revision": 11,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "revoquee"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [
+              "u.martin@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "revoquer",
+      "at": "2026-11-10T11:03:00.000Z",
+      "request": {
+        "session_identity": "oidc https://idp.assureur-demo.example admin-1",
+        "entry": "apb-0001",
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "reason": null
+      },
+      "challenges": [],
+      "expected": {
+        "accepted": false,
+        "reason": "etat_incompatible",
+        "response": null,
+        "revision": 11,
+        "entries": [
+          {
+            "id": "apb-0001",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0002",
+            "active": true,
+            "requester_identities": [],
+            "addresses": [
+              {
+                "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+                "state": "revoquee"
+              },
+              {
+                "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+                "state": "revoquee"
+              }
+            ]
+          },
+          {
+            "id": "apb-0003",
+            "active": true,
+            "requester_identities": [
+              "u.martin@assureur-demo.example"
+            ],
+            "addresses": [
+              {
+                "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+                "state": "active"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

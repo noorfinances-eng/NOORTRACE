@@ -1,0 +1,39 @@
+{
+  "version": 0,
+  "id": "cle-compte-2",
+  "description": "Fichier de la clé du compte 2 présenté pour l'adresse du compte 1 : adresse_differente, avant toute signature.",
+  "checks": [
+    "CS-9"
+  ],
+  "input": {
+    "keystore": {
+      "crypto": {
+        "cipher": "aes-128-ctr",
+        "cipherparams": {
+          "iv": "b9762da822b94d34b9b2d6d447328f33"
+        },
+        "ciphertext": "a38fc672fe32cf574c2040a675a8f1464f4172080e2174f47bc715e3c1005537",
+        "kdf": "pbkdf2",
+        "kdfparams": {
+          "c": 1024,
+          "dklen": 32,
+          "prf": "hmac-sha256",
+          "salt": "71a83d06c0e045d10b40e5c9cd5200eac2b9d861d2d5bdf634e4e629c2eb05ff"
+        },
+        "mac": "4c1ffb776a75889cdfb53e3f974a51016ac66ea9488d9eb653d276e5cbcb9465"
+      },
+      "id": "7c586b43-cb68-4e99-933a-be435cd64281",
+      "version": 3
+    },
+    "password": "noortrace/vecteurs/ct3/console/mot-de-passe",
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+  },
+  "expected": {
+    "outcome": "refuse",
+    "reason": "adresse_differente",
+    "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+    "warnings": [
+      "derivation_faible"
+    ]
+  }
+}

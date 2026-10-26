@@ -1,0 +1,47 @@
+{
+  "version": 0,
+  "id": "rdns-imite",
+  "description": "Deux portefeuilles qui déclarent le même rdns : tous deux proposés, rdns n'est pas une identité.",
+  "checks": [
+    "CS-8"
+  ],
+  "input": {
+    "announcements": [
+      {
+        "info": {
+          "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+          "name": "Portefeuille a",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p1"
+      },
+      {
+        "info": {
+          "uuid": "77659aa4-2cc3-4a9d-b19d-b0cf5f4f3fb1",
+          "name": "Portefeuille g",
+          "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4=",
+          "rdns": "com.exemple.portefeuille-a"
+        },
+        "provider": "p2"
+      }
+    ]
+  },
+  "expected": {
+    "providers": [
+      {
+        "uuid": "e9c069ff-67f6-4116-9265-8b947797c98a",
+        "name": "Portefeuille a",
+        "rdns": "com.exemple.portefeuille-a",
+        "provider": "p1"
+      },
+      {
+        "uuid": "77659aa4-2cc3-4a9d-b19d-b0cf5f4f3fb1",
+        "name": "Portefeuille g",
+        "rdns": "com.exemple.portefeuille-a",
+        "provider": "p2"
+      }
+    ],
+    "rejected": []
+  }
+}

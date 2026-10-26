@@ -1,0 +1,459 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/console-service.schema.json",
+  "title": "Canal console → service d'approbation v0 (CT-3 révision 0.3, 12.9)",
+  "description": "Corps des requêtes et des réponses des méthodes que la console appelle sur le service (POST <base>/v0/<méthode>, EX-12.1, EX-12.4), hors consulter et voter, que définit console-approbation-v0 (CT-3 12.9, révision 0.3) ; reponse_session est la méthode session du serveur de console (EX-13.33). Les entrées recuser et retirer reprennent exactement les données de 7.4 (ticket-v0 $defs/entree). Une erreur a la forme de 12.8.",
+  "$defs": {
+    "adresse": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/adresse"
+    },
+    "hex32": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/hex32"
+    },
+    "horodatage": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/horodatage"
+    },
+    "identifiant_ticket": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/identifiant_ticket"
+    },
+    "etat": {
+      "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/etat"
+    },
+    "identite_session": {
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/identite_session"
+    },
+    "identifiant_entree": {
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/identifiant_entree"
+    },
+    "motif": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      ]
+    },
+    "requete_recuser": {
+      "description": "Méthode recuser : exactement les données (data) de l'entrée recuser de 7.4 ($defs/entree de ticket-v0), sans kind ni at, at étant l'instant de réception ; le service contrôle, avant de former l'entrée, que approver est l'adresse active de l'entrée active de session_identity, sinon session_non_autorisee (EX-12.16).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "approver",
+        "session_identity"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "approver": {
+          "$ref": "#/$defs/adresse"
+        },
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        }
+      }
+    },
+    "requete_retirer": {
+      "description": "Méthode retirer : les données de l'entrée retirer de 7.4, avec session_identity obligatoire sur le canal de la console. by est le launched_by du ticket quand le demandeur retire, ou l'identité de session d'un administrateur ; le service contrôle, avant de former l'entrée, que la session est celle du demandeur (alias de demandeur de son entrée active) ou d'un administrateur, sinon session_non_autorisee (EX-12.19, EX-7.15).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "by",
+        "reason",
+        "session_identity"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "reason": {
+          "$ref": "#/$defs/motif"
+        },
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        }
+      }
+    },
+    "reponse_etat": {
+      "description": "Réponse de recuser et retirer acceptés (même forme que reponse_voter de console-approbation-v0) : l'état du ticket après l'entrée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket",
+        "state"
+      ],
+      "properties": {
+        "ticket": {
+          "$ref": "#/$defs/identifiant_ticket"
+        },
+        "state": {
+          "$ref": "#/$defs/etat"
+        }
+      }
+    },
+    "requete_tickets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        }
+      }
+    },
+    "reponse_tickets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tickets"
+      ],
+      "properties": {
+        "tickets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ticket",
+              "state",
+              "tool_announced",
+              "launched_by",
+              "deadline",
+              "votes_approuve",
+              "votes_refuse",
+              "effective_required"
+            ],
+            "properties": {
+              "ticket": {
+                "$ref": "#/$defs/identifiant_ticket"
+              },
+              "state": {
+                "$ref": "#/$defs/etat"
+              },
+              "tool_announced": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "launched_by": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "deadline": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/horodatage"
+                  }
+                ]
+              },
+              "votes_approuve": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "votes_refuse": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "effective_required": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "requete_annuaire": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        }
+      }
+    },
+    "reponse_annuaire": {
+      "description": "Annuaire complet pour un administrateur ; pour toute autre session, le même document réduit à l'entrée de la session (entries de 0 ou 1 élément) et aux opérations qui la concernent (EX-12.17).",
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json"
+    },
+    "requete_preparer_inscription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "address"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        }
+      }
+    },
+    "reponse_preparer_inscription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fields",
+        "message"
+      ],
+      "properties": {
+        "fields": {
+          "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/champs_inscription"
+        },
+        "message": {
+          "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/message_inscription"
+        }
+      }
+    },
+    "requete_inscrire": {
+      "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/requete_inscrire"
+    },
+    "reponse_adresse": {
+      "description": "Réponse de inscrire, valider et revoquer acceptés.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry",
+        "address",
+        "state",
+        "revision"
+      ],
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        },
+        "state": {
+          "$ref": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json#/$defs/etat_adresse"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "requete_valider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "entry",
+        "address"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        }
+      }
+    },
+    "requete_revoquer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "entry",
+        "address",
+        "reason"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        },
+        "reason": {
+          "$ref": "#/$defs/motif"
+        }
+      }
+    },
+    "requete_entree": {
+      "description": "Méthodes desactiver et reactiver.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "entry",
+        "reason"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "reason": {
+          "$ref": "#/$defs/motif"
+        }
+      }
+    },
+    "requete_demandeur": {
+      "description": "Méthodes lier_demandeur et delier_demandeur.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "entry",
+        "launched_by"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_requete"
+        },
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "launched_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "reponse_entree": {
+      "description": "Réponse de desactiver, reactiver, lier_demandeur et delier_demandeur acceptés.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry",
+        "active",
+        "requester_identities",
+        "revision"
+      ],
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "requester_identities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "erreur": {
+      "description": "Forme d'une erreur (12.8) ; code est une raison de la table 12.8, y compris celles que la révision 0.3 ajoute pour l'annuaire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message",
+            "data"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "message": {
+              "type": "string",
+              "pattern": "^[ -~]*$",
+              "maxLength": 1024
+            },
+            "data": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "requete_session": {
+      "description": "Requête de la méthode session, servie par le serveur de console à sa propre page sans être relayée au service (12.9, EX-13.33) : un objet vide.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "reponse_session": {
+      "description": "Réponse de la méthode session que le serveur de la console sert à sa propre page (EX-13.33) : l'identité de session canonique, l'instant de la dernière authentification active et le rôle d'administrateur ; jamais transmise au service.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "auth_time",
+        "administrator",
+        "reauth_max_age_s"
+      ],
+      "properties": {
+        "session_identity": {
+          "$ref": "#/$defs/identite_session"
+        },
+        "auth_time": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "administrator": {
+          "type": "boolean"
+        },
+        "reauth_max_age_s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600
+        }
+      }
+    },
+    "identite_requete": {
+      "description": "Identité de session portée par une requête du canal : chaîne non vide ; le service vérifie sa forme canonique (EX-13.7) et rend identite_invalide sinon (EX-12.13).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    }
+  }
+}

@@ -4625,12 +4625,15 @@ qui portent des unités symboliques (AN-60), jamais un prix.
 **EX-A.7** L'intégration continue régénère `spec/vecteurs/ct-5` et exige
 `git diff --exit-code` et aucun fichier non suivi, puis lance dans le module
 Go `gofmt -l` (sortie vide), `go vet ./...`, `go test ./...` et `go run . ..`,
-à côté des tâches de CT-1, CT-2, CT-3, CT-4 et CT-6 ; ce job n'accède pas au
-réseau. Le job `confrontation` (A.6) installe `opentimestamps` épinglé et
-télécharge le module Go épinglé (`go.sum`) : c'est la seule étape qui accède
-au réseau. Aucune étape n'exécute le binaire noorcore. Dans le job `tests`, le
-rejeu Go de `test/confrontation.test.js` est sauté quand Go est absent, et le
-job `confrontation` le fait.
+à côté des tâches de CT-1, CT-2, CT-3, CT-4 et CT-6 ; une fois les
+dépendances npm installées (`npm ci`), ce job n'accède pas au réseau. Le job
+`confrontation` (A.6) installe ses paquets Python épinglés, dont
+`opentimestamps`, et télécharge le module Go épinglé (`go.sum`) ; le job
+`console-chromium` de CT-3 (EX-13.36) installe Playwright 1.56.1 et Chromium.
+Ce sont les deux seuls jobs qui accèdent au réseau au-delà de `npm ci` et de
+l'installation des outils (Node, Go). Aucune étape n'exécute le binaire
+noorcore. Dans le job `tests`, le rejeu Go de `test/confrontation.test.js` est
+sauté quand Go est absent, et le job `confrontation` le fait.
 
 ### A.8 Récapitulatif des vérifications AN-1 à AN-61
 

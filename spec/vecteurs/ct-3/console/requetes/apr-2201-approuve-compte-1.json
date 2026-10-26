@@ -1,0 +1,47 @@
+{
+  "version": 0,
+  "id": "apr-2201-approuve-compte-1",
+  "description": "Compte 1 sur D_approuve du ticket apr-2201 : la signature RFC 6979 est celle de l'approval de l'événement seq 6 des vecteurs de CT-1.",
+  "checks": [
+    "CS-3",
+    "CS-5"
+  ],
+  "input": {
+    "a": {
+      "decision": "approuve",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+      "ticket": "apr-2201"
+    },
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "account": 1
+  },
+  "expected": {
+    "digests": {
+      "a": {
+        "decision": "approuve",
+        "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+        "ticket": "apr-2201"
+      },
+      "jcs": "{\"decision\":\"approuve\",\"journal_id\":\"0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164\",\"org_id\":\"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\",\"request_hash\":\"0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d\",\"ticket\":\"apr-2201\"}",
+      "d_a": "0xa57cbdad280b5cb2e9f6ee87b85d8bc05e76a5966377e7d58046519464f7df7c",
+      "fingerprint": "a57cbdad…64f7df7c",
+      "groups": "a57cbdad 280b5cb2 e9f6ee87 b85d8bc0 5e76a596 6377e7d5 80465194 64f7df7c",
+      "h": "0xe9f3d8812e1fc736cd7957efb20093bfb3655c6568fc56e6133b2cc41d2cf6ea",
+      "h_fingerprint": "e9f3d881…1d2cf6ea",
+      "utf8": false
+    },
+    "preimage": "0x19457468657265756d205369676e6564204d6573736167653a0a3332a57cbdad280b5cb2e9f6ee87b85d8bc05e76a5966377e7d58046519464f7df7c",
+    "request": {
+      "method": "personal_sign",
+      "params": [
+        "0xa57cbdad280b5cb2e9f6ee87b85d8bc05e76a5966377e7d58046519464f7df7c",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ]
+    },
+    "signature": "0x6e8fb398cce443d4b4343245ac27679e1e460c1c441c0115a21055ec4f1dba09588f3b13b0cc7a9e0d8e1f20133ea0aac9eee9b88f8626ec3a6deafaddec41cd1b"
+  }
+}

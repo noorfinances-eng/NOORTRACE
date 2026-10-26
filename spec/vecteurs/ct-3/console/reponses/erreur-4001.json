@@ -1,0 +1,34 @@
+{
+  "version": 0,
+  "id": "erreur-4001",
+  "description": "Promesse rompue par 4001 : refus_approbateur ; aucun vote n'est envoyé.",
+  "checks": [
+    "CS-6",
+    "CS-7"
+  ],
+  "input": {
+    "a": {
+      "decision": "approuve",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "request_hash": "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+      "ticket": "apr-2201"
+    },
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "reason": "Constat et facture concordants",
+    "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+    "response": {
+      "error": {
+        "code": 4001,
+        "message": "User rejected the request."
+      }
+    }
+  },
+  "expected": {
+    "outcome": "refuse",
+    "reason": "refus_approbateur",
+    "signature": null,
+    "recovered": null,
+    "vote": null
+  }
+}

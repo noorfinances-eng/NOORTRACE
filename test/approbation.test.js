@@ -9,7 +9,7 @@ import * as J from "../scripts/lib/journal.mjs";
 import * as C from "../scripts/lib/capture.mjs";
 import * as A from "../scripts/lib/approbation.mjs";
 import { spawnSync } from "node:child_process";
-import { ENTREES_GENEREES, genererCt3, POLITIQUE_ASSUREUR } from "../scripts/vecteurs/generer-ct3.mjs";
+import { ENTREES_GENEREES, ENTREES_TOLEREES, FICHIERS_SCHEMAS_CONSOLE, genererCt3, POLITIQUE_ASSUREUR } from "../scripts/vecteurs/generer-ct3.mjs";
 
 // L'IMPLÉMENTATION DE RÉFÉRENCE DE CT-3 (spec/CT-3-approbations.md) :
 // scripts/lib/approbation.mjs. Les tests rejouent chaque famille de vecteurs
@@ -28,6 +28,8 @@ const SPEC = path.join(PROJECT_ROOT, "spec");
 const CT3 = path.join(SPEC, "vecteurs", "ct-3");
 const MD = fs.readFileSync(path.join(SPEC, "CT-3-approbations.md"), "utf8");
 const SCHEMAS = A.registreSchemas(A.FICHIERS_SCHEMAS.map((f) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", f), "utf8"))));
+/** Les six schémas, pour les exemples de la révision 0.3 (console-approbation, annuaire-approbateurs, console-service). */
+const SCHEMAS_CONSOLE = J.registreSchemas(FICHIERS_SCHEMAS_CONSOLE.map((f) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", f), "utf8"))));
 // JSON.parse et non l'analyseur strict : politiques-invalides/substitut-isole.json porte un substitut isolé (AP-4).
 const lire = (...p) => JSON.parse(fs.readFileSync(path.join(CT3, ...p), "utf8"));
 const fichiers = (...p) => fs.readdirSync(path.join(CT3, ...p)).filter((f) => f.endsWith(".json")).sort();
@@ -95,11 +97,18 @@ function recouvrer(m, sig) {
 describe("CT-3 : schémas et exemples de la spécification", function () {
   it("chaque exemple JSON annoté <!-- schema: … --> de CT-3 est conforme à son schéma ou à son $defs", function () {
     const exemples = [...MD.matchAll(/<!-- schema: ([a-z-]+)(?:\/([a-z_]+))? -->\n```json\n([\s\S]*?)\n```/g)];
-    expect(exemples.length).to.be.at.least(3);
+    expect(exemples.length).to.be.at.least(19);
+    // Les trois schémas de la révision 0.3 emploient le même sous-ensemble de JSON Schema que le validateur du dépôt.
+    for (const f of ["console-approbation-v0", "annuaire-approbateurs-v0", "console-service-v0"]) expect(J.motsClesHorsSousEnsemble(JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${f}.schema.json`), "utf8"))), f).to.deep.equal([]);
     for (const [, nom, def, texte] of exemples) {
       const valeur = JSON.parse(texte);
-      const erreurs = nom === "politique-approbation" ? A.erreursSchema(valeur, SCHEMAS) : A.erreursSchema(valeur, SCHEMAS, def);
-      expect(nom === "politique-approbation" || nom === "ticket", nom).to.equal(true);
+      expect(["politique-approbation", "ticket", "console-approbation", "annuaire-approbateurs", "console-service"], nom).to.include(nom);
+      const erreurs =
+        nom === "politique-approbation"
+          ? A.erreursSchema(valeur, SCHEMAS)
+          : nom === "ticket"
+            ? A.erreursSchema(valeur, SCHEMAS, def)
+            : J.validerSchema(valeur, SCHEMAS_CONSOLE[`https://noortrace.example/schemas/v0/${nom}.schema.json`], { registre: SCHEMAS_CONSOLE, fragment: def ? `#/$defs/${def}` : "" });
       expect(erreurs, `${nom}/${def ?? ""}`).to.deep.equal([]);
     }
   });
@@ -1291,7 +1300,7 @@ describe("CT-3 : génération déterministe des vecteurs (EX-A.1, EX-A.2, EX-A.3
       for (const e of fs.readdirSync(path.join(racine, rel), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
         const r = path.join(rel, e.name);
         if (e.isDirectory()) {
-          if (r !== "verificateur-independant") parcourir(r);
+          if (!ENTREES_TOLEREES.includes(r)) parcourir(r);
         } else out.push(r);
       }
     };
@@ -1299,17 +1308,20 @@ describe("CT-3 : génération déterministe des vecteurs (EX-A.1, EX-A.2, EX-A.3
     return out;
   }
 
-  it("deux générations dans des répertoires vides donnent les mêmes octets, ceux de spec/vecteurs/ct-3 ; verificateur-independant/ est conservé", function () {
+  it("deux générations dans des répertoires vides donnent les mêmes octets, ceux de spec/vecteurs/ct-3 ; verificateur-independant/ et confrontation/ sont conservés", function () {
     const a = tmp("noortrace-ct3-a-");
     const b = tmp("noortrace-ct3-b-");
     try {
       fs.mkdirSync(path.join(b, "verificateur-independant"));
       fs.writeFileSync(path.join(b, "verificateur-independant", "temoin.txt"), "conservé\n");
+      fs.mkdirSync(path.join(b, "confrontation"));
+      fs.writeFileSync(path.join(b, "confrontation", "temoin.txt"), "conservé\n");
       fs.mkdirSync(path.join(b, "tickets"));
       fs.writeFileSync(path.join(b, "tickets", "trace-perimee.json"), "{}\n");
       genererCt3({ racine: a });
       genererCt3({ racine: b });
       expect(fs.readFileSync(path.join(b, "verificateur-independant", "temoin.txt"), "utf8")).to.equal("conservé\n");
+      expect(fs.readFileSync(path.join(b, "confrontation", "temoin.txt"), "utf8")).to.equal("conservé\n");
       expect(fs.existsSync(path.join(b, "tickets", "trace-perimee.json"))).to.equal(false);
       const fa = lister(a);
       expect(fa).to.deep.equal(lister(b));
@@ -1440,7 +1452,7 @@ const COUVERTURE = {
   "EX-9.1": "EX-9.1, EX-9.2",
   "EX-9.2": "EX-9.1, EX-9.2",
   "EX-9.3": "A.8 (r et s hors de [1, n − 1] compris) ; trace signature-hors-jeu",
-  "EX-9.4": HORS("affichage de la console (13.2)"),
+  "EX-9.4": "test/console.test.js : marques de l'intention (intent_status) et effets « connu après exécution » (modeles/, Chromium) ; HORS : affichage de la console d'exploitation (13.2)",
   "EX-9.5": HORS("console"),
   "EX-9.6": HORS("console ; condensesVote fournit A, D_A et M (EX-9.1)"),
   "EX-9.7": "EX-9.7 ; decisions/invalides/sg5-signature-sur-la-chaine.json ; trace signature-hors-jeu",
@@ -1450,7 +1462,15 @@ const COUVERTURE = {
   "EX-9.11": "decisions/ (cas ordre-*, ordre-sg6-sg7 compris)",
   "EX-9.12": "decisions/invalides/sg7-auto-approbation.json, sg7-refus-par-le-demandeur.json, ordre-sg6-sg7.json ; decisions/valides/separation-permise.json ; SG-7 (CT-2 EX-7.5)",
   "EX-9.13": "decisions/invalides/sg6-refus-seuil-non-atteint.json ; trace refuse-seuil",
-  "EX-9.14": "traces (reason du t-ième vote) ; détecteurs de rédaction du noyau : CT-2 EX-10.24 (redigerMotifDecision) ; HORS : avertissement de la console",
+  "EX-9.14": "traces (reason du t-ième vote) ; détecteurs de rédaction du noyau : CT-2 EX-10.24 (redigerMotifDecision) ; avertissement de la page de référence (test/console.test.js)",
+  "EX-9.15": "test/console.test.js : CS-1 à CS-4 (modeles/, ordre et complétude de blocking, plusieurs-defauts)",
+  "EX-9.16": "test/console.test.js : CS-2 (feuilles, verifie, non_verifiable, different ; exemple d'EX-9.16)",
+  "EX-9.17": "test/console.test.js : CS-3 (A, JCS(A), D_A, H d'apr-2201 ; empreinte_divergente pour l'une ou l'autre décision) ; les deux empreintes de chaque décision affichées (Chromium)",
+  "EX-9.18": "test/console.test.js : empreinte et groupes (exemple d'EX-9.18), affichés dans Chromium",
+  "EX-9.19": "test/console.test.js : utf8 de chaque condensé égal à estUtf8 (aucun D_A des vecteurs n'est de l'UTF-8, aucun modèle n'a condense_utf8) ; HORS : l'avertissement affiché, faute d'un D_A qui soit de l'UTF-8 (probabilité 1,0 × 10⁻⁸)",
+  "EX-9.20": "test/console.test.js : consignes d'EX-9.20 affichées sur l'écran de signature, dont la console saine ouverte à son origine (Chromium) ; HORS : ce que fait l'approbateur",
+  "EX-9.21": "test/console.test.js : CS-6, CS-7 (reponses/, exemple d'EX-9.21) ; formes de signature dans Chromium",
+  "EX-9.22": "test/console.test.js : la forme est contrôlée avant tout recouvrement (v 37 et 38, 64 octets refusés), D_A à octet nul (apr-c0-542) ; HORS : scripts de confrontation",
   "EX-10.1": "traces separation-* ; EX-9.10",
   "EX-10.2": "traces separation-*, recusation",
   "EX-10.3": "trace jeu-change-membre-retire (vote écarté au nouveau gel) ; trace seuil-inatteignable ; trace recusation-refus-maintenu (refus d'un récusé gardé)",
@@ -1483,13 +1503,51 @@ const COUVERTURE = {
   "EX-12.10": "trace approuve-sans-contestation (consommer) ; CT-2 EX-7.20 (messageConsommer, aReconsommer)",
   "EX-12.11": "traces deja-decide, expiration-noyau (expiration avec approval) ; approver_set de la réponse nouveau (EX-12.6) ; CT-2 EX-9.4 (expirationParLeNoyau, messageExpiration)",
   "EX-12.12": HORS("point GET /v0/etat (phase 2)"),
+  "EX-12.13": "test/console.test.js : AN-10 (controles-canal.json, identite_invalide avant tout autre contrôle) ; HORS : refus des méthodes du noyau sur le canal de la console (phase 2)",
+  "EX-12.14": "test/console.test.js : vue du ticket d'exemple (12.9) égale à console/modeles/apr-2201-approuve.json ; AN-10 (controles-canal.json : consulter par une session éligible, un administrateur, le demandeur, une entrée désactivée ; ordre session hors de l'organisation, ticket_inconnu, session non éligible ; tickets) ; effets non résolus (effet-connu-apres-execution, Chromium)",
+  "EX-12.15": "test/console.test.js : separation.requester_directory_addresses et avertissement separation_incomplete (modeles/, Chromium)",
+  "EX-12.16": "test/console.test.js : corps de voter exact (reponses/, Chromium) ; AN-10 (controles-canal.json : voter et recuser d'une autre adresse que l'adresse active, session_non_autorisee)",
+  "EX-12.17": "test/console.test.js : annuaireDeSession (annuaire réduit), revision et operations des traces ; HORS : persistance fsync du service (phase 2)",
+  "EX-12.18": "test/console.test.js : les méthodes de l'annuaire ne touchent qu'à l'annuaire (appliquerOperation) ; approbation.mjs n'en dépend pas",
+  "EX-12.19": "test/console.test.js : AN-10 (controles-canal.json : retrait par le demandeur, par un administrateur, refus d'un approbateur qui présente by = launched_by) ; traces retrait (T10, retrait_non_autorise)",
   "EX-12.4": HORS("canal console → service authentifié (phase 2) ; session_identity inscrite dans les transitions"),
-  "EX-13.1": HORS("console (phase 2)"),
-  "EX-13.2": HORS("console (phase 2) ; session_identity inscrite dans les votes"),
+  "EX-13.1": "test/console.test.js : la page ne lit, ne reçoit ni ne dérive aucune clé (propriétés statiques) ; la signature est faite par le fournisseur simulé (Chromium) ; HORS : console d'exploitation (phase 2)",
+  "EX-13.2": "test/console.test.js : contrôles 9 et 12 d'EX-9.15 (modeles/), controleVote (AN-8), scénario annuaire dans Chromium ; HORS : authentification de la console d'exploitation (phase 2)",
   "EX-13.3": HORS("console (phase 2) ; notification indépendante de chaque vote inscrit"),
-  "EX-13.4": HORS("console (phase 2)"),
+  "EX-13.4": "test/console.test.js : EX-13.35 (en-têtes, intégrité, Trusted Types, encadrement) ; HORS : construction reproductible et publication (CT-7, CT-8)",
   "EX-13.5": HORS("console (phase 2) ; les actions sont les entrées voter, recuser, retirer des traces"),
-  "EX-13.6": HORS("console (phase 2)"),
+  "EX-13.6": "test/console.test.js : la page de référence avertit que le motif est écrit sans pouvoir être effacé ; HORS : console d'exploitation (phase 2)",
+  "EX-13.7": "test/console.test.js : AN-1 (identité canonique), messages.json, traces (identite_invalide)",
+  "EX-13.8": HORS("serveur de console d'exploitation et système d'identité du client (phase 2) : réauthentification avant chaque action"),
+  "EX-13.9": "test/console.test.js : annuaires/reference.json égal à l'exemple de 13.4, conforme à annuaire-approbateurs-v0",
+  "EX-13.10": "test/console.test.js : AN-6, AN-7 (invariants après chaque pas des traces, adresse jamais réattribuée)",
+  "EX-13.11": HORS("service et dossiers : aucune identité dans un événement, un dossier ou un rapport (le format v0 n'en porte pas)"),
+  "EX-13.12": "test/console.test.js : AN-2 (messages.json, exemple d'EX-13.12)",
+  "EX-13.13": "test/console.test.js : traces (préparation, défi remplacé, défi effacé) ; inscription dans Chromium (texte reconstruit, altéré : aucun appel au portefeuille)",
+  "EX-13.14": "test/console.test.js : inscriptions.json (origine_differente) ; la page compare l'origine du texte à location.origin",
+  "EX-13.15": "test/console.test.js : AN-3, AN-4 (inscriptions.json, ordre des raisons, défi présenté)",
+  "EX-13.16": "test/console.test.js : AN-5 (domaines.json, préimages de 60 et d'au moins 468 octets)",
+  "EX-13.17": "test/console.test.js : AN-6 (traces auto-validation, rotation, revocation, desactivation, alias-demandeur, confiscation) ; HORS : la vérification par l'administrateur avant de valider (procédure de l'organisation)",
+  "EX-13.18": "test/console.test.js : AN-8 (controles-vote.json, actionRetrait), scénario annuaire dans Chromium",
+  "EX-13.19": "test/console.test.js : AN-9 (exports/, dont le rejeu de changer_administrateurs et le pointeur /administrators)",
+  "EX-13.20": "test/console.test.js : la page n'appelle qu'eth_requestAccounts et personal_sign (propriétés statiques, Chromium)",
+  "EX-13.21": "test/console.test.js : un seul personal_sign après l'action explicite, aucun avant l'écran de l'empreinte (Chromium) ; réponse tardive ignorée (délai) ; changement de ticket pendant l'écran ou les attentes (Chromium)",
+  "EX-13.22": "test/console.test.js : CS-8 (decouverte/), aucun portefeuille 1 000 ms après la découverte et pas avant, annonce en double, aucune présélection (Chromium)",
+  "EX-13.23": "test/console.test.js : eth_requestAccounts après le choix, adresse active seule retenue, affichée quand elle n'est pas exposée, retenue après accountsChanged (Chromium)",
+  "EX-13.24": "test/console.test.js : CS-5 (requetes/), params exacts [D_A, adresse] et [texte en hexadécimal, adresse] (Chromium)",
+  "EX-13.25": "test/console.test.js : CS-6 (4900, 4901 sans demande de réseau) ; la page n'appelle ni eth_chainId ni de changement de chaîne",
+  "EX-13.26": HORS("portefeuille matériel réel : le parcours b passe par le même fournisseur EIP-1193 que le parcours a"),
+  "EX-13.27": HORS("parcours c (WalletConnect v2), désactivé par défaut, non offert par la console de référence"),
+  "EX-13.28": "test/console.test.js : CS-9 (fichiers-cle/, lireFichierCle, signerCondense et effacement)",
+  "EX-13.29": "test/console.test.js : CS-6 (reponses/, codes EIP-1193), refus 4001, mauvaise adresse, formes, pannes de l'inscription (texte refusé, inscription_expiree) (Chromium)",
+  "EX-13.30": "test/console.test.js : délai dans Chromium (delai_depasse, signature tardive non envoyée)",
+  "EX-13.31": "test/console.test.js : bibliothèque, page et test de bout en bout présents",
+  "EX-13.32": "test/console.test.js : primitives contre node:crypto, ethers et journal.mjs ; aucune importation ; rejeu de toutes les familles ; test/console-primitives.test.js : test différentiel déterministe (SHA-256 d'un compteur) de sha256, hmacSha256, pbkdf2Sha256, scrypt, aes128Ctr (débordement de 2^128), keccak256, adresseDeCle, signerHachage, recouvrerAdresse (s haut, recid inversé) et condenseEIP191 contre node:crypto, @noble/hashes, @noble/curves et ethers",
+  "EX-13.33": "test/console.test.js : index.html à jour, intégrités, DOM par createElement et textContent, parcours nominal et inscription (Chromium)",
+  "EX-13.34": "test/console.test.js : propriétés statiques de la page ; window.ethereum jamais lu (Chromium)",
+  "EX-13.35": "test/console.test.js : en-têtes exacts, script en ligne non exécuté, innerHTML refusé, bibliothèque ou script d'entrée altérés bloqués, module sans intégrité bloqué par Integrity-Policy, page encadrée non chargée (Chromium)",
+  "EX-13.36": "test/console.test.js : console de référence dans Chromium (sautée avec la raison si Playwright ou Chromium manque, sauf sous NOORTRACE_EXIGER_CHROMIUM=1, où elle échoue ; travail console-chromium de l'intégration continue)",
+  "EX-13.37": "test/console.test.js : recopierAdministrateurs (opération changer_administrateurs, liste inchangée sans opération, liste invalide refusée), droits d'administrateur à partir de l'opération ; AN-9 (exports administrateurs-*)",
   "EX-14.1": "trace plafond (défaut 20, par launched_by) ; EX-8.3, EX-14.1",
   "EX-14.2": HORS("regroupement des notifications, console (tickets refusés récents du même demandeur et du même outil)"),
   "EX-A.1": "génération déterministe ; racine étrangère et --sortie sans répertoire refusées",
@@ -1503,14 +1561,22 @@ const COUVERTURE = {
   "EX-A.9": "ce fichier",
   "EX-A.10": HORS("vérificateur Go indépendant (spec/vecteurs/ct-3/verificateur-independant), exécuté à part"),
   "EX-A.11": HORS("intégration continue (.github/workflows/ci.yml)"),
+  "EX-A.12": "test/console.test.js : annuaire/ régénéré à l'identique, conforme, rejoué (AN-1 à AN-10)",
+  "EX-A.13": "test/console.test.js : chaque raison d'EX-13.15, chaque code d'EX-13.19, chaque raison d'EX-13.18 ont un cas",
+  "EX-A.14": "test/console.test.js : rejeu par console.mjs ; HORS : vérificateur Go et confrontation tierce, exécutés à part",
+  "EX-A.15": "test/console.test.js : console/ (modèles, requêtes dont apr-c0-542, réponses, découverte, fichiers de clé)",
+  "EX-A.16": "test/console.test.js : chaque cas conforme à son $defs, deux générations identiques, signatures RFC 6979 égales à celles d'ethers",
+  "EX-A.17": "test/console.test.js : consigne et gabarit seuls dans acceptation-console/, grille conforme et fondée sur des règles de CT-3 ; HORS : l'épreuve elle-même (lecteurs humains)",
+  "EX-A.18": HORS("confrontation tierce (spec/vecteurs/ct-3/confrontation/, eth-account et ethers), rejouée par test/confrontation.test.js quand l'outil est présent"),
+  "EX-A.19": HORS("intégration continue (travail de confrontation de .github/workflows/ci.yml)"),
 };
 
 describe("CT-3 : matrice de couverture des règles EX-", function () {
   it("chaque règle EX- de la spécification a une entrée, et aucune entrée n'est orpheline", function () {
     const regles = [...MD.matchAll(/\*\*(EX-[0-9A]+\.[0-9]+)\*\*/g)].map((m) => m[1]);
-    expect(regles.length).to.be.at.least(141);
+    expect(regles.length).to.be.at.least(193);
     expect(Object.keys(COUVERTURE).sort()).to.deep.equal([...new Set(regles)].sort());
     const testables = Object.values(COUVERTURE).filter((v) => !v.startsWith("hors de cette implémentation")).length;
-    expect(testables).to.be.at.least(100);
+    expect(testables).to.be.at.least(140);
   });
 });

@@ -33,7 +33,9 @@ dans la spécification du vérificateur (CT-6 §7).
 1. **Un enregistreur déployé chez le client**, entre l'agent et ses outils, qui
    consigne chaque action dans un journal chaîné que l'agent ne peut ni lire ni modifier.
 2. **L'approbation humaine des actions sensibles**, bornée, tracée et contestable,
-   avec l'identité de l'approbateur et l'instant de la décision.
+   avec l'identité de l'approbateur et l'instant de la décision : une personne
+   nommée, authentifiée par le système d'identité du client, qui signe avec sa
+   propre clé dans son propre portefeuille (CT-3).
 3. **L'horodatage qualifié par lots**, reconnu ZertES et eIDAS, complété par un
    ancrage public gratuit pour la vérification sans intermédiaire. Des points de
    contrôle signés chaque minute, ancrés au registre et contresignés toutes les
@@ -95,7 +97,8 @@ construction.
   officielle d'OpenTimestamps, ceux de CT-6 par go-ethereum, les preuves de
   cohérence par une implémentation publique de la RFC 9162, les échanges
   Gemini et les traces OpenTelemetry de CT-2 par les bibliothèques officielles
-  google-genai et opentelemetry-proto ; voir
+  google-genai et opentelemetry-proto, les signatures de CT-3 par ethers et
+  eth-account ; voir
   [spec/README.md](spec/README.md).
 - `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
   noorchain-core sans modification ; PeriodRegistry, dérivé de PoSSRegistry de
@@ -105,9 +108,13 @@ construction.
   parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
 - `scripts/lib/` : implémentation de référence de CT-1, de la partie calculable de
   CT-2 (dont, depuis sa révision 0.5, Gemini à la passerelle, l'ingestion
-  OpenTelemetry, le gel juridique des copies WORM et le coût par agent), de CT-3, des conventions de CT-4, du planificateur d'ancrage de CT-5 et
+  OpenTelemetry, le gel juridique des copies WORM et le coût par agent), de CT-3 (dont, depuis sa révision 0.3, la
+  bibliothèque de la console), des conventions de CT-4, du planificateur d'ancrage de CT-5 et
   des contrôles 4, 5 et 8 de CT-6, avec les vérifications K- des points de
   contrôle.
+- `console/` : console d'approbation de référence de CT-3, page statique sous
+  une politique de sécurité du contenu stricte, testée de bout en bout dans
+  Chromium ; voir [console/LISEZMOI.md](console/LISEZMOI.md).
 - `scripts/registre/` : outil de référence de CT-4 (`npm run registre`) :
   inscription d'un client, ancrage, clôture de période et capture des preuves sur
   le réseau de développement.
@@ -127,11 +134,11 @@ référence et leur confrontation indépendante ; le vérificateur de dossier, a
 l'instance de développement, les contrats du registre avec leurs tests, le
 parcours complet exécuté sur le réseau de développement ; la méthode RPC du
 certificat de commit, portée comme correctif sur noorcore fourni hors dépôt, et
-son vérificateur hors ligne. À construire : l'enregistreur lui-même, le service
-d'approbation, le composant d'ancrage et ses clients réseau, le binaire Go du
-vérificateur et la console
-(approbations, inscription des organisations, export des dossiers, page de
-vérification).
+son vérificateur hors ligne ; la console d'approbation de référence. À
+construire : l'enregistreur lui-même, le service d'approbation, le composant
+d'ancrage et ses clients réseau, le binaire Go du vérificateur et la console
+d'exploitation (approbations, inscription des organisations, export des
+dossiers, page de vérification).
 
 ## Licence
 

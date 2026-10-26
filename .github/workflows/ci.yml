@@ -139,25 +139,87 @@ jobs:
           node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7 --exiger 4,5,8 > /dev/null
           test $? -eq 3
 
-  # Confrontation des vecteurs CT-2, CT-5 et CT-6 par des implémentations
-  # tierces (spec/CT-6-verificateur.md, annexe A.8 ; spec/CT-5-ancrage.md,
-  # annexe A.6 ; spec/CT-2-enregistreur.md, annexes B.5 et B.8 ;
+  # Test de bout en bout de la console de référence de CT-3 dans Chromium
+  # (spec/CT-3-approbations.md, EX-13.36, EX-A.11) : Playwright 1.56.1, la
+  # version mesurée de console/LISEZMOI.md, est installé sans être ajouté à
+  # package.json, puis son Chromium et les dépendances système du navigateur ;
+  # ce travail accède au réseau pour ces deux téléchargements.
+  # NOORTRACE_EXIGER_CHROMIUM=1 rend le saut impossible : si Playwright ou
+  # Chromium ne se lancent pas, le test échoue au lieu d'être mis en attente,
+  # et la dernière commande refuse toute ligne « pending » du rapport.
+  console-chromium:
+    name: console de référence de CT-3 dans Chromium par Playwright 1.56.1, sans saut
+    runs-on: ubuntu-latest
+    env:
+      NOORTRACE_EXIGER_CHROMIUM: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: installer Playwright 1.56.1 hors de package.json, puis Chromium et ses dépendances
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: test/console.test.js, aucun test Chromium en attente
+        run: |
+          set -o pipefail
+          npx hardhat --config hardhat.config.mjs test test/console.test.js 2>&1 | tee "$RUNNER_TEMP/console.txt"
+          if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/console.txt"; then exit 1; fi
+
+  # Confrontation des vecteurs CT-2, CT-3, CT-5 et CT-6 par des
+  # implémentations tierces (spec/CT-6-verificateur.md, annexe A.8 ;
+  # spec/CT-5-ancrage.md, annexe A.6 ; spec/CT-2-enregistreur.md, annexes B.5
+  # et B.8 ; spec/CT-3-approbations.md, annexe A.11 ;
   # spec/vecteurs/ct-*/confrontation/). Les sorties publiées
   # (confrontation/sorties/) viennent d'OpenSSL 3.0.13, de
   # python-opentimestamps 0.4.5, de transparency-dev/merkle v0.0.2, de
-  # google-genai 2.33.0 et d'opentelemetry-proto 1.45.1 avec protobuf 7.36.2 ;
+  # google-genai 2.33.0, d'opentelemetry-proto 1.45.1 avec protobuf 7.36.2,
+  # d'ethers 6.17.0 (celui du dépôt) et d'eth-account 0.14.0 ;
   # ici, chaque programme est rejoué avec l'OpenSSL de l'exécuteur, les mêmes
   # versions des paquets Python et la même version du module Go, et doit rendre
-  # le code 0 (aucune discordance) ; les sorties de CT-2 doivent en outre être
-  # égales, octet pour octet, aux sorties publiées. La confrontation du registre
-  # (go-ethereum et noorcore) exige une copie de noorchain-core : elle n'est
-  # pas rejouée ici, et test/confrontation.test.js vérifie que sa sortie
-  # publiée porte sur les vecteurs du dépôt.
+  # le code 0 (aucune discordance) ; les sorties de CT-2 et de CT-3 doivent en
+  # outre être égales, octet pour octet, aux sorties publiées. La
+  # confrontation du registre (go-ethereum et noorcore) exige une copie de
+  # noorchain-core : elle n'est pas rejouée ici, et test/confrontation.test.js
+  # vérifie que sa sortie publiée porte sur les vecteurs du dépôt.
   confrontation:
-    name: vecteurs CT-2, CT-5 et CT-6 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai et à opentelemetry-proto
+    name: vecteurs CT-2, CT-3, CT-5 et CT-6 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai, à opentelemetry-proto, à ethers et à eth-account
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # CT-3 (annexe A.11, EX-A.18, EX-A.19) : chaque signature des vecteurs
+      # (votes, remises, normalisation, console, inscriptions) recouvrée par
+      # verifyMessage d'ethers, version du dépôt, après le contrôle de forme du
+      # script (EX-9.22) ; fichiers de clé déchiffrés par
+      # decryptKeystoreJsonSync. Code 0 et sortie égale à la sortie publiée.
+      - name: CT-3 signatures par ethers
+        run: |
+          set -o pipefail
+          node spec/vecteurs/ct-3/confrontation/ethers/confronter_ethers.mjs spec/vecteurs/ct-3 | tee "$RUNNER_TEMP/ethers.txt" | tail -1
+          diff spec/vecteurs/ct-3/confrontation/sorties/ethers.txt "$RUNNER_TEMP/ethers.txt"
+      # CT-3 (annexe A.11, EX-A.18, EX-A.19) : les mêmes signatures recouvrées
+      # par Account.recover_message d'eth-account 0.14.0 (encode_defunct par
+      # hexstr= et primitive= pour un vote, par primitive= et text= pour une
+      # inscription), après le contrôle de forme du script (EX-9.22) ; fichiers
+      # de clé déchiffrés par Account.decrypt ; versions exactes de toutes les
+      # dépendances (exigences.txt, --no-deps). Code 0 et sortie égale à la
+      # sortie publiée.
+      - name: CT-3 signatures par eth-account 0.14.0 (environnement virtuel)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv-eth-account"
+          "$RUNNER_TEMP/venv-eth-account/bin/pip" install --only-binary :all: --no-deps -r spec/vecteurs/ct-3/confrontation/eth-account/exigences.txt
+          "$RUNNER_TEMP/venv-eth-account/bin/pip" check
+          set -o pipefail
+          "$RUNNER_TEMP/venv-eth-account/bin/python" -I spec/vecteurs/ct-3/confrontation/eth-account/confronter_eth_account.py spec/vecteurs/ct-3 | tee "$RUNNER_TEMP/eth-account.txt" | tail -1
+          diff spec/vecteurs/ct-3/confrontation/sorties/eth-account.txt "$RUNNER_TEMP/eth-account.txt"
       - name: rfc3161 par openssl (ts, cms, asn1parse, x509, crl, verify)
         run: |
           set -o pipefail

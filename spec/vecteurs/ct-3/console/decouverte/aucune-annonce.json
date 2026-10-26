@@ -1,0 +1,15 @@
+{
+  "version": 0,
+  "id": "aucune-annonce",
+  "description": "Aucune annonce : liste vide ; la page dit qu'aucun portefeuille ne s'est annoncé et continue d'écouter.",
+  "checks": [
+    "CS-8"
+  ],
+  "input": {
+    "announcements": []
+  },
+  "expected": {
+    "providers": [],
+    "rejected": []
+  }
+}

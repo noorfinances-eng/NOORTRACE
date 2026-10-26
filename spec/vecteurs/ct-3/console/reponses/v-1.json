@@ -1,0 +1,38 @@
+{
+  "version": 0,
+  "id": "v-1",
+  "description": "v = 1 (signature du compte 1 sur apr-0001, de v = 28) : normalisé en v = 28, accepté.",
+  "checks": [
+    "CS-6",
+    "CS-7"
+  ],
+  "input": {
+    "a": {
+      "decision": "approuve",
+      "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "request_hash": "0x16a40a774991992347027ea9832fc2398743b19295fe6a80fbaee8d4c529ff16",
+      "ticket": "apr-0001"
+    },
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "reason": "Pièces vérifiées",
+    "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+    "response": {
+      "result": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee5901"
+    }
+  },
+  "expected": {
+    "outcome": "accepte",
+    "reason": null,
+    "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+    "recovered": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "vote": {
+      "ticket": "apr-0001",
+      "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "decision": "approuve",
+      "signature": "0x510f909a9e8a699a0a2a43669f38861ff8b1c8defaddd8b6fd7850b182eba5fb64fd39e4bd5ff45ef2ed0e5f0b458996a58cbb74c2cd5dd4685e23d5234eee591c",
+      "reason": "Pièces vérifiées",
+      "session_identity": "oidc https://idp.assureur-demo.example approbateur-1"
+    }
+  }
+}

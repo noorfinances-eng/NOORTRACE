@@ -1,0 +1,66 @@
+/* Console d'approbation de référence (CT-3 13.15) : feuille de style servie depuis la même origine (style-src 'self'). */
+:root {
+  --fond: #ffffff;
+  --texte: #1b1b1b;
+  --secondaire: #555555;
+  --alerte: #8a1c1c;
+  --cadre: #c8c8c8;
+}
+body {
+  margin: 0;
+  padding: 16px;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: system-ui, sans-serif;
+  line-height: 1.4;
+}
+main {
+  max-width: 64rem;
+  margin: 0 auto;
+}
+section {
+  border-top: 1px solid var(--cadre);
+  padding: 0.5rem 0;
+}
+table {
+  border-collapse: collapse;
+}
+th,
+td {
+  border: 1px solid var(--cadre);
+  padding: 0.2rem 0.4rem;
+  text-align: left;
+  font-family: ui-monospace, monospace;
+}
+.secondaire,
+.libelle {
+  color: var(--secondaire);
+}
+.valeur,
+.empreinte,
+.empreinte-h,
+[data-testid="d-a"],
+[data-testid="groupes"],
+[data-testid="groupes-h"] {
+  font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+.empreinte {
+  font-size: 1.6rem;
+  font-weight: bold;
+}
+.empreinte-h {
+  font-size: 1.2rem;
+}
+.bandeau,
+[data-testid="raison"] {
+  color: var(--alerte);
+}
+button {
+  margin: 0.2rem 0.4rem 0.2rem 0;
+  padding: 0.3rem 0.8rem;
+}
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+}

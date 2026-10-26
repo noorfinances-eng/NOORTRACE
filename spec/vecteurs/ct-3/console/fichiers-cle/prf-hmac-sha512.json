@@ -1,0 +1,37 @@
+{
+  "version": 0,
+  "id": "prf-hmac-sha512",
+  "description": "prf hmac-sha512, qu'ethers accepte : fichier_cle_non_pris_en_charge.",
+  "checks": [
+    "CS-9"
+  ],
+  "input": {
+    "keystore": {
+      "crypto": {
+        "cipher": "aes-128-ctr",
+        "cipherparams": {
+          "iv": "2fdd3ed19f4f90b26714a54a93c0b242"
+        },
+        "ciphertext": "4d43415e8a31d84d875d9cadd71a7e6f5ce5f684d8123c132a5e2c00bf2a3b10",
+        "kdf": "pbkdf2",
+        "kdfparams": {
+          "c": 1024,
+          "dklen": 32,
+          "prf": "hmac-sha512",
+          "salt": "fcbda17689938aecd191be553debe262842116301080efc4e44d931c48d9d2cc"
+        },
+        "mac": "f90c1c59621e41513172666878d7bc385fd4787152c57f3474354fd19936f898"
+      },
+      "id": "8c1c832a-edc8-40bc-a67b-1b0f95e86a0f",
+      "version": 3
+    },
+    "password": "noortrace/vecteurs/ct3/console/mot-de-passe",
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+  },
+  "expected": {
+    "outcome": "refuse",
+    "reason": "fichier_cle_non_pris_en_charge",
+    "address": null,
+    "warnings": []
+  }
+}

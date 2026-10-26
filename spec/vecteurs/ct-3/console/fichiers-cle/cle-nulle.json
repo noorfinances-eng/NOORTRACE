@@ -1,0 +1,39 @@
+{
+  "version": 0,
+  "id": "cle-nulle",
+  "description": "Fichier qui chiffre la clé nulle, hors de [1, n − 1] : cle_invalide.",
+  "checks": [
+    "CS-9"
+  ],
+  "input": {
+    "keystore": {
+      "crypto": {
+        "cipher": "aes-128-ctr",
+        "cipherparams": {
+          "iv": "e0f41ffb7d39226d0b935dd50152bdd3"
+        },
+        "ciphertext": "accd429e7bc1db7ccff40d30455899aa990087f7449616d25d3e00f04d92a427",
+        "kdf": "pbkdf2",
+        "kdfparams": {
+          "c": 1024,
+          "dklen": 32,
+          "prf": "hmac-sha256",
+          "salt": "a64472ffbb7e174154b15880fac0374c31bab7b473e40540e6081b0279884eee"
+        },
+        "mac": "34a05ec6024f957808e401049f1ba99b1c38774908e162bc769af903ac15b5e0"
+      },
+      "id": "742a5fc8-793f-402e-aa54-7d86ede9b71e",
+      "version": 3
+    },
+    "password": "noortrace/vecteurs/ct3/console/mot-de-passe",
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+  },
+  "expected": {
+    "outcome": "refuse",
+    "reason": "cle_invalide",
+    "address": null,
+    "warnings": [
+      "derivation_faible"
+    ]
+  }
+}

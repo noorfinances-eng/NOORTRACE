@@ -2,7 +2,7 @@
 
 Produit par `scripts/vecteurs/generer-ct3.mjs` (`npm run vecteurs:ct3`) ; ne pas l'éditer à la main. Spécification : [`spec/CT-3-approbations.md`](../../CT-3-approbations.md), annexe A. Rejoués par `test/approbation.test.js` avec l'implémentation de référence `scripts/lib/approbation.mjs`.
 
-Le générateur n'efface et ne réécrit que ses propres entrées de premier niveau (`constantes.json`, `INDEX.md`, `acceptation-attendu.json` et les répertoires `acceptation/`, `candidats/`, `decisions/`, `evaluation/`, `politiques/`, `politiques-invalides/`, `signatures/`, `tickets/`), jamais `verificateur-independant/` (EX-A.1). Une partie des attendus est posée par conception dans le générateur (règle, décision et ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et raison de chaque entrée ; décision, signataires, motif et source de chaque remise ; tickets des fenêtres) et confrontée à l'implémentation de référence avant d'être écrite. Le reste (seuil et membres d'une remise, objet approval rendu à une ré-émission, bornes et restant des fenêtres, jeu des réponses nouveau) sort de l'implémentation de référence sans contrôle de conception : le vérificateur Go indépendant (`verificateur-independant/`) le recalcule.
+Le générateur n'efface et ne réécrit que ses propres entrées de premier niveau (`constantes.json`, `INDEX.md`, `acceptation-attendu.json`, `acceptation-console-attendu.json` et les répertoires `acceptation/`, `acceptation-console/`, `annuaire/`, `candidats/`, `console/`, `decisions/`, `evaluation/`, `politiques/`, `politiques-invalides/`, `signatures/`, `tickets/`), jamais `verificateur-independant/` ni `confrontation/` (EX-A.1). Les familles `annuaire/` et `console/` (révision 0.3) sont rejouées par `test/console.test.js` avec la bibliothèque de la console de référence `scripts/lib/console.mjs` ; leurs textes, condensés et signatures attendus sont calculés par `scripts/lib/journal.mjs`, ethers et `node:crypto`, indépendamment de `console.mjs`, puis confrontés à elle. Une partie des attendus est posée par conception dans le générateur (règle, décision et ouverture de chaque demande ; état de chaque ticket après chaque pas, sort et raison de chaque entrée ; décision, signataires, motif et source de chaque remise ; tickets des fenêtres) et confrontée à l'implémentation de référence avant d'être écrite. Le reste (seuil et membres d'une remise, objet approval rendu à une ré-émission, bornes et restant des fenêtres, jeu des réponses nouveau) sort de l'implémentation de référence sans contrôle de conception : le vérificateur Go indépendant (`verificateur-independant/`) le recalcule.
 
 ## Constantes (A.2, `constantes.json`)
 
@@ -1023,3 +1023,406 @@ Signatures du vote approuve d'apr-0001 (demande 1, journal-approbations) par les
 | `r-egal-n` | refusée (signature_invalide) |
 | `s-nul` | refusée (signature_invalide) |
 | `s-egal-n` | refusée (signature_invalide) |
+
+## annuaire/ (A.10, AN-1 à AN-10)
+
+Constantes propres à la famille, absentes de `constantes.json`, qui ne change pas :
+
+| Grandeur | Valeur |
+|---|---|
+| Origine de la console | `https://console.assureur-demo.example` (domaine réservé `.example`) |
+| Émetteur d'identité | `https://idp.assureur-demo.example` |
+| Identités de session | `oidc https://idp.assureur-demo.example approbateur-1` (compte 1), `oidc https://idp.assureur-demo.example approbateur-2` (compte 2, et compte 4 révoqué dans la référence), `oidc https://idp.assureur-demo.example u.martin` (compte 3), `oidc https://idp.assureur-demo.example approbateur-4` (compte 4, cas hors de la référence) |
+| Administrateur (sans adresse) | `oidc https://idp.assureur-demo.example admin-1` |
+| Alias de demandeur | `u.martin@assureur-demo.example`, lié à l'entrée de `oidc https://idp.assureur-demo.example u.martin` |
+| Nonce d'inscription `k` | 16 premiers octets de SHA-256 de `noortrace/vecteurs/ct3/inscription/nonce/<k>`, en hexadécimal minuscule |
+| Instant de base, validité d'un message | `2026-11-10T08:00:00.000Z`, `registration_ttl_ms` 600000 |
+| Identifiant d'une entrée créée | `apb-` suivi, en décimal sur 4 chiffres complétés de zéros à gauche, du nombre d'entrées de l'annuaire avant la création augmenté de un (A.10 ; en exploitation, 64 bits aléatoires ou époque, EX-13.9) |
+
+| Annuaire de départ | Contenu |
+|---|---|
+| `annuaires/vide.json` | Annuaire sans entrée ; administrateur admin-1. |
+| `annuaires/reference.json` | L'annuaire d'exemple de CT-3 13.4 : neuf opérations, comptes 1, 2 et 3 actifs, compte 4 révoqué dans l'entrée apb-0002, alias de demandeur lié à apb-0003. |
+| `annuaires/avant-inscriptions.json` | Les huit premières opérations de la référence (comptes 1 et 2 actifs, compte 4 révoqué), puis la désactivation d'apb-0002 : départ des cas d'inscriptions.json. |
+| `annuaires/controles.json` | La référence, puis la désactivation d'apb-0002 : départ des cas de controles-vote.json. |
+
+### `messages.json` (AN-1, AN-2)
+
+| Cas | Attendu | Ce qu'il exerce |
+|---|---|---|
+| `message-compte-1` | valide, 516 octets, préimage 545, condensé `0xaf9b14a6…f871c5ef` | Message d'inscription du compte 1 de l'annuaire de référence, construit depuis ses champs : texte exact, octets passés à personal_sign, condensé EIP-191 et longueur de la préimage. |
+| `message-compte-2` | valide, 516 octets, préimage 545, condensé `0x5b4a3572…fb31fd7d` | Message d'inscription du compte 2 de l'annuaire de référence, construit depuis ses champs : texte exact, octets passés à personal_sign, condensé EIP-191 et longueur de la préimage. |
+| `message-compte-3` | valide, 511 octets, préimage 540, condensé `0x1a94c883…6172711f` | Message d'inscription du compte 3 de l'annuaire de référence, construit depuis ses champs : texte exact, octets passés à personal_sign, condensé EIP-191 et longueur de la préimage. |
+| `message-compte-4` | valide, 516 octets, préimage 545, condensé `0xe2931d77…d4c8acf4` | Message d'inscription du compte 4 de l'annuaire de référence, construit depuis ses champs : texte exact, octets passés à personal_sign, condensé EIP-191 et longueur de la préimage. |
+| `crlf` | message_invalide | Lignes séparées par CR LF au lieu de LF. Refusé (message_invalide). |
+| `lf-final` | message_invalide | Un LF final après la ligne du nonce. Refusé (message_invalide). |
+| `onze-lignes` | message_invalide | Une onzième ligne après la ligne du nonce. Refusé (message_invalide). |
+| `premiere-ligne` | message_invalide | Première ligne changée d'un caractère (v1 au lieu de v0). Refusé (message_invalide). |
+| `deuxieme-ligne` | message_invalide | Deuxième ligne changée d'un caractère (point final remplacé par un point d'exclamation). Refusé (message_invalide). |
+| `cle-en-minuscules` | message_invalide | Clé « origine: » en minuscules. Refusé (message_invalide). |
+| `double-espace` | message_invalide | Deux espaces après « Origine: ». Refusé (message_invalide). |
+| `caractere-accentue` | message_invalide | « Identité » accentué au lieu de « Identite » (octet non ASCII). Refusé (message_invalide). |
+| `adresse-eip55` | message_invalide | Adresse en casse EIP-55 au lieu de minuscules. Refusé (message_invalide). |
+| `nonce-31-chiffres` | message_invalide | Nonce de 31 chiffres. Refusé (message_invalide). |
+| `nonce-33-chiffres` | message_invalide | Nonce de 33 chiffres. Refusé (message_invalide). |
+| `instant-sans-millisecondes` | message_invalide | Instant d'émission sans millisecondes. Refusé (message_invalide). |
+| `identite-quatre-jetons` | message_invalide | Identité de quatre jetons (une espace de plus dans le sujet). Refusé (message_invalide). |
+| `identite-courriel` | message_invalide | Identité qui n'est pas canonique : un courriel au lieu de « oidc <iss> <sub> ». Refusé (message_invalide). |
+| `emetteur-avec-requete` | message_invalide | Émetteur avec « ? » : interdit dans <iss> (EX-13.7). Refusé (message_invalide). |
+
+### `inscriptions.json` (AN-3, AN-4, AN-5, AN-7) — annuaire `annuaires/avant-inscriptions.json`
+
+Chaque cas part des défis qu'il donne ; la raison est la première dans l'ordre d'EX-13.15. `requete_invalide` est exercée par la trace `inscription-validation` : une requête hors de `requete_inscrire` ne serait pas conforme à `$defs/fichier_inscriptions`.
+
+| Cas | Attendu | Ce qu'il exerce |
+|---|---|---|
+| `cree-entree` | acceptée, entrée `apb-0003` | u.martin inscrit le compte 3 : acceptée, l'entrée apb-0003 est créée. |
+| `complete-entree` | acceptée, entrée `apb-0001` | approbateur-1 inscrit le compte 3 : acceptée, l'adresse s'ajoute à l'entrée apb-0001, en attente. |
+| `s-haut` | acceptée, entrée `apb-0003` | Signature rendue avec s dans la moitié haute et v inversé : acceptée et gardée normalisée. |
+| `v-0-ou-1` | acceptée, entrée `apb-0003` | Signature rendue avec v = 0 ou 1 : acceptée et gardée avec v = 27 ou 28. |
+| `reception-a-emis-le` | acceptée, entrée `apb-0003` | Réception exactement à « Emis le » : acceptée (Emis le ≤ r). |
+| `identite-invalide` | identite_invalide | Identité de session qui n'est pas canonique (un courriel) : identite_invalide. |
+| `message-crlf` | message_invalide | Message aux lignes séparées par CR LF : message_invalide, le défi n'est pas présenté. |
+| `defi-remplace` | nonce_inconnu | Un nouveau défi pour la même identité et la même adresse a remplacé celui du message : nonce_inconnu. |
+| `nonce-deja-presente` | nonce_deja_utilise | Défi déjà présenté une fois : nonce_deja_utilise. |
+| `reception-a-expire-le` | inscription_expiree | Réception exactement à « Expire le » : inscription_expiree (r < Expire le exigé). |
+| `origine-differente` | origine_differente | Défi et message d'une autre origine que console_origin : origine_differente. |
+| `organisation-differente` | organisation_differente | Défi et message d'une autre organisation : organisation_differente. |
+| `identite-differente` | identite_differente | Message et défi au nom d'approbateur-1, requête de la session u.martin : identite_differente. |
+| `adresse-differente` | adresse_differente | Message et défi pour le compte 3, requête pour le compte 1 : adresse_differente. |
+| `message-different-du-defi` | message_invalide | Message dont « Expire le » précède d'une minute celui du défi : message_invalide au pas 10. |
+| `autre-cle` | signature_invalide | Message pour le compte 3 signé par la clé du compte 2 : signature_invalide. |
+| `v-29` | signature_invalide | Signature de v = 29 : signature_invalide. |
+| `v-37` | signature_invalide | Signature de v = 37 (forme EIP-155) : signature_invalide. |
+| `longueur-64` | signature_invalide | Signature compacte de 64 octets (EIP-2098) : signature_invalide. |
+| `identite-desactivee` | identite_desactivee | approbateur-2, dont l'entrée est désactivée, inscrit le compte 3 : identite_desactivee. |
+| `adresse-deja-attribuee` | adresse_deja_attribuee | u.martin inscrit le compte 4, révoqué dans l'entrée apb-0002 : adresse_deja_attribuee (jamais réattribuée). |
+| `ordre-identite-message` | identite_invalide | Identité non canonique et message en CR LF : identite_invalide d'abord. |
+| `ordre-message-nonce` | message_invalide | Message en CR LF et défi inconnu : message_invalide d'abord. |
+| `ordre-nonce-expiration` | nonce_inconnu | Défi inconnu et réception après l'expiration : nonce_inconnu d'abord. |
+| `ordre-presente-expiration` | nonce_deja_utilise | Défi déjà présenté et réception après l'expiration : nonce_deja_utilise d'abord. |
+| `ordre-expiration-origine` | inscription_expiree | Réception après l'expiration et autre origine : inscription_expiree d'abord ; le défi est présenté. |
+| `ordre-origine-organisation` | origine_differente | Autre origine et autre organisation : origine_differente d'abord. |
+| `ordre-organisation-identite` | organisation_differente | Autre organisation et identité différente de la session : organisation_differente d'abord. |
+| `ordre-identite-adresse` | identite_differente | Identité et adresse différentes de la requête : identite_differente d'abord. |
+| `ordre-adresse-message` | adresse_differente | Adresse différente de la requête et message différent du défi : adresse_differente d'abord. |
+| `ordre-message-signature` | message_invalide | Message différent du défi et signé par une autre clé : message_invalide d'abord. |
+| `ordre-signature-desactivee` | signature_invalide | Entrée désactivée et signature d'une autre clé : signature_invalide d'abord. |
+| `ordre-desactivee-attribuee` | identite_desactivee | approbateur-2, entrée désactivée, inscrit le compte 4 déjà attribué : identite_desactivee d'abord. |
+
+### `domaines.json` (AN-5)
+
+| Cas | Adresse recouvrée | Attendu |
+|---|---|---|
+| `inscription-comme-vote` | `0xfac296ad1fc770d69ff4d1f69b67efbba7ae46f9` | signature_invalide |
+| `vote-comme-inscription` | `0x8768051a828bb4301030920c9b69759b08e64bde` | signature_invalide |
+
+### `traces/` (AN-6, AN-7)
+
+Chaque pas : méthode, instant, sort, `revision` après le pas.
+
+#### `annuaire-de-reference.json` (AN-3, AN-6, AN-7) — départ `annuaires/vide.json`
+
+Les neuf opérations de l'annuaire d'exemple de 13.4, depuis l'annuaire vide, avec la préparation de chaque défi : l'état final est annuaires/reference.json (noms affichés mis à part).
+
+1. preparer_inscription 08:00:00.000 → acceptée, revision 0
+2. inscrire 08:00:30.000 → acceptée, revision 1
+3. valider 08:30:00.000 → acceptée, revision 2
+4. preparer_inscription 09:00:00.000 → acceptée, revision 2
+5. inscrire 09:00:30.000 → acceptée, revision 3
+6. preparer_inscription 09:20:00.000 → acceptée, revision 3
+7. inscrire 09:20:30.000 → acceptée, revision 4
+8. valider 09:40:00.000 → acceptée, revision 5
+9. revoquer 09:41:00.000 → acceptée, revision 6
+10. preparer_inscription 10:00:00.000 → acceptée, revision 6
+11. inscrire 10:00:30.000 → acceptée, revision 7
+12. lier_demandeur 10:20:00.000 → acceptée, revision 8
+13. valider 10:30:00.000 → acceptée, revision 9
+
+#### `inscription-validation.json` (AN-1, AN-3, AN-6) — départ `annuaires/vide.json`
+
+Défi, deux requêtes inscrire mal formées (membre inconnu : requete_invalide, avant l'identité non canonique), puis l'inscription et la validation par admin-1 : l'adresse passe d'en_attente à active ; c'est l'état sur lequel controles-vote.json autorise un vote.
+
+1. preparer_inscription 08:00:00.000 → acceptée, revision 0
+2. inscrire 08:00:10.000 → refus : requete_invalide, revision 0
+3. inscrire 08:00:20.000 → refus : requete_invalide, revision 0
+4. inscrire 08:00:30.000 → acceptée, revision 1
+5. valider 08:05:00.000 → acceptée, revision 2
+
+#### `auto-validation.json` (AN-6) — départ `annuaires/vide.json`
+
+admin-1 inscrit une adresse pour lui-même et tente de la valider : auto_validation ; approbateur-1, hors d'administrators, tente de la valider : non_administrateur ; un autre administrateur n'existe pas : l'adresse reste en attente.
+
+1. preparer_inscription 08:00:00.000 → acceptée, revision 0
+2. inscrire 08:00:30.000 → acceptée, revision 1
+3. valider 08:05:00.000 → refus : auto_validation, revision 1
+4. preparer_inscription 08:10:00.000 → acceptée, revision 1
+5. inscrire 08:10:30.000 → acceptée, revision 2
+6. valider 08:15:00.000 → refus : non_administrateur, revision 2
+
+#### `rotation.json` (AN-6, AN-7) — départ `annuaires/vide.json`
+
+approbateur-1 inscrit une deuxième adresse, validée : la première devient revoquee, cause remplacee, replaced_by la nouvelle ; une entrée n'a jamais deux adresses actives.
+
+1. preparer_inscription 08:00:00.000 → acceptée, revision 0
+2. inscrire 08:00:30.000 → acceptée, revision 1
+3. valider 08:05:00.000 → acceptée, revision 2
+4. preparer_inscription 09:00:00.000 → acceptée, revision 2
+5. inscrire 09:00:30.000 → acceptée, revision 3
+6. valider 09:05:00.000 → acceptée, revision 4
+
+#### `revocation.json` (AN-6) — départ `annuaires/reference.json`
+
+Révocation par un tiers refusée (revocation_non_autorisee), par la personne (cause personne), par un administrateur (cause administrateur), puis révocation répétée (etat_incompatible).
+
+1. revoquer 11:00:00.000 → refus : revocation_non_autorisee, revision 9
+2. revoquer 11:01:00.000 → acceptée, revision 10
+3. revoquer 11:02:00.000 → acceptée, revision 11
+4. revoquer 11:03:00.000 → refus : etat_incompatible, revision 11
+
+#### `desactivation.json` (AN-6, AN-7) — départ `annuaires/vide.json`
+
+Désactivation d'une entrée : son adresse active est révoquée (cause desactivation), son défi en cours est effacé (nonce_inconnu), une préparation est refusée (identite_desactivee) ; réactivation sans adresse rétablie, puis nouvelle inscription validée ; désactivation et réactivation répétées refusées (etat_incompatible).
+
+1. preparer_inscription 08:00:00.000 → acceptée, revision 0
+2. inscrire 08:00:30.000 → acceptée, revision 1
+3. valider 08:05:00.000 → acceptée, revision 2
+4. preparer_inscription 08:10:00.000 → acceptée, revision 2
+5. desactiver 08:11:00.000 → acceptée, revision 3
+6. inscrire 08:12:00.000 → refus : nonce_inconnu, revision 3
+7. preparer_inscription 08:13:00.000 → refus : identite_desactivee, revision 3
+8. desactiver 08:14:00.000 → refus : etat_incompatible, revision 3
+9. reactiver 09:00:00.000 → acceptée, revision 4
+10. reactiver 09:01:00.000 → refus : etat_incompatible, revision 4
+11. preparer_inscription 09:10:00.000 → acceptée, revision 4
+12. inscrire 09:10:30.000 → acceptée, revision 5
+13. valider 09:15:00.000 → acceptée, revision 6
+
+#### `adresse-jamais-reattribuee.json` (AN-7) — départ `annuaires/reference.json`
+
+Le compte 4, révoqué dans l'entrée apb-0002, préparé par u.martin : adresse_deja_attribuee dès preparer_inscription ; la même adresse préparée par sa propre personne l'est aussi.
+
+1. preparer_inscription 11:00:00.000 → refus : adresse_deja_attribuee, revision 9
+2. preparer_inscription 11:01:00.000 → refus : adresse_deja_attribuee, revision 9
+
+#### `confiscation.json` (AN-3, AN-6, AN-7) — départ `annuaires/vide.json`
+
+approbateur-2 prépare, sous sa propre session, l'inscription du compte 1, dont le détenteur signe sans le lire le texte qui nomme approbateur-2 : acceptée, en attente dans l'entrée apb-0001 d'approbateur-2 (EX-13.15 ne voit que la preuve de possession) ; approbateur-1, détenteur du compte 1, reçoit adresse_deja_attribuee ; admin-1 révoque l'adresse avec un motif ; approbateur-1 reçoit toujours adresse_deja_attribuee : l'adresse est confisquée, son détenteur change de clé (EX-13.10, EX-13.17).
+
+1. preparer_inscription 08:00:00.000 → acceptée, revision 0
+2. inscrire 08:00:30.000 → acceptée, revision 1
+3. preparer_inscription 08:05:00.000 → refus : adresse_deja_attribuee, revision 1
+4. revoquer 08:10:00.000 → acceptée, revision 2
+5. preparer_inscription 08:15:00.000 → refus : adresse_deja_attribuee, revision 2
+
+#### `alias-demandeur.json` (AN-1, AN-6, AN-7) — départ `annuaires/reference.json`
+
+lier_demandeur d'un nouvel alias, double liaison refusée (demandeur_deja_lie), delier_demandeur, valeur inconnue refusée (demandeur_inconnu) ; une identité de session avec « ? » dans l'émetteur est refusée (identite_invalide) ; une entrée inconnue aussi (entree_inconnue).
+
+1. lier_demandeur 11:00:00.000 → acceptée, revision 10
+2. lier_demandeur 11:01:00.000 → refus : demandeur_deja_lie, revision 10
+3. delier_demandeur 11:02:00.000 → acceptée, revision 11
+4. delier_demandeur 11:03:00.000 → refus : demandeur_inconnu, revision 11
+5. lier_demandeur 11:04:00.000 → refus : identite_invalide, revision 11
+6. lier_demandeur 11:05:00.000 → refus : entree_inconnue, revision 11
+
+### `controles-vote.json` (AN-8) — annuaire `annuaires/controles.json`
+
+| Cas | Action | Attendu | Avertissement |
+|---|---|---|---|
+| `vote-autorise` | voter | autorisé | — |
+| `jeu-non-fige` | voter | jeu_non_fige | — |
+| `identite-inconnue` | voter | identite_inconnue | — |
+| `identite-desactivee` | voter | identite_desactivee | — |
+| `adresse-non-attribuee` | voter | adresse_non_attribuee | — |
+| `hors-jeu` | voter | hors_jeu | — |
+| `session-du-demandeur` | voter | session_du_demandeur | — |
+| `session-du-demandeur-permise` | voter | autorisé | — |
+| `ordre-jeu-identite` | voter | jeu_non_fige | — |
+| `ordre-desactivee-adresse` | voter | identite_desactivee | — |
+| `ordre-adresse-hors-jeu` | voter | adresse_non_attribuee | — |
+| `ordre-hors-jeu-demandeur` | voter | hors_jeu | — |
+| `recusation-adresse-non-attribuee` | recuser | adresse_non_attribuee | — |
+| `recusation-session-du-demandeur` | recuser | autorisé | — |
+| `separation-incomplete` | voter | autorisé | separation_incomplete |
+
+### `controles-canal.json` (AN-10) — annuaire `annuaires/controles.json`
+
+Contrôle de l'identité de session par le service sur le canal de la console, avant que l'entrée de 7.4 ne soit formée (EX-12.14, EX-12.16, EX-12.19).
+
+| Cas | Méthode | Attendu | Ce qu'il exerce |
+|---|---|---|---|
+| `consulter-eligible` | consulter | passe | approbateur-1, adresse active compte 1, membre éligible du jeu figé : vue servie. |
+| `consulter-administrateur` | consulter | passe | admin-1, dans administrators, sans entrée : vue servie. |
+| `consulter-demandeur` | consulter | session_non_autorisee | u.martin, adresse active compte 3 que la politique déclare pour le demandeur (non éligible sous interdite) : session_non_autorisee. |
+| `consulter-demandeur-eligible` | consulter | passe | u.martin, dont le compte 3 est éligible parce que la politique ne le déclare pas pour le demandeur : vue servie (la console oppose ensuite session_du_demandeur). |
+| `consulter-entree-desactivee` | consulter | session_non_autorisee | approbateur-2, entrée désactivée (adresse active révoquée) : session_non_autorisee. |
+| `consulter-identite-inconnue` | consulter | session_non_autorisee | Identité sans entrée et hors d'administrators : session_non_autorisee. |
+| `consulter-identite-invalide` | consulter | identite_invalide | Identité qui n'est pas canonique (un courriel) : identite_invalide, avant tout autre contrôle. |
+| `voter-adresse-active` | voter | passe | approbateur-1 vote avec le compte 1, son adresse active : passe. |
+| `voter-autre-adresse` | voter | session_non_autorisee | approbateur-1 présente le vote signé par le compte 2 : session_non_autorisee. |
+| `voter-entree-desactivee` | voter | session_non_autorisee | approbateur-2, entrée désactivée, présente le vote du compte 2 : session_non_autorisee. |
+| `recuser-adresse-active` | recuser | passe | u.martin se récuse avec le compte 3, son adresse active : passe (le canal ne contrôle que l'adresse). |
+| `recuser-autre-adresse` | recuser | session_non_autorisee | approbateur-1 récuse le compte 3 : session_non_autorisee. |
+| `retirer-demandeur` | retirer | passe | u.martin, dont l'entrée active porte l'alias u.martin@assureur-demo.example, retire avec by = launched_by : passe. |
+| `retirer-administrateur` | retirer | passe | admin-1 retire avec by = son identité de session : passe. |
+| `retirer-approbateur-par-alias` | retirer | session_non_autorisee | approbateur-1, qui n'est pas le demandeur, retire avec by = launched_by : session_non_autorisee (le corps seul ne prouve rien). |
+| `retirer-administrateur-par-alias` | retirer | session_non_autorisee | admin-1 retire avec by = launched_by au lieu de son identité : session_non_autorisee. |
+| `retirer-approbateur-par-identite` | retirer | session_non_autorisee | approbateur-1, hors d'administrators, retire avec by = son identité : session_non_autorisee. |
+| `retirer-autre-demandeur` | retirer | session_non_autorisee | u.martin retire, avec by = son alias, un ticket lancé par u.dupont@assureur-demo.example : session_non_autorisee. |
+| `retirer-identite-invalide` | retirer | identite_invalide | Identité de session non canonique (le courriel du demandeur) : identite_invalide. |
+| `consulter-ticket-inconnu` | consulter | ticket_inconnu | approbateur-1, session de l'organisation, consulte un ticket inconnu : ticket_inconnu. |
+| `consulter-ticket-inconnu-non-eligible` | consulter | ticket_inconnu | u.martin, entrée active de l'organisation, qui reçoit session_non_autorisee pour apr-0001 (cas consulter-demandeur), consulte un ticket inconnu : ticket_inconnu (point b avant le point c). |
+| `consulter-ticket-inconnu-hors-organisation` | consulter | session_non_autorisee | Identité sans entrée et hors d'administrators, ticket inconnu : session_non_autorisee (point a avant le point b). |
+| `consulter-ticket-inconnu-entree-desactivee` | consulter | session_non_autorisee | approbateur-2, entrée désactivée, ticket inconnu : session_non_autorisee (point a). |
+| `consulter-ticket-inconnu-identite-invalide` | consulter | identite_invalide | Identité non canonique, ticket inconnu : identite_invalide d'abord. |
+| `tickets-session-de-l-organisation` | tickets | passe | approbateur-1, entrée active : la liste est servie. |
+| `tickets-administrateur` | tickets | passe | admin-1, dans administrators, sans entrée : la liste est servie. |
+| `tickets-hors-organisation` | tickets | session_non_autorisee | Identité sans entrée et hors d'administrators : session_non_autorisee. |
+| `tickets-entree-desactivee` | tickets | session_non_autorisee | approbateur-2, entrée désactivée : session_non_autorisee. |
+| `voter-ticket-inconnu` | voter | ticket_inconnu | approbateur-1 vote avec son adresse active pour un ticket inconnu : ticket_inconnu, après le contrôle d'adresse. |
+| `voter-autre-adresse-ticket-inconnu` | voter | session_non_autorisee | approbateur-1 présente le vote du compte 2 pour un ticket inconnu : session_non_autorisee d'abord (le contrôle d'adresse ne dépend pas du ticket). |
+| `retirer-ticket-inconnu` | retirer | ticket_inconnu | approbateur-1, hors d'administrators, retire un ticket inconnu avec by = son identité : ticket_inconnu (le contrôle du retrait ne se fait que pour un ticket connu). |
+
+### `exports/` (AN-9)
+
+| Fichier | Écarts attendus (`exports/attendu.json`) | Ce qu'il exerce |
+|---|---|---|
+| `reference.json` | aucun | L'annuaire de référence : aucun écart. |
+| `preuve-autre-cle.json` | preuve_invalide `/entries/1/addresses/0/proof` ; operations_incoherentes `/operations/2` | La preuve du compte 2 porte la signature, par la clé du compte 1, de son propre message : preuve_invalide ; le rejeu de l'inscription correspondante échoue (opération 3). |
+| `preuve-identite-differente.json` | preuve_discordante `/entries/1/addresses/0/proof` ; operations_incoherentes `/operations/2` | La preuve du compte 2 est un message, signé par le compte 2, au nom d'approbateur-1 : preuve_discordante ; le rejeu de l'inscription échoue (opération 3). |
+| `deux-adresses-actives.json` | operations_incoherentes `/entries` ; deux_adresses_actives `/entries/1/addresses` | Le compte 4 de l'entrée apb-0002 est marqué actif à côté du compte 2 : deux_adresses_actives ; le rejeu donne un autre état (/entries). |
+| `adresse-dans-deux-entrees.json` | operations_incoherentes `/entries` ; adresse_double `/entries/2/addresses/1/address` ; preuve_discordante `/entries/2/addresses/1/proof` | Le compte 1 figure aussi, révoqué, dans l'entrée apb-0003 : adresse_double ; sa preuve y nomme une autre identité (preuve_discordante) ; le rejeu donne un autre état. |
+| `identite-double.json` | operations_incoherentes `/entries` ; preuve_discordante `/entries/2/addresses/0/proof` ; identite_double `/entries/2/session_identity` | L'entrée apb-0003 porte l'identité d'approbateur-1 : identite_double ; sa preuve nomme u.martin (preuve_discordante) ; le rejeu donne un autre état. |
+| `identifiant-double.json` | identifiant_double `/entries/2/id` ; operations_incoherentes `/operations/6` | L'entrée apb-0003 porte l'identifiant apb-0002 : identifiant_double ; l'inscription de l'opération 7 ne trouve plus sa preuve et ne se rejoue pas. |
+| `auto-validation.json` | auto_validation `/entries/0/addresses/0/validated_by` ; operations_incoherentes `/operations/1` | approbateur-1, ajouté aux administrateurs, a validé sa propre adresse : auto_validation ; l'opération 2 ne se rejoue pas. |
+| `revision-faux.json` | revision_incoherente `/revision` | revision vaut 8 pour neuf opérations : revision_incoherente. |
+| `operations-non-rejouees.json` | operations_incoherentes `/operations/5` | L'opération 6 révoque le compte 3 dans l'entrée apb-0002, qui ne l'a pas : elle ne se rejoue pas (adresse inconnue). |
+| `schema.json` | schema | Document sans le membre operations : non conforme au schéma, une seule erreur schema. |
+| `administrateurs-recopies.json` | aucun | Le réglage administrators passe de admin-1 à admin-1 et admin-2 : opération 10 changer_administrateurs (by configuration, before et after), puis admin-2 désactive apb-0002 (opération 11) : aucun écart ; le rejeu juge admin-2 administrateur à partir de l'opération 10 (EX-13.37). |
+| `administrateurs-sans-operation.json` | operations_incoherentes `/operations/1` | administrators vaut admin-2 seul, sans opération changer_administrateurs : le rejeu part de cette liste, et la validation de l'opération 2 par admin-1 ne se rejoue pas. |
+| `administrateurs-differents-du-rejeu.json` | operations_incoherentes `/administrators` | administrateurs-recopies.json dont administrators est ramené à admin-1 seul sans nouvelle opération : le rejeu aboutit à admin-1 et admin-2 (/administrators). |
+
+## console/ (A.11, CS-1 à CS-9)
+
+| Grandeur | Valeur |
+|---|---|
+| Ticket de CT-1 | `apr-2201` : événement seq 5 et pièce « arguments » de `spec/vecteurs/ct-1/journal-valide`, lus et jamais réécrits |
+| Demande à référence en ligne | ticket `apr-0901`, `journal-approbations`, `prev_hash` = SHA-256 de `noortrace/vecteurs/ct3/console/en-ligne/precedent`, scellée par la clé de test `rec-test-01` de CT-1 |
+| D_A à premier octet nul | `request_hash` = SHA-256 de `noortrace/vecteurs/ct3/demande/console-zero`, ticket `apr-c0-542` (plus petit k ≥ 1) |
+| Fichiers de clé | mot de passe `noortrace/vecteurs/ct3/console/mot-de-passe` ; sel, iv (16 premiers octets) et uuid (16 premiers octets, bits de version 4) tirés de SHA-256 de `noortrace/vecteurs/ct3/console/fichier-cle/<cas>/sel, …/iv, …/uuid` ; `c` = 1 024, scrypt `n` = 1 024, `r` = 8, `p` = 1 |
+| Découverte | uuid tirés de SHA-256 de `noortrace/vecteurs/ct3/console/decouverte/<nom>/uuid` (bits de version 4 posés), icône `data:image/svg+xml;base64,…` minimale |
+
+### `modeles/` (CS-1 à CS-4)
+
+| Cas | blocking | warnings | Ce qu'il exerce |
+|---|---|---|---|
+| `apr-2201-approuve` | vide (signable) | — | Vue du ticket apr-2201 (événement seq 5 et pièce de CT-1, journal-valide), compte 1, décision approuve : tout est vérifié, l'IBAN, rédigé dans la pièce, est non vérifiable ; signable. |
+| `apr-2201-refuse` | vide (signable) | — | Même vue, décision refuse : signable ; l'empreinte affichée est celle de D_refuse. |
+| `reference-en-ligne` | vide (signable) | — | Demande de journal-approbations dont la référence des arguments est en ligne (value), événement retenue scellé par la clé de test rec-test-01 de CT-1 : arguments vérifiés sans pièce séparée ; signable. |
+| `intention-par-reference` | vide (signable) | — | Demande de reference-en-ligne, ticket apr-0902, dont l'événement retenue porte l'intention par une référence (objet) et non en chaîne : la console ne peut pas la vérifier et l'affiche « non vérifiable par la console » (intent_status reference_non_verifiable), sans bloquer ; signable. |
+| `effet-connu-apres-execution` | vide (signable) | — | Gabarit d'effets dont object pointe vers le résultat (/result/document_id) : la vue porte object null et unresolved [{ member object, pointer /result/document_id }] ; la console l'affiche « connu après exécution », sans bloquer ; signable. |
+| `evenement-modifie` | evenement_invalide | — | L'événement retenue servi a son ts modifié d'un caractère : hachage recalculé différent, evenement_invalide ; contrôles 3 à 6 non faits, condensés nuls, arguments non vérifiables. |
+| `request-hash-different` | evenement_invalide | — | request_hash de la vue différent du hash de l'événement : evenement_invalide. |
+| `piece-modifiee` | piece_invalide | — | Pièce « arguments » servie avec un montant modifié : sha256 différent, piece_invalide ; arguments non vérifiables. |
+| `outil-different` | champ_different | — | Outil annoncé de la requête différent d'execution.tool : champ_different. |
+| `regle-differente` | champ_different | — | Règle de la vue différente de policy.rule de l'événement : champ_different. |
+| `run-id-different` | champ_different | — | run_id de la délégation de la requête différent de celui de l'événement : champ_different. |
+| `intention-differente` | champ_different | — | Intention de la requête différente de celle, en chaîne, de l'événement : champ_different. |
+| `argument-different` | argument_different | — | amount vaut 21500.00 en clair et 12500.00 dans la pièce : feuille different, argument_different. |
+| `argument-absent-de-la-piece` | vide (signable) | — | Un argument en clair (note) absent de la pièce : non vérifiable, sans bloquer. |
+| `chemin-absent-de-l-affichage` | argument_absent_de_l_affichage | — | currency, présent dans la pièce, manque aux arguments en clair : argument_absent_de_l_affichage. |
+| `condense-service-faux-approuve` | empreinte_divergente | — | Le D_A du service pour approuve diffère de celui de la console : empreinte_divergente. |
+| `condense-service-faux-refuse` | empreinte_divergente | — | Seul le D_A du service pour refuse est faux, l'approbateur choisit approuve : empreinte_divergente quand même. |
+| `ticket-approuve` | ticket_clos_aux_votes | — | Ticket déjà approuve : ticket_clos_aux_votes. |
+| `jeu-non-fige` | jeu_non_fige | — | Jeu non figé : jeu_non_fige ; membre et éligibilité ne sont pas contrôlés. |
+| `decision-absente` | decision_absente | — | Aucune décision choisie : decision_absente. |
+| `identite-sans-entree` | identite_inconnue | — | L'identité de session n'a pas d'entrée dans l'annuaire : identite_inconnue. |
+| `entree-desactivee` | identite_desactivee | — | L'entrée de la session est désactivée : identite_desactivee. |
+| `adresse-non-attribuee` | adresse_non_attribuee | — | Le compte 2 choisi par la session d'approbateur-1, dont l'adresse active est le compte 1 : adresse_non_attribuee. |
+| `adresse-hors-jeu` | hors_jeu | — | Compte 4, adresse active de sa session, hors du jeu figé : hors_jeu. |
+| `adresse-du-demandeur` | auto_approbation, session_du_demandeur | — | Compte 3, adresse du demandeur sous interdite, par la session du demandeur : auto_approbation puis session_du_demandeur. |
+| `membre-recuse` | recuse | — | Compte 2, membre du jeu qui s'est récusé (absent d'eligible) : recuse. |
+| `motif-trop-long` | motif_trop_long | — | Motif de 1 025 caractères : motif_trop_long. |
+| `motif-1024` | vide (signable) | — | Motif de 1 024 points de code, accentués : admis. |
+| `separation-non-verifiable` | vide (signable) | separation_non_verifiable | Demandeur sans entrée dans separation.identities sous interdite : bandeau et avertissement separation_non_verifiable, sans bloquer ; le compte 3 est alors éligible. |
+| `membres-ajoutes` | vide (signable) | membres_ajoutes | Le compte 4 a été ajouté au jeu par un nouveau gel : avertissement membres_ajoutes. |
+| `separation-incomplete` | vide (signable) | separation_incomplete | La politique déclare le compte 4 pour le demandeur, l'annuaire lui attribue le compte 3 : avertissement separation_incomplete, sans bloquer. |
+| `plusieurs-defauts` | ticket_clos_aux_votes, champ_different, argument_different, empreinte_divergente, jeu_non_fige, decision_absente, adresse_non_attribuee, session_du_demandeur, motif_trop_long | — | Ticket approuve, outil et montant différents, D_A du service faux pour refuse, jeu non figé, aucune décision, adresse non attribuée, session du demandeur, motif trop long : toutes les raisons, dans l'ordre des contrôles. |
+
+### `requetes/` (CS-3, CS-5)
+
+| Cas | D_A | Empreinte | Signature attendue |
+|---|---|---|---|
+| `apr-2201-approuve-compte-1` | `0xa57cbdad280b5cb2e9f6ee87b85d8bc05e76a5966377e7d58046519464f7df7c` | `a57cbdad…64f7df7c` | `0x6e8fb398…ec41cd1b` |
+| `apr-2201-approuve-compte-2` | `0xa57cbdad280b5cb2e9f6ee87b85d8bc05e76a5966377e7d58046519464f7df7c` | `a57cbdad…64f7df7c` | `0x5635ca9b…d687591b` |
+| `apr-2201-refuse-compte-1` | `0xd2cace7b1eded2643785e99e2f5316ee6cb4fad6ea468426d30d76538ccab300` | `d2cace7b…8ccab300` | `0x80a151e6…6b2f6b1b` |
+| `apr-0001-approuve-compte-1` | `0xce13c3f15c3eab4c81a4735828741b0acf205a46e59d6894ed2e7589b5777d0d` | `ce13c3f1…b5777d0d` | `0x510f909a…4eee591c` |
+| `apr-c0-542-approuve-compte-1` | `0x00d9060ac22cf499a79777dfeb7fa339783ac23f12571712c02663d9acdca5c7` | `00d9060a…acdca5c7` | `0x015e03c4…60bdcd1c` |
+
+### `reponses/` (CS-6, CS-7)
+
+| Cas | Verdict | Ce qu'il exerce |
+|---|---|---|
+| `canonique` | acceptée, vote envoyé | Forme canonique (s bas, v = 27) : acceptée telle quelle, vote construit. |
+| `v-0` | acceptée, vote envoyé | v = 0 : normalisé en v = 27, accepté. |
+| `v-1` | acceptée, vote envoyé | v = 1 (signature du compte 1 sur apr-0001, de v = 28) : normalisé en v = 28, accepté. |
+| `s-haut-normalisee` | acceptée, vote envoyé | Signature du compte 1 sur D_A (apr-2201, approuve) rendue avec s dans la moitié haute et v = 28 : la console la ramène à s bas et v = 27, recouvre le compte 1 et envoie la forme normalisée. |
+| `s-haut-v27` | acceptée, vote envoyé | s haut et v = 27 (signature du compte 1 sur apr-0001) : ramené à s bas et v = 28, accepté. |
+| `majuscules` | acceptée, vote envoyé | Chiffres hexadécimaux en majuscules : acceptée, écrite en minuscules. |
+| `v-29` | signature_invalide | v = 29 (forme que Ledger rendrait si r dépassait l'ordre) : signature_invalide. |
+| `v-37` | signature_invalide | v = 37 (forme EIP-155) : signature_invalide, bien qu'ethers et eth-account l'acceptent. |
+| `v-38` | signature_invalide | v = 38 (forme EIP-155) : signature_invalide. |
+| `longueur-64` | signature_invalide | Signature compacte de 64 octets (EIP-2098) : signature_invalide, bien qu'ethers l'accepte. |
+| `longueur-66` | signature_invalide | 66 octets : signature_invalide. |
+| `r-nul` | signature_invalide | r = 0 : signature_invalide. |
+| `s-egal-n` | signature_invalide | s = n : signature_invalide avant toute normalisation. |
+| `autre-adresse` | adresse_differente | Signature valide du compte 2 : adresse_differente, l'adresse recouvrée est affichée, aucun vote. |
+| `signature-de-la-chaine` | adresse_differente | Signature du compte 1 sur la chaîne « 0x… » de 66 caractères au lieu des 32 octets (EX-9.7) : elle recouvre une autre adresse, adresse_differente. |
+| `erreur-4001` | refus_approbateur | Promesse rompue par 4001 : refus_approbateur ; aucun vote n'est envoyé. |
+| `erreur-4100` | non_autorise | Promesse rompue par 4100 : non_autorise. |
+| `erreur-4200` | methode_non_prise_en_charge | Promesse rompue par 4200 : methode_non_prise_en_charge. |
+| `erreur-4900` | deconnecte | Promesse rompue par 4900 : deconnecte. |
+| `erreur-4901` | chaine_deconnectee | Promesse rompue par 4901 : chaine_deconnectee ; la console ne demande jamais de changer de réseau. |
+| `erreur-autre-code` | erreur_portefeuille | Promesse rompue par un autre code (-32603) : erreur_portefeuille. |
+| `erreur-sans-code` | erreur_portefeuille | Promesse rompue sans code numérique : erreur_portefeuille. |
+| `resultat-nul` | reponse_invalide | Promesse tenue avec null : reponse_invalide. |
+| `resultat-non-hexadecimal` | reponse_invalide | Promesse tenue avec une chaîne qui n'est pas hexadécimale : reponse_invalide. |
+
+### `decouverte/` (CS-8)
+
+| Cas | Proposés | Écartés | Ce qu'il exerce |
+|---|---|---|---|
+| `aucune-annonce` | — | — | Aucune annonce : liste vide ; la page dit qu'aucun portefeuille ne s'est annoncé et continue d'écouter. |
+| `une-annonce` | p1 | — | Une seule annonce : proposée, jamais présélectionnée. |
+| `deux-portefeuilles` | p1, p2 | — | Deux portefeuilles : proposés dans l'ordre de leur première annonce. |
+| `reannonce-meme-objet` | p1, p2 | — | Un portefeuille se réannonce par le même objet à chaque eip6963:requestProvider : sans effet. |
+| `annonce-en-double` | p2 | 0 annonce_en_double, 3 annonce_en_double, 4 annonce_en_double | Deux portefeuilles s'annoncent ; le premier se réannonce (même objet, sans effet), puis un troisième objet reprend son uuid : les deux annonces de cet uuid par des objets différents sont écartées et l'uuid est exclu. |
+| `uuid-non-v4` | p2 | 0 annonce_invalide | uuid qui n'est pas de version 4 : annonce_invalide. |
+| `icone-non-data` | p2 | 0 annonce_invalide | Icône qui n'est pas une URI data: : annonce_invalide. |
+| `nom-vide` | p2 | 0 annonce_invalide | Nom vide : annonce_invalide. |
+| `nom-trop-long` | p2 | 0 annonce_invalide | Nom de 65 caractères : annonce_invalide. |
+| `rdns-imite` | p1, p2 | — | Deux portefeuilles qui déclarent le même rdns : tous deux proposés, rdns n'est pas une identité. |
+
+### `fichiers-cle/` (CS-9)
+
+| Cas | Verdict | Avertissement |
+|---|---|---|
+| `pbkdf2-valide` | accepté, `0x70997970c51812dc3a010c7d01b50e0d17dc79c8` | derivation_faible |
+| `scrypt-valide` | accepté, `0x70997970c51812dc3a010c7d01b50e0d17dc79c8` | derivation_faible |
+| `mauvais-mot-de-passe` | mot_de_passe_ou_mac | derivation_faible |
+| `mac-modifie` | mot_de_passe_ou_mac | derivation_faible |
+| `aes-128-cbc` | fichier_cle_non_pris_en_charge | — |
+| `kdf-inconnu` | fichier_cle_non_pris_en_charge | — |
+| `prf-hmac-sha512` | fichier_cle_non_pris_en_charge | — |
+| `dklen-16` | fichier_cle_non_pris_en_charge | — |
+| `n-non-puissance-de-2` | fichier_cle_non_pris_en_charge | — |
+| `n-2-puissance-19` | fichier_cle_non_pris_en_charge | — |
+| `version-1` | fichier_cle_invalide | — |
+| `iv-court` | fichier_cle_invalide | — |
+| `cle-nulle` | cle_invalide | derivation_faible |
+| `cle-compte-2` | adresse_differente | derivation_faible |
+
+## acceptation-console/ et acceptation-console-attendu.json (EX-A.17)
+
+Le répertoire `acceptation-console/` est ce que reçoit chaque lecteur (consigne et gabarit de réponse) ; la grille des éléments attendus, chacun avec la règle qui le fonde, est dans `acceptation-console-attendu.json`, que les lecteurs ne reçoivent pas. Cet index ne la reproduit pas.

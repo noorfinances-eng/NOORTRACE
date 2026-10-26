@@ -1,0 +1,290 @@
+{
+  "version": 0,
+  "id": "intention-par-reference",
+  "description": "Demande de reference-en-ligne, ticket apr-0902, dont l'événement retenue porte l'intention par une référence (objet) et non en chaîne : la console ne peut pas la vérifier et l'affiche « non vérifiable par la console » (intent_status reference_non_verifiable), sans bloquer ; signable.",
+  "checks": [
+    "CS-2"
+  ],
+  "input": {
+    "view": {
+      "version": 0,
+      "ticket": "apr-0902",
+      "state": "ouvert",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+      "request_hash": "0xdef9a9e22a4e23689b376d369c043e0a90498cbcbb925f44cdee9f42eeb97a4d",
+      "request": {
+        "tool_announced": "sap.payments.create",
+        "tool_original": "sap.payments.create",
+        "server_alias": "sap",
+        "class": "ecriture",
+        "arguments": {
+          "claim_id": "2026-90417",
+          "amount": "7400.00",
+          "currency": "CHF",
+          "beneficiary_iban": "CH9300762011623852957"
+        },
+        "intent": "Régler le sinistre 2026-90417",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0009"
+        },
+        "policy_version": "vecteurs-ct3-1"
+      },
+      "retained_event": {
+        "version": 0,
+        "seq": 10,
+        "ts": "2026-11-12T09:05:00.200Z",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+        "recorder_key_id": "rec-test-01",
+        "prev_hash": "0xb04bacf52260e02a42079f35b1a140f706e407866ecc08fa1efad1c8705f471a",
+        "delegation": {
+          "launched_by": "u.martin@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "run-2026-11-12-0009"
+        },
+        "code": {
+          "model": "fournisseur/modele@2026-09",
+          "prompt_version": null,
+          "policy_version": "vecteurs-ct3-1",
+          "recorder": "0.1.0"
+        },
+        "intent": {
+          "sha256": "0x8f28f16695ff64372ed5569072ab8cb69e8103405d79e58e863fa7d8466e2a77",
+          "length": 30,
+          "redacted": false
+        },
+        "policy": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": "apr-0902",
+          "redaction": null
+        },
+        "approval": null,
+        "execution": {
+          "tool": "sap.payments.create",
+          "arguments": {
+            "sha256": "0xa2096b221ca082f247af1a03fb78c37ad61e39782a509b00d9bab1757a31862c",
+            "length": 104,
+            "redacted": false,
+            "value": {
+              "amount": "7400.00",
+              "beneficiary_iban": "CH9300762011623852957",
+              "claim_id": "2026-90417",
+              "currency": "CHF"
+            }
+          },
+          "status": "retenue",
+          "result": null,
+          "duration_ms": null,
+          "is_error": null
+        },
+        "effects": [],
+        "context": [],
+        "hash": "0xdef9a9e22a4e23689b376d369c043e0a90498cbcbb925f44cdee9f42eeb97a4d",
+        "sig": "0xf6734fcb2fccffdcdf344938266188432c1405f3be83f66461c2bfc786dd0896830e94c87f7bb7d3d83361ac108f36cc5e453f4988e92702c85a3cbe08adea04"
+      },
+      "arguments_piece": null,
+      "rule": {
+        "policy_rule": "paiement > 5000 CHF",
+        "name": "paiement > 5000 CHF",
+        "description": "Chaque paiement est approuvé au seuil du jeu d'approbateurs.",
+        "level": "revue",
+        "contest_ms": 0
+      },
+      "opening": null,
+      "effects": [
+        {
+          "system": "SAP",
+          "action": "ecriture",
+          "object": "2026-90417",
+          "amount": "7400.00",
+          "currency": "CHF",
+          "unresolved": []
+        }
+      ],
+      "deadline": "2026-11-12T10:05:00.200Z",
+      "contest": {
+        "window_end": null,
+        "objections": [],
+        "last_threshold_at": null
+      },
+      "approver_set": {
+        "threshold": {
+          "required": 2,
+          "size": 3
+        },
+        "members": [
+          "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1200 b=0x0d69b52a5fa6dc8b96b79c133fcb3b7368106273ac3c969915238b890ee2e491"
+      },
+      "effective_required": 2,
+      "added_members": [],
+      "eligible": [
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ],
+      "votes": [],
+      "separation": {
+        "self_approval": "interdite",
+        "requester_declared": true,
+        "requester_addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ],
+        "requester_directory_addresses": [
+          "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        ]
+      },
+      "digests": {
+        "approuve": "0x55379c4b09122a5a144fbe455a229176c87db98b3bea956c343b59d24d7bed80",
+        "refuse": "0x3ed15a2acf40ec8d9abbe1ebfab2b68e75455ee601b83cfca83b3e9af57476a6"
+      }
+    },
+    "session": {
+      "session_identity": "oidc https://idp.assureur-demo.example approbateur-1",
+      "entry": "active",
+      "addresses": [
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+      ],
+      "is_requester": false
+    },
+    "decision": "approuve",
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "reason": null,
+    "now": "2026-11-12T09:10:00.000Z"
+  },
+  "expected": {
+    "version": 0,
+    "ticket": "apr-0902",
+    "state": "ouvert",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+    "tool": {
+      "announced": "sap.payments.create",
+      "original": "sap.payments.create",
+      "server_alias": "sap",
+      "class": "ecriture"
+    },
+    "arguments": [
+      {
+        "pointer": "/amount",
+        "value": "7400.00",
+        "status": "verifie"
+      },
+      {
+        "pointer": "/beneficiary_iban",
+        "value": "CH9300762011623852957",
+        "status": "verifie"
+      },
+      {
+        "pointer": "/claim_id",
+        "value": "2026-90417",
+        "status": "verifie"
+      },
+      {
+        "pointer": "/currency",
+        "value": "CHF",
+        "status": "verifie"
+      }
+    ],
+    "effects": [
+      {
+        "system": "SAP",
+        "action": "ecriture",
+        "object": "2026-90417",
+        "amount": "7400.00",
+        "currency": "CHF",
+        "unresolved": []
+      }
+    ],
+    "rule": {
+      "policy_rule": "paiement > 5000 CHF",
+      "name": "paiement > 5000 CHF",
+      "description": "Chaque paiement est approuvé au seuil du jeu d'approbateurs.",
+      "level": "revue",
+      "contest_ms": 0
+    },
+    "opening": null,
+    "intent": "Régler le sinistre 2026-90417",
+    "intent_status": "reference_non_verifiable",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-2026-11-12-0009"
+    },
+    "separation_banner": false,
+    "request": {
+      "request_hash": "0xdef9a9e22a4e23689b376d369c043e0a90498cbcbb925f44cdee9f42eeb97a4d",
+      "seq": 10,
+      "ts": "2026-11-12T09:05:00.200Z"
+    },
+    "digests": {
+      "approuve": {
+        "a": {
+          "decision": "approuve",
+          "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "request_hash": "0xdef9a9e22a4e23689b376d369c043e0a90498cbcbb925f44cdee9f42eeb97a4d",
+          "ticket": "apr-0902"
+        },
+        "jcs": "{\"decision\":\"approuve\",\"journal_id\":\"0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1\",\"org_id\":\"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\",\"request_hash\":\"0xdef9a9e22a4e23689b376d369c043e0a90498cbcbb925f44cdee9f42eeb97a4d\",\"ticket\":\"apr-0902\"}",
+        "d_a": "0x55379c4b09122a5a144fbe455a229176c87db98b3bea956c343b59d24d7bed80",
+        "fingerprint": "55379c4b…4d7bed80",
+        "groups": "55379c4b 09122a5a 144fbe45 5a229176 c87db98b 3bea956c 343b59d2 4d7bed80",
+        "h": "0x0c661f4c0661cbdcf54e785d8a9eaadcf93ced748a29a378391325049d903635",
+        "h_fingerprint": "0c661f4c…9d903635",
+        "utf8": false
+      },
+      "refuse": {
+        "a": {
+          "decision": "refuse",
+          "journal_id": "0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1",
+          "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+          "request_hash": "0xdef9a9e22a4e23689b376d369c043e0a90498cbcbb925f44cdee9f42eeb97a4d",
+          "ticket": "apr-0902"
+        },
+        "jcs": "{\"decision\":\"refuse\",\"journal_id\":\"0x3bac546e33b4ed1872f0214f92d6fd5333ffe38df9a281e8a49260d426d11ca1\",\"org_id\":\"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\",\"request_hash\":\"0xdef9a9e22a4e23689b376d369c043e0a90498cbcbb925f44cdee9f42eeb97a4d\",\"ticket\":\"apr-0902\"}",
+        "d_a": "0x3ed15a2acf40ec8d9abbe1ebfab2b68e75455ee601b83cfca83b3e9af57476a6",
+        "fingerprint": "3ed15a2a…f57476a6",
+        "groups": "3ed15a2a cf40ec8d 9abbe1eb fab2b68e 75455ee6 01b83cfc a83b3e9a f57476a6",
+        "h": "0x94817db81dc3544726637f5e38fc8341b111e2019e5d6e9228500a08610a944e",
+        "h_fingerprint": "94817db8…610a944e",
+        "utf8": false
+      }
+    },
+    "decision": "approuve",
+    "approver": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "deadline": "2026-11-12T10:05:00.200Z",
+    "remaining_ms": 3300200,
+    "contest": {
+      "window_end": null,
+      "objections": [],
+      "last_threshold_at": null
+    },
+    "approver_set": {
+      "threshold": {
+        "required": 2,
+        "size": 3
+      },
+      "members": [
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+      ],
+      "source": "CuratorSet c=2124 r=0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1 s=0x35312352c0065a3fc46ce14dba05df3fcee9fbc2 h=1200..1200 b=0x0d69b52a5fa6dc8b96b79c133fcb3b7368106273ac3c969915238b890ee2e491"
+    },
+    "effective_required": 2,
+    "votes": [],
+    "warnings": [],
+    "blocking": [],
+    "signable": true
+  }
+}

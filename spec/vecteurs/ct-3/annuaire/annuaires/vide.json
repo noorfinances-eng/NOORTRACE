@@ -1,0 +1,14 @@
+{
+  "version": 0,
+  "org": "assureur-demo",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "console_origin": "https://console.assureur-demo.example",
+  "registration_ttl_ms": 600000,
+  "administrators": [
+    "oidc https://idp.assureur-demo.example admin-1"
+  ],
+  "revision": 0,
+  "updated_at": null,
+  "entries": [],
+  "operations": []
+}
