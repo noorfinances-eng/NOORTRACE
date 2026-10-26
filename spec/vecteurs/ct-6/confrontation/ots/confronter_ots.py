@@ -133,9 +133,11 @@ for nom, att in ATTENDU["headers"].items():
                 break
     comparer("nNonce minimal pour chaque en-tête avec travail", [], non_minimaux)
     # racines : celles des preuves en 1001 à 1003, dSHA(étiquette) ailleurs
-    autres = [h for h in range(s, t + 1) if h not in (1001, 1002, 1003)
+    # racines réelles : 1001 à 1003 (preuves de période) ; 1004 dans chaine-points.json (preuve du point, EX-A.13)
+    reelles = (1001, 1002, 1003, 1004) if nom.endswith("chaine-points.json") else (1001, 1002, 1003)
+    autres = [h for h in range(s, t + 1) if h not in reelles
               and hdr[h].hashMerkleRoot != dsha(("noortrace/vecteurs/v0/ct-6/bitcoin/racine/%d" % h).encode())]
-    comparer("racine(i) = dSHA(« noortrace/vecteurs/v0/ct-6/bitcoin/racine/<i> ») hors 1001 à 1003", [], autres)
+    comparer("racine(i) = dSHA(« noortrace/vecteurs/v0/ct-6/bitcoin/racine/<i> ») hors %s" % ("1001 à 1004" if len(reelles) == 4 else "1001 à 1003"), [], autres)
 
 c_h = ANCRE["checkpoint"]["height"]
 s, t, hdr, _ = ENTETES["entetes/chaine.json"]

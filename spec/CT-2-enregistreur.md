@@ -1,7 +1,7 @@
 # CT-2 — Enregistreur
 
-Version 0.3, 2026-10-23. Spécification normative, soumise à revue. Elle met
-en œuvre la section
+Version 0.4, 2026-10-26 (révision 0.4 minimale ; version 0.3 du 2026-10-23).
+Spécification normative, soumise à revue. Elle met en œuvre la section
 « Capture : où l'enregistreur se place » et la section « Journal : comment un
 événement est écrit » de l'[architecture cible](../ARCHITECTURE.md), s'appuie
 sur le format d'événement de [CT-1](CT-1-evenements-et-formats.md) sans le
@@ -10,7 +10,9 @@ modifier, et clôt les décisions ouvertes 2 (clés de l'enregistreur) et 3
 l'aligne sur [CT-3](CT-3-approbations.md) (interface du service
 d'approbation), retire les codes d'erreur de la plage que la révision MCP
 `2026-07-28` dit héritée et borne le coût des motifs de rédaction ; la
-section 0.4 dit ce qu'elle change.
+révision 0.4, du 2026-10-26, minimale, spécifie la production des points de
+contrôle de CT-1 (révision 0.3) et leur remise au composant d'ancrage de
+[CT-5](CT-5-ancrage.md) (12.10) ; la section 0.4 dit ce que chacune change.
 
 ## 0. En-tête, conventions, lecture
 
@@ -122,6 +124,17 @@ hors de la plage réservée et rend les issues d'approbation comme des
 résultats d'outil (4.4, « Codes d'erreur de l'enregistreur »).
 
 ### 0.4 Révisions
+
+**Révision 0.4** (2026-10-26, minimale). Production des points de contrôle
+de CT-1 §10.5 par l'enregistreur : cadence `checkpoint_interval_s` alignée sur
+`period_start`, point de clôture, série `points/periode-<period_start>.ndjson`,
+remise au composant d'ancrage sans attendre son résultat, copie WORM (12.10,
+EX-12.24 à EX-12.28, nouvelles ; 12.1 et EX-12.16 complétés) ; clé
+`checkpoint_interval_s` et référence `anchoring.ancrage` au document
+`ancrage-v0` de CT-5 (15.1), membres facultatifs ajoutés de façon compatible
+au schéma `configuration-enregistreur-v0` ; ligne « Ancrage des points » de
+la matrice de 14.2. Rien d'autre ne change ; les vecteurs `spec/vecteurs/ct-2`
+sont inchangés.
 
 La version 0.2 est datée du 2026-10-22 ; elle a ajouté EX-4.43 et suivants
 aux identifiants de la version 0.1 (0.1). La version 0.3 est datée du
@@ -5153,6 +5166,7 @@ par ses identifiants en hexadécimal minuscule sans `0x` :
   approbations/mac-<epoch>.ndjson               MAC de relais des appels retenus (EX-7.22, EX-12.23)
   manifestes/periode-<period_start>.json        manifeste de période (CT-1 §10) ; <period_start> en secondes UNIX, 10 chiffres
   manifestes/periode-<period_start>.sig         sa signature (CT-1 §10.2)
+  points/periode-<period_start>.ndjson          série des points de contrôle de la période (12.10, révision 0.4)
   journal.json                                  identité du journal (12.1), écrit une fois
 ```
 
@@ -5459,7 +5473,8 @@ complète les ancres de CT-5 sans les remplacer. Les comportements ci-dessous
 sont ceux des pages officielles lues (R5 § 1.1 à 1.5).
 
 **EX-12.16** Quand `storage.seal.worm` est configuré, chaque segment **fermé**,
-chaque manifeste et sa signature, et (si la rétention des pièces l'exige) les
+chaque manifeste et sa signature, la série des points de chaque période close
+(révision 0.4, EX-12.27) et (si la rétention des pièces l'exige) les
 pièces, sont copiés vers le support après fermeture, sous une clé d'objet qui
 porte l'époque : `<prefix>/segments/seg-<first_seq>-<epoch>.ndjson`. La copie
 est **conditionnelle à l'absence** de l'objet : S3 `PutObject` avec
@@ -5628,6 +5643,44 @@ repasse par le pas 3 (EX-4.21). L'exportateur de dossier écrit dans
 `approbations.json` (CT-1 §11.2) l'`approver_set` de la ligne `decision` de
 la décision, tel quel ; sa `source` est celle que le service a déclarée
 (CT-3 EX-8.8).
+
+### 12.10 Points de contrôle (révision 0.4)
+
+**EX-12.24** L'écrivain produit un point de contrôle de la période en cours
+(CT-1 §10.5) à chaque instant `period_start + j × checkpoint_interval_s`,
+`j = 0 … 3600 / checkpoint_interval_s − 1`, lu sur l'horloge de 7.4, à la
+tolérance d'alignement de 1 s près (`checkpoint_ts` dans `[instant, instant
++ 1 s]`), qu'un nouvel événement ait été écrit ou non (preuve de vie, CT-1
+§10.5, règle 1), et un point de clôture, avant ou avec le manifeste, qui
+engage exactement les feuilles du manifeste (CT-1 §10.5, règle 4). Une
+période compte donc au plus `3600 / checkpoint_interval_s + 1` points.
+`checkpoint_interval_s` (15.1, défaut 60) est un diviseur de 3600 entre 10 et
+3600 ; c'est la valeur que le composant d'ancrage recopie et confronte au
+démarrage (CT-5 EX-4.1, EX-4.9 règle 1). Un point manqué (arrêt, horloge
+bloquée par EX-7.13) n'est pas rattrapé : le point suivant est produit à
+l'instant aligné suivant, et l'écart est constaté par CT-5 (`point_manquant`).
+
+**EX-12.25** Le point est signé par la clé en vigueur de l'écrivain (CT-1
+§10.5, règle 5 ; section 11), chaîné au précédent de la même période par
+`prev_checkpoint_hash` et construit après la dernière écriture durable qu'il
+engage (EX-12.6) : il n'engage jamais un événement qui ne soit pas sur disque.
+
+**EX-12.26** Chaque point est écrit, en ajout seul et synchronisé comme un
+segment (12.3), dans `points/periode-<period_start>.ndjson` (12.1), une ligne
+par point, forme canonique JCS intégral de l'objet signé ; le fichier n'est
+jamais réécrit. C'est la série que l'exportateur lit (CT-5 §10.1) et que
+l'exploitant publie au réviseur (CT-5 §10.2).
+
+**EX-12.27** Une fois écrit, le point est remis au composant d'ancrage (CT-5
+§8), sans attendre son résultat : la production des points ne dépend jamais
+de l'ancrage (14.2, ligne « Ancrage des points »). Quand `storage.seal.worm`
+est configuré, la série d'une période est copiée vers le support à la
+clôture, avec le manifeste (EX-12.16), et le répertoire `ancres/` que CT-5
+écrit est copié de la même façon (CT-5 EX-5.15, EX-8.14).
+
+**EX-12.28** Une bascule d'écrivain (section 13) ne change pas la série : le
+nouvel écrivain relit la série de la période en cours, chaîne son premier
+point au dernier point écrit et reprend à l'instant aligné suivant.
 
 ## 13. Haute disponibilité à écrivain unique avec bail
 
@@ -5932,6 +5985,7 @@ fournisseur.
 | **Décision remise pendant un mode dégradé** | Remise de CT-3 | la décision n'est pas scellée ; le noyau l'acquitte `temporaire` (EX-7.19), CT-3 la représente ; aucun appel n'est relayé pour ce ticket avant que la décision soit scellée | sans objet | sans objet | signal `en_attente` à une ré-émission | — | `approval_deferred` (ticket) | — |
 | **Expiration atteinte pendant un mode dégradé** (EX-9.4) | Minuteur (échéance `request_ts + E`, plus `timeout_ms` pour le noyau seul) | la décision `expire` est scellée à la sortie du mode dégradé, avec la raison fixe de la remise ou du noyau (EX-9.4) | sans objet | sans objet | signal `state: "expire"` à une ré-émission, après scellement | — | `approval_expired_deferred` | `expire_after_ms` de la version de la `retenue` |
 | **Ancrage (CT-5) indisponible** : horodateur RFC 3161, calendriers OpenTimestamps | Clôture de période | **jamais bloquant** : la clôture produit le manifeste et sa signature, l'ancre est réessayée par la supervision | idem | idem | aucune | — | `anchor_pending` (période, ancre, tentative) | `anchoring.*` |
+| **Ancrage des points (CT-5) indisponible** (révision 0.4) : registre, horodateur ou composant d'ancrage injoignable | Production d'un point de contrôle | **jamais bloquant** : le point est produit, écrit dans la série (EX-12.26) et remis au composant d'ancrage, qui réessaie ses ancres (CT-5 §8) | idem | idem | aucune | — | `anchor_pending` (CT-5 8.9) | `anchoring.*` |
 | **Registre (CT-4) indisponible** : RPC injoignable, transaction non confirmée, clé non encore inscrite | Clôture de période, inscription de clé | **jamais bloquant** : le manifeste est produit ; `submitPeriod` et l'inscription sont réessayés ; les événements restent valides (CT-1 §15 : le registre est déclaratif sans le contrôle 8) | idem | idem | aucune | — | `registry_pending` | `anchoring.registry.*` |
 | **Horloge qui recule** au-delà de `clock.max_backstep_ms` (EX-7.9) | À la lecture de `ts` par l'écrivain | **bloquant pour tout** : l'enregistreur ne peut plus dater honnêtement ; tant que l'horloge murale n'a pas rejoint le `ts` précédent, ou jusqu'à la procédure d'EX-7.13 | **bloquant** | bloquant (`503`) | `-31010` | `horloge` | `clock_backstep` (écart) | `clock.max_backstep_ms`, `clock.max_wait_ms` ; sous le seuil : `ts = max(maintenant, ts précédent)` et `clock_skew` si > `warn_skew_ms` |
 | **Horloge qui avance brutalement** (saut en avant, EX-7.13) | Avance murale supérieure à l'avance monotone + `clock.max_forward_ms`, ou écart à l'horloge du magasin de bail | **bloquant pour tout** : aucun `ts` n'est posé dans le futur ; sortie quand l'horloge revient dans la tolérance ou sur confirmation de l'exploitant | **bloquant** | bloquant (`503`) | `-31010` | `horloge` | `clock_forward_jump` (écart) | `clock.max_forward_ms` |
@@ -6083,7 +6137,8 @@ la troisième colonne) :
 | `signer` | `class`, `key_id`, `backend`, `verify_after_sign`, `max_message_bytes`, `timeout_ms`, `health_interval_ms`, `rotation` | 11 | `signer.*` → `/signer/*` |
 | `storage` | `root`, `segment_max_bytes`, `fsync`, `seal` (`append_only_attribute`, `worm`), `retention`, `vault`, `relay_mac_key` (clé du MAC de relais, EX-7.22) | 7.5, 10.7, 12 | `storage.*` → `/storage/*` |
 | `lease` | `store` (`file`, `postgresql`, `etcd`), `ttl_ms`, `renew_ms`, `acquire_wait_ms`, `fencing` (EX-13.10) | 13 | `lease.*` → `/lease/*` |
-| `anchoring` | raccords CT-4 (`registry` : `rpc_url`, `chain_key`, `next_chain_key`, EX-11.19) et CT-5 (`rfc3161`, `opentimestamps`), jamais bloquants | 11, 14 | — |
+| `anchoring` | raccords CT-4 (`registry` : `rpc_url`, `chain_key`, `next_chain_key`, EX-11.19) et CT-5 (`rfc3161`, `opentimestamps` ; depuis la révision 0.4, `ancrage` : chemin du document `ancrage-v0` de CT-5 EX-4.8, facultatif, `null` ou absent tant que le composant d'ancrage n'est pas déployé), jamais bloquants | 11, 14 | — |
+| `checkpoint_interval_s` | (révision 0.4, facultatif, défaut 60) cadence des points de contrôle, diviseur de 3600 entre 10 et 3600 (EX-12.24) | 12.10 | — |
 | `supervision` | `health_listen`, `metrics`, `ops_log` (`path`, `level`, `rotate_max_bytes`, `keep_files`, `child_stderr`, `child_stderr_max_bytes`, `child_stderr_lines_per_second`) | 9.2, 17 | `logging.rotate_bytes` → `/supervision/ops_log/rotate_max_bytes` ; `logging.keep_files` → `/supervision/ops_log/keep_files` ; `logging.child_stderr_max_bytes` → `/supervision/ops_log/child_stderr_max_bytes` |
 | `policy` | **l'ensemble de politique** (10.6) : `version`, `approval` (`rules`, document `politique-approbation-v0` de CT-3 §4, que CT-2 valide sans l'évaluer, EX-15.4 ; `mode`, requis, `erreur` dans la configuration de référence, CT-3 EX-11.1 ; `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`), `redaction` (document de la section 10), `servers` (carte des serveurs d'outils par alias : `transport` avec, en stdio, `user` et `integrity`, et en HTTP les épinglages OAuth, `protocol`, `class_default`, `timeout_ms`, `tools.<nom>.{class, timeout_ms, effects, failure}`, `uri_prefixes`, `relay`), `model` (`routes` : `path`, `format`, `upstream`, `provider_label`, `credentials`, `secret`, `auth_header`, `passthrough`), `failure` (dont `modele`) | 4.3, 4.4, 5.1, 7.2, 10, 14 | `approval.mode`, `approval.hold_timeout_ms`, `approval.expire_after_ms` → `/policy/approval/…` ; `policy.timeout_ms` → `/policy/approval/timeout_ms` ; `resources.uri_prefixes` → `/policy/servers/<alias>/uri_prefixes` ; `protocol` d'un serveur → `/policy/servers/<alias>/protocol` ; `timeout_ms` par outil → `/policy/servers/<alias>/tools/<nom>/timeout_ms` ; `effects` (gabarit) → `…/tools/<nom>/effects` ; `relay.server_requests` par serveur → `/policy/servers/<alias>/relay` ; `passthrough` → `/policy/model/routes/<i>/passthrough` |
 
@@ -6679,6 +6734,8 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      (EX-11.8) et le mode local du connecteur (EX-3.3) ;
    - alias de serveurs uniques, aucun alias `noortrace` (EX-4.9) ;
      `tools.prefix: false` seulement avec un seul serveur (EX-4.10) ;
+   - (révision 0.4) `checkpoint_interval_s`, s'il est présent, divise 3600
+     (EX-12.24) ;
    - `match.static_token` désigne un `id` existant de `mcp.http.static_tokens`
      (entrées de `mcp.hosts`) ou de `model.static_tokens` ou
      `mcp.http.static_tokens` (entrées de `model.hosts`) ; chaque `id` de jeton
@@ -7707,6 +7764,7 @@ CT-2, hors du texte de la spécification.
 
 | Emplacement | Avant CT-2 | Attendu par CT-2 | État |
 |---|---|---|---|
+| Enregistreur (code), `spec/schemas/configuration-enregistreur-v0.schema.json` | aucun point de contrôle | production, série et remise des points (12.10, révision 0.4) ; membres facultatifs `checkpoint_interval_s` et `anchoring.ancrage` | schéma : fait (révision 0.4, ajout compatible) ; production des points par l'enregistreur : à faire (lot de code de l'enregistreur ; la référence de CT-1 `construirePointDeControle` et les vecteurs `spec/vecteurs/ct-1/points-de-controle` existent) |
 | `ARCHITECTURE.md`, « Capture : où l'enregistreur se place », point « Frontière du modèle » | « le proxy de sortie du client. Les appels à l'API du modèle sortent par un proxy HTTPS d'entreprise avec interception TLS » | La **passerelle** par URL de base est le mode nominal (`ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL`), l'interception TLS par ICAP l'alternative, le miroir une preuve passive (section 5.1, 20) | fait |
 | `ARCHITECTURE.md`, « Déploiement », « les appels à l'API du modèle passent par le proxy de sortie avec interception TLS » | idem | « passent par la passerelle de l'enregistreur, seule autorisée par le pare-feu à joindre les fournisseurs ; à défaut par le mandataire d'interception du client raccordé en ICAP » | fait |
 | `ARCHITECTURE.md`, « Journal : comment un événement est écrit », « une clé conservée dans le HSM, le KMS ou la puce TPM du client » | HSM, KMS ou TPM | « une clé Ed25519 gardée selon l'une des classes A à D de CT-2 §11 (matériel, service de signature, enveloppe KMS ou TPM, fichier en développement) » | fait |

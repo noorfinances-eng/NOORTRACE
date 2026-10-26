@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/ancrage.schema.json",
+  "title": "Configuration de l'ancrage NOORTRACE, version 0 (CT-5 §4.4)",
+  "description": "Document unique de configuration du composant d'ancrage (CT-5) : cadence des points de contrôle lue de CT-2, prestataires RFC 3161 et leurs rôles, cadence et routage des contresignatures de points, fraîcheur, reprise, conservation, règle d'ancrage des points au registre, client OpenTimestamps et source d'en-têtes Bitcoin, file d'attente durable. Toutes les clés sont présentes ; une valeur qui ne s'applique pas vaut null ou une liste vide. Les règles que le schéma n'exprime pas (un seul prestataire de rôle principal, rfc3161.checkpoints.interval_s multiple de checkpoint_interval_s et diviseur de 3600, au moins deux calendriers quand OpenTimestamps est activé, URL https pour tout rôle autre qu'interne) sont la vérification AN-1 de CT-5 §4.4. Les secrets sont désignés par leur emplacement, jamais par leur valeur (CT-2 §15.2) ; aucun prix ne figure ici (CT-5 §12).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "version", "checkpoint_interval_s", "rfc3161", "registry", "opentimestamps", "queue" ],
+  "properties": {
+    "version": { "const": 0 },
+    "checkpoint_interval_s": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 3600,
+      "description": "Cadence c_K de production des points de contrôle par l'enregistreur (CT-1 §10.5, règle 1 ; paramètre checkpoint_interval_s de CT-2). Recopiée ici pour le planificateur ; doit être égale à la valeur de CT-2 et diviser 3600 (AN-1). Défaut 60."
+    },
+    "rfc3161": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "providers", "manifest", "checkpoints", "freshness", "retry", "retention_years", "crl_capture" ],
+      "properties": {
+        "providers": {
+          "description": "Prestataires d'horodatage, un objet par point d'accès ; exactement un de rôle principal (AN-1).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/prestataire" }
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "fallback_after_s" ],
+          "properties": {
+            "fallback_after_s": {
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 86400,
+              "description": "Délai, depuis la première tentative auprès du principal, après lequel la requête du manifeste part aussi vers le prestataire de secours (CT-5 §5.3). Défaut 300."
+            }
+          }
+        },
+        "checkpoints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "interval_s", "provider_role", "fallback_after_s", "countersign_idle" ],
+          "properties": {
+            "countersign_idle": {
+              "type": "boolean",
+              "description": "Contresigner un point qui n'engage aucun nouvel événement par rapport au dernier point contresigné de la période (même tree_size) ; faux (défaut) : l'échéance est satisfaite sans requête (CT-5 EX-4.3), et un journal sans activité ne coûte que sa clôture horaire."
+            },
+            "interval_s": {
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 3600,
+              "description": "Cadence c_T des contresignatures RFC 3161 des points : une échéance toutes les interval_s secondes depuis period_start, la dernière étant la clôture (manifeste). Multiple de checkpoint_interval_s et diviseur de 3600 (AN-1). Défaut 300."
+            },
+            "provider_role": {
+              "enum": [ "principal", "second_rang", "interne", "aucun" ],
+              "description": "Rôle du prestataire qui contresigne les points intermédiaires (CT-5 §4.2, §5.3) ; le manifeste va toujours au principal. aucun : les points ne sont pas contresignés (admis hors production seulement, AN-1)."
+            },
+            "fallback_after_s": {
+              "type": "integer",
+              "minimum": 30,
+              "maximum": 3600,
+              "description": "Délai après lequel la contresignature d'un point en échec auprès du prestataire désigné est confiée au prestataire de secours (rôle principal) ou abandonnée au profit de l'échéance suivante (rôles second_rang et interne). Défaut 120."
+            }
+          }
+        },
+        "freshness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "max_response_delay_s", "clock_tolerance_s" ],
+          "properties": {
+            "max_response_delay_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600,
+              "description": "Délai maximal admis entre l'envoi d'une requête et la réception de sa réponse ; au-delà, la réponse est suspecte (RFC 3161 §4, point 4) et une nouvelle tentative porte un nouveau nonce (AN-10). Défaut 60."
+            },
+            "clock_tolerance_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400,
+              "description": "Écart maximal admis entre genTime du jeton et l'horloge locale à l'envoi ; au-delà, le jeton est conservé mais marqué horloge_suspecte et une alerte est levée (AN-10). Défaut 120."
+            }
+          }
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "initial_ms", "factor", "max_ms", "jitter_ms" ],
+          "properties": {
+            "initial_ms": { "type": "integer", "minimum": 100, "maximum": 600000, "description": "Première attente après un échec transitoire. Défaut 5000." },
+            "factor": { "type": "integer", "minimum": 1, "maximum": 10, "description": "Facteur multiplicatif entre deux attentes. Défaut 2." },
+            "max_ms": { "type": "integer", "minimum": 1000, "maximum": 86400000, "description": "Attente maximale entre deux tentatives. Défaut 300000." },
+            "jitter_ms": { "type": "integer", "minimum": 0, "maximum": 60000, "description": "Gigue aléatoire ajoutée à chaque attente. Défaut 250." }
+          }
+        },
+        "retention_years": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 100,
+          "description": "Durée de conservation des jetons, requêtes, réponses et enregistrements d'acquisition, en années ; au moins dix (CT-5 §5.5). Défaut 10."
+        },
+        "crl_capture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "enabled", "delay_s" ],
+          "properties": {
+            "enabled": { "type": "boolean", "description": "Capture de la CRL (ou de la réponse OCSP) de chaque certificat du chemin du jeton après genTime (CT-6 EX-13.12). Défaut true." },
+            "delay_s": { "type": "integer", "minimum": 0, "maximum": 86400, "description": "Délai après genTime avant la première capture. Défaut 600." }
+          }
+        }
+      }
+    },
+    "registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "checkpoints", "squat_wait_s", "inclusion_alert_s" ],
+      "description": "Ancrage des points au registre (CT-5 §4.3, §9). Le point d'accès RPC et la clé de chaîne restent dans anchoring.registry de la configuration de l'enregistreur (CT-2 §15, EX-11.19).",
+      "properties": {
+        "checkpoints": {
+          "enum": [ "nouveaux_evenements", "tous", "aucun" ],
+          "description": "Quels points sont ancrés par AttestationRegistry.anchor avec le docType noortrace/point-de-controle/v0 : nouveaux_evenements (défaut) : tout point dont tree_size dépasse celui du dernier point ancré de la période ; tous : chaque point, preuves de vie comprises ; aucun : hors production seulement."
+        },
+        "squat_wait_s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60,
+          "description": "Attente de l'inclusion de l'ancre d'un point au registre avant d'envoyer sa requête RFC 3161 (CT-4 §8.3) ; passé ce délai, la requête part sans attendre. Défaut 5."
+        },
+        "inclusion_alert_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Délai d'inclusion d_registre au-delà duquel la supervision lève une alerte (AN-2). Défaut 60."
+        }
+      }
+    },
+    "opentimestamps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "enabled", "calendars", "min_responses", "timeout_ms", "checkpoint", "upgrade", "headers_source" ],
+      "properties": {
+        "enabled": { "type": "boolean", "description": "Preuve OpenTimestamps du manifeste (CT-6 EX-13.5). Défaut true." },
+        "calendars": {
+          "description": "Agrégateurs ou calendriers auxquels le condensé est soumis (POST <url>/digest) et dont les attestations en attente sont mises à niveau ; au moins deux quand enabled est vrai (AN-1).",
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^https://[^\\s/]+(/[^\\s]*)?$", "maxLength": 512 }
+        },
+        "min_responses": { "type": "integer", "minimum": 1, "maximum": 16, "description": "Nombre m de calendriers dont la réponse est exigée pour écrire le fichier .ots ; sinon la soumission est remise en file. Défaut 2." },
+        "timeout_ms": { "type": "integer", "minimum": 1000, "maximum": 60000, "description": "Délai par calendrier. Défaut 5000." },
+        "checkpoint": {
+          "enum": [ "aucun", "mi_periode" ],
+          "description": "Preuve OpenTimestamps d'un point par période, en option (CT-5 §4.2) : mi_periode horodate le point contresigné à l'échéance médiane. Défaut aucun."
+        },
+        "upgrade": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "first_after_s", "interval_s", "give_up_after_s", "whitelist" ],
+          "properties": {
+            "whitelist": {
+              "description": "URI de calendrier dont une attestation en attente peut être mise à niveau (GET <uri>/timestamp/<engagement>) ; une attestation dont l'URI n'y figure pas est conservée telle quelle et signalée (CT-5 EX-6.6). Au moins une entrée quand enabled est vrai (AN-1).",
+              "type": "array",
+              "maxItems": 32,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^https://[^\\s/]+(/[^\\s]*)?$", "maxLength": 512 }
+            },
+            "first_after_s": { "type": "integer", "minimum": 60, "maximum": 172800, "description": "Première tentative de mise à niveau après la soumission. Défaut 21600." },
+            "interval_s": { "type": "integer", "minimum": 60, "maximum": 86400, "description": "Intervalle entre deux tentatives ; jamais moins de 60 s (Cache-Control du calendrier). Défaut 1800." },
+            "give_up_after_s": { "type": "integer", "minimum": 3600, "maximum": 7776000, "description": "Au-delà de ce délai sans attestation Bitcoin, alerte ; la preuve en attente reste conservée et les tentatives continuent à la cadence quotidienne. Défaut 1209600." }
+          }
+        },
+        "headers_source": {
+          "description": "D'où CT-5 tire les en-têtes Bitcoin du fichier entetes-bitcoin.json (CT-6 EX-13.7, EX-13.13) ; null : aucun fichier d'en-têtes n'est produit.",
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [ "type", "network", "url", "auth" ],
+              "properties": {
+                "type": { "const": "bitcoin_rpc" },
+                "network": { "enum": [ "mainnet", "regtest" ] },
+                "url": { "type": "string", "pattern": "^https?://[^\\s]+$", "maxLength": 512, "description": "Point RPC d'un nœud Bitcoin sous le contrôle du client." },
+                "auth": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/secret_reference" } ] }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [ "type", "network", "path" ],
+              "properties": {
+                "type": { "const": "fichier" },
+                "network": { "enum": [ "mainnet", "regtest" ] },
+                "path": { "$ref": "#/$defs/chemin_absolu", "description": "Fichier d'en-têtes au schéma entetes-bitcoin-v0, tenu à jour par l'exploitation." }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "queue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "path", "max_pending", "anchor_pending_alert_s" ],
+      "description": "File d'attente durable des demandes d'ancrage (CT-5 §8) : journal en ajout seul, écrit et synchronisé avant tout envoi.",
+      "properties": {
+        "path": { "$ref": "#/$defs/chemin_absolu", "description": "Répertoire de la file d'attente durable (CT-5 §8.5) ; les enregistrements d'acquisition sont écrits par période dans le répertoire d'ancres (CT-5 §5.5). Sous storage.root de CT-2 par défaut." },
+        "max_pending": { "type": "integer", "minimum": 100, "maximum": 10000000, "description": "Nombre maximal de demandes en attente avant alerte critique. Défaut 100000." },
+        "anchor_pending_alert_s": { "type": "integer", "minimum": 60, "maximum": 604800, "description": "Âge de la plus ancienne demande non satisfaite au-delà duquel l'alerte « ancre en retard » est levée (CT-2 §17.4 : 2 h). Défaut 7200." }
+      }
+    }
+  },
+  "$defs": {
+    "identifiant": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$" },
+    "oid": { "type": "string", "pattern": "^[0-2](\\.(0|[1-9][0-9]*))+$" },
+    "chemin_absolu": { "type": "string", "pattern": "^/[^\\u0000]{1,4095}$" },
+    "texte": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "pem_certificat": {
+      "type": "string",
+      "maxLength": 65536,
+      "pattern": "^-----BEGIN CERTIFICATE-----\\n([A-Za-z0-9+/=]{1,76}\\n)+-----END CERTIFICATE-----\\n?$",
+      "description": "Un seul certificat X.509 en PEM (même forme que le fichier d'ancres de CT-6 §12.2)."
+    },
+    "secret_reference": {
+      "description": "Désignation d'un secret par son emplacement, jamais sa valeur (CT-2 §15.2) : exactement une des clés env, file, vault.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "env" ],
+          "properties": { "env": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "file" ],
+          "properties": { "file": { "$ref": "#/$defs/chemin_absolu" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "vault" ],
+          "properties": {
+            "vault": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [ "path", "field" ],
+              "properties": {
+                "path": { "type": "string", "minLength": 1, "maxLength": 512 },
+                "field": { "type": "string", "minLength": 1, "maxLength": 128 }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "framework", "service_type", "status", "trusted_list", "source" ],
+      "description": "Statut qualifié tel que l'exploitant l'a établi, de façon mesurable (CT-5 EX-5.9) ; déclaratif pour le vérificateur, qui ne croit que son propre fichier d'ancres (CT-6 §12).",
+      "properties": {
+        "framework": { "enum": [ "eidas", "zertes" ] },
+        "service_type": { "type": "string", "minLength": 1, "maxLength": 256, "description": "URI du type de service lu dans la liste de confiance, par exemple http://uri.etsi.org/TrstSvc/Svctype/TSA/QTST." },
+        "status": { "type": "string", "minLength": 1, "maxLength": 256, "description": "URI ou libellé du statut lu dans la liste (granted, recognised)." },
+        "trusted_list": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "territory", "sequence_number", "issue_date", "url" ],
+          "properties": {
+            "territory": { "type": "string", "pattern": "^[A-Z]{2}$" },
+            "sequence_number": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+            "issue_date": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$" },
+            "url": { "type": "string", "pattern": "^https://[^\\s]+$", "maxLength": 512 }
+          }
+        },
+        "source": { "$ref": "#/$defs/texte" }
+      }
+    },
+    "prestataire": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "id", "role", "url", "auth", "hash", "policy_oid", "accepted_policies", "anchor_certificates", "qualified", "min_interval_ms", "request_timeout_ms", "correlation_header", "source" ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifiant", "description": "Identifiant du prestataire, repris dans les enregistrements d'acquisition et les noms de fichiers (CT-5 §5.5)." },
+        "role": {
+          "enum": [ "principal", "secours", "second_rang", "interne" ],
+          "description": "principal : prestataire qualifié du manifeste et, par défaut, des points ; secours : prestataire qualifié de relève ; second_rang : autorité RFC 3161 des points intermédiaires, qualifiée ou non ; interne : serveur RFC 3161 interne non qualifié (CT-5 §7)."
+        },
+        "url": { "type": "string", "pattern": "^https?://[^\\s]+$", "maxLength": 512, "description": "Point d'accès RFC 3161 §3.4 (POST, application/timestamp-query) ; https obligatoire sauf pour le rôle interne sur une adresse locale (AN-1)." },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "method", "secret" ],
+          "properties": {
+            "method": { "enum": [ "aucune", "basic", "certificat_client" ] },
+            "secret": {
+              "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/secret_reference" } ],
+              "description": "basic : identifiant et mot de passe sous la forme utilisateur:motdepasse ; certificat_client : clé privée et certificat en PEM concaténés ; aucune : null."
+            }
+          }
+        },
+        "hash": { "const": "sha256", "description": "Algorithme du messageImprint : SHA-256 seulement en version 0 (CT-5 EX-5.2), l'empreinte étant periodHash ou checkpointHash." },
+        "policy_oid": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/oid" } ], "description": "reqPolicy envoyé dans la requête ; null : aucun (le prestataire applique sa politique par défaut)." },
+        "accepted_policies": {
+          "oneOf": [ { "type": "null" }, { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/oid" } } ],
+          "description": "Politiques admises dans le jeton (T-9 à l'acquisition) ; null : toute politique."
+        },
+        "anchor_certificates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/pem_certificat" },
+          "description": "Certificats d'autorité du prestataire contre lesquels T-7 est exécutée à l'acquisition (CT-6 EX-13.2) ; publiés par le prestataire, recoupés avec la liste de confiance."
+        },
+        "qualified": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/qualification" } ], "description": "null pour un prestataire non qualifié (rôle interne, ou second_rang non inscrit)." },
+        "min_interval_ms": { "type": "integer", "minimum": 0, "maximum": 3600000, "description": "Intervalle minimal entre deux requêtes vers ce prestataire, d'après sa documentation ou son contrat (CT-6 EX-13.4) ; 0 : aucun." },
+        "request_timeout_ms": { "type": "integer", "minimum": 1000, "maximum": 120000, "description": "Délai d'une requête HTTP. Défaut 10000." },
+        "correlation_header": {
+          "oneOf": [ { "type": "null" }, { "type": "string", "pattern": "^[A-Za-z0-9-]{1,64}$" } ],
+          "description": "En-tête HTTP de corrélation que le prestataire accepte (par exemple X-Request-ID) ; CT-5 y place l'identifiant de tentative ; null : aucun."
+        },
+        "source": { "$ref": "#/$defs/texte", "description": "D'où viennent le point d'accès, les algorithmes, la politique et les certificats (documentation publique du prestataire, date de lecture)." }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "valid": false,
+  "target": "R-11",
+  "failed_checks": [
+    "R-11"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "echoue"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3",
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine-points.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : R-11 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): R-11; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "Parties du registre de registre/variantes/invalide-r11-ancre-de-periode/ (entrée ancre de la période 1, bloc 16660, dupliquée sous le rôle ancre_point_de_controle) ; anchors.registry de la partie porte l'empreinte et le docType du point mais désigne ce bloc et cette transaction : R-11 échoue (règle 1 : docType de période), R-6 et R-7 réussies (bloc authentique), K-8 réussie, contrôle 8 en échec."
+}

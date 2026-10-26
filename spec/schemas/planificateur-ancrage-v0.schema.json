@@ -1,0 +1,2406 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/planificateur-ancrage.schema.json",
+  "title": "Planificateur d'ancrage NOORTRACE, version 0 (CT-5 §8 et annexe A)",
+  "description": "La racine est une trace normative du planificateur d'ancrage (CT-5 §8.10) : la projection de la configuration ancrage-v0 que le planificateur lit, une horloge injectée, une suite d'entrées (points de contrôle produits, périodes closes, tics, réponses des prestataires, inclusions au registre, redémarrage) et la suite exacte des actions que le planificateur doit produire, avec l'état de sa file d'attente durable après la dernière entrée. Les $defs portent la ligne de la file d'attente (demande), la tentative, le cas de coût (section 12), le cas de requête RFC 3161 (annexe A) et le fichier de famille des vecteurs de CT-5. Les horodatages sont ceux de CT-1 §3 ; les valeurs énumérées sont en français sans accent. Aucune clé privée, aucun secret, aucun identifiant de compte ni aucun prix n'y figure jamais.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "id",
+    "description",
+    "config",
+    "jitter_ms",
+    "queue_before",
+    "inputs",
+    "expected",
+    "queue_after"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "config": {
+      "$ref": "#/$defs/configuration"
+    },
+    "jitter_ms": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 60000
+      },
+      "description": "Gigue injectée, en millisecondes, consommée dans l'ordre à chaque calcul d'attente de reprise (CT-5 EX-5.12, EX-8.9) ; liste vide : gigue nulle. Hors des vecteurs, la gigue est tirée au hasard dans [0, retry.jitter_ms]."
+    },
+    "queue_before": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/demande"
+      },
+      "description": "Contenu de la file d'attente durable au démarrage de la trace (vide pour une trace qui part de rien ; non vide pour une trace de reprise, EX-8.12)."
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "$ref": "#/$defs/evenement_entree"
+      },
+      "description": "Entrées dans l'ordre de l'horloge injectée ; deux entrées de même instant sont traitées dans l'ordre de la liste."
+    },
+    "expected": {
+      "type": "array",
+      "maxItems": 8192,
+      "items": {
+        "$ref": "#/$defs/action_attendue"
+      },
+      "description": "Actions que le planificateur produit, dans l'ordre ; l'implémentation de référence et le vérificateur indépendant doivent rendre exactement cette liste (égalité JSON après forme canonique JCS v0)."
+    },
+    "queue_after": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/demande"
+      },
+      "description": "Contenu de la file d'attente durable après la dernière entrée, rangé par created_at puis id."
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "hex8": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{16}$",
+      "description": "Nonce RFC 3161 : 64 bits, entier non signé grand-boutiste (CT-5 EX-5.3)."
+    },
+    "adresse": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "horodatage": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$"
+    },
+    "identifiant": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "oid": {
+      "type": "string",
+      "pattern": "^[0-2](\\.(0|[1-9][0-9]*))+$"
+    },
+    "identifiant_demande": {
+      "type": "string",
+      "pattern": "^(jeton_periode|jeton_point|ots_periode|ots_point|ancre_registre_periode|ancre_registre_point):0x[0-9a-f]{64}$",
+      "description": "Clé d'idempotence : la sorte de demande et l'empreinte ancrée (periodHash ou checkpointHash). Une seule demande par clé dans la file (EX-8.5)."
+    },
+    "sorte_demande": {
+      "enum": [
+        "jeton_periode",
+        "jeton_point",
+        "ots_periode",
+        "ots_point",
+        "ancre_registre_periode",
+        "ancre_registre_point"
+      ]
+    },
+    "etat_demande": {
+      "enum": [
+        "a_envoyer",
+        "attente_registre",
+        "envoyee",
+        "a_reprendre",
+        "obtenue",
+        "en_attente",
+        "complete",
+        "sans_objet",
+        "refusee",
+        "remplacee"
+      ],
+      "description": "États de CT-5 §8.3. en_attente et complete ne concernent que les demandes OpenTimestamps ; attente_registre les demandes RFC 3161 quand l'ancre du registre est attendue d'abord (EX-4.7, EX-8.4) ; sans_objet une échéance de point satisfaite sans requête (EX-4.3) ; remplacee une échéance close par la suivante (EX-4.4) ou une ancre de point non envoyée qu'un point plus récent couvre (EX-9.5)."
+    },
+    "role_prestataire": {
+      "enum": [
+        "principal",
+        "secours",
+        "second_rang",
+        "interne"
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_interval_s",
+        "rfc3161",
+        "registry",
+        "opentimestamps",
+        "queue"
+      ],
+      "description": "Projection du document ancrage-v0 (CT-5 §4.4, schéma ancrage-v0.schema.json) sur les clés que le planificateur lit, aux mêmes chemins et avec les mêmes bornes ; les secrets, certificats, URL et sources en sont absents, et qualified est réduit à un booléen (qualified non nul dans ancrage-v0).",
+      "properties": {
+        "checkpoint_interval_s": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 3600
+        },
+        "rfc3161": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "providers",
+            "manifest",
+            "checkpoints",
+            "freshness",
+            "retry"
+          ],
+          "properties": {
+            "providers": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "role",
+                  "policy_oid",
+                  "qualified",
+                  "min_interval_ms",
+                  "request_timeout_ms"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/$defs/identifiant"
+                  },
+                  "role": {
+                    "$ref": "#/$defs/role_prestataire"
+                  },
+                  "policy_oid": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/oid"
+                      }
+                    ]
+                  },
+                  "qualified": {
+                    "type": "boolean"
+                  },
+                  "min_interval_ms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3600000
+                  },
+                  "request_timeout_ms": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 120000
+                  }
+                }
+              }
+            },
+            "manifest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fallback_after_s"
+              ],
+              "properties": {
+                "fallback_after_s": {
+                  "type": "integer",
+                  "minimum": 60,
+                  "maximum": 86400
+                }
+              }
+            },
+            "checkpoints": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "interval_s",
+                "provider_role",
+                "fallback_after_s",
+                "countersign_idle"
+              ],
+              "properties": {
+                "interval_s": {
+                  "type": "integer",
+                  "minimum": 60,
+                  "maximum": 3600
+                },
+                "provider_role": {
+                  "enum": [
+                    "principal",
+                    "second_rang",
+                    "interne",
+                    "aucun"
+                  ]
+                },
+                "fallback_after_s": {
+                  "type": "integer",
+                  "minimum": 30,
+                  "maximum": 3600
+                },
+                "countersign_idle": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "freshness": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "max_response_delay_s",
+                "clock_tolerance_s"
+              ],
+              "properties": {
+                "max_response_delay_s": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600
+                },
+                "clock_tolerance_s": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86400
+                }
+              }
+            },
+            "retry": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "initial_ms",
+                "factor",
+                "max_ms",
+                "jitter_ms"
+              ],
+              "properties": {
+                "initial_ms": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 600000
+                },
+                "factor": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                },
+                "max_ms": {
+                  "type": "integer",
+                  "minimum": 1000,
+                  "maximum": 86400000
+                },
+                "jitter_ms": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 60000
+                }
+              }
+            }
+          }
+        },
+        "registry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "checkpoints",
+            "squat_wait_s",
+            "inclusion_alert_s"
+          ],
+          "properties": {
+            "checkpoints": {
+              "enum": [
+                "nouveaux_evenements",
+                "tous",
+                "aucun"
+              ]
+            },
+            "squat_wait_s": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 60
+            },
+            "inclusion_alert_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        },
+        "opentimestamps": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "calendars",
+            "min_responses",
+            "timeout_ms",
+            "checkpoint",
+            "upgrade"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "calendars": {
+              "type": "array",
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^https://[^\\s/]+(/[^\\s]*)?$",
+                "maxLength": 512
+              }
+            },
+            "min_responses": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            },
+            "timeout_ms": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 60000
+            },
+            "checkpoint": {
+              "enum": [
+                "aucun",
+                "mi_periode"
+              ]
+            },
+            "upgrade": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "first_after_s",
+                "interval_s",
+                "give_up_after_s"
+              ],
+              "properties": {
+                "first_after_s": {
+                  "type": "integer",
+                  "minimum": 60,
+                  "maximum": 172800
+                },
+                "interval_s": {
+                  "type": "integer",
+                  "minimum": 60,
+                  "maximum": 86400
+                },
+                "give_up_after_s": {
+                  "type": "integer",
+                  "minimum": 3600,
+                  "maximum": 7776000
+                }
+              }
+            }
+          }
+        },
+        "queue": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_pending",
+            "anchor_pending_alert_s"
+          ],
+          "properties": {
+            "max_pending": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 10000000
+            },
+            "anchor_pending_alert_s": {
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 604800
+            }
+          }
+        }
+      }
+    },
+    "sujet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "org_id",
+        "journal_id",
+        "period_start",
+        "hash",
+        "tree_size",
+        "declared_at"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "periode",
+            "point"
+          ]
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "period_start": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "multipleOf": 3600
+        },
+        "hash": {
+          "$ref": "#/$defs/hex32",
+          "description": "periodHash (CT-1 §10.2) ou checkpointHash (CT-1 §10.6) : l'empreinte ancrée."
+        },
+        "tree_size": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          ],
+          "description": "tree_size du point ; null pour une période."
+        },
+        "declared_at": {
+          "$ref": "#/$defs/horodatage",
+          "description": "checkpoint_ts du point ou generated_at du manifeste : déclaratif, horloge de l'enregistreur."
+        }
+      }
+    },
+    "issue_tentative": {
+      "enum": [
+        "obtenue",
+        "echec_transitoire",
+        "echec_permanente",
+        "reponse_tardive",
+        "en_cours"
+      ],
+      "description": "Issues de CT-5 EX-5.13 : obtenue (jeton, preuve ou reçu obtenu et vérifié) ; echec_transitoire (à reprendre, EX-5.12) ; echec_permanente (jamais rejouée sans modification, relève, EX-5.12) ; reponse_tardive (EX-5.11) ; en_cours (envoyée sans réponse)."
+    },
+    "tentative": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "n",
+        "provider",
+        "started_at",
+        "nonce",
+        "correlation_id",
+        "outcome",
+        "error_code",
+        "http_status",
+        "pki_status",
+        "failure_info",
+        "retry_after_s",
+        "next_at",
+        "detail"
+      ],
+      "properties": {
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "provider": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifiant"
+            }
+          ],
+          "description": "Prestataire RFC 3161 ; null pour une demande OpenTimestamps ou de registre."
+        },
+        "started_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "nonce": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex8"
+            }
+          ],
+          "description": "Nonce de la requête RFC 3161 de cette tentative ; frais à chaque tentative (EX-5.3)."
+        },
+        "correlation_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9:._-]{0,127}$",
+          "description": "attempt_id d'EX-5.13, transmis au prestataire quand correlation_header est non nul (R1-F35)."
+        },
+        "outcome": {
+          "$ref": "#/$defs/issue_tentative"
+        },
+        "error_code": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-zA-Z0-9_-]{0,63}$"
+            }
+          ],
+          "description": "Code d'erreur d'EX-5.10 (http_503, nonce_different, verification_T-6, reponse_tardive, recu_absent, …) ; null pour une tentative obtenue ou en cours."
+        },
+        "http_status": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            }
+          ]
+        },
+        "pki_status": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5
+            }
+          ],
+          "description": "PKIStatus de la réponse (RFC 3161 §2.4.2, R1-F6)."
+        },
+        "failure_info": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "badAlg",
+                "badRequest",
+                "badDataFormat",
+                "timeNotAvailable",
+                "unacceptedPolicy",
+                "unacceptedExtension",
+                "addInfoNotAvailable",
+                "systemFailure",
+                "autre"
+              ]
+            }
+          ],
+          "description": "PKIFailureInfo (R1-F7) ; autre pour une valeur hors de la liste de la RFC."
+        },
+        "retry_after_s": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 604800
+            }
+          ],
+          "description": "Valeur de l'en-tête Retry-After reçue (R1-F68) ; null sinon."
+        },
+        "next_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ],
+          "description": "Instant de la tentative suivante programmée ; null si aucune."
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 1024,
+          "description": "Texte libre, ASCII, sans secret ni donnée du client."
+        }
+      }
+    },
+    "resultat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "size",
+        "provider",
+        "obtained_at",
+        "bound"
+      ],
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/hex32",
+          "description": "SHA-256 du fichier conservé : TimeStampToken DER, fichier .ots, ou index de capture de la transaction (CT-4 §9.4)."
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 268435456
+        },
+        "provider": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifiant"
+            }
+          ]
+        },
+        "obtained_at": {
+          "$ref": "#/$defs/horodatage",
+          "description": "received_at de la tentative promue (EX-5.13), consigné comme l'exige CT-6 EX-13.2."
+        },
+        "bound": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ],
+          "description": "Borne « au plus tard » tirée de l'ancre : genTime + accuracy pour un jeton (upper_bound d'EX-5.13) ; null pour une ancre au registre (aucune date) ou une preuve OpenTimestamps en attente."
+        }
+      }
+    },
+    "demande": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "kind",
+        "subject",
+        "deadlines",
+        "state",
+        "created_at",
+        "due_at",
+        "attempts",
+        "result",
+        "replaced_by"
+      ],
+      "description": "Une ligne de la file d'attente durable (NDJSON, JCS intégral de CT-2 §8.1, une ligne par état successif ; la dernière ligne d'un id fait foi, EX-8.5).",
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "$ref": "#/$defs/identifiant_demande"
+        },
+        "kind": {
+          "$ref": "#/$defs/sorte_demande"
+        },
+        "subject": {
+          "$ref": "#/$defs/sujet"
+        },
+        "deadlines": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "description": "Pour jeton_point et ots_point : les indices k des échéances D_k de la période que cette demande sert (EX-4.3 : un point satisfait toutes les échéances passées non encore satisfaites) ; vide pour les autres sortes."
+        },
+        "state": {
+          "$ref": "#/$defs/etat_demande"
+        },
+        "created_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "due_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ],
+          "description": "Prochaine échéance de la demande (envoi, reprise, mise à niveau, fin d'attente du registre, relève) ; null pour un état final."
+        },
+        "attempts": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/tentative"
+          }
+        },
+        "result": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/resultat"
+            }
+          ]
+        },
+        "replaced_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifiant_demande"
+            }
+          ],
+          "description": "Pour l'état remplacee : la demande plus récente qui la couvre (EX-4.4, EX-9.5)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "obtenue",
+                  "complete"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "result": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "remplacee"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "replaced_by": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "jeton_periode",
+                  "ots_periode",
+                  "ancre_registre_periode"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "subject": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "periode"
+                  },
+                  "tree_size": {
+                    "type": "null"
+                  }
+                }
+              },
+              "deadlines": {
+                "type": "array",
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "jeton_point",
+                  "ots_point",
+                  "ancre_registre_point"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "subject": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "point"
+                  },
+                  "tree_size": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "evenement_entree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "type",
+        "data"
+      ],
+      "properties": {
+        "t": {
+          "$ref": "#/$defs/horodatage",
+          "description": "Instant de l'horloge injectée."
+        },
+        "type": {
+          "enum": [
+            "demarrage",
+            "point_produit",
+            "periode_close",
+            "tic",
+            "reponse_rfc3161",
+            "reponse_ots",
+            "inclusion_registre",
+            "echec_registre",
+            "stockage_relu",
+            "arret"
+          ]
+        },
+        "data": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "point_produit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "org_id",
+                  "journal_id",
+                  "period_start",
+                  "tree_size",
+                  "checkpoint_hash",
+                  "checkpoint_ts"
+                ],
+                "properties": {
+                  "org_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "journal_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "period_start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "tree_size": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "checkpoint_hash": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "checkpoint_ts": {
+                    "$ref": "#/$defs/horodatage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "periode_close"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "org_id",
+                  "journal_id",
+                  "period_start",
+                  "period_hash",
+                  "generated_at"
+                ],
+                "properties": {
+                  "org_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "journal_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "period_start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "period_hash": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "generated_at": {
+                    "$ref": "#/$defs/horodatage"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "reponse_rfc3161"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "request_id",
+                  "attempt",
+                  "transport",
+                  "http_status",
+                  "pki_status",
+                  "failure_info",
+                  "retry_after_s",
+                  "nonce_in_response",
+                  "imprint_matches",
+                  "checks_passed",
+                  "gen_time",
+                  "accuracy_s",
+                  "token_sha256",
+                  "token_size"
+                ],
+                "properties": {
+                  "request_id": {
+                    "$ref": "#/$defs/identifiant_demande"
+                  },
+                  "attempt": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "transport": {
+                    "enum": [
+                      "reponse",
+                      "erreur_transport",
+                      "delai"
+                    ]
+                  },
+                  "http_status": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 599
+                      }
+                    ]
+                  },
+                  "pki_status": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 5
+                      }
+                    ]
+                  },
+                  "failure_info": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "enum": [
+                          "badAlg",
+                          "badRequest",
+                          "badDataFormat",
+                          "timeNotAvailable",
+                          "unacceptedPolicy",
+                          "unacceptedExtension",
+                          "addInfoNotAvailable",
+                          "systemFailure",
+                          "autre"
+                        ]
+                      }
+                    ],
+                    "description": "PKIFailureInfo (R1-F7) ; autre pour une valeur hors de la liste de la RFC."
+                  },
+                  "retry_after_s": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    ]
+                  },
+                  "nonce_in_response": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/hex8"
+                      }
+                    ]
+                  },
+                  "imprint_matches": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "checks_passed": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^T-([1-9]|1[01])$"
+                    }
+                  },
+                  "gen_time": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,3})?Z$"
+                      }
+                    ]
+                  },
+                  "accuracy_s": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    ]
+                  },
+                  "token_sha256": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/hex32"
+                      }
+                    ]
+                  },
+                  "token_size": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    ]
+                  },
+                  "content_type": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    ],
+                    "description": "Facultatif : Content-Type de la réponse HTTP (EX-5.5 ; EX-5.10, étape 1) ; absent ou null : admis."
+                  },
+                  "body_size": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    ],
+                    "description": "Facultatif : taille du corps de la réponse, en octets (EX-5.5 ; EX-5.10, étape 1) ; absent ou null : dans la borne."
+                  },
+                  "policy_check": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "enum": [
+                          "conforme",
+                          "politique_differente",
+                          "politique_refusee"
+                        ]
+                      }
+                    ],
+                    "description": "Facultatif : résultat de l'étape 5 d'EX-5.10 (politique), tel que le client de la section 5 le rend ; absent ou null : conforme."
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "reponse_ots"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "request_id",
+                  "calendars_answered",
+                  "attestation",
+                  "proof_sha256",
+                  "proof_size"
+                ],
+                "properties": {
+                  "request_id": {
+                    "$ref": "#/$defs/identifiant_demande"
+                  },
+                  "calendars_answered": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64
+                  },
+                  "attestation": {
+                    "enum": [
+                      "en_attente",
+                      "complete",
+                      "aucune"
+                    ]
+                  },
+                  "proof_sha256": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/hex32"
+                      }
+                    ]
+                  },
+                  "proof_size": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "inclusion_registre"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "request_id",
+                  "block_number",
+                  "capture_sha256"
+                ],
+                "properties": {
+                  "request_id": {
+                    "$ref": "#/$defs/identifiant_demande"
+                  },
+                  "block_number": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "capture_sha256": {
+                    "$ref": "#/$defs/hex32"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "echec_registre"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "request_id",
+                  "code"
+                ],
+                "properties": {
+                  "request_id": {
+                    "$ref": "#/$defs/identifiant_demande"
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-zA-Z0-9_-]{0,63}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "stockage_relu"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "periods",
+                  "checkpoints"
+                ],
+                "description": "Reconstruction de la file (EX-8.12) : les objets durables sans ancre obtenue que l'enregistreur relit dans son stockage (CT-2 §12) au démarrage ; periods : données de periode_close des manifestes ; checkpoints : données de point_produit des points.",
+                "properties": {
+                  "periods": {
+                    "type": "array",
+                    "maxItems": 10000,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "org_id",
+                        "journal_id",
+                        "period_start",
+                        "period_hash",
+                        "generated_at"
+                      ],
+                      "properties": {
+                        "org_id": {
+                          "$ref": "#/$defs/hex32"
+                        },
+                        "journal_id": {
+                          "$ref": "#/$defs/hex32"
+                        },
+                        "period_start": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "period_hash": {
+                          "$ref": "#/$defs/hex32"
+                        },
+                        "generated_at": {
+                          "$ref": "#/$defs/horodatage"
+                        }
+                      }
+                    }
+                  },
+                  "checkpoints": {
+                    "type": "array",
+                    "maxItems": 10000,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "org_id",
+                        "journal_id",
+                        "period_start",
+                        "tree_size",
+                        "checkpoint_hash",
+                        "checkpoint_ts"
+                      ],
+                      "properties": {
+                        "org_id": {
+                          "$ref": "#/$defs/hex32"
+                        },
+                        "journal_id": {
+                          "$ref": "#/$defs/hex32"
+                        },
+                        "period_start": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "tree_size": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "checkpoint_hash": {
+                          "$ref": "#/$defs/hex32"
+                        },
+                        "checkpoint_ts": {
+                          "$ref": "#/$defs/horodatage"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "demarrage : lecture de queue_before et reprise (EX-8.12) ; point_produit : l'enregistreur a signé un point admis (AN-3 ; CT-1 §10.5) ; periode_close : manifeste signé ; tic : l'horloge avance, les échéances et les attentes sont examinées ; reponse_rfc3161 : ce que le client a reçu d'un prestataire pour une tentative (transport : reponse, erreur_transport ou delai ; puis les faits lus : statut HTTP, PKIStatus, PKIFailureInfo, Retry-After, nonce lu, égalité de l'empreinte, vérifications T- réussies, genTime, accuracy, SHA-256 et taille du jeton), que le planificateur classe selon EX-5.10 à EX-5.12 ; reponse_ots : réponse des calendriers à une soumission ou à une mise à niveau (attestation : en_attente, complete, aucune) ; inclusion_registre : l'ancre est incluse et capturée (CT-4 §9.4) ; echec_registre : code de CT-4 §7.11 (recu_absent, empreinte_squattee, noeud_injoignable…) ; arret : fin de la trace, la file est écrite."
+    },
+    "action_attendue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "action",
+        "request_id",
+        "detail"
+      ],
+      "properties": {
+        "t": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "action": {
+          "enum": [
+            "ecrire_file",
+            "echeance",
+            "envoyer_rfc3161",
+            "envoyer_registre",
+            "soumettre_ots",
+            "mettre_a_niveau_ots",
+            "programmer",
+            "releve",
+            "remplacer",
+            "stocker",
+            "rejeter_reponse",
+            "alerter",
+            "journaliser"
+          ]
+        },
+        "request_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifiant_demande"
+            }
+          ]
+        },
+        "detail": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "ecrire_file"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "$ref": "#/$defs/etat_demande"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "echeance"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "k",
+                  "state"
+                ],
+                "properties": {
+                  "k": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3600
+                  },
+                  "state": {
+                    "enum": [
+                      "ouverte",
+                      "satisfaite",
+                      "sans_objet",
+                      "remplacee"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "envoyer_rfc3161"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "provider",
+                  "attempt",
+                  "digest",
+                  "nonce",
+                  "policy_oid",
+                  "request_sha256",
+                  "request_size"
+                ],
+                "properties": {
+                  "provider": {
+                    "$ref": "#/$defs/identifiant"
+                  },
+                  "attempt": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "digest": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "nonce": {
+                    "$ref": "#/$defs/hex8"
+                  },
+                  "policy_oid": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/oid"
+                      }
+                    ]
+                  },
+                  "request_sha256": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "request_size": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "envoyer_registre"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "fingerprint",
+                  "doc_type"
+                ],
+                "properties": {
+                  "fingerprint": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "doc_type": {
+                    "$ref": "#/$defs/hex32"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "soumettre_ots"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "digest",
+                  "nonce",
+                  "calendars"
+                ],
+                "properties": {
+                  "digest": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "nonce": {
+                    "type": "string",
+                    "pattern": "^0x[0-9a-f]{32}$"
+                  },
+                  "calendars": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^https://[^\\s]+$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "mettre_a_niveau_ots"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "attempt"
+                ],
+                "properties": {
+                  "attempt": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "programmer"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "next_at",
+                  "reason"
+                ],
+                "properties": {
+                  "next_at": {
+                    "$ref": "#/$defs/horodatage"
+                  },
+                  "reason": {
+                    "enum": [
+                      "backoff",
+                      "retry_after",
+                      "immediat",
+                      "attente_registre",
+                      "attente_nonce",
+                      "releve",
+                      "mise_a_niveau",
+                      "capture"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "releve"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "provider"
+                ],
+                "properties": {
+                  "provider": {
+                    "$ref": "#/$defs/identifiant"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "remplacer"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "replaced_by"
+                ],
+                "properties": {
+                  "replaced_by": {
+                    "$ref": "#/$defs/identifiant_demande"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "stocker"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "sha256",
+                  "size",
+                  "bound"
+                ],
+                "properties": {
+                  "sha256": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "size": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "bound": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/horodatage"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "rejeter_reponse"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "error_code",
+                  "class"
+                ],
+                "properties": {
+                  "error_code": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-zA-Z0-9_-]{0,63}$"
+                  },
+                  "class": {
+                    "enum": [
+                      "transitoire",
+                      "permanente"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "alerter"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "code",
+                  "severity"
+                ],
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "checkpoint_anchor_late",
+                      "anchor_pending",
+                      "registry_pending",
+                      "inclusion_late",
+                      "prestataire_injoignable",
+                      "prestataires_epuises",
+                      "file_pleine",
+                      "file_perdue",
+                      "ots_give_up",
+                      "ordre_ancres_non_respecte",
+                      "empreinte_squattee",
+                      "horloge_suspecte",
+                      "revoque",
+                      "point_manquant",
+                      "jeton_anterieur_au_point",
+                      "contresignature_tardive",
+                      "reponse_tardive_promue"
+                    ]
+                  },
+                  "severity": {
+                    "enum": [
+                      "mineure",
+                      "majeure",
+                      "critique"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "journaliser"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "detail": {
+                "type": "object",
+                "required": [
+                  "event"
+                ],
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-zA-Z0-9_-]{0,63}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "echeance.state : ouverte, satisfaite, sans_objet, remplacee (EX-4.3, EX-4.4). programmer.reason : backoff, retry_after, immediat, attente_registre, attente_nonce, releve, mise_a_niveau, capture. rejeter_reponse.class : transitoire, permanente (EX-5.12) ; rejeter_reponse.error_code : code d'EX-5.10. alerter.code : checkpoint_anchor_late, anchor_pending, registry_pending, inclusion_late, prestataire_injoignable, prestataires_epuises, file_pleine, file_perdue, ots_give_up, ordre_ancres_non_respecte, empreinte_squattee, horloge_suspecte, revoque, point_manquant, jeton_anterieur_au_point, contresignature_tardive, reponse_tardive_promue."
+    },
+    "cas_cout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "description": "Un cas de la formule de coût de CT-5 §12 : les entrées sont des cadences, des facteurs et des prix symboliques (unités de p, jamais un prix réel) ; les sorties sont les nombres de jetons et d'ancres par journal et par an et les coûts en unités de p.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "journals",
+            "hours_per_year",
+            "checkpoint_interval_s",
+            "rfc3161_checkpoint_interval_s",
+            "activity_ratio",
+            "checkpoints_provider_role",
+            "countersign_idle",
+            "registry_checkpoints",
+            "unit_price_qualified",
+            "unit_price_second_rank",
+            "subscription_fee",
+            "subscription_quota",
+            "billable_retry_ratio"
+          ],
+          "properties": {
+            "journals": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "hours_per_year": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8784
+            },
+            "checkpoint_interval_s": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 3600
+            },
+            "rfc3161_checkpoint_interval_s": {
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 3600,
+              "description": "c_T ; 3600 : aucun point contresigné (EX-4.2)."
+            },
+            "activity_ratio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Part des échéances dont le point sélectionné engage au moins un nouvel événement (a)."
+            },
+            "checkpoints_provider_role": {
+              "enum": [
+                "principal",
+                "second_rang",
+                "interne",
+                "aucun"
+              ]
+            },
+            "countersign_idle": {
+              "type": "boolean"
+            },
+            "registry_checkpoints": {
+              "enum": [
+                "nouveaux_evenements",
+                "tous",
+                "aucun"
+              ]
+            },
+            "unit_price_qualified": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_q, en unités symboliques."
+            },
+            "unit_price_second_rank": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_s, en unités symboliques (0 pour le serveur interne)."
+            },
+            "subscription_fee": {
+              "type": "number",
+              "minimum": 0,
+              "description": "F : forfait annuel, en unités symboliques ; 0 pour un modèle au jeton."
+            },
+            "subscription_quota": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              ],
+              "description": "Q : jetons qualifiés compris dans le forfait ; null : illimité."
+            },
+            "billable_retry_ratio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10,
+              "description": "r : requêtes facturées en plus par jeton obtenu (0 par défaut)."
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "qualified_tokens_per_journal",
+            "second_rank_tokens_per_journal",
+            "registry_anchors_per_journal",
+            "gas_upper_bound_per_journal",
+            "cost_per_journal",
+            "cost_total"
+          ],
+          "properties": {
+            "qualified_tokens_per_journal": {
+              "type": "number",
+              "minimum": 0
+            },
+            "second_rank_tokens_per_journal": {
+              "type": "number",
+              "minimum": 0
+            },
+            "registry_anchors_per_journal": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Borne supérieure des appels anchor par an (EX-4.7)."
+            },
+            "gas_upper_bound_per_journal": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cost_per_journal": {
+              "type": "number",
+              "minimum": 0,
+              "description": "C_j en unités symboliques (section 12)."
+            },
+            "cost_total": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "cas_requete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "description": "Une requête TimeStampReq construite octet pour octet (CT-5 EX-5.1 ; annexe A.4) et ce qu'une implémentation tierce doit y lire.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "digest",
+            "nonce_label",
+            "policy_oid",
+            "cert_req"
+          ],
+          "properties": {
+            "digest": {
+              "$ref": "#/$defs/hex32"
+            },
+            "nonce_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "Étiquette dont les 64 premiers bits du SHA-256 donnent le nonce (vecteurs seulement ; en exploitation le nonce est aléatoire, EX-5.3)."
+            },
+            "policy_oid": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/oid"
+                }
+              ]
+            },
+            "cert_req": {
+              "const": true
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "nonce",
+            "der",
+            "size",
+            "sha256",
+            "file"
+          ],
+          "properties": {
+            "nonce": {
+              "$ref": "#/$defs/hex8"
+            },
+            "der": {
+              "type": "string",
+              "pattern": "^0x[0-9a-f]+$",
+              "maxLength": 1024
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 56,
+              "maximum": 512
+            },
+            "sha256": {
+              "$ref": "#/$defs/hex32"
+            },
+            "file": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*\\.tsq$"
+            }
+          }
+        }
+      }
+    },
+    "fichier_vecteurs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "family",
+        "description",
+        "cases"
+      ],
+      "description": "Un fichier de famille des vecteurs de CT-5 (annexe A.4) : requetes (cas_requete), cout (cas_cout), completude (cas_completude). Les traces de planification sont des fichiers à part, conformes à la racine de ce schéma ; les files de reprise sont des NDJSON de demandes.",
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "family": {
+          "enum": [
+            "requetes",
+            "cout",
+            "completude"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/cas_requete"
+              },
+              {
+                "$ref": "#/$defs/cas_cout"
+              },
+              {
+                "$ref": "#/$defs/cas_completude"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "cas_completude": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "description": "Un cas de la famille completude (AN-61, EX-10.7) : contrôle de complétude au registre d'une série de points publiée contre les événements Anchored capturés des clés de chaîne de l'enregistreur.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "from_block",
+            "to_block",
+            "issuers",
+            "journals",
+            "anchors"
+          ],
+          "properties": {
+            "from_block": {
+              "type": "integer",
+              "minimum": -1,
+              "maximum": 9007199254740991,
+              "description": "Bloc de l'ancre de la période précédente (exclu) ; -1 : aucun."
+            },
+            "to_block": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Bloc de l'ancre de la période (inclus)."
+            },
+            "issuers": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/adresse"
+              }
+            },
+            "journals": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "org_id",
+                  "journal_id",
+                  "points"
+                ],
+                "properties": {
+                  "org_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "journal_id": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "points": {
+                    "type": "array",
+                    "maxItems": 10000,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "checkpoint_hash",
+                        "checkpoint_ts"
+                      ],
+                      "properties": {
+                        "checkpoint_hash": {
+                          "$ref": "#/$defs/hex32"
+                        },
+                        "checkpoint_ts": {
+                          "$ref": "#/$defs/horodatage"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "anchors": {
+              "type": "array",
+              "maxItems": 10000,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "fingerprint",
+                  "doc_type",
+                  "block_number",
+                  "log_index",
+                  "issuer"
+                ],
+                "properties": {
+                  "fingerprint": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "doc_type": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "block_number": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "log_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "issuer": {
+                    "$ref": "#/$defs/adresse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "complete",
+            "orphans",
+            "out_of_order",
+            "attached"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "orphans": {
+              "type": "array",
+              "maxItems": 10000,
+              "items": {
+                "$ref": "#/$defs/hex32"
+              },
+              "description": "Empreintes des ancres orphelines (ancre_orpheline), dans l'ordre des blocs."
+            },
+            "out_of_order": {
+              "type": "array",
+              "maxItems": 10000,
+              "items": {
+                "$ref": "#/$defs/hex32"
+              },
+              "description": "Empreintes des ancres dont le checkpoint_ts précède celui de l'ancre rattachée précédente du même journal."
+            },
+            "attached": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Nombre d'ancres rattachées à un point publié."
+            }
+          }
+        }
+      }
+    }
+  }
+}

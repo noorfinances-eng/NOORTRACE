@@ -361,6 +361,15 @@ export function libelleDuDocType(doc_type) {
 /** docType des ancres de période (EX-6.6). */
 export const DOC_TYPE_PERIODE = DOCTYPES[0].doc_type;
 
+/**
+ * docType des ancres d'un point de contrôle du journal (CT-4 §6.4 révision 0.3,
+ * CT-1 §10.6, CT-5 §9) : keccak256(UTF-8("noortrace/point-de-controle/v0")).
+ * Constante à part : la table DOCTYPES et le vecteur doctypes.json de CT-4
+ * restent ceux de la révision 0.2 de CT-4 jusqu'à sa prochaine révision.
+ */
+export const DOC_TYPE_POINT_DE_CONTROLE = "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178";
+if (keccakTexte("noortrace/point-de-controle/v0") !== DOC_TYPE_POINT_DE_CONTROLE) throw new Error("DOC_TYPE_POINT_DE_CONTROLE : valeur différente du recalcul");
+
 // ---------------------------------------------------------------------------
 // RG-4 : empreinte d'ancre (6.5)
 // ---------------------------------------------------------------------------

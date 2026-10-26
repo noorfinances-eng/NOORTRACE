@@ -12,7 +12,7 @@
 // horodatages RFC 3339 UTC à la milliseconde, entiers sûrs seulement.
 
 import { createHash, createPrivateKey, createPublicKey, sign as signerCrypto, verify as verifierCrypto } from "node:crypto";
-import { Signature, getBytes, hashMessage, recoverAddress } from "ethers";
+import { Signature, getBytes, hashMessage, keccak256, recoverAddress, solidityPacked, toUtf8Bytes } from "ethers";
 
 // ---------------------------------------------------------------------------
 // Constantes du format v0
@@ -34,6 +34,9 @@ export const PREFIXE_MANIFESTE = "noortrace/manifeste/v0\n";
 export const PREFIXE_SIGNATURE_MANIFESTE = "noortrace/signature-manifeste/v0\n";
 export const PREFIXE_APPROBATION = "noortrace/approbation/v0\n";
 export const PREFIXE_ROTATION = "noortrace/signature-rotation/v0\n";
+/** Préfixes du point de contrôle (CT-1 révision 0.3, §10.6) : hachage P_K et signature P_SK. */
+export const PREFIXE_POINT_DE_CONTROLE = "noortrace/point-de-controle/v0\n";
+export const PREFIXE_SIGNATURE_POINT_DE_CONTROLE = "noortrace/signature-point-de-controle/v0\n";
 
 /** Noms d'outils réservés (CT-1 §5.1). */
 export const OUTIL_MODELE = "noortrace.modele.echange";
@@ -47,6 +50,12 @@ export const CLES_EVENEMENT = [
   "version", "seq", "ts", "org_id", "journal_id", "recorder_key_id", "prev_hash",
   "delegation", "code", "intent", "policy", "approval", "execution", "effects", "context",
   "hash", "sig",
+];
+
+/** Les douze clés d'un point de contrôle, dans l'ordre de présentation (CT-1 §10.5). */
+export const CLES_POINT_DE_CONTROLE = [
+  "version", "org_id", "journal_id", "period_start", "tree_size", "root", "last_seq", "last_hash",
+  "checkpoint_ts", "prev_checkpoint_hash", "key_id", "sig",
 ];
 
 /** Les douze parties d'un dossier, dans l'ordre (CT-1 §11.1). */
@@ -68,13 +77,21 @@ export const PARTIES_DOSSIER = [
 /** Parties réservées à CT-4 et CT-5, absentes des dossiers de CT-1. */
 export const PARTIES_RESERVEES = ["jeton_rfc3161", "preuve_ots", "registre", "certificat_commit", "validateurs"];
 
+/** Treizième partie facultative du dossier (CT-1 révision 0.3, §11.1), toujours en treizième position quand elle est déclarée. */
+export const PARTIE_POINTS_DE_CONTROLE = { name: "points_de_controle", file: "points-de-controle.json" };
+
 export const RAISON_HORS_PERIMETRE = "hors périmètre CT-1";
 export const RAISON_AUCUNE_APPROBATION = "aucune approbation liée";
+/** Raison d'absence de la partie points_de_controle quand l'exportateur la déclare sans la fournir (CT-1 §11.1). */
+export const RAISON_AUCUN_POINT = "aucun point de contrôle";
+/** docType de l'ancre d'un point de contrôle au registre : keccak256(UTF-8("noortrace/point-de-controle/v0")) (CT-1 §10.6, CT-4 §6.4). */
+export const DOC_TYPE_POINT_DE_CONTROLE = keccak256(toUtf8Bytes("noortrace/point-de-controle/v0"));
 
 /** Identifiants des schémas, pour le registre de validation (spec/schemas). */
 export const ID_SCHEMA_EVENEMENT = "https://noortrace.example/schemas/v0/evenement.schema.json";
 export const ID_SCHEMA_MANIFESTE = "https://noortrace.example/schemas/v0/manifeste.schema.json";
 export const ID_SCHEMA_DOSSIER = "https://noortrace.example/schemas/v0/dossier.schema.json";
+export const ID_SCHEMA_POINT_DE_CONTROLE = "https://noortrace.example/schemas/v0/point-de-controle.schema.json";
 
 /** Les contrôles du vérificateur (CT-1 §11.4), dans l'ordre du rapport, avec le contrôle de l'architecture qu'ils servent. */
 export const CONTROLES_DOSSIER = [
@@ -106,6 +123,15 @@ export const CONTROLES_DOSSIER = [
   { id: "A-2", libelle: "chaque événement d'approbation est une décision (E-1 à E-11) dont approval et arguments.value correspondent à l'événement prouvé ; décision antérieure à l'appel relayé (seq, approval.at <= ts) ; une décision prouvée figure dans events", architecture: 7 },
   { id: "A-3", libelle: "approbateurs distincts, membres du jeu déclaré, en nombre >= required ; seuil cohérent avec le jeu", architecture: 7 },
   { id: "A-4", libelle: "request_hash = hash recalculé de l'événement de demande (status retenue) quand il est dans le dossier", architecture: 7 },
+  { id: "K-1", libelle: "points-de-controle.json conforme au schéma (le point contre point-de-controle-v0.schema.json) ; org_id et journal_id de l'événement ; period_start du manifeste ; 1 <= tree_size <= count ; last_seq = first_seq + tree_size - 1 ; racine non nulle ; checkpoint_ts >= period_start", architecture: 3 },
+  { id: "K-2", libelle: "checkpointHash recalculé (SHA-256(P_K || JCS(point sans sig))) égal à checkpoint_hash", architecture: 3 },
+  { id: "K-3", libelle: "sig du point valide sous la clé publique key_id de cles.json, sur P_SK || C_K ; checkpoint_ts dans la validité de la clé (cles.json inexploitable : non exécuté, E-8 porte l'échec ; clé absente : échec)", architecture: 6 },
+  { id: "K-4", libelle: "couverture : chemin.leaf_index < tree_size et ts de l'événement prouvé <= checkpoint_ts", architecture: 3 },
+  { id: "K-5", libelle: "consistency : first_size = tree_size, second_size = count, first_root = root du point, second_root = root du manifeste ; algorithme de cohérence RFC 9162 §2.1.4 accepté", architecture: 3 },
+  { id: "K-6", libelle: "last_hash = hash recalculé de l'événement last_seq quand il est dans le dossier (prouvé ou voisin) ; sinon non vérifiable, signalé", architecture: 2 },
+  { id: "K-7", libelle: "anchors.rfc3161 non nul : jeton décodé (base64 canonique) puis T-1 à T-11 de CT-6 sur checkpoint_hash ; nul : non exécuté, ancre absente", architecture: 4 },
+  { id: "K-8", libelle: "anchors.registry non nul : fingerprint = keccak256(org_id || journal_id || checkpoint_hash), doc_type du point, contract du fichier d'ancres, inclusion par les R- de CT-6 ; nul : non exécuté, ancre absente", architecture: 8 },
+  { id: "K-9", libelle: "anchors.ots non nul : preuve décodée (base64 canonique) puis O-1 à O-7 de CT-6 sur checkpoint_hash ; nul : non exécuté, ancre absente", architecture: 5 },
 ];
 
 const L_ED25519 = (1n << 252n) + 27742317777372353535851937790883648493n;
@@ -1063,6 +1089,95 @@ export function verifierInclusion({ leaf_hash, leaf_index, tree_size, path, root
   return sn === 0 && r === root;
 }
 
+/**
+ * SUBPROOF(m, D[debut..fin-1], b) de la RFC 9162 §2.1.4.1 (CT-1 §10.7) : b vrai
+ * quand la racine du sous-arbre des m premières feuilles est déjà connue.
+ */
+function sousPreuveCoherence(feuilles, m, debut, fin, b) {
+  const n = fin - debut;
+  if (m === n) return b ? [] : [mth(feuilles, debut, fin)];
+  const k = puissanceDeDeuxInferieure(n);
+  if (m <= k) return [...sousPreuveCoherence(feuilles, m, debut, debut + k, b), mth(feuilles, debut + k, fin)];
+  return [...sousPreuveCoherence(feuilles, m - k, debut + k, fin, false), mth(feuilles, debut, debut + k)];
+}
+
+/**
+ * PROOF(m, D[0..n-1]) de la RFC 9162 §2.1.4.1 (CT-1 §10.7) : la preuve que
+ * l'arbre des m premières feuilles est un préfixe de l'arbre des n feuilles.
+ * Vide pour m = n ; m = 0 et m > n ne sont pas définis (ErreurFormat K-5).
+ */
+export function preuveCoherence(feuilles, m) {
+  if (!Array.isArray(feuilles)) throw new ErreurFormat("preuveCoherence : tableau de feuilles attendu", "K-5");
+  const n = feuilles.length;
+  if (!Number.isInteger(m) || m < 1 || m > n) throw new ErreurFormat(`preuveCoherence : m = ${m} hors de [1, ${n}]`, "K-5");
+  if (m === n) return [];
+  return sousPreuveCoherence(feuilles, m, 0, n, true);
+}
+
+/** Vrai si n est une puissance de deux (entier sûr). */
+function estPuissanceDeDeux(n) {
+  let p = 1;
+  while (p < n) p *= 2;
+  return p === n;
+}
+
+/**
+ * Vérification d'une preuve de cohérence par l'algorithme de la RFC 9162
+ * §2.1.4.2, tel que CT-1 §10.7 le reproduit : rend true si et seulement si
+ * `path` a exactement la longueur attendue pour (first_size, second_size) et
+ * mène de first_root à second_root. Entrées mal formées : false.
+ */
+export function verifierCoherence({ first_size, second_size, first_root, second_root, path }) {
+  if (!estHex32(first_root) || !estHex32(second_root) || !Array.isArray(path) || !path.every(estHex32)) return false;
+  if (!Number.isSafeInteger(first_size) || !Number.isSafeInteger(second_size)) return false;
+  const m = first_size;
+  const n = second_size;
+  if (m < 1 || n < m) return false;
+  if (m === n) return path.length === 0 && first_root === second_root;
+  if (path.length === 0) return false;
+  const chemin = estPuissanceDeDeux(m) ? [first_root, ...path] : path;
+  let fn = m - 1;
+  let sn = n - 1;
+  while (fn % 2 === 1) {
+    fn = Math.floor(fn / 2);
+    sn = Math.floor(sn / 2);
+  }
+  let fr = chemin[0];
+  let sr = chemin[0];
+  for (const h of chemin.slice(1)) {
+    if (sn === 0) return false;
+    if (fn % 2 === 1 || fn === sn) {
+      fr = noeudMerkle(h, fr);
+      sr = noeudMerkle(h, sr);
+      while (fn % 2 === 0 && fn !== 0) {
+        fn = Math.floor(fn / 2);
+        sn = Math.floor(sn / 2);
+      }
+    } else {
+      sr = noeudMerkle(sr, h);
+    }
+    fn = Math.floor(fn / 2);
+    sn = Math.floor(sn / 2);
+  }
+  return fr === first_root && sr === second_root && sn === 0;
+}
+
+/**
+ * Le contenu de `consistency` de la partie points-de-controle.json (CT-1
+ * §11.2) : preuve de cohérence des `tree_size` premières feuilles de la période
+ * vers la racine du manifeste (toutes les feuilles).
+ */
+export function preuveCoherenceDossier(feuillesPeriode, tree_size) {
+  return {
+    version: VERSION_FORMAT,
+    first_size: tree_size,
+    second_size: feuillesPeriode.length,
+    first_root: racineMerkle(feuillesPeriode.slice(0, tree_size)),
+    second_root: racineMerkle(feuillesPeriode),
+    path: preuveCoherence(feuillesPeriode, tree_size),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Manifeste de période (CT-1 §10)
 // ---------------------------------------------------------------------------
@@ -1159,6 +1274,240 @@ export function verifierContinuiteManifestes(p, q) {
   const attendu = hachageManifeste(p);
   if (q.prev_period_hash !== attendu) erreurs.push(`prev_period_hash ${q.prev_period_hash} différent du periodHash précédent ${attendu}`);
   return { valide: erreurs.length === 0, erreurs };
+}
+
+// ---------------------------------------------------------------------------
+// Point de contrôle de la période en cours (CT-1 révision 0.3, §10.5 à §10.9)
+// ---------------------------------------------------------------------------
+
+/**
+ * Construit un point de contrôle (sans signature) : `hashes` sont les hash des
+ * événements de la période dans l'ordre des seq, `tree_size` le nombre
+ * d'événements engagés (0 admis : racine nulle, last_seq = first_seq - 1 et
+ * last_hash = `last_hash_journal`, hash du dernier événement avant la période,
+ * ou 32 octets nuls si le journal est vide). Règles de CT-1 §10.5.
+ */
+export function construirePointDeControle({ org_id, journal_id, period_start, first_seq, hashes, tree_size, checkpoint_ts, prev_checkpoint_hash = HASH_NUL, key_id, last_hash_journal = HASH_NUL }) {
+  if (!Number.isSafeInteger(period_start) || period_start < 0 || period_start % DUREE_PERIODE !== 0) throw new ErreurFormat("period_start : heure UTC pleine en secondes UNIX attendue", "K-1");
+  if (!Number.isSafeInteger(first_seq) || first_seq < 1) throw new ErreurFormat("first_seq : entier >= 1 attendu", "K-1");
+  if (!Array.isArray(hashes) || !hashes.every(estHex32)) throw new ErreurFormat("hashes : tableau de hash d'événements attendu", "K-1");
+  if (!Number.isSafeInteger(tree_size) || tree_size < 0 || tree_size > hashes.length) throw new ErreurFormat(`tree_size ${tree_size} hors de [0, ${hashes.length}]`, "K-1");
+  if (!estHorodatage(checkpoint_ts) || horodatagesHorsCalendrier([["/checkpoint_ts", checkpoint_ts]]).length) throw new ErreurFormat("checkpoint_ts : horodatage RFC 3339 UTC à la milliseconde attendu", "K-1");
+  if (!estHex32(prev_checkpoint_hash)) throw new ErreurFormat("prev_checkpoint_hash : hex de 32 octets attendu", "K-1");
+  if (!estIdentifiantCle(key_id)) throw new ErreurFormat("key_id : identifiant de clé attendu", "K-1");
+  if (!estHex32(last_hash_journal)) throw new ErreurFormat("last_hash_journal : hex de 32 octets attendu", "K-1");
+  return {
+    version: VERSION_FORMAT,
+    org_id,
+    journal_id,
+    period_start,
+    tree_size,
+    root: racineMerkle(hashes.slice(0, tree_size)),
+    last_seq: first_seq + tree_size - 1,
+    last_hash: tree_size > 0 ? hashes[tree_size - 1] : last_hash_journal,
+    checkpoint_ts,
+    prev_checkpoint_hash,
+    key_id,
+  };
+}
+
+/** K' : le point privé de sa clé sig (onze clés), dans l'ordre de présentation. */
+export function corpsPointDeControle(point) {
+  const corps = {};
+  for (const k of CLES_POINT_DE_CONTROLE) if (k !== "sig" && point[k] !== undefined) corps[k] = point[k];
+  for (const k of Object.keys(point ?? {})) if (k !== "sig" && !(k in corps)) corps[k] = point[k];
+  return corps;
+}
+
+/** checkpointHash = SHA-256(P_K || JCS(K')) : l'empreinte que les ancres portent (CT-1 §10.6). */
+export function hachagePointDeControle(point) {
+  return sha256(Buffer.concat([Buffer.from(PREFIXE_POINT_DE_CONTROLE, "utf8"), octetsJCS(corpsPointDeControle(point))]));
+}
+
+function messageSignaturePointDeControle(point) {
+  return Buffer.concat([Buffer.from(PREFIXE_SIGNATURE_POINT_DE_CONTROLE, "utf8"), octetsJCS(corpsPointDeControle(point))]);
+}
+
+/** Signe un point : rend { ...point, sig }, la signature étant portée dans l'objet. */
+export function signerPointDeControle(point, cle) {
+  return { ...corpsPointDeControle(point), sig: signerEd25519(cle, messageSignaturePointDeControle(point)) };
+}
+
+/** Vrai si point.sig est valide sous la clé publique donnée, sur P_SK || C_K. */
+export function verifierSignaturePointDeControle(point, clePubliqueHex) {
+  try {
+    return verifierEd25519(clePubliqueHex, messageSignaturePointDeControle(point), point?.sig);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Règles internes d'un point (schéma de CT-1 §10.5 et règle « racine nulle si
+ * et seulement si tree_size = 0 ») : rend la liste des erreurs (vide si conforme).
+ */
+export function verifierPointDeControle(p) {
+  const erreurs = [];
+  if (p === null || typeof p !== "object" || Array.isArray(p)) return ["point : objet JSON attendu"];
+  const cles = Object.keys(p).sort();
+  const attendues = [...CLES_POINT_DE_CONTROLE].sort();
+  if (!egalJSON(cles, attendues)) erreurs.push(`clés ${JSON.stringify(cles)}, attendues ${JSON.stringify(attendues)}`);
+  if (p.version !== VERSION_FORMAT) erreurs.push(`version ${JSON.stringify(p.version)}, attendu ${VERSION_FORMAT}`);
+  for (const k of ["org_id", "journal_id", "root", "last_hash", "prev_checkpoint_hash"]) if (!estHex32(p[k])) erreurs.push(`${k} : hex de 32 octets attendu`);
+  if (!Number.isSafeInteger(p.period_start) || p.period_start < 0 || p.period_start % DUREE_PERIODE !== 0) erreurs.push("period_start : heure UTC pleine en secondes UNIX attendue");
+  if (!Number.isSafeInteger(p.tree_size) || p.tree_size < 0) erreurs.push("tree_size : entier >= 0 attendu");
+  if (!Number.isSafeInteger(p.last_seq) || p.last_seq < 0) erreurs.push("last_seq : entier >= 0 attendu");
+  if (Number.isSafeInteger(p.tree_size) && estHex32(p.root) && (p.tree_size === 0) !== (p.root === HASH_NUL)) erreurs.push(p.tree_size === 0 ? "racine non nulle pour tree_size = 0" : "racine nulle pour tree_size > 0");
+  if (!estHorodatage(p.checkpoint_ts)) erreurs.push("checkpoint_ts : horodatage RFC 3339 UTC à la milliseconde attendu");
+  else erreurs.push(...horodatagesHorsCalendrier([["/checkpoint_ts", p.checkpoint_ts]]));
+  if (!estIdentifiantCle(p.key_id)) erreurs.push("key_id : identifiant de clé attendu");
+  if (typeof p.sig !== "string" || !/^0x[0-9a-f]{128}$/.test(p.sig)) erreurs.push("sig : hex de 64 octets attendu");
+  return erreurs;
+}
+
+/**
+ * Clé de l'enregistreur en vigueur pour un point (CT-1 §10.5, règle 5) : la clé
+ * du dernier événement de seq <= last_seq, ou new_key_id si cet événement est
+ * une rotation ; null si aucun événement ne précède. `evenements` : les
+ * événements du journal (tout ou partie), dans n'importe quel ordre.
+ */
+export function cleEnVigueurPoint(evenements, last_seq) {
+  let dernier = null;
+  for (const ev of evenements ?? []) if (estObjet(ev) && Number.isSafeInteger(ev.seq) && ev.seq <= last_seq && (!dernier || ev.seq > dernier.seq)) dernier = ev;
+  return dernier ? cleSuivanteAttendue(dernier) : null;
+}
+
+/**
+ * Règles de série d'une période (CT-1 §10.5, règles 2 à 5), hors dossier : rend
+ * { valide, erreurs }. `manifeste` : le manifeste de la période ; `evenements`
+ * (facultatif) : les événements du journal, pour la règle 5 (clé en vigueur) et
+ * la règle 2 (last_hash et root recalculés depuis les hash) ; `cles`
+ * (facultatif) : { keys } ou Map de normaliserCles, pour les signatures et la
+ * validité annoncée de la clé à checkpoint_ts.
+ */
+export function verifierSeriePointsDeControle(points, manifeste, { evenements = null, cles = null } = {}) {
+  const erreurs = [];
+  if (!Array.isArray(points) || points.length === 0) return { valide: false, erreurs: ["série vide"] };
+  const jeu = cles instanceof Map ? cles : cles ? normaliserCles(cles) : null;
+  const evs = Array.isArray(evenements) ? evenements.filter((e) => estObjet(e) && Number.isSafeInteger(e.seq)) : null;
+  const parSeq = evs ? new Map(evs.map((e) => [e.seq, e])) : null;
+  const hashesPeriode = evs ? evs.filter((e) => manifeste.first_seq <= e.seq && e.seq <= manifeste.last_seq).sort((a, b) => a.seq - b.seq).map((e) => e.hash) : null;
+  let precedent = null;
+  points.forEach((p, i) => {
+    const ou = `point[${i}]`;
+    const internes = verifierPointDeControle(p);
+    if (internes.length) {
+      erreurs.push(`${ou} : ${internes.join(" ; ")}`);
+      precedent = p;
+      return;
+    }
+    if (p.org_id !== manifeste.org_id || p.journal_id !== manifeste.journal_id) erreurs.push(`${ou} : org_id ou journal_id différents du manifeste`);
+    if (p.period_start !== manifeste.period_start) erreurs.push(`${ou} : period_start ${p.period_start} différent de celui du manifeste ${manifeste.period_start}`);
+    if (p.tree_size > manifeste.count) erreurs.push(`${ou} : tree_size ${p.tree_size} supérieur à count ${manifeste.count}`);
+    if (p.last_seq !== manifeste.first_seq + p.tree_size - 1) erreurs.push(`${ou} : last_seq ${p.last_seq} différent de first_seq + tree_size - 1 (${manifeste.first_seq + p.tree_size - 1})`);
+    if (Math.floor(msHorodatage(p.checkpoint_ts) / 1000) < manifeste.period_start) erreurs.push(`${ou} : checkpoint_ts ${p.checkpoint_ts} antérieur à period_start`);
+    const attenduPrev = precedent ? hachagePointDeControle(precedent) : HASH_NUL;
+    if (p.prev_checkpoint_hash !== attenduPrev) erreurs.push(`${ou} : prev_checkpoint_hash ${p.prev_checkpoint_hash} différent de ${precedent ? "checkpointHash du point précédent " + attenduPrev : "32 octets nuls (premier point de la période)"}`);
+    if (precedent) {
+      if (p.tree_size < precedent.tree_size) erreurs.push(`${ou} : tree_size ${p.tree_size} décroît (précédent ${precedent.tree_size})`);
+      if (msHorodatage(p.checkpoint_ts) < msHorodatage(precedent.checkpoint_ts)) erreurs.push(`${ou} : checkpoint_ts ${p.checkpoint_ts} antérieur au précédent ${precedent.checkpoint_ts}`);
+    }
+    if (hashesPeriode && hashesPeriode.length === manifeste.count) {
+      const root = racineMerkle(hashesPeriode.slice(0, p.tree_size));
+      if (p.root !== root) erreurs.push(`${ou} : root ${p.root} différent de la racine recalculée ${root}`);
+      const attenduLast = p.tree_size > 0 ? hashesPeriode[p.tree_size - 1] : (parSeq.get(manifeste.first_seq - 1)?.hash ?? HASH_NUL);
+      if (p.last_hash !== attenduLast) erreurs.push(`${ou} : last_hash ${p.last_hash} différent du hash de l'événement ${p.last_seq} (${attenduLast})`);
+    }
+    if (evs) {
+      const attendue = cleEnVigueurPoint(evs, p.last_seq);
+      if (attendue !== null && p.key_id !== attendue) erreurs.push(`${ou} : key_id ${p.key_id}, clé en vigueur attendue ${attendue}`);
+    }
+    if (jeu) {
+      const cle = jeu.get(p.key_id);
+      if (!cle) erreurs.push(`${ou} : clé ${p.key_id} absente du jeu de clés`);
+      else {
+        if (!verifierSignaturePointDeControle(p, cle.public_key)) erreurs.push(`${ou} : signature invalide sous ${p.key_id}`);
+        const t = msHorodatage(p.checkpoint_ts);
+        const de = cle.valid_from === null ? -Infinity : msHorodatage(cle.valid_from);
+        const a = cle.valid_to === null ? Infinity : msHorodatage(cle.valid_to);
+        if (!(t >= de && t <= a)) erreurs.push(`${ou} : checkpoint_ts ${p.checkpoint_ts} hors de la validité de la clé ${p.key_id}`);
+      }
+    }
+    precedent = p;
+  });
+  const dernier = points[points.length - 1];
+  if (estObjet(dernier)) {
+    if (dernier.tree_size !== manifeste.count) erreurs.push(`dernier point : tree_size ${dernier.tree_size} différent de count ${manifeste.count}`);
+    if (dernier.root !== manifeste.root) erreurs.push(`dernier point : root ${dernier.root} différent de celui du manifeste`);
+    if (dernier.last_seq !== manifeste.last_seq) erreurs.push(`dernier point : last_seq ${dernier.last_seq} différent de celui du manifeste ${manifeste.last_seq}`);
+  }
+  return { valide: erreurs.length === 0, erreurs };
+}
+
+/**
+ * Le point couvrant d'un événement d'indice leaf_index (CT-1 §11.2 ; CT-5
+ * EX-10.2) parmi les points de tree_size strictement supérieur à leaf_index,
+ * dans cet ordre de préférence : (1) un point qui porte un jeton RFC 3161
+ * promu ; (2) à défaut, une preuve OpenTimestamps complète ; (3) à défaut, une
+ * ancre au registre ; (4) à défaut, un point sans ancre. À rang égal, le plus
+ * petit tree_size, puis le premier de la série (plus petit checkpoint_ts).
+ * `ancres` (facultatif) : Map ou objet indexé par checkpointHash, valeurs
+ * { rfc3161, ots, registry } (booléens) ; sans `ancres`, tous les points sont
+ * de rang (4) et le choix est le point de plus petit tree_size, le premier de
+ * la série à tree_size égal. null si aucun point ne couvre l'indice.
+ */
+export function choisirPointCouvrant(points, leaf_index, ancres = null) {
+  const rang = (p) => {
+    if (!ancres) return 3;
+    const h = typeof p.checkpoint_hash === "string" ? p.checkpoint_hash : hachagePointDeControle(p);
+    const a = (ancres instanceof Map ? ancres.get(h) : ancres[h]) ?? {};
+    return a.rfc3161 ? 0 : a.ots ? 1 : a.registry ? 2 : 3;
+  };
+  let choisi = null;
+  let rangChoisi = Infinity;
+  for (const p of points ?? []) {
+    if (!estObjet(p) || !Number.isSafeInteger(p.tree_size) || p.tree_size <= leaf_index) continue;
+    const r = rang(p);
+    if (!choisi || r < rangChoisi || (r === rangChoisi && p.tree_size < choisi.tree_size)) {
+      choisi = p;
+      rangChoisi = r;
+    }
+  }
+  return choisi;
+}
+
+/** Empreinte de l'ancre d'un point au registre : keccak256(org_id || journal_id || checkpointHash), 96 octets (CT-1 §10.6). */
+export function empreinteAncrePoint(org_id, journal_id, checkpoint_hash) {
+  return keccak256(solidityPacked(["bytes32", "bytes32", "bytes32"], [org_id, journal_id, checkpoint_hash]));
+}
+
+const enBase64 = (v, cle) => {
+  if (v === null || v === undefined) return null;
+  if (Buffer.isBuffer(v) || v instanceof Uint8Array) return { [cle]: Buffer.from(v).toString("base64") };
+  if (estObjet(v) && typeof v[cle] === "string") return { [cle]: v[cle] };
+  throw new ErreurFormat(`ancre ${cle} : octets ou { ${cle}: base64 } attendus`, "K-1");
+};
+
+/**
+ * La partie points-de-controle.json (CT-1 §11.2) pour un point signé :
+ * `feuillesPeriode` sont les hash des événements de la période dans l'ordre des
+ * seq ; `anchors` : { rfc3161: octets DER | { token } | null, registry: objet |
+ * null, ots: octets .ots | { proof } | null }.
+ */
+export function construirePartiePointsDeControle({ point, feuillesPeriode, anchors = {} }) {
+  if (!estObjet(point) || typeof point.sig !== "string") throw new ErreurFormat("point signé attendu", "K-1");
+  if (!Number.isSafeInteger(point.tree_size) || point.tree_size < 1 || point.tree_size > feuillesPeriode.length) throw new ErreurFormat(`tree_size ${point.tree_size} hors de [1, ${feuillesPeriode.length}]`, "K-1");
+  return {
+    version: VERSION_FORMAT,
+    checkpoint: point,
+    checkpoint_hash: hachagePointDeControle(point),
+    consistency: preuveCoherenceDossier(feuillesPeriode, point.tree_size),
+    anchors: {
+      rfc3161: enBase64(anchors.rfc3161, "token"),
+      registry: anchors.registry ?? null,
+      ots: enBase64(anchors.ots, "proof"),
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1549,12 +1898,20 @@ export function controlesEvenement(ev, { schemas, cles } = {}) {
 // Dossier de preuve (CT-1 §11)
 // ---------------------------------------------------------------------------
 
-/** L'index dossier.json : les douze parties, sha256 des fichiers présents, raison des absents. */
+/**
+ * L'index dossier.json : les douze parties, sha256 des fichiers présents, raison
+ * des absents. La treizième partie facultative points_de_controle (CT-1
+ * révision 0.3) est ajoutée quand son fichier est fourni ou quand `raisons`
+ * porte une raison d'absence pour elle ; sinon l'index garde douze parties.
+ */
 export function indexDossier({ evenement, generated_at, fichiers, raisons = {} }) {
-  const parts = PARTIES_DOSSIER.map(({ name, file }) => {
+  const declarees = fichiers[PARTIE_POINTS_DE_CONTROLE.file] !== undefined && fichiers[PARTIE_POINTS_DE_CONTROLE.file] !== null || raisons[PARTIE_POINTS_DE_CONTROLE.name] !== undefined
+    ? [...PARTIES_DOSSIER, PARTIE_POINTS_DE_CONTROLE]
+    : PARTIES_DOSSIER;
+  const parts = declarees.map(({ name, file }) => {
     const contenu = fichiers[file];
     if (contenu !== undefined && contenu !== null) return { name, file, sha256: sha256(enOctets(contenu)), present: true, reason_if_absent: null };
-    const raison = raisons[name] ?? (PARTIES_RESERVEES.includes(name) ? RAISON_HORS_PERIMETRE : name === "approbations" ? RAISON_AUCUNE_APPROBATION : "partie absente");
+    const raison = raisons[name] ?? (PARTIES_RESERVEES.includes(name) ? RAISON_HORS_PERIMETRE : name === "approbations" ? RAISON_AUCUNE_APPROBATION : name === PARTIE_POINTS_DE_CONTROLE.name ? RAISON_AUCUN_POINT : "partie absente");
     return { name, file, sha256: null, present: false, reason_if_absent: raison };
   });
   return {
@@ -1573,9 +1930,12 @@ export function indexDossier({ evenement, generated_at, fichiers, raisons = {} }
  * compris). `hashesPeriode` : les hash des événements de la période du
  * manifeste, dans l'ordre des seq. `cles` : { keys: [...] } ou tableau de clés.
  * `approbations` : { approver_set, events } quand l'événement porte une approbation.
+ * `pointsDeControle` (CT-1 révision 0.3, facultatif) : la partie
+ * points-de-controle.json (construirePartiePointsDeControle) ; sans elle et sans
+ * raison `raisons.points_de_controle`, l'index garde douze parties.
  * Les parties réservées à CT-4 et CT-5 sont déclarées absentes.
  */
-export function assemblerDossier({ evenement, previous = null, next = null, hashesPeriode, manifeste, manifesteSig, cles, approbations = null, generated_at, raisons = {} }) {
+export function assemblerDossier({ evenement, previous = null, next = null, hashesPeriode, manifeste, manifesteSig, cles, approbations = null, pointsDeControle = null, generated_at, raisons = {} }) {
   const chemin = preuveInclusion(hashesPeriode, evenement.seq - manifeste.first_seq);
   const fichiers = {
     "evenement.json": texteJSON(evenement),
@@ -1595,6 +1955,7 @@ export function assemblerDossier({ evenement, previous = null, next = null, hash
       events: approbations.events,
     });
   }
+  if (pointsDeControle) fichiers[PARTIE_POINTS_DE_CONTROLE.file] = texteJSON(pointsDeControle);
   const index = indexDossier({ evenement, generated_at, fichiers, raisons });
   return { index, fichiers: { "dossier.json": texteJSON(index), ...fichiers } };
 }
@@ -1664,24 +2025,52 @@ const sorteJSON = (v) => (v === null ? "le littéral null" : Array.isArray(v) ? 
 function nonExecutesBloquants(rapport, parts) {
   const approbations = parts.find((p) => p && p.name === "approbations");
   const absenteAvecRaison = Boolean(approbations && approbations.present === false && typeof approbations.reason_if_absent === "string" && approbations.reason_if_absent.trim() !== "");
-  const admis = (id) => id === "A-4" || (absenteAvecRaison && ["A-2", "A-3", "A-4"].includes(id));
-  return rapport.controles.filter((c) => !c.execute && !admis(c.id)).map((c) => c.id);
+  // Partie points_de_controle (révision 0.3) : absente avec raison ou index à douze
+  // parties, les neuf K- sont admises ; K-6 l'est quand l'événement last_seq est
+  // hors du dossier (comme A-4) ; K-7 à K-9 le sont quand leur ancre vaut null ou
+  // quand leur vérification relève de CT-6 (hors périmètre de cette bibliothèque).
+  const points = parts.find((p) => p && p.name === PARTIE_POINTS_DE_CONTROLE.name);
+  const pointsAbsents = !points || (points.present === false && typeof points.reason_if_absent === "string" && points.reason_if_absent.trim() !== "");
+  const admisK = (c) => {
+    if (!c.id.startsWith("K-")) return false;
+    if (pointsAbsents) return true;
+    const detail = c.details.join(" ; ");
+    if (c.id === "K-6") return detail.includes(DETAIL_K6_HORS_DOSSIER);
+    if (["K-7", "K-8", "K-9"].includes(c.id)) return detail.includes(DETAIL_K_ANCRE_NULLE) || detail.includes(DETAIL_K_HORS_PERIMETRE);
+    return false;
+  };
+  const admis = (c) => c.id === "A-4" || (absenteAvecRaison && ["A-2", "A-3", "A-4"].includes(c.id)) || admisK(c);
+  return rapport.controles.filter((c) => !c.execute && !admis(c)).map((c) => c.id);
 }
+
+/** Détails de non-exécution des vérifications K- (CT-1 §11.4) que CT-6 traduit en raisons. */
+export const DETAIL_K_PARTIE_ABSENTE = "partie absente";
+export const DETAIL_K6_HORS_DOSSIER = "événement last_seq hors du dossier";
+export const DETAIL_K_ANCRE_NULLE = "ancre nulle : partie absente";
+export const DETAIL_K_HORS_PERIMETRE = "ancre à vérifier par CT-6 : hors périmètre CT-1";
+const IDS_K = ["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"];
 
 /**
  * Vérifie un dossier v0 (contrôles 1, 2, 3, 6, 7 de l'architecture, soit D-1 à
  * A-4 de CT-1 §11.4). `fichiers` : objet nom de fichier -> octets ou texte, pour
- * les fichiers PRÉSENTS dans le répertoire. `schemas` : registre des trois
- * schémas (registreSchemas). Lève DossierInutilisable si dossier.json manque ou
+ * les fichiers PRÉSENTS dans le répertoire. `schemas` : registre des quatre
+ * schémas (evenement, manifeste, dossier, point-de-controle ; registreSchemas).
+ * Lève DossierInutilisable si dossier.json manque ou
  * n'est pas du JSON ; sinon rend un rapport { valide, controles,
  * nonExecutesBloquants, evenement, org_id, journal_id, partiesAbsentes, borne }.
  *
  * Une partie présente dont le fichier n'est pas un objet JSON, ou n'est pas
  * conforme à son schéma, met en échec le contrôle qui la porte (dossier.json
  * D-1, evenement.json E-1, enveloppe de voisins.json C-1, chemin.json M-2,
- * manifeste.json P-1, manifeste.sig P-5, cles.json E-8, approbations.json A-1 ;
- * forme canonique impossible E-2) ; les contrôles qui en dépendent sont non
- * exécutés, sans raison admise, et le dossier est invalide.
+ * manifeste.json P-1, manifeste.sig P-5, cles.json E-8, approbations.json A-1,
+ * points-de-controle.json K-1 ; forme canonique impossible E-2) ; les contrôles
+ * qui en dépendent sont non exécutés, sans raison admise, et le dossier est
+ * invalide.
+ *
+ * Révision 0.3 : l'index compte douze ou treize parties ; avec la treizième
+ * (points_de_controle) présente, K-1 à K-6 sont exécutées ici ; K-7 à K-9
+ * (ancres du point) relèvent de CT-6 (scripts/lib/verificateur.mjs) et restent
+ * non exécutées, raison admise, dans cette bibliothèque.
  *
  * `inexploitables` (facultatif, CT-6 EX-4.11, EX-4.13) : Map nom de fichier ->
  * motif, pour les parties que l'appelant a refusé de lire ou d'analyser (taille
@@ -1717,13 +2106,15 @@ export function verifierDossier(fichiers, { schemas, inexploitables = null } = {
   rapport.resultat("D-1", erreursIndex.length === 0, erreursIndex.length ? `dossier.json : ${resumerErreurs(erreursIndex)}` : "dossier.json conforme au schéma");
   const parts = Array.isArray(index.parts) ? index.parts : [];
   const partie = (name) => parts.find((p) => p && p.name === name);
-  if (parts.length !== PARTIES_DOSSIER.length) {
+  if (parts.length !== PARTIES_DOSSIER.length && parts.length !== PARTIES_DOSSIER.length + 1) {
     for (const c of rapport.controles) if (c.id !== "D-1") rapport.nonExecute(c.id, "index inexploitable");
     return terminer(rapport, index, null, parts);
   }
+  // Treize parties : la treizième est points_de_controle (sinon D-1 l'a déjà dit) ; douze : la partie n'est pas déclarée.
+  const partiesDeclarees = parts.length === PARTIES_DOSSIER.length + 1 ? [...PARTIES_DOSSIER, PARTIE_POINTS_DE_CONTROLE] : PARTIES_DOSSIER;
 
   // D-2 : les fichiers tels qu'ils sont dans le répertoire.
-  for (const { name, file } of PARTIES_DOSSIER) {
+  for (const { name, file } of partiesDeclarees) {
     const p = partie(name);
     const o = brut(file);
     if (!p) {
@@ -1772,6 +2163,12 @@ export function verifierDossier(fichiers, { schemas, inexploitables = null } = {
   const manifesteSig = lire("manifeste.sig", "P-5");
   const clesDoc = lire("cles.json", "E-8");
   const approbations = brut("approbations.json") || refus("approbations.json") !== null ? lire("approbations.json", "A-1") : null;
+  const partiePoints = partie(PARTIE_POINTS_DE_CONTROLE.name);
+  const pointsDeclaresPresents = Boolean(partiePoints && partiePoints.present === true);
+  // Révision 0.3 : le schéma point-de-controle-v0 n'est exigé que pour vérifier la partie déclarée présente
+  // (K-1 ; $defs/points_de_controle de dossier-v0 y renvoie) ; un dossier à douze parties s'en passe.
+  if (pointsDeclaresPresents && !schemas[ID_SCHEMA_POINT_DE_CONTROLE]) throw new DossierInutilisable("le schéma point-de-controle est requis pour vérifier la partie points-de-controle.json (CT-1 révision 0.3)");
+  const pointsDoc = pointsDeclaresPresents ? lire(PARTIE_POINTS_DE_CONTROLE.file, "K-1") : null;
 
   if (evenement) {
     if (index.event?.seq !== evenement.seq || index.event?.hash !== evenement.hash) rapport.echec("D-1", `event de l'index (seq ${index.event?.seq}, ${index.event?.hash}) différent de evenement.json (seq ${evenement.seq}, ${evenement.hash})`);
@@ -2008,7 +2405,123 @@ export function verifierDossier(fichiers, { schemas, inexploitables = null } = {
     else rapport.succes("A-4", `événement de demande seq ${demande.seq} retenu, hash égal à request_hash`);
   }
 
+  // K-1 à K-9 : la partie points-de-controle.json (CT-1 révision 0.3, §11.4).
+  if (!pointsDeclaresPresents) {
+    for (const id of IDS_K) rapport.nonExecute(id, DETAIL_K_PARTIE_ABSENTE);
+  } else if (!pointsDoc) {
+    // lire() a imputé K-1 si la partie est inexploitable ; déclarée présente mais absente du répertoire, D-2 l'a dit.
+    if (!rapport.parId.get("K-1").execute) rapport.nonExecute("K-1", `${PARTIE_POINTS_DE_CONTROLE.file} absent du répertoire`);
+    for (const id of IDS_K.slice(1)) rapport.nonExecute(id, `${PARTIE_POINTS_DE_CONTROLE.file} inexploitable`);
+  } else {
+    verifierPartiePointsDeControle(rapport, pointsDoc, { ev, voisins, chemin, manifeste, cles, schemas, hashRecalcule });
+  }
+
   return terminer(rapport, index, ev, parts);
+}
+
+/**
+ * K-1 à K-6 sur une partie points-de-controle.json lisible (objet JSON) ; K-7 à
+ * K-9 restent non exécutées (ancre nulle : partie absente ; ancre fournie : à
+ * vérifier par CT-6). Les erreurs de schéma sont imputées à K-1 ; les
+ * vérifications qui dépendent d'une pièce inexploitable sont non exécutées.
+ */
+function verifierPartiePointsDeControle(rapport, doc, { ev, voisins, chemin, manifeste: manifesteLu, cles, schemas, hashRecalcule }) {
+  const file = PARTIE_POINTS_DE_CONTROLE.file;
+  const erreursSchema = validerSchema(doc, schemas[ID_SCHEMA_DOSSIER], { registre: schemas, fragment: "#/$defs/points_de_controle" });
+  const point = estObjet(doc.checkpoint) ? doc.checkpoint : null;
+  // Prérequis (CT-6 EX-5.9, table 5.3) : les relations au manifeste exigent P-1 réussie ; K-4 exige M-3 réussie.
+  const reussie = (id) => rapport.parId.get(id).execute && rapport.parId.get(id).ok === true;
+  const manifeste = reussie("P-1") ? manifesteLu : null;
+  const k1 = erreursSchema.length ? [`${file} : ${resumerErreurs(erreursSchema)}`] : [];
+  if (point) {
+    k1.push(...horodatagesHorsCalendrier([["/checkpoint/checkpoint_ts", point.checkpoint_ts]]).map((m) => `${file} : ${m}`));
+  }
+  if (point && ev && (point.org_id !== ev.org_id || point.journal_id !== ev.journal_id)) k1.push("org_id ou journal_id du point différents de ceux de l'événement");
+  if (point && manifeste) {
+    if (point.period_start !== manifeste.period_start) k1.push(`period_start du point ${point.period_start} différent de celui du manifeste ${manifeste.period_start}`);
+    if (!(Number.isSafeInteger(point.tree_size) && point.tree_size >= 1 && point.tree_size <= manifeste.count)) k1.push(`tree_size ${point.tree_size} hors de [1, count = ${manifeste.count}]`);
+    if (point.last_seq !== manifeste.first_seq + point.tree_size - 1) k1.push(`last_seq ${point.last_seq} différent de first_seq + tree_size - 1 (${manifeste.first_seq + point.tree_size - 1})`);
+    if (point.root === HASH_NUL) k1.push("racine du point nulle");
+    const sec = Math.floor(msHorodatage(point.checkpoint_ts) / 1000);
+    if (Number.isNaN(sec) || sec < manifeste.period_start) k1.push(`checkpoint_ts ${point.checkpoint_ts} antérieur à period_start ${manifeste.period_start}`);
+  }
+  if (k1.length) k1.forEach((m) => rapport.echec("K-1", m));
+  else if (!point || !ev || !manifeste) rapport.nonExecute("K-1", manifesteLu && !manifeste ? "P-1 en échec : relations du point au manifeste non vérifiables" : "événement ou manifeste inexploitable : relations du point non vérifiables");
+  else rapport.succes("K-1", `point de tree_size ${point.tree_size} (seq ${manifeste.first_seq}..${point.last_seq}), checkpoint_ts ${point.checkpoint_ts}`);
+  // CT-1 §11.4, CT-6 EX-5.9 : K-1 en échec ou non exécutée, K-2 à K-9 ne sont pas exécutées, sans raison
+  // admise (prerequis_en_echec), ancres nulles comprises ; aucun calcul n'est fait sur la partie.
+  if (!reussie("K-1")) {
+    const detail = rapport.parId.get("K-1").ok === false ? "K-1 en échec" : "K-1 non exécutée";
+    for (const id of IDS_K.slice(1)) rapport.nonExecute(id, detail);
+    return;
+  }
+
+  // K-2 : checkpointHash.
+  let ch = null;
+  try {
+    ch = hachagePointDeControle(point);
+  } catch (err) {
+    rapport.echec("K-2", `point sans forme canonique : ${err.message}`);
+  }
+  if (ch) rapport.resultat("K-2", ch === doc.checkpoint_hash, ch === doc.checkpoint_hash ? `checkpointHash ${ch}` : `checkpointHash recalculé ${ch} différent de checkpoint_hash ${doc.checkpoint_hash}`);
+
+  // K-3 : signature et validité de la clé.
+  if (cles.size === 0) rapport.nonExecute("K-3", "cles.json inexploitable (E-8) : signature du point non vérifiable");
+  else {
+    const cle = cles.get(point.key_id);
+    const k3 = [];
+    if (!cle) k3.push(`clé ${point.key_id} absente de cles.json`);
+    else {
+      if (!verifierSignaturePointDeControle(point, cle.public_key)) k3.push(`signature du point invalide sous ${point.key_id}`);
+      const t = msHorodatage(point.checkpoint_ts);
+      const de = cle.valid_from === null ? -Infinity : msHorodatage(cle.valid_from);
+      const a = cle.valid_to === null ? Infinity : msHorodatage(cle.valid_to);
+      if (!(t >= de && t <= a)) k3.push(`checkpoint_ts ${point.checkpoint_ts} hors de la validité de la clé ${point.key_id}`);
+    }
+    k3.length ? k3.forEach((m) => rapport.echec("K-3", m)) : rapport.succes("K-3", `point signé par ${point.key_id}`);
+  }
+
+  // K-4 : couverture de l'événement prouvé (prérequis : M-3 réussie).
+  if (!reussie("M-3")) rapport.nonExecute("K-4", "M-3 n'a pas réussi : indice de feuille de l'événement non établi");
+  else if (!chemin || !ev) rapport.nonExecute("K-4", "chemin ou événement inexploitable");
+  else {
+    const k4 = [];
+    if (!(Number.isSafeInteger(chemin.leaf_index) && chemin.leaf_index < point.tree_size)) k4.push(`leaf_index ${chemin.leaf_index} non couvert par tree_size ${point.tree_size}`);
+    const tEv = msHorodatage(ev.ts);
+    const tK = msHorodatage(point.checkpoint_ts);
+    if (Number.isNaN(tEv) || Number.isNaN(tK) || tEv > tK) k4.push(`ts de l'événement ${ev.ts} postérieur à checkpoint_ts ${point.checkpoint_ts}`);
+    k4.length ? k4.forEach((m) => rapport.echec("K-4", m)) : rapport.succes("K-4", `feuille ${chemin.leaf_index} couverte (tree_size ${point.tree_size}), ts ${ev.ts} <= ${point.checkpoint_ts}`);
+  }
+
+  // K-5 : preuve de cohérence vers le manifeste.
+  const cs = estObjet(doc.consistency) ? doc.consistency : null;
+  if (!cs) rapport.echec("K-5", "consistency inexploitable");
+  else if (!manifeste) rapport.nonExecute("K-5", "manifeste inexploitable");
+  else {
+    const k5 = [];
+    if (cs.first_size !== point.tree_size) k5.push(`first_size ${cs.first_size} différent de tree_size ${point.tree_size}`);
+    if (cs.second_size !== manifeste.count) k5.push(`second_size ${cs.second_size} différent de count ${manifeste.count}`);
+    if (cs.first_root !== point.root) k5.push(`first_root ${cs.first_root} différent de root du point ${point.root}`);
+    if (cs.second_root !== manifeste.root) k5.push(`second_root ${cs.second_root} différent de root du manifeste ${manifeste.root}`);
+    if (!verifierCoherence(cs)) k5.push(`la preuve de cohérence (${Array.isArray(cs.path) ? cs.path.length : "?"} nœud(s)) n'est pas acceptée pour (${cs.first_size}, ${cs.second_size})`);
+    k5.length ? k5.forEach((m) => rapport.echec("K-5", m)) : rapport.succes("K-5", `arbre de ${cs.first_size} feuilles préfixe de l'arbre de ${cs.second_size} (${cs.path.length} nœud(s))`);
+  }
+
+  // K-6 : last_hash contre l'événement last_seq quand il est dans le dossier.
+  const candidats = [ev, voisins?.previous, voisins?.next].filter((v) => estObjet(v));
+  const cible = candidats.find((v) => v.seq === point.last_seq);
+  if (!cible) rapport.nonExecute("K-6", `${DETAIL_K6_HORS_DOSSIER} (seq ${point.last_seq}) : last_hash non vérifiable`);
+  else {
+    const h = hashRecalcule(cible);
+    if (!h) rapport.nonExecute("K-6", `hash de l'événement ${point.last_seq} incalculable`);
+    else rapport.resultat("K-6", h === point.last_hash, h === point.last_hash ? `last_hash égal au hash recalculé de l'événement ${point.last_seq}` : `last_hash ${point.last_hash} différent du hash recalculé de l'événement ${point.last_seq} (${h})`);
+  }
+
+  // K-7 à K-9 : ancres du point, vérifiées par CT-6 (verificateur.mjs).
+  const anchors = estObjet(doc.anchors) ? doc.anchors : {};
+  for (const [id, cle] of [["K-7", "rfc3161"], ["K-8", "registry"], ["K-9", "ots"]]) {
+    rapport.nonExecute(id, anchors[cle] === null || anchors[cle] === undefined ? DETAIL_K_ANCRE_NULLE : DETAIL_K_HORS_PERIMETRE);
+  }
 }
 
 function terminer(rapport, index, ev, parts) {

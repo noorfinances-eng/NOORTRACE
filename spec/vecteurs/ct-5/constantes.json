@@ -1,0 +1,173 @@
+{
+  "version": 0,
+  "description": "Constantes des vecteurs CT-5 (annexe A.2) : identifiants et empreintes de l'exemple de référence de CT-1, étiquettes de dérivation des nonces et des opérations synthétiques, calendriers, prestataires des traces, formes représentées, prix symboliques. Clés et valeurs publiques, sans valeur hors des tests.",
+  "reference_journal": {
+    "name": "journal-principal",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "periods": [
+      {
+        "index": 1,
+        "period_start": 1793710800,
+        "period_end": 1793714400,
+        "count": 5,
+        "period_hash": "0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1",
+        "generated_at": "2026-11-03T14:00:00.250Z",
+        "anchor_fingerprint": "0x3200e496c555b46459191c852a7f79b1e0b4156802cac2f2df7b80b0aa9d823b"
+      },
+      {
+        "index": 2,
+        "period_start": 1793714400,
+        "period_end": 1793718000,
+        "count": 0,
+        "period_hash": "0x3ed80e52f0d52f184986da64ba009947998cfd41624899ad5137594c58f9be4b",
+        "generated_at": "2026-11-03T15:00:00.112Z",
+        "anchor_fingerprint": "0x42a549914a125a1a638c3d52feee09856ec93ea103d47fb3890aaa33e979877b"
+      }
+    ],
+    "checkpoints": {
+      "K1": {
+        "checkpoint_hash": "0xfbc4715789d5bfeec5b3a0b44e26d13236a726950e92e03a2fce8c6f7b4284f4",
+        "tree_size": 2,
+        "checkpoint_ts": "2026-11-03T13:42:00.000Z",
+        "period": 1,
+        "anchor_fingerprint": "0xd0cd916d070ecb8c2af3a3b62b933ccd6e61fd481ea2b70312ab988fabac8540"
+      },
+      "K2": {
+        "checkpoint_hash": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+        "tree_size": 4,
+        "checkpoint_ts": "2026-11-03T13:53:00.000Z",
+        "period": 1,
+        "anchor_fingerprint": "0x7f721a4526c614882ff41ac33792c6d05fa7fb6dd98bc1c369d0e277029f4e44"
+      },
+      "K3": {
+        "checkpoint_hash": "0x3feb86ac4d6d8c054bef224f131f0276d2f1c9c9db2a6ce06adec173378d8867",
+        "tree_size": 4,
+        "checkpoint_ts": "2026-11-03T13:54:00.000Z",
+        "period": 1,
+        "anchor_fingerprint": "0xa1aeb874daa988a4833c394476c4ea740096a3496ed081ae6f8592fb4912a837"
+      },
+      "K4": {
+        "checkpoint_hash": "0x804585ae4e9601a9405fdff8d7d01988d5071999e70c6092f4137f0669ac7107",
+        "tree_size": 5,
+        "checkpoint_ts": "2026-11-03T14:00:00.250Z",
+        "period": 1,
+        "anchor_fingerprint": "0xa7f0a30f11f724f5ae4bd7ba952079fa513dfe0ed70c051bdfc5bbe9c67b3792"
+      },
+      "K5": {
+        "checkpoint_hash": "0x3c4bd86148138e52a1ef6912c7ab4fa98ffdaf90879900887833e726b5a9e153",
+        "tree_size": 0,
+        "checkpoint_ts": "2026-11-03T14:01:00.000Z",
+        "period": 2,
+        "anchor_fingerprint": "0xe2a9b1f020f6c1d383e63014cfc0d62e7481d27c0136a8ecf81c3170d8c0c020"
+      },
+      "K6": {
+        "checkpoint_hash": "0xd6e22871885b68962dadee69f9fa2ff3a76949d23550d1682d3564bcc705474d",
+        "tree_size": 0,
+        "checkpoint_ts": "2026-11-03T15:00:00.112Z",
+        "period": 2,
+        "anchor_fingerprint": "0xcb5172d1cce457c9a255d44f26485198462072f98f3aba26a4f7fae9cc601a0d"
+      }
+    }
+  },
+  "vectors_journal": {
+    "name": "journal-sinistres",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "period_hashes": [
+      "0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914",
+      "0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19",
+      "0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594"
+    ]
+  },
+  "doc_types": {
+    "period": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee",
+    "checkpoint": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178"
+  },
+  "labels": {
+    "rfc3161_nonce": "noortrace/vecteurs/v0/ct-5/nonce-tsa/<journal>/<periode|point>/<empreinte hex sans 0x>/<n> : 64 premiers bits de SHA-256(UTF-8(étiquette)), entier non signé, n ≥ 1 le rang de la tentative",
+    "ots_nonce": "noortrace/vecteurs/v0/ct-5/ots/nonce/<journal>/<periode|point>/<empreinte hex sans 0x> : 16 premiers octets de SHA-256(UTF-8(étiquette))",
+    "calendar_ops": "noortrace/vecteurs/v0/ct-5/ots/calendrier/<alice|bob>/<journal>/<periode|point>/<empreinte hex sans 0x> : 16 premiers octets, argument de f1, puis 08, puis l'attestation en attente de l'URI",
+    "ct1_example_nonce": {
+      "label": "noortrace/vecteurs/v0/ct-1/nonce-tsa/point-de-controle/exemple",
+      "nonce": "0x74a6f4979421411e"
+    },
+    "examples": {
+      "point_k2_first_attempt_nonce": "0x018032ff0d74cfda",
+      "period_1_first_attempt_nonce": "0xf144cca6ec50dcdb",
+      "point_k2_minimal_ots_nonce": "0xa10f0dccae630a2791dde3924b507379",
+      "point_k2_pending_ots": {
+        "nonce": "0x67408294dbd584a4dda160e16129c6b5",
+        "commitment": "0xc1cb7611d9e35803bceab098d24a183876e134fcda969d249a92bf5013eca0aa",
+        "alice": "0x86b4b0a3caa98d05a58a4023cc6c953b",
+        "bob": "0xda4ee3a72268b161c2f158aec8af42fd",
+        "size": 233,
+        "sha256": "0x8bdf7ed01c73e1b53cb1765e7c456c0ca92056af9685bc3c537a06f51182687a"
+      }
+    }
+  },
+  "calendars": [
+    "https://alice.btc.calendar.opentimestamps.org",
+    "https://bob.btc.calendar.opentimestamps.org"
+  ],
+  "attempt_id": "<kind>:<16 premiers hex de l'empreinte>:<n>",
+  "trace_providers": [
+    {
+      "id": "qtsa-principal",
+      "role": "principal",
+      "policy_oid": null,
+      "qualified": true,
+      "min_interval_ms": 0,
+      "request_timeout_ms": 10000
+    },
+    {
+      "id": "qtsa-secours",
+      "role": "secours",
+      "policy_oid": null,
+      "qualified": true,
+      "min_interval_ms": 0,
+      "request_timeout_ms": 10000
+    },
+    {
+      "id": "tsa-interne",
+      "role": "interne",
+      "policy_oid": "1.3.6.1.4.1.99999.1.1",
+      "qualified": false,
+      "min_interval_ms": 0,
+      "request_timeout_ms": 5000
+    },
+    {
+      "id": "tsa-second-rang",
+      "role": "second_rang",
+      "policy_oid": null,
+      "qualified": false,
+      "min_interval_ms": 0,
+      "request_timeout_ms": 10000
+    }
+  ],
+  "represented": {
+    "token_sha256": "SHA-256(UTF-8(\"jeton <nom>\"))",
+    "capture_sha256": "SHA-256(UTF-8(\"capture <request_id> <bloc>\"))",
+    "proof_sha256": "SHA-256(UTF-8(\"preuve <nom>\"))",
+    "capture_size": 4096,
+    "token_sizes": {
+      "internal_or_test_authority": 2104,
+      "qualified": 3082
+    },
+    "pending_proof_size": 233,
+    "complete_proof_size": 316
+  },
+  "test_authority": {
+    "ca": "../ct-6/rfc3161/cles/ac-test.pem",
+    "tsu": "../ct-6/rfc3161/cles/tsa-test.pem",
+    "policy_oid": "1.3.6.1.4.1.99999.1.1",
+    "key_size": 3072,
+    "accuracy_s": 1
+  },
+  "symbolic_units": {
+    "p_q": 1,
+    "p_s": 0.2,
+    "F": 10000,
+    "Q": 10000,
+    "note": "unités symboliques de la section 12 (p_q, p_s, F, Q), jamais un prix (AN-60)"
+  }
+}

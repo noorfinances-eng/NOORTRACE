@@ -1,0 +1,119 @@
+Confrontation des vecteurs CT-5 requetes/ par OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+Entrées : requetes/requetes.json, requetes/refusees.json, requetes/*.tsq, reponses/granted-requete-point-k2.der (jeton de CT-1 §11.2), ../ct-6/rfc3161/cles/{ac-test,tsa-test}.pem
+
+== 1. Requêtes TimeStampReq (EX-5.1) : openssl ts -query -in -text
+-- requete-point-k2 (requetes/requete-point-k2.tsq)
+  SHA-256 du fichier : vecteur 0xe0b39a0b23569bd3fe112fd45811fea46585c7bb7ceda295f57617e405a4ff40 ; openssl 0xe0b39a0b23569bd3fe112fd45811fea46585c7bb7ceda295f57617e405a4ff40 : concorde
+  taille : vecteur 69 ; openssl 69 : concorde
+  octets du fichier = der : vecteur 0x30430201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff020874a6f4979421411e0101ff ; openssl 0x30430201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff020874a6f4979421411e0101ff : concorde
+  openssl ts -query -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Version : vecteur 1 ; openssl 1 : concorde
+  Hash Algorithm : vecteur sha256 ; openssl sha256 : concorde
+  Message data (32 octets) : vecteur 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff ; openssl 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff : concorde
+  Policy OID : vecteur None ; openssl None : concorde
+  Nonce : vecteur 0x74a6f4979421411e ; openssl 0x74a6f4979421411e : concorde
+  Certificate required : vecteur True ; openssl True : concorde
+  openssl asn1parse : suite des éléments (NULL explicite dans l'AlgorithmIdentifier) : vecteur ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] ; openssl ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] : concorde
+  openssl asn1parse : INTEGER du nonce de 8 octets (bit haut à 0) : vecteur 8 ; openssl 8 : concorde
+  openssl asn1parse : valeur du nonce : vecteur 74A6F4979421411E ; openssl 74A6F4979421411E : concorde
+  openssl asn1parse : BOOLEAN certReq : vecteur 255 ; openssl 255 : concorde
+-- point-k2-exemple (requetes/point-k2-exemple.tsq)
+  SHA-256 du fichier : vecteur 0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a ; openssl 0x6f69038e3ba10962a7b6af72d5366e4b04946a9cf06aa2bb17d818bbc6ef736a : concorde
+  taille : vecteur 69 ; openssl 69 : concorde
+  octets du fichier = der : vecteur 0x30430201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff0208018032ff0d74cfda0101ff ; openssl 0x30430201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff0208018032ff0d74cfda0101ff : concorde
+  openssl ts -query -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Version : vecteur 1 ; openssl 1 : concorde
+  Hash Algorithm : vecteur sha256 ; openssl sha256 : concorde
+  Message data (32 octets) : vecteur 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff ; openssl 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff : concorde
+  Policy OID : vecteur None ; openssl None : concorde
+  Nonce : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  Certificate required : vecteur True ; openssl True : concorde
+  openssl asn1parse : suite des éléments (NULL explicite dans l'AlgorithmIdentifier) : vecteur ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] ; openssl ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] : concorde
+  openssl asn1parse : INTEGER du nonce de 8 octets (bit haut à 0) : vecteur 8 ; openssl 8 : concorde
+  openssl asn1parse : valeur du nonce : vecteur 18032FF0D74CFDA ; openssl 18032FF0D74CFDA : concorde
+  openssl asn1parse : BOOLEAN certReq : vecteur 255 ; openssl 255 : concorde
+-- point-k2-exemple-politique-interne (requetes/point-k2-exemple-politique-interne.tsq)
+  SHA-256 du fichier : vecteur 0x5a0dc94d0164a9a084c7114174908dc7a3b757ee1cbb12ceeb212b6c1386c4b8 ; openssl 0x5a0dc94d0164a9a084c7114174908dc7a3b757ee1cbb12ceeb212b6c1386c4b8 : concorde
+  taille : vecteur 81 ; openssl 81 : concorde
+  octets du fichier = der : vecteur 0x304f0201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff060a2b06010401868d1f01010208018032ff0d74cfda0101ff ; openssl 0x304f0201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff060a2b06010401868d1f01010208018032ff0d74cfda0101ff : concorde
+  openssl ts -query -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Version : vecteur 1 ; openssl 1 : concorde
+  Hash Algorithm : vecteur sha256 ; openssl sha256 : concorde
+  Message data (32 octets) : vecteur 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff ; openssl 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff : concorde
+  Policy OID : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  Nonce : vecteur 0x018032ff0d74cfda ; openssl 0x018032ff0d74cfda : concorde
+  Certificate required : vecteur True ; openssl True : concorde
+  openssl asn1parse : suite des éléments (NULL explicite dans l'AlgorithmIdentifier) : vecteur ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'OBJECT', 'INTEGER', 'BOOLEAN'] ; openssl ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'OBJECT', 'INTEGER', 'BOOLEAN'] : concorde
+  openssl asn1parse : INTEGER du nonce de 8 octets (bit haut à 0) : vecteur 8 ; openssl 8 : concorde
+  openssl asn1parse : valeur du nonce : vecteur 18032FF0D74CFDA ; openssl 18032FF0D74CFDA : concorde
+  openssl asn1parse : reqPolicy : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  openssl asn1parse : BOOLEAN certReq : vecteur 255 ; openssl 255 : concorde
+-- periode-1-reference (requetes/periode-1-reference.tsq)
+  SHA-256 du fichier : vecteur 0xd8fc9ff1a6908df641f9bd6e6a6c72e90eacda3837e6b8cc78d82d9f92919399 ; openssl 0xd8fc9ff1a6908df641f9bd6e6a6c72e90eacda3837e6b8cc78d82d9f92919399 : concorde
+  taille : vecteur 70 ; openssl 70 : concorde
+  octets du fichier = der : vecteur 0x30440201013031300d060960864801650304020105000420a864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1020900f144cca6ec50dcdb0101ff ; openssl 0x30440201013031300d060960864801650304020105000420a864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1020900f144cca6ec50dcdb0101ff : concorde
+  openssl ts -query -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Version : vecteur 1 ; openssl 1 : concorde
+  Hash Algorithm : vecteur sha256 ; openssl sha256 : concorde
+  Message data (32 octets) : vecteur 0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1 ; openssl 0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1 : concorde
+  Policy OID : vecteur None ; openssl None : concorde
+  Nonce : vecteur 0xf144cca6ec50dcdb ; openssl 0xf144cca6ec50dcdb : concorde
+  Certificate required : vecteur True ; openssl True : concorde
+  openssl asn1parse : suite des éléments (NULL explicite dans l'AlgorithmIdentifier) : vecteur ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] ; openssl ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] : concorde
+  openssl asn1parse : INTEGER du nonce de 9 octets (00 de tête, bit haut à 1) : vecteur 9 ; openssl 9 : concorde
+  openssl asn1parse : valeur du nonce : vecteur F144CCA6EC50DCDB ; openssl F144CCA6EC50DCDB : concorde
+  openssl asn1parse : BOOLEAN certReq : vecteur 255 ; openssl 255 : concorde
+-- periode-1-reference-tentative-2 (requetes/periode-1-reference-tentative-2.tsq)
+  SHA-256 du fichier : vecteur 0xef6b5679e25d26b16320e1f5ee8339284683f4e70704e11431f2afa325f1f924 ; openssl 0xef6b5679e25d26b16320e1f5ee8339284683f4e70704e11431f2afa325f1f924 : concorde
+  taille : vecteur 70 ; openssl 70 : concorde
+  octets du fichier = der : vecteur 0x30440201013031300d060960864801650304020105000420a864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1020900e514f7e31f6ba99e0101ff ; openssl 0x30440201013031300d060960864801650304020105000420a864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1020900e514f7e31f6ba99e0101ff : concorde
+  openssl ts -query -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Version : vecteur 1 ; openssl 1 : concorde
+  Hash Algorithm : vecteur sha256 ; openssl sha256 : concorde
+  Message data (32 octets) : vecteur 0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1 ; openssl 0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1 : concorde
+  Policy OID : vecteur None ; openssl None : concorde
+  Nonce : vecteur 0xe514f7e31f6ba99e ; openssl 0xe514f7e31f6ba99e : concorde
+  Certificate required : vecteur True ; openssl True : concorde
+  openssl asn1parse : suite des éléments (NULL explicite dans l'AlgorithmIdentifier) : vecteur ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] ; openssl ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] : concorde
+  openssl asn1parse : INTEGER du nonce de 9 octets (00 de tête, bit haut à 1) : vecteur 9 ; openssl 9 : concorde
+  openssl asn1parse : valeur du nonce : vecteur E514F7E31F6BA99E ; openssl E514F7E31F6BA99E : concorde
+  openssl asn1parse : BOOLEAN certReq : vecteur 255 ; openssl 255 : concorde
+-- periode-1-vecteurs (requetes/periode-1-vecteurs.tsq)
+  SHA-256 du fichier : vecteur 0xdc30519d2596c2df5a87c7f0b6ddde6b1dea95d42737424200532c73be747fd9 ; openssl 0xdc30519d2596c2df5a87c7f0b6ddde6b1dea95d42737424200532c73be747fd9 : concorde
+  taille : vecteur 69 ; openssl 69 : concorde
+  octets du fichier = der : vecteur 0x30430201013031300d060960864801650304020105000420ae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914020829ccc3c9db80e87b0101ff ; openssl 0x30430201013031300d060960864801650304020105000420ae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914020829ccc3c9db80e87b0101ff : concorde
+  openssl ts -query -text : code de retour : vecteur 0 ; openssl 0 : concorde
+  Version : vecteur 1 ; openssl 1 : concorde
+  Hash Algorithm : vecteur sha256 ; openssl sha256 : concorde
+  Message data (32 octets) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
+  Policy OID : vecteur None ; openssl None : concorde
+  Nonce : vecteur 0x29ccc3c9db80e87b ; openssl 0x29ccc3c9db80e87b : concorde
+  Certificate required : vecteur True ; openssl True : concorde
+  openssl asn1parse : suite des éléments (NULL explicite dans l'AlgorithmIdentifier) : vecteur ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] ; openssl ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'INTEGER', 'BOOLEAN'] : concorde
+  openssl asn1parse : INTEGER du nonce de 8 octets (bit haut à 0) : vecteur 8 ; openssl 8 : concorde
+  openssl asn1parse : valeur du nonce : vecteur 29CCC3C9DB80E87B ; openssl 29CCC3C9DB80E87B : concorde
+  openssl asn1parse : BOOLEAN certReq : vecteur 255 ; openssl 255 : concorde
+
+== 2. Constructions refusées (AN-5, AN-6) : ce qu'openssl en dit
+-- condense-31-octets (règle AN-5 : empreinte : 32 octets attendus (SHA-256))
+  la référence refuse la construction avant tout encodage ; aucun octet à confronter (sans objet)
+-- nonce-nul (règle AN-6 : nonce 0 hors de [1, 2^64 - 1])
+  la référence refuse la construction avant tout encodage ; aucun octet à confronter (sans objet)
+-- nonce-hors-64-bits (règle AN-6 : nonce 18446744073709551616 hors de [1, 2^64 - 1])
+  la référence refuse la construction avant tout encodage ; aucun octet à confronter (sans objet)
+-- certreq-faux (règle AN-5 : certReq vaut toujours TRUE (EX-5.4))
+  la référence refuse la construction avant tout encodage ; aucun octet à confronter (sans objet)
+-- nonce-zero-superflu (règle AN-5 : nonce : zéro de tête superflu (encodage non minimal))
+  openssl ts -query -text sur l'encodage non minimal : code 1 : illegal padding; nested asn1 error
+  openssl asn1parse : INTEGER du nonce de 9 octets pour une valeur à bit haut nul (encodage non minimal relevé) : vecteur 9 ; openssl 9 : concorde
+
+== 3. Le jeton de CT-1 §11.2 répond à la requête d'EX-5.1 (openssl ts -verify -queryfile -token_in)
+  SHA-256 de reponses/granted-requete-point-k2.der (jeton de CT-1 §11.2) : vecteur 0x0a7cd7a11ffdea5b7ec14f0e9af35588bf8fdfa7fb70ac9b82b6be2d0a389f91 ; openssl 0x0a7cd7a11ffdea5b7ec14f0e9af35588bf8fdfa7fb70ac9b82b6be2d0a389f91 : concorde
+  openssl ts -verify -queryfile requetes/requete-point-k2.tsq -token_in -in reponses/granted-requete-point-k2.der : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl ts -verify -digest <checkpointHash K2> -token_in : vecteur Verification: OK ; openssl Verification: OK : concorde
+
+== 4. Requête produite par openssl lui-même (EX-8.6, A.8)
+  openssl ts -query -digest … -sha256 -cert -no_nonce : taille (59 octets sans nonce) : vecteur 59 ; openssl 59 : concorde
+  openssl asn1parse de cette requête : mêmes éléments que CT-5 sans le nonce : vecteur ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'BOOLEAN'] ; openssl ['SEQUENCE', 'INTEGER', 'SEQUENCE', 'SEQUENCE', 'OBJECT', 'NULL', 'OCTET STRING', 'BOOLEAN'] : concorde
+
+Discordances au total : 0

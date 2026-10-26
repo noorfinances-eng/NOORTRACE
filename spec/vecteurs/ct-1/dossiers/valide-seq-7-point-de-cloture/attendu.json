@@ -1,0 +1,6 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "description": "Dossier de seq 7 dont la treizième partie porte le point de clôture de la période 1 (2026-11-05T10:00:00.300Z, tree_size 9 = count) : preuve de cohérence de neuf feuilles vers neuf, chemin vide et racines égales (CT-1 §10.7, m = n) ; K-1 à K-5 réussies ; K-6 non exécutée pour une raison admise (l'événement last_seq, seq 9, est hors du dossier) ; K-7 à K-9 non exécutées, ancres nulles."
+}

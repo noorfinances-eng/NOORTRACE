@@ -83,8 +83,11 @@ const abiEvenements = `[
   {"name":"publisher","type":"address","indexed":false}]}
 ]`
 
-var evenementDuRole = map[string]string{"cloture": "PeriodSubmitted", "ancre": "Anchored", "inscription": "RecorderRegistered"}
-var contratDuRole = map[string]string{"cloture": "period_registry", "ancre": "attestation_registry", "inscription": "recorder_registry"}
+var evenementDuRole = map[string]string{"cloture": "PeriodSubmitted", "ancre": "Anchored", "inscription": "RecorderRegistered", "ancre_point_de_controle": "Anchored"}
+var contratDuRole = map[string]string{"cloture": "period_registry", "ancre": "attestation_registry", "inscription": "recorder_registry", "ancre_point_de_controle": "attestation_registry"}
+
+// docType d'un point de contrôle du journal (CT-1 §10.6, CT-6 EX-11.24, règle 1).
+var docTypePoint = crypto.Keccak256Hash([]byte("noortrace/point-de-controle/v0"))
 
 // ---------------------------------------------------------------------------
 // Types
@@ -150,6 +153,20 @@ type entreeJSON struct {
 	Receipts         []recuJSON `json:"receipts"`
 	TransactionIndex int        `json:"transaction_index"`
 	LogIndex         int        `json:"log_index"`
+	TransactionHash  string     `json:"transaction_hash"`
+}
+
+// Point de contrôle rattaché à un jeu (révision 0.2, EX-11.24 règle 2) : la
+// partie points-de-controle.json du dossier, réduite à ce que R-11 compare.
+type pointAttendu struct {
+	CheckpointHash string `json:"checkpoint_hash"`
+	KeyID          string `json:"key_id"`
+	Reference      struct {
+		BlockNumber     json.Number `json:"block_number"`
+		BlockHash       string      `json:"block_hash"`
+		TransactionHash string      `json:"transaction_hash"`
+		LogIndex        json.Number `json:"log_index"`
+	} `json:"reference"`
 }
 
 type partiesJSON struct {
@@ -191,6 +208,7 @@ type jeuAttendu struct {
 	Manifeste           string            `json:"manifeste"`
 	Ancres              *string           `json:"ancres"`
 	ModificationsAncres []modification    `json:"modifications_ancres"`
+	Checkpoint          *pointAttendu     `json:"checkpoint"`
 	Statuses            map[string]string `json:"statuses"`
 }
 
@@ -478,6 +496,7 @@ type contexte struct {
 	manifeste  manifeste
 	periodHash common.Hash
 	cles       map[string]string // public_key -> key_id
+	point      *pointAttendu     // partie points-de-controle.json rattachée (R-11, règle 2), ou nil
 }
 
 func agreger(items []string) string {
@@ -513,7 +532,7 @@ func controle8(ctx contexte, p partiesJSON, a ancresJSON) map[string]string {
 		roles[e.Role]++
 	}
 	parH := map[uint64]certificatJSON{}
-	r1 := roles["cloture"] == 1 && roles["ancre"] == 1 && roles["inscription"] <= 8 && len(entrees) >= 2
+	r1 := roles["cloture"] == 1 && roles["ancre"] == 1 && roles["inscription"] <= 8 && roles["ancre_point_de_controle"] <= 1 && len(entrees) >= 2 && len(entrees) <= 17
 	for _, c := range certs {
 		if _, deja := parH[u64(c.Height)]; deja {
 			r1 = false
@@ -641,6 +660,7 @@ func controle8(ctx contexte, p partiesJSON, a ancresJSON) map[string]string {
 	docType := crypto.Keccak256Hash([]byte("noortrace/periode/v0"))
 	nbInscriptions := 0
 	var clesChaineManifeste []string
+	clesChaineParCle := map[string][]string{}
 	for i, e := range entrees {
 		j := e.Receipts[e.TransactionIndex].Logs[e.LogIndex]
 		if !lie[i] {
@@ -682,11 +702,53 @@ func controle8(ctx contexte, p partiesJSON, a ancresJSON) map[string]string {
 				if connue && cle == ctx.manifeste.RecorderKeyID {
 					clesChaineManifeste = append(clesChaineManifeste, v["chainKey"])
 				}
+				if connue {
+					clesChaineParCle[cle] = append(clesChaineParCle[cle], v["chainKey"])
+				}
 			}
 			r10 = append(r10, map[bool]string{true: "reussi", false: "echoue"}[ok])
 		}
 	}
 	st["R-8"], st["R-9"] = agreger(r8), agreger(r9)
+	// R-11 (EX-11.24) : l'entrée ancre_point_de_controle, si R-6 et R-7 ont réussi pour elle.
+	st["R-11"] = "non_execute"
+	for i, e := range entrees {
+		if e.Role != "ancre_point_de_controle" {
+			continue
+		}
+		if !lie[i] {
+			break
+		}
+		j := e.Receipts[e.TransactionIndex].Logs[e.LogIndex]
+		v, err := decoder(ctx.evts, e.Role, j)
+		// règle 1 : forme (trois sujets, Anchored, docType d'un point)
+		ok := err == nil && len(j.Topics) == 3 && v["docType"] == strings.ToLower(docTypePoint.Hex())
+		if !ok {
+			st["R-11"] = "echoue"
+			break
+		}
+		// règle 2 : rattachement à la partie
+		if ctx.point == nil {
+			break // non_execute (partie_absente), la règle 1 ayant été appliquée
+		}
+		empreintePoint := crypto.Keccak256Hash(common.HexToHash(ctx.manifeste.OrgID).Bytes(), common.HexToHash(ctx.manifeste.JournalID).Bytes(), common.HexToHash(ctx.point.CheckpointHash).Bytes())
+		ref := ctx.point.Reference
+		bn, _ := ref.BlockNumber.Int64()
+		li, _ := ref.LogIndex.Int64()
+		ok = v["fingerprint"] == strings.ToLower(empreintePoint.Hex()) && u64(e.Block.Number) == uint64(bn) &&
+			strings.EqualFold(e.Block.Hash, ref.BlockHash) && strings.EqualFold(e.TransactionHash, ref.TransactionHash) && int64(e.LogIndex) == li
+		// règle 3 : émetteur parmi les clés de chaîne inscrites pour la clé du point (si R-10 a réussi)
+		if ok && agreger(r10) == "reussi" {
+			if cles := clesChaineParCle[ctx.point.KeyID]; len(cles) > 0 {
+				sous := false
+				for _, k := range cles {
+					sous = sous || strings.EqualFold(k, v["issuer"])
+				}
+				ok = sous
+			}
+		}
+		st["R-11"] = map[bool]string{true: "reussi", false: "echoue"}[ok]
+	}
 	// EX-11.19 : parmi les inscriptions de la clé du manifeste, au moins une sous l'émetteur de
 	// l'ancre ; les autres (réinscription sous une autre clé de chaîne) ne font pas échouer R-10.
 	if ancreLiee && len(clesChaineManifeste) > 0 && agreger(r10) == "reussi" {
@@ -839,7 +901,7 @@ func main() {
 	constat(bytes.Equal(k0, []byte{0x80}), "clé RLP(0) = 0x80")
 
 	// 3. Jeux de parties et variantes : vérifications R- refaites.
-	fmt.Println("== 3. Jeux de parties et variantes : R-1 à R-10 et N-4 refaites en Go ==")
+	fmt.Println("== 3. Jeux de parties et variantes : R-1 à R-11 et N-4 refaites en Go ==")
 	var ancresBase any
 	d := json.NewDecoder(bytes.NewReader(att.Ancres))
 	d.UseNumber()
@@ -892,13 +954,21 @@ func main() {
 			brut, _ := json.Marshal(appliquer(copieProfonde(ancresBase), j.ModificationsAncres))
 			_ = json.Unmarshal(brut, &a)
 		}
-		st := controle8(contexte{evts: evts, manifeste: m, periodHash: ph, cles: cles}, p, a)
+		st := controle8(contexte{evts: evts, manifeste: m, periodHash: ph, cles: cles, point: j.Checkpoint}, p, a)
 		fmt.Printf("%s\n", j.Nom)
-		ids := []string{"R-1", "R-2", "R-3", "R-4", "R-5", "R-6", "R-7", "R-8", "R-9", "R-10", "N-4"}
+		entreePoint := false
+		for _, e := range p.Registre.Entries {
+			entreePoint = entreePoint || e.Role == "ancre_point_de_controle"
+		}
+		ids := []string{"R-1", "R-2", "R-3", "R-4", "R-5", "R-6", "R-7", "R-8", "R-9", "R-10", "R-11", "N-4"}
 		for _, id := range ids {
 			attendu, figure := j.Statuses[id]
 			obtenu, calcule := st[id]
 			if !figure && !calcule {
+				continue
+			}
+			// R-11 (révision 0.2) : l'attendu ne la liste que pour les jeux qui portent l'entrée ancre_point_de_controle.
+			if id == "R-11" && !figure && !entreePoint {
 				continue
 			}
 			attenduCourt := strings.SplitN(attendu, ":", 2)[0]

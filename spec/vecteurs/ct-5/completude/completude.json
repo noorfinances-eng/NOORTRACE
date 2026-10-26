@@ -1,0 +1,2065 @@
+{
+  "version": 0,
+  "family": "completude",
+  "description": "Complétude au registre (AN-61, EX-10.7) : toute ancre Anchored de docType point de contrôle émise par une clé de chaîne de l'enregistreur dans la fenêtre de la période a pour empreinte keccak256(org_id || journal_id || checkpointHash) d'un point publié de la période ou de la période suivante, et l'ordre des blocs suit celui des checkpoint_ts dans chaque série. Blocs et ancres représentés ; émetteur : clé de chaîne de rec-test-01 de la capture de CT-6.",
+  "cases": [
+    {
+      "id": "serie-publiee-complete",
+      "description": "Série publiée de la période 1 du journal des vecteurs (61 points) et ancres Anchored capturées de la clé de chaîne entre l'ancre de la période précédente (bloc 30000, exclu) et l'ancre de la période (bloc 30101) : les trois points qui engagent un nouvel événement (09:13, 09:32, clôture) ; chaque ancre est rattachée à un point publié, dans l'ordre des checkpoint_ts.",
+      "input": {
+        "from_block": 30000,
+        "to_block": 30101,
+        "issuers": [
+          "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+        ],
+        "journals": [
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "points": [
+              {
+                "checkpoint_hash": "0xc69b7c56c709e31911a286ecd629482c37a30f488b220a0fe50deffff22331aa",
+                "checkpoint_ts": "2026-11-05T09:00:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x834ae6808ef373f4e117dedeb882a505c656454213ab42f0551f936b5efbd89d",
+                "checkpoint_ts": "2026-11-05T09:01:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa2f67f15b446644f53b6556da498bf09790a7c0019acb73efa2c477a0e2ff5e3",
+                "checkpoint_ts": "2026-11-05T09:02:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1652372ce5b680a1fcd25f6fe6098907100eb3164e536a86b355f109bee57a5",
+                "checkpoint_ts": "2026-11-05T09:03:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbc369437e8f0aa9b9f5dcde13427fe3d1edb15b40e6b0b5f95ac9eee7be18073",
+                "checkpoint_ts": "2026-11-05T09:04:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x0298d9fdd094ee152a306f8117c91dae8bf5f00d78742d90e729396e2adfa5f9",
+                "checkpoint_ts": "2026-11-05T09:05:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8bc779e62783a8c27c7112433daa2e3f18258cca4f0ed2fe1d030437dce04dd2",
+                "checkpoint_ts": "2026-11-05T09:06:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd0faed6e4cb8146c299adee8dc805ea7610225deb5d82cae524098627b0d31f9",
+                "checkpoint_ts": "2026-11-05T09:07:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b1ffc165548bc7dcb5d4b1fca5bfd79b71ab5ef09e6430a0569e85c10856a89",
+                "checkpoint_ts": "2026-11-05T09:08:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x74f94fec9ef0097320ebccdbe957e3ed4e41170a07b5126c6c8edbc4078be9c3",
+                "checkpoint_ts": "2026-11-05T09:09:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1adee6da1fb15e46331fe888a830787504b7e7a58b4721166949c088c54d7b2",
+                "checkpoint_ts": "2026-11-05T09:10:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd90332b1d22b26a08a885effc48f97efb84ab87ffe6886c50a6981220114b3b0",
+                "checkpoint_ts": "2026-11-05T09:11:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb0a6658b2b6cc64dd2fb172f1984d3cc4bdd9b05ee92c0b061274d2f1a4d634f",
+                "checkpoint_ts": "2026-11-05T09:12:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+                "checkpoint_ts": "2026-11-05T09:13:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x52e9187b951455f93795472f48cb02df872f96e7c39f7621549cddcbdc958e02",
+                "checkpoint_ts": "2026-11-05T09:14:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+                "checkpoint_ts": "2026-11-05T09:15:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9f54c3d1e5dd4c64faf5e07a3239c2c10805bc524423831d263a4326cc458774",
+                "checkpoint_ts": "2026-11-05T09:16:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf0406f425233bd2ff89586bb42d1998e5abce3cae1b2bbcbd0ce73b231314119",
+                "checkpoint_ts": "2026-11-05T09:17:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x4720663dc90e25219aae3f1bda77004e1fb4b3f234a9b38592195bc1aac1bc1c",
+                "checkpoint_ts": "2026-11-05T09:18:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9d32043ecbcba723f0291b3ed76e663da0eafbdc94095dc9b68e1a1c4566add5",
+                "checkpoint_ts": "2026-11-05T09:19:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8d13225a53a1e9e9d854bd46456a98d2f62ef8f90c6240769e46b894a1ca0b32",
+                "checkpoint_ts": "2026-11-05T09:20:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x98d44b086b1a85837a3a7fac60adca7a0cb9188b457ac68abf21da75acbd6563",
+                "checkpoint_ts": "2026-11-05T09:21:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x63a0966239f248f3b736cdc390e9063087a633ac2360575ea44a6c9ea770e6bb",
+                "checkpoint_ts": "2026-11-05T09:22:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x44383f3d112b2496f8a350b1d89339bf6443b1d3e7af710cf4f924b9cb880210",
+                "checkpoint_ts": "2026-11-05T09:23:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc9cf440afb5771657c469d5620adb9089215290ec818e866787f25328ca1920a",
+                "checkpoint_ts": "2026-11-05T09:24:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x97646354c6d1ebfd7b50b5ae6521d7fb6f8b638bf70b5fa31c199288b05fe776",
+                "checkpoint_ts": "2026-11-05T09:25:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xeb785ca103d9d8c98fde215b52e29d311126578de0fe762ccea9effa972f7dba",
+                "checkpoint_ts": "2026-11-05T09:26:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5cfdb495ab6762f9d543c286a2acb271e357e2d14a52bfe65fbb6b5773c62fc2",
+                "checkpoint_ts": "2026-11-05T09:27:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc2e340d930895c09ff5e29cc9543b7d24d17236353a0634f9b8d0673b5d887cb",
+                "checkpoint_ts": "2026-11-05T09:28:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd41b76e5df5dcc0a447518642d4fa0f6783a9b0abaf1e64a5f8861311035187d",
+                "checkpoint_ts": "2026-11-05T09:29:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x99c6e24c9630867061fb6bf9bc3198e9d75e7d7a0e589a2ee4f2d5cfc444ebc0",
+                "checkpoint_ts": "2026-11-05T09:30:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2736575e328f93f4ef12f7c5d398386884648258dab3fb7d8d9ce0b196ee62cd",
+                "checkpoint_ts": "2026-11-05T09:31:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+                "checkpoint_ts": "2026-11-05T09:32:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x35136dce42ec8961db91d2ce8a3ca0d7a06caacdabb4d1b56ead1710b9819953",
+                "checkpoint_ts": "2026-11-05T09:33:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x19b7e40f165e89e37b16edf4fd4ba5a9edd35eada7aa8ef8b9b5f908acb1967b",
+                "checkpoint_ts": "2026-11-05T09:34:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+                "checkpoint_ts": "2026-11-05T09:35:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x618c68526941d0ab6613975387f24ca9a3446da7adf05bdb03558865388f3b16",
+                "checkpoint_ts": "2026-11-05T09:36:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x78b5f92ce598b35f4c9bf9d76300b0cb889c1a5e11a45328364ccede0becab12",
+                "checkpoint_ts": "2026-11-05T09:37:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbfd1c5836d145fb54ba1c1b7b65599d85357514cdba5eb4b5bd3c1f58761ae8c",
+                "checkpoint_ts": "2026-11-05T09:38:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x505be3eff126f0b794e26cca7140bac5464cee8a72dd5dece883f671baff27c1",
+                "checkpoint_ts": "2026-11-05T09:39:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf4d7ea371540dcbba60b9e02ecd41aabd1d40506e274fd8e18236a017ed24d78",
+                "checkpoint_ts": "2026-11-05T09:40:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe62c44628873ac0ad7f11cf309f2e5b908da7ce2b3d8140cc1f28a7cf4338971",
+                "checkpoint_ts": "2026-11-05T09:41:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb061034f235244be63884aec3752ca93f44193d11631e672caadeb2b5270fdd9",
+                "checkpoint_ts": "2026-11-05T09:42:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b3f0b78c50229de428e362d873c3918b1d328ecf030c3ce923b481b294e56f3",
+                "checkpoint_ts": "2026-11-05T09:43:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x08683cc31b118914a6c5db2df2d65edd368816aa1e2766f9f95b91f443c8dc47",
+                "checkpoint_ts": "2026-11-05T09:44:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd485bb554d9caa5dbb48177f399c465a2d58921727a9491287b8462d296a45de",
+                "checkpoint_ts": "2026-11-05T09:45:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf2b265e0da6ae03f4075c5bb6a726d35fa8a93d7682f453f7fe73cd1e0785dae",
+                "checkpoint_ts": "2026-11-05T09:46:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x77dc6117e4adcc6e0f3e9c4992de64f90df2948e164a7094b9a67d0d8201c18b",
+                "checkpoint_ts": "2026-11-05T09:47:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x6832564314ca417ace729a589d4e829fd9e1af006ae6901b781d48887a485228",
+                "checkpoint_ts": "2026-11-05T09:48:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xfb8aecc933d0636e02c14c575b11c730364e08001dfab71bd66c79b31aa9b1fe",
+                "checkpoint_ts": "2026-11-05T09:49:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5a8bc7076ae019c69a1b2526d6485cd374592e9296439f9eaedc86b62bccd066",
+                "checkpoint_ts": "2026-11-05T09:50:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x852ccf21cb9b150ed71be454fba683514fbb18e83ca3972c1fcb280be78c80f3",
+                "checkpoint_ts": "2026-11-05T09:51:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x81846e4d61cf508ab779373e7c135f7595b334508dd633ce4651613b769497de",
+                "checkpoint_ts": "2026-11-05T09:52:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2ddc333a094bd125231ae10d191e167ced735a64d5f2437a75e502426c2cde6c",
+                "checkpoint_ts": "2026-11-05T09:53:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b5044bc97bad9ca703ebacba1a94502d271095d58e0c5ceab4bdcc85a337441",
+                "checkpoint_ts": "2026-11-05T09:54:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x428945bea203c8e76962d7fbe7e5945ce41753a260194069af79740ababc88ee",
+                "checkpoint_ts": "2026-11-05T09:55:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3961c107300e1dfc79ed7cba8f5e1dbce65f816a351517a630633a6ee4782a0",
+                "checkpoint_ts": "2026-11-05T09:56:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa190dcd75e59dc440a5b1b5546fb70c2a2354cebe9757448393784c6878820c4",
+                "checkpoint_ts": "2026-11-05T09:57:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b9398d306687b4babd9121dab74e3690b997b3deaf04d2e2d2d1dd03e6c3947",
+                "checkpoint_ts": "2026-11-05T09:58:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x88ff909d9c3f5d93965660aa138fae01ef2f7fae0db281e19e70ce35381011d7",
+                "checkpoint_ts": "2026-11-05T09:59:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+                "checkpoint_ts": "2026-11-05T10:00:00.300Z"
+              }
+            ]
+          }
+        ],
+        "anchors": [
+          {
+            "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30013,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30032,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30100,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          }
+        ]
+      },
+      "expected": {
+        "complete": true,
+        "orphans": [],
+        "out_of_order": [],
+        "attached": 3
+      }
+    },
+    {
+      "id": "serie-reecrite-ancres-orphelines",
+      "description": "Le détenteur de la clé a réécrit la série à partir de 09:32 (racine et last_hash d'une autre version, chaînage et signatures recalculés) et ancré les nouveaux points aux blocs 30500 et 30501 ; la série publiée est la série réécrite. Les ancres d'origine des blocs 30032 et 30100 ne correspondent à aucun point publié : ancre_orpheline (alerte critique, EX-10.7). Un dossier isolé ne le montre pas (CT-6 §7.9).",
+      "input": {
+        "from_block": 30000,
+        "to_block": 30600,
+        "issuers": [
+          "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+        ],
+        "journals": [
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "points": [
+              {
+                "checkpoint_hash": "0xc69b7c56c709e31911a286ecd629482c37a30f488b220a0fe50deffff22331aa",
+                "checkpoint_ts": "2026-11-05T09:00:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x834ae6808ef373f4e117dedeb882a505c656454213ab42f0551f936b5efbd89d",
+                "checkpoint_ts": "2026-11-05T09:01:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa2f67f15b446644f53b6556da498bf09790a7c0019acb73efa2c477a0e2ff5e3",
+                "checkpoint_ts": "2026-11-05T09:02:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1652372ce5b680a1fcd25f6fe6098907100eb3164e536a86b355f109bee57a5",
+                "checkpoint_ts": "2026-11-05T09:03:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbc369437e8f0aa9b9f5dcde13427fe3d1edb15b40e6b0b5f95ac9eee7be18073",
+                "checkpoint_ts": "2026-11-05T09:04:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x0298d9fdd094ee152a306f8117c91dae8bf5f00d78742d90e729396e2adfa5f9",
+                "checkpoint_ts": "2026-11-05T09:05:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8bc779e62783a8c27c7112433daa2e3f18258cca4f0ed2fe1d030437dce04dd2",
+                "checkpoint_ts": "2026-11-05T09:06:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd0faed6e4cb8146c299adee8dc805ea7610225deb5d82cae524098627b0d31f9",
+                "checkpoint_ts": "2026-11-05T09:07:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b1ffc165548bc7dcb5d4b1fca5bfd79b71ab5ef09e6430a0569e85c10856a89",
+                "checkpoint_ts": "2026-11-05T09:08:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x74f94fec9ef0097320ebccdbe957e3ed4e41170a07b5126c6c8edbc4078be9c3",
+                "checkpoint_ts": "2026-11-05T09:09:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1adee6da1fb15e46331fe888a830787504b7e7a58b4721166949c088c54d7b2",
+                "checkpoint_ts": "2026-11-05T09:10:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd90332b1d22b26a08a885effc48f97efb84ab87ffe6886c50a6981220114b3b0",
+                "checkpoint_ts": "2026-11-05T09:11:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb0a6658b2b6cc64dd2fb172f1984d3cc4bdd9b05ee92c0b061274d2f1a4d634f",
+                "checkpoint_ts": "2026-11-05T09:12:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+                "checkpoint_ts": "2026-11-05T09:13:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x52e9187b951455f93795472f48cb02df872f96e7c39f7621549cddcbdc958e02",
+                "checkpoint_ts": "2026-11-05T09:14:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+                "checkpoint_ts": "2026-11-05T09:15:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9f54c3d1e5dd4c64faf5e07a3239c2c10805bc524423831d263a4326cc458774",
+                "checkpoint_ts": "2026-11-05T09:16:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf0406f425233bd2ff89586bb42d1998e5abce3cae1b2bbcbd0ce73b231314119",
+                "checkpoint_ts": "2026-11-05T09:17:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x4720663dc90e25219aae3f1bda77004e1fb4b3f234a9b38592195bc1aac1bc1c",
+                "checkpoint_ts": "2026-11-05T09:18:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9d32043ecbcba723f0291b3ed76e663da0eafbdc94095dc9b68e1a1c4566add5",
+                "checkpoint_ts": "2026-11-05T09:19:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8d13225a53a1e9e9d854bd46456a98d2f62ef8f90c6240769e46b894a1ca0b32",
+                "checkpoint_ts": "2026-11-05T09:20:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x98d44b086b1a85837a3a7fac60adca7a0cb9188b457ac68abf21da75acbd6563",
+                "checkpoint_ts": "2026-11-05T09:21:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x63a0966239f248f3b736cdc390e9063087a633ac2360575ea44a6c9ea770e6bb",
+                "checkpoint_ts": "2026-11-05T09:22:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x44383f3d112b2496f8a350b1d89339bf6443b1d3e7af710cf4f924b9cb880210",
+                "checkpoint_ts": "2026-11-05T09:23:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc9cf440afb5771657c469d5620adb9089215290ec818e866787f25328ca1920a",
+                "checkpoint_ts": "2026-11-05T09:24:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x97646354c6d1ebfd7b50b5ae6521d7fb6f8b638bf70b5fa31c199288b05fe776",
+                "checkpoint_ts": "2026-11-05T09:25:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xeb785ca103d9d8c98fde215b52e29d311126578de0fe762ccea9effa972f7dba",
+                "checkpoint_ts": "2026-11-05T09:26:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5cfdb495ab6762f9d543c286a2acb271e357e2d14a52bfe65fbb6b5773c62fc2",
+                "checkpoint_ts": "2026-11-05T09:27:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc2e340d930895c09ff5e29cc9543b7d24d17236353a0634f9b8d0673b5d887cb",
+                "checkpoint_ts": "2026-11-05T09:28:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd41b76e5df5dcc0a447518642d4fa0f6783a9b0abaf1e64a5f8861311035187d",
+                "checkpoint_ts": "2026-11-05T09:29:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x99c6e24c9630867061fb6bf9bc3198e9d75e7d7a0e589a2ee4f2d5cfc444ebc0",
+                "checkpoint_ts": "2026-11-05T09:30:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2736575e328f93f4ef12f7c5d398386884648258dab3fb7d8d9ce0b196ee62cd",
+                "checkpoint_ts": "2026-11-05T09:31:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x93fdfab647d5dabd1261c5a8f05988478f9198a1b5bb8f70b293b9c5a789c3ac",
+                "checkpoint_ts": "2026-11-05T09:32:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x77d813cbd1201462e512ace9ec827ed804846b6ba0d7e3145d801b5353fe9f7d",
+                "checkpoint_ts": "2026-11-05T09:33:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x145bee646ddfda864ccc02329c8c20ef68eec81bf7441963ecfda382dba0274b",
+                "checkpoint_ts": "2026-11-05T09:34:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9951e96aa5141b8a9f14daaed8be1a9ce5f0367725fe2160feb345af62da6e4c",
+                "checkpoint_ts": "2026-11-05T09:35:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9341d6213f601442cd27b9c28c6f88a63249ca447aca51fbe3cdc7c5d3ed6f6d",
+                "checkpoint_ts": "2026-11-05T09:36:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x187466b85e2b2d6606e82a7aa71e8040ac1188feec0af466f879c43174b835a3",
+                "checkpoint_ts": "2026-11-05T09:37:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb8607fed0bb017435d23e5f785cea03408958032fa11300e682a1808b6a2f0f0",
+                "checkpoint_ts": "2026-11-05T09:38:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2187ebf442ac6c9dafb1991024828e06b561aac06c3c67ccf042260b0b0b1e0e",
+                "checkpoint_ts": "2026-11-05T09:39:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9d6f01f82721c2b05cd7a4628a9819badf79679e049cc494681353342c8ab50e",
+                "checkpoint_ts": "2026-11-05T09:40:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa6cc0581b7a0bdf2858fdaf9eed971f8704eaaebbe7a145641f00e96d2181193",
+                "checkpoint_ts": "2026-11-05T09:41:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xcddd6834bea7caaa6f1319ec34e1f150ce4b095a5aab3d7f941ff465d242a75d",
+                "checkpoint_ts": "2026-11-05T09:42:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x72258981dee3771361d6cf5e3670d78c06f69a3a8b6f2c18e56c480ef3f240f5",
+                "checkpoint_ts": "2026-11-05T09:43:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc8a473d1bfe218db14e1ee62d593d9483c16f745ea0a1d5083722260f4fc8a79",
+                "checkpoint_ts": "2026-11-05T09:44:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd31c0dd7067fa79ee0664b44746f099e0ee2aee3948194fb6f13a718a6b72bc7",
+                "checkpoint_ts": "2026-11-05T09:45:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd217b909739700fdfdb1271267cd0c1cd9cadec5a3d42ffbb90968e7efc77e50",
+                "checkpoint_ts": "2026-11-05T09:46:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x67ccb27ef55eed701fb7a861ddcfd2defc42f49c7eff46d0c4608fbdfccc824a",
+                "checkpoint_ts": "2026-11-05T09:47:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x87fdee418b85b6cf939e0fb26ee8b6ab5357311bd6b3b2ef0b7dcc24e2d8c8ab",
+                "checkpoint_ts": "2026-11-05T09:48:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc6835cf30c0ec0343480ae6a6298740085c5845089d85d38d21f62e857ecb4a2",
+                "checkpoint_ts": "2026-11-05T09:49:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb9790f889bfc0f2d04e1fa6435be0c4d11258349416797ce9c9497551e8b3bf2",
+                "checkpoint_ts": "2026-11-05T09:50:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xcf2d152868e95d64657fd1ab2ab9037f2c106b828455f1aec9e4eb794577859e",
+                "checkpoint_ts": "2026-11-05T09:51:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1e580f87de74fb1844f19228f6f76503c9b62d57c59206a467423384ad1606e",
+                "checkpoint_ts": "2026-11-05T09:52:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xdebb8b2c7f45ca9832f32c6cb0f1a97d84748f654834460b2e68c44837517618",
+                "checkpoint_ts": "2026-11-05T09:53:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x700e0c365c3d960faabcc3f39edc9877222b1fb57cceb95e9cbd34727f3302d9",
+                "checkpoint_ts": "2026-11-05T09:54:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8dbd5036b77980f652f306c1ca58a098ba25511baa3bb1a3304742455bef791f",
+                "checkpoint_ts": "2026-11-05T09:55:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe198afc61d82746a338902adf971506876c19739b7642b3fd5ca241e52ebc176",
+                "checkpoint_ts": "2026-11-05T09:56:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xed70f2e30803f95019a3a48f3682e232ac5924c0645f8c3974a9e4d82f587ec9",
+                "checkpoint_ts": "2026-11-05T09:57:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9b28394f5010e908fcabc6b1c45689962d6757a8a4bc1bf7a8ff6aa70c738a6a",
+                "checkpoint_ts": "2026-11-05T09:58:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x69e8d4b2705894650987b6d9891878f85b60f96d28982b18d78859cc0cc22b69",
+                "checkpoint_ts": "2026-11-05T09:59:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xfc91202fb63ebb9e9e0b93490630fe4e546880402d75da1ded96557e49d310dc",
+                "checkpoint_ts": "2026-11-05T10:00:00.300Z"
+              }
+            ]
+          }
+        ],
+        "anchors": [
+          {
+            "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30013,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30032,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30100,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xc9c984db9288afc8f0f6c63604c4c929ddb7f4f33b23f8983b410cac46cf580c",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30500,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x1595611381efd26003ddcb1f82668214346a5c57d75e07696b13ea9c6fbf8f36",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30501,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          }
+        ]
+      },
+      "expected": {
+        "complete": false,
+        "orphans": [
+          "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+          "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2"
+        ],
+        "out_of_order": [],
+        "attached": 3
+      }
+    },
+    {
+      "id": "ancres-hors-ordre",
+      "description": "Série publiée d'origine ; l'ancre du point de clôture est incluse au bloc 30020, avant celle du point de 09:32 (bloc 30032) : l'ordre des blocs ne suit pas celui des checkpoint_ts (hors_ordre).",
+      "input": {
+        "from_block": 30000,
+        "to_block": 30101,
+        "issuers": [
+          "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+        ],
+        "journals": [
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "points": [
+              {
+                "checkpoint_hash": "0xc69b7c56c709e31911a286ecd629482c37a30f488b220a0fe50deffff22331aa",
+                "checkpoint_ts": "2026-11-05T09:00:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x834ae6808ef373f4e117dedeb882a505c656454213ab42f0551f936b5efbd89d",
+                "checkpoint_ts": "2026-11-05T09:01:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa2f67f15b446644f53b6556da498bf09790a7c0019acb73efa2c477a0e2ff5e3",
+                "checkpoint_ts": "2026-11-05T09:02:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1652372ce5b680a1fcd25f6fe6098907100eb3164e536a86b355f109bee57a5",
+                "checkpoint_ts": "2026-11-05T09:03:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbc369437e8f0aa9b9f5dcde13427fe3d1edb15b40e6b0b5f95ac9eee7be18073",
+                "checkpoint_ts": "2026-11-05T09:04:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x0298d9fdd094ee152a306f8117c91dae8bf5f00d78742d90e729396e2adfa5f9",
+                "checkpoint_ts": "2026-11-05T09:05:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8bc779e62783a8c27c7112433daa2e3f18258cca4f0ed2fe1d030437dce04dd2",
+                "checkpoint_ts": "2026-11-05T09:06:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd0faed6e4cb8146c299adee8dc805ea7610225deb5d82cae524098627b0d31f9",
+                "checkpoint_ts": "2026-11-05T09:07:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b1ffc165548bc7dcb5d4b1fca5bfd79b71ab5ef09e6430a0569e85c10856a89",
+                "checkpoint_ts": "2026-11-05T09:08:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x74f94fec9ef0097320ebccdbe957e3ed4e41170a07b5126c6c8edbc4078be9c3",
+                "checkpoint_ts": "2026-11-05T09:09:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1adee6da1fb15e46331fe888a830787504b7e7a58b4721166949c088c54d7b2",
+                "checkpoint_ts": "2026-11-05T09:10:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd90332b1d22b26a08a885effc48f97efb84ab87ffe6886c50a6981220114b3b0",
+                "checkpoint_ts": "2026-11-05T09:11:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb0a6658b2b6cc64dd2fb172f1984d3cc4bdd9b05ee92c0b061274d2f1a4d634f",
+                "checkpoint_ts": "2026-11-05T09:12:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+                "checkpoint_ts": "2026-11-05T09:13:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x52e9187b951455f93795472f48cb02df872f96e7c39f7621549cddcbdc958e02",
+                "checkpoint_ts": "2026-11-05T09:14:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+                "checkpoint_ts": "2026-11-05T09:15:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9f54c3d1e5dd4c64faf5e07a3239c2c10805bc524423831d263a4326cc458774",
+                "checkpoint_ts": "2026-11-05T09:16:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf0406f425233bd2ff89586bb42d1998e5abce3cae1b2bbcbd0ce73b231314119",
+                "checkpoint_ts": "2026-11-05T09:17:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x4720663dc90e25219aae3f1bda77004e1fb4b3f234a9b38592195bc1aac1bc1c",
+                "checkpoint_ts": "2026-11-05T09:18:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9d32043ecbcba723f0291b3ed76e663da0eafbdc94095dc9b68e1a1c4566add5",
+                "checkpoint_ts": "2026-11-05T09:19:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8d13225a53a1e9e9d854bd46456a98d2f62ef8f90c6240769e46b894a1ca0b32",
+                "checkpoint_ts": "2026-11-05T09:20:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x98d44b086b1a85837a3a7fac60adca7a0cb9188b457ac68abf21da75acbd6563",
+                "checkpoint_ts": "2026-11-05T09:21:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x63a0966239f248f3b736cdc390e9063087a633ac2360575ea44a6c9ea770e6bb",
+                "checkpoint_ts": "2026-11-05T09:22:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x44383f3d112b2496f8a350b1d89339bf6443b1d3e7af710cf4f924b9cb880210",
+                "checkpoint_ts": "2026-11-05T09:23:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc9cf440afb5771657c469d5620adb9089215290ec818e866787f25328ca1920a",
+                "checkpoint_ts": "2026-11-05T09:24:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x97646354c6d1ebfd7b50b5ae6521d7fb6f8b638bf70b5fa31c199288b05fe776",
+                "checkpoint_ts": "2026-11-05T09:25:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xeb785ca103d9d8c98fde215b52e29d311126578de0fe762ccea9effa972f7dba",
+                "checkpoint_ts": "2026-11-05T09:26:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5cfdb495ab6762f9d543c286a2acb271e357e2d14a52bfe65fbb6b5773c62fc2",
+                "checkpoint_ts": "2026-11-05T09:27:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc2e340d930895c09ff5e29cc9543b7d24d17236353a0634f9b8d0673b5d887cb",
+                "checkpoint_ts": "2026-11-05T09:28:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd41b76e5df5dcc0a447518642d4fa0f6783a9b0abaf1e64a5f8861311035187d",
+                "checkpoint_ts": "2026-11-05T09:29:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x99c6e24c9630867061fb6bf9bc3198e9d75e7d7a0e589a2ee4f2d5cfc444ebc0",
+                "checkpoint_ts": "2026-11-05T09:30:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2736575e328f93f4ef12f7c5d398386884648258dab3fb7d8d9ce0b196ee62cd",
+                "checkpoint_ts": "2026-11-05T09:31:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+                "checkpoint_ts": "2026-11-05T09:32:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x35136dce42ec8961db91d2ce8a3ca0d7a06caacdabb4d1b56ead1710b9819953",
+                "checkpoint_ts": "2026-11-05T09:33:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x19b7e40f165e89e37b16edf4fd4ba5a9edd35eada7aa8ef8b9b5f908acb1967b",
+                "checkpoint_ts": "2026-11-05T09:34:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+                "checkpoint_ts": "2026-11-05T09:35:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x618c68526941d0ab6613975387f24ca9a3446da7adf05bdb03558865388f3b16",
+                "checkpoint_ts": "2026-11-05T09:36:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x78b5f92ce598b35f4c9bf9d76300b0cb889c1a5e11a45328364ccede0becab12",
+                "checkpoint_ts": "2026-11-05T09:37:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbfd1c5836d145fb54ba1c1b7b65599d85357514cdba5eb4b5bd3c1f58761ae8c",
+                "checkpoint_ts": "2026-11-05T09:38:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x505be3eff126f0b794e26cca7140bac5464cee8a72dd5dece883f671baff27c1",
+                "checkpoint_ts": "2026-11-05T09:39:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf4d7ea371540dcbba60b9e02ecd41aabd1d40506e274fd8e18236a017ed24d78",
+                "checkpoint_ts": "2026-11-05T09:40:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe62c44628873ac0ad7f11cf309f2e5b908da7ce2b3d8140cc1f28a7cf4338971",
+                "checkpoint_ts": "2026-11-05T09:41:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb061034f235244be63884aec3752ca93f44193d11631e672caadeb2b5270fdd9",
+                "checkpoint_ts": "2026-11-05T09:42:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b3f0b78c50229de428e362d873c3918b1d328ecf030c3ce923b481b294e56f3",
+                "checkpoint_ts": "2026-11-05T09:43:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x08683cc31b118914a6c5db2df2d65edd368816aa1e2766f9f95b91f443c8dc47",
+                "checkpoint_ts": "2026-11-05T09:44:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd485bb554d9caa5dbb48177f399c465a2d58921727a9491287b8462d296a45de",
+                "checkpoint_ts": "2026-11-05T09:45:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf2b265e0da6ae03f4075c5bb6a726d35fa8a93d7682f453f7fe73cd1e0785dae",
+                "checkpoint_ts": "2026-11-05T09:46:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x77dc6117e4adcc6e0f3e9c4992de64f90df2948e164a7094b9a67d0d8201c18b",
+                "checkpoint_ts": "2026-11-05T09:47:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x6832564314ca417ace729a589d4e829fd9e1af006ae6901b781d48887a485228",
+                "checkpoint_ts": "2026-11-05T09:48:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xfb8aecc933d0636e02c14c575b11c730364e08001dfab71bd66c79b31aa9b1fe",
+                "checkpoint_ts": "2026-11-05T09:49:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5a8bc7076ae019c69a1b2526d6485cd374592e9296439f9eaedc86b62bccd066",
+                "checkpoint_ts": "2026-11-05T09:50:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x852ccf21cb9b150ed71be454fba683514fbb18e83ca3972c1fcb280be78c80f3",
+                "checkpoint_ts": "2026-11-05T09:51:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x81846e4d61cf508ab779373e7c135f7595b334508dd633ce4651613b769497de",
+                "checkpoint_ts": "2026-11-05T09:52:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2ddc333a094bd125231ae10d191e167ced735a64d5f2437a75e502426c2cde6c",
+                "checkpoint_ts": "2026-11-05T09:53:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b5044bc97bad9ca703ebacba1a94502d271095d58e0c5ceab4bdcc85a337441",
+                "checkpoint_ts": "2026-11-05T09:54:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x428945bea203c8e76962d7fbe7e5945ce41753a260194069af79740ababc88ee",
+                "checkpoint_ts": "2026-11-05T09:55:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3961c107300e1dfc79ed7cba8f5e1dbce65f816a351517a630633a6ee4782a0",
+                "checkpoint_ts": "2026-11-05T09:56:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa190dcd75e59dc440a5b1b5546fb70c2a2354cebe9757448393784c6878820c4",
+                "checkpoint_ts": "2026-11-05T09:57:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b9398d306687b4babd9121dab74e3690b997b3deaf04d2e2d2d1dd03e6c3947",
+                "checkpoint_ts": "2026-11-05T09:58:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x88ff909d9c3f5d93965660aa138fae01ef2f7fae0db281e19e70ce35381011d7",
+                "checkpoint_ts": "2026-11-05T09:59:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+                "checkpoint_ts": "2026-11-05T10:00:00.300Z"
+              }
+            ]
+          }
+        ],
+        "anchors": [
+          {
+            "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30013,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30020,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30032,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          }
+        ]
+      },
+      "expected": {
+        "complete": false,
+        "orphans": [],
+        "out_of_order": [
+          "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339"
+        ],
+        "attached": 3
+      }
+    },
+    {
+      "id": "periode-suivante-dans-la-fenetre",
+      "description": "Séries publiées des périodes 1 et 2 du journal des vecteurs, servies ensemble comme EX-10.7 l'exige ; l'ancre de la période 1 est au bloc 30102. Le premier point de la période 2 qui engage un événement (10:05, tree_size 3) est ancré au bloc 30101, dans la fenêtre de la période 1 : il est rattaché à la série de la période 2, et l'ordre est confronté série par série.",
+      "input": {
+        "from_block": 30000,
+        "to_block": 30102,
+        "issuers": [
+          "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+        ],
+        "journals": [
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "points": [
+              {
+                "checkpoint_hash": "0xc69b7c56c709e31911a286ecd629482c37a30f488b220a0fe50deffff22331aa",
+                "checkpoint_ts": "2026-11-05T09:00:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x834ae6808ef373f4e117dedeb882a505c656454213ab42f0551f936b5efbd89d",
+                "checkpoint_ts": "2026-11-05T09:01:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa2f67f15b446644f53b6556da498bf09790a7c0019acb73efa2c477a0e2ff5e3",
+                "checkpoint_ts": "2026-11-05T09:02:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1652372ce5b680a1fcd25f6fe6098907100eb3164e536a86b355f109bee57a5",
+                "checkpoint_ts": "2026-11-05T09:03:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbc369437e8f0aa9b9f5dcde13427fe3d1edb15b40e6b0b5f95ac9eee7be18073",
+                "checkpoint_ts": "2026-11-05T09:04:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x0298d9fdd094ee152a306f8117c91dae8bf5f00d78742d90e729396e2adfa5f9",
+                "checkpoint_ts": "2026-11-05T09:05:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8bc779e62783a8c27c7112433daa2e3f18258cca4f0ed2fe1d030437dce04dd2",
+                "checkpoint_ts": "2026-11-05T09:06:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd0faed6e4cb8146c299adee8dc805ea7610225deb5d82cae524098627b0d31f9",
+                "checkpoint_ts": "2026-11-05T09:07:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b1ffc165548bc7dcb5d4b1fca5bfd79b71ab5ef09e6430a0569e85c10856a89",
+                "checkpoint_ts": "2026-11-05T09:08:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x74f94fec9ef0097320ebccdbe957e3ed4e41170a07b5126c6c8edbc4078be9c3",
+                "checkpoint_ts": "2026-11-05T09:09:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1adee6da1fb15e46331fe888a830787504b7e7a58b4721166949c088c54d7b2",
+                "checkpoint_ts": "2026-11-05T09:10:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd90332b1d22b26a08a885effc48f97efb84ab87ffe6886c50a6981220114b3b0",
+                "checkpoint_ts": "2026-11-05T09:11:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb0a6658b2b6cc64dd2fb172f1984d3cc4bdd9b05ee92c0b061274d2f1a4d634f",
+                "checkpoint_ts": "2026-11-05T09:12:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+                "checkpoint_ts": "2026-11-05T09:13:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x52e9187b951455f93795472f48cb02df872f96e7c39f7621549cddcbdc958e02",
+                "checkpoint_ts": "2026-11-05T09:14:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+                "checkpoint_ts": "2026-11-05T09:15:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9f54c3d1e5dd4c64faf5e07a3239c2c10805bc524423831d263a4326cc458774",
+                "checkpoint_ts": "2026-11-05T09:16:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf0406f425233bd2ff89586bb42d1998e5abce3cae1b2bbcbd0ce73b231314119",
+                "checkpoint_ts": "2026-11-05T09:17:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x4720663dc90e25219aae3f1bda77004e1fb4b3f234a9b38592195bc1aac1bc1c",
+                "checkpoint_ts": "2026-11-05T09:18:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9d32043ecbcba723f0291b3ed76e663da0eafbdc94095dc9b68e1a1c4566add5",
+                "checkpoint_ts": "2026-11-05T09:19:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8d13225a53a1e9e9d854bd46456a98d2f62ef8f90c6240769e46b894a1ca0b32",
+                "checkpoint_ts": "2026-11-05T09:20:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x98d44b086b1a85837a3a7fac60adca7a0cb9188b457ac68abf21da75acbd6563",
+                "checkpoint_ts": "2026-11-05T09:21:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x63a0966239f248f3b736cdc390e9063087a633ac2360575ea44a6c9ea770e6bb",
+                "checkpoint_ts": "2026-11-05T09:22:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x44383f3d112b2496f8a350b1d89339bf6443b1d3e7af710cf4f924b9cb880210",
+                "checkpoint_ts": "2026-11-05T09:23:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc9cf440afb5771657c469d5620adb9089215290ec818e866787f25328ca1920a",
+                "checkpoint_ts": "2026-11-05T09:24:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x97646354c6d1ebfd7b50b5ae6521d7fb6f8b638bf70b5fa31c199288b05fe776",
+                "checkpoint_ts": "2026-11-05T09:25:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xeb785ca103d9d8c98fde215b52e29d311126578de0fe762ccea9effa972f7dba",
+                "checkpoint_ts": "2026-11-05T09:26:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5cfdb495ab6762f9d543c286a2acb271e357e2d14a52bfe65fbb6b5773c62fc2",
+                "checkpoint_ts": "2026-11-05T09:27:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc2e340d930895c09ff5e29cc9543b7d24d17236353a0634f9b8d0673b5d887cb",
+                "checkpoint_ts": "2026-11-05T09:28:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd41b76e5df5dcc0a447518642d4fa0f6783a9b0abaf1e64a5f8861311035187d",
+                "checkpoint_ts": "2026-11-05T09:29:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x99c6e24c9630867061fb6bf9bc3198e9d75e7d7a0e589a2ee4f2d5cfc444ebc0",
+                "checkpoint_ts": "2026-11-05T09:30:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2736575e328f93f4ef12f7c5d398386884648258dab3fb7d8d9ce0b196ee62cd",
+                "checkpoint_ts": "2026-11-05T09:31:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+                "checkpoint_ts": "2026-11-05T09:32:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x35136dce42ec8961db91d2ce8a3ca0d7a06caacdabb4d1b56ead1710b9819953",
+                "checkpoint_ts": "2026-11-05T09:33:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x19b7e40f165e89e37b16edf4fd4ba5a9edd35eada7aa8ef8b9b5f908acb1967b",
+                "checkpoint_ts": "2026-11-05T09:34:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+                "checkpoint_ts": "2026-11-05T09:35:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x618c68526941d0ab6613975387f24ca9a3446da7adf05bdb03558865388f3b16",
+                "checkpoint_ts": "2026-11-05T09:36:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x78b5f92ce598b35f4c9bf9d76300b0cb889c1a5e11a45328364ccede0becab12",
+                "checkpoint_ts": "2026-11-05T09:37:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbfd1c5836d145fb54ba1c1b7b65599d85357514cdba5eb4b5bd3c1f58761ae8c",
+                "checkpoint_ts": "2026-11-05T09:38:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x505be3eff126f0b794e26cca7140bac5464cee8a72dd5dece883f671baff27c1",
+                "checkpoint_ts": "2026-11-05T09:39:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf4d7ea371540dcbba60b9e02ecd41aabd1d40506e274fd8e18236a017ed24d78",
+                "checkpoint_ts": "2026-11-05T09:40:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe62c44628873ac0ad7f11cf309f2e5b908da7ce2b3d8140cc1f28a7cf4338971",
+                "checkpoint_ts": "2026-11-05T09:41:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb061034f235244be63884aec3752ca93f44193d11631e672caadeb2b5270fdd9",
+                "checkpoint_ts": "2026-11-05T09:42:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b3f0b78c50229de428e362d873c3918b1d328ecf030c3ce923b481b294e56f3",
+                "checkpoint_ts": "2026-11-05T09:43:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x08683cc31b118914a6c5db2df2d65edd368816aa1e2766f9f95b91f443c8dc47",
+                "checkpoint_ts": "2026-11-05T09:44:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd485bb554d9caa5dbb48177f399c465a2d58921727a9491287b8462d296a45de",
+                "checkpoint_ts": "2026-11-05T09:45:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf2b265e0da6ae03f4075c5bb6a726d35fa8a93d7682f453f7fe73cd1e0785dae",
+                "checkpoint_ts": "2026-11-05T09:46:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x77dc6117e4adcc6e0f3e9c4992de64f90df2948e164a7094b9a67d0d8201c18b",
+                "checkpoint_ts": "2026-11-05T09:47:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x6832564314ca417ace729a589d4e829fd9e1af006ae6901b781d48887a485228",
+                "checkpoint_ts": "2026-11-05T09:48:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xfb8aecc933d0636e02c14c575b11c730364e08001dfab71bd66c79b31aa9b1fe",
+                "checkpoint_ts": "2026-11-05T09:49:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5a8bc7076ae019c69a1b2526d6485cd374592e9296439f9eaedc86b62bccd066",
+                "checkpoint_ts": "2026-11-05T09:50:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x852ccf21cb9b150ed71be454fba683514fbb18e83ca3972c1fcb280be78c80f3",
+                "checkpoint_ts": "2026-11-05T09:51:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x81846e4d61cf508ab779373e7c135f7595b334508dd633ce4651613b769497de",
+                "checkpoint_ts": "2026-11-05T09:52:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2ddc333a094bd125231ae10d191e167ced735a64d5f2437a75e502426c2cde6c",
+                "checkpoint_ts": "2026-11-05T09:53:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b5044bc97bad9ca703ebacba1a94502d271095d58e0c5ceab4bdcc85a337441",
+                "checkpoint_ts": "2026-11-05T09:54:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x428945bea203c8e76962d7fbe7e5945ce41753a260194069af79740ababc88ee",
+                "checkpoint_ts": "2026-11-05T09:55:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3961c107300e1dfc79ed7cba8f5e1dbce65f816a351517a630633a6ee4782a0",
+                "checkpoint_ts": "2026-11-05T09:56:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa190dcd75e59dc440a5b1b5546fb70c2a2354cebe9757448393784c6878820c4",
+                "checkpoint_ts": "2026-11-05T09:57:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b9398d306687b4babd9121dab74e3690b997b3deaf04d2e2d2d1dd03e6c3947",
+                "checkpoint_ts": "2026-11-05T09:58:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x88ff909d9c3f5d93965660aa138fae01ef2f7fae0db281e19e70ce35381011d7",
+                "checkpoint_ts": "2026-11-05T09:59:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+                "checkpoint_ts": "2026-11-05T10:00:00.300Z"
+              }
+            ]
+          },
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "points": [
+              {
+                "checkpoint_hash": "0x8c09c438372652f788a05a5f5189cc3a2d766c12a344450041ddc0985a9704da",
+                "checkpoint_ts": "2026-11-05T10:00:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9ce51e4e3451987b13d444dd54887e54c475b6712bcaed59d7252651f2732a7c",
+                "checkpoint_ts": "2026-11-05T10:01:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2876d9e3a25821557e37a515d6a33db1d19661e88a2ca7e270b792cbb83d9c67",
+                "checkpoint_ts": "2026-11-05T10:02:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8852b103215e21f3c1bec107f22710d93776cfda671a9d7fd1cd39a92801d692",
+                "checkpoint_ts": "2026-11-05T10:03:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc86c21a43d0bc83d0aa8e2a10e659c12ed7086111ee1ea27fb73f026f17cb1e3",
+                "checkpoint_ts": "2026-11-05T10:04:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x27a1f963e4ae59e2e542ce0098bd40f70b550e81a3dcbb8a5040cfe54a9729f6",
+                "checkpoint_ts": "2026-11-05T10:05:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xde643aec12f7490e29ca067e4f9ff886461aed95d0d2b49d5d9c2bb6b18df0d9",
+                "checkpoint_ts": "2026-11-05T10:06:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe1dc666c5dd9cd2fe0a5879144e1e2c2f35455a32fed5ce4b965f6626322c800",
+                "checkpoint_ts": "2026-11-05T10:07:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x0a6cae45d3d63829b7556f76d312efa8ce2c969943761c4e1ababb5cb5aeab8a",
+                "checkpoint_ts": "2026-11-05T10:08:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9b761fa1599d2f1c397f443245bbe17c4fa41fc877254f65d0c217bd04e495a8",
+                "checkpoint_ts": "2026-11-05T10:09:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd8396f561372b8afd10fc1acc6ee650229a1f1ea6428e966aa31268eb5428072",
+                "checkpoint_ts": "2026-11-05T10:10:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9a278d9e07fe9c570bb2c80cf801129d0316e33b9c14a55fe6978188fa235f99",
+                "checkpoint_ts": "2026-11-05T10:11:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe6e70d6568571fcbb81a23707868ed95c5b3a0f925cfff248eb37a5c557a68a6",
+                "checkpoint_ts": "2026-11-05T10:12:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7108a959bfc92d7f856c5188fc55cbfd9c064ad8a2b320125b1293d90d3639fa",
+                "checkpoint_ts": "2026-11-05T10:13:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x0534b24f4940872ec5abd89d18ce4380aeff6ec16a5af992a72c136e7792b925",
+                "checkpoint_ts": "2026-11-05T10:14:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9f3c6a45fc50de7944660add5cba0e7191594a88b3d676bd819efebe7ae58381",
+                "checkpoint_ts": "2026-11-05T10:15:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xeb0d92504db31cd2fd7fa7557180f1a95e58f76be2a284854aaf2658f03c4bfc",
+                "checkpoint_ts": "2026-11-05T10:16:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x84c64a494dee1681381e93366e8196a38175e92623f62391e5e572028ad7a499",
+                "checkpoint_ts": "2026-11-05T10:17:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7748afd09bc2ddd48b54f1b36798492cec14364e3dec930d59cb909b775a841e",
+                "checkpoint_ts": "2026-11-05T10:18:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xfad03cd59bb6d3339776f0fcb1d11cb925e14fee131be71c30f331ec660d31b0",
+                "checkpoint_ts": "2026-11-05T10:19:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2d6257d1c3723b600ef5f0e79c6e5542991bf1fe22b259f4f54f152a46123e29",
+                "checkpoint_ts": "2026-11-05T10:20:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2220be577aecc084d41feb5926ada0aad0e3a695a76df03dc766087d50b991da",
+                "checkpoint_ts": "2026-11-05T10:21:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe2d9b11186843cb9af3dfde11456bb076c5cda136f4ac22ce66802079d3b8760",
+                "checkpoint_ts": "2026-11-05T10:22:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa2d0126f6c0cd9536e21d52c60a383ceacd5eb970ab8c42db4575352876b80a8",
+                "checkpoint_ts": "2026-11-05T10:23:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xaf229cbef130d87065ec6aa6b9de4aab7b5bd98a37ed96abd0bee87ef7165780",
+                "checkpoint_ts": "2026-11-05T10:24:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x66b0ee25c8f59612f46d5d0a88481677815b24d53a7aff30de28cf97f1b7de4a",
+                "checkpoint_ts": "2026-11-05T10:25:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x144d207e8e3a38ba070e088c135c53b74567a439c49f328a51897fbbdb6088c5",
+                "checkpoint_ts": "2026-11-05T10:26:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x36770cf4f5553af436ff70bdf70911bbd3e67fbe0f478c8a151f751265cbe1eb",
+                "checkpoint_ts": "2026-11-05T10:27:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb5ffe10de67823047f772d49145ffd6e316cd1cdb85c032a3c8bf77bec972b11",
+                "checkpoint_ts": "2026-11-05T10:28:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5c0f9abd0d785a124e8c6dbb6ffa23fe9e810077646b414bd2a08bcc2dbd190d",
+                "checkpoint_ts": "2026-11-05T10:29:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xeeaa8d8f64ed53a50e1d929dd9dbbd7d54a2464c3c7ff25466188ae15e3f16e7",
+                "checkpoint_ts": "2026-11-05T10:30:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb8b39b4f319041b7cf490c04be6b104e7c29d9e3622e5a4c80f61dd06a37b47e",
+                "checkpoint_ts": "2026-11-05T10:31:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb720f8f4a0ac62bd37d51425aa6f9a7ef363bf1d4af4682ab6496d2935f00104",
+                "checkpoint_ts": "2026-11-05T10:32:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x04707658b4c31b72a3c07855d95bd83041edc226c95de9dcdce792b672062572",
+                "checkpoint_ts": "2026-11-05T10:33:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5090da0a8a22b8fb09dc0361ff44388da128106fbd2a15314bb5d54e2d151b98",
+                "checkpoint_ts": "2026-11-05T10:34:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x090915c9aae821913515dcba595cd62f0c68ac710d85f2798856b5df7507464d",
+                "checkpoint_ts": "2026-11-05T10:35:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd2feb1a4c1a605121906cd2bedea1ae88b22098ffb4416b15de91c04028cd12d",
+                "checkpoint_ts": "2026-11-05T10:36:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf581e48bd2602498636fb80b802bd25b9df62afb9a1eb4b4db857bc1d40c987a",
+                "checkpoint_ts": "2026-11-05T10:37:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x1065d83348b450bb876d14f70e7cde823144988a7292f4dbb1b22c531e978759",
+                "checkpoint_ts": "2026-11-05T10:38:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x1d759adc0e33f65c991ea6f23d2aa3a0d5127f1014cd230fe7d9bffb224da920",
+                "checkpoint_ts": "2026-11-05T10:39:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa06ae0f1bfd47ee9ebe7ac4a16ee96a2c34c0281f9fa1bfb172eb26ee633b58e",
+                "checkpoint_ts": "2026-11-05T10:40:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x736858f101942ed5a239676db47638507aa2ed3d2b8c266cab613904a2952b14",
+                "checkpoint_ts": "2026-11-05T10:41:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbdeb7d92a18006cad4f9f637d89242b399e2bde30aaaf5a21ac1eda1541f4a50",
+                "checkpoint_ts": "2026-11-05T10:42:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2adf820125dff059d82ff8fa15dbae8bd09a23abbf418a56e6c87c095d7d595e",
+                "checkpoint_ts": "2026-11-05T10:43:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x091aaa397a40a183890c2e0abc410de7590431fb6793481969a78d7e5b1f0ffa",
+                "checkpoint_ts": "2026-11-05T10:44:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb4d1152550a2b5646b11eaf33f5122880abd5ca392c2832969a9c519637b91b9",
+                "checkpoint_ts": "2026-11-05T10:45:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x080511239ed69ea0cfa240350c42cffa3658a96deae5b6ee832c349a4f9089d0",
+                "checkpoint_ts": "2026-11-05T10:46:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe45ee63938202d7005880d2af450373c505611833d8b1ba627cee96461477133",
+                "checkpoint_ts": "2026-11-05T10:47:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x359fbc8dbcabf5ad2a67177c619de9bf2d11629c591c6e3b867a2fe495b88bc0",
+                "checkpoint_ts": "2026-11-05T10:48:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7cb759de85825b8f797f5ba03908826e8d9c7cdd91b3ccb19370175b5b2ef8eb",
+                "checkpoint_ts": "2026-11-05T10:49:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb838b322db961f937279b6b659744c8c7c3ac1728935f0858ecbd4a0d98b270c",
+                "checkpoint_ts": "2026-11-05T10:50:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9f75582c3c6c2bb73da0d6910b1e5c06cbd006d178c8a03e5ad14f6aa21e19b1",
+                "checkpoint_ts": "2026-11-05T10:51:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9e56a83025367bb8c59093056ecc4cb9ee0b3cdb42ec4e0433fc99a76fe92c16",
+                "checkpoint_ts": "2026-11-05T10:52:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x34d0180e6af93132eabb4c6d928c6f2b58d1572123add586b2048a9eeeb0ed26",
+                "checkpoint_ts": "2026-11-05T10:53:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2498b4438918a45e4b0da1c3f691ba7a9f0d3c2c054bc5847ba08693e2c35988",
+                "checkpoint_ts": "2026-11-05T10:54:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x1a00d9ee54481dc3194b6bf68a6d63fb1cd4da4ff624bbab7cfe178d2c1544f2",
+                "checkpoint_ts": "2026-11-05T10:55:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xdd882bf4f9b0d5a007ef649db3f961a24d291964167507941eb20488827e5140",
+                "checkpoint_ts": "2026-11-05T10:56:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb259161ea86211445147e3802ab6b4ba11a8ccee14c7808680bfefffffd071ac",
+                "checkpoint_ts": "2026-11-05T10:57:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf0498044a74c03804bd4a63840390afe9920edcdb7c345f5a7a182fc307a7761",
+                "checkpoint_ts": "2026-11-05T10:58:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd402433b1e43152a4021568a48195c1c58e49fb29aa1bf0a6a5ce9edf5fefadc",
+                "checkpoint_ts": "2026-11-05T10:59:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc80a57cf38697a3f851fcb6399066c875ef34d3ec29927ea0565f38e8559c859",
+                "checkpoint_ts": "2026-11-05T11:00:00.212Z"
+              }
+            ]
+          }
+        ],
+        "anchors": [
+          {
+            "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30013,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30032,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30100,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x3800551f7949abe2fbb46f78954bfa5d23b6437ca9286fb5f3f77b35da0505ed",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30101,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          }
+        ]
+      },
+      "expected": {
+        "complete": true,
+        "orphans": [],
+        "out_of_order": [],
+        "attached": 4
+      }
+    },
+    {
+      "id": "periode-suivante-non-servie",
+      "description": "Mêmes ancres, mais la série de la période 2 n'est pas servie : l'ancre du point de 10:05 ne se rattache à aucun point publié et paraît orpheline. C'est pourquoi EX-10.7 exige de servir aussi la série de la période suivante quand elle existe.",
+      "input": {
+        "from_block": 30000,
+        "to_block": 30102,
+        "issuers": [
+          "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+        ],
+        "journals": [
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "points": [
+              {
+                "checkpoint_hash": "0xc69b7c56c709e31911a286ecd629482c37a30f488b220a0fe50deffff22331aa",
+                "checkpoint_ts": "2026-11-05T09:00:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x834ae6808ef373f4e117dedeb882a505c656454213ab42f0551f936b5efbd89d",
+                "checkpoint_ts": "2026-11-05T09:01:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa2f67f15b446644f53b6556da498bf09790a7c0019acb73efa2c477a0e2ff5e3",
+                "checkpoint_ts": "2026-11-05T09:02:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1652372ce5b680a1fcd25f6fe6098907100eb3164e536a86b355f109bee57a5",
+                "checkpoint_ts": "2026-11-05T09:03:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbc369437e8f0aa9b9f5dcde13427fe3d1edb15b40e6b0b5f95ac9eee7be18073",
+                "checkpoint_ts": "2026-11-05T09:04:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x0298d9fdd094ee152a306f8117c91dae8bf5f00d78742d90e729396e2adfa5f9",
+                "checkpoint_ts": "2026-11-05T09:05:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8bc779e62783a8c27c7112433daa2e3f18258cca4f0ed2fe1d030437dce04dd2",
+                "checkpoint_ts": "2026-11-05T09:06:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd0faed6e4cb8146c299adee8dc805ea7610225deb5d82cae524098627b0d31f9",
+                "checkpoint_ts": "2026-11-05T09:07:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b1ffc165548bc7dcb5d4b1fca5bfd79b71ab5ef09e6430a0569e85c10856a89",
+                "checkpoint_ts": "2026-11-05T09:08:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x74f94fec9ef0097320ebccdbe957e3ed4e41170a07b5126c6c8edbc4078be9c3",
+                "checkpoint_ts": "2026-11-05T09:09:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1adee6da1fb15e46331fe888a830787504b7e7a58b4721166949c088c54d7b2",
+                "checkpoint_ts": "2026-11-05T09:10:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd90332b1d22b26a08a885effc48f97efb84ab87ffe6886c50a6981220114b3b0",
+                "checkpoint_ts": "2026-11-05T09:11:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb0a6658b2b6cc64dd2fb172f1984d3cc4bdd9b05ee92c0b061274d2f1a4d634f",
+                "checkpoint_ts": "2026-11-05T09:12:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+                "checkpoint_ts": "2026-11-05T09:13:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x52e9187b951455f93795472f48cb02df872f96e7c39f7621549cddcbdc958e02",
+                "checkpoint_ts": "2026-11-05T09:14:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+                "checkpoint_ts": "2026-11-05T09:15:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9f54c3d1e5dd4c64faf5e07a3239c2c10805bc524423831d263a4326cc458774",
+                "checkpoint_ts": "2026-11-05T09:16:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf0406f425233bd2ff89586bb42d1998e5abce3cae1b2bbcbd0ce73b231314119",
+                "checkpoint_ts": "2026-11-05T09:17:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x4720663dc90e25219aae3f1bda77004e1fb4b3f234a9b38592195bc1aac1bc1c",
+                "checkpoint_ts": "2026-11-05T09:18:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9d32043ecbcba723f0291b3ed76e663da0eafbdc94095dc9b68e1a1c4566add5",
+                "checkpoint_ts": "2026-11-05T09:19:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8d13225a53a1e9e9d854bd46456a98d2f62ef8f90c6240769e46b894a1ca0b32",
+                "checkpoint_ts": "2026-11-05T09:20:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x98d44b086b1a85837a3a7fac60adca7a0cb9188b457ac68abf21da75acbd6563",
+                "checkpoint_ts": "2026-11-05T09:21:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x63a0966239f248f3b736cdc390e9063087a633ac2360575ea44a6c9ea770e6bb",
+                "checkpoint_ts": "2026-11-05T09:22:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x44383f3d112b2496f8a350b1d89339bf6443b1d3e7af710cf4f924b9cb880210",
+                "checkpoint_ts": "2026-11-05T09:23:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc9cf440afb5771657c469d5620adb9089215290ec818e866787f25328ca1920a",
+                "checkpoint_ts": "2026-11-05T09:24:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x97646354c6d1ebfd7b50b5ae6521d7fb6f8b638bf70b5fa31c199288b05fe776",
+                "checkpoint_ts": "2026-11-05T09:25:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xeb785ca103d9d8c98fde215b52e29d311126578de0fe762ccea9effa972f7dba",
+                "checkpoint_ts": "2026-11-05T09:26:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5cfdb495ab6762f9d543c286a2acb271e357e2d14a52bfe65fbb6b5773c62fc2",
+                "checkpoint_ts": "2026-11-05T09:27:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc2e340d930895c09ff5e29cc9543b7d24d17236353a0634f9b8d0673b5d887cb",
+                "checkpoint_ts": "2026-11-05T09:28:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd41b76e5df5dcc0a447518642d4fa0f6783a9b0abaf1e64a5f8861311035187d",
+                "checkpoint_ts": "2026-11-05T09:29:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x99c6e24c9630867061fb6bf9bc3198e9d75e7d7a0e589a2ee4f2d5cfc444ebc0",
+                "checkpoint_ts": "2026-11-05T09:30:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2736575e328f93f4ef12f7c5d398386884648258dab3fb7d8d9ce0b196ee62cd",
+                "checkpoint_ts": "2026-11-05T09:31:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+                "checkpoint_ts": "2026-11-05T09:32:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x35136dce42ec8961db91d2ce8a3ca0d7a06caacdabb4d1b56ead1710b9819953",
+                "checkpoint_ts": "2026-11-05T09:33:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x19b7e40f165e89e37b16edf4fd4ba5a9edd35eada7aa8ef8b9b5f908acb1967b",
+                "checkpoint_ts": "2026-11-05T09:34:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+                "checkpoint_ts": "2026-11-05T09:35:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x618c68526941d0ab6613975387f24ca9a3446da7adf05bdb03558865388f3b16",
+                "checkpoint_ts": "2026-11-05T09:36:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x78b5f92ce598b35f4c9bf9d76300b0cb889c1a5e11a45328364ccede0becab12",
+                "checkpoint_ts": "2026-11-05T09:37:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbfd1c5836d145fb54ba1c1b7b65599d85357514cdba5eb4b5bd3c1f58761ae8c",
+                "checkpoint_ts": "2026-11-05T09:38:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x505be3eff126f0b794e26cca7140bac5464cee8a72dd5dece883f671baff27c1",
+                "checkpoint_ts": "2026-11-05T09:39:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf4d7ea371540dcbba60b9e02ecd41aabd1d40506e274fd8e18236a017ed24d78",
+                "checkpoint_ts": "2026-11-05T09:40:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe62c44628873ac0ad7f11cf309f2e5b908da7ce2b3d8140cc1f28a7cf4338971",
+                "checkpoint_ts": "2026-11-05T09:41:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb061034f235244be63884aec3752ca93f44193d11631e672caadeb2b5270fdd9",
+                "checkpoint_ts": "2026-11-05T09:42:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b3f0b78c50229de428e362d873c3918b1d328ecf030c3ce923b481b294e56f3",
+                "checkpoint_ts": "2026-11-05T09:43:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x08683cc31b118914a6c5db2df2d65edd368816aa1e2766f9f95b91f443c8dc47",
+                "checkpoint_ts": "2026-11-05T09:44:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd485bb554d9caa5dbb48177f399c465a2d58921727a9491287b8462d296a45de",
+                "checkpoint_ts": "2026-11-05T09:45:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf2b265e0da6ae03f4075c5bb6a726d35fa8a93d7682f453f7fe73cd1e0785dae",
+                "checkpoint_ts": "2026-11-05T09:46:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x77dc6117e4adcc6e0f3e9c4992de64f90df2948e164a7094b9a67d0d8201c18b",
+                "checkpoint_ts": "2026-11-05T09:47:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x6832564314ca417ace729a589d4e829fd9e1af006ae6901b781d48887a485228",
+                "checkpoint_ts": "2026-11-05T09:48:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xfb8aecc933d0636e02c14c575b11c730364e08001dfab71bd66c79b31aa9b1fe",
+                "checkpoint_ts": "2026-11-05T09:49:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5a8bc7076ae019c69a1b2526d6485cd374592e9296439f9eaedc86b62bccd066",
+                "checkpoint_ts": "2026-11-05T09:50:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x852ccf21cb9b150ed71be454fba683514fbb18e83ca3972c1fcb280be78c80f3",
+                "checkpoint_ts": "2026-11-05T09:51:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x81846e4d61cf508ab779373e7c135f7595b334508dd633ce4651613b769497de",
+                "checkpoint_ts": "2026-11-05T09:52:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2ddc333a094bd125231ae10d191e167ced735a64d5f2437a75e502426c2cde6c",
+                "checkpoint_ts": "2026-11-05T09:53:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b5044bc97bad9ca703ebacba1a94502d271095d58e0c5ceab4bdcc85a337441",
+                "checkpoint_ts": "2026-11-05T09:54:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x428945bea203c8e76962d7fbe7e5945ce41753a260194069af79740ababc88ee",
+                "checkpoint_ts": "2026-11-05T09:55:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3961c107300e1dfc79ed7cba8f5e1dbce65f816a351517a630633a6ee4782a0",
+                "checkpoint_ts": "2026-11-05T09:56:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa190dcd75e59dc440a5b1b5546fb70c2a2354cebe9757448393784c6878820c4",
+                "checkpoint_ts": "2026-11-05T09:57:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b9398d306687b4babd9121dab74e3690b997b3deaf04d2e2d2d1dd03e6c3947",
+                "checkpoint_ts": "2026-11-05T09:58:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x88ff909d9c3f5d93965660aa138fae01ef2f7fae0db281e19e70ce35381011d7",
+                "checkpoint_ts": "2026-11-05T09:59:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+                "checkpoint_ts": "2026-11-05T10:00:00.300Z"
+              }
+            ]
+          }
+        ],
+        "anchors": [
+          {
+            "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30013,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30032,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30100,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x3800551f7949abe2fbb46f78954bfa5d23b6437ca9286fb5f3f77b35da0505ed",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30101,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          }
+        ]
+      },
+      "expected": {
+        "complete": false,
+        "orphans": [
+          "0x3800551f7949abe2fbb46f78954bfa5d23b6437ca9286fb5f3f77b35da0505ed"
+        ],
+        "out_of_order": [],
+        "attached": 3
+      }
+    },
+    {
+      "id": "emetteur-doctype-et-fenetre",
+      "description": "Série publiée d'origine ; sont ignorées : une ancre de point émise par une adresse qui n'est pas une clé de chaîne inscrite (compte Hardhat 1), une ancre de docType période (celle de la période, même émetteur), une ancre de point antérieure à la fenêtre (bloc 29990) : seules les trois ancres nominales sont confrontées.",
+      "input": {
+        "from_block": 30000,
+        "to_block": 30101,
+        "issuers": [
+          "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+        ],
+        "journals": [
+          {
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+            "points": [
+              {
+                "checkpoint_hash": "0xc69b7c56c709e31911a286ecd629482c37a30f488b220a0fe50deffff22331aa",
+                "checkpoint_ts": "2026-11-05T09:00:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x834ae6808ef373f4e117dedeb882a505c656454213ab42f0551f936b5efbd89d",
+                "checkpoint_ts": "2026-11-05T09:01:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa2f67f15b446644f53b6556da498bf09790a7c0019acb73efa2c477a0e2ff5e3",
+                "checkpoint_ts": "2026-11-05T09:02:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1652372ce5b680a1fcd25f6fe6098907100eb3164e536a86b355f109bee57a5",
+                "checkpoint_ts": "2026-11-05T09:03:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbc369437e8f0aa9b9f5dcde13427fe3d1edb15b40e6b0b5f95ac9eee7be18073",
+                "checkpoint_ts": "2026-11-05T09:04:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x0298d9fdd094ee152a306f8117c91dae8bf5f00d78742d90e729396e2adfa5f9",
+                "checkpoint_ts": "2026-11-05T09:05:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8bc779e62783a8c27c7112433daa2e3f18258cca4f0ed2fe1d030437dce04dd2",
+                "checkpoint_ts": "2026-11-05T09:06:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd0faed6e4cb8146c299adee8dc805ea7610225deb5d82cae524098627b0d31f9",
+                "checkpoint_ts": "2026-11-05T09:07:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b1ffc165548bc7dcb5d4b1fca5bfd79b71ab5ef09e6430a0569e85c10856a89",
+                "checkpoint_ts": "2026-11-05T09:08:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x74f94fec9ef0097320ebccdbe957e3ed4e41170a07b5126c6c8edbc4078be9c3",
+                "checkpoint_ts": "2026-11-05T09:09:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb1adee6da1fb15e46331fe888a830787504b7e7a58b4721166949c088c54d7b2",
+                "checkpoint_ts": "2026-11-05T09:10:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd90332b1d22b26a08a885effc48f97efb84ab87ffe6886c50a6981220114b3b0",
+                "checkpoint_ts": "2026-11-05T09:11:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb0a6658b2b6cc64dd2fb172f1984d3cc4bdd9b05ee92c0b061274d2f1a4d634f",
+                "checkpoint_ts": "2026-11-05T09:12:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc505ad36f41bf04f1198a723f7e4104bafbc5e9c1d1f78b61776252775320f53",
+                "checkpoint_ts": "2026-11-05T09:13:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x52e9187b951455f93795472f48cb02df872f96e7c39f7621549cddcbdc958e02",
+                "checkpoint_ts": "2026-11-05T09:14:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x20d5c60573019c58ebd296408c70a30585bd02ccd70d8066bed96482168a51df",
+                "checkpoint_ts": "2026-11-05T09:15:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9f54c3d1e5dd4c64faf5e07a3239c2c10805bc524423831d263a4326cc458774",
+                "checkpoint_ts": "2026-11-05T09:16:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf0406f425233bd2ff89586bb42d1998e5abce3cae1b2bbcbd0ce73b231314119",
+                "checkpoint_ts": "2026-11-05T09:17:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x4720663dc90e25219aae3f1bda77004e1fb4b3f234a9b38592195bc1aac1bc1c",
+                "checkpoint_ts": "2026-11-05T09:18:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x9d32043ecbcba723f0291b3ed76e663da0eafbdc94095dc9b68e1a1c4566add5",
+                "checkpoint_ts": "2026-11-05T09:19:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x8d13225a53a1e9e9d854bd46456a98d2f62ef8f90c6240769e46b894a1ca0b32",
+                "checkpoint_ts": "2026-11-05T09:20:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x98d44b086b1a85837a3a7fac60adca7a0cb9188b457ac68abf21da75acbd6563",
+                "checkpoint_ts": "2026-11-05T09:21:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x63a0966239f248f3b736cdc390e9063087a633ac2360575ea44a6c9ea770e6bb",
+                "checkpoint_ts": "2026-11-05T09:22:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x44383f3d112b2496f8a350b1d89339bf6443b1d3e7af710cf4f924b9cb880210",
+                "checkpoint_ts": "2026-11-05T09:23:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc9cf440afb5771657c469d5620adb9089215290ec818e866787f25328ca1920a",
+                "checkpoint_ts": "2026-11-05T09:24:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x97646354c6d1ebfd7b50b5ae6521d7fb6f8b638bf70b5fa31c199288b05fe776",
+                "checkpoint_ts": "2026-11-05T09:25:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xeb785ca103d9d8c98fde215b52e29d311126578de0fe762ccea9effa972f7dba",
+                "checkpoint_ts": "2026-11-05T09:26:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5cfdb495ab6762f9d543c286a2acb271e357e2d14a52bfe65fbb6b5773c62fc2",
+                "checkpoint_ts": "2026-11-05T09:27:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc2e340d930895c09ff5e29cc9543b7d24d17236353a0634f9b8d0673b5d887cb",
+                "checkpoint_ts": "2026-11-05T09:28:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd41b76e5df5dcc0a447518642d4fa0f6783a9b0abaf1e64a5f8861311035187d",
+                "checkpoint_ts": "2026-11-05T09:29:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x99c6e24c9630867061fb6bf9bc3198e9d75e7d7a0e589a2ee4f2d5cfc444ebc0",
+                "checkpoint_ts": "2026-11-05T09:30:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2736575e328f93f4ef12f7c5d398386884648258dab3fb7d8d9ce0b196ee62cd",
+                "checkpoint_ts": "2026-11-05T09:31:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+                "checkpoint_ts": "2026-11-05T09:32:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x35136dce42ec8961db91d2ce8a3ca0d7a06caacdabb4d1b56ead1710b9819953",
+                "checkpoint_ts": "2026-11-05T09:33:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x19b7e40f165e89e37b16edf4fd4ba5a9edd35eada7aa8ef8b9b5f908acb1967b",
+                "checkpoint_ts": "2026-11-05T09:34:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd9520825f33d7f2d5e93fbf5bd5a64ac8709cae4f29e237305520e6ae7676128",
+                "checkpoint_ts": "2026-11-05T09:35:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x618c68526941d0ab6613975387f24ca9a3446da7adf05bdb03558865388f3b16",
+                "checkpoint_ts": "2026-11-05T09:36:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x78b5f92ce598b35f4c9bf9d76300b0cb889c1a5e11a45328364ccede0becab12",
+                "checkpoint_ts": "2026-11-05T09:37:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xbfd1c5836d145fb54ba1c1b7b65599d85357514cdba5eb4b5bd3c1f58761ae8c",
+                "checkpoint_ts": "2026-11-05T09:38:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x505be3eff126f0b794e26cca7140bac5464cee8a72dd5dece883f671baff27c1",
+                "checkpoint_ts": "2026-11-05T09:39:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf4d7ea371540dcbba60b9e02ecd41aabd1d40506e274fd8e18236a017ed24d78",
+                "checkpoint_ts": "2026-11-05T09:40:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xe62c44628873ac0ad7f11cf309f2e5b908da7ce2b3d8140cc1f28a7cf4338971",
+                "checkpoint_ts": "2026-11-05T09:41:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xb061034f235244be63884aec3752ca93f44193d11631e672caadeb2b5270fdd9",
+                "checkpoint_ts": "2026-11-05T09:42:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b3f0b78c50229de428e362d873c3918b1d328ecf030c3ce923b481b294e56f3",
+                "checkpoint_ts": "2026-11-05T09:43:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x08683cc31b118914a6c5db2df2d65edd368816aa1e2766f9f95b91f443c8dc47",
+                "checkpoint_ts": "2026-11-05T09:44:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xd485bb554d9caa5dbb48177f399c465a2d58921727a9491287b8462d296a45de",
+                "checkpoint_ts": "2026-11-05T09:45:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xf2b265e0da6ae03f4075c5bb6a726d35fa8a93d7682f453f7fe73cd1e0785dae",
+                "checkpoint_ts": "2026-11-05T09:46:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x77dc6117e4adcc6e0f3e9c4992de64f90df2948e164a7094b9a67d0d8201c18b",
+                "checkpoint_ts": "2026-11-05T09:47:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x6832564314ca417ace729a589d4e829fd9e1af006ae6901b781d48887a485228",
+                "checkpoint_ts": "2026-11-05T09:48:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xfb8aecc933d0636e02c14c575b11c730364e08001dfab71bd66c79b31aa9b1fe",
+                "checkpoint_ts": "2026-11-05T09:49:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5a8bc7076ae019c69a1b2526d6485cd374592e9296439f9eaedc86b62bccd066",
+                "checkpoint_ts": "2026-11-05T09:50:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x852ccf21cb9b150ed71be454fba683514fbb18e83ca3972c1fcb280be78c80f3",
+                "checkpoint_ts": "2026-11-05T09:51:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x81846e4d61cf508ab779373e7c135f7595b334508dd633ce4651613b769497de",
+                "checkpoint_ts": "2026-11-05T09:52:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x2ddc333a094bd125231ae10d191e167ced735a64d5f2437a75e502426c2cde6c",
+                "checkpoint_ts": "2026-11-05T09:53:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x5b5044bc97bad9ca703ebacba1a94502d271095d58e0c5ceab4bdcc85a337441",
+                "checkpoint_ts": "2026-11-05T09:54:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x428945bea203c8e76962d7fbe7e5945ce41753a260194069af79740ababc88ee",
+                "checkpoint_ts": "2026-11-05T09:55:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3961c107300e1dfc79ed7cba8f5e1dbce65f816a351517a630633a6ee4782a0",
+                "checkpoint_ts": "2026-11-05T09:56:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xa190dcd75e59dc440a5b1b5546fb70c2a2354cebe9757448393784c6878820c4",
+                "checkpoint_ts": "2026-11-05T09:57:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x7b9398d306687b4babd9121dab74e3690b997b3deaf04d2e2d2d1dd03e6c3947",
+                "checkpoint_ts": "2026-11-05T09:58:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0x88ff909d9c3f5d93965660aa138fae01ef2f7fae0db281e19e70ce35381011d7",
+                "checkpoint_ts": "2026-11-05T09:59:00.000Z"
+              },
+              {
+                "checkpoint_hash": "0xc3240f32131acca51d6d34509bfc8ccdfa4658dbd6ff62085a128684f9778cfe",
+                "checkpoint_ts": "2026-11-05T10:00:00.300Z"
+              }
+            ]
+          }
+        ],
+        "anchors": [
+          {
+            "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 29990,
+            "log_index": 1,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xe171999947e9ccb0a73320d3a80957b09777c7c96fdbe3536a1fdb3d8cd999dd",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30013,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30032,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30100,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          },
+          {
+            "fingerprint": "0xbfefb4f2db0483b9461a56a6b2cb10073cb203e9b303fe6e65ad9655a2badd2d",
+            "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+            "block_number": 30050,
+            "log_index": 0,
+            "issuer": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+          },
+          {
+            "fingerprint": "0xba83d601401e77c24b8b4211e3cbc2fbb3308b1a607058b117bf3c9f79680fd2",
+            "doc_type": "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee",
+            "block_number": 30101,
+            "log_index": 0,
+            "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7"
+          }
+        ]
+      },
+      "expected": {
+        "complete": true,
+        "orphans": [],
+        "out_of_order": [],
+        "attached": 3
+      }
+    }
+  ]
+}

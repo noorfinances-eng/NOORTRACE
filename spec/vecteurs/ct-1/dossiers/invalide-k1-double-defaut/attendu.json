@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "K-1",
+  "controles_en_echec": [
+    "K-1"
+  ],
+  "description": "La partie porte un membre « extra » hors du schéma et un chemin de cohérence tronqué : K-1 échoue sur le schéma ; K-2 à K-9 ne sont pas exécutées (prérequis K-1 en échec), si bien que le chemin tronqué n'est pas examiné et K-5 n'est pas en échec."
+}

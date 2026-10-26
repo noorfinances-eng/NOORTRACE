@@ -44,6 +44,16 @@ relevés le 2026-10-22 : `opentimestamps-0.4.5-py3-none-any.whl`
 `2f29a9f475f21c12169b3a6cc8820f34f11362d7ff1200a5703dce3e4e903a44`.
 
 Code de retour : 0 si tout concorde, 1 sinon. La sortie de référence est
-`../sorties/ots.txt` : 112 vérifications O- sur 112 concordantes, aucune
+`../sorties/ots.txt` : 140 vérifications O- sur 140 concordantes, aucune
 discordance sur les en-têtes, les preuves, les statuts des contrôles, les
 avertissements et les faits.
+
+## Révision 0.2 (points de contrôle, EX-A.17)
+
+Les preuves `preuves/point-periode-1.ots` (attestation Bitcoin à la hauteur
+1004) et `preuves/point-periode-1-en-attente.ots` (une attestation en attente)
+et la chaîne `entetes/chaine-points.json` sont lues comme les autres ; dans
+cette chaîne, l'en-tête 1004 porte la racine attestée par la preuve du point,
+les en-têtes 1001 à 1003 celles des preuves de période, les autres la racine
+synthétique dérivée de l'étiquette. Les fichiers `.ots` que CT-5 produit sont
+confrontés par CT-5 (`spec/vecteurs/ct-5/confrontation/ots/`).

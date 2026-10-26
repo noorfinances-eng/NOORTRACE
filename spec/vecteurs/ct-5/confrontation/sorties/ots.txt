@@ -1,0 +1,59 @@
+Confrontation des fichiers .ots de CT-5 par opentimestamps 0.4.5 (Python 3.13.16)
+Entrées : ots/ots.json, ots/*.ots, ots/mise-a-niveau.json, ../ct-6/ots/preuves/{o7-en-attente,periode-1}.ots
+
+== 1. Fichiers .ots en attente (EX-6.4)
+-- point-k2-minimal (point-k2-minimal.ots)
+  SHA-256 et taille : vecteur ('0x64a62afc6526fdd0ea34c57ea70eb8e4711f2fc49ff8fc6a3c4cd38596efa8b6', 195) ; outil ('0x64a62afc6526fdd0ea34c57ea70eb8e4711f2fc49ff8fc6a3c4cd38596efa8b6', 195) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff ; outil 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff : concorde
+  une seule opération sous l'empreinte : append d'un argument de 16 octets (nonce) : vecteur ('append', 16) ; outil ('append', 16) : concorde
+  nonce : vecteur 0xa10f0dccae630a2791dde3924b507379 ; outil 0xa10f0dccae630a2791dde3924b507379 : concorde
+  puis sha256 vers l'engagement : vecteur sha256 ; outil sha256 : concorde
+  engagement e = SHA-256(empreinte ‖ nonce) : vecteur 0x1e0e083c9976f92dfa6f0ba6c9ce296c9360d18d59416ba0354f64393b1fd480 ; outil 0x1e0e083c9976f92dfa6f0ba6c9ce296c9360d18d59416ba0354f64393b1fd480 : concorde
+  branches de calendrier (opérations puis attestation en attente), dans l'ordre de la bibliothèque : vecteur [{'calendar_ops': [], 'attestation': 'en_attente', 'uri': 'https://alice.btc.calendar.opentimestamps.org'}, {'calendar_ops': [], 'attestation': 'en_attente', 'uri': 'https://bob.btc.calendar.opentimestamps.org'}] ; outil [{'calendar_ops': [], 'attestation': 'en_attente', 'uri': 'https://alice.btc.calendar.opentimestamps.org'}, {'calendar_ops': [], 'attestation': 'en_attente', 'uri': 'https://bob.btc.calendar.opentimestamps.org'}] : concorde
+  toutes les attestations en attente (EX-6.7 : en_attente) : vecteur True ; outil True : concorde
+  état : vecteur en_attente ; outil en_attente : concorde
+-- point-k2-en-attente (point-k2-en-attente.ots)
+  SHA-256 et taille : vecteur ('0x8bdf7ed01c73e1b53cb1765e7c456c0ca92056af9685bc3c537a06f51182687a', 233) ; outil ('0x8bdf7ed01c73e1b53cb1765e7c456c0ca92056af9685bc3c537a06f51182687a', 233) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff ; outil 0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff : concorde
+  une seule opération sous l'empreinte : append d'un argument de 16 octets (nonce) : vecteur ('append', 16) ; outil ('append', 16) : concorde
+  nonce : vecteur 0x67408294dbd584a4dda160e16129c6b5 ; outil 0x67408294dbd584a4dda160e16129c6b5 : concorde
+  puis sha256 vers l'engagement : vecteur sha256 ; outil sha256 : concorde
+  engagement e = SHA-256(empreinte ‖ nonce) : vecteur 0xc1cb7611d9e35803bceab098d24a183876e134fcda969d249a92bf5013eca0aa ; outil 0xc1cb7611d9e35803bceab098d24a183876e134fcda969d249a92bf5013eca0aa : concorde
+  branches de calendrier (opérations puis attestation en attente), dans l'ordre de la bibliothèque : vecteur [{'calendar_ops': [('prepend', '0x86b4b0a3caa98d05a58a4023cc6c953b'), ('sha256', None)], 'attestation': 'en_attente', 'uri': 'https://alice.btc.calendar.opentimestamps.org'}, {'calendar_ops': [('prepend', '0xda4ee3a72268b161c2f158aec8af42fd'), ('sha256', None)], 'attestation': 'en_attente', 'uri': 'https://bob.btc.calendar.opentimestamps.org'}] ; outil [{'calendar_ops': [('prepend', '0x86b4b0a3caa98d05a58a4023cc6c953b'), ('sha256', None)], 'attestation': 'en_attente', 'uri': 'https://alice.btc.calendar.opentimestamps.org'}, {'calendar_ops': [('prepend', '0xda4ee3a72268b161c2f158aec8af42fd'), ('sha256', None)], 'attestation': 'en_attente', 'uri': 'https://bob.btc.calendar.opentimestamps.org'}] : concorde
+  toutes les attestations en attente (EX-6.7 : en_attente) : vecteur True ; outil True : concorde
+  état : vecteur en_attente ; outil en_attente : concorde
+-- periode-1-en-attente (periode-1-en-attente.ots)
+  SHA-256 et taille : vecteur ('0x4653728041b350ade24761a7dddab80e14e2268c67503c11b2b4eb8489d9bfc8', 233) ; outil ('0x4653728041b350ade24761a7dddab80e14e2268c67503c11b2b4eb8489d9bfc8', 233) : concorde
+  lecture stricte (DetachedTimestampFile.deserialize + assert_eof) : vecteur acceptee ; outil acceptee : concorde
+  réécriture par la bibliothèque identique aux octets du fichier : vecteur True ; outil True : concorde
+  opération de hachage du fichier = SHA-256 (08) : vecteur True ; outil True : concorde
+  empreinte du fichier : vecteur 0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1 ; outil 0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1 : concorde
+  une seule opération sous l'empreinte : append d'un argument de 16 octets (nonce) : vecteur ('append', 16) ; outil ('append', 16) : concorde
+  nonce : vecteur 0x29447d7a96d0433897b22e5156a977a5 ; outil 0x29447d7a96d0433897b22e5156a977a5 : concorde
+  puis sha256 vers l'engagement : vecteur sha256 ; outil sha256 : concorde
+  engagement e = SHA-256(empreinte ‖ nonce) : vecteur 0x1a952f35049ffd2381d4ed9771d4fecaaa17df999134ec1afba3efd552325c4e ; outil 0x1a952f35049ffd2381d4ed9771d4fecaaa17df999134ec1afba3efd552325c4e : concorde
+  branches de calendrier (opérations puis attestation en attente), dans l'ordre de la bibliothèque : vecteur [{'calendar_ops': [('prepend', '0x547781101f781d19f4f1ef8fc915bdfb'), ('sha256', None)], 'attestation': 'en_attente', 'uri': 'https://bob.btc.calendar.opentimestamps.org'}, {'calendar_ops': [('prepend', '0x708ee9996304d14c200583c3b4d62585'), ('sha256', None)], 'attestation': 'en_attente', 'uri': 'https://alice.btc.calendar.opentimestamps.org'}] ; outil [{'calendar_ops': [('prepend', '0x547781101f781d19f4f1ef8fc915bdfb'), ('sha256', None)], 'attestation': 'en_attente', 'uri': 'https://bob.btc.calendar.opentimestamps.org'}, {'calendar_ops': [('prepend', '0x708ee9996304d14c200583c3b4d62585'), ('sha256', None)], 'attestation': 'en_attente', 'uri': 'https://alice.btc.calendar.opentimestamps.org'}] : concorde
+  toutes les attestations en attente (EX-6.7 : en_attente) : vecteur True ; outil True : concorde
+  état : vecteur en_attente ; outil en_attente : concorde
+
+== 2. Mise à niveau (EX-6.6, EX-8.11) : preuves de CT-6 lues, non copiées
+  avant : SHA-256 et taille : vecteur ('0xa928d3f5bdb6a2eaa7173eae9bb6bfe2fd57513983369c953b263ddcfba39b26', 210) ; outil ('0xa928d3f5bdb6a2eaa7173eae9bb6bfe2fd57513983369c953b263ddcfba39b26', 210) : concorde
+  après : SHA-256 et taille : vecteur ('0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f', 316) ; outil ('0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f', 316) : concorde
+  réponse du calendrier : SHA-256 et taille : vecteur ('0xecd00c3582a47513efde6088284d3e586191f40183e043eb1d2137830e82d9c8', 162) ; outil ('0xecd00c3582a47513efde6088284d3e586191f40183e043eb1d2137830e82d9c8', 162) : concorde
+  avant : réécriture identique : vecteur True ; outil True : concorde
+  après : réécriture identique : vecteur True ; outil True : concorde
+  état avant : vecteur en_attente ; outil en_attente : concorde
+  état après : vecteur complete ; outil complete : concorde
+  une attestation en attente du calendrier https://alice.btc.calendar.opentimestamps.org dans la preuve avant : vecteur 1 ; outil 1 : concorde
+  réponse du calendrier : attestation Bitcoin à la hauteur 1001 au bout des opérations : vecteur [('bitcoin', 1001)] ; outil [('bitcoin', 1001)] : concorde
+  preuve fusionnée : SHA-256 : vecteur 0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f ; outil 0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f : concorde
+  preuve fusionnée = preuve complète de CT-6 (octets) : vecteur True ; outil True : concorde
+  état de la preuve fusionnée : vecteur complete ; outil complete : concorde
+
+Discordances au total : 0

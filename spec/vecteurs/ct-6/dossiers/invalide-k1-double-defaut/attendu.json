@@ -1,0 +1,75 @@
+{
+  "valid": false,
+  "target": "K-1",
+  "failed_checks": [
+    "K-1"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "echoue",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "K-2",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "K-3",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "K-4",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "K-5",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "K-6",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "K-7",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "K-8",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "K-9",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-11",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine-points.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : K-1 ; vérification(s) non exécutée(s) sans raison admise : K-2, K-3, K-4, K-5, K-6, K-7, K-8, K-9, R-11 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): K-1; check(s) not run without an admitted reason: K-2, K-3, K-4, K-5, K-6, K-7, K-8, K-9, R-11; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "Partie de valide-point-de-controle-complet portant un membre « extra » hors du schéma et un chemin de cohérence tronqué (dernier nœud retiré), index recalculé : K-1 échoue sur le schéma ; K-2 à K-9 non exécutées (prerequis_en_echec, dans blocking_unexecuted), si bien que le chemin tronqué n'est pas examiné et K-5 n'est pas en échec (CT-6 EX-5.9, CT-1 §11.4) ; failed_checks = [K-1] ; contrôle 3 en échec."
+}

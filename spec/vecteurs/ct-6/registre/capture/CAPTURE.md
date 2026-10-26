@@ -59,7 +59,7 @@ l'heure déclarée d'un bloc à celles du manifeste (EX-A.9).
 | `recu-<hash>.json` | réponse brute de `eth_getTransactionReceipt(hash)`, pour chaque transaction du bloc |
 | `certificat-<h>.json` | réponse brute de `noor_getCommitCertificate(h)` |
 | `validators.json` | jeu de validateurs du réseau, clés publiques seulement |
-| `capture.json` | description : date, commits, contrats, organisation, transactions avec leur rôle, leur bloc et leurs fichiers |
+| `capture.json` | description : date, commits, contrats, organisation, transactions avec leur rôle, leur bloc et leurs fichiers ; `points_de_controle` : transactions d'ancre de point de contrôle (complément EX-A.15) ; `complements` : compléments de capture datés |
 | `CAPTURE.md` | ce document |
 
 Les octets des fichiers JSON-RPC sont ceux de la réponse HTTP, sans
@@ -82,6 +82,42 @@ porter aucune valeur :
 Les clés privées des validateurs du réseau de développement restent sous
 `chain/runtime/keys/`, hors du dépôt ; `validators.json` n'en porte que les
 clés publiques.
+
+## Complément du 2026-10-26 : ancre du point de contrôle couvrant seq 7 (CT-6 révision 0.2, EX-A.15)
+
+Sur le même réseau de développement (même chaîne, mêmes contrats, même jeu de
+validateurs : `validators.json` inchangé, hachage
+`0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751`), une
+transaction de plus, capturée dès son reçu par la même procédure (bloc, tous
+les reçus du bloc, certificat de commit) ; les sept blocs du 2026-10-22 n'ont
+été ni relus ni réécrits. `capture.json` reçoit cette transaction (rôle
+`ancre_point_de_controle`) sous la clé séparée `points_de_controle`, et un
+champ `complements` qui date l'opération ; la liste `transactions` garde ses
+sept entrées du 2026-10-22, que le générateur de CT-4 lit telle quelle (ses
+vecteurs ne changent pas).
+
+| Bloc | Rôle | Objet | Transaction |
+|---|---|---|---|
+| 18928 | ancre_point_de_controle | point de contrôle couvrant seq 7 de la période 1 (`spec/vecteurs/ct-1/points-de-controle/periode-1.json`, `checkpoint_ts` 2026-11-05T09:32:00.000Z, `tree_size` 8, `last_seq` 8, `checkpointHash` `0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4`) : `AttestationRegistry.anchor` de l'empreinte `0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339` = keccak256(org_id ‖ journal_id ‖ checkpointHash), `docType` `0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178` (`noortrace/point-de-controle/v0`), émetteur `rec-test-01` (`0xaa2a59656361352e96ef2eed355316ef8b29dab7`, clé qui a signé le point, inscrite au bloc 16648) | `0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135` |
+
+Le certificat du bloc 18928 porte la proposition de `v1` et quatre precommits
+(les sept blocs de 2026 portaient le quorum exact de trois). Le générateur
+dérive de cette entrée `periode-1-point/` (les quatre entrées de `periode-1/`
+plus celle-ci, cinq certificats) et la variante
+`variantes/invalide-r11-ancre-de-periode/`.
+
+```bash
+bash chain/scripts/dev-net.sh start
+node scripts/vecteurs/capturer-ct6.mjs --ancre-point spec/vecteurs/ct-1/points-de-controle/periode-1.json
+bash chain/scripts/dev-net.sh stop
+```
+
+Le complément refuse d'agir si `capture.json` porte déjà une entrée sous
+`points_de_controle` (ou une transaction `ancre_point_de_controle`), si
+l'empreinte du point est déjà ancrée, ou si la clé de chaîne de la clé du point
+n'est pas celle inscrite dans la capture ; la série de points de CT-1 doit être
+figée avant (son `checkpointHash` est l'entrée : le générateur de CT-6 s'arrête
+si elle a changé depuis).
 
 ## Procédure exacte
 

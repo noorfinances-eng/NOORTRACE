@@ -6,6 +6,43 @@ is tagged.
 
 ## Unreleased
 
+- CT-5, anchoring, version 0.2: signed checkpoints every 60 seconds aligned on
+  the period start, each one that commits to a new event anchored in the
+  registry (at most 62 anchors per hour and journal, the manifest included),
+  and at most one every 300 seconds countersigned by an RFC 3161 authority,
+  which bounds the rewrite window for the date to 300 seconds plus the token
+  delay; the hourly qualified closure is unchanged. The specification covers
+  the RFC 3161 and OpenTimestamps clients with retries, fallbacks and response
+  checks, an optional non-qualified internal server, the scheduler with its
+  durable queue and restart rules, the registry anchors of checkpoints,
+  monitoring with the four components of each token delay, the series
+  completeness check against the registry (the next period's series served
+  too, order checked within each series), providers and their measurable
+  qualified status, and a cost formula whose unit price is a parameter.
+  Schemas `ancrage-v0` and `planificateur-ancrage-v0`.
+- CT-5 reference scheduler (`scripts/lib/ancrage.mjs`) with an injected clock,
+  deterministic vectors (`spec/vecteurs/ct-5`, `npm run vecteurs:ct5`: 21
+  normative traces, requests, responses, proofs, cost and completeness cases),
+  and a Go verifier written from the specification alone: 3,255 values
+  recomputed, 3,227 matching, none discordant, 28 third-party tool verdicts
+  outside its scope. Requests and responses are confronted with OpenSSL,
+  proofs with the official OpenTimestamps library, and consistency proofs with
+  transparency-dev/merkle v0.0.2.
+- CT-1, formats, revision 0.3: the checkpoint (`point-de-controle-v0`), its
+  hash and signature prefixes, the RFC 9162 consistency proof, the rewrite
+  window, and an optional thirteenth evidence folder part
+  `points-de-controle.json` with checks K-1 to K-6; ten new CT-1 folders. The
+  CT-1 Go verifier recomputes 2,885 values, 2,883 matching, none discordant,
+  2 outside its scope; its copy inside the CT-2 verifier is updated to match.
+- CT-2, the recorder, revision 0.4: production of checkpoints, the
+  `checkpoint_interval_s` key and the `anchoring.ancrage` reference; the CT-2
+  vectors are unchanged.
+- CT-4, the registry, revision 0.3: the checkpoint `docType` label only.
+- CT-6, the verifier, revision 0.2: the checkpoint part is checked (K-7 to K-9
+  for its anchors, R-11 for a registry inclusion), the statement gains the
+  checkpoint fragment with the bound it proves, and the JSON report gains
+  `facts.checkpoint`; eighteen new CT-6 folders.
+
 - CT-4, the registry, version 0.2: the dedicated noorcore instance (genesis
   rules checked at start-up, identifiers, validators and quorum, pinned versions,
   instance manifest), fee-less gas and the admission guard that production

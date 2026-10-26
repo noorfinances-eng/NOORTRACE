@@ -11,7 +11,11 @@
 //                             sans changement de scripts/lib/journal.mjs ;
 //   contrôle 4              : T-1 à T-11, scripts/lib/horodatage.mjs ;
 //   contrôle 5              : O-1 à O-7, scripts/lib/ots.mjs ;
-//   contrôle 8              : R-1 à R-10 et N-4, scripts/lib/registre.mjs ;
+//   contrôle 8              : R-1 à R-11 et N-4, scripts/lib/registre.mjs ;
+//   K-1 à K-9 (révision 0.2) : partie points-de-controle.json (CT-1 §11.4) ;
+//                             K-1 à K-6 par journal.mjs, K-7 à K-9 ici, sur
+//                             checkpoint_hash, avec horodatage.mjs, registre.mjs
+//                             et ots.mjs (CT-6 §9.9, §10.9, §11.9) ;
 //   N-3                     : clés de cles.json contre celles du fichier d'ancres ;
 //   N-1, N-2                : conformité du fichier d'ancres et du fichier
 //                             d'en-têtes (code 2 en cas de défaut).
@@ -44,6 +48,7 @@ export const FICHIERS_SCHEMAS = [
   { fichier: "evenement-v0.schema.json", id: J.ID_SCHEMA_EVENEMENT },
   { fichier: "manifeste-v0.schema.json", id: J.ID_SCHEMA_MANIFESTE },
   { fichier: "dossier-v0.schema.json", id: J.ID_SCHEMA_DOSSIER },
+  { fichier: "point-de-controle-v0.schema.json", id: J.ID_SCHEMA_POINT_DE_CONTROLE },
   { fichier: "registre-v0.schema.json", id: R.ID_SCHEMA_REGISTRE },
   { fichier: "validateurs-v0.schema.json", id: R.ID_SCHEMA_VALIDATEURS },
   { fichier: "ancres-confiance-v0.schema.json", id: ID_SCHEMA_ANCRES },
@@ -51,6 +56,8 @@ export const FICHIERS_SCHEMAS = [
   { fichier: "rapport-verification-v0.schema.json", id: ID_SCHEMA_RAPPORT },
 ];
 
+/** Seuil d'AV-K-4 (CT-6 §7.9) : écart, en secondes, entre la borne du jeton du point et checkpoint_ts au-delà duquel le rapport avertit. */
+export const SEUIL_AV_K4_S = 3600;
 const KIO = 1024;
 const MIO = 1024 * 1024;
 
@@ -58,6 +65,7 @@ const MIO = 1024 * 1024;
 export const LIMITES = {
   index: 1 * MIO,
   partieCT1: 16 * MIO,
+  pointsDeControle: 1 * MIO,
   jeton: 64 * KIO,
   ots: 256 * KIO,
   registre: 64 * MIO,
@@ -71,11 +79,13 @@ export const LIMITES = {
   profondeurJSON: 128,
 };
 
-/** Limite de lecture de chaque fichier du dossier (dossier.json et les douze parties). */
+/** Limite de lecture de chaque fichier du dossier (dossier.json, les douze parties et la treizième facultative). */
 export function limiteFichier(fichier) {
   switch (fichier) {
     case "dossier.json":
       return LIMITES.index;
+    case J.PARTIE_POINTS_DE_CONTROLE.file:
+      return LIMITES.pointsDeControle;
     case "jeton-rfc3161.der":
       return LIMITES.jeton;
     case "preuve.ots":
@@ -91,10 +101,26 @@ export function limiteFichier(fichier) {
   }
 }
 
-/** Les fichiers qu'un dossier peut contenir : dossier.json et les douze parties (CT-1 §11.1). Tout autre fichier est ignoré (EX-4.1). */
-export const FICHIERS_DOSSIER = ["dossier.json", ...J.PARTIES_DOSSIER.map((p) => p.file)];
+/** Les fichiers qu'un dossier peut contenir : dossier.json, les douze parties et la treizième facultative (CT-1 §11.1, révision 0.3). Tout autre fichier est ignoré (EX-4.1). */
+export const FICHIERS_DOSSIER = ["dossier.json", ...J.PARTIES_DOSSIER.map((p) => p.file), J.PARTIE_POINTS_DE_CONTROLE.file];
 
-const FICHIERS_JSON_CT1 = ["evenement.json", "voisins.json", "chemin.json", "manifeste.json", "manifeste.sig", "cles.json", "approbations.json"];
+const FICHIERS_JSON_CT1 = ["evenement.json", "voisins.json", "chemin.json", "manifeste.json", "manifeste.sig", "cles.json", "approbations.json", J.PARTIE_POINTS_DE_CONTROLE.file];
+
+/** Motif du base64 canonique (schéma dossier-v0, $defs/base64 ; EX-4.14). */
+const RE_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+/**
+ * Décodage strict d'un base64 (EX-4.14) : alphabet standard et remplissage du
+ * motif du schéma, bits de bourrage nuls et remplissage canonique (le réencodage
+ * rend le même texte), au plus `limite` octets décodés. Rend un Buffer ou null.
+ */
+export function decoderBase64Canonique(texte, limite = Infinity) {
+  if (typeof texte !== "string" || texte.length < 4 || !RE_BASE64.test(texte)) return null;
+  const octets = Buffer.from(texte, "base64");
+  if (octets.toString("base64") !== texte) return null;
+  if (octets.length > limite) return null;
+  return octets;
+}
 
 /** Ordre des raisons d'un contrôle non exécuté (EX-6.5). */
 const ORDRE_RAISONS = ["prerequis_en_echec", "hors_perimetre_version", "partie_absente", "ancre_absente"];
@@ -107,7 +133,11 @@ const CONTROLES_CT1 = {
   "M-1": [3], "M-2": [3], "M-3": [3],
   "P-1": [3], "P-2": [3], "P-3": [2, 3], "P-4": [3], "P-5": [3, 6],
   "A-1": [7], "A-2": [7], "A-3": [7], "A-4": [7],
+  "K-1": [3], "K-2": [3], "K-3": [6], "K-4": [3], "K-5": [3], "K-6": [2], "K-7": [4], "K-8": [8], "K-9": [5],
 };
+
+/** Vérifications K- (révision 0.2) rattachées à chaque contrôle (EX-5.7), dans l'ordre du rapport. */
+const VERIFICATIONS_K = { 2: ["K-6"], 3: ["K-1", "K-2", "K-4", "K-5"], 4: ["K-7"], 5: ["K-9"], 6: ["K-3"], 8: ["K-8"] };
 
 /** Vérifications de CT-1 de chaque contrôle (table 5.1). */
 const VERIFICATIONS_CT1 = {
@@ -162,6 +192,15 @@ const LIBELLES_CT1_EN = {
   "A-2": "each approval event is a decision (E-1 to E-11) whose approval and arguments.value match the proven event; decision before the relayed call (seq, approval.at <= ts); a proven decision is in events",
   "A-3": "distinct approvers, members of the declared set, at least as many as required; threshold consistent with the set",
   "A-4": "request_hash = recomputed hash of the request event (status retenue) when it is in the dossier",
+  "K-1": "points-de-controle.json conforms to the schema (the checkpoint against point-de-controle-v0.schema.json); org_id and journal_id of the event; period_start of the manifest; 1 <= tree_size <= count; last_seq = first_seq + tree_size - 1; non-null root; checkpoint_ts >= period_start",
+  "K-2": "recomputed checkpointHash (SHA-256(P_K || JCS(checkpoint without sig))) equal to checkpoint_hash",
+  "K-3": "checkpoint sig valid under the public key key_id of cles.json, over P_SK || C_K; checkpoint_ts within the validity of the key (cles.json unusable: not run, E-8 carries the failure; key absent: failure)",
+  "K-4": "coverage: chemin.leaf_index < tree_size and ts of the proven event <= checkpoint_ts",
+  "K-5": "consistency: first_size = tree_size, second_size = count, first_root = checkpoint root, second_root = manifest root; RFC 9162 §2.1.4 consistency algorithm accepted",
+  "K-6": "last_hash = recomputed hash of event last_seq when it is in the dossier (proven event or neighbour); otherwise cannot be checked, reported",
+  "K-7": "anchors.rfc3161 not null: token decoded (canonical base64) then T-1 to T-11 of CT-6 on checkpoint_hash; null: not run, anchor absent",
+  "K-8": "anchors.registry not null: fingerprint = keccak256(org_id || journal_id || checkpoint_hash), checkpoint doc_type, contract of the anchors file, inclusion by the R- checks of CT-6; null: not run, anchor absent",
+  "K-9": "anchors.ots not null: proof decoded (canonical base64) then O-1 to O-7 of CT-6 on checkpoint_hash; null: not run, anchor absent",
 };
 
 /** Libellés des vérifications R- (table 11.4) et N- (table 12.4). */
@@ -176,6 +215,7 @@ const LIBELLES_R_N = {
   "R-8": T("contrat émetteur", "emitting contract"),
   "R-9": T("événement et valeurs de la période", "event and period values"),
   "R-10": T("inscriptions", "registrations"),
+  "R-11": T("ancre d'un point de contrôle du journal", "anchor of a journal checkpoint"),
   "N-1": T("fichier d'ancres", "anchors file"),
   "N-2": T("fichier d'en-têtes", "headers file"),
   "N-3": T("clés d'enregistreur", "recorder keys"),
@@ -387,6 +427,42 @@ const SEGMENTS_EN = [
   [/^chemin\.root (\S+) différent de manifeste\.root (\S+)$/, "chemin.root $1 differs from manifeste.root $2"],
   [/^(\d+) pièce\(s\) fournie\(s\) à part vérifiée\(s\)$/, "$1 piece(s) given separately checked"],
   [/^continuité avec le manifeste (précédent|suivant) \(periodHash (0x[0-9a-f]+)\) vérifiée$/, (_, sens, h) => `continuity with the ${sens === "précédent" ? "previous" : "next"} manifest (periodHash ${h}) checked`],
+  // Vérifications K- (CT-1 révision 0.3, journal.mjs).
+  [/^point de tree_size (\d+) \(seq (\d+)\.\.(\d+)\), checkpoint_ts (\S+)$/, "checkpoint of tree_size $1 (seq $2..$3), checkpoint_ts $4"],
+  [/^partie absente$/, "part absent"],
+  [/^événement ou manifeste inexploitable : relations du point non vérifiables$/, "event or manifest unusable: the checkpoint relations cannot be checked"],
+  [/^checkpoint inexploitable$/, "checkpoint unusable"],
+  [/^points-de-controle\.json inexploitable$/, "points-de-controle.json unusable"],
+  [/^points-de-controle\.json absent du répertoire$/, "points-de-controle.json missing from the directory"],
+  [/^org_id ou journal_id du point différents de ceux de l'événement$/, "org_id or journal_id of the checkpoint differ from the event's"],
+  [/^period_start du point (\d+) différent de celui du manifeste (\d+)$/, "period_start of the checkpoint $1 differs from the manifest's $2"],
+  [/^tree_size (\S+) hors de \[1, count = (\d+)\]$/, "tree_size $1 outside [1, count = $2]"],
+  [/^last_seq (\S+) différent de first_seq \+ tree_size - 1 \((\S+)\)$/, "last_seq $1 differs from first_seq + tree_size - 1 ($2)"],
+  [/^racine du point nulle$/, "null checkpoint root"],
+  [/^checkpoint_ts (\S+) antérieur à period_start (\d+)$/, "checkpoint_ts $1 earlier than period_start $2"],
+  [/^checkpointHash (0x[0-9a-f]{64})$/, "checkpointHash $1"],
+  [/^checkpointHash recalculé (0x[0-9a-f]+) différent de checkpoint_hash (\S+)$/, "recomputed checkpointHash $1 differs from checkpoint_hash $2"],
+  [/^point sans forme canonique : (.*)$/, "checkpoint without canonical form: $1"],
+  [/^point signé par (\S+)$/, "checkpoint signed by $1"],
+  [/^signature du point invalide sous (\S+)$/, "invalid checkpoint signature under $1"],
+  [/^checkpoint_ts (\S+) hors de la validité de la clé (\S+)$/, "checkpoint_ts $1 outside the validity of key $2"],
+  [/^cles\.json inexploitable \(E-8\) : signature du point non vérifiable$/, "cles.json unusable (E-8): checkpoint signature cannot be checked"],
+  [/^feuille (\d+) couverte \(tree_size (\d+)\), ts (\S+) <= (\S+)$/, "leaf $1 covered (tree_size $2), ts $3 <= $4"],
+  [/^leaf_index (\S+) non couvert par tree_size (\S+)$/, "leaf_index $1 not covered by tree_size $2"],
+  [/^ts de l'événement (\S+) postérieur à checkpoint_ts (\S+)$/, "ts of the event $1 later than checkpoint_ts $2"],
+  [/^chemin ou événement inexploitable$/, "path or event unusable"],
+  [/^arbre de (\d+) feuilles préfixe de l'arbre de (\d+) \((\d+) nœud\(s\)\)$/, "$1-leaf tree is a prefix of the $2-leaf tree ($3 node(s))"],
+  [/^first_size (\S+) différent de tree_size (\S+)$/, "first_size $1 differs from tree_size $2"],
+  [/^second_size (\S+) différent de count (\S+)$/, "second_size $1 differs from count $2"],
+  [/^first_root (\S+) différent de root du point (\S+)$/, "first_root $1 differs from the checkpoint root $2"],
+  [/^second_root (\S+) différent de root du manifeste (\S+)$/, "second_root $1 differs from the manifest root $2"],
+  [/^la preuve de cohérence \((\S+) nœud\(s\)\) n'est pas acceptée pour \((\d+), (\d+)\)$/, "the consistency proof ($1 node(s)) is not accepted for ($2, $3)"],
+  [/^consistency inexploitable$/, "consistency unusable"],
+  [/^manifeste inexploitable$/, "manifest unusable"],
+  [/^last_hash égal au hash recalculé de l'événement (\d+)$/, "last_hash equal to the recomputed hash of event $1"],
+  [/^last_hash (\S+) différent du hash recalculé de l'événement (\d+) \((\S+)\)$/, "last_hash $1 differs from the recomputed hash of event $2 ($3)"],
+  [/^événement last_seq hors du dossier \(seq (\d+)\) : last_hash non vérifiable$/, "event last_seq outside the dossier (seq $1): last_hash cannot be checked"],
+  [/^hash de l'événement (\d+) incalculable$/, "hash of event $1 cannot be computed"],
 ];
 
 /** Détail d'une vérification de CT-1 en anglais : traduction segment par segment ; un segment non reconnu reste en français. */
@@ -466,7 +542,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     }
   })();
   const index = estObjet(indexBrut) ? indexBrut : {};
-  const parts = Array.isArray(index.parts) && index.parts.length === J.PARTIES_DOSSIER.length ? index.parts : null;
+  const parts = Array.isArray(index.parts) && (index.parts.length === J.PARTIES_DOSSIER.length || index.parts.length === J.PARTIES_DOSSIER.length + 1) ? index.parts : null;
   const partie = (name) => (parts ? parts.find((p) => estObjet(p) && p.name === name) ?? null : null);
   const ev = lireObjet("evenement.json");
   const voisins = lireObjet("voisins.json");
@@ -475,12 +551,20 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
   const manifesteSig = lireObjet("manifeste.sig");
   const clesDoc = lireObjet("cles.json");
   const approbations = lireObjet("approbations.json");
+  // Partie points-de-controle.json (révision 0.2, EX-5.7) : les K- ne figurent au
+  // rapport que si l'index la déclare présente.
+  const pPoints = partie(J.PARTIE_POINTS_DE_CONTROLE.name);
+  const pointsPresents = Boolean(pPoints && pPoints.present === true);
+  const pointsDoc = pointsPresents ? lireObjet(J.PARTIE_POINTS_DE_CONTROLE.file) : null;
+  const point = pointsDoc && estObjet(pointsDoc.checkpoint) ? pointsDoc.checkpoint : null;
+  const ancresPoint = pointsDoc && estObjet(pointsDoc.anchors) ? pointsDoc.anchors : {};
 
-  // Vérifications de CT-1 au format du rapport ; raisons de EX-6.3.
+  // Vérifications de CT-1 au format du rapport ; raisons de EX-6.3 et EX-5.9.
   const pApprobations = partie("approbations");
   const sansApprobation = Boolean(pApprobations && pApprobations.present === false && pApprobations.reason_if_absent === J.RAISON_AUCUNE_APPROBATION);
   const checks = new Map();
   for (const c of ct1.controles) {
+    if (c.id.startsWith("K-") && !pointsPresents) continue;
     let status;
     let reason = null;
     if (c.ok === false) status = "echoue";
@@ -489,9 +573,22 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       status = "non_execute";
       if (["A-2", "A-3", "A-4"].includes(c.id) && c.detail === J.RAISON_AUCUNE_APPROBATION && sansApprobation) reason = "partie_absente";
       else if (c.id === "A-4" && /^événement de demande \(request_hash /.test(c.detail ?? "")) reason = "piece_hors_dossier";
+      else if (c.id === "K-6" && (c.detail ?? "").includes(J.DETAIL_K6_HORS_DOSSIER)) reason = "piece_hors_dossier";
       else reason = "prerequis_en_echec";
     }
     checks.set(c.id, { id: c.id, controls: CONTROLES_CT1[c.id], status, reason, detailFr: c.detail });
+  }
+  const kStatut = (id) => checks.get(id)?.status ?? null;
+  const k1Reussie = kStatut("K-1") === "reussi";
+  const k2Reussie = kStatut("K-2") === "reussi";
+  // checkpointHash recalculé par K-2 (EX-9.22, EX-10.16, EX-11.25) : l'empreinte que les ancres du point portent.
+  let checkpointHash = null;
+  if (k2Reussie && point) {
+    try {
+      checkpointHash = J.hachagePointDeControle(point);
+    } catch {
+      checkpointHash = null;
+    }
   }
 
   // E-6 avec les pièces fournies à part (EX-4.6).
@@ -627,7 +724,111 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       else if (e.etat === "manquante") parties8[name] = { present: true, octets: null };
       else parties8[name] = { present: true, octets: e.octets };
     }
-    c8 = R.verifierControle8({ parties: parties8, manifeste: manifesteP1, periodHash, cles: clesListe, ancres, schemas, langue });
+    const pointDeControle8 = pointsPresents ? { orgId: ev?.org_id ?? null, journalId: ev?.journal_id ?? null, keyId: point?.key_id ?? null, checkpointHash, reference: estObjet(ancresPoint.registry) ? ancresPoint.registry : null } : null;
+    c8 = R.verifierControle8({ parties: parties8, manifeste: manifesteP1, periodHash, cles: clesListe, ancres, schemas, langue, pointDeControle: pointDeControle8 });
+  }
+
+  // K-7, K-8, K-9 : les ancres du point de contrôle du journal (CT-6 §9.9, §11.9, §10.9).
+  // Prérequis communs : partie présente et exploitable, K-1 et K-2 réussies ; une
+  // ancre nulle est une partie absente (raison admise).
+  const faitsPoint = { timestamp: null, bitcoin: null, registry: null };
+  const avertissementsK = [];
+  const ancresEmployeesK = { 4: [], 5: [] };
+  const detailStatuts = (cs) => cs.map((c) => `${c.id} ${c.status}${c.status === "non_execute" && c.reason ? ` (${c.reason})` : ""}`).join(" ; ");
+  const poserK = (id, controls, status, reason, detailFr) => checks.set(id, { id, controls, status, reason, detailFr });
+  if (pointsPresents) {
+    const prerequis = (id, controls) => {
+      if (!pointsDoc || !point || kStatut("K-1") !== "reussi") {
+        poserK(id, controls, "non_execute", "prerequis_en_echec", kStatut("K-1") === "echoue" ? "K-1 en échec" : "K-1 non exécutée");
+        return false;
+      }
+      return true;
+    };
+    const ancreNulle = (id, controls, nom) => {
+      if (ancresPoint[nom] === null || ancresPoint[nom] === undefined) {
+        poserK(id, controls, "non_execute", "partie_absente", `ancre ${nom} nulle`);
+        return true;
+      }
+      return false;
+    };
+    const sansK2 = (id, controls) => {
+      if (!k2Reussie || !checkpointHash) {
+        poserK(id, controls, "non_execute", "prerequis_en_echec", "K-2 n'a pas réussi : checkpointHash non recalculé");
+        return true;
+      }
+      return false;
+    };
+    // K-7 : jeton RFC 3161 du point (EX-9.22).
+    if (prerequis("K-7", [4]) && !ancreNulle("K-7", [4], "rfc3161") && !sansK2("K-7", [4])) {
+      const octets = estObjet(ancresPoint.rfc3161) ? decoderBase64Canonique(ancresPoint.rfc3161.token, LIMITES.jeton) : null;
+      if (!octets) poserK("K-7", [4], "echoue", null, `jeton du point inexploitable (base64 non canonique, ou plus de ${LIMITES.jeton} octets décodés)`);
+      else {
+        const r = H.verifierJeton(octets, { periodHash: checkpointHash, ancres, tsEvenement, langue });
+        const detail = detailStatuts(r.checks) + (r.status === "reussi" && r.summary ? ` ; ${r.summary}` : "");
+        poserK("K-7", [4], r.status, r.status === "non_execute" ? r.reason : null, detail);
+        for (const w of r.warnings) avertissementsK.push({ id: w.id, check: "K-7", detail: w.detail });
+        if (r.status === "reussi") {
+          faitsPoint.timestamp = r.facts;
+          ancresEmployeesK[4] = r.anchors_used ?? [];
+          if (r.facts.upper_bound && J.msHorodatage(point.checkpoint_ts) > Date.parse(r.facts.upper_bound)) {
+            avertissementsK.push({ id: "AV-K-2", check: "K-7", detail: L(`checkpoint_ts ${point.checkpoint_ts} postérieur à genTime + accuracy du jeton du point (${r.facts.upper_bound}) : l'horloge de l'enregistreur avançait sur celle de l'autorité, ou checkpoint_ts est faux`, `checkpoint_ts ${point.checkpoint_ts} later than genTime + accuracy of the checkpoint token (${r.facts.upper_bound}): the recorder clock was ahead of the authority's, or checkpoint_ts is wrong`) });
+          }
+          // AV-K-4 (CT-6 §7.9, CT-5 §13) : jeton très postérieur au point ; le verdict ne change pas.
+          if (r.facts.upper_bound && Date.parse(r.facts.upper_bound) - J.msHorodatage(point.checkpoint_ts) > SEUIL_AV_K4_S * 1000) {
+            avertissementsK.push({ id: "AV-K-4", check: "K-7", detail: L(`genTime + accuracy du jeton du point (${r.facts.upper_bound}) postérieur de plus de ${SEUIL_AV_K4_S} s à checkpoint_ts ${point.checkpoint_ts} : la contresignature est tardive, ou le point a été produit après coup`, `genTime + accuracy of the checkpoint token (${r.facts.upper_bound}) more than ${SEUIL_AV_K4_S} s after checkpoint_ts ${point.checkpoint_ts}: the countersignature is late, or the checkpoint was produced after the fact`) });
+          }
+        }
+      }
+    }
+    // K-9 : preuve OpenTimestamps du point (EX-10.16).
+    if (prerequis("K-9", [5]) && !ancreNulle("K-9", [5], "ots") && !sansK2("K-9", [5])) {
+      const octets = estObjet(ancresPoint.ots) ? decoderBase64Canonique(ancresPoint.ots.proof, LIMITES.ots) : null;
+      if (!octets) poserK("K-9", [5], "echoue", null, `preuve du point inexploitable (base64 non canonique, ou plus de ${LIMITES.ots} octets décodés)`);
+      else {
+        const r = O.verifierPreuve(octets, { periodHash: checkpointHash, entetes, ancres, langue });
+        const detail = detailStatuts(r.checks) + (r.status === "reussi" && r.summary ? ` ; ${r.summary}` : "");
+        poserK("K-9", [5], r.status, r.status === "non_execute" ? r.reason : null, detail);
+        for (const w of r.warnings) avertissementsK.push({ id: w.id, check: "K-9", detail: w.detail });
+        if (r.status === "reussi") {
+          faitsPoint.bitcoin = r.facts;
+          ancresEmployeesK[5] = r.anchors_used ?? [];
+        }
+      }
+    }
+    // K-8 : référence au registre (EX-11.25) ; l'inclusion est l'affaire de R-11.
+    if (prerequis("K-8", [8]) && !ancreNulle("K-8", [8], "registry") && !sansK2("K-8", [8])) {
+      const ref = estObjet(ancresPoint.registry) ? ancresPoint.registry : {};
+      const attendue = R.empreinteAncre(ev.org_id, ev.journal_id, checkpointHash);
+      const fautes = [];
+      if (ref.fingerprint !== attendue || attendue === J.HASH_NUL) fautes.push(`fingerprint ${ref.fingerprint} au lieu de keccak256(org_id ‖ journal_id ‖ checkpoint_hash) = ${attendue}`);
+      if (ref.doc_type !== R.DOC_TYPE_POINT_DE_CONTROLE) fautes.push(`doc_type ${ref.doc_type} au lieu de ${R.DOC_TYPE_POINT_DE_CONTROLE} (noortrace/point-de-controle/v0)`);
+      const registryAncre = ancres?.registry ?? null;
+      if (registryAncre && ref.contract !== registryAncre.contracts.attestation_registry) fautes.push(`contract ${ref.contract} au lieu de AttestationRegistry ${registryAncre.contracts.attestation_registry} de l'ancre`);
+      if (fautes.length) poserK("K-8", [8], "echoue", null, fautes.join(" ; "));
+      else if (!registryAncre) poserK("K-8", [8], "non_execute", "ancre_absente", ancres ? "le fichier d'ancres ne donne pas d'ancre registry : contract non comparé" : "aucun fichier d'ancres : contract non comparé");
+      else {
+        const prouvee = c8.statut === "reussi" && Boolean(c8.entreePoint?.rattachee);
+        // AV-K-1 (EX-11.25) : référence déclarative faute d'entrée rattachée (parties absentes, entrée absente, R-11 non exécutée) ; une R-11 en échec est rapportée comme telle.
+        const r11Echoue = c8.verifications.some((v) => v.id === "R-11" && v.status === "echoue");
+        faitsPoint.registry = {
+          chain_id_declared: ref.chain_id,
+          contract: ref.contract,
+          fingerprint: ref.fingerprint,
+          doc_type: ref.doc_type,
+          block_number: ref.block_number,
+          block_hash: ref.block_hash,
+          transaction_hash_declared: ref.transaction_hash,
+          log_index: ref.log_index,
+          inclusion: prouvee ? "prouvee" : "declarative",
+          block_time: prouvee ? c8.entreePoint.block_time : null,
+          issuer: prouvee ? c8.entreePoint.issuer : null,
+        };
+        poserK("K-8", [8], "reussi", null, `fingerprint ${ref.fingerprint} = keccak256(org_id ‖ journal_id ‖ checkpoint_hash), doc_type du point de contrôle, contract égal à AttestationRegistry de l'ancre ; inclusion ${prouvee ? `prouvée par R-11 (bloc ${c8.entreePoint.block_number})` : "déclarative"}`);
+        if (!prouvee && !r11Echoue) avertissementsK.push({ id: "AV-K-1", check: "K-8", detail: L(`référence au registre du point de contrôle déclarative (bloc ${ref.block_number}, transaction ${ref.transaction_hash}) : aucune entrée ancre_point_de_controle de registre.json rattachée par R-11, l'inclusion de l'ancre du point n'est pas prouvée`, `declarative registry reference of the checkpoint (block ${ref.block_number}, transaction ${ref.transaction_hash}): no ancre_point_de_controle entry of registre.json tied by R-11, the inclusion of the checkpoint anchor is not proven`) });
+      }
+    }
+    // Les détails de K-7 à K-9 sont déjà dans la langue de sortie : ils ne passent pas par la traduction de CT-1.
+    for (const id of ["K-7", "K-8", "K-9"]) if (checks.has(id)) checks.get(id).dejaTraduit = true;
   }
 
   // N-3 : clés d'enregistreur du fichier d'ancres (EX-12.4).
@@ -647,6 +848,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       if (voisins) [voisins.previous, voisins.next].forEach(ajouter);
       if (approbations && Array.isArray(approbations.events)) approbations.events.forEach(ajouter);
       if (manifesteSig && typeof manifesteSig.recorder_key_id === "string") signataires.add(manifesteSig.recorder_key_id);
+      if (pointsPresents && k1Reussie && point && typeof point.key_id === "string") signataires.add(point.key_id);
       const comparees = [];
       const differences = [];
       for (const cle of clesListe) {
@@ -672,11 +874,12 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     }
   }
 
-  // Liste des vérifications, dans l'ordre de la section 5.2 : D, E, C, M, P, A, T, O, R, N.
+  // Liste des vérifications, dans l'ordre de la section 5.2 : D, E, C, M, P, A, K (partie présente), T, O, R, N.
   const liste = [];
   for (const c of J.CONTROLES_DOSSIER) {
     const x = checks.get(c.id);
-    const detail = x.detailFr === null || x.detailFr === undefined ? null : langue === "en" ? traduireDetailCT1(x.detailFr) : x.detailFr;
+    if (!x) continue;
+    const detail = x.detailFr === null || x.detailFr === undefined ? null : langue === "en" && !x.dejaTraduit ? traduireDetailCT1(x.detailFr) : x.detailFr;
     liste.push({ id: x.id, controls: x.controls, status: x.status, reason: x.reason, admitted: x.status === "non_execute" ? x.reason !== "prerequis_en_echec" : null, detail: nonVide(detail) });
   }
   const normaliser = (c) => ({ id: c.id, controls: c.controls, status: c.status, reason: c.status === "non_execute" ? c.reason : null, admitted: c.status === "non_execute" ? c.reason !== "prerequis_en_echec" : null, detail: nonVide(c.detail) });
@@ -695,25 +898,37 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     if (non.length) return { status: "non_execute", reason: ORDRE_RAISONS.find((r) => non.some((v) => v.reason === r)) ?? "prerequis_en_echec" };
     return { status: "reussi", reason: null };
   };
+  // Vérifications K- rattachées à chaque contrôle, dans l'ordre du rapport (EX-5.7) ; absentes sans la partie.
+  const kDe = (n) => (pointsPresents ? VERIFICATIONS_K[n] ?? [] : []);
   const idsControle = {
     1: VERIFICATIONS_CT1[1],
-    2: VERIFICATIONS_CT1[2],
-    3: VERIFICATIONS_CT1[3],
-    4: c4.checks.map((c) => c.id),
-    5: c5.checks.map((c) => c.id),
-    6: [...VERIFICATIONS_CT1[6], ...(n3 ? ["N-3"] : [])],
+    2: [...VERIFICATIONS_CT1[2], ...kDe(2)],
+    3: [...VERIFICATIONS_CT1[3], ...kDe(3)],
+    4: [...kDe(4), ...c4.checks.map((c) => c.id)],
+    5: [...kDe(5), ...c5.checks.map((c) => c.id)],
+    6: [...VERIFICATIONS_CT1[6], ...kDe(6), ...(n3 ? ["N-3"] : [])],
     7: VERIFICATIONS_CT1[7],
-    8: [...c8.verifications.map((c) => c.id), ...(c8.n4 ? ["N-4"] : [])],
+    8: [...kDe(8), ...c8.verifications.map((c) => c.id), ...(c8.n4 ? ["N-4"] : [])],
   };
+  // Une K- en échec fait échouer son contrôle ; non exécutée, elle est sans effet (EX-5.8, EX-9.18, EX-10.12, EX-11.20).
+  const kEchoue = (id) => kStatut(id) === "echoue";
+  const avecEchecK = (base, id, echecsBase) => {
+    if (!kEchoue(id)) return base;
+    const ids = [...echecsBase, id];
+    return { ...base, status: "echoue", reason: null, summary: L(`vérification(s) en échec : ${ids.join(", ")}`, `failed check(s): ${ids.join(", ")}`) };
+  };
+  const c4Final = avecEchecK({ status: c4.status, reason: c4.reason, summary: c4.summary ?? null }, "K-7", c4.checks.filter((c) => c.status === "echoue").map((c) => c.id));
+  const c5Final = avecEchecK({ status: c5.status, reason: c5.reason, summary: c5.summary ?? null }, "K-9", c5.checks.filter((c) => c.status === "echoue").map((c) => c.id));
+  const c8Final = avecEchecK({ status: c8.statut, reason: c8.raison, summary: c8.resume ?? null }, "K-8", [...c8.verifications.filter((c) => c.status === "echoue").map((c) => c.id), ...(c8.n4?.status === "echoue" ? ["N-4"] : [])]);
   const statuts = {
     1: statutCT1(idsControle[1]),
-    2: statutCT1(idsControle[2]),
-    3: statutCT1(idsControle[3]),
-    4: { status: c4.status, reason: c4.reason },
-    5: { status: c5.status, reason: c5.reason },
-    6: statutCT1(idsControle[6], ["N-3"]),
+    2: statutCT1(idsControle[2], kDe(2)),
+    3: statutCT1(idsControle[3], kDe(3)),
+    4: { status: c4Final.status, reason: c4Final.reason },
+    5: { status: c5Final.status, reason: c5Final.reason },
+    6: statutCT1(idsControle[6], ["N-3", ...kDe(6)]),
     7: statutCT1(idsControle[7]),
-    8: { status: c8.statut, reason: c8.raison },
+    8: { status: c8Final.status, reason: c8Final.reason },
   };
   const reussi = (n) => statuts[n].status === "reussi";
 
@@ -754,8 +969,8 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       : L("premier événement du journal, sans voisin dans le dossier", "first event of the journal, with no neighbour in the dossier");
   } else resumes[2] = resumeGenerique(2);
   resumes[3] = reussi(3) ? L(`feuille ${chemin.leaf_index} de l'arbre de ${chemin.tree_size} du manifeste ${periodHash}`, `leaf ${chemin.leaf_index} of the ${chemin.tree_size}-leaf tree of manifest ${periodHash}`) : resumeGenerique(3);
-  resumes[4] = c4.summary ?? null;
-  resumes[5] = c5.summary ?? null;
+  resumes[4] = c4Final.summary;
+  resumes[5] = c5Final.summary;
   if (reussi(6)) {
     const deux = cleEvenement !== cleManifeste;
     if (provenance === "mixte") {
@@ -778,9 +993,10 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
   } else if (statuts[7].status === "non_execute" && statuts[7].reason === "partie_absente") {
     resumes[7] = resumeAbsence(["approbations.json"], [pApprobations?.reason_if_absent ?? null]);
   } else resumes[7] = resumeGenerique(7);
-  resumes[8] = c8.resume ?? null;
+  resumes[8] = c8Final.summary;
 
-  const anchorsUsed = { 1: [], 2: [], 3: [], 4: c4.anchors_used ?? [], 5: c5.anchors_used ?? [], 6: n3 && n3.status !== "non_execute" ? pointeursN3 : [], 7: [], 8: c8.ancresEmployees ?? [] };
+  const fusionner = (a, b) => [...new Set([...a, ...b])];
+  const anchorsUsed = { 1: [], 2: [], 3: [], 4: fusionner(c4.anchors_used ?? [], ancresEmployeesK[4]), 5: fusionner(c5.anchors_used ?? [], ancresEmployeesK[5]), 6: n3 && n3.status !== "non_execute" ? pointeursN3 : [], 7: [], 8: c8.ancresEmployees ?? [] };
   const controls = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
     number: n,
     status: statuts[n].status,
@@ -805,13 +1021,53 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
   const period = periodHash ? { period_start: manifeste.period_start, period_end: manifeste.period_end, period_hash: periodHash } : null;
 
   // Faits (EX-6.13) : valeurs des contrôles réussis seulement.
+  // facts.checkpoint (EX-6.17) : contrôles 1, 3 et 6 réussis, K-1 à K-5 réussies, K-6 réussie ou pièce hors dossier.
+  const k6Admise = kStatut("K-6") === "reussi" || (kStatut("K-6") === "non_execute" && checks.get("K-6")?.reason === "piece_hors_dossier");
+  const pointEtabli = pointsPresents && point && reussi(1) && reussi(3) && reussi(6) && ["K-1", "K-2", "K-3", "K-4", "K-5"].every((id) => kStatut(id) === "reussi") && k6Admise;
+  const clePoint = point && typeof point.key_id === "string" ? point.key_id : null;
+  const provenancePoint = clePoint ? provenanceCle(clePoint) : "dossier";
+  let checkpointFacts = null;
+  if (pointEtabli) {
+    const upper = faitsPoint.timestamp?.upper_bound ?? null;
+    const fenetre = upper ? Date.parse(upper) - J.msHorodatage(ev.ts) : null;
+    checkpointFacts = {
+      tree_size: point.tree_size,
+      last_seq: point.last_seq,
+      leaf_index: chemin.leaf_index,
+      checkpoint_ts: point.checkpoint_ts,
+      checkpoint_hash: checkpointHash,
+      key_id: clePoint,
+      key_source: provenancePoint,
+      consistency: { first_size: pointsDoc.consistency.first_size, second_size: pointsDoc.consistency.second_size, path_length: pointsDoc.consistency.path.length },
+      last_hash_checked: kStatut("K-6") === "reussi",
+      timestamp: faitsPoint.timestamp,
+      bitcoin: faitsPoint.bitcoin,
+      registry: faitsPoint.registry,
+      rewrite_window_end: upper,
+      rewrite_window_ms: Number.isFinite(fenetre) ? fenetre : null,
+    };
+  }
   const facts = {
     recorder_keys: reussi(6) ? { event_key_id: cleEvenement, manifest_key_id: cleManifeste, source: provenance, event_key_source: provenanceEvenement, manifest_key_source: provenanceManifeste } : null,
     approval: reussi(7) ? { decision: ev.approval.decision, ticket: ev.approval.ticket, approvers: [...ev.approval.approvers], required: ev.approval.threshold.required, size: ev.approval.threshold.size, set_source: "dossier" } : null,
     timestamp: reussi(4) ? c4.facts : null,
     bitcoin: reussi(5) ? c5.facts : null,
     registry: reussi(8) ? c8.faits : null,
+    checkpoint: checkpointFacts,
   };
+  // Fragment FK de l'énoncé (EX-6.16) : point établi et au moins une ancre réussie (K-7, K-9, ou K-8 avec inclusion prouvée).
+  const inclusionProuvee = faitsPoint.registry?.inclusion === "prouvee";
+  const fk = pointEtabli && (kStatut("K-7") === "reussi" || kStatut("K-9") === "reussi" || (kStatut("K-8") === "reussi" && inclusionProuvee))
+    ? {
+        tree_size: point.tree_size,
+        checkpoint_hash: checkpointHash,
+        key_id: clePoint,
+        provenance_point: provenancePoint,
+        jeton: kStatut("K-7") === "reussi" ? faitsPoint.timestamp : null,
+        bitcoin: kStatut("K-9") === "reussi" ? faitsPoint.bitcoin : null,
+        registre: kStatut("K-8") === "reussi" && inclusionProuvee ? { chain_id: ancres.registry.chain_id, block_number: faitsPoint.registry.block_number, block_time: faitsPoint.registry.block_time, contract: ancres.registry.contracts.attestation_registry } : null,
+      }
+    : null;
 
   // Énoncé (EX-6.8, EX-6.9) et borne (EX-6.12).
   let statement;
@@ -846,6 +1102,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       approbation: reussi(7) ? ev.approval : null,
       propositions: { 4: reussi(4) ? c4.proposition : null, 5: reussi(5) ? c5.proposition : null, 8: reussi(8) ? c8.enonce : null },
       statuts,
+      pointDeControle: fk,
     });
   }
   const nonExecutes = controls.filter((c) => c.status === "non_execute");
@@ -861,7 +1118,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     failed_checks,
     blocking_unexecuted,
     absent_parts: ct1.partiesAbsentes.map((p) => ({ name: p.name, file: p.file, reason: p.reason })),
-    warnings: ordonnerAvertissements([...c4.warnings, ...c5.warnings, ...c8.avertissements], liste).map((w) => ({ id: w.id, check: w.check ?? null, detail: lang(w.detail) })),
+    warnings: ordonnerAvertissements([...avertissementsK, ...c4.warnings, ...c5.warnings, ...c8.avertissements], liste).map((w) => ({ id: w.id, check: w.check ?? null, detail: lang(w.detail) })),
     facts,
     verdict,
     exit_code,
@@ -879,7 +1136,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
  */
 export function ordonnerAvertissements(avertissements, liste) {
   const position = new Map(liste.map((c, i) => [c.id, i]));
-  const familles = ["T", "O", "R", "N"];
+  const familles = ["T", "O", "R", "N", "K"];
   const cle = (w) => {
     const m = /^AV-([A-Z])-([0-9]+)$/.exec(w.id) ?? [null, "Z", "0"];
     return [position.get(w.check) ?? liste.length, familles.indexOf(m[1]) === -1 ? familles.length : familles.indexOf(m[1]), Number(m[2])];
@@ -892,9 +1149,12 @@ export function ordonnerAvertissements(avertissements, liste) {
 
 /**
  * Énoncé d'un verdict valide ou incomplet (EX-6.8), dans les deux langues :
- * fragments F0 à F8 assemblés sans autre caractère.
+ * fragments F0 à F6, FK (révision 0.2, EX-6.16), F7 et F8 assemblés sans autre
+ * caractère. `pointDeControle` : null, ou { tree_size, checkpoint_hash, key_id,
+ * provenance_point, jeton (faits d'EX-9.19 ou null), bitcoin (faits d'EX-10.14
+ * ou null), registre ({ chain_id, block_number, block_time, contract } ou null) }.
  */
-export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEvenement, cleManifeste, provenance, provenanceEvenement = provenance, provenanceManifeste = provenance, approbation, propositions, statuts }) {
+export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEvenement, cleManifeste, provenance, provenanceEvenement = provenance, provenanceManifeste = provenance, approbation, propositions, statuts, pointDeControle = null }) {
   const { p, n } = voisinsSeq;
   const voisinage =
     p !== null && n !== null ? T(`chaîné à ses voisins seq ${p} et ${n}`, `chained to its neighbours seq ${p} and ${n}`)
@@ -955,14 +1215,54 @@ export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEve
       en.push(`; ${prop.en}`);
     }
   }
-  // F7
+  // FK (révision 0.2, EX-6.16) : point de contrôle du journal qui couvre l'événement.
+  if (pointDeControle) {
+    const k = pointDeControle;
+    fr.push(` ; l'événement est couvert par le point de contrôle du journal de taille ${k.tree_size} de sa période (empreinte ${k.checkpoint_hash}, signé par la clé d'enregistreur ${k.key_id}, ${PROV[k.provenance_point].fr[2]}), préfixe prouvé de ce manifeste`);
+    en.push(`; the event is covered by the journal checkpoint of size ${k.tree_size} of its period (digest ${k.checkpoint_hash}, signed by recorder key ${k.key_id}, ${PROV[k.provenance_point].en[2]}), a proven prefix of this manifest`);
+    if (k.jeton) {
+      const j = k.jeton;
+      const unite = j.tsu_subject_cn ?? j.tsu_certificate_sha256;
+      const quandFr = j.upper_bound ? `${j.upper_bound} UTC` : `${j.gen_time} UTC, à la précision près de la politique ${j.policy}, que le jeton n'indique pas`;
+      const quandEn = j.upper_bound ? `${j.upper_bound} UTC` : `${j.gen_time} UTC, within the accuracy of policy ${j.policy}, not stated in the token`;
+      fr.push(`, horodaté au plus tard le ${quandFr} selon ${j.authority} (unité ${unite})`);
+      en.push(`, time-stamped no later than ${quandEn} according to ${j.authority} (unit ${unite})`);
+      if (j.qualified) {
+        const cadre = j.qualified.framework === "eidas" ? "eIDAS" : "ZertES";
+        fr.push(` (horodatage qualifié ${cadre} selon le réviseur (${j.qualified.source}))`);
+        en.push(` (${cadre} qualified time-stamp according to the reviewer (${j.qualified.source}))`);
+      }
+    }
+    if (k.bitcoin) {
+      const b = k.bitcoin;
+      fr.push(`, antérieur à la création du bloc Bitcoin ${b.retained_height} (${b.block_hash}, réseau ${b.network}) sous ${b.confirmations} blocs rattachés au point de contrôle Bitcoin ${b.checkpoint.height} du réviseur${b.network === "regtest" ? " (réseau d'essai, sans valeur probante)" : ""}`);
+      en.push(`, earlier than the creation of Bitcoin block ${b.retained_height} (${b.block_hash}, ${b.network} network) under ${b.confirmations} blocks connected to the reviewer's Bitcoin checkpoint ${b.checkpoint.height}${b.network === "regtest" ? " (test network, no evidential value)" : ""}`);
+    }
+    if (k.registre) {
+      const r = k.registre;
+      fr.push(`, ancré au registre ${r.chain_id} au bloc ${r.block_number} (heure déclarée par le bloc : ${r.block_time} UTC) par AttestationRegistry ${r.contract}`);
+      en.push(`, anchored in registry ${r.chain_id} in block ${r.block_number} (time declared by the block: ${r.block_time} UTC) by AttestationRegistry ${r.contract}`);
+    }
+    if (k.jeton) {
+      fr.push(" ; une réécriture postérieure à cet instant serait détectée");
+      en.push("; a rewrite after that instant would be detected");
+    } else if (k.bitcoin) {
+      fr.push(" ; une réécriture postérieure à la création de ce bloc serait détectée");
+      en.push("; a rewrite after that block was created would be detected");
+    } else {
+      fr.push(" ; une réécriture postérieure à l'inclusion de cette ancre serait détectée");
+      en.push("; a rewrite after that anchor was included would be detected");
+    }
+  }
+  // F7 (avec FK, les éléments des contrôles 4 et 5 se lisent sur le manifeste).
   const nonReussi = (k) => statuts[k].status !== "reussi";
   const auMoinsUnNonExecute = [1, 2, 3, 4, 5, 6, 7, 8].some((k) => statuts[k].status === "non_execute");
   if (auMoinsUnNonExecute) {
     const elements = [];
-    if (nonReussi(4) && nonReussi(5)) elements.push(T("sa date (contrôles 4 et 5)", "its date (controls 4 and 5)"));
-    else if (nonReussi(4)) elements.push(T("un horodatage par une autorité (contrôle 4)", "a time-stamp by an authority (control 4)"));
-    else if (nonReussi(5)) elements.push(T("un ancrage dans Bitcoin (contrôle 5)", "an anchoring in Bitcoin (control 5)"));
+    const duManifeste = Boolean(pointDeControle);
+    if (nonReussi(4) && nonReussi(5)) elements.push(duManifeste ? T("la date de son manifeste (contrôles 4 et 5)", "the date of its manifest (controls 4 and 5)") : T("sa date (contrôles 4 et 5)", "its date (controls 4 and 5)"));
+    else if (nonReussi(4)) elements.push(duManifeste ? T("un horodatage de son manifeste par une autorité (contrôle 4)", "a time-stamp of its manifest by an authority (control 4)") : T("un horodatage par une autorité (contrôle 4)", "a time-stamp by an authority (control 4)"));
+    else if (nonReussi(5)) elements.push(duManifeste ? T("un ancrage de son manifeste dans Bitcoin (contrôle 5)", "an anchoring of its manifest in Bitcoin (control 5)") : T("un ancrage dans Bitcoin (contrôle 5)", "an anchoring in Bitcoin (control 5)"));
     if (nonReussi(7)) elements.push(T("une approbation (contrôle 7)", "an approval (control 7)"));
     if (nonReussi(8)) elements.push(T("son inscription au registre (contrôle 8)", "its registration in the registry (control 8)"));
     if (elements.length) {
@@ -1049,6 +1349,10 @@ const ETIQUETTES = {
     evenement: "Événement",
     journal: "Journal",
     periode: "Période",
+    point: "Pt de contrôle",
+    pointTaille: "taille",
+    pointEmpreinte: "empreinte",
+    pointHorodate: "horodaté au plus tard",
     controles: "Contrôles de l'architecture :",
     nonReussies: "Vérifications non réussies :",
     toutes: "Vérifications :",
@@ -1075,6 +1379,10 @@ const ETIQUETTES = {
     evenement: "Event",
     journal: "Journal",
     periode: "Period",
+    point: "Checkpoint",
+    pointTaille: "size",
+    pointEmpreinte: "digest",
+    pointHorodate: "time-stamped no later than",
     controles: "Architecture controls:",
     nonReussies: "Checks not passed:",
     toutes: "Checks:",
@@ -1110,6 +1418,8 @@ export function rapportLisible(rapport, { detail = false } = {}) {
   if (rapport.event) out.push(ligne(E.evenement, `seq ${rapport.event.seq}, hash ${rapport.event.hash}, ts ${rapport.event.ts}${rapport.event.tool ? `, ${E.outil} ${rapport.event.tool}` : ""}`));
   if (rapport.org_id) out.push(ligne(E.journal, `org_id ${rapport.org_id}, journal_id ${rapport.journal_id}`));
   if (rapport.period) out.push(ligne(E.periode, `${instantUnix(rapport.period.period_start)} ${E.a} ${instantUnix(rapport.period.period_end)}, periodHash ${rapport.period.period_hash}`));
+  const pt = lignePointDeControle(rapport);
+  if (pt) out.push(ligne(E.point, `${E.pointTaille} ${pt.tree_size}, last_seq ${pt.last_seq}, ${E.pointEmpreinte} ${pt.checkpoint_hash}${pt.upper_bound ? `${langue === "en" ? ";" : " ;"} ${E.pointHorodate} ${pt.upper_bound} (K-7)` : ""}`));
   out.push(E.controles);
   for (const c of rapport.controls) {
     const etat = E.statut[c.status].padEnd(14);
@@ -1141,6 +1451,22 @@ export function rapportLisible(rapport, { detail = false } = {}) {
   out.push(ligne(E.resultat, ligneResultat(rapport)));
   out.push(ligne(E.enonce, rapport.statement[langue]));
   return out.join("\n");
+}
+
+/**
+ * Valeurs de la ligne « Pt de contrôle » (EX-8.8) : partie présente, K-1 et K-2
+ * réussies ; prises dans facts.checkpoint quand il est établi, sinon relues dans
+ * les détails de K-1 et K-2 (le rapport JSON ne porte pas d'autre champ).
+ */
+function lignePointDeControle(r) {
+  const k = (id) => r.checks.find((c) => c.id === id);
+  if (k("K-1")?.status !== "reussi" || k("K-2")?.status !== "reussi") return null;
+  const upper = r.checks.find((c) => c.id === "K-7")?.status === "reussi" ? r.facts?.checkpoint?.timestamp?.upper_bound ?? null : null;
+  if (r.facts?.checkpoint) return { tree_size: r.facts.checkpoint.tree_size, last_seq: r.facts.checkpoint.last_seq, checkpoint_hash: r.facts.checkpoint.checkpoint_hash, upper_bound: upper };
+  const m1 = /tree_size (\d+) \(seq \d+\.\.(\d+)\)/.exec(k("K-1").detail ?? "");
+  const m2 = /checkpointHash (0x[0-9a-f]{64})/.exec(k("K-2").detail ?? "");
+  if (!m1 || !m2) return null;
+  return { tree_size: Number(m1[1]), last_seq: Number(m1[2]), checkpoint_hash: m2[1], upper_bound: upper };
 }
 
 /** Ligne « Résultat » (EX-8.6, point 11). */

@@ -35,7 +35,10 @@ dans la spécification du vérificateur (CT-6 §7).
 2. **L'approbation humaine des actions sensibles**, bornée, tracée et contestable,
    avec l'identité de l'approbateur et l'instant de la décision.
 3. **L'horodatage qualifié par lots**, reconnu ZertES et eIDAS, complété par un
-   ancrage public gratuit pour la vérification sans intermédiaire.
+   ancrage public gratuit pour la vérification sans intermédiaire. Des points de
+   contrôle signés chaque minute, ancrés au registre et contresignés toutes les
+   cinq minutes au plus, ramènent la fenêtre de réécriture à 300 s plus le délai
+   du jeton (CT-5).
 4. **Un dossier de preuve exportable et un vérificateur ouvert**, que le réviseur
    exécute lui-même, hors ligne, sans accès à nos systèmes ; CT-6 §7 dit ce
    qu'il prouve et ce qu'il faut encore croire.
@@ -82,10 +85,12 @@ construction.
   boucle locale, sans émission ni jeton ; voir [chain/README.md](chain/README.md).
 - `spec/` : spécifications normatives, schémas JSON et vecteurs de test ; CT-1 pour
   les formats, CT-2 pour l'enregistreur, CT-3 pour les approbations, CT-4 pour le
-  registre, CT-6 pour le vérificateur. Les vecteurs de CT-1, CT-2, CT-3 et CT-4
-  sont recalculés par des vérificateurs Go écrits depuis la seule spécification ;
-  ceux de CT-6 par OpenSSL, la bibliothèque officielle d'OpenTimestamps et
-  go-ethereum ; voir [spec/README.md](spec/README.md).
+  registre, CT-5 pour l'ancrage, CT-6 pour le vérificateur. Les vecteurs de CT-1
+  à CT-5 sont recalculés par des vérificateurs Go écrits depuis la seule
+  spécification ; ceux de CT-5 et de CT-6 aussi par OpenSSL et la bibliothèque
+  officielle d'OpenTimestamps, ceux de CT-6 par go-ethereum, les preuves de
+  cohérence par une implémentation publique de la RFC 9162 ; voir
+  [spec/README.md](spec/README.md).
 - `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
   noorchain-core sans modification ; PeriodRegistry, dérivé de PoSSRegistry de
   noorchain-core, RecorderRegistry, et la bibliothèque ThresholdSignatures, dont la
@@ -93,7 +98,9 @@ construction.
 - `test/` et `scripts/` : tests Hardhat, déploiement, amorçage d'une organisation,
   parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
 - `scripts/lib/` : implémentation de référence de CT-1, de la partie calculable de
-  CT-2, de CT-3, des conventions de CT-4 et des contrôles 4, 5 et 8 de CT-6.
+  CT-2, de CT-3, des conventions de CT-4, du planificateur d'ancrage de CT-5 et
+  des contrôles 4, 5 et 8 de CT-6, avec les vérifications K- des points de
+  contrôle.
 - `scripts/registre/` : outil de référence de CT-4 (`npm run registre`) :
   inscription d'un client, ancrage, clôture de période et capture des preuves sur
   le réseau de développement.
@@ -106,15 +113,16 @@ construction.
 
 ## Statut
 
-25 octobre 2026 : conception technique en cours. Écrits : les spécifications CT-1
-des formats, CT-2 de l'enregistreur, CT-3 des approbations, CT-4 du registre et
-CT-6 du vérificateur, avec leurs vecteurs, leur implémentation de référence et leur
-confrontation indépendante ; le vérificateur de dossier, avec les huit contrôles ;
+26 octobre 2026 : conception technique en cours. Écrits : les spécifications CT-1
+des formats, CT-2 de l'enregistreur, CT-3 des approbations, CT-4 du registre, CT-5
+de l'ancrage et CT-6 du vérificateur, avec leurs vecteurs, leur implémentation de
+référence et leur confrontation indépendante ; le vérificateur de dossier, avec les huit contrôles ;
 l'instance de développement, les contrats du registre avec leurs tests, le
 parcours complet exécuté sur le réseau de développement ; la méthode RPC du
 certificat de commit, portée comme correctif sur noorcore fourni hors dépôt, et
 son vérificateur hors ligne. À construire : l'enregistreur lui-même, le service
-d'approbation, l'ancrage externe, le binaire Go du vérificateur et la console
+d'approbation, le composant d'ancrage et ses clients réseau, le binaire Go du
+vérificateur et la console
 (approbations, inscription des organisations, export des dossiers, page de
 vérification).
 

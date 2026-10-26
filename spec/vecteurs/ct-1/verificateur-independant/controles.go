@@ -143,10 +143,10 @@ func (r *Resultats) Liste() []*Controle {
 }
 
 // ordreFamilles est l'ordre des familles de contrôles dans la table 11.4.
-var ordreFamilles = map[byte]int{'D': 0, 'E': 1, 'C': 2, 'M': 3, 'P': 4, 'A': 5}
+var ordreFamilles = map[byte]int{'D': 0, 'E': 1, 'C': 2, 'M': 3, 'P': 4, 'A': 5, 'K': 6}
 
 // TrierControles trie des identifiants de contrôle dans l'ordre de la table
-// 11.4 (D, E, C, M, P, A puis numéro).
+// 11.4 (D, E, C, M, P, A, K puis numéro).
 func TrierControles(ids []string) {
 	sort.Slice(ids, func(i, j int) bool {
 		fi, ni := decomposerID(ids[i])

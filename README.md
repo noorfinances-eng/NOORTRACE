@@ -19,17 +19,22 @@ verification proves and what the reviewer must still trust.
   previous one and an Ed25519 signature of the recorder. Deleting, inserting,
   reordering or editing an event breaks the chain, and the verifier names the
   break when it lies between an event and the neighbours in its folder. Until
-  a period is time-stamped, whoever holds the recorder key can still rewrite
-  and re-sign it whole. After that, a rewritten period no longer passes with
-  the original time-stamp, and a new one would carry a later instant
-  (CT-6 §7.2, §7.7).
-- **Hourly Merkle periods.** Each period closes with a signed manifest and a root. Only
-  32 bytes leave the operator's perimeter.
+  an event is committed by an external anchor, whoever holds the recorder key
+  can still rewrite and re-sign it. Signed checkpoints every 60 seconds,
+  countersigned by a time-stamping authority at most every 5 minutes, bound
+  that window to 300 seconds plus the time-stamp delay; after it, a rewritten
+  event no longer passes with the original anchors, and a new time-stamp would
+  carry a later instant (CT-5 §3.3, CT-6 §7.2, §7.9).
+- **Hourly Merkle periods, minute checkpoints.** Each period closes with a signed
+  manifest and a root; a signed checkpoint commits to the head of the journal every
+  minute, and an RFC 9162 consistency proof links it to the period's final root.
+  Only 32-byte hashes leave the operator's perimeter.
 - **Independent anchoring.** The hash of each period manifest, which commits to the
   root, is time-stamped by a qualified trust service provider (RFC 3161), anchored on
   a public chain (OpenTimestamps) and recorded in an operating registry whose block
   commit certificates are themselves verifiable offline (the registry's block hash is
-  noorcore's BFT hash, not Ethereum's).
+  noorcore's BFT hash, not Ethereum's). Checkpoints that commit to new events are
+  recorded in the same registry, and at most one every 5 minutes is time-stamped (CT-5).
 - **Human approval before sensitive actions.** Threshold-signed decisions are events of
   the same journal, and the action is held until they exist.
 - **An open evidence format and an offline verifier.** One event proves itself,
@@ -41,15 +46,18 @@ verification proves and what the reviewer must still trust.
 
 ## Status
 
-Early. Five specifications are written, each with test vectors checked by
+Early. Six specifications are written, each with test vectors checked by
 implementations written separately from the reference.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
-  period manifests and evidence folders.
+  period manifests, signed checkpoints with RFC 9162 consistency proofs, and
+  evidence folders.
 - **CT-2, the recorder**: MCP proxy, model API gateway, redaction before hashing,
   key custody classes, append-only storage, single-writer lease and behaviour under
   failure. The computable parts (full canonical form, redaction, MCP and model
   payloads, stream reassembly, event construction) are implemented and checked.
+  Revision 0.4 adds the production of checkpoints and their hand-over to the
+  anchoring component.
 - **CT-3, approvals**: a JSON rule language over a tool and its arguments, three
   levels (automatic, time-boxed window, per-call review), the ticket lifecycle, the
   approver set pinned by the policy and read from the client's CuratorSet, what an
@@ -66,19 +74,27 @@ implementations written separately from the reference.
   partner validators and a signed database journal. A reference command-line
   tool (`npm run registre`) performs onboarding, anchoring, period closure and
   capture on the development network.
+- **CT-5, anchoring**: checkpoint cadence and selection, the registry,
+  RFC 3161 and OpenTimestamps anchors with their retries, fallbacks and durable
+  queue, the hourly qualified closure, monitoring, the series completeness check
+  against the registry, and a cost formula whose unit price is a parameter. The
+  scheduler is implemented with an injected clock and replayed on normative
+  traces; its requests and proofs are checked by OpenSSL, the official
+  OpenTimestamps library and a public RFC 9162 implementation.
 - **CT-6, the verifier**: the eight checks, the reviewer's trust anchors, verdicts
   and what each one proves and does not prove, human and JSON output, and the
-  reproducible, network-free build of a future Go binary. The RFC 3161,
+  reproducible, network-free build of a future Go binary. Revision 0.2 checks a
+  folder's checkpoint part (K-1 to K-9) and states the bound it proves. The RFC 3161,
   OpenTimestamps and registry checks are implemented in the JavaScript verifier;
   their vectors are recomputed without discrepancy by OpenSSL, the official
   OpenTimestamps library and go-ethereum.
 
-CT-1, CT-2, CT-3 and CT-4 vectors are also recomputed by Go verifiers written
-from the specification alone, without reading the JavaScript.
+CT-1, CT-2, CT-3, CT-4 and CT-5 vectors are also recomputed by Go verifiers
+written from the specification alone, without reading the JavaScript.
 
 The registry contracts and the commit-certificate verifier exist and are tested. The
-recorder, the approval service and console, and the verifier's Go binary are
-specified, not built yet.
+recorder, the approval service and console, the anchoring component with its
+network clients, and the verifier's Go binary are specified, not built yet.
 
 ## Layout
 

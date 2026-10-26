@@ -193,9 +193,46 @@
       }
     }
   ],
+  "points_de_controle": [
+    {
+      "role": "ancre_point_de_controle",
+      "description": "ancre du point de contrôle 2026-11-05T09:32:00.000Z (tree_size 8)",
+      "hash": "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135",
+      "bloc": 18928,
+      "indice": 0,
+      "periode": 1,
+      "key_id": "rec-test-01",
+      "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+      "tree_size": 8,
+      "last_seq": 8,
+      "checkpoint_hash": "0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4",
+      "fingerprint": "0x12923cb6e38ca2e7c8ff193954dadf345607988204d2bae5ecbdc502859c8339",
+      "doc_type": "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178",
+      "issuer": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "points_source": "spec/vecteurs/ct-1/points-de-controle/periode-1.json",
+      "fichiers": {
+        "bloc": "bloc-18928.json",
+        "recus": [
+          "recu-0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135.json"
+        ],
+        "certificat": "certificat-18928.json",
+        "transactions_du_bloc": 1
+      }
+    }
+  ],
   "validateurs": {
     "fichier": "validators.json",
     "source": "copie de chain/runtime/validators.json (clés publiques seulement)",
     "sha256": "0x8340716e75ce94a2a3ccaaf50ed4c29846758b36e003ec370fc7f2d35706f722"
-  }
+  },
+  "complements": [
+    {
+      "objet": "ancre du point de contrôle couvrant seq 7 (CT-6 révision 0.2, EX-A.15)",
+      "date": "2026-10-26T01:25:36.634Z",
+      "depot_noortrace_commit": "7c18de12546c9e1b74b2740f0284a0ed9dd3347a",
+      "transactions": [
+        "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135"
+      ]
+    }
+  ]
 }

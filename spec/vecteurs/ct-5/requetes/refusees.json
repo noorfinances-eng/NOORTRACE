@@ -1,0 +1,78 @@
+{
+  "version": 0,
+  "description": "Constructions refusées par la référence (EX-5.1, AN-5, AN-6) : la requête n'est pas produite, la règle et le message sont rendus.",
+  "cases": [
+    {
+      "id": "condense-31-octets",
+      "description": "Empreinte de 31 octets : messageImprint SHA-256 exige 32 octets (EX-5.1, EX-5.2).",
+      "input": {
+        "digest": "0xababababababababababababababababababababababababababababababab",
+        "nonce": "0x1",
+        "policy_oid": null,
+        "cert_req": true
+      },
+      "expected": {
+        "refused": true,
+        "rule": "AN-5",
+        "message": "empreinte : 32 octets attendus (SHA-256)"
+      }
+    },
+    {
+      "id": "nonce-nul",
+      "description": "Nonce 0 : l'entier est dans [1, 2^64 − 1] (EX-5.3).",
+      "input": {
+        "digest": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+        "nonce": "0x0",
+        "policy_oid": null,
+        "cert_req": true
+      },
+      "expected": {
+        "refused": true,
+        "rule": "AN-6",
+        "message": "nonce 0 hors de [1, 2^64 - 1]"
+      }
+    },
+    {
+      "id": "nonce-hors-64-bits",
+      "description": "Nonce 2^64 : hors de [1, 2^64 − 1] (EX-5.3).",
+      "input": {
+        "digest": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+        "nonce": "0x10000000000000000",
+        "policy_oid": null,
+        "cert_req": true
+      },
+      "expected": {
+        "refused": true,
+        "rule": "AN-6",
+        "message": "nonce 18446744073709551616 hors de [1, 2^64 - 1]"
+      }
+    },
+    {
+      "id": "certreq-faux",
+      "description": "certReq FALSE : certReq vaut toujours TRUE (EX-5.4).",
+      "input": {
+        "digest": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+        "nonce": "0x1",
+        "policy_oid": null,
+        "cert_req": false
+      },
+      "expected": {
+        "refused": true,
+        "rule": "AN-5",
+        "message": "certReq vaut toujours TRUE (EX-5.4)"
+      }
+    },
+    {
+      "id": "nonce-zero-superflu",
+      "description": "Requête point-k2-exemple dont le nonce est encodé 02 09 00 01 80 32 ff 0d 74 cf da (zéro de tête superflu) : la relecture la refuse, l'encodage DER est minimal (EX-5.1).",
+      "input": {
+        "der": "0x30440201013031300d0609608648016503040201050004206a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff020900018032ff0d74cfda0101ff"
+      },
+      "expected": {
+        "refused": true,
+        "rule": "AN-5",
+        "message": "nonce : zéro de tête superflu (encodage non minimal)"
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "version": 0,
+  "checkpoint": {
+    "version": 0,
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "period_start": 1793872800,
+    "tree_size": 8,
+    "root": "0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d",
+    "last_seq": 8,
+    "last_hash": "0x74f7dd908e35792023f6238ff1bc8999a0a24a7b025d65d58a810ac5701f9eb5",
+    "checkpoint_ts": "2026-11-05T09:32:00.000Z",
+    "prev_checkpoint_hash": "0x2736575e328f93f4ef12f7c5d398386884648258dab3fb7d8d9ce0b196ee62cd",
+    "key_id": "rec-test-01",
+    "sig": "0x3e0b11ef71cddab3900dc1c096a013ff6fc530a87459d488df6beb80ca2580988a073048f2215c68ef8bbab938949298f648be1a6f3791a5cbacf61365e4810e"
+  },
+  "checkpoint_hash": "0x74eedc9a2576b1cd25f50813d3cbbbd0db87304c24399fc5cff236e7c9e02230",
+  "consistency": {
+    "version": 0,
+    "first_size": 8,
+    "second_size": 9,
+    "first_root": "0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d",
+    "second_root": "0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b",
+    "path": [
+      "0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204"
+    ]
+  },
+  "anchors": {
+    "rfc3161": null,
+    "registry": null,
+    "ots": null
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "K-6",
+  "controles_en_echec": [
+    "K-6"
+  ],
+  "description": "last_hash du point réécrit (point re-signé, checkpoint_hash recalculé : K-2 et K-3 passent) : l'événement last_seq (seq 8) est le voisin suivant et son hash recalculé n'est pas celui que le point annonce."
+}

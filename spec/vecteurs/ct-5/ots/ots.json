@@ -1,0 +1,139 @@
+{
+  "version": 0,
+  "family": "ots",
+  "description": "Fichiers .ots en attente écrits par CT-5 (EX-6.4) : en-tête, empreinte, f0 nonce (16 octets), 08, puis la fusion des réponses des calendriers dans l'ordre de la bibliothèque de référence (attestations avant opérations ; attestations en attente triées par URI). Lecture par ots.mjs : O-1 à O-3 réussies, O-7 non exécutée (partie_absente) ; réécriture identique par python-opentimestamps (confrontation/).",
+  "calendars": [
+    "https://alice.btc.calendar.opentimestamps.org",
+    "https://bob.btc.calendar.opentimestamps.org"
+  ],
+  "cases": [
+    {
+      "id": "point-k2-minimal",
+      "description": "L'exemple d'EX-6.4 : checkpointHash K2, nonce dérivé de l'étiquette …/ots/nonce/point-k2, deux attestations en attente nues sous l'engagement, triées par URI (alice avant bob) ; 195 octets.",
+      "file": "point-k2-minimal.ots",
+      "size": 195,
+      "sha256": "0x64a62afc6526fdd0ea34c57ea70eb8e4711f2fc49ff8fc6a3c4cd38596efa8b6",
+      "digest": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+      "nonce": "0xa10f0dccae630a2791dde3924b507379",
+      "commitment": "0x1e0e083c9976f92dfa6f0ba6c9ce296c9360d18d59416ba0354f64393b1fd480",
+      "branches": [
+        {
+          "calendar": "alice",
+          "uri": "https://alice.btc.calendar.opentimestamps.org",
+          "ops": [],
+          "attestation": "en_attente"
+        },
+        {
+          "calendar": "bob",
+          "uri": "https://bob.btc.calendar.opentimestamps.org",
+          "ops": [],
+          "attestation": "en_attente"
+        }
+      ],
+      "state": "en_attente",
+      "expected_checks": {
+        "O-1": "reussi",
+        "O-2": "reussi",
+        "O-3": "reussi",
+        "O-7": "non_execute",
+        "O-7_reason": "partie_absente"
+      }
+    },
+    {
+      "id": "point-k2-en-attente",
+      "description": "Preuve en attente à deux calendriers sur checkpointHash K2 : nonce dérivé de …/ots/nonce/journal-principal/point/<K2>, puis une branche par calendrier (opération f1 d'un argument de 16 octets dérivé de …/ots/calendrier/<alice|bob>/<sujet>, 08, attestation en attente de l'URI) ; 233 octets.",
+      "file": "point-k2-en-attente.ots",
+      "size": 233,
+      "sha256": "0x8bdf7ed01c73e1b53cb1765e7c456c0ca92056af9685bc3c537a06f51182687a",
+      "digest": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+      "nonce": "0x67408294dbd584a4dda160e16129c6b5",
+      "commitment": "0xc1cb7611d9e35803bceab098d24a183876e134fcda969d249a92bf5013eca0aa",
+      "branches": [
+        {
+          "calendar": "alice",
+          "uri": "https://alice.btc.calendar.opentimestamps.org",
+          "ops": [
+            {
+              "op": "prepend",
+              "argument": "0x86b4b0a3caa98d05a58a4023cc6c953b"
+            },
+            {
+              "op": "sha256"
+            }
+          ],
+          "attestation": "en_attente"
+        },
+        {
+          "calendar": "bob",
+          "uri": "https://bob.btc.calendar.opentimestamps.org",
+          "ops": [
+            {
+              "op": "prepend",
+              "argument": "0xda4ee3a72268b161c2f158aec8af42fd"
+            },
+            {
+              "op": "sha256"
+            }
+          ],
+          "attestation": "en_attente"
+        }
+      ],
+      "state": "en_attente",
+      "expected_checks": {
+        "O-1": "reussi",
+        "O-2": "reussi",
+        "O-3": "reussi",
+        "O-7": "non_execute",
+        "O-7_reason": "partie_absente"
+      }
+    },
+    {
+      "id": "periode-1-en-attente",
+      "description": "Même construction sur le periodHash de la période 1 de référence (étiquettes …/periode/<periodHash>).",
+      "file": "periode-1-en-attente.ots",
+      "size": 233,
+      "sha256": "0x4653728041b350ade24761a7dddab80e14e2268c67503c11b2b4eb8489d9bfc8",
+      "digest": "0xa864281e05663ee5b6feaf22b65d0375d0ad41e10018e1e89d39acecddd4c9f1",
+      "nonce": "0x29447d7a96d0433897b22e5156a977a5",
+      "commitment": "0x1a952f35049ffd2381d4ed9771d4fecaaa17df999134ec1afba3efd552325c4e",
+      "branches": [
+        {
+          "calendar": "alice",
+          "uri": "https://alice.btc.calendar.opentimestamps.org",
+          "ops": [
+            {
+              "op": "prepend",
+              "argument": "0x708ee9996304d14c200583c3b4d62585"
+            },
+            {
+              "op": "sha256"
+            }
+          ],
+          "attestation": "en_attente"
+        },
+        {
+          "calendar": "bob",
+          "uri": "https://bob.btc.calendar.opentimestamps.org",
+          "ops": [
+            {
+              "op": "prepend",
+              "argument": "0x547781101f781d19f4f1ef8fc915bdfb"
+            },
+            {
+              "op": "sha256"
+            }
+          ],
+          "attestation": "en_attente"
+        }
+      ],
+      "state": "en_attente",
+      "expected_checks": {
+        "O-1": "reussi",
+        "O-2": "reussi",
+        "O-3": "reussi",
+        "O-7": "non_execute",
+        "O-7_reason": "partie_absente"
+      }
+    }
+  ]
+}

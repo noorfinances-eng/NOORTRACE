@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "K-1",
+  "controles_en_echec": [
+    "K-1"
+  ],
+  "description": "Le point porte le period_start de la période 2 (re-signé, checkpoint_hash recalculé) : il ne décrit pas la période du manifeste, et son checkpoint_ts (09:32:00.000Z) précède ce period_start."
+}

@@ -17,6 +17,7 @@
     "vecteurs:ct2": "node scripts/vecteurs/generer-ct2.mjs",
     "vecteurs:ct3": "node scripts/vecteurs/generer-ct3.mjs",
     "vecteurs:ct4": "node scripts/vecteurs/generer-ct4.mjs",
+    "vecteurs:ct5": "node scripts/vecteurs/generer-ct5.mjs",
     "vecteurs:ct6": "node scripts/vecteurs/generer-ct6.mjs",
     "registre": "node scripts/registre/noortrace-registre.mjs"
   },

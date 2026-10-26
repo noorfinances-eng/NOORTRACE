@@ -4,7 +4,9 @@
 // Arbre de Merkle RFC 6962 §2.1 (CT-1 §9) : feuilles SHA-256(0x00 || d),
 // nœuds SHA-256(0x01 || g || d), découpage à la plus grande puissance de deux
 // strictement inférieure à n, chemin d'audit §2.1.1 et vérification par
-// l'algorithme de la RFC 9162 §2.1.3.2 reproduit en CT-1 §9.3.
+// l'algorithme de la RFC 9162 §2.1.3.2 reproduit en CT-1 §9.3 ; révision
+// 0.3 : preuve de cohérence RFC 9162 §2.1.4 (génération et vérification
+// reproduites en CT-1 §10.7).
 //
 // Période vide : racine de 32 octets nuls (convention NOORTRACE imposée par
 // PeriodRegistry), et non SHA-256("") de la RFC 6962.
@@ -118,6 +120,101 @@ func VerifierInclusion(leafHash []byte, m, n uint64, path [][]byte, root []byte)
 	}
 	if !bytes.Equal(r, root) {
 		return ErrRacineDifferente
+	}
+	return nil
+}
+
+// Erreurs de la vérification de cohérence (CT-1 §10.7).
+var (
+	ErrCoherenceHorsDefinition = errors.New("m = 0 ou n < m : hors de la définition")
+	ErrCoherenceCheminVide     = errors.New("chemin vide")
+	ErrCoherenceCheminNonVide  = errors.New("m = n avec un chemin non vide")
+	ErrCoherenceRacines        = errors.New("m = n et racines différentes")
+	ErrCoherenceTropLong       = errors.New("chemin trop long")
+	ErrCoherenceTropCourt      = errors.New("chemin trop court")
+	ErrCoherencePremiereRacine = errors.New("première racine recalculée différente")
+	ErrCoherenceSecondeRacine  = errors.New("seconde racine recalculée différente")
+)
+
+// sousPreuve est SUBPROOF(m, D[0..n-1], b) de la RFC 9162 §2.1.4.1.
+func sousPreuve(m int, D [][]byte, b bool) [][]byte {
+	n := len(D)
+	if m == n {
+		if b {
+			return [][]byte{}
+		}
+		return [][]byte{MTH(D)}
+	}
+	k := plusGrandePuissanceDeDeuxInferieure(n)
+	if m <= k {
+		return append(sousPreuve(m, D[:k], b), MTH(D[k:]))
+	}
+	return append(sousPreuve(m-k, D[k:], false), MTH(D[:k]))
+}
+
+// PreuveCoherence calcule PROOF(m, D[0..n-1]) de CT-1 §10.7, 0 < m ≤ n ;
+// m = n donne la preuve vide. Erreur hors de la définition.
+func PreuveCoherence(m int, D [][]byte) ([][]byte, error) {
+	n := len(D)
+	if m <= 0 || m > n {
+		return nil, ErrCoherenceHorsDefinition
+	}
+	return sousPreuve(m, D, true), nil
+}
+
+// VerifierCoherence exécute l'algorithme de vérification de CT-1 §10.7
+// (RFC 9162 §2.1.4.2) sur (m, n, first_root, second_root, path).
+func VerifierCoherence(m, n uint64, firstRoot, secondRoot []byte, path [][]byte) error {
+	if m == 0 || n < m {
+		return ErrCoherenceHorsDefinition
+	}
+	if m == n {
+		if len(path) != 0 {
+			return ErrCoherenceCheminNonVide
+		}
+		if !bytes.Equal(firstRoot, secondRoot) {
+			return ErrCoherenceRacines
+		}
+		return nil
+	}
+	if len(path) == 0 {
+		return ErrCoherenceCheminVide
+	}
+	chemin := path
+	if m&(m-1) == 0 {
+		chemin = append([][]byte{firstRoot}, path...)
+	}
+	fn, sn := m-1, n-1
+	for fn&1 == 1 {
+		fn >>= 1
+		sn >>= 1
+	}
+	fr, sr := chemin[0], chemin[0]
+	for _, h := range chemin[1:] {
+		if sn == 0 {
+			return ErrCoherenceTropLong
+		}
+		if fn&1 == 1 || fn == sn {
+			fr = Noeud(h, fr)
+			sr = Noeud(h, sr)
+			for fn&1 == 0 && fn != 0 {
+				fn >>= 1
+				sn >>= 1
+			}
+		} else {
+			sr = Noeud(sr, h)
+		}
+		fn >>= 1
+		sn >>= 1
+	}
+	if sn != 0 {
+		return ErrCoherenceTropCourt
+	}
+	if !bytes.Equal(fr, firstRoot) {
+		return ErrCoherencePremiereRacine
+	}
+	if !bytes.Equal(sr, secondRoot) {
+		return ErrCoherenceSecondeRacine
 	}
 	return nil
 }

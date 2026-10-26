@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://noortrace.example/schemas/v0/dossier.schema.json",
   "title": "Dossier de preuve NOORTRACE, version 0 : index dossier.json et fichiers compagnons",
-  "description": "Le schéma principal décrit l'index dossier.json. Les $defs voisins, chemin, manifeste_sig, cles et approbations décrivent les fichiers compagnons du même répertoire ; evenement.json se valide contre le schéma d'événement et manifeste.json contre le schéma de manifeste. Les douze parties sont toujours déclarées, dans cet ordre, présentes ou absentes avec leur raison.",
+  "description": "Le schéma principal décrit l'index dossier.json. Les $defs voisins, chemin, manifeste_sig, cles et approbations décrivent les fichiers compagnons du même répertoire ; evenement.json se valide contre le schéma d'événement et manifeste.json contre le schéma de manifeste. Les douze parties sont toujours déclarées, dans cet ordre, présentes ou absentes avec leur raison. La révision 0.3 de CT-1 ajoute une treizième partie facultative, points_de_controle (points-de-controle.json, $defs points_de_controle), déclarée en treizième position quand le dossier la connaît, présente ou absente avec une raison ; un index à douze parties reste valide.",
   "type": "object",
   "additionalProperties": false,
   "required": [ "version", "event", "org_id", "journal_id", "generated_at", "parts" ],
@@ -22,22 +22,47 @@
     "generated_at": { "$ref": "#/$defs/horodatage" },
     "parts": {
       "type": "array",
-      "minItems": 12,
-      "maxItems": 12,
-      "items": false,
-      "prefixItems": [
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "evenement" }, "file": { "const": "evenement.json" }, "present": { "const": true } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "voisins" }, "file": { "const": "voisins.json" }, "present": { "const": true } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "chemin" }, "file": { "const": "chemin.json" }, "present": { "const": true } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "manifeste" }, "file": { "const": "manifeste.json" }, "present": { "const": true } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "manifeste_sig" }, "file": { "const": "manifeste.sig" }, "present": { "const": true } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "cles" }, "file": { "const": "cles.json" }, "present": { "const": true } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "approbations" }, "file": { "const": "approbations.json" } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "jeton_rfc3161" }, "file": { "const": "jeton-rfc3161.der" } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "preuve_ots" }, "file": { "const": "preuve.ots" } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "registre" }, "file": { "const": "registre.json" } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "certificat_commit" }, "file": { "const": "certificat-commit.json" } } },
-        { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "validateurs" }, "file": { "const": "validateurs.json" } } }
+      "description": "Douze parties (format v0 d'origine) ou treize (révision 0.3 : la partie facultative points_de_controle en treizième position), toujours dans cet ordre.",
+      "oneOf": [
+        {
+          "minItems": 12,
+          "maxItems": 12,
+          "items": false,
+          "prefixItems": [
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "evenement" }, "file": { "const": "evenement.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "voisins" }, "file": { "const": "voisins.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "chemin" }, "file": { "const": "chemin.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "manifeste" }, "file": { "const": "manifeste.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "manifeste_sig" }, "file": { "const": "manifeste.sig" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "cles" }, "file": { "const": "cles.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "approbations" }, "file": { "const": "approbations.json" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "jeton_rfc3161" }, "file": { "const": "jeton-rfc3161.der" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "preuve_ots" }, "file": { "const": "preuve.ots" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "registre" }, "file": { "const": "registre.json" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "certificat_commit" }, "file": { "const": "certificat-commit.json" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "validateurs" }, "file": { "const": "validateurs.json" } } }
+          ]
+        },
+        {
+          "minItems": 13,
+          "maxItems": 13,
+          "items": false,
+          "prefixItems": [
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "evenement" }, "file": { "const": "evenement.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "voisins" }, "file": { "const": "voisins.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "chemin" }, "file": { "const": "chemin.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "manifeste" }, "file": { "const": "manifeste.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "manifeste_sig" }, "file": { "const": "manifeste.sig" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "cles" }, "file": { "const": "cles.json" }, "present": { "const": true } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "approbations" }, "file": { "const": "approbations.json" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "jeton_rfc3161" }, "file": { "const": "jeton-rfc3161.der" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "preuve_ots" }, "file": { "const": "preuve.ots" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "registre" }, "file": { "const": "registre.json" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "certificat_commit" }, "file": { "const": "certificat-commit.json" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "validateurs" }, "file": { "const": "validateurs.json" } } },
+            { "type": "object", "$ref": "#/$defs/part", "properties": { "name": { "const": "points_de_controle" }, "file": { "const": "points-de-controle.json" } } }
+          ]
+        }
       ]
     }
   },
@@ -58,11 +83,11 @@
       "properties": {
         "name": {
           "type": "string",
-          "enum": [ "evenement", "voisins", "chemin", "manifeste", "manifeste_sig", "cles", "approbations", "jeton_rfc3161", "preuve_ots", "registre", "certificat_commit", "validateurs" ]
+          "enum": [ "evenement", "voisins", "chemin", "manifeste", "manifeste_sig", "cles", "approbations", "jeton_rfc3161", "preuve_ots", "registre", "certificat_commit", "validateurs", "points_de_controle" ]
         },
         "file": {
           "type": "string",
-          "enum": [ "evenement.json", "voisins.json", "chemin.json", "manifeste.json", "manifeste.sig", "cles.json", "approbations.json", "jeton-rfc3161.der", "preuve.ots", "registre.json", "certificat-commit.json", "validateurs.json" ]
+          "enum": [ "evenement.json", "voisins.json", "chemin.json", "manifeste.json", "manifeste.sig", "cles.json", "approbations.json", "jeton-rfc3161.der", "preuve.ots", "registre.json", "certificat-commit.json", "validateurs.json", "points-de-controle.json" ]
         },
         "sha256": { "oneOf": [ { "$ref": "#/$defs/hex32" }, { "type": "null" } ], "description": "SHA-256 des octets du fichier tel qu'il est dans le répertoire ; null si absent." },
         "present": { "type": "boolean" },
@@ -171,6 +196,82 @@
           "minItems": 1,
           "maxItems": 1024,
           "items": { "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json" }
+        }
+      }
+    },
+    "base64": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+      "minLength": 4,
+      "maxLength": 131072,
+      "description": "Base64 de la RFC 4648 §4, alphabet standard, avec remplissage, sans saut de ligne ; les octets décodés sont le fichier DER ou .ots tel que produit, jamais réencodé (CT-6 EX-13.3)."
+    },
+    "preuve_coherence": {
+      "title": "Preuve de cohérence RFC 9162 §2.1.4 (CT-1 §10.7)",
+      "description": "Preuve que l'arbre de first_size feuilles de racine first_root est un préfixe de l'arbre de second_size feuilles de racine second_root. Dans un dossier, first_size et first_root sont tree_size et root du point de contrôle, second_size et second_root sont count et root du manifeste ; path est vide si et seulement si first_size = second_size (K-5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "version", "first_size", "second_size", "first_root", "second_root", "path" ],
+      "properties": {
+        "version": { "const": 0 },
+        "first_size": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "second_size": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "first_root": { "$ref": "#/$defs/hex32" },
+        "second_root": { "$ref": "#/$defs/hex32" },
+        "path": { "type": "array", "items": { "$ref": "#/$defs/hex32" }, "maxItems": 64 }
+      }
+    },
+    "ancre_rfc3161_point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "token" ],
+      "properties": {
+        "token": { "$ref": "#/$defs/base64", "description": "TimeStampToken RFC 3161 en DER, base64, dont le messageImprint est (SHA-256, checkpoint_hash) ; vérifié par T-1 à T-11 de CT-6 (K-7)." }
+      }
+    },
+    "ancre_registre_point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "chain_id", "contract", "fingerprint", "doc_type", "block_number", "block_hash", "transaction_hash", "log_index" ],
+      "properties": {
+        "chain_id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "contract": { "$ref": "#/$defs/adresse", "description": "Adresse d'AttestationRegistry telle que l'exportateur la connaît ; déclarative, le vérificateur ne croit que le fichier d'ancres (CT-6 §12)." },
+        "fingerprint": { "$ref": "#/$defs/hex32", "description": "keccak256(org_id || journal_id || checkpoint_hash), recalculée (K-8)." },
+        "doc_type": { "$ref": "#/$defs/hex32", "description": "keccak256(utf8(\"noortrace/point-de-controle/v0\")) = 0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178 (CT-4 §6.4, révision 0.3)." },
+        "block_number": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "block_hash": { "$ref": "#/$defs/hex32" },
+        "transaction_hash": { "$ref": "#/$defs/hex32" },
+        "log_index": { "type": "integer", "minimum": 0, "maximum": 255 }
+      }
+    },
+    "ancre_ots_point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "proof" ],
+      "properties": {
+        "proof": { "$ref": "#/$defs/base64", "description": "Fichier .ots OpenTimestamps, base64, dont l'empreinte de fichier est checkpoint_hash (SHA-256 de P_K || C_K) ; vérifié par O-1 à O-7 de CT-6 (K-9)." }
+      }
+    },
+    "points_de_controle": {
+      "title": "points-de-controle.json",
+      "description": "Partie facultative (CT-1 révision 0.3, §11.2) : le point de contrôle de plus petit tree_size strictement supérieur à l'indice de feuille de l'événement prouvé, son checkpointHash, la preuve de cohérence de sa racine vers celle du manifeste, et ses ancres : jeton RFC 3161 sur checkpoint_hash, référence de l'ancre au registre, preuve OpenTimestamps ; chaque ancre non fournie vaut null. Vérifications K-1 à K-9 (CT-1 §11.4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [ "version", "checkpoint", "checkpoint_hash", "consistency", "anchors" ],
+      "properties": {
+        "version": { "const": 0 },
+        "checkpoint": { "$ref": "https://noortrace.example/schemas/v0/point-de-controle.schema.json" },
+        "checkpoint_hash": { "$ref": "#/$defs/hex32", "description": "SHA-256(\"noortrace/point-de-controle/v0\\n\" || JCS(checkpoint sans sig)), recalculé par le vérificateur (K-2) : l'empreinte que les ancres portent." },
+        "consistency": { "$ref": "#/$defs/preuve_coherence" },
+        "anchors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [ "rfc3161", "registry", "ots" ],
+          "properties": {
+            "rfc3161": { "oneOf": [ { "$ref": "#/$defs/ancre_rfc3161_point" }, { "type": "null" } ] },
+            "registry": { "oneOf": [ { "$ref": "#/$defs/ancre_registre_point" }, { "type": "null" } ] },
+            "ots": { "oneOf": [ { "$ref": "#/$defs/ancre_ots_point" }, { "type": "null" } ] }
+          }
         }
       }
     }

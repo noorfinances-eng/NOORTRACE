@@ -1,0 +1,247 @@
+{
+  "version": 0,
+  "description": "Preuves de cohérence RFC 9162 §2.1.4 (CT-1 §10.7, révision 0.3) entre les arbres de arbres.json (feuilles : hash des événements de journal-valide). Chaque cas donne first_size, second_size, first_root, second_root, path ; valid dit si l'algorithme de vérification de CT-1 §10.7 doit accepter, reason nomme le refus. Les preuves acceptées sont PROOF(first_size, D[0..second_size-1]) recalculées nœud pour nœud ; les refusées sont des sondes dérivées de (3, 5).",
+  "leaves": [
+    "0x08685e3c3f0a4b082e2634186b7c213834e5e781bd80016c9744979f80cd69bc",
+    "0x09f3b3f5572d9ed76045b1843b8582c49d4e873f4a9520467066e1050d274741",
+    "0x2bcc56e331dea29895010b31df85999b26f48fa7b8d8e4e15856ee26922aeced",
+    "0xb7029550addf2b15f8436077d6478d94ba5d5757e56179e8136b0cf91dec19a4",
+    "0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d",
+    "0x097ae3f842959999b67d2ceb971d94c58279b42b04a5fca1bd47d09914080009",
+    "0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14",
+    "0x74f7dd908e35792023f6238ff1bc8999a0a24a7b025d65d58a810ac5701f9eb5",
+    "0xb6c72c8cc185dcd57299d7b6be057f3a32592eb43eefb0ce3042a6f09edf29c4",
+    "0x873c1a9390f139e3737b51ecf489dff56264c3cdbfabd8a5316ce0bb0206ed49",
+    "0xf92b743f6e089038b2182131434071ef5d6fe5c4dbc55fd8c30a0e431725efdb",
+    "0x907e81870ef09d329e1abd11c2fdfe398ed7eb1318eef240a8a2ca9f5499dafc"
+  ],
+  "cases": [
+    {
+      "name": "(1, 2)",
+      "description": "une feuille vers deux : k = 1, la preuve est L(1)",
+      "first_size": 1,
+      "second_size": 2,
+      "first_root": "0x933e569c51519a287535c762378e751437722d5c1b6a88624f2181a6733552a9",
+      "second_root": "0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc",
+      "path": [
+        "0x0780116f46d0fd4d6c3b7d87a1bb0dfd07e16c2ad8ea859efe8ea0477923e58e"
+      ],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(2, 3)",
+      "description": "deux feuilles vers trois : m = k = 2, préfixe entier, la preuve est L(2)",
+      "first_size": 2,
+      "second_size": 3,
+      "first_root": "0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc",
+      "second_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "path": [
+        "0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832"
+      ],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(3, 5)",
+      "description": "trois feuilles vers cinq : m > k = 2, descente à droite avec racine à fournir (quatre nœuds)",
+      "first_size": 3,
+      "second_size": 5,
+      "first_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "second_root": "0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77",
+      "path": [
+        "0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832",
+        "0x75f5e95a01c5af90f356d143ca97476069d4cf6f90cefe35830c54d67937c77c",
+        "0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc",
+        "0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9"
+      ],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(5, 8)",
+      "description": "PROOF(5, D[8]) : m > k = 4, quatre nœuds",
+      "first_size": 5,
+      "second_size": 8,
+      "first_root": "0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77",
+      "second_root": "0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d",
+      "path": [
+        "0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9",
+        "0xa9066f46c18ce1a98df37e3eb9a0eb6c57691f947888df06c7413376aeaa6778",
+        "0xcf219c1e3c453425c4cc643666651cf2c07c722d12f66f805e4e95c54bdbcc12",
+        "0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d"
+      ],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(8, 12)",
+      "description": "PROOF(8, D[12]) : m = k = 8, un seul nœud (racine des feuilles 8 à 11)",
+      "first_size": 8,
+      "second_size": 12,
+      "first_root": "0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d",
+      "second_root": "0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54",
+      "path": [
+        "0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd"
+      ],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(4, 8)",
+      "description": "m = 4 puissance de deux vers un arbre complet : un nœud, first_root préposé à la vérification",
+      "first_size": 4,
+      "second_size": 8,
+      "first_root": "0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d",
+      "second_root": "0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d",
+      "path": [
+        "0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238"
+      ],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(4, 12)",
+      "description": "m = 4 puissance de deux vers douze feuilles : deux nœuds",
+      "first_size": 4,
+      "second_size": 12,
+      "first_root": "0xc9448877f480c481c1fc4bdb51280784368fb3008d0dd42fa28727cffc04703d",
+      "second_root": "0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54",
+      "path": [
+        "0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238",
+        "0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd"
+      ],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(1, 12)",
+      "description": "une feuille vers douze : quatre nœuds, le maximum pour n = 12 (⌈log2 12⌉ = 4, sans préposition de L(0) puisque m = 1 est une puissance de deux)",
+      "first_size": 1,
+      "second_size": 12,
+      "first_root": "0x933e569c51519a287535c762378e751437722d5c1b6a88624f2181a6733552a9",
+      "second_root": "0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54",
+      "path": [
+        "0x0780116f46d0fd4d6c3b7d87a1bb0dfd07e16c2ad8ea859efe8ea0477923e58e",
+        "0xe048294b5c655195d63522a0b5384627721564df8528113028b1101ae045969f",
+        "0xc3803d91aa6f008b639b48dbabfda485ebe1f599f242031c0ce6f7a9ef642238",
+        "0x6437dd47f2cb2a1f6594f69b8b295e03a60ef7aeb4fd21545bab87e421a1fadd"
+      ],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(12, 12)",
+      "description": "m = n : preuve vide, racines égales",
+      "first_size": 12,
+      "second_size": 12,
+      "first_root": "0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54",
+      "second_root": "0x3a99acb00e4af3b1e6b7b78c9f0cf40020bf34f6808e51a5ba8156ddf04a7e54",
+      "path": [],
+      "valid": true,
+      "reason": null
+    },
+    {
+      "name": "(0, 5)",
+      "description": "m = 0 n'est pas défini : rejet avant tout calcul",
+      "first_size": 0,
+      "second_size": 5,
+      "first_root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "second_root": "0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77",
+      "path": [],
+      "valid": false,
+      "reason": "m = 0"
+    },
+    {
+      "name": "(5, 3)",
+      "description": "m > n : rejet avant tout calcul (racines et chemin de (3, 5), tailles échangées)",
+      "first_size": 5,
+      "second_size": 3,
+      "first_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "second_root": "0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77",
+      "path": [
+        "0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832",
+        "0x75f5e95a01c5af90f356d143ca97476069d4cf6f90cefe35830c54d67937c77c",
+        "0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc",
+        "0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9"
+      ],
+      "valid": false,
+      "reason": "n < m"
+    },
+    {
+      "name": "(3, 5) chemin tronqué",
+      "description": "dernier nœud de PROOF(3, D[5]) retiré : sn ne retombe pas à 0",
+      "first_size": 3,
+      "second_size": 5,
+      "first_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "second_root": "0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77",
+      "path": [
+        "0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832",
+        "0x75f5e95a01c5af90f356d143ca97476069d4cf6f90cefe35830c54d67937c77c",
+        "0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc"
+      ],
+      "valid": false,
+      "reason": "chemin trop court"
+    },
+    {
+      "name": "(3, 5) nœud en trop",
+      "description": "un nœud ajouté à la fin de PROOF(3, D[5]) : sn vaut déjà 0",
+      "first_size": 3,
+      "second_size": 5,
+      "first_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "second_root": "0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77",
+      "path": [
+        "0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832",
+        "0x75f5e95a01c5af90f356d143ca97476069d4cf6f90cefe35830c54d67937c77c",
+        "0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc",
+        "0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9",
+        "0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832"
+      ],
+      "valid": false,
+      "reason": "chemin trop long"
+    },
+    {
+      "name": "(3, 5) racines échangées",
+      "description": "first_root et second_root permutés",
+      "first_size": 3,
+      "second_size": 5,
+      "first_root": "0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77",
+      "second_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "path": [
+        "0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832",
+        "0x75f5e95a01c5af90f356d143ca97476069d4cf6f90cefe35830c54d67937c77c",
+        "0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc",
+        "0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9"
+      ],
+      "valid": false,
+      "reason": "racines échangées"
+    },
+    {
+      "name": "(3, 5) chemin vide",
+      "description": "chemin vide alors que m < n",
+      "first_size": 3,
+      "second_size": 5,
+      "first_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "second_root": "0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77",
+      "path": [],
+      "valid": false,
+      "reason": "chemin vide"
+    },
+    {
+      "name": "(3, 3) chemin non vide",
+      "description": "m = n avec un chemin non vide : la preuve de m = n est vide",
+      "first_size": 3,
+      "second_size": 3,
+      "first_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "second_root": "0xeb2c0a5136d4cfcc8079140f77794c357da62023f40c0b95d9259163906f4adc",
+      "path": [
+        "0xefe91372109013748faaf89af5bd84d2c039549540cd48ac10721b88ea1ae832",
+        "0x75f5e95a01c5af90f356d143ca97476069d4cf6f90cefe35830c54d67937c77c",
+        "0x8c0ba440115e58fd7e74ca7a5bb8162ebcd89b04261c0a356dfed00ba4bf51bc",
+        "0x4f753c7b2bd4d339c5ecd9be9c6cde16a023b7cbd04506714b040881b2b4b6c9"
+      ],
+      "valid": false,
+      "reason": "m = n avec chemin"
+    }
+  ]
+}

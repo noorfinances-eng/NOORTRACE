@@ -167,3 +167,28 @@ Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
 Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
 $ echo $?
 0
+$ node scripts/verify/certificat-commit.mjs spec/vecteurs/ct-6/registre/capture/certificat-18928.json --validateurs spec/vecteurs/ct-6/registre/capture/validators.json --chaine noortrace-2124-dev
+Vérification hors ligne d'un certificat de commit noorcore
+Source        : fichier spec/vecteurs/ct-6/registre/capture/certificat-18928.json
+Validateurs   : spec/vecteurs/ct-6/registre/capture/validators.json
+Certificat    : chaîne « noortrace-2124-dev », hauteur 18928, tour 0
+Bloc          : 0x3bbf473dc07a2b10039d0064472ea7205e412b6d038dbb4d7e9219e09e70612b
+Jeu (hachage) : 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751
+Quorum        : 3 sur 4
+Contrôles :
+  [ok]    structure              chaîne « noortrace-2124-dev », hauteur 18928, tour 0, bloc 0x3bbf473dc07a2b10039d0064472ea7205e412b6d038dbb4d7e9219e09e70612b, 4 ligne(s) de precommit
+  [ok]    jeu_validateurs        4 validateur(s) : v1, v2, v3, v4 ; quorum 3
+  [ok]    hachage_jeu            valsetHash 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 = hachage du jeu fourni
+  [ok]    chaine                 chaîne « noortrace-2124-dev » attendue
+  [ok]    proposition            signé par « v1 » (0x0405de9b275a…), digest 0x579279c36e1a51cb159657fe2ebc3f4165f20a18c66733cd1206025d84671dc7
+  [ok]    precommit 1            signé par « v1 » (0x0405de9b275a…), digest 0x21bc4685e4763b1e9badf97d7c5d58395ca4483373b66edb4705466ff111d118
+  [ok]    precommit 2            signé par « v3 » (0x040a9ee3f382…), digest 0x91c6624507b821a98a046c63cf4d78183b5194db21532d0c8112c3720ef2c352
+  [ok]    precommit 3            signé par « v2 » (0x040506c4d376…), digest 0x0c9ba2c23a0e31d9938a4890d77607b148bdc1b86b2cb21f3892d660e37b1895
+  [ok]    precommit 4            signé par « v4 » (0x042cc90013f7…), digest 0x28c5d2ed1108662e63283e334d316e752d08989985d5257b6c9f475d0695518d
+  [ok]    signataires_distincts  4 signataire(s) distinct(s) : v1, v2, v3, v4
+  [ok]    quorum                 4 signataire(s) distinct(s) valide(s) pour un quorum de 3 sur 4
+Signataires   : v1, v2, v3, v4 ; proposant v1
+Résultat      : VALIDE — un quorum du jeu fourni a signé ce bloc
+Rappel        : la preuve vaut pour le jeu de validateurs FOURNI ; son origine relève du dossier, pas de ce vérificateur.
+$ echo $?
+0

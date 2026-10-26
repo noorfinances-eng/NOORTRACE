@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://noortrace.example/schemas/v0/registre.schema.json",
   "title": "Parties registre.json et certificat-commit.json d'un dossier de preuve, version 0 (CT-6 §11.2)",
-  "description": "Le schéma principal décrit registre.json : une entrée par transaction de registre prouvée (clôture, ancre, inscriptions), chacune avec les champs engagés de l'en-tête de son bloc et tous les reçus du bloc. Le $defs certificat_commit décrit certificat-commit.json : un certificat par bloc, tel que noor_getCommitCertificate le rend. Tout y est déclaratif ; le vérificateur recalcule hachages, racines et condensés (contrôle 8).",
+  "description": "Le schéma principal décrit registre.json : une entrée par transaction de registre prouvée (clôture, ancre, inscriptions), chacune avec les champs engagés de l'en-tête de son bloc et tous les reçus du bloc. Le $defs certificat_commit décrit certificat-commit.json : un certificat par bloc, tel que noor_getCommitCertificate le rend. Tout y est déclaratif ; le vérificateur recalcule hachages, racines et condensés (contrôle 8). Révision 0.2 de CT-6 (ajout compatible) : une entrée facultative de rôle ancre_point_de_controle, l'ancre d'un point de contrôle du journal (AttestationRegistry.anchor, docType noortrace/point-de-controle/v0), au plus une, vérifiée par R-11 et rattachée à la partie points-de-controle.json du dossier (K-8).",
   "type": "object",
   "additionalProperties": false,
   "required": [ "version", "source", "entries" ],
@@ -12,12 +12,13 @@
     "entries": {
       "type": "array",
       "minItems": 2,
-      "maxItems": 16,
+      "maxItems": 17,
       "items": { "$ref": "#/$defs/entree" },
       "allOf": [
         { "contains": { "type": "object", "properties": { "role": { "const": "cloture" } } }, "minContains": 1, "maxContains": 1 },
         { "contains": { "type": "object", "properties": { "role": { "const": "ancre" } } }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "type": "object", "properties": { "role": { "const": "inscription" } } }, "minContains": 0, "maxContains": 8 }
+        { "contains": { "type": "object", "properties": { "role": { "const": "inscription" } } }, "minContains": 0, "maxContains": 8 },
+        { "contains": { "type": "object", "properties": { "role": { "const": "ancre_point_de_controle" } } }, "minContains": 0, "maxContains": 1 }
       ]
     }
   },
@@ -31,7 +32,7 @@
       "additionalProperties": false,
       "required": [ "role", "block", "receipts", "transaction_index", "log_index", "transaction_hash" ],
       "properties": {
-        "role": { "type": "string", "enum": [ "cloture", "ancre", "inscription" ] },
+        "role": { "type": "string", "enum": [ "cloture", "ancre", "inscription", "ancre_point_de_controle" ], "description": "cloture : PeriodRegistry.submitPeriod ; ancre : AttestationRegistry.anchor d'une période ; inscription : RecorderRegistry.registerRecorder ; ancre_point_de_controle (CT-6 révision 0.2) : AttestationRegistry.anchor d'un point de contrôle du journal, au plus une entrée (R-11, K-8)." },
         "block": { "$ref": "#/$defs/entete" },
         "receipts": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/recu" } },
         "transaction_index": { "type": "integer", "minimum": 0, "maximum": 255 },

@@ -227,6 +227,10 @@ export const DATE_REVOCATION = "2026-11-05T12:00:00Z";
 const ETIQUETTE_NONCE = (n) => `noortrace/vecteurs/v0/ct-6/nonce-tsa/periode-${n}`;
 /** genTime = period_end + 5 s, écrit en GeneralizedTime. */
 const genTimeDe = (periodEnd) => new Date((periodEnd + 5) * 1000).toISOString().replace(/[-:T]/g, "").slice(0, 14) + "Z";
+/** genTime du jeton d'un point de contrôle (EX-A.13) : checkpoint_ts tronqué à la seconde, plus 2 s. */
+const genTimePoint = (checkpointTs) => new Date(Math.floor(Date.parse(checkpointTs) / 1000) * 1000 + 2000).toISOString().replace(/[-:T]/g, "").slice(0, 14) + "Z";
+const ETIQUETTE_NONCE_POINT = "noortrace/vecteurs/v0/ct-6/nonce-tsa/point-de-controle/periode-1";
+const SERIE_POINT = 1001;
 
 const ski = (clePublique) => {
   const spki = H.lireDER(clePublique.export({ type: "spki", format: "der" }));
@@ -473,16 +477,19 @@ export function manifestesCT1(repertoireCT1 = path.join(PROJECT_ROOT, "spec", "v
 /**
  * Les jetons de rfc3161/jetons (EX-A.5), avec la conception de chaque vecteur :
  * période dont le dossier vérifie le jeton, ancres, vérification visée.
+ * `point` (révision 0.2, EX-A.13) : { checkpointHash, checkpoint_ts } du point
+ * couvrant seq 7 ; ajoute point-periode-1.der et k7-point-signature.der.
  */
-export function jetonsTest(materiel, manifestes) {
+export function jetonsTest(materiel, manifestes, point = null) {
   const { certs, cles, nomTsa } = materiel;
+  const nonceDe = (etiquette) => BigInt("0x" + crypto.createHash("sha256").update(etiquette, "utf8").digest().subarray(0, 8).toString("hex"));
   const base = (n, autres = {}) => {
     const { manifeste, periodHash } = manifestes[n - 1];
     return construireJeton({
       empreinte: Buffer.from(periodHash.slice(2), "hex"),
       genTime: genTimeDe(manifeste.period_end),
       serie: n,
-      nonce: BigInt("0x" + crypto.createHash("sha256").update(ETIQUETTE_NONCE(n), "utf8").digest().subarray(0, 8).toString("hex")),
+      nonce: nonceDe(ETIQUETTE_NONCE(n)),
       tsaNom: nomTsa,
       certificats: [certs["tsa-test"]],
       signataire: certs["tsa-test"],
@@ -490,6 +497,17 @@ export function jetonsTest(materiel, manifestes) {
       ...autres,
     });
   };
+  const jetonPoint = () =>
+    construireJeton({
+      empreinte: Buffer.from(point.checkpointHash.slice(2), "hex"),
+      genTime: genTimePoint(point.checkpoint_ts),
+      serie: SERIE_POINT,
+      nonce: nonceDe(ETIQUETTE_NONCE_POINT),
+      tsaNom: nomTsa,
+      certificats: [certs["tsa-test"]],
+      signataire: certs["tsa-test"],
+      cle: cles["tsa-test"],
+    });
   const p1 = manifestes[0].manifeste;
   const genTimePlusUn = genTimeDe(p1.period_end + 1);
   const t6 = Buffer.from(base(1));
@@ -510,6 +528,16 @@ export function jetonsTest(materiel, manifestes) {
     "t1-default-explicite": { octets: base(1, { certificats: [certs["tsa-critique-faux"]], signataire: certs["tsa-critique-faux"] }), alteration: "certificates = [tsa-critique-faux.pem] : extension subjectKeyIdentifier avec critical codé explicitement à FALSE (valeur DEFAULT encodée, EX-9.21)", cible: "T-1" },
     "t1-cn-utf8-invalide": { octets: base(1, { certificats: [certs["tsa-cn-utf8-invalide"]], signataire: certs["tsa-cn-utf8-invalide"], tsaNom: null }), alteration: "certificates = [tsa-cn-utf8-invalide.pem] (CN en UTF8String d'octets ff fe, UTF-8 invalide), champ tsa absent : certificat illisible (EX-9.4)", cible: "T-1" },
     "periode-1-unite-sans-cn": { octets: base(1, { certificats: [certs["tsa-sans-cn"]], signataire: certs["tsa-sans-cn"], tsaNom: NOM_SANS_CN }), alteration: "certificates = [tsa-sans-cn.pem] (sujet sans commonName), tsa = son sujet : jeton valide, tsu_subject_cn nul, unité nommée par le SHA-256 de son certificat (EX-9.19, EX-9.20)", cible: null },
+    ...(point
+      ? (() => {
+          const k7 = Buffer.from(jetonPoint());
+          k7[k7.length - 1] ^= 0xff;
+          return {
+            "point-periode-1": { octets: jetonPoint(), alteration: null, cible: null, point: true },
+            "k7-point-signature": { octets: k7, alteration: "jeton du point de contrôle dont le dernier octet de la signature est inversé (xor ff) : K-7 par T-6", cible: "T-6", point: true },
+          };
+        })()
+      : {}),
   };
 }
 
@@ -517,7 +545,7 @@ export function jetonsTest(materiel, manifestes) {
  * Cas vérifiés : chaque jeton contre le periodHash du dossier qui l'emploie et
  * le fichier d'ancres indiqué, avec les statuts attendus de T-1 à T-11.
  */
-function casVerifies(jetons, manifestes, ancres) {
+function casVerifies(jetons, manifestes, ancres, point = null) {
   const cas = [];
   const ajouter = (jeton, periode, ancresNom, attendu) => cas.push({ jeton, periode, ancresNom, attendu });
   // Conception : liste des vérifications en échec, et statut du contrôle 4.
@@ -531,9 +559,16 @@ function casVerifies(jetons, manifestes, ancres) {
   ajouter("periode-1", 1, "ancres-deux-autorites", { echecs: [], controle: "reussi", t11: "reussi" });
   ajouter("periode-1-unite-sans-cn", 1, "ancres-test", { echecs: [], controle: "reussi" });
   ajouter("periode-1", 1, null, { echecs: [], controle: "non_execute" });
-  for (const [nomJeton, j] of Object.entries(jetons)) if (j.cible) ajouter(nomJeton, 1, "ancres-test", { echecs: [j.cible], controle: "echoue" });
+  for (const [nomJeton, j] of Object.entries(jetons)) if (j.cible && !j.point) ajouter(nomJeton, 1, "ancres-test", { echecs: [j.cible], controle: "echoue" });
+  // Jeton du point de contrôle (EX-A.13) : vérifié sur checkpoint_hash (K-7, EX-9.22) ; le jeton de la clôture rejoué comme jeton du point échoue par T-2.
+  if (point) {
+    ajouter("point-periode-1", "point", "ancres-test", { echecs: [], controle: "reussi" });
+    ajouter("point-periode-1", "point", null, { echecs: [], controle: "non_execute" });
+    ajouter("k7-point-signature", "point", "ancres-test", { echecs: ["T-6"], controle: "echoue" });
+    ajouter("periode-1", "point", "ancres-test", { echecs: ["T-2"], controle: "echoue" });
+  }
   return cas.map((c) => {
-    const ph = manifestes[c.periode - 1].periodHash;
+    const ph = c.periode === "point" ? point.checkpointHash : manifestes[c.periode - 1].periodHash;
     const r = H.evaluerJeton(jetons[c.jeton].octets, { periodHash: ph, ancres: c.ancresNom ? ancres[c.ancresNom] : null });
     const echecs = r.checks.filter((x) => x.status === "echoue").map((x) => x.id);
     const t11 = r.checks.find((x) => x.id === "T-11");
@@ -549,6 +584,7 @@ function casVerifies(jetons, manifestes, ancres) {
       control_reason: r.reason,
       warnings: r.warnings.map((w) => w.id),
       facts: r.facts,
+      ...(c.periode === "point" ? { checkpoint: { checkpoint_hash: ph, checkpoint_ts: point.checkpoint_ts, check: "K-7" } } : {}),
     };
   });
 }
@@ -571,6 +607,8 @@ const OPENSSL_PRESUME = {
   "t1-default-explicite": { resultat: "Verification: OK (critical FALSE encodé n'est pas refusé ; openssl asn1parse du certificat imprime « BOOLEAN :0 »)", source: "relevé par la confrontation (A.8)" },
   "t1-cn-utf8-invalide": { resultat: "invalid utf8string (le jeton n'est pas lu)", source: "relevé par la confrontation (A.8)" },
   "periode-1-unite-sans-cn": { resultat: "Verification: OK", source: "relevé par la confrontation (A.8)" },
+  "point-periode-1": { resultat: "Verification: OK", source: "EX-A.13 ; relevé par la confrontation (A.8, EX-A.17)" },
+  "k7-point-signature": { resultat: "invalid padding / signature failure", source: "relevé par la confrontation (A.8, EX-A.17)" },
 };
 
 /**
@@ -589,7 +627,7 @@ function eContentBrut(octets) {
  * certificats), crl/, jetons/, attendu.json. Rend { jetons, materiel,
  * fragments, attendu } pour le générateur principal.
  */
-export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-6"), repertoireCT1 } = {}) {
+export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-6"), repertoireCT1, point = null } = {}) {
   const dossier = path.join(racine, "rfc3161");
   const repCles = path.join(dossier, "cles");
   fs.mkdirSync(repCles, { recursive: true });
@@ -609,7 +647,7 @@ export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecte
   for (const [id, der] of Object.entries(materiel.crls)) fs.writeFileSync(path.join(dossier, "crl", `${id}.pem`), H.encoderPEM(der, "X509 CRL"));
 
   const manifestes = manifestesCT1(repertoireCT1);
-  const jetons = jetonsTest(materiel, manifestes);
+  const jetons = jetonsTest(materiel, manifestes, point);
   fs.mkdirSync(path.join(dossier, "jetons"));
   for (const [id, j] of Object.entries(jetons)) fs.writeFileSync(path.join(dossier, "jetons", `${id}.der`), j.octets);
 
@@ -645,6 +683,7 @@ export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecte
           presumed_result: OPENSSL_PRESUME[id]?.resultat ?? null,
           source: OPENSSL_PRESUME[id]?.source ?? "non présumé : relevé par la confrontation (annexe A.8)",
         },
+        ...(j.point ? { checkpoint: { checkpoint_hash: point.checkpointHash, checkpoint_ts: point.checkpoint_ts, note: "jeton d'un point de contrôle du journal (EX-A.13) : period_hash est ici le checkpoint_hash, empreinte attendue par K-7 (EX-9.22)" } } : {}),
       };
     }),
     openssl_ts_verify_other_period: {
@@ -652,7 +691,7 @@ export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecte
       presumed_result: "message imprint mismatch",
       source: "R1 F6.08",
     },
-    cases: casVerifies(jetons, manifestes, ancres),
+    cases: casVerifies(jetons, manifestes, ancres, point),
   };
   fs.writeFileSync(path.join(dossier, "attendu.json"), JSON.stringify(attendu, null, 2) + "\n");
   return { jetons, materiel, fragments, ancres, attendu, manifestes };

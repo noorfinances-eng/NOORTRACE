@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "K-4",
+  "controles_en_echec": [
+    "K-4"
+  ],
+  "description": "Le point joint (2026-11-05T09:31:48.000Z, tree_size 6, last_seq 6, chaîné au point de 09:31:00.000Z) ne couvre pas la feuille 6 de l'événement prouvé (seq 7, 09:31:48.006Z) : preuve de cohérence correcte de six feuilles vers neuf (K-5), last_hash vérifié sur le voisin précédent (K-6), mais leaf_index n'est pas strictement inférieur à tree_size et ts est postérieur à checkpoint_ts."
+}

@@ -44,7 +44,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -63,7 +63,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 ; openssl 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T11:00:05Z ; openssl 2026-11-05T11:00:05Z : concorde
-  serialNumber : vecteur 0x02 ; openssl 0x02 : concorde
+  serialNumber : vecteur 0x2 ; openssl 0x2 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -82,7 +82,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 ; openssl 0x5852e3c7f403875b9b634f5e5d7074ea197fc34ecf80e092b9686d8c2dc80594 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T12:00:05Z ; openssl 2026-11-05T12:00:05Z : concorde
-  serialNumber : vecteur 0x03 ; openssl 0x03 : concorde
+  serialNumber : vecteur 0x3 ; openssl 0x3 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -101,7 +101,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -120,7 +120,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:06Z ; openssl 2026-11-05T10:00:06Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -139,7 +139,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -158,7 +158,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -177,7 +177,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -196,7 +196,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -215,7 +215,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -234,7 +234,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -253,7 +253,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -273,7 +273,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -292,7 +292,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   empreinte (messageImprint) : vecteur 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; openssl 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 : concorde
   algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
   genTime : vecteur 2026-11-05T10:00:05Z ; openssl 2026-11-05T10:00:05Z : concorde
-  serialNumber : vecteur 0x01 ; openssl 0x01 : concorde
+  serialNumber : vecteur 0x1 ; openssl 0x1 : concorde
   version de TSTInfo : vecteur 1 ; openssl 1 : concorde
   politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
   précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
@@ -305,6 +305,44 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   openssl ts -verify -digest <period_hash> -in jetons/periode-1-unite-sans-cn.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: OK
   résultat présumé par attendu.json (« Verification: OK ») : vecteur Verification: OK ; openssl Verification: OK : concorde
   openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : CMS Verification successful
+-- jetons/point-periode-1.der (cible : aucune ; altération : aucune)
+  SHA-256 du fichier : vecteur 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf ; openssl 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4 ; openssl 0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T09:32:02Z ; openssl 2026-11-05T09:32:02Z : concorde
+  serialNumber : vecteur 0x3e9 ; openssl 0x3e9 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/point-de-controle/periode-1 ») (jeton d'un point, EX-A.13) : vecteur 0x88583d981d5f51df ; openssl 0x88583d981d5f51df : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/point-periode-1.der -token_in -CAfile cles/ac-test.pem -attime 1793871122 : Verification: OK
+  résultat présumé par attendu.json (« Verification: OK ») : vecteur Verification: OK ; openssl Verification: OK : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793871122 -purpose timestampsign : CMS Verification successful
+-- jetons/k7-point-signature.der (cible : T-6 ; altération : jeton du point de contrôle dont le dernier octet de la signature est inversé (xor ff) : K-7 par T-6)
+  SHA-256 du fichier : vecteur 0x8bb6b5ede744f6ef4162523c5f6e1436f237205b70a74baa31d496bfe279e428 ; openssl 0x8bb6b5ede744f6ef4162523c5f6e1436f237205b70a74baa31d496bfe279e428 : concorde
+  openssl ts -reply -token_in -text : code 0
+  empreinte (messageImprint) : vecteur 0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4 ; openssl 0x93acd0fc36f93d7a267367e22367154e875d38c6368c527649d298619c90a4f4 : concorde
+  algorithme de l'empreinte : vecteur sha256 ; openssl sha256 : concorde
+  genTime : vecteur 2026-11-05T09:32:02Z ; openssl 2026-11-05T09:32:02Z : concorde
+  serialNumber : vecteur 0x3e9 ; openssl 0x3e9 : concorde
+  version de TSTInfo : vecteur 1 ; openssl 1 : concorde
+  politique (EX-A.5) : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  précision (EX-A.5 : 1 s) : vecteur 0x01 seconds, unspecified millis, unspecified micros ; openssl 0x01 seconds, unspecified millis, unspecified micros : concorde
+  nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/point-de-controle/periode-1 ») (jeton d'un point, EX-A.13) : vecteur 0x88583d981d5f51df ; openssl 0x88583d981d5f51df : concorde
+  tsa (directoryName) = sujet du certificat du jeton : vecteur DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 ; openssl DirName:/C=CH/O=NOORTRACE vecteurs/CN=TSA de test CT-6 : concorde
+  extensions de TSTInfo lues par openssl : aucune
+  openssl cms -cmsout -print : SignedData v3, 1 SignerInfo v1 (issuerAndSerialNumber), eContentType id-smime-ct-TSTInfo, digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption
+  openssl asn1parse (tout le fichier) : code 0
+  certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9
+  openssl ts -verify -digest <period_hash> -in jetons/k7-point-signature.der -token_in -CAfile cles/ac-test.pem -attime 1793871122 : Verification: FAILED : invalid padding; padding check failed; RSA lib; signature failure
+  résultat présumé par attendu.json (« invalid padding / signature failure ») : vecteur True ; openssl True : concorde
+  openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793871122 -purpose timestampsign : code 4 : invalid padding; padding check failed; RSA lib; verification failure
 -- jeton de la période 2 contre periodHash de la période 1 : message imprint mismatch
   résultat présumé par attendu.json (« message imprint mismatch ») : vecteur True ; openssl True : concorde
 
@@ -549,6 +587,54 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   T-9   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
   T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — jeton illisible par openssl
   T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/point-periode-1.der, ancres ancres/ancres-test.json, periodHash du dossier 0x93acd0fc36f93d7a…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0x93acd0fc36f93d7a…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x18faa7cfc302b848… ; sha256 de eContent (asn1parse -strparse, dgst) 0x18faa7cfc302b848… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/point-periode-1.der, ancres absentes, periodHash du dossier 0x93acd0fc36f93d7a…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0x93acd0fc36f93d7a…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x18faa7cfc302b848… ; sha256 de eContent (asn1parse -strparse, dgst) 0x18faa7cfc302b848… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu non_execute/ancre_absente    sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — sans fichier d'ancres, aucun -CAfile : openssl ne peut établir aucun chemin
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu non_execute/ancre_absente    sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : rien — sans fichier d'ancres, aucune CRL
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/k7-point-signature.der, ancres ancres/ancres-test.json, periodHash du dossier 0x93acd0fc36f93d7a…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu reussi                       concorde — messageImprint lu par ts -text (sha256, 0x93acd0fc36f93d7a…) ; ts -verify -digest <periodHash du dossier> : pas de message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x18faa7cfc302b848… ; sha256 de eContent (asn1parse -strparse, dgst) 0x18faa7cfc302b848… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify ne se prononce pas sur ces algorithmes
+  T-6   attendu echoue                       concorde — cms -verify -noverify -no_content_verify : invalid padding; padding check failed; RSA lib; verification failure
+  T-7   attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : échec
+  T-10  attendu non_execute/prerequis_en_echec sans objet (non exécutée par le vecteur ou sans ancre) ; openssl : reussi — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/prerequis_en_echec hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
+-- jetons/periode-1.der, ancres ancres/ancres-test.json, periodHash du dossier 0x93acd0fc36f93d7a…
+  T-1   attendu reussi                       concorde — asn1parse du fichier entier (code 0) ; SignedData v3, 1 SignerInfo, TSTInfo v1 ; valeur DEFAULT encodée : aucune
+  T-2   attendu echoue                       concorde — messageImprint lu par ts -text (sha256, 0xae22426f25529379…) ; ts -verify -digest <periodHash du dossier> : message imprint mismatch
+  T-3   attendu reussi                       concorde — message-digest 0x70179c46b9b139a4… ; sha256 de eContent (asn1parse -strparse, dgst) 0x70179c46b9b139a4… ; cms -verify : pas d'erreur de contenu
+  T-4   attendu reussi                       concorde — certHash ESSCertIDv2 0x0059fa87b4b02432… ; SHA-256 du certificat du jeton 0x0059fa87b4b02432… ; ts -verify : ESS accepté
+  T-5   attendu reussi                       hors outil — valeurs lues par openssl : digestAlgorithm sha256, signatureAlgorithm sha256WithRSAEncryption, clé RSA 3072 bits ; openssl ts -verify accepte ces algorithmes
+  T-6   attendu reussi                       concorde — cms -verify -noverify -no_content_verify : CMS Verification successful (signature valide)
+  T-7   attendu reussi                       concorde — openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : OK ; ts -verify -queryfile (politique 1.3.6.1.4.1.99999.1.1) : politique acceptée
+  T-8   attendu reussi                       concorde — openssl verify -purpose timestampsign : accepté
+  T-9   attendu reussi                       concorde — extensions critiques lues par ts -text : aucune ; tsa absent ou égal au sujet du signataire : True ; ts -verify : Verification: OK
+  T-10  attendu reussi                       concorde — openssl verify -crl_check du signataire à genTime : CRL is not yet valid ; à thisUpdate des CRL (2026-11-06T00:00:00Z) : OK
+  T-11  attendu non_execute/ancre_absente    hors outil — statut qualifié déclaré par le réviseur : openssl ne le connaît pas
 
 == 4. Faits rapportés (EX-9.19), recalculés par openssl
 -- jetons/periode-1.der, ancres ancres/ancres-test.json
@@ -641,6 +727,21 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur AC de test CT-6 ; openssl AC de test CT-6 : concorde
   qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur None ; openssl None : concorde
   revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 1) : vecteur [{'certificate_sha256': '0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] ; openssl [{'certificate_sha256': '0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] : concorde
+-- jetons/point-periode-1.der, ancres ancres/ancres-test.json
+  tsu_certificate_sha256 : vecteur 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ; openssl 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 : concorde
+  tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN) : vecteur TSA de test CT-6 ; openssl TSA de test CT-6 : concorde
+  gen_time : vecteur 2026-11-05T09:32:02Z ; openssl 2026-11-05T09:32:02Z : concorde
+  accuracy : vecteur {'seconds': 1, 'millis': None, 'micros': None} ; openssl {'seconds': 1, 'millis': None, 'micros': None} : concorde
+  upper_bound (genTime + accuracy) : vecteur 2026-11-05T09:32:03Z ; openssl 2026-11-05T09:32:03Z : concorde
+  policy : vecteur 1.3.6.1.4.1.99999.1.1 ; openssl 1.3.6.1.4.1.99999.1.1 : concorde
+  serial_number : vecteur 0x03e9 ; openssl 0x03e9 : concorde
+  digest_algorithm : vecteur sha256 ; openssl sha256 : concorde
+  signature_algorithm : vecteur sha256WithRSAEncryption ; openssl sha256WithRSAEncryption : concorde
+  key_bits : vecteur 3072 ; openssl 3072 : concorde
+  qualified_claim (qcStatements absent des extensions de TSTInfo) : vecteur False ; openssl False : concorde
+  authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres) : vecteur AC de test CT-6 ; openssl AC de test CT-6 : concorde
+  qualified (déclaration de l'autorité retenue, lue dans le fichier d'ancres) : vecteur None ; openssl None : concorde
+  revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : 1) : vecteur [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] ; openssl [{'certificate_sha256': '0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9', 'evidence': 'crl', 'issued_at': '2026-11-06T00:00:00Z'}] : concorde
 
 == 5. Verdict d'openssl ts -verify par jeton, avec ancres-test.json, contre les vérifications en échec de attendu.json
   jetons/periode-1.der               periodHash du dossier 0xae22426f… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
@@ -658,8 +759,11 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   jetons/t9-extension-critique.der   periodHash du dossier 0xae22426f… ; attendu : T-9          openssl ts -verify : Verification: OK                                             limite de l'outil : openssl ts -verify ne fait pas T-9
   jetons/t1-default-explicite.der    periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : Verification: OK                                             limite de l'outil : openssl ts -verify ne fait pas T-1
   jetons/t1-cn-utf8-invalide.der     periodHash du dossier 0xae22426f… ; attendu : T-1          openssl ts -verify : FAILED (invalid utf8string; nested asn1 error)               concorde
+  jetons/point-periode-1.der         periodHash du dossier 0x93acd0fc… ; attendu : aucun échec  openssl ts -verify : Verification: OK                                             concorde
+  jetons/k7-point-signature.der      periodHash du dossier 0x93acd0fc… ; attendu : T-6          openssl ts -verify : FAILED (invalid padding; padding check failed; RSA lib; signature failure) concorde
+  jetons/periode-1.der               periodHash du dossier 0x93acd0fc… ; attendu : T-2          openssl ts -verify : FAILED (message imprint mismatch)                            concorde
 
-Bilan des cas : 141 concordances, 0 discordances, 39 hors outil, 40 sans objet
+Bilan des cas : 173 concordances, 0 discordances, 47 hors outil, 44 sans objet
 Discordances au total (sections 1 à 4) : 0
 Verdicts d'openssl ts -verify qui ne disent pas « échec » là où attendu.json en relève un (limites de l'outil, section 5) : 4
   - jetons/t1-octet-en-trop.der : attendu.json T-1 en échec ; openssl ts -verify : Verification: OK

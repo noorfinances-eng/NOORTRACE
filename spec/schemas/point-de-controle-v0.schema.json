@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/point-de-controle.schema.json",
+  "title": "Point de contrôle NOORTRACE, version 0 (CT-1 révision 0.3, §10.5)",
+  "description": "Tête signée de l'arbre de Merkle de la période en cours, produite par l'enregistreur à cadence courte (défaut : au plus 60 s entre deux points, et un point à la clôture). root est la racine RFC 6962 des tree_size premières feuilles de la période (règle de hachage de CT-1 §9.1 ; 32 octets nuls si tree_size = 0), last_seq le seq du dernier événement couvert (first_seq - 1 si tree_size = 0), last_hash son hash recalculé (32 octets nuls si le journal est vide). checkpointHash = SHA-256(\"noortrace/point-de-controle/v0\\n\" || JCS(point sans sig)) ; sig = Ed25519(clé key_id, \"noortrace/signature-point-de-controle/v0\\n\" || JCS(point sans sig)). Contrairement au manifeste, la signature est portée dans l'objet, et le hachage ne la couvre pas. prev_checkpoint_hash est le checkpointHash du point précédent de la même période, 32 octets nuls pour le premier point de la période. Le dernier point d'une période a tree_size = count et root = root du manifeste. Les relations arithmétiques (last_seq = first_seq + tree_size - 1, racine nulle si et seulement si tree_size = 0, tree_size non décroissant le long de la chaîne) sont vérifiées par le vérificateur (CT-1 §11.4, K-1 à K-6).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version", "org_id", "journal_id", "period_start", "tree_size", "root", "last_seq",
+    "last_hash", "checkpoint_ts", "prev_checkpoint_hash", "key_id", "sig"
+  ],
+  "properties": {
+    "version": { "const": 0 },
+    "org_id": { "$ref": "#/$defs/hex32" },
+    "journal_id": { "$ref": "#/$defs/hex32" },
+    "period_start": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "multipleOf": 3600,
+      "description": "Début de la période couverte, secondes UNIX, heure UTC pleine : le period_start du manifeste de la même période."
+    },
+    "tree_size": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Nombre n de feuilles engagées : les n premiers événements de la période, dans l'ordre des seq. 0 pour un point de preuve de vie avant le premier événement de la période."
+    },
+    "root": {
+      "$ref": "#/$defs/hex32",
+      "description": "Racine RFC 6962 des n premières feuilles (CT-1 §9.1) ; 32 octets nuls si et seulement si tree_size = 0 (convention de la période vide, CT-1 §9.2)."
+    },
+    "last_seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "seq du dernier événement couvert : first_seq + tree_size - 1 ; first_seq - 1 si tree_size = 0."
+    },
+    "last_hash": {
+      "$ref": "#/$defs/hex32",
+      "description": "hash de l'événement last_seq (tête de chaîne) ; 32 octets nuls si last_seq = 0 (journal vide)."
+    },
+    "checkpoint_ts": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$",
+      "description": "Instant de production du point, horloge de l'enregistreur, RFC 3339 UTC à trois décimales (déclaratif : seule une contresignature extérieure date le point) ; la date doit exister dans le calendrier grégorien proleptique (CT-1 §3) ; supérieur ou égal à period_start et non décroissant le long de la chaîne des points."
+    },
+    "prev_checkpoint_hash": {
+      "$ref": "#/$defs/hex32",
+      "description": "checkpointHash du point précédent de la même période ; 32 octets nuls pour le premier point de la période."
+    },
+    "key_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+      "description": "Identifiant de la clé Ed25519 de l'enregistreur qui signe le point : la clé en vigueur à checkpoint_ts (même règle que recorder_key_id du manifeste, CT-1 §10.1) ; même espace de noms que recorder_key_id."
+    },
+    "sig": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{128}$",
+      "description": "Signature Ed25519 de \"noortrace/signature-point-de-controle/v0\\n\" || JCS(point sans sig) par la clé key_id."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "tree_size": { "const": 0 } } },
+      "then": { "properties": { "root": { "const": "0x0000000000000000000000000000000000000000000000000000000000000000" } } },
+      "else": { "properties": { "root": { "not": { "const": "0x0000000000000000000000000000000000000000000000000000000000000000" } } } }
+    }
+  ],
+  "$defs": {
+    "hex32": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" }
+  }
+}

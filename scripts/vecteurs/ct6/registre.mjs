@@ -14,6 +14,10 @@
 //                valide-seq-7-complet ;
 //   periode-2/   idem pour la période 2 (inscription de rec-test-02, ancre et
 //                clôture de la période 2), qui sert à R-9 ;
+//   periode-1-point/  periode-1/ plus l'entrée ancre_point_de_controle (ancre du
+//                point de contrôle couvrant seq 7) et son certificat (révision
+//                0.2, EX-A.15), parties des dossiers qui portent la partie
+//                points-de-controle.json avec une référence au registre ;
 //   variantes/   les parties altérées des dossiers invalides de A.7, une
 //                variante par vérification R- (et N-4), plus deux variantes
 //                valides qui portent un avertissement (AV-R-1, AV-R-2) ;
@@ -40,7 +44,7 @@ const RACINE = fileURLToPath(new URL("../../../", import.meta.url));
 export const REPERTOIRE_REGISTRE = path.join(RACINE, "spec", "vecteurs", "ct-6", "registre");
 
 /** Entrées que le générateur efface et réécrit sous registre/ ; capture/ n'en fait jamais partie. */
-export const ENTREES_GENEREES = ["periode-1", "periode-2", "variantes", "trie.json", "attendu.json"];
+export const ENTREES_GENEREES = ["periode-1", "periode-2", "periode-1-point", "variantes", "trie.json", "attendu.json"];
 
 const SOURCE_JEU = "validators.json du réseau de développement, clés publiques seulement";
 const SOURCE_REGISTRE_ANCRE = "réseau de développement noortrace-2124-dev de chain/README.md ; adresses de deployments/noorcore.json reprises dans capture.json";
@@ -76,12 +80,17 @@ function copie(valeur) {
  * certificats, validators.json. Rend {description, blocs (Map h -> result),
  * recus (Map hash -> result), certificats (Map h -> result), validators}.
  */
+/** Transactions de la capture : `transactions` (capture initiale) puis `points_de_controle` (complément EX-A.15, clé séparée pour ne pas changer la lecture de CT-4). */
+export function transactionsCapturees(description) {
+  return [...description.transactions, ...(description.points_de_controle ?? [])];
+}
+
 export function lireCapture(repertoire = path.join(REPERTOIRE_REGISTRE, "capture")) {
   const description = lireJSON(path.join(repertoire, "capture.json"));
   const blocs = new Map();
   const recus = new Map();
   const certificats = new Map();
-  for (const t of description.transactions) {
+  for (const t of transactionsCapturees(description)) {
     const h = t.bloc;
     const bloc = lireJSON(path.join(repertoire, t.fichiers.bloc));
     exiger(bloc.result && Number(BigInt(bloc.result.number)) === h, `bloc ${h} de la capture`);
@@ -132,13 +141,63 @@ function parties(capture, transactions) {
   };
 }
 
-/** Parties de la période 1 (dossier valide-seq-7-complet) ou de la période 2. */
+/** Transactions de la période 1 (dossier valide-seq-7-complet) : inscriptions de rec-test-01 et rec-test-02, ancre et clôture. */
+const transactionsPeriode1 = (capture) => [transaction(capture, "inscription", { key_id: "rec-test-01" }), transaction(capture, "inscription", { key_id: "rec-test-02" }), transaction(capture, "ancre", { periode: 1 }), transaction(capture, "cloture", { periode: 1 })];
+
+/**
+ * Parties de la période 1 (dossier valide-seq-7-complet), de la période 2, ou
+ * (n = "1-point", révision 0.2) de la période 1 complétée de l'entrée
+ * ancre_point_de_controle de la capture et de son certificat (EX-A.15).
+ */
 export function partiesPeriode(capture, n) {
   const transactions =
-    n === 1
-      ? [transaction(capture, "inscription", { key_id: "rec-test-01" }), transaction(capture, "inscription", { key_id: "rec-test-02" }), transaction(capture, "ancre", { periode: 1 }), transaction(capture, "cloture", { periode: 1 })]
-      : [transaction(capture, "inscription", { key_id: "rec-test-02" }), transaction(capture, "ancre", { periode: 2 }), transaction(capture, "cloture", { periode: 2 })];
+    n === 1 ? transactionsPeriode1(capture)
+    : n === "1-point" ? [...transactionsPeriode1(capture), transactionPoint(capture)]
+    : [transaction(capture, "inscription", { key_id: "rec-test-02" }), transaction(capture, "ancre", { periode: 2 }), transaction(capture, "cloture", { periode: 2 })];
   return parties(capture, transactions);
+}
+
+/** La transaction d'ancre du point de contrôle couvrant seq 7 (complément de capture EX-A.15) ; absente : génération interrompue, jamais fabriquée. */
+export function transactionPoint(capture) {
+  const t = (capture.description.points_de_controle ?? []).find((x) => x.role === R.ROLE_ANCRE_POINT);
+  exiger(t, "capture sans transaction ancre_point_de_controle : exécuter node scripts/vecteurs/capturer-ct6.mjs --ancre-point spec/vecteurs/ct-1/points-de-controle/periode-1.json (CT-6 EX-A.15) avant de générer");
+  return t;
+}
+
+/**
+ * Référence au registre de l'ancre du point (anchors.registry de la partie
+ * points-de-controle.json, CT-1 §11.2), construite depuis la capture : entiers
+ * et hexadécimal minuscule, chain_id EVM.
+ */
+export function referencePoint(capture, t = transactionPoint(capture)) {
+  const e = entree(capture, t);
+  return {
+    chain_id: capture.description.evm_chain_id,
+    contract: capture.description.contrats.attestation_registry,
+    fingerprint: t.fingerprint,
+    doc_type: t.doc_type,
+    block_number: t.bloc,
+    block_hash: e.block.hash,
+    transaction_hash: t.hash,
+    log_index: e.log_index,
+  };
+}
+
+/**
+ * Référence au registre qui désigne l'ancre de la période 1 (bloc, transaction,
+ * log_index) avec l'empreinte et le docType du point : la référence de la partie
+ * du dossier invalide-r11-ancre-de-periode (EX-A.16).
+ */
+export function referenceAncreDePeriodeCommePoint(capture) {
+  const t = transaction(capture, "ancre", { periode: 1 });
+  const e = entree(capture, t);
+  return { ...referencePoint(capture), block_number: t.bloc, block_hash: e.block.hash, transaction_hash: t.hash, log_index: e.log_index };
+}
+
+/** Paramètre pointDeControle de verifierControle8 pour le point de la capture (R-11, EX-11.24). */
+export function pointDeControleCapture(capture, { reference = referencePoint(capture) } = {}) {
+  const t = transactionPoint(capture);
+  return { orgId: capture.description.organisation.org_id, journalId: capture.description.journal.journal_id, keyId: t.key_id, checkpointHash: t.checkpoint_hash, reference };
 }
 
 // ---------------------------------------------------------------------------
@@ -421,6 +480,23 @@ export function variantes(capture) {
     modifications_ancres: mods["ancres-cle-chaine-autre.json"],
     attendu: { failed_checks: ["N-4"], not_executed: [], warnings: [] },
   });
+  // R-11 (révision 0.2) : l'entrée ancre de la période 1 dupliquée sous le rôle du point ;
+  // la référence de la partie désigne ce bloc et cette transaction avec l'empreinte et
+  // le docType du point : règle 1 (docType de période) en échec.
+  {
+    const p = copie(p1);
+    const dupliquee = { ...copie(p.registre.entries[indice(p, "ancre")]), role: R.ROLE_ANCRE_POINT };
+    p.registre.entries.push(dupliquee);
+    const ref = referenceAncreDePeriodeCommePoint(capture);
+    ajouter({
+      nom: "invalide-r11-ancre-de-periode",
+      cible: "R-11",
+      description: "entrée ancre de la période 1 dupliquée sous le rôle ancre_point_de_controle (même bloc, même certificat) ; la référence de la partie porte l'empreinte et le docType du point mais désigne ce bloc et cette transaction : règle 1 de R-11 en échec (docType de période), l'entrée étant authentique (R-6, R-7)",
+      parties: p,
+      pointDeControle: pointDeControleCapture(capture, { reference: ref }),
+      attendu: { failed_checks: ["R-11"], not_executed: [], warnings: [] },
+    });
+  }
   // Valide, sans inscription : R-10 non exécutée, AV-R-1.
   {
     const p = copie(p1);
@@ -549,11 +625,11 @@ export function octetsParties(p) {
 }
 
 /** Exécute le contrôle 8 de référence sur un jeu de parties. */
-export function executer(capture, p, { periode = 1, ancres = "test", modifications = null, schemas = schemasRegistre(), langue = "fr" } = {}) {
+export function executer(capture, p, { periode = 1, ancres = "test", modifications = null, schemas = schemasRegistre(), langue = "fr", pointDeControle = null } = {}) {
   const m = manifeste(periode);
   let fichierAncres = null;
   if (ancres === "test") fichierAncres = appliquerModifications({ registry: ancreRegistre(capture), recorders: ancresEnregistreurs(capture) }, modifications ?? []);
-  return R.verifierControle8({ parties: octetsParties(p), manifeste: m, periodHash: hachageManifeste(m), cles: clesDossier(), ancres: fichierAncres, schemas, langue });
+  return R.verifierControle8({ parties: octetsParties(p), manifeste: m, periodHash: hachageManifeste(m), cles: clesDossier(), ancres: fichierAncres, schemas, langue, pointDeControle });
 }
 
 /** Résumé d'un résultat du contrôle 8 dans la forme des attendus. */
@@ -627,7 +703,8 @@ export function construireRegistre(capture = lireCapture()) {
   const fichiers = new Map();
   const p1 = partiesPeriode(capture, 1);
   const p2 = partiesPeriode(capture, 2);
-  for (const [nom, p] of [["periode-1", p1], ["periode-2", p2]]) {
+  const p1p = partiesPeriode(capture, "1-point");
+  for (const [nom, p] of [["periode-1", p1], ["periode-2", p2], ["periode-1-point", p1p]]) {
     fichiers.set(`${nom}/registre.json`, texteJSON(p.registre));
     fichiers.set(`${nom}/certificat-commit.json`, texteJSON(p.certificat_commit));
     fichiers.set(`${nom}/validateurs.json`, texteJSON(p.validateurs));
@@ -664,10 +741,29 @@ export function construireRegistre(capture = lireCapture()) {
       ancres: "test",
       attendu: { control_status: "reussi", control_reason: null, failed_checks: [], not_executed: [{ id: "R-3", reason: "partie_absente" }], warnings: [], n4_present: true },
     },
+    // Révision 0.2 (EX-A.15, EX-11.24) : l'entrée du point avec la partie qui la rattache (R-11 réussie),
+    // puis sans partie points-de-controle.json (R-11 non exécutée, sans effet).
+    {
+      nom: "periode-1-point, ancres-test.json, partie points-de-controle.json rattachée",
+      repertoire: "periode-1-point",
+      parties: p1p,
+      periode: 1,
+      ancres: "test",
+      pointDeControle: pointDeControleCapture(capture),
+      attendu: { control_status: "reussi", control_reason: null, failed_checks: [], not_executed: [], warnings: [], n4_present: true },
+    },
+    {
+      nom: "periode-1-point, ancres-test.json, sans partie points-de-controle.json",
+      repertoire: "periode-1-point",
+      parties: p1p,
+      periode: 1,
+      ancres: "test",
+      attendu: { control_status: "reussi", control_reason: null, failed_checks: [], not_executed: [{ id: "R-11", reason: "partie_absente" }], warnings: [], n4_present: true },
+    },
   ];
   const jeuxAttendus = [];
   for (const cfg of configurations) {
-    const r = executer(capture, cfg.parties, { periode: cfg.periode, ancres: cfg.ancres, modifications: cfg.modifications ?? null, schemas });
+    const r = executer(capture, cfg.parties, { periode: cfg.periode, ancres: cfg.ancres, modifications: cfg.modifications ?? null, schemas, pointDeControle: cfg.pointDeControle ?? null });
     confronter(cfg.nom, cfg.attendu, resumer(r));
     jeuxAttendus.push({
       nom: cfg.nom,
@@ -676,6 +772,7 @@ export function construireRegistre(capture = lireCapture()) {
       manifeste: `spec/vecteurs/ct-1/manifestes/periode-${cfg.periode}.json`,
       ancres: cfg.ancres === "test" ? cfg.fichierAncres ?? "ancres-test.json" : null,
       modifications_ancres: cfg.modifications ?? [],
+      ...(cfg.pointDeControle ? { checkpoint: { checkpoint_hash: cfg.pointDeControle.checkpointHash, key_id: cfg.pointDeControle.keyId, reference: cfg.pointDeControle.reference } } : {}),
       ...cfg.attendu,
       statuses: statutsDe(r),
       statement: r.enonce,
@@ -688,7 +785,7 @@ export function construireRegistre(capture = lireCapture()) {
   const listeVariantes = [];
   for (const v of variantes(capture)) {
     const p = v.parties ?? p1;
-    const r = executer(capture, p, { periode: 1, ancres: "test", modifications: v.modifications_ancres, schemas });
+    const r = executer(capture, p, { periode: 1, ancres: "test", modifications: v.modifications_ancres, schemas, pointDeControle: v.pointDeControle ?? null });
     const attendu = { control_status: v.attendu.failed_checks.length ? "echoue" : "reussi", control_reason: null, n4_present: true, ...v.attendu };
     const ordre = { control_status: attendu.control_status, control_reason: null, failed_checks: attendu.failed_checks, not_executed: attendu.not_executed, warnings: attendu.warnings, n4_present: attendu.n4_present };
     confronter(v.nom, ordre, resumer(r));
@@ -706,6 +803,7 @@ export function construireRegistre(capture = lireCapture()) {
       manifeste: "spec/vecteurs/ct-1/manifestes/periode-1.json",
       ancres: v.ancres,
       modifications_ancres: v.modifications_ancres ?? [],
+      ...(v.pointDeControle ? { checkpoint: { checkpoint_hash: v.pointDeControle.checkpointHash, key_id: v.pointDeControle.keyId, reference: v.pointDeControle.reference } } : {}),
       ...ordre,
       statuses: statutsDe(r),
     });
@@ -716,7 +814,7 @@ export function construireRegistre(capture = lireCapture()) {
   const attendu = {
     version: 0,
     description:
-      "Vecteurs CT-6 de la famille registre (spec/CT-6-verificateur.md, section 11 et annexe A) : recalculs sur la capture unique du réseau de développement, vecteurs de trie synthétiques, ancres de test du contrôle 8 et statuts attendus de R-1 à R-10 et N-4. Les heures des blocs sont celles de la capture (octobre 2026), antérieures aux dates fictives des manifestes (novembre 2026) : sans effet, aucune vérification ne les compare (EX-A.9).",
+      "Vecteurs CT-6 de la famille registre (spec/CT-6-verificateur.md, section 11 et annexe A) : recalculs sur la capture unique du réseau de développement (sept blocs du 2026-10-22 et, révision 0.2, le bloc de l'ancre du point de contrôle couvrant seq 7, EX-A.15), vecteurs de trie synthétiques, ancres de test du contrôle 8 et statuts attendus de R-1 à R-11 et N-4. Les heures des blocs sont celles de la capture (octobre 2026), antérieures aux dates fictives des manifestes (novembre 2026) : sans effet, aucune vérification ne les compare (EX-A.9).",
     capture: {
       date: d.date,
       chain_id: d.chain_id,
@@ -730,8 +828,9 @@ export function construireRegistre(capture = lireCapture()) {
       "periode-1": { fichier: "spec/vecteurs/ct-1/manifestes/periode-1.json", period_hash: hachageManifeste(m1), anchor_fingerprint: R.empreinteAncre(m1.org_id, m1.journal_id, hachageManifeste(m1)) },
       "periode-2": { fichier: "spec/vecteurs/ct-1/manifestes/periode-2.json", period_hash: hachageManifeste(m2), anchor_fingerprint: R.empreinteAncre(m2.org_id, m2.journal_id, hachageManifeste(m2)) },
     },
-    constantes: { domaine_bloc_bft: R.DOMAINE_BLOC_BFT, sujets: R.SUJETS_EVENEMENTS, signatures: R.SIGNATURES_EVENEMENTS, doc_type_periode: R.DOC_TYPE_PERIODE },
-    blocs: d.transactions.map((t) => descriptionBloc(capture, t)),
+    constantes: { domaine_bloc_bft: R.DOMAINE_BLOC_BFT, sujets: R.SUJETS_EVENEMENTS, signatures: R.SIGNATURES_EVENEMENTS, doc_type_periode: R.DOC_TYPE_PERIODE, doc_type_point_de_controle: R.DOC_TYPE_POINT_DE_CONTROLE },
+    checkpoint_anchor: { transaction: transactionPoint(capture), reference: referencePoint(capture) },
+    blocs: transactionsCapturees(d).map((t) => descriptionBloc(capture, t)),
     trie: "trie.json",
     ancres: { registry: ancreRegistre(capture), recorders: ancresEnregistreurs(capture), modifications: modificationsAncres(capture) },
     jeu_substitue: { validators: jeuSubstitue(), valset_hash: hachageJeuValidateurs(jeuSubstitue()) },
@@ -766,7 +865,7 @@ export function sectionIndex(attendu) {
   const lignes = [
     "## registre/ (contrôle 8)",
     "",
-    `Capture unique du ${c.date} sur le réseau de développement \`${c.chain_id}\` (noorcore \`${c.noorcore.commit.slice(0, 7)}\` et correctif \`${c.noorcore.correctif}\`), procédure dans \`registre/capture/CAPTURE.md\`. Jeu de validateurs de hachage \`${c.valset_hash}\`.`,
+    `Capture unique du ${c.date} sur le réseau de développement \`${c.chain_id}\` (noorcore \`${c.noorcore.commit.slice(0, 7)}\` et correctif \`${c.noorcore.correctif}\`), complétée de l'ancre du point de contrôle couvrant seq 7 (bloc ${attendu.checkpoint_anchor.transaction.bloc}, rôle \`ancre_point_de_controle\`, EX-A.15), procédure dans \`registre/capture/CAPTURE.md\`. Jeu de validateurs de hachage \`${c.valset_hash}\`. \`periode-1-point/\` est \`periode-1/\` plus cette entrée et son certificat.`,
     "",
     "| Bloc | Rôle | Hachage BFT | Racine des reçus |",
     "|---|---|---|---|",
@@ -775,6 +874,8 @@ export function sectionIndex(attendu) {
     "| Jeu de parties | Ancres | Contrôle 8 | Non exécutées |",
     "|---|---|---|---|",
     ...attendu.jeux_de_parties.map((j) => `| ${j.nom} | ${j.ancres ?? "aucune"} | ${j.control_status}${j.control_reason ? ` (${j.control_reason})` : ""} | ${j.not_executed.map((n) => `${n.id} (${n.reason})`).join(", ") || "—"} |`),
+    "",
+    "R-11 (ancre d'un point de contrôle du journal, révision 0.2) ne figure au rapport qu'avec la partie `points-de-controle.json` déclarée présente ou une entrée `ancre_point_de_controle` ; les jeux sans l'un ni l'autre gardent les vérifications de la version 0.1.",
     "",
     "| Variante | Vérification visée | Ancres | En échec | Non exécutées | Avertissements |",
     "|---|---|---|---|---|---|",

@@ -1,0 +1,103 @@
+{
+  "version": 0,
+  "event": {
+    "seq": 7,
+    "hash": "0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14"
+  },
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "generated_at": "2026-11-06T08:30:00.000Z",
+  "parts": [
+    {
+      "name": "evenement",
+      "file": "evenement.json",
+      "sha256": "0x7849b34a2e1655c1522286af6b36fe1e402426ec6ad72b271c94119d88c91675",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "voisins",
+      "file": "voisins.json",
+      "sha256": "0x1063e5ab45274be78b61c659ab092c11e51c6a78b10a5e773cd0a3965bb6259d",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "chemin",
+      "file": "chemin.json",
+      "sha256": "0x7430538558f0313a6969788883228d207fe483ae39777d0f482dd8b3cc529d70",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "manifeste",
+      "file": "manifeste.json",
+      "sha256": "0xae8bd542d4631dcd6d6ee5ec3a270e0fda5a277041b2223881e37be15ca7f621",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "manifeste_sig",
+      "file": "manifeste.sig",
+      "sha256": "0x0cc7de26c51a06dd5393363c2f02a30c06b6ffa6c366cc27d586c2ab5ffebc90",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "cles",
+      "file": "cles.json",
+      "sha256": "0xbea7e6ca61f66d94eef9a8121d90ff635333770b7f74e608a78e2e28fc0976cc",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "approbations",
+      "file": "approbations.json",
+      "sha256": "0xbc5bed6d2eb45e074a6b22c3f4b06a779d0cfd65d3c090a470d421fa0e434dd4",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "jeton_rfc3161",
+      "file": "jeton-rfc3161.der",
+      "sha256": "0xdbfb99a9cd7a6b022614b62957cd4f9e17a168a43efa7dee729503937af58d13",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "preuve_ots",
+      "file": "preuve.ots",
+      "sha256": "0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "registre",
+      "file": "registre.json",
+      "sha256": "0x738622e1f6a2782eb240a858f993f8e8fa843f5e3acbfa7b0fee6ffdbe024490",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "certificat_commit",
+      "file": "certificat-commit.json",
+      "sha256": "0x2494c254a8878f6b7d83f776afe82d570eeb0489023cabb157a6783ceeec4a24",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "validateurs",
+      "file": "validateurs.json",
+      "sha256": "0xfaa68fb0afa478c832d19333d0f2516cc1691000f9a4b20c9917879fc8d6564d",
+      "present": true,
+      "reason_if_absent": null
+    },
+    {
+      "name": "points_de_controle",
+      "file": "points-de-controle.json",
+      "sha256": "0x817e9756dcd57635a27a68fc36cf9602a7d7373e719571b6136e5f8eff25ea4f",
+      "present": true,
+      "reason_if_absent": null
+    }
+  ]
+}

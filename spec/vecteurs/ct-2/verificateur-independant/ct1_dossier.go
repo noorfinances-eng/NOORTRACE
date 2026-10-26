@@ -3,8 +3,12 @@
 
 // Dossier de preuve v0 (CT-1 §11) : index dossier.json, fichiers compagnons
 // et les contrôles D-1, D-2, E-1 à E-11, C-1 à C-3, M-1 à M-3, P-1 à P-5,
-// A-1 à A-4. E-9 (EIP-191) est hors périmètre de ce vérificateur ; les
-// parties réservées à CT-4 et CT-5 rendent les contrôles 4, 5 et 8 non
+// A-1 à A-4, et, révision 0.3, K-1 à K-6 sur la treizième partie facultative
+// points-de-controle.json (K-7 à K-9, qui réemploient les vérifications de
+// CT-6, sont hors périmètre quand l'ancre n'est pas nulle ; index à douze
+// parties ou partie absente avec raison : les neuf sont non exécutées pour une
+// raison admise, §11.4). E-9 (EIP-191) est hors périmètre de ce vérificateur ;
+// les parties réservées à CT-4 et CT-5 rendent les contrôles 4, 5 et 8 non
 // exécutés et bornent le verdict (§11.3).
 
 package main
@@ -24,7 +28,8 @@ type Partie struct {
 	Present                    bool
 }
 
-// partiesAttendues sont les douze parties, dans l'ordre imposé.
+// partiesAttendues sont les douze parties, dans l'ordre imposé, puis la
+// treizième, facultative (révision 0.3).
 var partiesAttendues = []struct{ name, file string }{
 	{"evenement", "evenement.json"},
 	{"voisins", "voisins.json"},
@@ -38,7 +43,11 @@ var partiesAttendues = []struct{ name, file string }{
 	{"registre", "registre.json"},
 	{"certificat_commit", "certificat-commit.json"},
 	{"validateurs", "validateurs.json"},
+	{"points_de_controle", "points-de-controle.json"},
 }
+
+// idsK sont les vérifications de la treizième partie (§11.4, révision 0.3).
+var idsK = []string{"K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"}
 
 // Dossier est le résultat de la vérification d'un répertoire.
 type Dossier struct {
@@ -54,6 +63,16 @@ type Dossier struct {
 	Approbations *Value
 	Resultats    *Resultats
 	Bornes       []string
+	admis        map[string]bool // contrôles non exécutés pour une raison admise (§11.4)
+}
+
+// nonExecuteAdmis marque un contrôle non exécuté pour une raison que §11.4 admet.
+func (d *Dossier) nonExecuteAdmis(id, raison string) {
+	d.Resultats.NonExecute(id, raison)
+	if d.admis == nil {
+		d.admis = map[string]bool{}
+	}
+	d.admis[id] = true
 }
 
 // lireJSON lit et analyse un fichier JSON du dossier, qui doit être un objet
@@ -88,7 +107,10 @@ func (d *Dossier) lireJSON(nom, controle string) *Value {
 // NonExecutesNonAdmis rend les contrôles non exécutés qu'un dossier valide ne
 // peut pas avoir (CT-1 §11.4) : tous, sauf A-4 (événement de demande hors du
 // dossier), sauf A-2 et A-3 quand approbations.json est déclaré absent avec
-// raison, et sauf les contrôles des parties réservées à CT-4 et CT-5.
+// raison, sauf les contrôles des parties réservées à CT-4 et CT-5, et sauf,
+// révision 0.3, les K- non exécutées pour une raison admise (index à douze
+// parties, partie absente avec raison, ancre nulle, événement last_seq hors du
+// dossier).
 func (d *Dossier) NonExecutesNonAdmis() []string {
 	p := d.Parties["approbations"]
 	absente := p != nil && !p.Present && strings.TrimSpace(p.Reason) != ""
@@ -101,6 +123,7 @@ func (d *Dossier) NonExecutesNonAdmis() []string {
 		case c.ID == "A-4":
 		case absente && (c.ID == "A-2" || c.ID == "A-3"):
 		case strings.HasSuffix(c.ID, "-*"):
+		case d.admis[c.ID]:
 		default:
 			out = append(out, c.ID)
 		}
@@ -177,6 +200,9 @@ func VerifierDossier(dir string) *Dossier {
 	// Approbations : A-1 à A-4
 	d.controlerApprobations()
 
+	// Treizième partie (révision 0.3) : K-1 à K-9
+	d.controlerPointsDeControle()
+
 	// Borne du verdict (§11.3)
 	d.enoncerBornes()
 	return d
@@ -208,8 +234,8 @@ func (d *Dossier) controlerIndex() {
 	if parts.Kind != KindArray {
 		m.add("dossier.parts", "tableau attendu")
 	} else {
-		if len(parts.Arr) != 12 {
-			m.add("dossier.parts", "douze parties attendues, %d déclarées", len(parts.Arr))
+		if len(parts.Arr) != 12 && len(parts.Arr) != 13 {
+			m.add("dossier.parts", "douze parties attendues (treize avec points-de-controle.json, révision 0.3), %d déclarées", len(parts.Arr))
 		}
 		for i, p := range parts.Arr {
 			ch := fmt.Sprintf("dossier.parts[%d]", i)
@@ -236,7 +262,7 @@ func (d *Dossier) controlerIndex() {
 				if !rs.IsNull() {
 					m.add(ch+".reason_if_absent", "null attendu pour une partie présente")
 				}
-				if i >= 7 {
+				if i >= 7 && i <= 11 {
 					r.NonExecute(controleDePartie(pa.Name), fmt.Sprintf("partie %s présente mais spécifiée par CT-4/CT-5 : non vérifiée ici", pa.Name))
 				}
 			} else {
@@ -683,7 +709,7 @@ func presence(b bool) string {
 
 func (d *Dossier) enoncerBornes() {
 	var absentes []string
-	for _, pa := range partiesAttendues[7:] {
+	for _, pa := range partiesAttendues[7:12] {
 		if p := d.Parties[pa.name]; p == nil || !p.Present {
 			absentes = append(absentes, pa.file)
 		}
@@ -694,4 +720,285 @@ func (d *Dossier) enoncerBornes() {
 	d.Bornes = append(d.Bornes,
 		"verdict borné (CT-1 §11.3) : les contrôles 4 et 5 (jeton RFC 3161, preuve OpenTimestamps ; CT-5) et 8 (registre, certificat de commit, validateurs ; CT-4) ne sont pas exécutables, parties absentes : "+strings.Join(absentes, ", "),
 		"ce que le dossier établit au mieux : l'événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste signé par cette clé ; les adresses d'approbation sont déclarées mais leurs signatures EIP-191 (contrôle 7, E-9) ne sont pas vérifiées par ce vérificateur ; rien n'est établi sur la date ni sur l'ancre")
+}
+
+// controlerPointsDeControle exécute K-1 à K-6 (révision 0.3) sur la treizième
+// partie quand l'index la déclare présente ; K-7 à K-9 sont non exécutées,
+// raison admise, quand l'ancre vaut null, et hors périmètre de ce vérificateur
+// sinon (vérifications T-, R- et O- de CT-6). Index à douze parties ou partie
+// absente avec raison (§11.1, §11.4, alignés sur CT-6 EX-5.7) : les neuf ne
+// sont pas exécutées et ne figurent pas au rapport, et le verdict ne change
+// pas. Partie présente mais inexploitable, ou K-1 en échec : K-2 à K-9 non
+// exécutées sans raison admise.
+func (d *Dossier) controlerPointsDeControle() {
+	r := d.Resultats
+	pa := d.Parties["points_de_controle"]
+	if pa == nil || !pa.Present {
+		// Index à douze parties (format v0 d'origine, antérieur à la révision
+		// 0.3), ou treizième partie déclarée absente avec une raison : aucune K-.
+		return
+	}
+	v := d.lireJSON("points-de-controle.json", "K-1")
+	if v == nil {
+		for _, id := range idsK[1:] {
+			r.NonExecute(id, "points-de-controle.json inexploitable (K-1 en échec)")
+		}
+		return
+	}
+	m := &manquements{}
+	var point *Value
+	var consistency *Value
+	var anchors *Value
+	if m.clesExactes(v, "points_de_controle", []string{"version", "checkpoint", "checkpoint_hash", "consistency", "anchors"}) {
+		if ver := v.Get("version"); ver.Kind != KindNumber {
+			m.add("points_de_controle.version", "constante 0 attendue")
+		} else if n, ok := estEntierJSON(ver.Num); !ok || n.Sign() != 0 {
+			m.add("points_de_controle.version", "constante 0 attendue, reçu %s", ver.Num)
+		}
+		point = v.Get("checkpoint")
+		for _, x := range ValiderSchemaPoint(point) {
+			m.add("points_de_controle.checkpoint", "%s", x)
+		}
+		m.hex(v.Get("checkpoint_hash"), "points_de_controle.checkpoint_hash", 32, false)
+		consistency = v.Get("consistency")
+		if m.clesExactes(consistency, "points_de_controle.consistency", []string{"version", "first_size", "second_size", "first_root", "second_root", "path"}) {
+			if ver := consistency.Get("version"); ver.Kind != KindNumber {
+				m.add("points_de_controle.consistency.version", "constante 0 attendue")
+			} else if n, ok := estEntierJSON(ver.Num); !ok || n.Sign() != 0 {
+				m.add("points_de_controle.consistency.version", "constante 0 attendue, reçu %s", ver.Num)
+			}
+			m.entier(consistency.Get("first_size"), "points_de_controle.consistency.first_size", 1, EntierSurMax)
+			m.entier(consistency.Get("second_size"), "points_de_controle.consistency.second_size", 1, EntierSurMax)
+			m.hex(consistency.Get("first_root"), "points_de_controle.consistency.first_root", 32, false)
+			m.hex(consistency.Get("second_root"), "points_de_controle.consistency.second_root", 32, false)
+			if p := consistency.Get("path"); p.Kind != KindArray {
+				m.add("points_de_controle.consistency.path", "tableau attendu")
+			} else {
+				if len(p.Arr) > 64 {
+					m.add("points_de_controle.consistency.path", "plus de 64 éléments")
+				}
+				for i, x := range p.Arr {
+					m.hex(x, fmt.Sprintf("points_de_controle.consistency.path[%d]", i), 32, false)
+				}
+			}
+		}
+		anchors = v.Get("anchors")
+		if m.clesExactes(anchors, "points_de_controle.anchors", []string{"rfc3161", "registry", "ots"}) {
+			if a := anchors.Get("rfc3161"); !a.IsNull() && m.clesExactes(a, "points_de_controle.anchors.rfc3161", []string{"token"}) {
+				m.base64(a.Get("token"), "points_de_controle.anchors.rfc3161.token")
+			}
+			if a := anchors.Get("ots"); !a.IsNull() && m.clesExactes(a, "points_de_controle.anchors.ots", []string{"proof"}) {
+				m.base64(a.Get("proof"), "points_de_controle.anchors.ots.proof")
+			}
+			if a := anchors.Get("registry"); !a.IsNull() && m.clesExactes(a, "points_de_controle.anchors.registry", []string{"chain_id", "contract", "fingerprint", "doc_type", "block_number", "block_hash", "transaction_hash", "log_index"}) {
+				// $defs/ancre_registre_point : entiers de la section 3 (chain_id ≥ 1,
+				// log_index ≤ 255), adresse de 20 octets, empreintes de 32 octets.
+				m.entier(a.Get("chain_id"), "points_de_controle.anchors.registry.chain_id", 1, EntierSurMax)
+				m.hex(a.Get("contract"), "points_de_controle.anchors.registry.contract", 20, false)
+				m.hex(a.Get("fingerprint"), "points_de_controle.anchors.registry.fingerprint", 32, false)
+				m.hex(a.Get("doc_type"), "points_de_controle.anchors.registry.doc_type", 32, false)
+				m.entier(a.Get("block_number"), "points_de_controle.anchors.registry.block_number", 0, EntierSurMax)
+				m.hex(a.Get("block_hash"), "points_de_controle.anchors.registry.block_hash", 32, false)
+				m.hex(a.Get("transaction_hash"), "points_de_controle.anchors.registry.transaction_hash", 32, false)
+				m.entier(a.Get("log_index"), "points_de_controle.anchors.registry.log_index", 0, 255)
+			}
+		}
+	}
+	ev := d.Evenement
+	var pt *Point
+	if len(m.liste) == 0 {
+		pt = LirePoint(point)
+		if pt.OrgID != chaineDe(ev, "org_id") || pt.JournalID != chaineDe(ev, "journal_id") {
+			m.add("points_de_controle.checkpoint", "org_id ou journal_id différents de ceux de l'événement")
+		}
+		if d.Manifeste == nil {
+			for _, x := range m.liste {
+				r.Echec("K-1", "%s", x)
+			}
+			r.NonExecute("K-1", "manifeste.json inexploitable : relations au manifeste non vérifiables")
+			for _, id := range idsK[1:] {
+				r.NonExecute(id, "manifeste.json inexploitable")
+			}
+			return
+		}
+		mf := LireManifeste(d.Manifeste)
+		if pt.PeriodStart != mf.PeriodStart {
+			m.add("points_de_controle.checkpoint.period_start", "%d différent de celui du manifeste %d", pt.PeriodStart, mf.PeriodStart)
+		}
+		if pt.TreeSize < 1 || pt.TreeSize > mf.Count {
+			m.add("points_de_controle.checkpoint.tree_size", "%d hors de [1, count = %d]", pt.TreeSize, mf.Count)
+		}
+		if pt.LastSeq != mf.FirstSeq+pt.TreeSize-1 {
+			m.add("points_de_controle.checkpoint.last_seq", "%d différent de first_seq + tree_size - 1 (%d)", pt.LastSeq, mf.FirstSeq+pt.TreeSize-1)
+		}
+		if pt.Root == Zero32 {
+			m.add("points_de_controle.checkpoint.root", "racine nulle")
+		}
+		if pt.TsOK && pt.CheckpointTs.UnixMilli() < pt.PeriodStart*1000 {
+			m.add("points_de_controle.checkpoint.checkpoint_ts", "%s antérieur à period_start", FormaterHorodatage(pt.CheckpointTs))
+		}
+	}
+	for _, x := range m.liste {
+		r.Echec("K-1", "%s", x)
+	}
+	if len(m.liste) > 0 {
+		// §11.4 : K-2 à K-9 non exécutées sans raison admise.
+		for _, id := range idsK[1:] {
+			r.NonExecute(id, "K-1 en échec")
+		}
+		return
+	}
+	r.Passe("K-1")
+	mf := LireManifeste(d.Manifeste)
+
+	// K-2 : checkpointHash recalculé
+	hash, _, err := CheckpointHash(point)
+	if err != nil {
+		r.Echec("K-2", "point non canonisable : %v", err)
+	} else if got, att := Hex0x(hash), chaineDe(v, "checkpoint_hash"); got != att {
+		r.Echec("K-2", "checkpointHash recalculé %s ≠ checkpoint_hash déclaré %s", got, att)
+	}
+	r.Passe("K-2")
+
+	// K-3 : signature sous la clé key_id de cles.json et validité annoncée
+	if d.Cles == nil {
+		r.NonExecute("K-3", "cles.json inexploitable (échec porté par E-8)")
+	} else if cle := d.Cles.Trouver(pt.KeyID); cle == nil {
+		r.Echec("K-3", "clé %q absente de cles.json", pt.KeyID)
+	} else {
+		if err := VerifierSignaturePoint(point, cle); err != nil {
+			r.Echec("K-3", "signature du point sous %s : %v", pt.KeyID, err)
+		}
+		if pt.TsOK && !cle.Couvre(pt.CheckpointTs) {
+			r.Echec("K-3", "checkpoint_ts %s hors de la validité annoncée %s de la clé %s", FormaterHorodatage(pt.CheckpointTs), cle.Intervalle(), pt.KeyID)
+		}
+		r.Passe("K-3")
+	}
+
+	// K-4 : couverture de l'événement prouvé
+	if d.Chemin == nil {
+		r.NonExecute("K-4", "chemin.json inexploitable")
+	} else {
+		if li, ok := entierDe(d.Chemin, "leaf_index"); !ok {
+			r.NonExecute("K-4", "chemin.leaf_index illisible")
+		} else if li >= pt.TreeSize {
+			r.Echec("K-4", "leaf_index %d n'est pas strictement inférieur à tree_size %d : le point ne couvre pas l'événement", li, pt.TreeSize)
+		}
+		if ts, ok := Ts(ev); ok && pt.TsOK && ts.After(pt.CheckpointTs) {
+			r.Echec("K-4", "ts de l'événement %s postérieur à checkpoint_ts %s", FormaterHorodatage(ts), FormaterHorodatage(pt.CheckpointTs))
+		}
+		r.Passe("K-4")
+	}
+
+	// K-5 : preuve de cohérence vers la racine du manifeste
+	fs, _ := entierDe(consistency, "first_size")
+	ss, _ := entierDe(consistency, "second_size")
+	fr := chaineDe(consistency, "first_root")
+	sr := chaineDe(consistency, "second_root")
+	if fs != pt.TreeSize {
+		r.Echec("K-5", "consistency.first_size %d ≠ tree_size %d", fs, pt.TreeSize)
+	}
+	if ss != mf.Count {
+		r.Echec("K-5", "consistency.second_size %d ≠ manifeste.count %d", ss, mf.Count)
+	}
+	if fr != pt.Root {
+		r.Echec("K-5", "consistency.first_root ≠ checkpoint.root")
+	}
+	if sr != mf.Root {
+		r.Echec("K-5", "consistency.second_root ≠ manifeste.root")
+	}
+	var path [][]byte
+	for _, x := range consistency.Get("path").Arr {
+		b, _ := OctetsHex(chaineDe(x, ""), 32)
+		path = append(path, b)
+	}
+	frO, _ := OctetsHex(fr, 32)
+	srO, _ := OctetsHex(sr, 32)
+	if err := VerifierCoherence(uint64(fs), uint64(ss), frO, srO, path); err != nil {
+		r.Echec("K-5", "preuve de cohérence (%d, %d) refusée : %v", fs, ss, err)
+	}
+	r.Passe("K-5")
+
+	// K-6 : last_hash contre l'événement last_seq quand il est dans le dossier
+	trouve := false
+	candidats := []*Value{ev}
+	if d.Voisins != nil {
+		for _, nom := range []string{"previous", "next"} {
+			if x := d.Voisins.Get(nom); x != nil && !x.IsNull() {
+				candidats = append(candidats, x)
+			}
+		}
+	}
+	for _, c := range candidats {
+		if Seq(c) != pt.LastSeq {
+			continue
+		}
+		trouve = true
+		if h, _, err := HashEvenement(c); err != nil {
+			r.NonExecute("K-6", "hash de l'événement last_seq non calculable")
+		} else if Hex0x(h) != pt.LastHash {
+			r.Echec("K-6", "last_hash %s ≠ hash recalculé %s de l'événement seq %d", pt.LastHash, Hex0x(h), pt.LastSeq)
+		}
+		break
+	}
+	if !trouve {
+		d.nonExecuteAdmis("K-6", fmt.Sprintf("événement last_seq (seq %d) hors du dossier : non vérifiable", pt.LastSeq))
+	} else {
+		r.Passe("K-6")
+	}
+
+	d.controlerAncresPoint(anchors)
+}
+
+// base64 transcrit #/$defs/base64 du schéma de dossier (révision 0.3) :
+// alphabet standard de la RFC 4648 §4, groupes de quatre caractères,
+// remplissage exact, sans saut de ligne, 4 à 131072 caractères. Le décodage
+// et la vérification de l'ancre relèvent de K-7 et K-9 (CT-6).
+func (m *manquements) base64(v *Value, chemin string) (string, bool) {
+	s, ok := m.chaine(v, chemin, 4, 131072, false)
+	if !ok {
+		return "", false
+	}
+	if !estBase64(s) {
+		m.add(chemin, "base64 standard avec remplissage exact attendu (RFC 4648 §4)")
+		return "", false
+	}
+	return s, true
+}
+
+// estBase64 reconnaît ^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$
+// pour une chaîne non vide.
+func estBase64(s string) bool {
+	if len(s) == 0 || len(s)%4 != 0 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c >= 'A' && c <= 'Z', c >= 'a' && c <= 'z', c >= '0' && c <= '9', c == '+', c == '/':
+		case c == '=' && (i == len(s)-1 || (i == len(s)-2 && s[len(s)-1] == '=')):
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// controlerAncresPoint fixe l'état de K-7 à K-9 quand K-1 est passée : non
+// exécutée, raison admise, pour une ancre nulle ; hors périmètre
+// (vérifications T-, R- et O- de CT-6) pour une ancre fournie.
+func (d *Dossier) controlerAncresPoint(anchors *Value) {
+	r := d.Resultats
+	for _, x := range []struct{ id, nom, quoi string }{{"K-7", "rfc3161", "jeton RFC 3161 (T-1 à T-11 de CT-6)"}, {"K-8", "registry", "ancre au registre (R- de CT-6)"}, {"K-9", "ots", "preuve OpenTimestamps (O-1 à O-7 de CT-6)"}} {
+		if anchors == nil || anchors.Kind != KindObject {
+			r.NonExecute(x.id, "anchors inexploitable")
+			continue
+		}
+		a := anchors.Get(x.nom)
+		if a == nil || a.IsNull() {
+			d.nonExecuteAdmis(x.id, "ancre "+x.nom+" nulle : partie absente")
+			continue
+		}
+		r.HorsPerimetre(x.id, x.quoi+" : hors périmètre de ce vérificateur")
+	}
 }

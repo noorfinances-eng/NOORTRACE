@@ -71,9 +71,21 @@ python3 -I spec/vecteurs/ct-6/confrontation/rfc3161/confronter_rfc3161.py spec/v
 ```
 
 Code de retour : 0 si tout concorde, 1 sinon. La sortie de référence est
-`../sorties/rfc3161.txt` (OpenSSL 3.0.13) : 141 concordances vérification par
-vérification, 0 discordance, 39 vérifications hors outil (T-5 et T-11),
-40 sans objet (vérifications que le vecteur n'exécute pas par dépendance ou
+`../sorties/rfc3161.txt` (OpenSSL 3.0.13) : 173 concordances vérification par
+vérification, 0 discordance, 47 vérifications hors outil (T-5 et T-11),
+44 sans objet (vérifications que le vecteur n'exécute pas par dépendance ou
 faute d'ancre, ou qu'OpenSSL ne peut établir sur un jeton qu'il ne lit pas),
 et 4 verdicts d'`openssl ts -verify` qui ne relèvent pas l'échec visé (T-1
 deux fois, T-5, T-9) pour les raisons ci-dessus.
+
+## Révision 0.2 (points de contrôle, EX-A.17)
+
+Les jetons `jetons/point-periode-1.der` et `jetons/k7-point-signature.der`
+(empreinte : le `checkpoint_hash` du point, nonce dérivé de l'étiquette
+`…/nonce-tsa/point-de-controle/periode-1`) sont lus et vérifiés comme les
+autres (`openssl ts -verify -digest <checkpoint_hash> -token_in -attime
+<genTime>` : « Verification: OK », puis « signature failure » pour le jeton
+altéré). Les jetons embarqués en base64 dans les dossiers qui portent la
+partie `points-de-controle.json` sont confrontés par CT-5
+(`spec/vecteurs/ct-5/confrontation/reponses/`, section 2 de sa sortie), qui
+les extrait du base64 et lance la même commande.

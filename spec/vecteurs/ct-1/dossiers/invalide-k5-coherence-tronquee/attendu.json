@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "K-5",
+  "controles_en_echec": [
+    "K-5"
+  ],
+  "description": "Le dernier nœud de consistency.path est retiré : l'algorithme de CT-1 §10.7 ne retombe pas sur les deux racines (chemin trop court pour (8, 9))."
+}

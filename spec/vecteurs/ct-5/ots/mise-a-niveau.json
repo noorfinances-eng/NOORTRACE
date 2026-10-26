@@ -1,0 +1,28 @@
+{
+  "version": 0,
+  "description": "Mise à niveau d'EX-6.6 sur les preuves de CT-6 (lues, non copiées) : la preuve en attente o7-en-attente.ots (attestation en attente du calendrier alice au bout des opérations d'agrégation) reçoit du calendrier, pour son engagement, le Timestamp `response` (opérations Bitcoin imitées puis attestation Bitcoin à la hauteur 1001) ; l'attestation en attente est remplacée par ce chemin et la preuve resérialisée est, octet pour octet, periode-1.ots (EX-6.7 : complete).",
+  "before": {
+    "file": "../../ct-6/ots/preuves/o7-en-attente.ots",
+    "size": 210,
+    "sha256": "0xa928d3f5bdb6a2eaa7173eae9bb6bfe2fd57513983369c953b263ddcfba39b26",
+    "state": "en_attente"
+  },
+  "calendar": "https://alice.btc.calendar.opentimestamps.org",
+  "response": {
+    "der": "0xf12d55413581ee69b67d4d229739a35de22986adbdb0bc6ce5ce4a5f2631711f17464a057a28c87a2f539b86c0089ff01bca354a19a723ebda7f9b516dc23512122e1a5b7dbe4fc2485a9bde0808f120bd75824b80aa9c197950276b934bc004679a250c6ec32d8165b8896539b7d5500808f0208cb5d78f624e841377b3ea01fc8290c42be2f34973a6817a23035f8410069f4f0808000588960d73d7190102e907",
+    "size": 162,
+    "sha256": "0xecd00c3582a47513efde6088284d3e586191f40183e043eb1d2137830e82d9c8"
+  },
+  "after": {
+    "file": "../../ct-6/ots/preuves/periode-1.ots",
+    "size": 316,
+    "sha256": "0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f",
+    "state": "complete"
+  },
+  "expected": {
+    "state_before": "en_attente",
+    "state_after": "complete",
+    "merged_sha256": "0xf70b77c15a5226d537f34d7288a5b296cad3c0dbd5b0d2fc79d679e5dc3cff1f",
+    "merged_equals_after": true
+  }
+}

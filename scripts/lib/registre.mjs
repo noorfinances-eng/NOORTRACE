@@ -42,11 +42,12 @@ export const ID_SCHEMA_VALIDATEURS = "https://noortrace.example/schemas/v0/valid
 /** Préfixe de la préimage de BFTBlockHash (core/node/blockexec.go de noorcore). */
 export const DOMAINE_BLOC_BFT = "noor/v1/bftblockhash";
 
-/** Signatures des trois événements prouvés (contracts/*.sol). */
+/** Signatures des événements prouvés (contracts/*.sol) ; l'ancre d'un point de contrôle du journal (révision 0.2, EX-11.23) est le même événement Anchored. */
 export const SIGNATURES_EVENEMENTS = {
   cloture: "PeriodSubmitted(uint256,bytes32,bytes32,bytes32,bytes32,uint64,uint64,uint64,uint64,uint32,address,string,uint64)",
   ancre: "Anchored(bytes32,address,bytes32)",
   inscription: "RecorderRegistered(bytes32,address,bytes32,bytes32,address)",
+  ancre_point_de_controle: "Anchored(bytes32,address,bytes32)",
 };
 
 /** topics[0] de chaque rôle : keccak256 de la signature de l'événement (EX-11.9). */
@@ -54,19 +55,26 @@ export const SUJETS_EVENEMENTS = {
   cloture: "0x6d6cb8da98056d2abd84165b9f6d64d8097b1e28deaf23013228f6bdd5370fba",
   ancre: "0x4450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706e",
   inscription: "0xe29e846d78f0b22a87c669add67dec8daa3b0935e6f4c96d7f627a60e7ae44ec",
+  ancre_point_de_controle: "0x4450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706e",
 };
 
 /** Nom de l'événement de chaque rôle. */
-export const NOMS_EVENEMENTS = { cloture: "PeriodSubmitted", ancre: "Anchored", inscription: "RecorderRegistered" };
+export const NOMS_EVENEMENTS = { cloture: "PeriodSubmitted", ancre: "Anchored", inscription: "RecorderRegistered", ancre_point_de_controle: "Anchored" };
 
 /** Clé du contrat de chaque rôle dans l'ancre `registry.contracts`. */
-export const CONTRAT_DU_ROLE = { cloture: "period_registry", ancre: "attestation_registry", inscription: "recorder_registry" };
+export const CONTRAT_DU_ROLE = { cloture: "period_registry", ancre: "attestation_registry", inscription: "recorder_registry", ancre_point_de_controle: "attestation_registry" };
 
 /** Nom du contrat de chaque rôle, pour les détails et l'énoncé. */
-export const NOM_CONTRAT_DU_ROLE = { cloture: "PeriodRegistry", ancre: "AttestationRegistry", inscription: "RecorderRegistry" };
+export const NOM_CONTRAT_DU_ROLE = { cloture: "PeriodRegistry", ancre: "AttestationRegistry", inscription: "RecorderRegistry", ancre_point_de_controle: "AttestationRegistry" };
 
 /** keccak256(UTF-8("noortrace/periode/v0")) : docType des ancres de période (DOC_TYPE_PERIODE). */
 export const DOC_TYPE_PERIODE = "0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee";
+
+/** keccak256(UTF-8("noortrace/point-de-controle/v0")) : docType des ancres d'un point de contrôle du journal (CT-1 §10.6, CT-6 §11.9). */
+export const DOC_TYPE_POINT_DE_CONTROLE = "0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178";
+
+/** Rôle de l'entrée de registre.json qui porte l'ancre d'un point de contrôle du journal (révision 0.2). */
+export const ROLE_ANCRE_POINT = "ancre_point_de_controle";
 
 /** Limites de lecture (EX-4.13) et de structure (EX-15.1). */
 export const LIMITES = {
@@ -323,12 +331,12 @@ export function decoderJournal(role, journal, langue = "fr") {
   const erreurs = [];
   const sujets = journal.topics.map((t) => octetsHex(t));
   const donnees = octetsHex(journal.data);
-  const nbSujets = { cloture: 4, ancre: 3, inscription: 4 }[role];
+  const nbSujets = { cloture: 4, ancre: 3, inscription: 4, ancre_point_de_controle: 3 }[role];
   if (sujets.length !== nbSujets) erreurs.push(L(`${sujets.length} sujet(s) au lieu de ${nbSujets}`, `${sujets.length} topic(s) instead of ${nbSujets}`));
   else if (hexDe(sujets[0]) !== SUJETS_EVENEMENTS[role]) erreurs.push(L(`topics[0] ${hexDe(sujets[0])} n'est pas celui de ${NOMS_EVENEMENTS[role]}`, `topics[0] ${hexDe(sujets[0])} is not that of ${NOMS_EVENEMENTS[role]}`));
   if (erreurs.length) return { erreurs, valeurs: null };
 
-  if (role === "ancre") {
+  if (role === "ancre" || role === ROLE_ANCRE_POINT) {
     const issuer = motAdresse(sujets[2]);
     if (issuer === null) erreurs.push(L("topics[2] (émetteur) : octets de tête non nuls", "topics[2] (issuer): non-zero leading bytes"));
     if (donnees.length !== 32) erreurs.push(L(`data de ${donnees.length} octets au lieu de 32`, `data of ${donnees.length} bytes instead of 32`));
@@ -500,12 +508,13 @@ export function lirePartie(partie, nom, { schemas, idSchema, fragment = "", limi
  */
 export function ecartsRoles(registre, langue = "fr") {
   const L = traducteur(langue);
-  const compte = { cloture: 0, ancre: 0, inscription: 0 };
+  const compte = { cloture: 0, ancre: 0, inscription: 0, ancre_point_de_controle: 0 };
   for (const e of registre.entries) compte[e.role]++;
   const ecarts = [];
   if (compte.cloture !== 1) ecarts.push(L(`${compte.cloture} entrée(s) cloture au lieu d'une`, `${compte.cloture} cloture entr(y/ies) instead of one`));
   if (compte.ancre !== 1) ecarts.push(L(`${compte.ancre} entrée(s) ancre au lieu d'une`, `${compte.ancre} ancre entr(y/ies) instead of one`));
   if (compte.inscription > 8) ecarts.push(L(`${compte.inscription} entrées inscription, au plus 8`, `${compte.inscription} inscription entries, at most 8`));
+  if (compte.ancre_point_de_controle > 1) ecarts.push(L(`${compte.ancre_point_de_controle} entrées ancre_point_de_controle, au plus une`, `${compte.ancre_point_de_controle} ancre_point_de_controle entries, at most one`));
   return ecarts;
 }
 
@@ -618,7 +627,8 @@ export function raisonPartieAbsente(raisonDeclaree) {
 // ---------------------------------------------------------------------------
 
 /**
- * Exécute le contrôle 8 : vérifications R-1 à R-10, et N-4 quand elle figure.
+ * Exécute le contrôle 8 : vérifications R-1 à R-10, R-11 quand elle figure
+ * (révision 0.2), et N-4 quand elle figure.
  *
  * `parties` : {registre, certificat_commit, validateurs}, chacune
  *   {present: true, octets: Buffer|null, tropGrand?: bool} (octets nul : fichier
@@ -639,23 +649,34 @@ export function raisonPartieAbsente(raisonDeclaree) {
  *   registre-v0.schema.json et validateurs-v0.schema.json.
  * `langue` : "fr" ou "en", pour les détails et le résumé ; l'énoncé est
  *   rendu dans les deux langues.
+ * `pointDeControle` (révision 0.2, EX-11.24) : null quand le dossier ne déclare
+ *   pas la partie points-de-controle.json présente ; sinon
+ *   { orgId, journalId, keyId, checkpointHash (recalculé par K-2, ou null si
+ *   K-2 n'a pas réussi), reference (anchors.registry de la partie, ou null) }.
+ *   R-11 figure dans les vérifications si ce paramètre n'est pas nul ou si
+ *   registre.json porte une entrée ancre_point_de_controle ; sinon elle est
+ *   omise et le rapport est celui de la version 0.1 (EX-6.18).
  *
  * Rend {
  *   statut, raison, resume, ancresEmployees (pointeurs RFC 6901),
- *   verifications (R-1 à R-10, dans l'ordre, au format du rapport ; vide si
- *     une partie requise est absente, EX-5.6),
+ *   verifications (R-1 à R-10, puis R-11 quand elle figure, dans l'ordre, au
+ *     format du rapport ; vide si une partie requise est absente, EX-5.6),
  *   n4 (vérification N-4 au format du rapport, ou null si elle ne figure pas),
  *   avertissements [{id, check, detail}],
  *   faits (EX-11.21, ou null si le contrôle n'a pas réussi),
  *   enonce ({fr, en} : la proposition de EX-11.22, ou null),
  *   inscriptionsProuvees ([{key_id, public_key, chain_key, block_number}] :
  *     inscriptions que R-10 prouve dans un contrôle 8 réussi, pour la
- *     provenance « registre » de l'énoncé, EX-6.8)
+ *     provenance « registre » de l'énoncé, EX-6.8),
+ *   entreePoint (révision 0.2 : { indice, block_number, block_time, issuer,
+ *     rattachee } de l'entrée ancre_point_de_controle quand R-11 a réussi,
+ *     sinon null ; rattachee vaut true si la règle 2 a rattaché la référence
+ *     de la partie)
  * }.
  */
-export function verifierControle8({ parties, manifeste = null, periodHash = null, cles = null, ancres = null, schemas, langue = "fr" }) {
+export function verifierControle8({ parties, manifeste = null, periodHash = null, cles = null, ancres = null, schemas, langue = "fr", pointDeControle = null }) {
   const L = traducteur(langue);
-  const sortie = { statut: null, raison: null, resume: null, ancresEmployees: [], verifications: [], n4: null, avertissements: [], faits: null, enonce: null, inscriptionsProuvees: [] };
+  const sortie = { statut: null, raison: null, resume: null, ancresEmployees: [], verifications: [], n4: null, avertissements: [], faits: null, enonce: null, inscriptionsProuvees: [], entreePoint: null };
   // EX-5.4 : sans periodHash recalculé (P-1 en échec), seules R-9 et R-10 ne
   // s'exécutent pas ; R-1 à R-8 ne dépendent pas du manifeste. N-4 ne figure
   // pas : la clé du manifeste n'est pas établie (EX-12.5).
@@ -677,6 +698,20 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
   const ids = ["R-1", "R-2", "R-3", "R-4", "R-5", "R-6", "R-7", "R-8", "R-9", "R-10"];
   const res = {};
   const poser = (id, statut, raison, detail) => (res[id] = verification(id, statut, raison, detail));
+  // R-11 (révision 0.2) figure avec la partie points-de-controle.json ou avec une
+  // entrée ancre_point_de_controle ; sans l'une ni l'autre, le rapport reste celui
+  // de la version 0.1 (EX-6.18). L'entrée se cherche dans le texte avant R-1 :
+  // registre.json illisible → R-11 non exécutée comme les autres (prerequis_en_echec).
+  let avecR11 = pointDeControle !== null;
+  if (!avecR11 && parties.registre?.octets) {
+    try {
+      const brut = JSON.parse(Buffer.from(parties.registre.octets).toString("utf8"));
+      avecR11 = Array.isArray(brut?.entries) && brut.entries.some((e) => e?.role === ROLE_ANCRE_POINT);
+    } catch {
+      avecR11 = false;
+    }
+  }
+  if (avecR11) ids.push("R-11");
 
   // Clé du manifeste dans le fichier d'ancres : N-4 ne figure que si elle a une chain_key (EX-12.5).
   let ancreCleChaine = null;
@@ -888,7 +923,7 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
       return { statut: "reussi" };
     });
     const a = agreger(items);
-    const roles = ["inscription", "ancre", "cloture"].filter((r) => entrees.some((e) => e.role === r)).map((r) => NOM_CONTRAT_DU_ROLE[r]);
+    const roles = [...new Set(["inscription", "ancre", ROLE_ANCRE_POINT, "cloture"].filter((r) => entrees.some((e) => e.role === r)).map((r) => NOM_CONTRAT_DU_ROLE[r]))];
     poser("R-8", a.statut, a.raison, a.statut === "reussi" ? L(`journaux émis par ${joindre(roles, "fr")} aux adresses de l'ancre`, `logs emitted by ${joindre(roles, "en")} at the anchor's addresses`) : [...new Set(items.filter((x) => x.statut === a.statut).map((x) => x.detail))].join(" ; "));
   }
 
@@ -897,7 +932,7 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
   const indiceAncre = entrees.findIndex((e) => e.role === "ancre");
   {
     const items = entrees.map((e, i) => {
-      if (e.role === "inscription") return null;
+      if (e.role === "inscription" || e.role === ROLE_ANCRE_POINT) return null;
       if (!lie[i]) return { statut: "non_execute", raison: "prerequis_en_echec", detail: L(`entrée ${i} (${e.role}) : R-6 ou R-7 en échec`, `entry ${i} (${e.role}): R-6 or R-7 failed`) };
       if (!manifeste) return { statut: "non_execute", raison: "prerequis_en_echec", detail: L("P-1 n'a pas réussi : periodHash non recalculé", "P-1 did not pass: periodHash not recomputed") };
       const { erreurs, valeurs } = decodes[i];
@@ -1001,6 +1036,68 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
     }
   }
 
+  // ----- R-11 : ancre d'un point de contrôle du journal (EX-11.24, révision 0.2) -----
+  const indicePoint = entrees.findIndex((e) => e.role === ROLE_ANCRE_POINT);
+  let entreePointRattachee = null;
+  if (avecR11) {
+    if (indicePoint === -1) poser("R-11", "non_execute", "partie_absente", L("aucune entrée ancre_point_de_controle dans registre.json", "no ancre_point_de_controle entry in registre.json"));
+    else if (!lie[indicePoint]) poser("R-11", "non_execute", "prerequis_en_echec", L(`entrée ${indicePoint} : R-6 ou R-7 en échec`, `entry ${indicePoint}: R-6 or R-7 failed`));
+    else {
+      const e = entrees[indicePoint];
+      const h = quantite(e.block.number);
+      const { erreurs, valeurs } = decodes[indicePoint];
+      // Règle 1 : forme du journal (3 sujets, sujet d'Anchored, docType du point).
+      const fautes = [...erreurs];
+      if (valeurs && valeurs.docType !== DOC_TYPE_POINT_DE_CONTROLE) fautes.push(L(`docType ${valeurs.docType} au lieu de ${DOC_TYPE_POINT_DE_CONTROLE} (point de contrôle)`, `docType ${valeurs.docType} instead of ${DOC_TYPE_POINT_DE_CONTROLE} (checkpoint)`));
+      let statut = null;
+      let raison = null;
+      let detail = null;
+      let rattachee = false;
+      if (fautes.length) {
+        statut = "echoue";
+        detail = L(`Anchored (entrée ${indicePoint}, bloc ${h}) : ${fautes.join(" ; ")}`, `Anchored (entry ${indicePoint}, block ${h}): ${fautes.join("; ")}`);
+      } else if (!pointDeControle || !pointDeControle.reference) {
+        statut = "non_execute";
+        raison = "partie_absente";
+        detail = L(`entrée sans partie points-de-controle.json à rattacher (bloc ${h}, émetteur ${valeurs.issuer}, docType du point)`, `entry with no points-de-controle.json part to tie to (block ${h}, issuer ${valeurs.issuer}, checkpoint docType)`);
+      } else if (!pointDeControle.checkpointHash) {
+        statut = "non_execute";
+        raison = "prerequis_en_echec";
+        detail = L(`K-2 n'a pas réussi : checkpointHash non recalculé (bloc ${h}, émetteur ${valeurs.issuer})`, `K-2 did not pass: checkpointHash not recomputed (block ${h}, issuer ${valeurs.issuer})`);
+      } else {
+        // Règle 2 : rattachement à la référence de la partie.
+        const ref = pointDeControle.reference;
+        const attendue = empreinteAncre(pointDeControle.orgId, pointDeControle.journalId, pointDeControle.checkpointHash);
+        const ecarts = [];
+        if (valeurs.fingerprint !== attendue) ecarts.push(L(`empreinte ${valeurs.fingerprint} au lieu de keccak256(org_id ‖ journal_id ‖ checkpoint_hash) = ${attendue}`, `fingerprint ${valeurs.fingerprint} instead of keccak256(org_id ‖ journal_id ‖ checkpoint_hash) = ${attendue}`));
+        if (String(nombreSortie(h)) !== String(ref.block_number)) ecarts.push(L(`bloc ${h} au lieu de block_number ${ref.block_number} de la partie`, `block ${h} instead of block_number ${ref.block_number} of the part`));
+        if (e.block.hash !== ref.block_hash) ecarts.push(L(`block.hash ${e.block.hash} au lieu de block_hash ${ref.block_hash} de la partie`, `block.hash ${e.block.hash} instead of block_hash ${ref.block_hash} of the part`));
+        if (e.transaction_hash !== ref.transaction_hash) ecarts.push(L(`transaction_hash ${e.transaction_hash} au lieu de ${ref.transaction_hash} de la partie`, `transaction_hash ${e.transaction_hash} instead of ${ref.transaction_hash} of the part`));
+        if (e.log_index !== ref.log_index) ecarts.push(L(`log_index ${e.log_index} au lieu de ${ref.log_index} de la partie`, `log_index ${e.log_index} instead of ${ref.log_index} of the part`));
+        // Règle 3 : émetteur relié à une inscription de la clé du point (R-10 réussie).
+        const inscriptionsPoint = res["R-10"].status === "reussi" ? inscriptionsVues.filter((x) => x.key_id === pointDeControle.keyId) : [];
+        if (inscriptionsPoint.length) {
+          if (!inscriptionsPoint.some((x) => x.chain_key === valeurs.issuer)) {
+            const sous = joindre(inscriptionsPoint.map((x) => `${x.chain_key} (bloc ${x.block_number})`), langue);
+            ecarts.push(L(`émetteur ${valeurs.issuer} : ${pointDeControle.keyId}, clé du point, inscrite sous ${sous}, jamais sous cet émetteur`, `issuer ${valeurs.issuer}: ${pointDeControle.keyId}, the checkpoint key, registered under ${sous}, never under this issuer`));
+          }
+        } else {
+          sortie.avertissements.push({ id: "AV-K-3", check: "R-11", detail: L(`aucune inscription de ${pointDeControle.keyId}, clé du point de contrôle, prouvée dans le dossier : l'émetteur de l'ancre du point ${valeurs.issuer} n'est relié à aucune clé d'enregistreur`, `no registration of ${pointDeControle.keyId}, the checkpoint key, proven in the dossier: the issuer of the checkpoint anchor ${valeurs.issuer} is tied to no recorder key`) });
+        }
+        if (ecarts.length) {
+          statut = "echoue";
+          detail = L(`Anchored (entrée ${indicePoint}, bloc ${h}) : ${ecarts.join(" ; ")}`, `Anchored (entry ${indicePoint}, block ${h}): ${ecarts.join("; ")}`);
+        } else {
+          statut = "reussi";
+          rattachee = true;
+          detail = L(`Anchored au bloc ${h}, émetteur ${valeurs.issuer}, docType ${valeurs.docType} (point de contrôle), empreinte ${valeurs.fingerprint} = keccak256(org_id ‖ journal_id ‖ checkpoint_hash), bloc, transaction et log_index égaux à la référence de la partie`, `Anchored in block ${h}, issuer ${valeurs.issuer}, docType ${valeurs.docType} (checkpoint), fingerprint ${valeurs.fingerprint} = keccak256(org_id ‖ journal_id ‖ checkpoint_hash), block, transaction and log_index equal to the part's reference`);
+        }
+      }
+      poser("R-11", statut, raison, detail);
+      if (statut === "reussi") entreePointRattachee = { indice: indicePoint, block_number: nombreSortie(h), block_time: instantRFC3339(quantite(e.block.timestamp)), issuer: valeurs.issuer, rattachee };
+    }
+  }
+
   // ----- N-4 : clé de chaîne de l'ancre (EX-12.5) -----------------------------------
   if (ancreCleChaine) {
     const r5Ancre = indiceAncre === -1 ? null : r5ParHauteur.get(quantite(entrees[indiceAncre].block.number));
@@ -1017,6 +1114,7 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
 
   conclure();
   if (sortie.statut !== "reussi") return sortie;
+  sortie.entreePoint = entreePointRattachee;
 
   // ----- Contrôle réussi : faits (EX-11.21), résumé, énoncé (EX-11.22) --------
   const iCloture = entrees.findIndex((e) => e.role === "cloture");
@@ -1044,9 +1142,10 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
   const hInscriptions = entrees.map((e, i) => (e.role === "inscription" ? sortie.faits.entries[i].block_number : null)).filter((x) => x !== null);
   const hAncre = sortie.faits.entries[indiceAncre].block_number;
   const hCloture = sortie.faits.entries[iCloture].block_number;
+  const hPoint = indicePoint === -1 ? null : sortie.faits.entries[indicePoint].block_number;
   sortie.resume = L(
-    `${registry.chain_id} : ${hInscriptions.length ? `${hInscriptions.length > 1 ? "inscriptions blocs" : "inscription bloc"} ${joindre(hInscriptions.map(String), "fr")}, ` : ""}ancre bloc ${hAncre}, clôture bloc ${hCloture}, ${minSignataires} validateurs sur ${joindre(tailles.map(String), "fr")} à chaque bloc`,
-    `${registry.chain_id}: ${hInscriptions.length ? `${hInscriptions.length > 1 ? "registrations blocks" : "registration block"} ${joindre(hInscriptions.map(String), "en")}, ` : ""}anchor block ${hAncre}, closing block ${hCloture}, ${minSignataires} of ${joindre(tailles.map(String), "en")} validators in each block`,
+    `${registry.chain_id} : ${hInscriptions.length ? `${hInscriptions.length > 1 ? "inscriptions blocs" : "inscription bloc"} ${joindre(hInscriptions.map(String), "fr")}, ` : ""}ancre bloc ${hAncre}, clôture bloc ${hCloture}, ${hPoint !== null ? `ancre du point bloc ${hPoint}, ` : ""}${minSignataires} validateurs sur ${joindre(tailles.map(String), "fr")} à chaque bloc`,
+    `${registry.chain_id}: ${hInscriptions.length ? `${hInscriptions.length > 1 ? "registrations blocks" : "registration block"} ${joindre(hInscriptions.map(String), "en")}, ` : ""}anchor block ${hAncre}, closing block ${hCloture}, ${hPoint !== null ? `checkpoint anchor block ${hPoint}, ` : ""}${minSignataires} of ${joindre(tailles.map(String), "en")} validators in each block`,
   );
 
   if (res["R-10"].status === "reussi") sortie.inscriptionsProuvees = inscriptionsVues;

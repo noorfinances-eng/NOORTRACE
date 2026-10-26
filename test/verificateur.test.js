@@ -98,11 +98,12 @@ describe("CT-6 : dossiers complets de spec/vecteurs/ct-6 par la ligne de command
       for (const c of doc.checks) expect(c.admitted, `${nom} ${c.id}`).to.equal(c.status === "non_execute" ? c.reason !== "prerequis_en_echec" : null);
       expect(doc.blocking_unexecuted, nom).to.deep.equal(doc.checks.filter((c) => c.admitted === false).map((c) => c.id));
       // V-6 : un contrôle réussi n'a que des vérifications réussies, hors piece_hors_dossier et vérifications sans effet.
-      const sansEffet = new Set(["T-11", "R-3", "R-10", "N-3", "N-4"]);
+      // Révision 0.2 : une vérification K- non exécutée est sans effet sur le statut de son contrôle (EX-5.7, EX-5.8).
+      const sansEffet = new Set(["T-11", "R-3", "R-10", "R-11", "N-3", "N-4"]);
       for (const c of doc.controls.filter((x) => x.status === "reussi")) {
         for (const id of c.checks) {
           const v = doc.checks.find((x) => x.id === id);
-          if (v.status !== "reussi") expect(v.status === "non_execute" && (v.reason === "piece_hors_dossier" || sansEffet.has(id)), `${nom} : ${id} dans le contrôle ${c.number} réussi`).to.equal(true);
+          if (v.status !== "reussi") expect(v.status === "non_execute" && (v.reason === "piece_hors_dossier" || sansEffet.has(id) || id.startsWith("K-")), `${nom} : ${id} dans le contrôle ${c.number} réussi`).to.equal(true);
         }
       }
       const faits = { 4: "timestamp", 5: "bitcoin", 6: "recorder_keys", 7: "approval", 8: "registry" };
@@ -249,10 +250,12 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
   const lireDossier = (rep) => Object.fromEntries(fs.readdirSync(rep).filter((f) => V.FICHIERS_DOSSIER.includes(f)).map((f) => [f, fs.readFileSync(path.join(rep, f))]));
   const ancres = V.controlerAncres(fs.readFileSync(ANCRES_TEST), SCHEMAS);
 
-  it("les quarante dossiers, sans ancres et avec ancres-test.json : même code et mêmes vérifications en échec ; 4, 5, 8 hors_perimetre_version ; N-3 jamais en échec", function () {
-    expect(noms).to.have.length(40);
+  it("les cinquante dossiers (quarante de la version 0.2 et dix de la révision 0.3), sans ancres et avec ancres-test.json : même code et mêmes vérifications en échec ; 4, 5, 8 hors_perimetre_version ; N-3 jamais en échec ; K-1 à K-9 seulement avec la partie points-de-controle.json", function () {
+    expect(noms).to.have.length(50);
     for (const nom of noms) {
       const a = lireJSON(racine, nom, "attendu.json");
+      const avecPartie = fs.existsSync(path.join(racine, nom, "points-de-controle.json"));
+      const attendusIds = J.CONTROLES_DOSSIER.map((c) => c.id).filter((id) => avecPartie || !id.startsWith("K-"));
       for (const avec of [null, ancres]) {
         const corps = V.verifierDossierComplet({ fichiers: lireDossier(path.join(racine, nom)), schemas: SCHEMAS, ancres: avec });
         const etiquette = `${nom}${avec ? " (ancres-test.json)" : ""}`;
@@ -263,7 +266,12 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
         expect(corps.checks.find((c) => c.id === "N-4"), etiquette).to.equal(undefined);
         if (!avec) expect(corps.checks.find((c) => c.id === "N-3"), etiquette).to.equal(undefined);
         else expect(corps.checks.find((c) => c.id === "N-3")?.status ?? "absente", etiquette).to.not.equal("echoue");
-        expect(corps.checks.filter((c) => c.id !== "N-3").map((c) => c.id), etiquette).to.deep.equal(J.CONTROLES_DOSSIER.map((c) => c.id));
+        expect(corps.checks.filter((c) => c.id !== "N-3").map((c) => c.id), etiquette).to.deep.equal(attendusIds);
+        // K-7 à K-9 (ancres du point) ne s'exécutent que sur une ancre présente : les dossiers de CT-1 n'en portent pas.
+        for (const c of corps.checks.filter((x) => ["K-7", "K-8", "K-9"].includes(x.id))) {
+          expect(c.status, `${etiquette} ${c.id}`).to.equal("non_execute");
+          expect(["partie_absente", "prerequis_en_echec"], `${etiquette} ${c.id}`).to.include(c.reason);
+        }
       }
     }
   });
@@ -544,6 +552,35 @@ describe("CT-6 : règles précisées par la revue", function () {
     expect(doc.checks.filter((c) => /^[OR]-/.test(c.id) && !["O-2", "R-9", "R-10"].includes(c.id)).every((c) => c.status === "reussi" || (c.id === "R-3" && c.status === "reussi"))).to.equal(true);
   });
 
+  it("AV-K-4 : jeton du point postérieur de plus de 3600 s à checkpoint_ts, avertissement sans effet sur le verdict (CT-6 §7.9, CT-5 §13)", async function () {
+    const G = await import("../scripts/vecteurs/ct6/rfc3161.mjs");
+    const crypto = await import("node:crypto");
+    const materiel = G.materielTest(G.chargerCles(path.join(CT6, "rfc3161", "cles")));
+    const rep = path.join(DOSSIERS, "valide-point-de-controle-point-contresigne");
+    const lireDossier = () => Object.fromEntries(fs.readdirSync(rep).filter((f) => V.FICHIERS_DOSSIER.includes(f)).map((f) => [f, fs.readFileSync(path.join(rep, f))]));
+    const ancres = V.controlerAncres(fs.readFileSync(ANCRES_TEST), SCHEMAS);
+    const avant = V.verifierDossierComplet({ fichiers: lireDossier(), schemas: SCHEMAS, ancres });
+    expect([avant.exit_code, avant.warnings.map((w) => w.id)]).to.deep.equal([0, []]);
+    expect(V.SEUIL_AV_K4_S).to.equal(3600);
+    const fichiers = lireDossier();
+    const partie = J.analyserJSONStrict(fichiers["points-de-controle.json"]);
+    const jeton = (genTime) => G.construireJeton({ empreinte: Buffer.from(partie.checkpoint_hash.slice(2), "hex"), genTime, serie: 4242, nonce: BigInt("0x" + crypto.createHash("sha256").update("noortrace/test/av-k-4", "utf8").digest().subarray(0, 8).toString("hex")), tsaNom: materiel.nomTsa, certificats: [materiel.certs["tsa-test"]], signataire: materiel.certs["tsa-test"], cle: materiel.cles["tsa-test"] });
+    const verifier = (genTime) => {
+      const p = { ...partie, anchors: { ...partie.anchors, rfc3161: { token: Buffer.from(jeton(genTime)).toString("base64") } } };
+      const { fichiers: f } = J.reindexerDossier({ ...fichiers, "points-de-controle.json": Buffer.from(JSON.stringify(p, null, 2) + "\n") });
+      return V.verifierDossierComplet({ fichiers: f, schemas: SCHEMAS, ancres });
+    };
+    // 09:35:00.000Z + 3599 s + 1 s de précision : borne à 3600 s exactement, pas d'avertissement.
+    const limite = verifier("20261105103459Z");
+    expect([limite.exit_code, limite.warnings.map((w) => w.id)]).to.deep.equal([0, []]);
+    const tardif = verifier("20261105113500Z");
+    expect(tardif.exit_code).to.equal(0);
+    expect(tardif.failed_checks).to.deep.equal([]);
+    const w = tardif.warnings.find((x) => x.id === "AV-K-4");
+    expect(w, "AV-K-4").to.not.equal(undefined);
+    expect(w.check).to.equal("K-7");
+  });
+
   it("ordre des avertissements : vérification qui les lève dans l'ordre du rapport, puis identifiant, puis émission (EX-6.15)", function () {
     const liste = [{ id: "T-1" }, { id: "T-9" }, { id: "O-4" }, { id: "O-5" }, { id: "O-7" }, { id: "R-5" }, { id: "R-10" }];
     const a = [{ id: "AV-R-1", check: "R-10" }, { id: "AV-O-3", check: "O-5" }, { id: "AV-O-2", check: "O-7", n: 1 }, { id: "AV-O-1", check: "O-4" }, { id: "AV-O-2", check: "O-7", n: 2 }, { id: "AV-T-4", check: "T-9" }, { id: "AV-T-2", check: "T-9" }];
@@ -564,8 +601,8 @@ describe("CT-6 : règles précisées par la revue", function () {
     expect(lancer(["--help", "--detail"]).code).to.equal(2);
   });
 
-  it("verifier.schemas : les huit schémas embarqués, dans l'ordre fixé, quelles que soient les options (section 8.6)", function () {
-    const ordre = ["evenement", "manifeste", "dossier", "registre", "validateurs", "ancres-confiance", "entetes-bitcoin", "rapport-verification"].map((n) => `https://noortrace.example/schemas/v0/${n}.schema.json`);
+  it("verifier.schemas : les neuf schémas embarqués (point-de-controle depuis la révision 0.2), dans l'ordre fixé, quelles que soient les options (section 8.6)", function () {
+    const ordre = ["evenement", "manifeste", "dossier", "point-de-controle", "registre", "validateurs", "ancres-confiance", "entetes-bitcoin", "rapport-verification"].map((n) => `https://noortrace.example/schemas/v0/${n}.schema.json`);
     for (const args of [[COMPLET], [COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]]) expect(rapportJSON(args).doc.verifier.schemas.map((s) => s.id)).to.deep.equal(ordre);
   });
 

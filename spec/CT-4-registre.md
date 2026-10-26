@@ -1,10 +1,12 @@
 # CT-4 — Registre
 
-Version 0.2, 2026-10-25. Spécification normative, soumise à la revue de la
-porte 1 du plan de projet (document interne). Elle met en œuvre le point 1 de
-la section « Ancrage » et la section « Instance dédiée » de l'[architecture
-cible](../ARCHITECTURE.md). Elle s'appuie sur les formats v0 de
-[CT-1](CT-1-evenements-et-formats.md) sans les modifier, reprend ce que
+Version 0.3, 2026-10-25 (révision 0.3 minimale, textuelle : libellé de
+`docType` du point de contrôle du journal, 6.4 et EX-6.6 ; la version 0.2 du
+même jour appliquait les corrections de la revue). Spécification normative,
+soumise à la revue de la porte 1 du plan de projet (document interne). Elle met
+en œuvre le point 1 de la section « Ancrage » et la section « Instance dédiée »
+de l'[architecture cible](../ARCHITECTURE.md). Elle s'appuie sur les formats v0
+de [CT-1](CT-1-evenements-et-formats.md) sans les modifier, reprend ce que
 [CT-2](CT-2-enregistreur.md) envoie au registre et en attend (CT-2 §11.3,
 §14.2), sert la lecture du jeu d'approbateurs de
 [CT-3](CT-3-approbations.md) (§8) et se conforme à ce que
@@ -120,6 +122,20 @@ sans nouvelle règle, 7.4 (effets de `npm ci` et de `npm run compile` sur
 l'arbre de travail, sorties à rendre), 7.7 (`expires_at` réservé aux demandes
 de clôture, absent des autres demandes), 7.9 (certificats à vérifier, arrêt
 du réseau) et 7.12 (contenu, conservation et remise du répertoire de l'essai).
+La version 0.3, du 2026-10-25, est minimale et textuelle : elle ajoute à la
+table des `docType` de 6.4 le libellé `noortrace/point-de-controle/v0`, ancre
+d'un point de contrôle du journal (CT-1 révision 0.3, §10.6 et §11.2 ; cadence
+et conduite en CT-5 §9 ; vérification R-11 et K-8 de CT-6 révision 0.2,
+§11.9), et complète EX-6.6 en conséquence ; rien d'autre ne change dans ce
+document. La constante `DOC_TYPE_POINT_DE_CONTROLE` existe dans les
+bibliothèques (`scripts/lib/noortrace.mjs`, `registre.mjs`,
+`conventions-registre.mjs`), écrite avec le lot CT-5. Le vecteur
+`doctypes.json` de RG-3 (6.9, annexe A), l'option `--point` de l'outil
+`ancrer` (l'outil de référence n'ancre aujourd'hui que des périodes),
+l'exemple d'EX-4.19 (`24 × 62` appels `anchor` par jour à la cadence par
+défaut, ancres de périodes comprises ; CT-5 §4.3, révision 0.2) et la ligne
+« Débit d'une clé » de la section 12 (au plus 63 opérations par période et par
+journal) sont attendus d'une révision suivante (CT-5 §9.5).
 
 ## 1. Objet, périmètre et relations
 
@@ -644,7 +660,13 @@ multiplié par le gaz de référence de la table ci-dessous ; sa provision est
 Exemple : la clé de chaîne d'un enregistreur qui tient un journal horaire a
 `b = 24 × (100 000 + 350 000) = 10 800 000` wei par jour, donc
 `P = 30 × 10 800 000 + 3 000 000 = 327 000 000` wei, soit 3,27 × 10^-10 NUR.
-1 NUR couvre environ 9,3 × 10^10 journées d'un tel journal.
+1 NUR couvre environ 9,3 × 10^10 journées d'un tel journal. Note (révision
+0.3) : cet exemple ne compte pas les ancres de points de contrôle de CT-5 ;
+avec elles, à la cadence par défaut, la clé de chaîne d'un journal envoie au
+plus `24 × 62` appels `anchor` par jour, ancres de périodes comprises, soit
+`b = 24 × (62 × 100 000 + 350 000) = 157 200 000` wei et `P = 4 719 000 000`
+wei (CT-5 §4.3 et EX-9.8) ; l'exemple sera recalculé par une révision
+suivante (CT-5 §9.5).
 
 **EX-4.20** La provision borne la consommation d'un expéditeur
 approvisionné ; elle ne borne pas l'occupation de la mempool par un
@@ -1283,10 +1305,16 @@ dans la table ci-dessous ; une valeur hors de la table n'est pas un
 | Libellé | `docType` | Usage | Depuis |
 |---|---|---|---|
 | `noortrace/periode/v0` | `0x2970f32daf26845541b559f8505ddade17ab51994fab81cbfe0dbd81ab9671ee` | Ancre de la période d'un journal, empreinte de 6.5 | version 0 (`scripts/lib/noortrace.mjs:60-61`, `DOC_TYPE_PERIODE`, CT-6 EX-11.18) |
+| `noortrace/point-de-controle/v0` | `0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178` | Ancre d'un point de contrôle du journal, empreinte `keccak256(b32(org_id) ‖ b32(journal_id) ‖ b32(checkpointHash))` (CT-1 §10.6, §11.2, annexe B) ; cadence et conduite en CT-5 §9 ; admis par la vérification R-11 de CT-6 (révision 0.2, §11.9) pour la seule entrée de rôle `ancre_point_de_controle` | révision 0.3 (texte ; constante `DOC_TYPE_POINT_DE_CONTROLE` des bibliothèques faite ; vecteur `doctypes.json` et `ancrer --point` à ajouter, CT-5 §9.5) |
 
-**EX-6.6** En version 0, toute ancre qu'envoie la clé de chaîne d'un
-enregistreur porte `docType = keccak256(utf8("noortrace/periode/v0"))`, la
-seule valeur que R-9 admet (CT-6 EX-11.18). Un libellé ne s'ajoute à la
+**EX-6.6** En version 0, toute ancre d'une période qu'envoie la clé de chaîne
+d'un enregistreur porte `docType = keccak256(utf8("noortrace/periode/v0"))`,
+la seule valeur que R-9 admet (CT-6 EX-11.18) ; depuis la révision 0.3,
+l'ancre d'un point de contrôle du journal porte
+`keccak256(utf8("noortrace/point-de-controle/v0"))`, que la vérification R-11
+de CT-6 (révision 0.2) admet pour la seule entrée de rôle
+`ancre_point_de_controle` de `registre.json` ; aucune ancre ne porte l'un pour
+l'autre (CT-5 EX-9.2). Un libellé ne s'ajoute à la
 table que par une nouvelle version de CT-4, avec son vecteur ; un libellé
 n'est jamais réattribué à un autre sens : un sens nouveau est un libellé
 nouveau ou une version nouvelle (`…/v1`), comme un identifiant de schéma EAS
@@ -3699,7 +3727,7 @@ la chaîne de production après le pilote (« Instance dédiée »).
 | Menace | Constat | Réponse |
 |---|---|---|
 | Empoisonnement de la mempool par un expéditeur sans solde : client authentifié mais compromis, poste atteignant le relais RPC d'un client, tiers | Le RPC accepte une transaction sans contrôler le solde ni la limite de gaz (R1-F22) ; elle entre en mempool (5 120 places, file de nonces contigus sans borne par expéditeur), n'est écartée qu'au tour de proposition de son validateur sans avancer le nonce, ses suivantes ne sont jamais prêtes ni évincées, et le journal durable les rétablit au redémarrage pendant 24 h quand il est activé (R1-F24, R1-F30) ; pleine, la mempool refuse les transactions à 1 wei et le remplacement à 2 wei (EX-4.20, lecture du code, non provoqué) ; deux adresses vides suffisent, en 45 s par validateur, sans coût | Garde d'admission par client (EX-10.8 : authentification, quota, solde et nonce exacts, journal des refus) ; RPC des validateurs fermé derrière elle (EX-10.3) ; soumission à au moins deux validateurs d'opérateurs distincts (EX-8.15, DOIT) ; alerte CT-8 sur la taille de la mempool et sur tout `transaction underpriced` d'un envoi conforme à EX-4.15 ; limites du serveur : lots de 50, corps de 2 Mio, 32 requêtes simultanées, 100 requêtes/s par adresse (R1-F59) ; seuls les expéditeurs que la trésorerie approvisionne, jusqu'à `P_k`, paient le gaz (EX-4.19, EX-4.20) ; épreuve SU-2 ; contrôle du solde à l'admission par noorcore, plafond par expéditeur, éviction des transactions non prêtes et limite propre à `eth_sendRawTransaction` proposés (section 14) |
-| Débit d'une clé | une transaction par expéditeur et par bloc, au tour du validateur qui l'a reçue, au plus 64 par bloc (R1-F37) ; 30 000 000 de gaz par bloc (R1-F14) | une clé de chaîne par clé Ed25519 (CT-2 EX-11.19) ; deux opérations par période et par journal suffisent largement |
+| Débit d'une clé | une transaction par expéditeur et par bloc, au tour du validateur qui l'a reçue, au plus 64 par bloc (R1-F37) ; 30 000 000 de gaz par bloc (R1-F14) | une clé de chaîne par clé Ed25519 (CT-2 EX-11.19) ; deux opérations par période et par journal suffisent largement sans points de contrôle ; avec les ancres de points de CT-5, au plus 63 par période et par journal à la cadence par défaut (note de révision 0.3 ; texte définitif dans une révision suivante, CT-5 §9.5) |
 | Clés des validateurs | fichier seulement ; la garde en HSM ou en KMS, état visé par EX-4.12, n'est pas possible sans changer noorcore (EX-10.7) ; un validateur restauré depuis une sauvegarde de sa base (chaîne et état de consensus ensemble) revote sans mémoire de ses votes sur une hauteur non décidée : deux validateurs sur quatre ainsi amnésiques peuvent produire deux certificats contradictoires (EX-10.9, R2-F47) | génération sur site, 0600, un seul signataire actif (EX-10.7), au plus f par opérateur et par site (EX-4.12), cérémonie selon CT-7 ; aucune restauration ni réplication à chaud du répertoire de données, un validateur perdu repart vide et se rattrape, un seul à la fois (EX-10.9) ; supervision de `noor_bft_equivocations_total` et publication des preuves (section 14) |
 | Clé de chaîne compromise | elle signe des ancres et dépense sa provision (3.5) ; elle peut disperser sa provision vers des adresses neuves, que la révocation n'atteint pas, défaisant la cadence d'une transaction par bloc et l'examen d'EX-8.18 mais pas la borne en gaz ; après révocation, elle continue d'ancrer tant qu'elle a du NUR (EX-8.8) | consommation bornée par `P_k` et alerte au-delà de deux fois le budget (EX-4.20, EX-8.18) ; révocation (8.4), délai cible du contrat de service des approbateurs ; une clôture exige toujours le seuil des approbateurs ; le contrôle 8 écarte les ancres d'une clé révoquée (R-10) ; solde résiduel consigné comme capacité de nuisance restante ; garde d'admission limitée aux adresses connues proposée (section 14) |
 | Clé de gouvernance compromise, ou approbateurs de connivence | la clé prend le jeu en deux blocs (`addCuratorSigned`, `setThresholdSigned`, effet immédiat), avec un expéditeur approvisionné et un accès en écriture ; le jeu au seuil inscrit une clé et clôt une période frauduleuse qui rend le journal inachevable (3.5) | garde de la clé en classe A à C (EX-8.21, CT-7) ; relais de l'exploitant sur confirmation hors bande (EX-8.21) ; sondage des événements du jeu et des journaux par le client (EX-8.12) ; journal abandonné, réassignation sur demande, nouveau nom de journal (EX-8.10, EX-6.4) ; délai ou cosignature proposés (section 14) |

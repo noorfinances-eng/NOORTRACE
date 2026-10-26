@@ -1,7 +1,18 @@
 # CT-6 — Vérificateur
 
-Version 0.1, 2026-10-22. Spécification normative, soumise à la revue de la
-porte 1 du plan de projet (document interne). Elle met en œuvre l'étape
+Version 0.2, 2026-10-25 (révision 0.2 : vérification de la partie facultative
+`points-de-controle.json` du dossier, ajoutée par CT-1 révision 0.3 ;
+vérifications K-1 à K-9 rattachées aux huit contrôles, vérification R-11,
+fragment FK de l'énoncé, `facts.checkpoint` du rapport, section 7.9 ; ajouts
+seuls : codes de retour, huit contrôles et verdicts des dossiers existants
+inchangés, section 16. La version 0.1 du 2026-10-22 était la première
+rédaction. Précisions de la revue de CT-5, 2026-10-26, sans changement de
+format ni de verdict : §7.2, §7.3, §7.7 et §7.9 (fin de la fenêtre selon les
+clauses, valeur rapportée de `rewrite_window_ms`, jeton sans précision,
+« exploitant » défini en §2), EX-13.18 (choix du point couvrant par rang
+d'ancre), avertissement AV-K-4, EX-A.15 et trois dossiers de plus avec la
+partie.) Spécification normative, soumise à la revue de la porte 1 du plan
+de projet (document interne). Elle met en œuvre l'étape
 « Vérification » de la chaîne de traitement et la section « Dossier et
 vérification » de l'[architecture cible](../ARCHITECTURE.md). Elle vérifie le
 dossier v0 de [CT-1](CT-1-evenements-et-formats.md) §11 sans en changer la
@@ -32,7 +43,13 @@ section ; aucun numéro n'est réattribué ; une règle retirée garde son numé
 marqué « retiré ». En version 0.1, EX-6.15, EX-9.21, EX-13.12 et EX-13.13 ont
 été ajoutées par une révision, après la numérotation initiale de leur
 section. Elles gardent leur numéro (règle ci-dessus) et ne sont donc pas à
-leur rang dans le texte.
+leur rang dans le texte. La révision 0.2 ajoute EX-3.8, EX-4.14, EX-5.7 à
+EX-5.9, EX-6.16 à EX-6.18, EX-7.2, EX-8.8, EX-8.9, EX-9.22, EX-10.16, EX-11.23 à
+EX-11.25, EX-12.6, EX-13.14 à EX-13.19, EX-A.13 à EX-A.17 et V-9 ; elle
+complète en place, en le disant, le texte d'EX-4.3, EX-5.2, EX-5.6, EX-6.3,
+EX-6.4, EX-6.8, EX-6.13, EX-9.18, EX-10.12, EX-11.20, EX-11.21 et EX-12.4,
+sans changer ce qu'elles décident pour un dossier sans la partie
+`points-de-controle.json` ; aucune règle n'est retirée (section 16).
 
 Les vérifications élémentaires portent l'identifiant de leur famille :
 
@@ -41,7 +58,8 @@ Les vérifications élémentaires portent l'identifiant de leur famille :
 | D-, E-, C-, M-, P-, A- | index du dossier, contrôles 1, 2, 3, 6, 7 | CT-1 §11.4, reprises sans changement |
 | T- | 4, jeton RFC 3161 | section 9 |
 | O- | 5, preuve OpenTimestamps | section 10 |
-| R- | 8, registre et certificat de commit | section 11 |
+| R- | 8, registre et certificat de commit | section 11 (R-11, ancre d'un point de contrôle du journal : révision 0.2, 11.9) |
+| K- | 2, 3, 4, 5, 6 et 8 : vérifications de la partie facultative `points-de-controle.json` (révision 0.2) | CT-1 §11.4 (révision 0.3), reprises sans changement ; la section 5.4 fixe leur rattachement aux contrôles et leur effet sur le statut, les sections 9.9, 10.9 et 11.9 l'exécution de K-7, K-9 et K-8 |
 | N- | fichier d'ancres et son application au dossier | section 12 |
 | V- | verdict, énoncé et codes de retour | section 6.9 |
 
@@ -73,7 +91,13 @@ figurent aussi dans le texte. Un fait tiré du code de noorcore, dépôt privé,
 n'est pas recoupable publiquement. Ce qui n'a pas pu être vérifié est écrit
 « non vérifié ».
 
-Lecture : un réviseur qui ne lit qu'une section lit la section 7.
+La révision 0.2 cite deux notes du lot CT-5 (prestataires RFC 3161 et
+OpenTimestamps ; points de contrôle et cohérence), relues le 2026-10-25,
+écrites « CT-5 R1-Fn » et « CT-5 R2-Fn » pour les distinguer des notes R1 et
+R2 de ce lot ; l'annexe B.5 en donne les sources.
+
+Lecture : un réviseur qui ne lit qu'une section lit la section 7 ; pour ce
+qu'un point de contrôle du journal ajoute au verdict, la section 7.9.
 
 ## 1. Objet, périmètre et relations
 
@@ -96,6 +120,14 @@ CT-6 fixe, pour la version 0 du vérificateur :
    de l'architecture touchées (section 16), ce que la version ne couvre pas
    (section 17), les vecteurs (annexe A) et les sources des faits externes
    (annexe B).
+8. (révision 0.2) la vérification de la partie facultative
+   `points-de-controle.json` (CT-1 révision 0.3) : rattachement des
+   vérifications K-1 à K-9 aux huit contrôles et leur effet sur le statut
+   (section 5.4), fragment FK de l'énoncé et `facts.checkpoint` (sections 6.5,
+   6.7, 8), exécution de K-7, K-9 et K-8 sur `checkpoint_hash` (sections 9.9,
+   10.9, 11.9, vérification R-11), ce que le verdict prouve de nouveau
+   (section 7.9), ce que CT-5 produit pour les points (section 13.4), les
+   vecteurs (annexe A).
 
 Hors périmètre : la production des cinq parties réservées du dossier (CT-4
 pour le registre, CT-5 pour l'horodatage et OpenTimestamps ; la section 13 dit
@@ -110,7 +142,7 @@ Ce que la version 0 livre :
 
 | Élément | Livré |
 |---|---|
-| Cette spécification ; les schémas `ancres-confiance-v0`, `rapport-verification-v0`, `entetes-bitcoin-v0`, `registre-v0` et `validateurs-v0` | avec CT-6 |
+| Cette spécification ; les schémas `ancres-confiance-v0`, `rapport-verification-v0`, `entetes-bitcoin-v0`, `registre-v0` et `validateurs-v0` (`rapport-verification-v0` et `registre-v0` étendus de façon compatible par la révision 0.2 ; le vérificateur embarque aussi `point-de-controle-v0` de CT-1 révision 0.3, section 8.6) | avec CT-6 |
 | L'implémentation de référence JavaScript des huit contrôles, dans `scripts/verify/dossier.mjs` (option `--ancres`) | avec CT-6 |
 | Les vecteurs `spec/vecteurs/ct-6`, leurs tests et l'intégration continue | avec CT-6 |
 | Le binaire Go, sa construction reproductible et sa diffusion | phase 2 du plan (section 14) |
@@ -119,10 +151,10 @@ Relations avec les autres spécifications :
 
 | Spécification | Ce que CT-6 en reprend | Ce que CT-6 lui fournit ou lui impose |
 |---|---|---|
-| CT-1 | Le dossier v0 et ses douze parties (§11.1, §11.2) ; les vingt-huit vérifications D-1 à A-4 (§11.4) ; `periodHash` (§10.2) ; `anchorFingerprint` (§10.4) ; la borne du verdict (§11.3) | Le statut de chacun des huit contrôles, le verdict, l'énoncé. Aucune vérification de CT-1 n'est redéfinie. Les lignes de §11.2 des cinq parties réservées renvoient à CT-6, et celles de `jeton-rfc3161.der` et `preuve.ots` disent `periodHash` (section 16). |
+| CT-1 | Le dossier v0 et ses douze parties (§11.1, §11.2) ; les vingt-huit vérifications D-1 à A-4 (§11.4) ; `periodHash` (§10.2) ; `anchorFingerprint` (§10.4) ; la borne du verdict (§11.3) ; depuis la révision 0.3 de CT-1, la treizième partie facultative `points-de-controle.json`, le point de contrôle du journal, sa preuve de cohérence et les vérifications K-1 à K-9 (§10.5 à §10.9, §11.1, §11.2, §11.4) | Le statut de chacun des huit contrôles, le verdict, l'énoncé. Aucune vérification de CT-1 n'est redéfinie. Les lignes de §11.2 des cinq parties réservées renvoient à CT-6, et celles de `jeton-rfc3161.der` et `preuve.ots` disent `periodHash` (section 16). La révision 0.2 fixe en un seul endroit (5.4) dans quels contrôles K-1 à K-9 comptent et leur effet sur le statut, la raison de leur non-exécution, le fragment FK de l'énoncé (EX-6.16) et ce qu'il prouve (7.9), comme CT-1 §11.3 et §11.4 le lui demandent. |
 | CT-2 | La clé Ed25519 de l'enregistreur et la clé de chaîne secp256k1 sous laquelle elle est inscrite, qui signe les ancres et relaie les clôtures (§11, EX-11.13, EX-11.19) ; ce que la capture ne couvre pas (§21) | Rien de nouveau : le vérificateur contrôle ce que l'enregistreur produit. |
-| CT-4 | — | Le contenu de `registre.json`, `certificat-commit.json` et `validateurs.json`, et leur capture au moment de chaque transaction (sections 11 et 13). |
-| CT-5 | — | Le contenu de `jeton-rfc3161.der` et de `preuve.ots`, et le fichier d'en-têtes Bitcoin qui accompagne le dossier (sections 9, 10 et 13). |
+| CT-4 | — | Le contenu de `registre.json`, `certificat-commit.json` et `validateurs.json`, et leur capture au moment de chaque transaction (sections 11 et 13) ; depuis la révision 0.2, l'entrée de rôle `ancre_point_de_controle` pour l'ancre d'un point de contrôle du journal (11.9), avec le `docType` que CT-4 §6.4 inscrit en révision 0.3. |
+| CT-5 | — | Le contenu de `jeton-rfc3161.der` et de `preuve.ots`, et le fichier d'en-têtes Bitcoin qui accompagne le dossier (sections 9, 10 et 13) ; depuis la révision 0.2, les ancres embarquées d'un point de contrôle du journal dans `points-de-controle.json` et ce qui est publié pour le réviseur (section 13.4). |
 | CT-9 | — | Les identifiants EX-, T-, O-, R-, N- et V-, et les vecteurs `spec/vecteurs/ct-6` (annexe A). |
 
 ## 2. Terminologie
@@ -136,6 +168,7 @@ ajoutent :
 |---|---|
 | Vérificateur | Programme hors ligne qui lit un dossier et rend un verdict (section 0). |
 | Réviseur | La personne qui vérifie : auditeur, régulateur, juge, client. Il choisit ses ancres de confiance et lit l'énoncé. |
+| Exploitant | (révision 0.2) Celui qui fait fonctionner l'enregistreur et ses composants (ancrage, serveur d'horodatage interne) pour le compte du client : l'« opérateur » de 3.4 quand il agit sur l'enregistreur. Il tient la configuration, et, pour un serveur interne, sa clé et son horloge (CT-5 §7). |
 | Exportateur | Celui qui assemble le dossier et ses entrées à part, en pratique le client, avec l'enregistreur (CT-2) et les outils de CT-4 et CT-5. Le vérificateur ne le croit pas. |
 | Ancre de confiance | Donnée que le vérificateur tient pour vraie sans la vérifier : certificat d'une autorité d'horodatage, point de contrôle Bitcoin, identifiant de chaîne, adresse de contrat et jeu de validateurs du registre, clé publique d'enregistreur. |
 | Fichier d'ancres | Le fichier JSON où le réviseur écrit ses ancres de confiance (schéma `ancres-confiance-v0`, section 12). |
@@ -156,7 +189,10 @@ ajoutent :
 | Unité épinglée | Unité d'horodatage que le fichier d'ancres désigne directement comme autorité : le certificat qu'il donne pour cette autorité est celui de l'unité, et non celui d'une AC au-dessus d'elle. Quand T-7 retient cette autorité (EX-9.13, chemin retenu), le chemin se réduit à ce certificat, dont les dates sont comparées à `genTime`. |
 | Jeton | Le jeton d'horodatage RFC 3161 contenu dans `jeton-rfc3161.der`. |
 | Attestation en attente | Dans une preuve OpenTimestamps, la promesse d'un calendrier, pas encore reliée à un bloc Bitcoin (R2-F20). |
-| Point de contrôle | En-tête Bitcoin (réseau, hauteur, hachage) que le réviseur tient pour authentique ; la chaîne d'en-têtes fournie doit s'y rattacher, et sa preuve de travail est recalculée au-dessus de lui (EX-10.9). |
+| Point de contrôle Bitcoin | En-tête Bitcoin (réseau, hauteur, hachage) que le réviseur tient pour authentique ; la chaîne d'en-têtes fournie doit s'y rattacher, et sa preuve de travail est recalculée au-dessus de lui (EX-10.9). Dans les sections 3 à 7, 10 et 12 écrites avant la révision 0.2, « point de contrôle » sans qualificatif désigne cet en-tête (« point de contrôle du réviseur ») ; le texte de la révision 0.2 écrit toujours « point de contrôle Bitcoin » ou « point de contrôle du journal ». |
+| Point de contrôle du journal | (révision 0.2) Tête signée de l'arbre de Merkle de la période en cours, produite par l'enregistreur à cadence courte (CT-1 §10.5) : racine des `tree_size` premières feuilles, `last_seq`, `last_hash`, `checkpoint_ts`, chaînage au point précédent, signature ; son empreinte `checkpointHash` (CT-1 §10.6) reçoit les ancres de CT-5. Un dossier en porte au plus un, dans la partie facultative `points-de-controle.json` (CT-1 §11.2). |
+| Point couvrant | (révision 0.2) Le point de contrôle du journal que porte le dossier : un point dont `tree_size` est strictement supérieur à l'indice de feuille de l'événement prouvé, choisi par l'exportateur (CT-1 §11.2, CT-5 §10) ; K-4 vérifie la couverture, K-5 que son arbre est un préfixe de celui du manifeste. |
+| Fenêtre de réécriture | (révision 0.2) Pour un événement de `ts = t_e`, `W = T − t_e`, `T` étant le plus précoce des instants prouvés par une ancre qui date et qui engage l'événement : `genTime` plus la précision d'un jeton RFC 3161, celui du point (K-7) ou celui de la clôture (contrôle 4) (CT-1 §10.9). Une ancre au registre ne fournit pas de `T` : elle ordonne sans dater. La création d'un bloc Bitcoin termine aussi la fenêtre (K-9, contrôle 5), sans que son instant soit prouvé ; elle ne fournit pas non plus de `T`. Le vérificateur ne mesure pas `W` dans l'absolu : il énonce `T` (fragment FK) et rapporte `T − t_e` pour cet événement (`facts.checkpoint.rewrite_window_ms`). |
 | Confirmations | Nombre d'en-têtes de la chaîne fournie depuis le bloc attesté, lui compris, jusqu'au dernier : t − h + 1 (EX-10.10). |
 | Registre | L'instance dédiée de noorcore qui porte `PeriodRegistry`, `AttestationRegistry` et `RecorderRegistry` (architecture, « Instance dédiée »). |
 | Certificat de commit | La proposition signée et au moins un quorum de precommits signés qui ont décidé un bloc du registre, servis par `noor_getCommitCertificate` (`scripts/verify/README.md`). |
@@ -252,7 +288,12 @@ exception :
   recalculée au-dessus du point de contrôle, EX-10.9) ;
 - `registre.json`, `certificat-commit.json` et `validateurs.json`, tant que
   les blocs ne sont pas rattachés au jeu de validateurs du fichier d'ancres ;
-- les pièces fournies à part et le second manifeste.
+- les pièces fournies à part et le second manifeste ;
+- (révision 0.2) la partie `points-de-controle.json` : le point de contrôle du
+  journal, son `checkpoint_ts`, sa preuve de cohérence et ses ancres embarquées
+  (jeton, preuve `.ots`, référence au registre), tant que K-7, K-9 et K-8 ne
+  les ont pas rattachées au fichier d'ancres ; `checkpoint_ts` reste
+  déclaratif même alors (CT-1 §10.5).
 
 Le vérificateur ne consulte pas non plus l'horloge du système (EX-3.2), le
 réseau ni les magasins de certificats du système (EX-3.3).
@@ -269,6 +310,7 @@ réseau ni les magasins de certificats du système (EX-3.3).
 | 6 | `cles.json`, signatures | Clés publiques d'enregistreurs, si le réviseur en fournit (N-3) | La clé nommée a signé ; elle est la clé du fichier d'ancres si celui-ci en donne une sous les mêmes `org_id`, `journal_id` et `key_id` (N-3, EX-12.4). Une clé dont le `key_id` est absent du fichier d'ancres n'est pas comparée, même si le fichier donne d'autres clés pour ce journal (EX-6.14, 7.2). |
 | 7 | `approbations.json`, signatures | Aucune ancre d'approbateurs en version 0 | Les adresses nommées ont signé, au seuil déclaré ; pour une demande expirée, aucune signature n'est attachée. |
 | 8 | `registre.json`, `certificat-commit.json`, `validateurs.json` | Identifiant de chaîne, adresses des contrats, jeux de validateurs et hauteurs de validité ; clés de chaîne des enregistreurs, si le réviseur en fournit (N-4) | Un quorum du jeu du fichier d'ancres a signé les blocs où les contrats du fichier d'ancres ont émis la clôture et l'ancre de `periodHash` ; l'émetteur de l'ancre est la clé de chaîne du fichier d'ancres si celui-ci en donne une pour la clé du manifeste, sous les mêmes `org_id`, `journal_id` et `key_id` (N-4, EX-12.5). |
+| K- (partie `points-de-controle.json`, révision 0.2) | `points-de-controle.json` : point de contrôle du journal, `checkpoint_hash`, preuve de cohérence, jeton, preuve `.ots`, référence au registre ; entrée `ancre_point_de_controle` de `registre.json` | Les mêmes ancres que les contrôles 4, 5, 6 et 8 (autorités d'horodatage, `bitcoin`, `registry`, `recorders`) ; aucune ancre nouvelle (EX-12.6) | Le point couvre l'événement et son arbre est un préfixe de celui du manifeste (K-4, K-5) ; `checkpointHash` recalculé et signé par la clé déclarée (K-2, K-3) ; `checkpointHash` existait au plus tard à l'instant du jeton du point selon une autorité du fichier d'ancres (K-7), avant un bloc Bitcoin (K-9), et son ancre a été émise au registre dans un bloc certifié (K-8, R-11), chacune sous les hypothèses du contrôle qu'elle sert. |
 
 **EX-3.6** Le rapport DOIT dire d'où viennent les clés du contrôle 6
 (`dossier`, `ancres` ou `registre`, clé par clé quand elles diffèrent) et le
@@ -287,6 +329,16 @@ d'ancres lui-même (format, cohérence interne) rend l'entrée inutilisable
 (code 2) : le fichier d'ancres n'est pas une pièce du dossier, et son défaut
 n'est pas une affirmation sur le dossier.
 
+**EX-3.8** (révision 0.2) Les ancres embarquées dans `points-de-controle.json`
+sont des pièces du dossier, déclaratives (EX-3.4) : elles sont vérifiées avec
+les ancres du réviseur et jamais crues. Un jeton d'un serveur d'horodatage
+interne (CT-5 §7) n'est accepté par K-7 que si le réviseur a placé son
+autorité dans `tsa_authorities` ; l'énoncé la nomme par le `name` du fichier
+d'ancres et ne dit « qualifié » que si le réviseur l'a déclaré (T-11 sur le
+jeton du point, EX-9.22). Le vérificateur ne tire du point aucune date : seule
+la contresignature extérieure date le point (CT-1 §10.9), et `checkpoint_ts`
+n'entre que dans des comparaisons entre valeurs déclarées (K-4).
+
 ### 3.4 Adversaires considérés
 
 | Adversaire | Ce qu'on lui suppose | Ce qu'un verdict valide aux huit contrôles réussis l'empêche de faire passer | Ce qu'il peut encore faire |
@@ -297,6 +349,24 @@ n'est pas une affirmation sur le dossier.
 | **Autorité d'horodatage** malhonnête ou compromise | Elle signe n'importe quel `genTime`. | Un jeton sur une autre donnée que `periodHash` (4) ; un jeton d'une autorité que le réviseur n'a pas choisie (4). | Antidater ou postdater un jeton. Seul le contrôle 5 donne une borne de temps indépendante d'elle. |
 | **Validateurs minoritaires** : au plus f = ⌊(N − 1)/3⌋ validateurs du jeu du fichier d'ancres | Ils signent n'importe quoi. | Un certificat de commit sans le quorum (8). | Rien de plus, sous l'hypothèse H6 (section 3.5). |
 | **Fournisseur d'en-têtes Bitcoin** : l'exportateur, ou un mineur | Il fournit les en-têtes qu'il veut. | Un en-tête sans la preuve de travail exigée, ou non rattaché au point de contrôle (5). | Miner lui-même, au-dessus du point de contrôle, autant de blocs que la chaîne fournie en contient, s'il en a la puissance ; sur un réseau d'essai, c'est immédiat (hypothèse H5). |
+
+Révision 0.2. Un point de contrôle du journal vérifié (section 5.4) ne change
+rien aux lignes ci-dessus, sauf pour l'opérateur et l'enregistreur compromis :
+ce qu'un verdict les empêche de faire passer est alors borné à l'instant du
+jeton du point couvrant, non plus seulement à celui du jeton de la clôture.
+Une autre version de l'événement présentée après l'instant du jeton du point
+(K-7), après la création du bloc Bitcoin qui atteste le point (K-9) ou, sous
+H6 et H7, après l'inclusion de l'ancre du point (K-8, R-11) ne passe plus avec
+cette partie : la racine, `last_hash` ou `prev_checkpoint_hash` du point
+changeraient, donc `checkpointHash`, que les ancres ne portent plus (CT-1
+§10.9). Avant cet instant, rien ne l'empêche de réécrire et de signer de
+nouveau les événements que le point engage et le point lui-même. Ce qu'il
+peut encore faire : réécrire tout ce qui suit le dernier point ancré ; arrêter
+la production ou l'ancrage des points, ce qu'un dossier isolé ne montre pas (la
+série se contrôle hors du vérificateur, CT-1 §10.9, CT-5 §10) ; choisir, parmi
+les points qu'il détient, celui qu'il embarque, pourvu qu'il couvre l'événement
+(K-4) : la borne énoncée est celle de ce point, et le réviseur ne sait pas s'il
+en existait un plus précoce (7.9).
 
 ### 3.5 Hypothèses
 
@@ -312,6 +382,11 @@ ce qui en dépend tombe avec elle.
 | H5 | Aucun adversaire n'a pu miner, au-dessus du point de contrôle, autant de blocs que la chaîne fournie en contient. Sur un réseau d'essai, cette hypothèse ne tient pas. | 5 | livre blanc Bitcoin §11 (R2-F57), https://bitcoin.org/bitcoin.pdf |
 | H6 | Au plus f validateurs du jeu du fichier d'ancres sont fautifs, avec N ≥ 3f + 1. | 8 | Énoncée par le commentaire de `core/consensus/quorum.go:3-12` de noorcore (R3 NV2 ; formule du quorum, R3 F15) ; la propriété de sûreté n'a pas été relue dans une source primaire du protocole : non vérifié (R3 NV2). Les règles de calcul du contrôle 8 (énumérées en 7.8) sont tirées du code de noorcore et d'expériences sur le réseau de développement (annexe B.3). |
 | H7 | Le code déployé aux adresses de contrats du fichier d'ancres est celui de `contracts/` (`PeriodRegistry`, `AttestationRegistry`, `RecorderRegistry`). | 8, pour le sens que l'énoncé donne aux journaux émis par les contrats, y compris la provenance « inscrite au registre » (F2) et la mention « clé de chaîne inscrite au bloc … » (R-10) | Non vérifié (R3 NV7). |
+
+La révision 0.2 n'ajoute aucune hypothèse : H3 et H4 valent pour l'autorité
+qui contresigne un point de contrôle du journal (K-7), H5 pour sa preuve
+OpenTimestamps (K-9), H6 et H7 pour son ancre au registre (K-8, R-11), H1 et
+H2 pour sa signature et sa preuve de cohérence (K-2, K-3, K-5).
 
 ## 4. Entrées
 
@@ -329,7 +404,10 @@ ce qui en dépend tombe avec elle.
 
 Le dossier est celui de CT-1 §11 : un répertoire, son index `dossier.json`,
 douze parties toujours déclarées dans l'ordre de CT-1 §11.1, chacune présente
-avec son SHA-256 ou absente avec une raison. CT-6 ne change ni la version
+avec son SHA-256 ou absente avec une raison, et, depuis la révision 0.3 de
+CT-1, une treizième partie facultative (`points_de_controle`), déclarée en
+treizième position quand l'exportateur la connaît, présente ou absente avec
+une raison (EX-4.14). CT-6 ne change ni la version
 (`0`), ni les noms, ni l'ordre des parties ; il fixe le contenu des cinq
 parties réservées :
 
@@ -340,6 +418,7 @@ parties réservées :
 | `registre` | `registre.json` | en-têtes de blocs, reçus, index et journaux des transactions du registre | 8 | section 11 |
 | `certificat_commit` | `certificat-commit.json` | un certificat de commit par bloc que cite `registre.json` | 8 | section 11 |
 | `validateurs` | `validateurs.json` | jeu de validateurs déclaré par l'exportateur ; facultative, elle ne sert qu'au contrôle de cohérence R-3 | 8 | section 11 |
+| `points_de_controle` (révision 0.2) | `points-de-controle.json` | treizième partie, facultative (CT-1 §11.1, §11.2) : le point de contrôle du journal qui couvre l'événement, son `checkpoint_hash`, sa preuve de cohérence vers le manifeste et ses ancres embarquées en base64 (jeton RFC 3161, référence au registre, preuve OpenTimestamps) ; requise par aucun contrôle | 2, 3, 4, 5, 6, 8 (K-1 à K-9, section 5.4) | CT-1 §11.2 ; sections 5.4, 9.9, 10.9, 11.9 |
 
 **EX-4.1** Le vérificateur lit un seul dossier par exécution. Il ignore les
 fichiers du répertoire que `dossier.json` ne déclare pas (CT-1 §11.1) et n'en
@@ -357,12 +436,32 @@ sont les parties du dossier que nomme la table 5.1 : si l'une manque, le
 contrôle n'est pas exécuté. Une entrée à part n'est jamais une partie
 requise : sans fichier d'en-têtes, seules O-4 à O-6 ne s'exécutent pas
 (EX-4.5). `validateurs.json` n'est pas requise : son absence ne laisse non exécutée que
-R-3, sans effet sur le contrôle 8 (section 11).
+R-3, sans effet sur le contrôle 8 (section 11). La partie `points_de_controle`
+(révision 0.2) n'est requise par aucun contrôle (EX-5.7) : absente, déclarée
+absente ou non déclarée (index à douze parties), elle ne rend aucun contrôle
+`non_execute`, et n'apparaît que dans `absent_parts` quand l'index la déclare
+absente.
 
 **EX-4.4** Le rapport donne le SHA-256 des octets de `dossier.json`
 (`inputs.dossier.index_sha256`), qui désigne sans ambiguïté le dossier
 vérifié : quand D-2 réussit, l'index porte le SHA-256 de chaque partie
 présente, et fixe donc tout le dossier.
+
+**EX-4.14** (révision 0.2) La partie `points_de_controle` est lue et vérifiée
+quand l'index la déclare présente : D-2 contrôle son SHA-256, K-1 la valide
+contre `dossier-v0.schema.json#/$defs/points_de_controle` (le point contre
+`point-de-controle-v0.schema.json`, que le vérificateur embarque, 8.6), et K-2
+à K-9 s'exécutent comme la section 5.4 le dit. Sa limite de taille est 1 Mio
+(EX-4.13). Les deux fichiers binaires qu'elle embarque sont décodés depuis un
+base64 canonique (RFC 4648 §4, alphabet standard, remplissage `=` exact, aucun
+saut de ligne, bits de bourrage nuls : le réencodage des octets décodés redonne
+la chaîne) et soumis aux limites de la partie équivalente : 64 Kio pour le
+jeton (EX-9.3), 256 Kio pour la preuve (EX-10.2), que la longueur maximale du
+schéma de CT-1 (131 072 caractères, soit 98 304 octets décodés) rend
+inatteignable. Un base64 non canonique rend l'ancre inexploitable : K-7 ou K-9
+échoue (EX-9.22, EX-10.16). Un index à douze parties, ou à treize dont la
+treizième est absente avec une raison, laisse le dossier tel que la version
+0.1 le vérifiait (EX-6.18).
 
 ### 4.3 Les entrées à part
 
@@ -466,6 +565,7 @@ analyseurs.
 | `registre.json` | 64 Mio | non mesurée |
 | `certificat-commit.json` | 64 Mio | 7 075 à 7 782 octets par certificat (R3 F47) |
 | `validateurs.json` | 1 Mio | non mesurée |
+| `points-de-controle.json` (révision 0.2) | 1 Mio (EX-4.14) | 4 148 octets (exemple de CT-1 §11.2, jeton de 2 104 octets embarqué en base64) |
 | fichier d'en-têtes Bitcoin | 200 000 en-têtes (EX-10.3), 64 Mio | 80 octets par en-tête (R2-F43) |
 | second manifeste | 1 Mio | 629 octets (`manifeste.json` de `valide-seq-7`) |
 | fichier d'ancres | 16 Mio | non mesurée |
@@ -481,13 +581,13 @@ analyseurs.
 | N° | Contrôle de l'architecture | Vérifications | Parties et entrées requises | Ancres | Ce qu'il établit quand il réussit |
 |---|---|---|---|---|---|
 | 1 | Hachage canonique de l'événement et égalité avec `hash` | E-1, E-2, E-3, E-4, E-6, E-7 | `evenement.json` ; pièces si fournies | — | Chaque événement du dossier a la forme de CT-1 et le hachage qu'il annonce. |
-| 2 | Continuité de la chaîne avec les voisins fournis | C-1, C-2, P-3 | `voisins.json` | — | L'événement est relié à ses voisins par leurs hachages recalculés ; un voisin de la même période porte un `ts` déclaré dans ses bornes, et un voisin de la période adjacente (l'événement étant le premier ou le dernier de la sienne) un `ts` déclaré hors d'elle (P-3). |
-| 3 | Chemin de Merkle jusqu'à la racine | M-1, M-2, M-3, P-1, P-2, P-3, P-4, P-5 | `chemin.json`, `manifeste.json`, `manifeste.sig` ; second manifeste si fourni | — | L'événement est la feuille d'indice `seq − first_seq` de l'arbre dont la racine est dans le manifeste ; `periodHash` est recalculé et signé par la clé déclarée. |
-| 4 | Jeton RFC 3161 sur `periodHash` | T-1 à T-11 (section 9 ; T-11 sans effet sur le statut) | `jeton-rfc3161.der` | autorités d'horodatage, politiques admises, révocation, statut qualifié déclaré | `periodHash` existait au plus tard à `genTime` augmenté de la précision du jeton, selon une autorité du fichier d'ancres. Chaque certificat du chemin qui mène à cette autorité, le sien excepté, était valide à `genTime` (T-7) et, à cet instant, non révoqué selon une CRL à signature vérifiée (du fichier d'ancres ou du jeton) ou selon une déclaration du fichier d'ancres, de date postérieure ou égale à `genTime` (T-10 ; portée de cette preuve en 7.2). Les dates du certificat de l'autorité ne sont pas contrôlées (sauf unité épinglée, dont les dates sont contrôlées comme celles du certificat signataire), et sa révocation ne l'est que si une CRL du fichier d'ancres la porte (EX-9.13, EX-9.16, H3). |
-| 5 | Preuve OpenTimestamps contre les en-têtes Bitcoin | O-1 à O-7 (section 10) | `preuve.ots` ; en-têtes Bitcoin pour O-4 à O-6 (EX-4.5) | réseau, point de contrôle, profondeur minimale | `periodHash` existait avant la création d'un bloc Bitcoin relié au point de contrôle par la chaîne d'en-têtes fournie, preuve de travail recalculée au-dessus du point de contrôle, sous k confirmations. |
-| 6 | Signature Ed25519 de l'enregistreur | E-8, E-10, E-11, C-3, P-5 ; N-3 (section 12) si le fichier d'ancres donne des clés | `cles.json`, `evenement.json`, `voisins.json`, `manifeste.sig` | clés d'enregistreurs, facultatives | La clé nommée a signé l'événement, ses voisins et le manifeste. Le `ts` de chaque événement et le `generated_at` du manifeste, tels que déclarés, tombent dans la période de validité que `cles.json` annonce pour la clé qui les signe (E-11, P-5), ce qui ne date pas la signature ; la clé nommée est celle du fichier d'ancres si celui-ci en donne une sous les mêmes `org_id`, `journal_id` et `key_id` (N-3, EX-12.4). Une clé dont le `key_id` est absent du fichier d'ancres n'est pas comparée, même si le fichier donne d'autres clés pour ce journal (EX-6.14, 7.2). |
+| 2 | Continuité de la chaîne avec les voisins fournis | C-1, C-2, P-3 ; K-6 (partie facultative `points-de-controle.json`, 5.4) | `voisins.json` | — | L'événement est relié à ses voisins par leurs hachages recalculés ; un voisin de la même période porte un `ts` déclaré dans ses bornes, et un voisin de la période adjacente (l'événement étant le premier ou le dernier de la sienne) un `ts` déclaré hors d'elle (P-3). |
+| 3 | Chemin de Merkle jusqu'à la racine | M-1, M-2, M-3, P-1, P-2, P-3, P-4, P-5 ; K-1, K-2, K-4, K-5 (partie facultative, 5.4) | `chemin.json`, `manifeste.json`, `manifeste.sig` ; second manifeste si fourni | — | L'événement est la feuille d'indice `seq − first_seq` de l'arbre dont la racine est dans le manifeste ; `periodHash` est recalculé et signé par la clé déclarée. |
+| 4 | Jeton RFC 3161 sur `periodHash` | T-1 à T-11 (section 9 ; T-11 sans effet sur le statut) ; K-7 (partie facultative, 5.4, 9.9) | `jeton-rfc3161.der` | autorités d'horodatage, politiques admises, révocation, statut qualifié déclaré | `periodHash` existait au plus tard à `genTime` augmenté de la précision du jeton, selon une autorité du fichier d'ancres. Chaque certificat du chemin qui mène à cette autorité, le sien excepté, était valide à `genTime` (T-7) et, à cet instant, non révoqué selon une CRL à signature vérifiée (du fichier d'ancres ou du jeton) ou selon une déclaration du fichier d'ancres, de date postérieure ou égale à `genTime` (T-10 ; portée de cette preuve en 7.2). Les dates du certificat de l'autorité ne sont pas contrôlées (sauf unité épinglée, dont les dates sont contrôlées comme celles du certificat signataire), et sa révocation ne l'est que si une CRL du fichier d'ancres la porte (EX-9.13, EX-9.16, H3). |
+| 5 | Preuve OpenTimestamps contre les en-têtes Bitcoin | O-1 à O-7 (section 10) ; K-9 (partie facultative, 5.4, 10.9) | `preuve.ots` ; en-têtes Bitcoin pour O-4 à O-6 (EX-4.5) | réseau, point de contrôle, profondeur minimale | `periodHash` existait avant la création d'un bloc Bitcoin relié au point de contrôle par la chaîne d'en-têtes fournie, preuve de travail recalculée au-dessus du point de contrôle, sous k confirmations. |
+| 6 | Signature Ed25519 de l'enregistreur | E-8, E-10, E-11, C-3, P-5 ; N-3 (section 12) si le fichier d'ancres donne des clés ; K-3 (partie facultative, 5.4) | `cles.json`, `evenement.json`, `voisins.json`, `manifeste.sig` | clés d'enregistreurs, facultatives | La clé nommée a signé l'événement, ses voisins et le manifeste. Le `ts` de chaque événement et le `generated_at` du manifeste, tels que déclarés, tombent dans la période de validité que `cles.json` annonce pour la clé qui les signe (E-11, P-5), ce qui ne date pas la signature ; la clé nommée est celle du fichier d'ancres si celui-ci en donne une sous les mêmes `org_id`, `journal_id` et `key_id` (N-3, EX-12.4). Une clé dont le `key_id` est absent du fichier d'ancres n'est pas comparée, même si le fichier donne d'autres clés pour ce journal (EX-6.14, 7.2). |
 | 7 | Signatures des approbateurs et respect du seuil | E-5, E-9, A-1, A-2, A-3, A-4 | `approbations.json` quand `approval` n'est pas nul | — | Les adresses nommées ont signé la décision liée à l'événement, en nombre au moins égal au seuil du jeu déclaré. Pour une demande expirée (`decision` = `expire`), la décision liée à l'événement ne porte aucune signature (A-3) : aucun nombre de signatures n'est comparé au seuil, que l'énoncé rappelle. |
-| 8 | Inclusion de la transaction du registre dans un bloc certifié par un quorum | R-1 à R-10 (section 11 ; R-3 et R-10 sans effet sur le statut) ; N-4 (section 12) si le fichier d'ancres donne la clé de chaîne de la clé du manifeste | `registre.json`, `certificat-commit.json` ; `validateurs.json` facultative | identifiant de chaîne, adresses des contrats, jeux de validateurs et leurs hauteurs ; clé de chaîne d'enregistreur, facultative | Un quorum du jeu du fichier d'ancres a signé les blocs où les contrats du fichier d'ancres ont émis `PeriodSubmitted` avec ce `periodHash` et `Anchored` avec son `anchorFingerprint`. |
+| 8 | Inclusion de la transaction du registre dans un bloc certifié par un quorum | R-1 à R-11 (section 11 ; R-3, R-10 et R-11 sans effet sur le statut quand elles ne sont pas exécutées) ; N-4 (section 12) si le fichier d'ancres donne la clé de chaîne de la clé du manifeste ; K-8 (partie facultative, 5.4, 11.9) | `registre.json`, `certificat-commit.json` ; `validateurs.json` facultative | identifiant de chaîne, adresses des contrats, jeux de validateurs et leurs hauteurs ; clé de chaîne d'enregistreur, facultative | Un quorum du jeu du fichier d'ancres a signé les blocs où les contrats du fichier d'ancres ont émis `PeriodSubmitted` avec ce `periodHash` et `Anchored` avec son `anchorFingerprint`. |
 
 Dans la colonne « Parties et entrées requises », les entrées à part ne sont
 pas des parties requises (EX-4.3). Sans fichier d'en-têtes, seules O-4 à O-6
@@ -498,7 +598,12 @@ second manifeste, E-6 et P-5 s'exécutent sur ce que le dossier contient
 D-1 et D-2 ne servent aucun contrôle de l'architecture (CT-1 §11.4) : elles
 portent sur l'index ; leur échec rend le dossier invalide sans mettre en échec
 l'un des huit contrôles. P-3 sert les contrôles 2 et 3, P-5 les contrôles 3
-et 6, comme dans la colonne « Contrôle de l'architecture » de CT-1 §11.4.
+et 6, comme dans la colonne « Contrôle de l'architecture » de CT-1 §11.4. Les
+vérifications K-1 à K-9 (révision 0.2) servent les contrôles de cette même
+colonne : K-1, K-2, K-4 et K-5 le contrôle 3, K-3 le contrôle 6, K-6 le
+contrôle 2, K-7 le contrôle 4, K-8 le contrôle 8, K-9 le contrôle 5 ; la
+section 5.4 est le seul endroit qui fixe ce rattachement et son effet sur le
+statut.
 
 **EX-5.1** Le vérificateur exécute les vérifications de cette table, et
 seulement elles ; aucune autre règle n'entre dans le verdict. Une vérification
@@ -514,15 +619,17 @@ qui sert deux contrôles compte pour les deux.
 2. lecture de `dossier.json` (code 2 s'il est absent ou n'est pas du JSON),
    puis D-1 et D-2 ;
 3. vérifications de CT-1 dans l'ordre de CT-1 §11.4 (E-, C-, M-, P-, A-),
-   E-6 avec les pièces fournies à part et P-5 avec le second manifeste ;
-4. vérifications T- (contrôle 4), O- (contrôle 5), R- (contrôle 8), chaque
-   famille dans l'ordre de ses numéros ;
+   E-6 avec les pièces fournies à part et P-5 avec le second manifeste, puis
+   K-1 à K-9 quand la partie `points-de-controle.json` est déclarée présente
+   (révision 0.2, section 5.4) ;
+4. vérifications T- (contrôle 4), O- (contrôle 5), R- (contrôle 8, R-11
+   comprise), chaque famille dans l'ordre de ses numéros ;
 5. vérifications N-3, qui compare les clés de `cles.json` à celles du
    fichier d'ancres (contrôle 6), puis N-4, qui compare l'émetteur de l'ancre
    du registre à la clé de chaîne du fichier d'ancres (contrôle 8) ;
 6. statuts des contrôles, verdict, énoncé, borne (section 6).
 
-Le rapport suit cet ordre : D, E, C, M, P, A (CT-1 §11.4), puis T, O, R, N,
+Le rapport suit cet ordre : D, E, C, M, P, A, K (CT-1 §11.4), puis T, O, R, N,
 qui est aussi celui des listes de l'`attendu.json` des vecteurs (EX-A.3).
 L'ordre ne change aucun statut : chaque vérification ne dépend que de ses
 entrées et de ses prérequis (section 5.3).
@@ -539,6 +646,7 @@ entrées et de ses prérequis (section 5.3).
 | 6 | `cles.json` exploitable (E-8) | 1 réussi |
 | 7 | `approbations.json` quand `approval` n'est pas nul | 1 réussi |
 | 8 | `registre.json`, `certificat-commit.json` ; pour R-9 et R-10, `periodHash` recalculé et le manifeste (`org_id` et `journal_id` pour `anchorFingerprint`, EX-5.4) | 1 et 3 réussis |
+| K-1 à K-9 (révision 0.2) | la partie `points-de-controle.json` déclarée présente et exploitable (K-1) ; K-1 : `manifeste.json` exploitable (P-1) ; K-2 : K-1 réussie ; K-3 : K-1 et la première partie de E-8 (`cles.json` exploitable) ; K-4 : K-1, `chemin.json` exploitable et M-3 réussie ; K-5 : K-1 et P-1 ; K-6 : K-1 et les hachages recalculés du contrôle 1 ; K-7, K-8, K-9 : K-2 réussie (`checkpoint_hash` recalculé) et leur ancre non nulle | 1, 3 et 6 réussis, K-1 à K-5 réussies, K-6 réussie ou non exécutée pour l'événement hors du dossier (EX-6.16) |
 
 En version 0, la colonne « Pour entrer dans l'énoncé » ne retire jamais
 rien. Pour un verdict valide ou incomplet, les contrôles 1, 2, 3 et 6 sont
@@ -581,8 +689,84 @@ sinon le contrôle 6 repose sur les seules vérifications de CT-1, et la
 provenance de chaque clé est `registre` ou `dossier` selon la table des
 provenances de EX-6.8. N-4 ne s'exécute et ne figure que si le fichier
 d'ancres donne une clé de chaîne pour la clé du manifeste et que les parties
-du contrôle 8 sont présentes (EX-12.5). Les vingt-huit vérifications de CT-1
-figurent toujours toutes, comme dans CT-1.
+du contrôle 8 sont présentes (EX-12.5). Les vingt-huit vérifications D-1 à A-4
+de CT-1 figurent toujours toutes, comme dans CT-1 ; les neuf vérifications K-1
+à K-9 de CT-1 (révision 0.3) figurent quand la partie `points-de-controle.json`
+est déclarée présente, et seulement alors (révision 0.2, EX-5.7).
+
+### 5.4 Partie `points-de-controle.json` : vérifications K-1 à K-9 (révision 0.2)
+
+La révision 0.3 de CT-1 ajoute au dossier une treizième partie facultative,
+`points-de-controle.json` (CT-1 §11.1, §11.2) : le point de contrôle du journal
+qui couvre l'événement prouvé, son `checkpoint_hash`, la preuve de cohérence de
+sa racine vers celle du manifeste (CT-1 §10.7) et ses ancres embarquées ; et
+neuf vérifications K-1 à K-9 (CT-1 §11.4), dont K-1 à K-6 n'ont besoin que du
+dossier et dont K-7, K-8 et K-9 réutilisent les familles T-, R- et O- sur une
+autre empreinte que `periodHash`. CT-1 §11.3 et §11.4 laissent à CT-6 trois
+choses : dans quels contrôles ces vérifications comptent, la raison de leur
+non-exécution, et la proposition qu'elles ajoutent à l'énoncé. Cette section
+les fixe, en un seul endroit ; les sections 9.9, 10.9 et 11.9 disent comment
+K-7, K-9 et K-8 s'exécutent, EX-6.16 la proposition, EX-6.17 les faits
+rapportés, la section 7.9 ce que tout cela prouve. Les règles de CT-1 §11.4 ne
+sont pas redéfinies. Deux points que CT-1 laisse ouverts sont tranchés ici :
+K-3 échoue quand `key_id` du point est absent d'un `cles.json` exploitable
+(CT-1 §11.2 n'exige pas que `cles.json` porte la clé du point, donc E-8 ne porte
+pas cet échec) ; K-8 ne compare pas `chain_id` (EX-11.25 : le fichier d'ancres
+n'a pas d'identifiant EVM de chaîne, section 17).
+
+**EX-5.7 (rattachement, présence au rapport)** Les vérifications K-1 à K-9
+servent les contrôles que nomme la colonne « Contrôle de l'architecture » de
+CT-1 §11.4 : K-1, K-2, K-4 et K-5 le contrôle 3 ; K-3 le contrôle 6 ; K-6 le
+contrôle 2 ; K-7 le contrôle 4 ; K-8 le contrôle 8 ; K-9 le contrôle 5. Motif :
+chaque vérification K- prolonge le contrôle dont elle partage l'objet : la
+couverture et la cohérence sont des faits d'arbre de Merkle (3), la signature
+du point une signature de l'enregistreur (6), `last_hash` un fait de chaînage
+(2), le jeton du point un jeton RFC 3161 (4), sa preuve une preuve
+OpenTimestamps (5), son ancre une ancre au registre (8) ; les huit contrôles
+restent huit, et la table 5.1 reste la seule liste des vérifications de chaque
+contrôle. Les neuf vérifications figurent dans le rapport, dans l'ordre K-1 à
+K-9, après A-4 et avant T-1 (EX-5.2), si et seulement si l'index déclare la
+partie présente (treize parties, treizième à `present: true`). Index à douze
+parties, ou treizième partie déclarée absente avec une raison : aucune K- ne
+figure, `absent_parts` porte la partie quand elle est déclarée absente, et le
+rapport est celui de la version 0.1 (EX-6.18). La partie n'est requise par
+aucun contrôle (EX-4.3).
+
+**EX-5.8 (effet sur le statut)** Une vérification K- exécutée compte dans le
+statut de son contrôle comme toute autre : `echoue` rend le contrôle `echoue`
+(EX-6.4, règle 1 ; EX-9.18, EX-10.12 et EX-11.20 le disent pour les
+contrôles 4, 5 et 8). Une vérification K- `non_execute` est **sans effet sur le
+statut de son contrôle**, quelle que soit sa raison : elle s'ajoute aux
+vérifications sans effet de la règle 2 d'EX-6.4. Quand sa raison est
+`prerequis_en_echec`, elle entre dans `blocking_unexecuted` et le dossier est
+invalide (EX-6.7), comme pour toute vérification. Motif : la partie ajoute une
+preuve plus fine que les ancres horaires sans retirer ce que celles-ci
+prouvent ; une ancre de point absente, nulle ou non vérifiable avec les ancres
+du réviseur ne doit ni abaisser au rang de non exécuté le contrôle 4 d'une
+clôture qualifiée, ni changer le verdict d'un dossier que la version 0.1 tenait
+pour valide. Ce que les K- établissent est dit par le fragment FK (EX-6.16) et
+par `facts.checkpoint` (EX-6.17), et seulement là ; `--exiger` ne peut pas
+exiger un point de contrôle (section 17), et la borne (EX-6.12) ne nomme que
+les contrôles.
+
+**EX-5.9 (raisons de non-exécution)** Les raisons sont celles de la table 6.2,
+appliquées ainsi :
+
+| Vérification | `non_execute`, raison | Cas |
+|---|---|---|
+| K-1 | `prerequis_en_echec` | `manifeste.json` inexploitable (P-1 en échec) : les comparaisons au manifeste ne peuvent pas se faire ; le schéma de la partie est contrôlé quand même, et un défaut de schéma rend K-1 `echoue` |
+| K-2 à K-9 | `prerequis_en_echec` | K-1 en échec ou non exécutée (partie présente mais inexploitable : littéral `null`, tableau, texte qui n'est pas du JSON, schéma non respecté, limite de taille, EX-4.11) ; K-2 en échec, pour K-7, K-8 et K-9 ; `cles.json` inexploitable (première partie de E-8), pour K-3 ; `chemin.json` inexploitable ou M-3 en échec, pour K-4 ; hachage de l'événement `last_seq` incalculable (E-2, E-7), pour K-6 |
+| K-6 | `piece_hors_dossier` | l'événement de `seq = last_seq` du point n'est ni l'événement prouvé ni un voisin (CT-1 §11.4) |
+| K-7, K-8, K-9 | `partie_absente` | l'ancre correspondante vaut `null` dans `anchors` (CT-1 §11.4) ; pour K-9, aussi une preuve qui n'a que des attestations en attente (O-7, EX-10.11) ou un fichier d'en-têtes non fourni (EX-4.5) |
+| K-7, K-8, K-9 | `ancre_absente` | fichier d'ancres absent, ou sans l'ancre que la vérification réutilisée exige (T-4, T-7, T-10 pour K-7 ; `bitcoin`, ou en-têtes sans la hauteur du point de contrôle Bitcoin, pour K-9 ; `registry` pour la comparaison du contrat par K-8) |
+| K-7, K-9 | `hors_perimetre_version` | la vérification réutilisée le dit (algorithme hors version 0, T-5 ; opération OpenTimestamps hors profil, O-3) |
+
+K-2, K-3, K-4 et K-5 n'ont pas de raison admise : exécutables avec les seules
+pièces du dossier, elles sont `reussi`, `echoue`, ou `non_execute`
+(`prerequis_en_echec`). Quand plusieurs raisons s'appliquent, la première dans
+l'ordre d'EX-6.5 est retenue (EX-5.5). Le `detail` de chaque K- dit la valeur
+comparée (par exemple « leaf_index 6 < tree_size 7 ; ts ≤ checkpoint_ts » pour
+K-4, les quatre champs de `consistency` et la longueur de `path` pour K-5).
 
 ## 6. Verdicts
 
@@ -600,10 +784,10 @@ un réseau d'essai, H5 ne tient pas, et un contrôle 5 réussi ne prouve rien
 
 | Raison | Sens | S'applique à | Admise |
 |---|---|---|---|
-| `partie_absente` | La partie du dossier ou l'entrée à part qu'il faut est déclarée absente dans l'index, avec une raison, ou n'a pas été fournie ; ou bien la partie est présente mais ne porte pas encore ce qui la rend vérifiable (preuve OpenTimestamps sans attestation Bitcoin, O-7) ; ou bien un élément attendu manque dans une partie présente (`registre.json` sans entrée `inscription`, R-10). Le nom reprend la « partie absente » de CT-1 §11.4. Pour une entrée à part, il veut dire « entrée non fournie », sans faire de cette entrée une partie requise (EX-4.3). | vérifications, contrôles | oui |
+| `partie_absente` | La partie du dossier ou l'entrée à part qu'il faut est déclarée absente dans l'index, avec une raison, ou n'a pas été fournie ; ou bien la partie est présente mais ne porte pas encore ce qui la rend vérifiable (preuve OpenTimestamps sans attestation Bitcoin, O-7) ; ou bien un élément attendu manque dans une partie présente (`registre.json` sans entrée `inscription`, R-10 ; sans entrée `ancre_point_de_controle`, R-11) ; ou bien (révision 0.2) une ancre vaut `null` dans `anchors` de `points-de-controle.json` (K-7, K-8, K-9). Le nom reprend la « partie absente » de CT-1 §11.4. Pour une entrée à part, il veut dire « entrée non fournie », sans faire de cette entrée une partie requise (EX-4.3). | vérifications, contrôles | oui |
 | `ancre_absente` | Aucun fichier d'ancres, ou le fichier ne contient pas l'ancre exigée (y compris un certificat signataire qui n'est ni dans le jeton ni dans le fichier d'ancres, section 9, et une chaîne d'en-têtes qui ne couvre pas les hauteurs nécessaires ou n'atteint pas la profondeur `min_confirmations`, section 10). | vérifications, contrôles | oui |
 | `hors_perimetre_version` | La partie est absente avec la raison exacte « hors périmètre CT-1 » (dossier produit pour la seule CT-1), ou la pièce emploie une construction que la version 0 du vérificateur ne vérifie pas (par exemple une opération OpenTimestamps hors du profil de la section 10). | vérifications, contrôles | oui |
-| `piece_hors_dossier` | L'objet de la vérification n'est pas dans le dossier : l'événement de demande, pour A-4 (CT-1 §11.4). | vérifications seulement | oui |
+| `piece_hors_dossier` | L'objet de la vérification n'est pas dans le dossier : l'événement de demande, pour A-4 ; l'événement `last_seq` du point de contrôle du journal, pour K-6 (révision 0.2) (CT-1 §11.4). | vérifications seulement | oui |
 | `prerequis_en_echec` | Une vérification dont elle dépend a échoué ou n'a pas été exécutée pour cette même raison (EX-5.5), ou une pièce dont elle dépend est inexploitable. | vérifications, contrôles | non |
 
 Un contrôle non exécuté pour une raison admise l'est pour l'une des trois
@@ -627,7 +811,11 @@ dans le dossier → `piece_hors_dossier` ; toute autre non-exécution d'une
 vérification de CT-1 (index, événement, voisins, chemin, manifeste, signature
 de manifeste ou `cles.json` inexploitables, clé absente, validité non
 annoncée) → `prerequis_en_echec`. Cette correspondance reproduit exactement la
-distinction de CT-1 §11.4 entre raisons admises et non admises.
+distinction de CT-1 §11.4 entre raisons admises et non admises. Révision 0.2 :
+K-6 non exécutée parce que l'événement `last_seq` n'est pas dans le dossier →
+`piece_hors_dossier` ; K-7, K-8 ou K-9 non exécutée pour une ancre nulle →
+`partie_absente` ; K-1 à K-9 non exécutées pour une partie présente mais
+inexploitable, ou pour un prérequis en échec → `prerequis_en_echec` (EX-5.9).
 
 ### 6.3 Statut d'un contrôle
 
@@ -640,7 +828,8 @@ statut d'un contrôle se déduit de ses vérifications (table 5.1) :
    (EX-4.3), ou si au moins une de ses vérifications est `non_execute` pour
    une autre raison que `piece_hors_dossier`, sauf les vérifications déclarées
    sans effet sur le statut quand elles ne sont pas exécutées (en version 0 :
-   T-11, EX-9.17 ; R-3 et R-10, EX-11.20 ; N-3, EX-12.4 ; N-4, EX-12.5) ;
+   T-11, EX-9.17 ; R-3 et R-10, EX-11.20 ; N-3, EX-12.4 ; N-4, EX-12.5 ;
+   révision 0.2 : K-1 à K-9, EX-5.8, et R-11, EX-11.24) ;
 3. sinon `reussi`.
 
 **EX-6.5** Sauf règle propre de sa section, la raison d'un contrôle
@@ -681,13 +870,15 @@ les contrôles 4, 5, 7 et 8 peuvent être non exécutés pour une raison admise.
 ### 6.5 Énoncé : construction exacte
 
 **EX-6.8** Pour un verdict `valide` ou `incomplet`, l'énoncé est une phrase
-assemblée à partir des fragments ci-dessous, dans l'ordre F0 à F8, sans
-aucun autre caractère ; `␣` y note une espace (U+0020). Un fragment
-conditionnel n'apparaît que si sa condition est vraie. Le vérificateur produit l'énoncé en français et en anglais. F0 à F3
-portent sur l'événement. F4, F5 et F6 sont les propositions que les
-sections 9, 10 et 11 fournissent sur le manifeste ; F1 les relie à
-l'événement, puisqu'il le dit inclus dans ce manifeste. F7 dit ce qui n'est
-pas prouvé. Les accolades désignent des valeurs (EX-6.11).
+assemblée à partir des fragments ci-dessous, dans l'ordre F0 à F6, FK
+(révision 0.2, EX-6.16), F7 et F8, sans aucun autre caractère ; `␣` y note une
+espace (U+0020). Un fragment conditionnel n'apparaît que si sa condition est
+vraie. Le vérificateur produit l'énoncé en français et en anglais. F0 à F3
+portent sur l'événement. F4, F5 et F6 sont les propositions que les sections 9,
+10 et 11 fournissent sur le manifeste ; F1 les relie à l'événement, puisqu'il le
+dit inclus dans ce manifeste. FK (révision 0.2) porte sur le point de contrôle
+du journal qui couvre l'événement (EX-6.16). F7 dit ce qui n'est pas prouvé. Les
+accolades désignent des valeurs (EX-6.11).
 
 | Fragment | Condition | Français | Anglais |
 |---|---|---|---|
@@ -701,6 +892,7 @@ pas prouvé. Les accolades désignent des valeurs (EX-6.11).
 | F4 | contrôle 4 réussi | `␣;␣` suivi de la proposition française de EX-9.20 | `;␣` suivi de la proposition anglaise de EX-9.20 |
 | F5 | contrôle 5 réussi | `␣;␣` suivi de la proposition française de EX-10.15 | `;␣` suivi de la proposition anglaise de EX-10.15 |
 | F6 | contrôle 8 réussi | `␣;␣` suivi de la proposition française de EX-11.22 | `;␣` suivi de la proposition anglaise de EX-11.22 |
+| FK | révision 0.2 : conditions d'EX-6.16 | `␣;␣` suivi de la proposition française d'EX-6.16 | `;␣` suivi de la proposition anglaise d'EX-6.16 |
 | F7 | au moins un contrôle `non_execute` | `␣; ce dossier ne prouve rien sur␣` suivi des éléments, joints par `, sur␣` et, devant le dernier, par `␣ni sur␣` | `; this dossier proves nothing about␣` suivi des éléments, joints par `,␣` et, devant le dernier, par `␣or␣` |
 | F8 | toujours | `.` | `.` |
 
@@ -747,6 +939,50 @@ de chaque clé (`facts.recorder_keys`, section 8.6) et, pour l'ensemble,
 `{approbateurs}` : les adresses de `approval.approvers`, dans leur ordre,
 jointes par `,␣` et, devant la dernière, par `␣et␣` (anglais `␣and␣`) ;
 `{nb} signatures` s'écrit `1 signature` quand `{nb}` vaut 1.
+
+**EX-6.16 (fragment FK, point de contrôle du journal ; révision 0.2)** FK
+n'apparaît que si les contrôles 1, 3 et 6 sont `reussi`, si K-1 à K-5 sont
+`reussi`, si K-6 est `reussi` ou `non_execute` avec la raison
+`piece_hors_dossier`, et si au moins une des trois conditions d'ancre suivantes
+est remplie : K-7 `reussi` ; K-9 `reussi` ; K-8 `reussi` avec `inclusion` égale
+à `prouvee` (R-11 `reussi` dans un contrôle 8 `reussi`, EX-11.25). Il est formé,
+sans autre caractère, de la tête, des clauses d'ancre dont la condition est
+remplie, dans l'ordre jeton, Bitcoin, registre, puis de la clôture :
+
+| Élément | Condition | Français | Anglais |
+|---|---|---|---|
+| tête | toujours | `l'événement est couvert par le point de contrôle du journal de taille {tree_size} de sa période (empreinte {checkpoint_hash}, signé par la clé d'enregistreur {key_id}, {provenance_point}), préfixe prouvé de ce manifeste` | `the event is covered by the journal checkpoint of size {tree_size} of its period (digest {checkpoint_hash}, signed by recorder key {key_id}, {provenance_point}), a proven prefix of this manifest` |
+| jeton | K-7 réussie | `, horodaté au plus tard le {upper_bound_K} UTC selon {authority_K} (unité {tsu_K})` ; sans `accuracy`, « `{upper_bound_K}` UTC » devient « `{gen_time_K}` UTC, à la précision près de la politique `{policy_K}`, que le jeton n'indique pas » (règle d'EX-9.20) ; suivi, si T-11 a réussi sur ce jeton, de ` (horodatage qualifié {eIDAS\|ZertES} selon le réviseur ({source}))` | `, time-stamped no later than {upper_bound_K} UTC according to {authority_K} (unit {tsu_K})` ; “`{gen_time_K}` UTC, within the accuracy of policy `{policy_K}`, not stated in the token” ; ` ({eIDAS\|ZertES} qualified time-stamp according to the reviewer ({source}))` |
+| Bitcoin | K-9 réussie | `, antérieur à la création du bloc Bitcoin {retained_height_K} ({block_hash_K}, réseau {network}) sous {confirmations_K} blocs rattachés au point de contrôle Bitcoin {checkpoint_height} du réviseur` ; sur `regtest`, suivi de ` (réseau d'essai, sans valeur probante)` | `, earlier than the creation of Bitcoin block {retained_height_K} ({block_hash_K}, {network} network) under {confirmations_K} blocks connected to the reviewer's Bitcoin checkpoint {checkpoint_height}` ; ` (test network, no evidential value)` |
+| registre | K-8 réussie, `inclusion` `prouvee` | `, ancré au registre {chain_id} au bloc {block_number} (heure déclarée par le bloc : {block_time} UTC) par AttestationRegistry {contract}` | `, anchored in registry {chain_id} in block {block_number} (time declared by the block: {block_time} UTC) by AttestationRegistry {contract}` |
+| clôture | toujours | avec la clause jeton : ` ; une réécriture postérieure à cet instant serait détectée` ; sinon, avec la clause Bitcoin : ` ; une réécriture postérieure à la création de ce bloc serait détectée` ; sinon : ` ; une réécriture postérieure à l'inclusion de cette ancre serait détectée` | `; a rewrite after that instant would be detected` ; `; a rewrite after that block was created would be detected` ; `; a rewrite after that anchor was included would be detected` |
+
+Valeurs : `{tree_size}` et `{key_id}` sont ceux du point, `{checkpoint_hash}`
+le `checkpoint_hash` recalculé (K-2) ; `{provenance_point}` est la provenance
+de la clé du point par la table d'EX-6.8, colonne « Une clé, cas mixte » :
+« fournie par le fichier d'ancres » si N-3 a comparé cette clé (EX-12.6),
+« inscrite au registre » si R-10 réussie dans un contrôle 8 réussi prouve une
+inscription de sa clé publique, « déclarée par le dossier » sinon ; les valeurs
+de la clause jeton sont celles de `facts.checkpoint.timestamp` (EX-9.22, forme
+d'EX-9.19), celles de la clause Bitcoin de `facts.checkpoint.bitcoin`
+(EX-10.16, forme d'EX-10.14 ; `{checkpoint_height}` est `checkpoint.height`),
+celles de la clause registre de `facts.checkpoint.registry` (EX-11.25 ;
+`{chain_id}` est `registry.chain_id` du fichier d'ancres, celui que R-4 a
+comparé, non le `chain_id` déclaré de la partie). « Cet instant » est
+`{upper_bound_K}` (ou `{gen_time_K}` sans précision). « Serait détectée » a le
+sens de la section 7.9 : avec ce point et ces ancres, une version réécrite de
+l'événement ou de la période ne passe plus K-2, K-5 et K-7 (ou K-9, ou K-8 et
+R-11) ; personne ne veille.
+
+Quand FK est présent, les éléments de F7 relatifs aux contrôles 4 et 5 se
+lisent sur le manifeste et s'écrivent : `la date de son manifeste (contrôles 4
+et 5)` (`the date of its manifest (controls 4 and 5)`), `un horodatage de son
+manifeste par une autorité (contrôle 4)` (`a time-stamp of its manifest by an
+authority (control 4)`), `un ancrage de son manifeste dans Bitcoin (contrôle
+5)` (`an anchoring of its manifest in Bitcoin (control 5)`) ; les autres
+éléments ne changent pas. Sans FK, F7 est celui de la table ci-dessus, et
+l'énoncé de tout dossier sans la partie, ou dont les K- n'ont pas abouti, est
+celui de la version 0.1 (EX-6.18).
 
 **EX-6.9** Pour un verdict `invalide`, l'énoncé est formé de trois
 fragments, le deuxième seulement si `blocking_unexecuted` n'est pas vide :
@@ -796,7 +1032,10 @@ porte une borne (CT-1 §11.3), dans la langue de sortie : `verdict borné :␣`
 (anglais `bounded verdict:␣`) suivi, pour chaque contrôle non exécuté, dans
 l'ordre de 1 à 8, de `contrôle {N} non exécuté ({raison})` (anglais
 `control {N} not run ({raison})`), joints par `,␣`. Sinon la borne est nulle.
-Ce que la borne laisse sans preuve est dit par le fragment F7 de l'énoncé.
+Ce que la borne laisse sans preuve est dit par le fragment F7 de l'énoncé. Les
+vérifications K- non exécutées n'entrent pas dans la borne, qui ne nomme que
+les contrôles (révision 0.2, EX-5.8) ; ce qu'un point de contrôle du journal a
+prouvé ou non est dit par FK et par `facts.checkpoint`.
 
 La raison que donne la borne est un code de la liste fermée de 6.2. Son nom
 ne suffit pas toujours à dire la cause. La table 6.2 en donne la portée. La
@@ -818,7 +1057,10 @@ prouvés quand le verdict est `invalide` (comme dans CT-1, rien n'est repris de
 l'index à la place d'une partie inexploitable). Dans un rapport `invalide`,
 `facts` garde, pour situer l'écart, les valeurs des contrôles réussis ; ce ne
 sont pas des affirmations (7.4). Un programme qui lit le rapport NE DOIT
-employer `facts` que si `verdict` vaut `valide` ou `incomplet`.
+employer `facts` que si `verdict` vaut `valide` ou `incomplet`. Révision 0.2 :
+`facts.checkpoint` est la seule exception à la règle du contrôle réussi : ses
+valeurs sont établies par des vérifications K- réussies (EX-6.17), chacune
+dans un contrôle qui n'a pas échoué.
 
 **EX-6.15** Les avertissements (`warnings`) sont rapportés dans l'ordre du
 rapport de la vérification qui les lève (son `check`, ordre de la section
@@ -828,6 +1070,28 @@ dans l'ordre du fichier `.ots`, CRL dans l'ordre du fichier d'ancres puis du
 champ `crls` du jeton, extensions dans l'ordre du jeton, certificats et
 entrées dans l'ordre de leur partie. Deux implémentations conformes rendent
 donc la même liste, dans le même ordre (V-1, V-8).
+
+**EX-6.17 (`facts.checkpoint`, révision 0.2)** Le rapport porte toujours
+`facts.checkpoint` : `null` sans partie `points-de-controle.json` vérifiée,
+sans exception. Il n'est pas nul si et seulement si les contrôles 1, 3 et 6
+sont `reussi`, K-1 à K-5 `reussi` et K-6 `reussi` ou `non_execute`
+(`piece_hors_dossier`). Il porte alors `tree_size`, `last_seq`,
+`checkpoint_ts` (déclaratif, horloge de l'enregistreur), `checkpoint_hash`
+recalculé, `key_id` et `key_source` (provenance de la clé du point, EX-6.16),
+`leaf_index` de l'événement, `consistency` (`first_size`, `second_size`,
+`path_length`), `last_hash_checked` (vrai si K-6 a été exécutée), puis
+`timestamp` (forme d'EX-9.19, non nul si K-7 `reussi`, EX-9.22), `bitcoin`
+(forme d'EX-10.14, non nul si K-9 `reussi`, EX-10.16), `registry` (EX-11.25,
+non nul si K-8 `reussi` ; son champ `inclusion` vaut `prouvee` ou
+`declarative`), `rewrite_window_end` (l'`upper_bound` du jeton du point, ou
+`null` sans K-7 réussie ou sans `accuracy`) et `rewrite_window_ms`
+(`upper_bound` moins le `ts` de l'événement, en millisecondes, ou `null` ;
+négatif quand l'horloge de l'enregistreur avançait sur celle de l'autorité, ce
+qu'AV-T-4 signale). Dans un rapport `invalide`, `facts.checkpoint` suit la
+même règle que les autres faits : aide au diagnostic, jamais une affirmation
+(7.4). Le schéma `rapport-verification-v0` définit `checkpoint` comme membre
+facultatif de `facts`, pour qu'un rapport de la version 0.1 reste valide ; un
+vérificateur de la révision 0.2 l'écrit toujours (EX-8.9).
 
 ### 6.8 Compatibilité avec les dossiers CT-1
 
@@ -852,6 +1116,18 @@ clé dont le `key_id` ne figure pas dans le fichier d'ancres n'est pas
 comparée. Elle ne fait rien échouer, même si le fichier donne d'autres clés
 pour ce journal, et garde la provenance `dossier` (EX-6.8).
 
+**EX-6.18 (compatibilité avec les dossiers de la version 0.1 ; révision 0.2)**
+Sur un dossier dont l'index a douze parties, ou treize dont la treizième est
+déclarée absente, le vérificateur de la révision 0.2 rend le même code de
+retour, les mêmes statuts, le même énoncé, la même borne et les mêmes
+`failed_checks`, `blocking_unexecuted`, vérifications non exécutées et
+avertissements qu'en version 0.1 ; le rapport JSON ne diffère que par
+`verifier.schemas` (neuf schémas, 8.6), `facts.checkpoint` (`null`) et, si la
+treizième partie est déclarée absente, par la ligne correspondante
+d'`absent_parts`. Les cinquante dossiers de `spec/vecteurs/ct-6/dossiers`
+antérieurs à la révision 0.2 et les quarante de CT-1 gardent ainsi leur
+`attendu.json` ; la CI le vérifie (V-9, annexe A.7).
+
 ### 6.9 Vérifications du verdict (V-)
 
 Ces vérifications portent sur le rapport, pas sur le dossier : CT-9 les
@@ -868,6 +1144,7 @@ vecteur. Elles ne figurent pas dans `checks`.
 | V-6 | Aucun contrôle n'est `reussi` sans que ses parties requises soient présentes, ses ancres fournies et ses vérifications exécutées et réussies (sauf `piece_hors_dossier` et les vérifications sans effet sur le statut, EX-6.4) ; `facts` ne contient que des valeurs de contrôles réussis. | EX-6.6, EX-6.13 |
 | V-7 | Sur chacun des quarante dossiers de `spec/vecteurs/ct-1/dossiers`, le code de retour et `failed_checks` sont ceux de leur `attendu.json`. | EX-6.14 |
 | V-8 | Deux exécutions sur les mêmes entrées donnent le même rapport JSON, octet pour octet, aux chemins de `inputs` près ; une exécution sans réseau (`unshare -n`) donne le même rapport qu'une exécution avec réseau. | EX-3.2, EX-3.3, EX-8.7 |
+| V-9 | (révision 0.2) Sur chacun des cinquante dossiers de `spec/vecteurs/ct-6/dossiers` antérieurs à la révision 0.2, le code de retour, `failed_checks`, les statuts des contrôles, les vérifications non exécutées, les avertissements, l'énoncé et la borne sont ceux de leur `attendu.json`, et `facts.checkpoint` est `null` ; sur les dossiers qui portent la partie (EX-A.16), les K- figurent après A-4, FK et `facts.checkpoint` suivent EX-6.16 et EX-6.17, et les K- non exécutées ne changent aucun statut de contrôle. | EX-5.7, EX-5.8, EX-6.16, EX-6.17, EX-6.18 |
 
 ## 7. Ce que le vérificateur prouve et ne prouve pas
 
@@ -876,8 +1153,8 @@ une vérification, et ce qu'il ne peut pas affirmer. Chaque ligne est une
 phrase qu'il peut répéter telle quelle pour dire ce que vaut l'énoncé, qui
 reste la seule phrase du rapport à citer (7.1). Les identifiants entre
 parenthèses (T-10, EX-9.13, H3, A-1…) renvoient au détail, et chaque phrase
-se comprend sans eux. Les vérifications D-, E-, C-, M-, P- et A- sont
-celles de CT-1 §11.4 ; la table 5.1 dit ce que chaque contrôle en tire.
+se comprend sans eux. Les vérifications D-, E-, C-, M-, P-, A- et K- sont
+celles de CT-1 §11.4 (K- : glose en tête de 7.9) ; la table 5.1 dit ce que chaque contrôle en tire.
 
 « Prouver » a ici un sens précis : établir, par un calcul que n'importe qui
 peut refaire hors ligne, à partir du dossier et du fichier d'ancres du
@@ -907,11 +1184,22 @@ cette section range parmi ce qui n'est pas prouvé.
   est « incomplet », code 3, sauf si le dossier est invalide (7.5).
 - Le statut de chacun des huit contrôles : réussi, échoué, ou non exécuté avec
   sa raison.
+- (révision 0.2) Le point de contrôle du journal, s'il y en a un : la ligne
+  `Pt de contrôle` du rapport lisible, `facts.checkpoint`, les vérifications
+  K-1 à K-9 et le fragment FK de l'énoncé (« l'événement est couvert par le
+  point de contrôle du journal … ; une réécriture postérieure à cet instant
+  serait détectée »). La section 7.9 dit ce qu'il prouve de nouveau et ce
+  qu'il ne prouve pas. Sans FK, des K-1 à K-6 réussies établissent seulement
+  qu'un point signé par la clé de l'enregistreur couvre l'événement et que
+  son arbre est un préfixe de celui du manifeste. Comme cette clé est celle
+  qui pourrait réécrire, cela n'ajoute rien à ce que le dossier prouve sur la
+  date ni sur la fenêtre de réécriture, qui restent celles des ancres du
+  manifeste : les statuts des K- disent pourquoi FK manque.
 - La borne (ligne `Borne`, champ `bound`) : elle nomme chaque contrôle non
   exécuté et sa raison (EX-6.12). La raison que donne la borne est un code
   de la liste fermée de 6.2, et son nom ne suffit pas à dire la cause.
   `ancre_absente` couvre aussi un fichier d'en-têtes Bitcoin fourni qui ne
-  contient pas la hauteur de votre point de contrôle, ne contient celle
+  contient pas la hauteur de votre point de contrôle Bitcoin, ne contient celle
   d'aucun bloc attesté, ne couvre pas la fenêtre de difficulté ou n'atteint
   pas `min_confirmations` (EX-10.9, règles 3 et 5 ; O-4 ; O-6).
   `partie_absente` couvre aussi une `preuve.ots` présente qui n'a que des
@@ -1035,26 +1323,26 @@ Le vérificateur prouve :
   EX-9.15 règle 2). La date de l'énoncé l'inclut déjà, et le rapport donne
   `accuracy`.
 - Le même manifeste existait avant la création du bloc Bitcoin nommé. Ce bloc
-  est relié à votre point de contrôle par la chaîne d'en-têtes fournie, dont
-  la preuve de travail a été recalculée au-dessus du point de contrôle
+  est relié à votre point de contrôle Bitcoin par la chaîne d'en-têtes fournie, dont
+  la preuve de travail a été recalculée au-dessus du point de contrôle Bitcoin
   (contrôle 5). Sur un réseau d'essai (`regtest`, avertissement AV-O-3),
   cette ligne ne vaut rien. « Sous k blocs » (k confirmations) compte le
   bloc attesté lui-même : k − 1 blocs le suivent dans la chaîne fournie
   (k = t − h + 1, EX-10.10). Le travail n'est
   recalculé que pour les en-têtes situés au-dessus de votre point de
-  contrôle. Ceux qui sont à sa hauteur ou en dessous sont tenus par le seul
+  contrôle Bitcoin. Ceux qui sont à sa hauteur ou en dessous sont tenus par le seul
   chaînage des hachages jusqu'à lui (EX-10.9). Si le bloc attesté est à la
-  hauteur de votre point de contrôle ou en dessous, il vaut donc ce que vaut
-  votre point de contrôle (H3), non un travail. Parmi les k blocs, seuls ceux
-  qui sont au-dessus du point de contrôle portent alors un travail recalculé
+  hauteur de votre point de contrôle Bitcoin ou en dessous, il vaut donc ce que vaut
+  votre point de contrôle Bitcoin (H3), non un travail. Parmi les k blocs, seuls ceux
+  qui sont au-dessus du point de contrôle Bitcoin portent alors un travail recalculé
   (`cumulative_work`, EX-10.14). C'est ainsi que se lit « dont le travail se
   rattache au point de contrôle ». Cas limite : un fichier d'en-têtes qui
-  s'arrête à votre point de contrôle (t = c, ce que EX-10.9 admet) ne porte
+  s'arrête à votre point de contrôle Bitcoin (t = c, ce que EX-10.9 admet) ne porte
   aucun travail recalculé. `cumulative_work` vaut alors 0, et la profondeur
   que vous exigez (`min_confirmations`) est atteinte par des blocs tenus par
   le seul chaînage. Ce que la ligne prouve tient encore, parce que le bloc
-  attesté est votre point de contrôle ou l'un de ses ancêtres. Mais elle vaut
-  alors entièrement ce que vaut votre point de contrôle (H3), et k ne mesure
+  attesté est votre point de contrôle Bitcoin ou l'un de ses ancêtres. Mais elle vaut
+  alors entièrement ce que vaut votre point de contrôle Bitcoin (H3), et k ne mesure
   aucun travail. Aucun avertissement ne le signale : lisez `cumulative_work`
   (`facts.bitcoin`). L'énoncé n'affirme pas pour autant un travail qui n'a
   pas été recalculé (EX-7.1) : « dont le travail se rattache » se lit comme
@@ -1088,6 +1376,8 @@ Le vérificateur prouve :
 - Quand l'énoncé le dit (« que le réviseur tient pour la clé de chaîne
   de … »), cette clé de chaîne est celle que votre fichier d'ancres donne
   pour la clé du manifeste (contrôle 8, N-4).
+- (révision 0.2) Quand l'énoncé porte le fragment FK : ce que dit la section
+  7.9, et rien de plus.
 
 Le vérificateur ne prouve pas :
 
@@ -1135,7 +1425,16 @@ Le vérificateur ne prouve pas :
   restent vraies quel que soit le détenteur de la clé. La classe dit
   seulement qui, outre l'opérateur, peut se servir de la clé. Elle dit aussi
   si la clé peut être copiée, et donc servir encore après le retrait de son
-  accès (CT-2 §18.5). C'est pourquoi elle ne figure pas en 7.8.
+  accès (CT-2 §18.5). C'est pourquoi elle ne figure pas en 7.8. Révision 0.2 :
+  quand l'énoncé porte le fragment FK avec sa clause jeton, la fenêtre de
+  réécriture indétectable se termine à la plus précoce des bornes datées
+  vérifiées : `rewrite_window_end` (K-7) ou l'instant du jeton de clôture
+  (contrôle 4, `facts.timestamp.upper_bound`). En fonctionnement normal,
+  c'est celle du point. Après cet instant, la réécriture reste possible mais
+  devient détectable (7.9). `facts.checkpoint.rewrite_window_ms` rapporte
+  `rewrite_window_end − ts` pour cet événement, calculé à partir du `ts`
+  déclaré (7.9) ; quand le jeton de clôture est le plus précoce, comparez
+  vous-même `facts.timestamp.upper_bound` à `ts`.
 - Que la clé d'enregistreur appartient à l'organisation, au-delà de ce que
   disent les mentions de l'énoncé. « Fournie par le fichier d'ancres » :
   c'est la clé que vous avez déclarée pour cette organisation, ce journal et
@@ -1189,7 +1488,7 @@ Le vérificateur ne prouve pas :
   de leur création, à la dérive d'horloge près. Cette hypothèse est déduite
   par cette spécification (EX-10.13).
 - Que le bloc Bitcoin est dans la chaîne la plus longue d'aujourd'hui. Il est
-  relié à votre point de contrôle par la chaîne d'en-têtes fournie, sans
+  relié à votre point de contrôle Bitcoin par la chaîne d'en-têtes fournie, sans
   comparaison avec le réseau.
 - Une date tirée du registre. L'horodatage d'un bloc du registre est choisi
   par son proposant (R3 F8).
@@ -1260,10 +1559,10 @@ Le vérificateur ne prouve pas :
   une opération OpenTimestamps hors du profil de la section 10.
 - Raison `ancre_absente` : il manque une donnée que vous pouvez fournir
   vous-même. Ce peut être une ancre de votre fichier (autorité, point de
-  contrôle, `registry`), le certificat de l'unité d'horodatage quand le jeton
+  contrôle Bitcoin, `registry`), le certificat de l'unité d'horodatage quand le jeton
   ne le porte pas (à ajouter aux `intermediates`, T-4), une CRL ou une
   déclaration de non-révocation (T-10), ou un fichier d'en-têtes Bitcoin qui
-  contient votre point de contrôle (EX-10.9, règle 3), couvre la fenêtre de
+  contient votre point de contrôle Bitcoin (EX-10.9, règle 3), couvre la fenêtre de
   difficulté (règle 5) et atteint `min_confirmations` (O-6), que vous pouvez
   produire depuis votre nœud. Avec elle, la même pièce pourrait réussir ou
   échouer.
@@ -1295,6 +1594,31 @@ Le vérificateur ne prouve pas :
   bloc … ». Repérez ces absences à la ligne « Parties absentes »
   (`absent_parts`), à l'avertissement AV-R-1 et à la provenance des clés
   (énoncé, `facts.recorder_keys`).
+
+- (révision 0.2) Vérifications K-7, K-8 ou K-9 non exécutées dans un dossier
+  qui porte la partie `points-de-controle.json` : K-1 à K-6, réussies,
+  établissent seulement qu'un point signé par la clé de l'enregistreur couvre
+  l'événement et que son arbre est un préfixe de celui du manifeste. Comme
+  cette clé est celle qui pourrait réécrire, cela n'ajoute rien à ce que le
+  dossier prouve sur la date ni sur la fenêtre de réécriture, qui reste celle
+  des ancres horaires (7.2), c'est-à-dire des ancres du manifeste de période
+  obtenues à la clôture : jeton RFC 3161 (contrôle 4), preuve OpenTimestamps
+  (contrôle 5), registre (contrôle 8). Elle court au plus jusqu'à l'instant du
+  jeton de clôture quand le contrôle 4 réussit, sinon jusqu'à la création du
+  bloc Bitcoin quand le contrôle 5 réussit (instant non prouvé). Le registre
+  (contrôle 8) ne date rien et ne fournit aucun instant de fin de la fenêtre.
+  `partie_absente` :
+  l'exportateur n'a pas fourni cette ancre du point (CT-5 §10), ou la preuve
+  n'est pas encore reliée à Bitcoin ; `ancre_absente` : votre fichier d'ancres
+  ne contient pas ce qu'il faut pour la vérifier (par exemple l'autorité du
+  serveur d'horodatage interne, que CT-5 §10 publie pour vous, EX-13.19 ;
+  avant de l'ajouter, lisez en 7.9 ce que vaut un jeton de ce serveur).
+  L'énoncé ne porte alors pas de fragment FK, ou un fragment sans la clause
+  correspondante. Un point sans aucune ancre vérifiée n'est qu'une attribution
+  à la clé de l'enregistreur (CT-1 §10.9) : le rapport le dit par des K-7 à
+  K-9 non exécutées et un `facts.checkpoint` dont `timestamp`, `bitcoin` et
+  `registry` sont nuls. Ces non-exécutions n'entrent pas dans la borne
+  (EX-5.8) : lisez les statuts des K-.
 
 ### 7.4 Verdict « invalide » (code 1)
 
@@ -1365,10 +1689,19 @@ Le vérificateur ne prouve pas :
 | 2 | L'événement suit le voisin précédent et précède le suivant (ceux qui sont fournis), par leurs empreintes recalculées ; un voisin de la période adjacente, possible quand l'événement est le premier ou le dernier de la sienne, porte un `ts` déclaré hors d'elle (P-3 ; ce `ts` vient de l'horloge de l'enregistreur et n'est pas prouvé). | Que la chaîne est intacte au-delà des voisins fournis ; la racine du contrôle 3 couvre le reste de la période ; que les deux voisins appartiennent à la même période. | Quiconque insère, retire ou permute un événement entre ces voisins. |
 | 3 | L'événement est la feuille d'indice `seq − first_seq` de l'arbre dont la racine est dans le manifeste ; le manifeste est signé par la clé déclarée. | Que le manifeste a été produit à l'heure qu'il annonce (`generated_at`) ; que l'événement a eu lieu entre `period_start` et `period_end`, bornes déclarées par le manifeste. | Quiconque présente l'événement dans une autre période ou à une autre place. |
 | 4 | Le manifeste existait au plus tard à l'instant du jeton augmenté de sa précision, selon une autorité de votre fichier d'ancres. | Que l'autorité est qualifiée (c'est votre déclaration) ; que son heure est juste si elle ment ; que le certificat de l'autorité elle-même était dans ses dates (sauf unité épinglée, dont les dates sont contrôlées comme celles du certificat qui a signé le jeton) et non révoqué, sauf révocation portée par une CRL de votre fichier d'ancres ; une date chiffrée, si le jeton ne porte pas de précision ; la non-révocation d'un certificat du chemin au-delà de ce que dit la liste ou la déclaration retenue, dont la date n'a pas de limite haute (7.2). | L'opérateur, un enregistreur compromis après l'instant du jeton, le fournisseur NOORTRACE : une période réécrite ne passe plus avec ce jeton, et un nouveau jeton porterait un instant plus tardif. |
-| 5 | Le manifeste existait avant la création d'un bloc Bitcoin relié à votre point de contrôle par la chaîne d'en-têtes fournie, sous k confirmations (bloc attesté compris : k − 1 blocs au-dessus de lui). Le travail n'est recalculé qu'au-dessus du point de contrôle, et peut ne l'être pour aucun bloc (7.2). | L'heure précise du bloc ; quoi que ce soit sur un réseau d'essai. | Les mêmes, et une autorité d'horodatage menteuse : la limite Bitcoin ne dépend pas d'elle. Pas un adversaire capable de miner autant de blocs que la chaîne fournie au-dessus du point de contrôle, à la difficulté du réseau. |
+| 5 | Le manifeste existait avant la création d'un bloc Bitcoin relié à votre point de contrôle Bitcoin par la chaîne d'en-têtes fournie, sous k confirmations (bloc attesté compris : k − 1 blocs au-dessus de lui). Le travail n'est recalculé qu'au-dessus du point de contrôle Bitcoin, et peut ne l'être pour aucun bloc (7.2). | L'heure précise du bloc ; quoi que ce soit sur un réseau d'essai. | Les mêmes, et une autorité d'horodatage menteuse : la limite Bitcoin ne dépend pas d'elle. Pas un adversaire capable de miner autant de blocs que la chaîne fournie au-dessus du point de contrôle Bitcoin, à la difficulté du réseau. |
 | 6 | La clé nommée a signé l'événement, ses voisins et le manifeste. Le `ts` de chaque événement et le `generated_at` du manifeste, tels que déclarés, tombent dans la période de validité que `cles.json` annonce pour la clé qui les signe (E-11, P-5), ce qui ne date pas la signature. | Que la clé appartient à l'organisation, sauf confirmation par le fichier d'ancres ou le registre, dans les limites dites en 7.2 ; que la validité annoncée est vraie ; l'instant de la signature : la période de validité est comparée aux instants déclarés, non au moment où la clé a signé. | Quiconque ne détient pas la clé privée de l'enregistreur et n'a pas l'usage de son signataire. L'opérateur peut en disposer (classes de garde C et D), ou s'en servir par le signataire de son enregistreur (classes A et B) (3.4). Le rapport ne dit pas la classe (7.2). |
 | 7 | Les adresses nommées ont signé la décision que l'énoncé nomme (approbation ou refus), en nombre au moins égal au seuil déclaré ; une demande expirée ne porte aucune signature. | Qu'elles étaient habilitées ; que le jeu et le seuil déclarés sont ceux de l'organisation. | Quiconque ne détient pas les clés de ces adresses. |
 | 8 | Un quorum du jeu de validateurs de votre fichier d'ancres a signé les blocs où les contrats de votre fichier d'ancres ont émis la clôture et l'ancre de ce `periodHash`. | Une date ; un fait d'état du registre (appartenance au `CuratorSet`, non-révocation d'une clé) ; que le code des contrats est celui de ce dépôt : `PeriodRegistry` et `AttestationRegistry` désignent dans l'énoncé les adresses que votre fichier d'ancres donne pour les rôles `period_registry` et `attestation_registry` (H7). | Quiconque contrôle moins d'un quorum des validateurs de ce jeu, y compris le fournisseur NOORTRACE s'il est dans ce cas. |
+
+Révision 0.2, vérifications K- : quand elles réussissent dans un contrôle
+réussi, elles prouvent ce que dit 7.9 ; qui ne peut plus tricher est le même
+que pour le contrôle auquel la vérification K- est rattachée (EX-5.7). Pour
+K-7, l'opérateur et l'enregistreur compromis ne peuvent plus tricher dès
+l'instant du jeton du point, et non plus seulement dès celui du jeton de la
+clôture, sous H4 pour l'autorité de ce jeton. Si cette autorité est un serveur
+interne dont l'exploitant tient la clé ou l'horloge (CT-5 §7), H4 revient à
+croire l'exploitant, et K-7 ne protège pas contre lui (CT-5 EX-7.3).
 
 ### 7.8 Hypothèses
 
@@ -1396,7 +1729,7 @@ du registre (paragraphe après la liste) :
   ou non. Le bloc Bitcoin donne une autre limite, qui ne dépend pas d'elle,
   mais il ne confirme ni ne corrige l'heure du jeton ;
 - que personne n'a pu miner les blocs fournis au-dessus de votre point de
-  contrôle (H5), pour ce qui repose sur le contrôle 5 ;
+  contrôle Bitcoin (H5), pour ce qui repose sur le contrôle 5 ;
 - qu'au plus f = ⌊(N − 1)/3⌋ des N validateurs de votre jeu sont fautifs,
   c'est-à-dire strictement moins d'un tiers : 1 sur 4, 0 sur 3, 1 sur 6
   (H6), pour ce qui repose sur le contrôle 8 ;
@@ -1424,6 +1757,230 @@ le rapporte.
 La « borne sous hypothèse » du contrôle 5 repose sur sa propre hypothèse
 (EX-10.13), hors de cette liste, parce qu'elle n'est pas prouvée (7.1) et
 qu'aucune phrase de 7.2 n'en dépend.
+
+Les phrases de 7.9 (révision 0.2) ne supposent rien de plus : H3 et H4 pour
+l'autorité du jeton du point, H5 pour son bloc Bitcoin, H6 et H7 pour son
+ancre au registre.
+
+### 7.9 Point de contrôle du journal : ce que le verdict prouve de nouveau (révision 0.2)
+
+Cette section se lit seule, comme la section 7. Elle ne vaut que pour un
+dossier dont l'énoncé porte le fragment FK (EX-6.16) ; un dossier sans la
+partie `points-de-controle.json`, ou dont l'énoncé ne porte pas FK parce que
+les conditions d'EX-6.16 ne sont pas réunies (des K- non exécutées pour une
+raison admise, ou une K-8 réussie sur une référence déclarative, sans R-11 ;
+c'est ce qu'EX-6.16 appelle des K- qui « n'ont pas abouti »), prouve
+exactement ce que disent 7.2 et 7.3. Une K- en échec, ou non exécutée pour
+`prerequis_en_echec`, rend le dossier invalide (EX-5.8, EX-6.7) : c'est alors
+7.4 qui s'applique, et le vérificateur n'affirme rien.
+
+Les vérifications K- (CT-1 §11.4, rattachées aux contrôles par 5.4) : K-1 :
+forme de la partie et cohérence du point avec le manifeste ; K-2 :
+`checkpointHash` recalculé égal au `checkpoint_hash` déclaré ; K-3 :
+signature du point sous la clé `key_id` de `cles.json`, `checkpoint_ts` dans
+la validité de cette clé ; K-4 : l'événement est parmi les `tree_size`
+premiers, et son `ts` n'est pas postérieur à `checkpoint_ts` ; K-5 : preuve de
+cohérence vers la racine du manifeste ; K-6 : `last_hash` égal au hachage de
+l'événement `last_seq` quand celui-ci est dans le dossier, sinon non exécutée
+pour `piece_hors_dossier` ; K-7, K-8, K-9 : jeton, ancre au registre et
+preuve OpenTimestamps du point.
+
+Conditions de FK (EX-6.16) : contrôles 1, 3 et 6 réussis ; K-1 à K-5
+réussies ; K-6 réussie ou non exécutée pour `piece_hors_dossier` ; et au moins
+une ancre du point vérifiée : K-7, K-9, ou K-8 avec une inclusion prouvée par
+R-11. Les valeurs que cite cette section se lisent dans le rapport aux chemins
+complets `facts.checkpoint.rewrite_window_end`,
+`facts.checkpoint.rewrite_window_ms` (EX-6.17),
+`facts.checkpoint.timestamp.upper_bound` et
+`facts.checkpoint.timestamp.gen_time` (forme d'EX-9.19, EX-9.22) ; pour la
+clôture, `facts.timestamp.upper_bound` et `facts.timestamp.gen_time`. Dans
+cette section, « l'instant du jeton du point » veut toujours dire
+`rewrite_window_end`, c'est-à-dire `genTime` augmenté de la précision du
+jeton, l'instant que FK cite après « horodaté au plus tard le » (sans
+précision dans le jeton, FK cite `gen_time` et `rewrite_window_end` est nul).
+La preuve dit que le point existait au plus tard à cet instant. Une réécriture
+antérieure n'est pas exclue, y compris entre `genTime` et `genTime` augmenté
+de la précision.
+
+**EX-7.2** Aucune sortie du vérificateur NE DOIT dire qu'un événement est
+« couvert par un point de contrôle » horodaté, ni nommer une fenêtre de
+réécriture bornée au point datée, sans que K-7 ait réussi, ni dire que ce
+point est attesté dans Bitcoin sans que K-9 ait réussi, ni qu'il est ancré au
+registre sans que K-8 ait réussi avec une inclusion prouvée par R-11, chaque
+fois dans les conditions d'EX-6.16.
+
+Le vérificateur prouve, en plus de 7.2 :
+
+- Le point de contrôle du journal de la partie engage, par sa racine, les
+  `tree_size` premiers événements de la période, dont l'événement prouvé
+  (indice de feuille `leaf_index < tree_size`, K-4), et son arbre est un
+  préfixe de l'arbre du manifeste (preuve de cohérence RFC 9162 §2.1.4
+  exécutée, K-5 ; CT-1 §10.7). L'événement est donc engagé par le point sans
+  second chemin d'inclusion : sa feuille remonte à la racine du manifeste
+  (contrôle 3), et les `tree_size` premières feuilles du manifeste sont celles
+  du point.
+- Le point est signé par la clé d'enregistreur nommée (K-3), sous la clé de
+  `cles.json`, confirmée ou non par votre fichier d'ancres ou par le registre
+  comme les autres clés (provenance dans FK). Cette signature n'est qu'une
+  attribution : elle ne protège de rien contre qui détient la clé (CT-1 §10.9).
+- Clause jeton (K-7) : le point, donc l'événement sous cette forme et la tête
+  de chaîne `last_hash`, existait au plus tard à l'instant du jeton du point
+  (`rewrite_window_end`, `genTime` augmenté de sa précision), selon l'autorité nommée,
+  avec les mêmes garanties et les mêmes limites que le contrôle 4 (7.2, 7.7 :
+  chemin de certificats à `genTime`, révocation, qualification déclarée par
+  vous seulement). **C'est la fenêtre de réécriture bornée au point** : pour
+  cet événement, `W = rewrite_window_end − ts`, rapportée en millisecondes
+  (`facts.checkpoint.rewrite_window_ms`). Seul `rewrite_window_end` est
+  prouvé : `rewrite_window_ms` est calculé à partir du `ts` que déclare
+  l'enregistreur, qui est l'adversaire visé ; c'est une valeur rapportée, pas
+  une preuve. C'est aussi un majorant de `W` calculé avec le même `ts`
+  déclaré (les deux valeurs dépendent de ce `ts` ; seul `rewrite_window_end`
+  est prouvé) : le point
+  embarqué n'est pas forcément le premier qui couvre l'événement (ci-dessous),
+  une ancre plus précoce a pu exister, et le `W` réel est alors plus court. Ce
+  majorant ne se calcule qu'avec la clause jeton. Avec la configuration par défaut de CT-5 (un point toutes les
+  60 s, une contresignature à chaque échéance de 300 s), la conception vise
+  `W ≤ 300 s + d_jeton` (CT-1 §10.9), `d_jeton` étant le délai entre
+  l'échéance de contresignature et `rewrite_window_end` (CT-5 EX-3.5). À chaque
+  échéance, toutes les 300 s, CT-5 contresigne le premier point produit à
+  partir de cette échéance. Ce point engage tous les événements antérieurs à
+  l'échéance, de sorte qu'un événement attend au plus 300 s ; le décalage du
+  point après l'échéance (au plus 1 s en cadence nominale, `d_point`) est
+  compté dans `d_jeton` (CT-5 EX-4.3, EX-3.5). Le
+  vérificateur ne vérifie pas cette cadence, il rapporte la valeur de ce
+  dossier. Un jeton du point sans précision : la clause jeton donne `gen_time`
+  et la précision de la politique, que le jeton n'indique pas ;
+  `rewrite_window_end` et `rewrite_window_ms` sont alors nuls. Un grand écart
+  entre `rewrite_window_end` et `checkpoint_ts` (plus de 3600 s, seuil fixe
+  de la référence, `SEUIL_AV_K4_S`, signalé par AV-K-4 sans changer le
+  verdict) signale une contresignature tardive (par exemple après une panne de
+  l'autorité), ou un point ou un événement produit après coup (9.9). Une réécriture de l'événement, de l'un quelconque des
+  `tree_size` premiers événements de la période ou du point, postérieure à
+  cet instant, changerait la racine,
+  `last_hash` ou `prev_checkpoint_hash`, donc `checkpoint_hash`, que ce jeton
+  ne porte plus : elle ne passerait plus K-2, K-5 et K-7 avec cette partie.
+  C'est le sens de « une réécriture postérieure à cet instant serait
+  détectée » : détectable par quiconque détient ce dossier, non détectée par
+  quelqu'un qui veillerait ; « quiconque détient ce dossier » désigne qui a
+  conservé ce dossier, avec sa partie, et le confronte à la version
+  présentée. Une version réécrite présentée seule peut être valide : sans la
+  partie, avec la seule borne de la clôture ; avec un nouveau point
+  contresigné plus tard, avec un `rewrite_window_end` postérieur. EX-6.16 définit « serait détectée » en ce sens :
+  avec ce dossier, une version réécrite ne passe plus K-2, K-5 et K-7 (ou K-9,
+  ou K-8 et R-11), et personne ne veille. Quand vous citez l'énoncé, joignez-lui
+  cette lecture, comme 7.1 le demande pour « inclus dans la période » et pour
+  les contrats.
+- Clause Bitcoin (K-9) : le point existait avant la création du bloc nommé,
+  sous `k` confirmations, indépendamment de toute autorité, avec les limites
+  du contrôle 5 (7.2 : réseau d'essai sans valeur, travail recalculé au-dessus
+  de votre point de contrôle Bitcoin seulement, heure du bloc non prouvée).
+- Clause registre (K-8, R-11) : l'empreinte du point
+  (`keccak256(org_id ‖ journal_id ‖ checkpoint_hash)`) a été émise par
+  `Anchored` à l'adresse que votre fichier d'ancres donne pour
+  `AttestationRegistry`, avec le `docType` d'un point de contrôle, dans un
+  bloc signé par un quorum de votre jeu (contrôle 8, H6, H7), inclusion
+  prouvée (l'ancre du point est dans un bloc vérifié par le contrôle 8) ; il en
+  résulte, sous H6 et H7, un ordre de cette empreinte par rapport aux autres
+  empreintes ancrées, et son unicité sur la chaîne. L'ordre est la place de
+  cette empreinte (bloc, puis `log_index`) parmi les autres ancres : il sert à
+  dire, quand deux versions sont présentées ensemble, laquelle a été ancrée la
+  première. L'unicité porte sur l'empreinte `keccak256(org_id ‖ journal_id ‖
+  checkpoint_hash)`, qui ne s'ancre qu'une fois (CT-4 §8.3) ; elle ne dit pas
+  que ce point est le seul de la période. Aucune date : l'heure du
+  bloc est celle de son proposant (7.2, 11.8). Aucune position dans la série
+  des points du journal : une autre série de points a pu être ancrée par qui
+  tient aussi la clé de chaîne (clé secp256k1 qui émet les ancres du journal,
+  CT-2 EX-11.19) ; seul
+  le contrôle de complétude au registre sur la série publiée le révèle (CT-5
+  EX-10.7, hors du vérificateur).
+- Fin de la fenêtre selon les clauses présentes : avec la clause jeton, la
+  fenêtre de réécriture **indétectable** se termine, pour ce dossier, à
+  `rewrite_window_end` : rien n'empêche une réécriture après cet instant, mais
+  elle ne passe plus K-2, K-5 et K-7 avec cette partie. FK se termine alors
+  par « ; une réécriture postérieure à cet instant serait détectée ». Quand
+  les clauses jeton et Bitcoin sont toutes deux présentes, la borne datée est
+  `rewrite_window_end`, tirée du jeton, et FK garde cette fin ; la clause
+  Bitcoin ajoute une limite indépendante de toute autorité, mais l'instant de
+  création du bloc n'est pas prouvé.
+  FK peut aussi porter la clause Bitcoin seule ou la clause registre seule :
+  avec la clause Bitcoin seule, la fenêtre de réécriture indétectable se
+  termine à la création du bloc nommé, instant qui n'est pas prouvé, et FK se
+  termine par « ; une réécriture postérieure à la création de ce bloc serait
+  détectée » ; avec la clause registre seule, elle se termine à l'inclusion
+  de l'ancre, aucune date n'est prouvée, et FK se termine par « ; une
+  réécriture postérieure à l'inclusion de cette ancre serait détectée »
+  (EX-6.16). Dans ces deux cas,
+  `rewrite_window_end` et `rewrite_window_ms` sont nuls, et la seule borne
+  datée reste celle du manifeste (contrôles 4 et 5).
+
+Le vérificateur ne prouve pas :
+
+- Que ce point est le **premier** qui couvre l'événement. L'exportateur choisit
+  le point qu'il embarque par rang d'ancre (jeton, puis preuve `.ots`
+  complète, puis registre, CT-1 §11.2, CT-5 EX-10.2, EX-13.18) : un point plus
+  précoce, ancré au registre seulement, a pu exister, et le point choisi est
+  alors un point plus tardif qui porte un jeton. Ce choix ne rend pas la borne
+  fausse : la borne énoncée est celle de ce point ; c'est le point le plus
+  précoce, ancré au registre seulement, qui l'aurait supprimée (pas de clause
+  jeton). Comparez `tree_size` à `leaf_index + 1` et `checkpoint_ts` à `ts`
+  (`facts.checkpoint`) : un grand écart dit qu'un point plus précoce a
+  probablement existé, pas qu'il a été caché.
+- Qu'il n'existe pas de version réécrite. La réécriture n'est détectable
+  qu'avec un dossier qui porte la partie, ou avec la série et les ancres
+  publiées (CT-5 §10.2, EX-10.7) : un dossier réexporté sans la partie
+  `points-de-controle.json` est vérifié comme avant la révision 0.2, avec un
+  verdict valide et la seule borne de la clôture. Le vérificateur n'offre pas,
+  en version 0.2, d'option qui exige la borne au point ; `--exiger 4`
+  n'exige que le jeton du manifeste. Le dossier v0 compte douze parties ; la
+  révision 0.3 de CT-1 ajoute une treizième partie facultative,
+  `points-de-controle.json`, toujours en treizième position : un index peut
+  donc compter douze ou treize entrées. Rappel de 5.4 (EX-5.7) : avec un index de
+  treize parties dont la treizième est déclarée absente, `points_de_controle`
+  figure dans `absent_parts` (ligne « Parties absentes ») ; avec un index de
+  douze parties, rien ne figure. Aucun des deux cas ne permet de distinguer
+  une partie retirée d'un point jamais produit : seules la série publiée ou
+  une comparaison avec un dossier antérieur le peuvent.
+- Que les points ont été produits à la cadence prévue, qu'ils se chaînent,
+  que `tree_size` et `checkpoint_ts` croissent, ni que l'ancrage n'a pas été
+  interrompu : le dossier ne porte qu'un point, et la série se contrôle hors
+  du vérificateur (CT-1 §10.9 ; CT-5 §10, EX-13.19). Qui détient la clé peut
+  cesser de produire ou d'ancrer des points : la fenêtre redevient celle des
+  ancres horaires, et un dossier isolé ne le montre pas.
+- L'heure du point : `checkpoint_ts` est l'horloge de l'enregistreur,
+  déclarative comme `ts` et `generated_at` (CT-1 §10.5). Seul le jeton du point
+  date le point ; `rewrite_window_end` vient du jeton, jamais de
+  `checkpoint_ts`. K-4 compare `ts ≤ checkpoint_ts`, deux valeurs déclarées,
+  et AV-K-2 signale un `checkpoint_ts` postérieur au jeton.
+- Quoi que ce soit avant l'instant du jeton du point : jusqu'à cet instant,
+  qui détenait la clé a pu réécrire et signer de nouveau les événements que le
+  point engage, et le point lui-même (3.4). La fenêtre de réécriture
+  indétectable se termine à `rewrite_window_end`, sans que la réécriture
+  devienne impossible : avant l'instant, tout est possible et indétectable ;
+  après, tout reste possible et devient détectable.
+- Que l'autorité qui a contresigné le point est qualifiée, ni qu'un serveur
+  d'horodatage interne (CT-5 §7) dit l'heure juste : un jeton d'un serveur
+  interne prouve qu'une clé contrôlée par l'exploitant a signé ce condensé et
+  cette heure déclarée (CT-5 R1-F55) ; c'est votre fichier d'ancres qui
+  l'accepte, sous le nom que vous lui donnez, et l'énoncé ne dit « qualifié »
+  que si vous l'avez déclaré (T-11, CT-5 R1-F43). Si vous n'acceptez pas ce
+  serveur, ne le mettez pas dans vos ancres : K-7 est alors non exécutée
+  (`ancre_absente`) et l'énoncé ne porte pas la clause jeton. Si vous
+  l'ajoutez, la clause jeton nomme cette autorité sous votre libellé, sans
+  « qualifié ». Contre l'exploitant, qui tient la clé et l'horloge de ce
+  serveur, ce jeton ne borne rien (CT-5 EX-7.3) ; il ne vaut que contre un
+  enregistreur compromis qui n'a pas la clé du serveur. N'ajoutez donc ce
+  serveur que si votre modèle de menace exclut l'exploitant, et donnez-lui un
+  libellé qui le dit, par exemple « interne, non qualifié ».
+- Que l'ancre du point au registre a été incluse, quand `inclusion` vaut
+  `declarative` (K-8 sans R-11) : la référence de la partie (`block_number`,
+  `transaction_hash`…) est alors une déclaration de l'exportateur, signalée par
+  AV-K-1, et FK ne porte pas la clause registre. Le `chain_id` de la référence
+  n'est jamais vérifié (section 17).
+- Une borne « pas avant » : comme en 7.2, seule une date limite « au plus
+  tard » est prouvée (CT-5 R2, conséquence 22).
+- Que la copie du point en stockage à verrou d'objet (CT-2 §12.6, CT-5) a eu
+  lieu, ni quand : le dossier n'en porte rien, et une telle copie serait de
+  toute façon déclarative pour un réviseur (CT-5 R2-F36).
 
 ## 8. Interface
 
@@ -1541,7 +2098,9 @@ CT-1 :
 4. `Ancres` : chemin et SHA-256, ou `aucun fichier d'ancres` ; puis, si elles
    sont fournies, `En-têtes`, `Pièces` et `2e manifeste` ;
 5. `Événement`, `Journal` et `Période`, quand les parties qui les portent sont
-   exploitables ;
+   exploitables ; puis, révision 0.2, `Pt de contrôle` quand la partie
+   `points-de-controle.json` est déclarée présente et que K-1 et K-2 ont
+   réussi (EX-8.8) ;
 6. `Contrôles de l'architecture :` puis une ligne par contrôle :
    `  [statut] N  libellé — résumé`, et pour un contrôle non exécuté
    `— non exécuté (raison) : résumé` ;
@@ -1740,23 +2299,46 @@ mise en forme (indentation, ordre des clés) suit l'ordre du schéma.
 | Clé | Contenu |
 |---|---|
 | `format`, `version` | `noortrace/rapport-verification`, `0`. |
-| `verifier` | `name`, `implementation` (`binaire_go` ou `reference_javascript`), `version`, `runtime` (version de Go ou de Node) et `schemas` : identifiant et SHA-256 de chacun des huit schémas que la version embarque, quelles que soient les options, dans cet ordre : `evenement`, `manifeste`, `dossier`, `registre`, `validateurs`, `ancres-confiance`, `entetes-bitcoin`, `rapport-verification`. La version de Go est rapportée parce que le comportement de la bibliothèque standard varie entre versions : lecture des certificats et vérification des signatures par `crypto/x509`, et `encoding/asn1` (avis GO-2025-4011 et GO-2026-5972, R4 F3.14) ; GO-2026-6809, qui change le résultat de `Certificate.Verify`, ne touche pas T-7, dont la validation de chemin est faite par le code du vérificateur (EX-14.4). |
+| `verifier` | `name`, `implementation` (`binaire_go` ou `reference_javascript`), `version`, `runtime` (version de Go ou de Node) et `schemas` : identifiant et SHA-256 de chacun des neuf schémas que la révision 0.2 embarque (huit en version 0.1), quelles que soient les options, dans cet ordre : `evenement`, `manifeste`, `dossier`, `point-de-controle` (CT-1 révision 0.3, depuis la révision 0.2), `registre`, `validateurs`, `ancres-confiance`, `entetes-bitcoin`, `rapport-verification`. La version de Go est rapportée parce que le comportement de la bibliothèque standard varie entre versions : lecture des certificats et vérification des signatures par `crypto/x509`, et `encoding/asn1` (avis GO-2025-4011 et GO-2026-5972, R4 F3.14) ; GO-2026-6809, qui change le résultat de `Certificate.Verify`, ne touche pas T-7, dont la validation de chemin est faite par le code du vérificateur (EX-14.4). |
 | `language` | `fr` ou `en`. |
 | `inputs` | Chemin et SHA-256 de chaque entrée lue (`dossier.index_sha256` : SHA-256 de `dossier.json`), `null` pour une entrée non fournie ; `required_controls` : les contrôles de `--exiger`. |
 | `event`, `org_id`, `journal_id`, `period` | Désignation de l'événement et de sa période (EX-6.13) ; `period.period_hash` est le `periodHash` recalculé. |
 | `controls` | Les huit contrôles, dans l'ordre : `number`, `status`, `reason` (`null` sauf `non_execute`), `checks` (vérifications rattachées présentes dans le rapport), `anchors_used` (pointeurs JSON, RFC 6901, vers les ancres employées dans le fichier d'ancres : `/tsa_authorities/0`, `/bitcoin`, `/registry/validator_sets/0`, `/recorders/1`…), `summary` (résumé dans la langue choisie). |
-| `checks` | Les vérifications dans l'ordre de la section 5.2 : `id`, `controls` (contrôles servis, vide pour D-1 et D-2), `status`, `reason` et `admitted` (`null` sauf `non_execute`), `detail`. |
+| `checks` | Les vérifications dans l'ordre de la section 5.2 (K-1 à K-9 après A-4 quand la partie `points-de-controle.json` est présente, R-11 après R-10 ; révision 0.2) : `id`, `controls` (contrôles servis, vide pour D-1 et D-2), `status`, `reason` et `admitted` (`null` sauf `non_execute`), `detail`. |
 | `failed_checks`, `blocking_unexecuted` | EX-6.7. |
 | `absent_parts` | Les parties déclarées absentes dans l'index, avec leur raison, comme dans CT-1. |
-| `warnings` | Les avertissements des sections 9 à 11 (`id` AV-…, `check`, `detail`), dans l'ordre de EX-6.15 ; un avertissement ne change aucun statut. |
-| `facts` | Les valeurs établies par les contrôles réussis (EX-6.13) : clés d'enregistreur et leur provenance (`source` : `dossier`, `ancres`, `registre`, ou `mixte` quand les deux clés diffèrent de provenance ; `event_key_source` et `manifest_key_source`, provenance de chaque clé, EX-6.8), approbation (`decision`, `ticket`, `approvers`, vide pour `expire`, `required`, `size`, `set_source`), et, pour les contrôles 4, 5 et 8, les valeurs que EX-9.19, EX-10.14 et EX-11.21 exigent ; dans un rapport `invalide`, aide au diagnostic seulement (EX-6.13). |
+| `warnings` | Les avertissements des sections 9 à 11 et, révision 0.2, AV-K- (sections 9.9 et 11.9) (`id` AV-…, `check`, `detail`), dans l'ordre de EX-6.15 ; un avertissement ne change aucun statut. |
+| `facts` | Les valeurs établies par les contrôles réussis (EX-6.13) : clés d'enregistreur et leur provenance (`source` : `dossier`, `ancres`, `registre`, ou `mixte` quand les deux clés diffèrent de provenance ; `event_key_source` et `manifest_key_source`, provenance de chaque clé, EX-6.8), approbation (`decision`, `ticket`, `approvers`, vide pour `expire`, `required`, `size`, `set_source`), et, pour les contrôles 4, 5 et 8, les valeurs que EX-9.19, EX-10.14 et EX-11.21 exigent ; `checkpoint` (révision 0.2, EX-6.17) : le point de contrôle du journal qui couvre l'événement, ou `null` ; dans un rapport `invalide`, aide au diagnostic seulement (EX-6.13). |
 | `verdict`, `exit_code` | Section 8.3 ; le schéma impose leur concordance. |
 | `statement` | L'énoncé, `fr` et `en`, quelle que soit `--langue`. |
 | `bound` | La borne (EX-6.12) ou `null`. |
 | `error` | Rapport d'erreur seulement : `kind` (`usage`, `dossier_illisible`, `schemas_illisibles`, `ancres_inutilisables`, `entree_illisible`, `taille_depassee`, `erreur_interne`), `message`, `check` (la vérification N- en cause, ou `null`). |
 
+**EX-8.8** (révision 0.2) La ligne `Pt de contrôle` (anglais `Checkpoint`) du
+rapport lisible suit `Période` et n'apparaît que si la partie
+`points-de-controle.json` est déclarée présente et que K-1 et K-2 ont réussi :
+`taille {tree_size}, last_seq {last_seq}, empreinte {checkpoint_hash}` (`size
+{tree_size}, last_seq {last_seq}, digest {checkpoint_hash}`), suivi de ` ;
+horodaté au plus tard {upper_bound_K} (K-7)` (`; time-stamped no later than
+{upper_bound_K} (K-7)`) quand K-7 a réussi. L'étiquette est abrégée pour tenir
+dans les quatorze caractères d'EX-8.6. Les vérifications K- figurent dans
+`Vérifications non réussies` et `Vérifications` comme les autres, avec leurs
+contrôles entre crochets.
+
+**EX-8.9** (révision 0.2) Le rapport JSON porte `facts.checkpoint` (EX-6.17)
+après `facts.registry`, et `verifier.schemas` liste neuf schémas :
+l'implémentation de référence lit `point-de-controle-v0.schema.json` dans le
+répertoire des schémas et le place dans son registre, parce que
+`dossier-v0.schema.json` le référence par son `$id` ; le binaire l'embarque. Un
+rapport de la version 0.1 reste valide contre le schéma
+`rapport-verification-v0` étendu (membre `checkpoint` facultatif, identifiants
+K- et R-11 admis, avertissements AV-K- admis, rôle `ancre_point_de_controle`).
+
 Rapport JSON du dossier complet de la section 8.5, avec les mêmes valeurs
-que le rapport lisible (chemins abrégés de même) ; le document est valide
+que le rapport lisible (chemins abrégés de même ; révision 0.2 :
+`verifier.schemas` à neuf entrées, dont les empreintes sont celles des
+fichiers de `spec/schemas` à la date de la révision, et `facts.checkpoint` à
+`null`) ; le document est valide
 contre le schéma (`npx --yes ajv-cli@5
 validate --spec=draft2020 --strict=true`) :
 
@@ -1773,12 +2355,13 @@ validate --spec=draft2020 --strict=true`) :
     "schemas": [
       { "id": "https://noortrace.example/schemas/v0/evenement.schema.json", "sha256": "0xcd2efffae72ebe2d00459ac643785415ad25d138325681aca6127a0a2fa0393f" },
       { "id": "https://noortrace.example/schemas/v0/manifeste.schema.json", "sha256": "0x1341dd18b1cc4b570c13ed4010228b13b78d1582292ea7ecba0ce1ac7a462bf2" },
-      { "id": "https://noortrace.example/schemas/v0/dossier.schema.json", "sha256": "0xeca29ac0c6329e4434529dd07d82e2a93fd897fe875e7812b04f5734d9dc8fe5" },
-      { "id": "https://noortrace.example/schemas/v0/registre.schema.json", "sha256": "0xcd9fff826267865fe43d37bb4a42bb3f0ba0d04d56be0fff67d306e5960131c8" },
+      { "id": "https://noortrace.example/schemas/v0/dossier.schema.json", "sha256": "0x6b308d54091e69f98dc33b3bbe251f77e3886a8c37a2b8c5ffdcdd2ff49e710f" },
+      { "id": "https://noortrace.example/schemas/v0/point-de-controle.schema.json", "sha256": "0x7c40a7edba0d099f71506ea67e790b5d05f5a4f82113156ae9c83baffb4f69f2" },
+      { "id": "https://noortrace.example/schemas/v0/registre.schema.json", "sha256": "0x5944ff946b06d718d0741b149d7cc43b1fb5793b4df005497ccfb65861c21e54" },
       { "id": "https://noortrace.example/schemas/v0/validateurs.schema.json", "sha256": "0x233e7ee41d597119c9319382eacc673f316fe891f8e271cc1032a183972825fd" },
       { "id": "https://noortrace.example/schemas/v0/ancres-confiance.schema.json", "sha256": "0x1ab686a61d7dad8ea8e1d26b69e750e414b19e819f9a3516cb1d7c737c807d04" },
       { "id": "https://noortrace.example/schemas/v0/entetes-bitcoin.schema.json", "sha256": "0x77e991e484add0e308291578d8576c28a4264b5d2b2ae2c06b6832b470b6308c" },
-      { "id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json", "sha256": "0x4ade757ae8ecc1c9ae3bd6d32f33700349ffd0484862719f12ab808265109c55" }
+      { "id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json", "sha256": "0x41f44bc5e8e86b657409dcf5a45bd06deb89fba1229e9a6f70972c3b6e8304fc" }
     ]
   },
   "language": "fr",
@@ -2059,7 +2642,8 @@ validate --spec=draft2020 --strict=true`) :
           "signers": ["v1", "v3", "v4"]
         }
       ]
-    }
+    },
+    "checkpoint": null
   },
   "verdict": "valide",
   "exit_code": 0,
@@ -2070,6 +2654,62 @@ validate --spec=draft2020 --strict=true`) :
   "bound": null
 }
 ```
+
+Exemple de `facts.checkpoint` (révision 0.2) pour le dossier de référence de
+CT-1 §11.2 (événement seq 4 de l'exemple de référence, `ts`
+2026-11-03T13:52:41.090Z ; point `K2`, `tree_size` 4 ; jeton de l'autorité de
+test de CT-6 sur `checkpointHash`, `genTime` 2026-11-03T13:53:02Z, précision
+1 s, numéro de série 1001 ; ancres registre et OpenTimestamps nulles), vérifié
+avec `spec/vecteurs/ct-6/ancres/ancres-test.json`, dont les `recorders` ne
+nomment pas ce journal (provenance `dossier`) : fragment conforme à
+`#/$defs/faits_point_de_controle` du schéma du rapport. `rewrite_window_ms` =
+13:53:03.000 − 13:52:41.090 = 21 910 ms : la fenêtre de réécriture de cet
+événement, bornée par le jeton du point.
+
+<!-- schema: rapport-verification#/$defs/faits_point_de_controle -->
+```json
+{
+  "tree_size": 4,
+  "last_seq": 4,
+  "leaf_index": 3,
+  "checkpoint_ts": "2026-11-03T13:53:00.000Z",
+  "checkpoint_hash": "0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff",
+  "key_id": "rec-test-01",
+  "key_source": "dossier",
+  "consistency": { "first_size": 4, "second_size": 5, "path_length": 1 },
+  "last_hash_checked": true,
+  "timestamp": {
+    "authority": "AC de test CT-6",
+    "tsu_certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+    "tsu_subject_cn": "TSA de test CT-6",
+    "gen_time": "2026-11-03T13:53:02Z",
+    "accuracy": { "seconds": 1, "millis": null, "micros": null },
+    "upper_bound": "2026-11-03T13:53:03Z",
+    "policy": "1.3.6.1.4.1.99999.1.1",
+    "serial_number": "0x3e9",
+    "digest_algorithm": "sha256",
+    "signature_algorithm": "sha256WithRSAEncryption",
+    "key_bits": 3072,
+    "qualified_claim": false,
+    "qualified": null,
+    "revocation": [
+      { "certificate_sha256": "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9", "evidence": "crl", "issued_at": "2026-11-06T00:00:00Z" }
+    ]
+  },
+  "bitcoin": null,
+  "registry": null,
+  "rewrite_window_end": "2026-11-03T13:53:03Z",
+  "rewrite_window_ms": 21910
+}
+```
+
+Le fragment FK de ce dossier serait : « ; l'événement est couvert par le point
+de contrôle du journal de taille 4 de sa période (empreinte
+0x6a8e035ab9b90937a5b0d41118567c952f3ce49c895b81636ab70b516253e6ff, signé par
+la clé d'enregistreur rec-test-01, déclarée par le dossier), préfixe prouvé de
+ce manifeste, horodaté au plus tard le 2026-11-03T13:53:03Z UTC selon AC de
+test CT-6 (unité TSA de test CT-6) ; une réécriture postérieure à cet instant
+serait détectée » (EX-6.16).
 
 Rapport d'erreur d'un répertoire sans `dossier.json` (code 2) :
 
@@ -2086,12 +2726,13 @@ Rapport d'erreur d'un répertoire sans `dossier.json` (code 2) :
     "schemas": [
       { "id": "https://noortrace.example/schemas/v0/evenement.schema.json", "sha256": "0xcd2efffae72ebe2d00459ac643785415ad25d138325681aca6127a0a2fa0393f" },
       { "id": "https://noortrace.example/schemas/v0/manifeste.schema.json", "sha256": "0x1341dd18b1cc4b570c13ed4010228b13b78d1582292ea7ecba0ce1ac7a462bf2" },
-      { "id": "https://noortrace.example/schemas/v0/dossier.schema.json", "sha256": "0xeca29ac0c6329e4434529dd07d82e2a93fd897fe875e7812b04f5734d9dc8fe5" },
-      { "id": "https://noortrace.example/schemas/v0/registre.schema.json", "sha256": "0xcd9fff826267865fe43d37bb4a42bb3f0ba0d04d56be0fff67d306e5960131c8" },
+      { "id": "https://noortrace.example/schemas/v0/dossier.schema.json", "sha256": "0x6b308d54091e69f98dc33b3bbe251f77e3886a8c37a2b8c5ffdcdd2ff49e710f" },
+      { "id": "https://noortrace.example/schemas/v0/point-de-controle.schema.json", "sha256": "0x7c40a7edba0d099f71506ea67e790b5d05f5a4f82113156ae9c83baffb4f69f2" },
+      { "id": "https://noortrace.example/schemas/v0/registre.schema.json", "sha256": "0x5944ff946b06d718d0741b149d7cc43b1fb5793b4df005497ccfb65861c21e54" },
       { "id": "https://noortrace.example/schemas/v0/validateurs.schema.json", "sha256": "0x233e7ee41d597119c9319382eacc673f316fe891f8e271cc1032a183972825fd" },
       { "id": "https://noortrace.example/schemas/v0/ancres-confiance.schema.json", "sha256": "0x1ab686a61d7dad8ea8e1d26b69e750e414b19e819f9a3516cb1d7c737c807d04" },
       { "id": "https://noortrace.example/schemas/v0/entetes-bitcoin.schema.json", "sha256": "0x77e991e484add0e308291578d8576c28a4264b5d2b2ae2c06b6832b470b6308c" },
-      { "id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json", "sha256": "0x4ade757ae8ecc1c9ae3bd6d32f33700349ffd0484862719f12ab808265109c55" }
+      { "id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json", "sha256": "0x41f44bc5e8e86b657409dcf5a45bd06deb89fba1229e9a6f70972c3b6e8304fc" }
     ]
   },
   "language": "fr",
@@ -2156,6 +2797,11 @@ ces 32 octets et ne les examine pas (R1 F1.17, RFC 3161 §2.1).
 L'architecture écrivait « SHA-256 de la racine » ; elle a été alignée
 (section 16), comme CT-1 §11.2, §11.3 et §11.4, qui disent `periodHash`. En
 cas d'écart, la règle de CT-6 prévaut.
+
+Révision 0.2 : le jeton d'un point de contrôle du journal, embarqué dans
+`points-de-controle.json`, porte de même l'empreinte de l'objet préfixé,
+`checkpointHash` = SHA-256(`P_K` ‖ `C_K`) (CT-1 §10.6) ; la section 9.9 dit
+comment K-7 le vérifie, avec les mêmes règles.
 
 ### 9.2 Le fichier `jeton-rfc3161.der`
 
@@ -2534,9 +3180,10 @@ propres URI (R1 F4.08, F4.10), d'où deux valeurs distinctes.
 ### 9.6 Statut du contrôle 4
 
 **EX-9.18** Partie `jeton_rfc3161` absente : contrôle 4 `non_execute`, avec
-la raison de EX-4.3. Sinon : `echoue` si l'une de T-1 à T-10 échoue ; sinon
-`non_execute` si l'une de T-1 à T-10 n'est pas exécutée, avec la raison que
-choisit EX-6.5 ; sinon `reussi`. T-11 n'entre pas dans ce calcul.
+la raison de EX-4.3. Sinon : `echoue` si l'une de T-1 à T-10 échoue, ou si
+K-7 échoue (révision 0.2, EX-5.8, EX-9.22) ; sinon `non_execute` si l'une de
+T-1 à T-10 n'est pas exécutée, avec la raison que choisit EX-6.5 ; sinon
+`reussi`. T-11 n'entre pas dans ce calcul, ni K-7 non exécutée (EX-5.8).
 
 ### 9.7 Avertissements et valeurs rapportées
 
@@ -2590,6 +3237,50 @@ ses tests le vérifient. Sans `accuracy`, le jeton ne borne l'instant que par
 d'autres moyens (R1 F1.12). Le jeton ne dit rien de qui l'a demandé
 (R1 F1.17) ni de l'instant de production du manifeste (section 7).
 
+### 9.9 Jeton d'un point de contrôle du journal (K-7, révision 0.2)
+
+**EX-9.22 (K-7)** Quand la partie `points-de-controle.json` est présente et que
+`anchors.rfc3161` n'est pas nul, K-7 décode `anchors.rfc3161.token` (base64
+canonique, EX-4.14 ; décodage impossible ou plus de 64 Kio décodés : K-7
+`echoue`, détail « jeton du point inexploitable ») puis exécute sur les octets
+décodés les vérifications T-1 à T-11 de 9.5, telles qu'elles sont écrites, avec
+trois substitutions et aucune autre : l'empreinte attendue de T-2 est
+`checkpoint_hash` recalculé par K-2 (SHA-256 de `P_K ‖ C_K`, CT-1 §10.6) à la
+place de `periodHash` ; le prérequis de T-2 est K-2 réussie à la place de P-1 ;
+l'instant comparé par AV-T-4 est le `ts` de l'événement prouvé, comme pour le
+contrôle 4. Les ancres sont celles du fichier d'ancres du réviseur, sans
+exception (EX-3.8). K-7 a le statut qu'EX-9.18 donnerait à un contrôle 4 dont
+ces onze résultats seraient les vérifications : `echoue` si l'un de T-1 à T-10
+échoue ; sinon `non_execute` avec la raison qu'EX-6.5 choisit parmi celles de
+T-1 à T-10 ; sinon `reussi`, T-11 ne décidant que de la mention « qualifié » de
+la clause jeton de FK (EX-6.16). Son `detail` donne les onze statuts (`T-1
+reussi ; … ; T-11 non_execute (ancre_absente)`) et, quand K-7 réussit, le
+résumé de l'autorité et de la borne comme le fait `summary` du contrôle 4. Les
+avertissements que ces vérifications lèvent sont rapportés avec `check` égal à
+`K-7` et leur identifiant AV-T- inchangé ; s'y ajoutent AV-K-2 et AV-K-4. Quand
+K-7 réussit : `facts.checkpoint.timestamp` reçoit les valeurs d'EX-9.19
+calculées sur ce jeton ; `facts.checkpoint.rewrite_window_end` reçoit
+`upper_bound` ; `anchors_used` du contrôle 4 reçoit les pointeurs de l'autorité
+et des CRL retenues pour ce jeton, en plus de ceux du jeton de la clôture ; la
+clause jeton de FK est fournie (EX-6.16). Le jeton du point et le jeton de la
+clôture sont deux jetons indépendants : ni l'autorité, ni la politique, ni
+l'ordre de leurs `genTime` ne sont comparés ; un jeton du point postérieur au
+jeton de la clôture est admis et rapporté tel quel (les deux `upper_bound` sont
+dans `facts`).
+
+| Avertissement | Condition |
+|---|---|
+| AV-K-2 | `checkpoint_ts` du point postérieur à `genTime` + `accuracy` de son jeton (K-7 réussie) : l'horloge de l'enregistreur avançait sur celle de l'autorité, ou `checkpoint_ts` est faux ; avertissement seulement, comme AV-T-4. |
+| AV-K-4 | (révision 0.2, précision de la revue) `genTime` + `accuracy` du jeton du point postérieur de plus de 3600 s à `checkpoint_ts` (K-7 réussie ; seuil fixe `SEUIL_AV_K4_S` de la référence) : la contresignature est tardive, ou le point a été produit après coup (7.9 ; CT-5 §13) ; avertissement seulement, le verdict ne change pas. |
+
+Motif de la réutilisation à l'identique : la TSA ne reçoit que 32 octets et ne
+les examine pas (R1 F1.17) ; rien dans un jeton ne dit s'il porte un manifeste
+ou un point, et la seule différence pour le vérificateur est l'empreinte
+attendue. CT-5 produit la requête du point comme celle de la clôture
+(`messageImprint` = (SHA-256, `checkpointHash`), `certReq` vrai, nonce,
+EX-13.14), le nonce ne se contrôlant qu'à l'acquisition (EX-9.15 ; CT-5 R1-F1,
+R1-F2).
+
 ## 10. Contrôle 5 : preuve OpenTimestamps
 
 ### 10.1 Ce qui est horodaté
@@ -2598,7 +3289,10 @@ d'autres moyens (R1 F1.12). Le jeton ne dit rien de qui l'a demandé
 l'opération de hachage de fichier SHA-256 (`08`). C'est exactement ce que
 produit `ots stamp` appliqué à un fichier qui contient les octets `P_M ‖ C_M`
 (le manifeste préfixé de 9.1) : l'outil hache les octets du fichier (R2-F02,
-R2-F77). Contrôle 4 et contrôle 5 horodatent donc la même donnée.
+R2-F77). Contrôle 4 et contrôle 5 horodatent donc la même donnée. Révision
+0.2 : la preuve d'un point de contrôle du journal, embarquée dans
+`points-de-controle.json`, horodate le fichier `P_K ‖ C_K`, d'empreinte
+`checkpointHash` (CT-1 §10.6) ; la section 10.9 dit comment K-9 la vérifie.
 
 ### 10.2 Format de `preuve.ots`
 
@@ -2816,14 +3510,16 @@ AV-O-2.
 ### 10.5 Statut du contrôle 5 et attestation retenue
 
 **EX-10.12** Partie `preuve_ots` absente : `non_execute`, avec la raison de
-EX-4.3. Sinon : `echoue` si O-1, O-2, O-3, O-4 ou O-5 échoue ; sinon `reussi`
+EX-4.3. Sinon : `echoue` si O-1, O-2, O-3, O-4 ou O-5 échoue, ou si K-9 échoue
+(révision 0.2, EX-5.8, EX-10.16) ; sinon `reussi`
 si O-2, O-4, O-6 et O-7 réussissent ; sinon `non_execute`, avec la raison que
 choisit EX-6.5 (une attestation hors profil donne `hors_perimetre_version`,
 une preuve en attente ou un fichier d'en-têtes non fourni `partie_absente`,
 une ancre `bitcoin` absente, un fichier d'en-têtes sans la hauteur du point de
 contrôle ou une profondeur insuffisante `ancre_absente`).
 L'attestation retenue est celle de O-6, la concordante de plus petite
-hauteur, comme le fait le client officiel (R2-F31).
+hauteur, comme le fait le client officiel (R2-F31). K-9 non exécutée n'entre
+pas dans ce calcul (EX-5.8).
 
 ### 10.6 Ce que dit le temps du bloc
 
@@ -2892,6 +3588,33 @@ qu'au-dessus du point de contrôle (EX-10.9, `cumulative_work` d'EX-10.14).
 Il peut ne l'être pour aucun bloc : quand t = c, `cumulative_work` vaut 0.
 Le texte de la proposition ne change pas.
 
+### 10.9 Preuve OpenTimestamps d'un point de contrôle du journal (K-9, révision 0.2)
+
+**EX-10.16 (K-9)** Quand la partie `points-de-controle.json` est présente et
+que `anchors.ots` n'est pas nul, K-9 décode `anchors.ots.proof` (base64
+canonique, EX-4.14 ; décodage impossible ou plus de 256 Kio décodés : K-9
+`echoue`, détail « preuve du point inexploitable ») puis exécute sur les octets
+décodés les vérifications O-1 à O-7 de 10.4 telles qu'elles sont écrites, avec
+deux substitutions : l'empreinte de fichier attendue par O-2 est
+`checkpoint_hash` recalculé par K-2 (le fichier horodaté est `P_K ‖ C_K`, CT-1
+§10.6), et le prérequis de O-2 est K-2 réussie. Le fichier d'en-têtes et
+l'ancre `bitcoin` sont ceux de la ligne de commande et du fichier d'ancres
+(EX-4.5, EX-4.9) : la même chaîne d'en-têtes sert au manifeste et au point, et
+doit contenir les hauteurs des deux attestations. K-9 a le statut qu'EX-10.12
+donnerait à un contrôle 5 fait de ces sept résultats, et l'attestation retenue
+est celle d'EX-10.12 ; son `detail` donne les sept statuts puis, quand K-9
+réussit, le résumé du bloc et des confirmations comme `summary` du contrôle 5.
+Les avertissements AV-O-1 à AV-O-3 levés sur cette preuve sont rapportés avec
+`check` égal à `K-9` ; AV-O-3 figure donc deux fois dans un dossier `regtest`
+dont le manifeste et le point sont attestés (une fois pour O-5, une fois pour
+K-9), dans l'ordre d'EX-6.15. Quand K-9 réussit : `facts.checkpoint.bitcoin`
+reçoit les valeurs d'EX-10.14 calculées sur cette preuve ; `anchors_used` du
+contrôle 5 reçoit `/bitcoin` ; la clause Bitcoin de FK est fournie (EX-6.16).
+Une preuve du point qui n'a que des attestations en attente rend K-9
+`non_execute` (`partie_absente`, O-7), sans effet sur le contrôle 5 (EX-5.8) :
+une attestation en attente n'est qu'un engagement et une URI de calendrier
+(CT-5 R1-F59, R1-F60) ; CT-5 complète la preuve puis réexporte (EX-13.15).
+
 ## 11. Contrôle 8 : registre et certificat de commit
 
 ### 11.1 Ce que le contrôle établit, et pourquoi tout se recalcule
@@ -2934,8 +3657,8 @@ CT-1 §11.1 ne changent pas.
 |---|---|
 | `version` | `0` |
 | `source` | texte libre (1 à 512 caractères) : nœud interrogé, date de la capture ; déclaratif |
-| `entries` | de 2 à 16 entrées ; exactement une de rôle `cloture`, exactement une de rôle `ancre`, au plus 8 de rôle `inscription` |
-| `entries[].role` | `cloture` (`PeriodRegistry.submitPeriod`), `ancre` (`AttestationRegistry.anchor`), `inscription` (`RecorderRegistry.registerRecorder`) |
+| `entries` | de 2 à 17 entrées ; exactement une de rôle `cloture`, exactement une de rôle `ancre`, au plus 8 de rôle `inscription`, au plus une de rôle `ancre_point_de_controle` (révision 0.2, EX-11.23) |
+| `entries[].role` | `cloture` (`PeriodRegistry.submitPeriod`), `ancre` (`AttestationRegistry.anchor` d'une période), `inscription` (`RecorderRegistry.registerRecorder`), `ancre_point_de_controle` (`AttestationRegistry.anchor` d'un point de contrôle du journal, révision 0.2) |
 | `entries[].block` | les dix champs de l'en-tête que la préimage de 11.3.1 engage, tels que `eth_getBlockByNumber(h, false)` les rend : `number`, `hash`, `parentHash`, `timestamp`, `stateRoot`, `transactionsRoot`, `receiptsRoot`, `gasUsed`, `gasLimit`, `baseFeePerGas` ; aucun autre (`logsBloom`, `miner`, `nonce`, `sha3Uncles`, `mixHash`, `extraData`, `size`, `difficulty` ne sont pas engagés, R3 F5) |
 | `entries[].receipts` | **tous** les reçus du bloc, dans l'ordre des transactions : `type`, `status`, `cumulativeGasUsed`, `logs[]` (`address`, `topics`, `data`) ; aucun autre champ |
 | `entries[].transaction_index` | indice, dans `receipts`, du reçu de la transaction prouvée |
@@ -3184,6 +3907,7 @@ de son entrée ; sa forme selon le rôle :
 | `cloture` | `period_registry` | `0x6d6cb8da98056d2abd84165b9f6d64d8097b1e28deaf23013228f6bdd5370fba` | `[1]` id, `[2]` `periodHash`, `[3]` relayeur | mots de 32 octets : `w0` orgId, `w1` journalId, `w2` root, `w3` periodStart, `w4` periodEnd, `w5` firstSeq, `w6` lastSeq, `w7` version, `w8` = `0x140` (position de `uri`), `w9` publishedAt ; puis la longueur de `uri` et ses octets complétés à un multiple de 32 |
 | `ancre` | `attestation_registry` | `0x4450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706e` | `[1]` empreinte, `[2]` émetteur | 32 octets : `docType` |
 | `inscription` | `recorder_registry` | `0xe29e846d78f0b22a87c669add67dec8daa3b0935e6f4c96d7f627a60e7ae44ec` | `[1]` orgId, `[2]` chainKey, `[3]` journalId | 64 octets : clé Ed25519, relayeur |
+| `ancre_point_de_controle` (révision 0.2) | `attestation_registry` | `0x4450fd19f5dafd45e52f91aa82897967b7469e348fd7d5083f4e0515df90706e` (même événement `Anchored`) | `[1]` empreinte du point, `[2]` émetteur | 32 octets : `docType` du point, `0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178` |
 
 Signatures :
 `PeriodSubmitted(uint256,bytes32,bytes32,bytes32,bytes32,uint64,uint64,uint64,uint64,uint32,address,string,uint64)`,
@@ -3208,6 +3932,7 @@ octets de tête sont nuls.
 | R-8 | Contrat émetteur | emitting contract | oui | chaque entrée |
 | R-9 | Événement et valeurs de la période | event and period values | non | entrées `cloture` et `ancre` |
 | R-10 | Inscriptions | registrations | non | entrées `inscription` |
+| R-11 | Ancre d'un point de contrôle du journal (révision 0.2) | anchor of a journal checkpoint | non (le contrat est comparé par R-8) | entrée `ancre_point_de_controle` |
 
 Le statut d'une vérification qui porte sur plusieurs certificats ou entrées est
 `echoue` si l'une échoue, sinon `non_execute` si l'une n'est pas exécutée, sinon
@@ -3311,14 +4036,67 @@ qu'il en existe sous d'autres clés de chaîne : R-10 échoue. Aucune entrée
 `inscription` : `non_execute` (`partie_absente`), sans effet sur le statut du
 contrôle. Aucune inscription de la clé du manifeste : AV-R-1.
 
+**EX-11.23 (rôle `ancre_point_de_controle` ; révision 0.2)** `registre.json`
+admet au plus une entrée de rôle `ancre_point_de_controle`, de la même forme
+que les autres (11.2.1 : en-tête engagé, tous les reçus du bloc,
+`transaction_index`, `log_index`, `transaction_hash` déclaré), dont le journal
+prouvé est un événement `Anchored` d'`AttestationRegistry` (EX-11.9) ;
+`certificat-commit.json` porte le certificat de son bloc. Le schéma
+`registre-v0` est étendu de façon compatible (valeur d'énumération, au plus une
+entrée de ce rôle, dix-sept entrées au plus) : tout `registre.json` de la
+version 0.1 reste valide. Cette entrée est soumise comme les autres à R-1
+(appariement avec son certificat, indices), R-2, R-4 et R-5 (son certificat),
+R-6 et R-7 (son bloc et ses reçus) et R-8 (son émetteur est
+`attestation_registry` de l'ancre) ; R-9 ne la concerne pas (elle reste
+limitée à `cloture` et `ancre`), R-10 non plus. L'exportateur ne l'ajoute que
+quand le point couvrant du dossier porte une ancre au registre (CT-5 §10,
+EX-13.16) ; sans elle, la référence de la partie est déclarative (EX-11.25).
+
+**EX-11.24 (R-11, ancre d'un point de contrôle du journal)** Exécutée pour
+l'entrée `ancre_point_de_controle` si R-6 et R-7 ont réussi pour elle. Trois
+règles :
+
+1. **forme** : le journal a 3 sujets, `topics[0]` égal au sujet d'`Anchored`
+   (EX-11.9), et 32 octets de `data` égaux au `docType` d'un point de contrôle
+   (`0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178`) ; un
+   `docType` de période (`0x2970…71ee`) ou tout autre est un échec : une ancre
+   de période relabellisée en ancre de point ne passe pas (CT-5 R2-F45 : un
+   sens nouveau est un libellé nouveau) ;
+2. **rattachement à la partie** : si la partie `points-de-controle.json` est
+   présente, `anchors.registry` non nul et K-2 réussie, `topics[1]` égale
+   `keccak256(org_id ‖ journal_id ‖ checkpoint_hash)` recalculée (`org_id` et
+   `journal_id` de l'événement, préimage de 96 octets, CT-1 §10.6), et l'entrée
+   désigne la référence de la partie : `block.number` égal à `block_number`,
+   `block.hash` à `block_hash`, `transaction_hash` à `transaction_hash` (deux
+   valeurs déclarées, comparées entre elles, non vérifiées, 11.8), `log_index`
+   de l'entrée à `log_index` de la partie, le journal prouvé étant
+   `receipts[transaction_index].logs[log_index]` ; sinon R-11 est `non_execute`
+   (`partie_absente`, détail « entrée sans partie points-de-controle.json à
+   rattacher », ou `prerequis_en_echec` si K-2 n'a pas réussi), la règle 1
+   ayant été appliquée ;
+3. **émetteur** : si R-10 a réussi et prouve au moins une inscription de la clé
+   `checkpoint.key_id` du point, l'émetteur de l'ancre (`topics[2]`, 20
+   derniers octets) est la clé de chaîne de l'une de ces inscriptions, sinon
+   R-11 échoue (même règle que R-10 pour la clé du manifeste, EX-11.19) ;
+   aucune inscription de cette clé dans le dossier : AV-K-3, sans échec.
+
+Statut : `echoue` si une règle appliquée ne tient pas ; `reussi` si les trois
+tiennent ; `non_execute` sinon, avec la raison dite. Aucune entrée
+`ancre_point_de_controle` : `non_execute` (`partie_absente`), sans effet sur
+le statut du contrôle 8 (EX-11.20), comme R-10 sans inscription. R-11 réussie
+donne à `inclusion` de `facts.checkpoint.registry` la valeur `prouvee`
+(EX-11.25) et, dans un contrôle 8 réussi, la clause registre de FK (EX-6.16).
+Son `detail` nomme le bloc, l'émetteur et le `docType` lu.
+
 ### 11.5 Statut du contrôle 8
 
 **EX-11.20** `registre` ou `certificat_commit` absent : contrôle 8
 `non_execute`, avec la raison de EX-4.3. Sinon : `echoue` si l'une de R-1 à
-R-10, ou N-4 (EX-12.5), échoue ; sinon `reussi` si R-1, R-2 et R-4 à R-9
-réussissent ; sinon `non_execute`, avec la raison que choisit EX-6.5 parmi
-celles de R-1, R-2, R-4 à R-9. R-3, R-10 et N-4 non exécutées n'empêchent pas
-la réussite.
+R-11, K-8 (révision 0.2, EX-5.8, EX-11.24, EX-11.25) ou N-4 (EX-12.5),
+échoue ; sinon `reussi` si R-1, R-2 et R-4 à R-9 réussissent ; sinon
+`non_execute`, avec la raison que choisit EX-6.5 parmi celles de R-1, R-2,
+R-4 à R-9. R-3, R-10, R-11, K-8 et N-4 non exécutées n'empêchent pas la
+réussite.
 
 ### 11.6 Avertissements et valeurs rapportées
 
@@ -3327,13 +4105,18 @@ la réussite.
 | AV-R-1 | Aucune inscription de la clé du manifeste : l'émetteur de l'ancre n'est relié à aucune clé d'enregistreur. |
 | AV-R-2 | Ligne de certificat acceptée sous une forme non canonique (EX-11.6). |
 | AV-R-3 | Inscription de la clé du manifeste sous une autre clé de chaîne que l'émetteur de l'ancre, à côté d'une inscription sous l'émetteur (EX-11.19). |
+| AV-K-1, AV-K-3 | (révision 0.2) Référence au registre d'un point de contrôle du journal déclarative ; émetteur de l'ancre d'un point non relié à une inscription (11.9). |
+| AV-K-2, AV-K-4 | (révision 0.2) `checkpoint_ts` postérieur au jeton du point ; jeton du point postérieur de plus de 3600 s à `checkpoint_ts` (9.9). |
 
 **EX-11.21** Pour le contrôle 8, le rapport porte au moins : `chain_id`,
 `entries` (liste `{role, block_number, block_hash, block_time (RFC 3339
 UTC de block.timestamp), transaction_index, transaction_hash_declared,
 emitter, event}` où `event` donne les valeurs décodées de EX-11.9),
 `certificates` (liste `{height, valset_hash, set_source (source du jeu de
-l'ancre), set_size, quorum, signers (identifiants)}`).
+l'ancre), set_size, quorum, signers (identifiants)}`). Révision 0.2 :
+`entries[].role` admet `ancre_point_de_controle` (son `event` donne
+`fingerprint`, `issuer`, `docType` comme pour `ancre`), et
+`facts.checkpoint.registry` porte la référence de l'ancre du point (EX-11.25).
 
 ### 11.7 Énoncé produit
 
@@ -3404,6 +4187,59 @@ engagé par la clé du trie, le hachage de transaction ne l'est pas, R3
 conséquence 6) ; l'heure réelle de la clôture (EX-11.18). Ce que CT-4 doit
 livrer pour ce contrôle est en section 13.
 
+### 11.9 Ancre d'un point de contrôle du journal : rôle `ancre_point_de_controle`, R-11, K-8 (révision 0.2)
+
+Un point de contrôle du journal est ancré par `AttestationRegistry.anchor`
+avec l'empreinte `keccak256(org_id ‖ journal_id ‖ checkpointHash)` et le
+`docType` `noortrace/point-de-controle/v0` =
+`0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178` (CT-1
+§10.6 et annexe B ; libellé que CT-4 §6.4 inscrit dans sa table en révision
+0.3, par la voie de son EX-6.6 ; cadence et conduite en CT-5 §9). La partie
+`points-de-controle.json` n'en porte que la **référence** (`anchors.registry`,
+CT-1 §11.2) ; la preuve d'inclusion (en-tête, reçus, certificat de commit) est
+portée par `registre.json` et `certificat-commit.json`, comme pour la clôture
+et l'ancre de la période, par une entrée d'un rôle nouveau. Les deux
+vérifications se répartissent ainsi : R-11 (EX-11.24), dans la famille R-,
+prouve l'inclusion de l'entrée et la forme de son journal ; K-8, dans la
+partie, recalcule la référence et la compare au fichier d'ancres.
+
+**EX-11.25 (K-8, référence au registre)** Quand la partie est présente et que
+`anchors.registry` n'est pas nul, K-8 exige K-2 réussie, puis vérifie, sans
+ancre : `fingerprint` égale `keccak256(org_id ‖ journal_id ‖ checkpoint_hash)`
+recalculée et n'est pas nulle ; `doc_type` égale
+`0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178`. Puis,
+avec l'ancre `registry` du fichier d'ancres : `contract` égale
+`contracts.attestation_registry`. Statut : `echoue` si l'une de ces égalités ne
+tient pas ; sinon `non_execute` (`ancre_absente`) sans ancre `registry` ; sinon
+`reussi`. `chain_id` de la partie (identifiant EVM, entier) n'est comparé à
+rien : le fichier d'ancres ne porte que l'identifiant BFT de la chaîne
+(`registry.chain_id`, que R-4 compare au certificat de l'entrée), et la version
+0 ne couvre pas l'identifiant EVM (section 17) ; il est rapporté
+(`chain_id_declared`). L'inclusion est établie par R-11 : `inclusion` de
+`facts.checkpoint.registry` vaut `prouvee` si R-11 a réussi sur une entrée
+dont la règle 2 a rattaché cette référence, dans un contrôle 8 réussi, et
+`declarative` sinon, cas que signale AV-K-1. K-8 réussie avec une référence
+déclarative ne fournit pas la clause registre de FK : rien ne prouve alors que
+l'ancre a été incluse. `facts.checkpoint.registry` porte `chain_id_declared`,
+`contract`, `fingerprint`, `doc_type`, `block_number`, `block_hash`,
+`transaction_hash_declared`, `log_index`, `inclusion`, et, quand l'inclusion
+est prouvée, `block_time` (RFC 3339 UTC de `block.timestamp` de l'entrée,
+heure déclarée par le proposant) et `issuer` (émetteur lu dans `topics[2]`),
+`null` sinon.
+
+| Avertissement | Condition |
+|---|---|
+| AV-K-1 | `anchors.registry` non nul sans entrée `ancre_point_de_controle` de `registre.json` rattachée par R-11 (parties du contrôle 8 absentes, entrée absente, ou R-11 non réussie pour une raison admise) : la référence au registre est déclarative, l'inclusion de l'ancre du point n'est pas prouvée (K-8). |
+| AV-K-3 | Entrée `ancre_point_de_controle` dont l'émetteur n'est relié à aucune inscription de la clé du point dans le dossier (R-11, règle 3). |
+
+Pourquoi un rôle nouveau et une vérification nouvelle, plutôt qu'une
+extension de R-9 : R-9 compare un journal au manifeste (clôture, ancre de
+période) et son libellé le dit ; l'ancre d'un point se compare au point, et le
+`docType` qui la distingue ne doit jamais être admis pour l'ancre de période
+(CT-4 EX-6.6 ; CT-5 R2-F45). Une vérification à part laisse R-9 inchangée pour
+les cinquante dossiers existants et permet à R-11 d'être sans effet quand elle
+n'est pas exécutée (EX-11.20), ce qu'une règle de R-9 ne pourrait pas être.
+
 ## 12. Fichier d'ancres de confiance
 
 ### 12.1 Ce qui est de confiance, contrôle par contrôle
@@ -3434,6 +4270,13 @@ pris tels quels ; une CRL du fichier d'ancres l'est aussi, sans vérification
 de sa signature, pour retirer la confiance au certificat d'une autorité
 qu'elle liste (EX-9.16) : elle ne peut qu'ôter une confiance, jamais en
 donner.
+
+Révision 0.2 : le fichier d'ancres ne change pas (EX-12.6). Les ancres d'un
+point de contrôle du journal (K-7, K-8, K-9) se vérifient avec les ancres des
+contrôles 4, 8 et 5 ; la clé qui signe le point est une clé d'enregistreur
+(`recorders`, N-3). Une autorité d'horodatage interne (CT-5 §7) entre dans
+`tsa_authorities` comme une autre, avec `qualified` à `null` et un `name` qui
+dit ce qu'elle est : c'est ce nom que l'énoncé répète.
 
 ### 12.2 Format
 
@@ -3594,13 +4437,15 @@ entrée des `org_id` et `journal_id` du dossier (EX-5.6). Elle est alors
 `non_execute`, raison `prerequis_en_echec`, si `cles.json` ne remplit pas la
 première partie de E-8 (CT-1 §11.4) : conformité à son schéma, `org_id` et
 `journal_id` égaux à ceux de l'événement, `key_id` et `public_key` uniques,
-`valid_to ≥ valid_from`. Pour chaque clé de `cles.json` qui signe un événement du dossier ou le
-manifeste, et dont le triplet (`org_id`, `journal_id`, `key_id`) figure dans
-`recorders` : la `public_key` de l'ancre égale celle de `cles.json`. Statut :
-`echoue` si une clé diffère ; sinon `reussi` si au moins une clé a été
-comparée ; sinon `non_execute` (`ancre_absente`). N-3 en échec fait échouer le
-contrôle 6 ; N-3 non exécutée ne change pas son statut. Une clé confirmée par
-N-3 a la provenance `ancres` de l'énoncé (EX-6.8).
+`valid_to ≥ valid_from`. Pour chaque clé de `cles.json` qui signe un événement
+du dossier, le manifeste ou, révision 0.2, le point de contrôle du journal de la
+partie `points-de-controle.json` quand K-1 a réussi (EX-12.6), et dont le
+triplet (`org_id`, `journal_id`, `key_id`) figure dans `recorders` : la
+`public_key` de l'ancre égale celle de `cles.json`. Statut : `echoue` si une clé
+diffère ; sinon `reussi` si au moins une clé a été comparée ; sinon
+`non_execute` (`ancre_absente`). N-3 en échec fait échouer le contrôle 6 ; N-3
+non exécutée ne change pas son statut. Une clé confirmée par N-3 a la provenance
+`ancres` de l'énoncé (EX-6.8).
 
 **EX-12.5 (N-4, clé de chaîne ; complète le contrôle 8)** N-4 ne s'exécute et
 ne figure au rapport que si P-1 a réussi (la clé du manifeste est alors
@@ -3615,6 +4460,19 @@ l'ancre (`topics[2]`, 20 derniers octets) égale cette `chain_key` : `reussi`,
 ou `echoue` s'il diffère. N-4 en échec fait échouer le contrôle 8 ; non
 exécutée, elle ne change pas son statut.
 
+**EX-12.6** (révision 0.2) Aucune ancre nouvelle. N-3 compare aussi, quand la
+partie `points-de-controle.json` est présente et que K-1 a réussi, la clé
+`key_id` du point de contrôle du journal à l'entrée de `recorders` de même
+triplet (`org_id`, `journal_id`, `key_id`), avec la règle d'EX-12.4 : une clé
+différente fait échouer N-3, donc le contrôle 6 ; une clé confirmée a la
+provenance `ancres` dans FK et dans `facts.checkpoint.key_source`. Le
+certificat de l'autorité qui contresigne un point (prestataire ou serveur
+interne, CT-5 §5, §7) se place dans `tsa_authorities` ; le point de contrôle
+Bitcoin et l'ancre `registry` servent tels quels à K-9 et K-8. Rien dans ce
+fichier ne désigne un point de contrôle du journal, ne fixe une cadence ni
+n'exige une ancre de point : c'est l'énoncé qui dit ce que le dossier a
+prouvé (EX-6.16).
+
 ### 12.5 Où le réviseur prend ses ancres
 
 | Ancre | Source | Précautions |
@@ -3627,6 +4485,7 @@ exécutée, elle ne change pas son statut.
 | `registry.validator_sets` | Le `validators.json` du réseau, obtenu d'au moins deux opérateurs de validateurs indépendants (partenaires), comparé par son hachage (EX-11.8) | La provenance du jeu n'est pas prouvable par le registre lui-même (R3 NV5). |
 | `registry.contracts`, `chain_id` | Les transactions de déploiement et leurs blocs certifiés, publiés par CT-4 (section 13) ; la ligne de règles de genèse pour `chain_id` (`chain/README.md`) | Les certificats des blocs de déploiement sont élagués au-delà de la fenêtre de rétention (R3, conséquence 9) : ils doivent avoir été capturés. Ces publications viennent du fournisseur du registre, que le contrôle 8 ne croit pas : recoupez l'adresse avec sa transaction de déploiement, dans un bloc certifié par le jeu de validateurs obtenu des partenaires, et le code d'initialisation avec la compilation de `contracts/`. Sinon, H3 et H7 reposent sur NOORTRACE pour ce point. |
 | `recorders` | Procès-verbal d'inscription de la clé (CT-2 EX-11.13) et cérémonie des clés (CT-7) | — |
+| Autorité d'horodatage interne (CT-5 §7 ; révision 0.2) | La fiche de prestataire que CT-5 §10 publie (certificat de l'unité ou de son AC en PEM, SHA-256, mention « non qualifié », EX-13.19) | Un jeton de ce serveur prouve qu'une clé contrôlée par l'exploitant a signé ce condensé et cette heure déclarée (CT-5 R1-F55) : `qualified` reste `null`, le `name` dit « interne » ou « non qualifié », et le réviseur qui n'en veut pas ne l'inscrit pas (K-7 non exécutée, `ancre_absente`). |
 
 ## 13. Exigences imposées à CT-4 et CT-5
 
@@ -3728,6 +4587,72 @@ leurs transactions de déploiement (capturés avant leur élagage, R3,
 conséquence 9), et les jeux de validateurs avec leurs hauteurs de validité.
 CT-4 DEVRAIT prévoir une rétention étendue chez les validateurs partenaires
 (`NOOR_BFT_CERT_RETENTION_HEIGHTS`, R3 F43).
+
+### 13.4 CT-5, ancres d'un point de contrôle du journal (révision 0.2)
+
+CT-5 produit les ancres des points de contrôle du journal (CT-1 §10.5 à §10.9 ;
+CT-5 §4 pour la cadence, §5 et §6 pour les clients, §9 pour le registre, §10
+pour ce qui est remis à l'exportateur). Ce que le vérificateur en exige :
+
+**EX-13.14** La requête RFC 3161 d'un point porte `messageImprint` =
+(SHA-256, `checkpointHash`), où `checkpointHash` = SHA-256(`P_K` ‖ `C_K`)
+est recalculé depuis le point signé (CT-1 §10.6), `certReq` vrai et un nonce
+aléatoire (EX-13.1 ; CT-5 R1-F1, R1-F2) ; CT-5 vérifie la réponse comme en
+EX-13.2 (statut, égalité de `messageImprint` et du nonce avec la requête, T-1
+à T-9, T-10 différée) et n'embarque dans `anchors.rfc3161.token` que le
+`TimeStampToken` en DER, tel que reçu (EX-13.3), encodé en base64 canonique
+(EX-4.14). Un jeton d'un prestataire de second rang ou du serveur interne
+(CT-5 §5.3, §7) s'embarque comme un autre : c'est le fichier d'ancres du
+réviseur qui dit ce qu'il vaut (EX-12.6), et K-7 n'en sait rien d'autre. La
+clôture horaire garde son jeton qualifié sur `periodHash` (EX-13.1 à EX-13.4),
+quelles que soient les contresignatures de points obtenues (CT-5 EX-3.4).
+
+**EX-13.15** La preuve OpenTimestamps d'un point horodate le fichier qui
+contient exactement `P_K ‖ C_K` (empreinte de fichier = `checkpointHash`,
+opération `08`), auprès d'au moins deux calendriers (EX-13.5), dans le profil
+`{f0, f1, 08}` (EX-10.7) ; `anchors.ots.proof` est le base64 canonique de la
+dernière version du fichier `.ots`. Une preuve en attente peut être embarquée
+(K-9 `non_execute`, `partie_absente`) ; CT-5 la complète puis réexporte
+(EX-13.6), et le fichier d'en-têtes qu'il joint (EX-13.7, EX-13.13) couvre
+aussi la hauteur attestée pour le point.
+
+**EX-13.16** L'ancre d'un point au registre porte l'empreinte
+`keccak256(org_id ‖ journal_id ‖ checkpointHash)` et le `docType`
+`noortrace/point-de-controle/v0` (CT-1 §10.6, CT-4 §6.4 révision 0.3, CT-5
+§9), jamais celui de la période. Pour chaque ancre de point que le dossier
+prouvera, l'exportateur capture, dès le reçu, l'en-tête, tous les reçus du
+bloc et le certificat de commit (EX-13.8) et, quand le point couvrant d'un
+dossier porte cette ancre, ajoute à `registre.json` l'entrée de rôle
+`ancre_point_de_controle` (EX-11.23) et à `certificat-commit.json` le
+certificat de son bloc ; `anchors.registry` de la partie porte la référence
+(CT-1 §11.2 : `chain_id` EVM, `contract`, `fingerprint`, `doc_type`,
+`block_number`, `block_hash`, `transaction_hash`, `log_index`) de la même
+transaction. Sans l'entrée, la référence est déclarative (AV-K-1).
+
+**EX-13.17** Peu après le `genTime` du jeton d'un point, CT-5 capture et
+publie, hors du dossier, les preuves de non-révocation de chaque certificat de
+son chemin (EX-13.12), au même titre que pour le jeton de la clôture ; une même
+capture sert à tous les jetons d'une même unité dont le `genTime` la précède.
+
+**EX-13.18** Le point couvrant que l'exportateur embarque (CT-1 §11.2 :
+`tree_size` strictement supérieur à `leaf_index`) DEVRAIT être choisi dans cet
+ordre de préférence (CT-5 EX-10.2, révision 0.2) : un point qui porte un jeton
+RFC 3161 promu ; à défaut, une preuve `.ots` complète ; à défaut, une ancre au
+registre ; à défaut, un point sans ancre ; à rang égal le plus petit
+`tree_size`, puis le premier de la série. La borne énoncée est celle de ce
+point (7.9) : le premier point de la série, souvent ancré au registre
+seulement, ne porterait pas de clause jeton, et c'est lui qui supprimerait la
+borne datée ; un point plus tardif porteur d'un jeton la donne (dossier
+`valide-point-de-controle-point-contresigne`). Le vérificateur ne contrôle que
+la couverture (K-4) et accepte tout point qui couvre l'événement.
+
+**EX-13.19** CT-5 publie, hors des dossiers, pour le réviseur : la fiche de
+chaque prestataire et du serveur interne (certificats en PEM avec leurs
+SHA-256, politiques, référence de liste de confiance ou mention « non
+qualifié », CT-5 §10.2), la série des points de chaque période et son index
+d'ancres, qui permettent les contrôles de série que le dossier ne fait pas
+(CT-1 §10.9, 7.9), et les captures de révocation d'EX-13.17. Rien de tout cela
+n'est une ancre : le réviseur en tire son fichier d'ancres (EX-12.1, 12.5).
 
 ## 14. Binaire
 
@@ -3894,7 +4819,8 @@ N-2).
 |---|---|
 | jeton RFC 3161 | profondeur DER 32 ; 16 certificats dans le jeton ; chemin de 5 certificats au plus, ancre non comprise |
 | preuve `.ots` | 255 opérations par chemin ; argument de 1 à 4096 octets ; message et résultat de 1 à 4096 octets ; charge d'attestation 8192 octets ; URI de 0 à 1000 octets ; `varuint` 9 octets |
-| `registre.json` | 16 entrées ; 256 reçus par bloc ; 256 journaux par reçu ; 4 sujets par journal |
+| `registre.json` | 17 entrées (révision 0.2 : au plus une entrée `ancre_point_de_controle`) ; 256 reçus par bloc ; 256 journaux par reçu ; 4 sujets par journal |
+| `points-de-controle.json` (révision 0.2) | 1 Mio (EX-4.14) ; base64 de 131 072 caractères au plus par ancre (schéma de CT-1) ; jeton décodé de 64 Kio au plus, preuve décodée de 256 Kio au plus ; `path` de la preuve de cohérence de 64 nœuds au plus (schéma) |
 | `certificat-commit.json` | 16 certificats ; 128 lignes de precommit ; ligne de 4 Mio |
 | `validateurs.json`, ancre `registry` | 16 jeux de 128 validateurs |
 | fichier d'ancres | 32 autorités, 8 intermédiaires chacune ; 64 CRL ; 256 déclarations ; 256 clés d'enregistreur |
@@ -3949,6 +4875,13 @@ là où l'EVM et noorcore l'imposent (`BFTBlockHash`, trie des reçus, journaux,
 | Jeu de validateurs substitué (certificat forgé, `validateurs.json` assorti) | R-2 : quorum calculé sur le jeu de l'ancre | `invalide-r2-jeu-substitue` |
 | En-tête falsifié | R-6 : `BFTBlockHash` recalculé | `invalide-r6-entete-modifie` |
 | Reçu falsifié qui garde le `blockHash` certifié | R-7 : racine des reçus recalculée (R3 F32) | `invalide-r7-recu-falsifie` |
+| (révision 0.2) Point de contrôle du journal qui ne couvre pas l'événement (`tree_size ≤ leaf_index`), ou d'une autre période | K-4, K-1 (CT-1 §11.4) | dossiers `invalide-k4-…`, `invalide-k1-…` de `spec/vecteurs/ct-1` (CT-1 §11.5) |
+| (révision 0.2) Point d'un autre arbre présenté comme préfixe du manifeste | K-5 : algorithme de cohérence de CT-1 §10.7 exécuté | `invalide-k5-coherence-tronquee` de `spec/vecteurs/ct-1` |
+| (révision 0.2) Jeton de la clôture, ou d'un autre point, rejoué comme jeton du point | K-7 (T-2 sur `checkpoint_hash` recalculé) | `invalide-k7-jeton-autre-empreinte` |
+| (révision 0.2) Preuve OpenTimestamps d'une autre donnée embarquée pour le point | K-9 (O-2 sur `checkpoint_hash`) | `invalide-k9-preuve-autre-empreinte` |
+| (révision 0.2) Référence au registre forgée (empreinte, `docType`, contrat) | K-8 : empreinte et `docType` recalculés, contrat de l'ancre | `invalide-k8-empreinte`, `invalide-k8-contrat` |
+| (révision 0.2) Ancre de période relabellisée en ancre de point | R-11 : `docType` du point exigé | `invalide-r11-ancre-de-periode` |
+| (révision 0.2) Ancre de point non incluse présentée comme incluse | R-11 ; sans entrée, référence déclarative signalée (AV-K-1), `inclusion` à `declarative` et FK sans clause registre | `valide-point-de-controle-reference-declarative` |
 | Événement émis par un autre contrat | R-8 | `invalide-r8-autre-contrat` |
 | Clôture ou ancre d'une autre période | R-9 | `invalide-r9-cloture-autre-periode` |
 | Ancre absente traitée comme réussie | Statuts de la section 6 : `non_execute` n'est jamais compté comme `reussi`, et l'énoncé ne reprend que les contrôles réussis | `valide-seq-7-complet-sans-ancres` |
@@ -3978,6 +4911,51 @@ viennent des recherches du lot.
 | `NOTICE` | — | mention des licences tierces livrées avec le binaire (EX-14.10, R4 F3.12) | à faire en phase 2, avec le binaire |
 | `ARCHITECTURE.md`, « Dossier et vérification », contenu du dossier | « le reçu de la transaction du registre avec le certificat de commit de son bloc et le jeu de validateurs de ce bloc » | « les entrées du registre (inscription de la clé, ancre, clôture) avec l'en-tête et tous les reçus de leurs blocs, le certificat de commit de chaque bloc, et le jeu de validateurs déclaré » | fait |
 | `spec/README.md` | CT-6 « à écrire » ; cinq schémas | CT-6 en revue ; schémas de CT-6 (`ancres-confiance`, `entetes-bitcoin`, `registre`, `validateurs`, et celui du rapport) ; vecteurs `ct-6/` | fait |
+
+
+Révisions. **Version 0.1** (2026-10-22) : première rédaction, soumise à la
+porte 1 ; EX-6.15, EX-9.21, EX-13.12 et EX-13.13 ajoutées par une révision
+avant publication (section 0). **Version 0.2** (2026-10-25) : vérification de
+la partie facultative `points-de-controle.json` de CT-1 révision 0.3. Ajouts
+seuls : aucun code de retour, aucun des huit contrôles, aucune vérification
+existante, aucun fragment F0 à F8 n'est retiré ni modifié dans son sens ; les
+cinquante dossiers de `spec/vecteurs/ct-6` et les quarante de CT-1 gardent
+leur verdict, leur code et leur `attendu.json` (EX-6.18, V-9). Ajouts : famille
+K- rattachée aux contrôles (5.4 : EX-5.7 à EX-5.9), fragment FK (EX-6.16),
+`facts.checkpoint` (EX-6.17), compatibilité (EX-6.18), V-9, section 7.9
+(EX-7.2), ligne `Pt de contrôle` et neuf schémas (EX-8.8, EX-8.9), K-7 (9.9,
+EX-9.22, AV-K-2), K-9 (10.9, EX-10.16), rôle `ancre_point_de_controle`, R-11
+et K-8 (11.9 : EX-11.23 à EX-11.25, AV-K-1, AV-K-3), fichier d'ancres
+inchangé (EX-12.6), exigences à CT-5 pour les points (13.4 : EX-13.14 à
+EX-13.19), limites (EX-4.14, 15.1, 15.5, section 17), vecteurs (EX-A.13 à
+EX-A.17), sources (annexe B.5). Règles dont le texte est complété en place,
+sans changement pour un dossier sans la partie : EX-4.3, EX-5.2, EX-5.6,
+EX-6.3, EX-6.4, EX-6.8, EX-6.13, EX-9.18, EX-10.12, EX-11.20, EX-11.21,
+EX-12.4 ; tables 2, 3.3, 4.2, 4.5, 5.1, 5.3, 6.2, 6.9, 8.6, 11.2.1, 11.4,
+11.6, 12.5, 15.1, 15.5 ; terme « point de contrôle Bitcoin » (section 2).
+
+Alignement de la révision 0.2 avec le dépôt (« fait » : dans ce lot de
+spécification ; « à faire » : attendu des références JavaScript, des vecteurs,
+des vérificateurs Go ou d'une autre spécification, nommés) :
+
+| Emplacement | Avant | Attendu par la révision 0.2 | État |
+|---|---|---|---|
+| `spec/schemas/rapport-verification-v0.schema.json` | identifiants D- à N- ; `facts` à cinq membres ; AV-T/O/R/N ; rôles `cloture`, `ancre`, `inscription` | identifiants K- et R-11 ; `facts.checkpoint` facultatif (`$defs/faits_point_de_controle`, `faits_ancre_registre_point`) ; `$defs/faits_horodatage` et `faits_bitcoin` partagés avec `facts.timestamp` et `facts.bitcoin` ; AV-K- ; rôle `ancre_point_de_controle` ; un rapport 0.1 reste valide | fait |
+| `spec/schemas/registre-v0.schema.json` | trois rôles, 16 entrées | rôle `ancre_point_de_controle` (au plus une entrée), 17 entrées ; tout `registre.json` 0.1 reste valide | fait |
+| `spec/schemas/ancres-confiance-v0.schema.json`, `entetes-bitcoin-v0`, `validateurs-v0` | — | inchangés (EX-12.6) | fait |
+| `scripts/lib/verificateur.mjs` | index à douze parties ; contrôles sans K- ; huit schémas | index à douze ou treize parties ; K-1 à K-9 (K-1 à K-6 par `journal.mjs`, K-7 par `horodatage.mjs` sur `checkpoint_hash`, K-9 par `ots.mjs`, K-8 par 11.9) ; FK ; `facts.checkpoint` ; ligne `Pt de contrôle` ; neuf schémas ; `points-de-controle.json` dans les fichiers lus, limite 1 Mio | fait (lot CT-5 ; AV-K-4 ajouté par la revue, 9.9) |
+| `scripts/lib/registre.mjs` | rôles `cloture`, `ancre`, `inscription` ; R-1 à R-10 | rôle `ancre_point_de_controle` (`ecartsRoles`, `decoderJournal`), R-11, `DOC_TYPE_POINT_DE_CONTROLE`, AV-K-1, AV-K-3, `facts.checkpoint.registry` | fait (lot CT-5) |
+| `scripts/lib/horodatage.mjs`, `scripts/lib/ots.mjs` | propositions d'énoncé « le manifeste d'empreinte … » | inchangés pour T- et O- ; `verifierJeton` et `verifierPreuve` appelés avec `checkpoint_hash` pour K-7 et K-9 ; les clauses de FK sont construites par `verificateur.mjs` (EX-6.16) | fait (lot CT-5) |
+| `scripts/verify/dossier.mjs` | huit schémas | neuf schémas (`point-de-controle-v0.schema.json` chargé et placé dans le registre) ; même interface, aucune option nouvelle | fait (lot CT-5) |
+| `scripts/vecteurs/generer-ct6.mjs`, `scripts/vecteurs/ct6/*`, `spec/vecteurs/ct-6/` | 50 dossiers ; jetons et preuves des périodes ; capture de sept blocs | nouveaux dossiers (EX-A.16), jeton et preuve du point couvrant (EX-A.13, EX-A.14), `chaine-points.json`, capture de l'ancre du point (EX-A.15), `INDEX.md` ; les 50 dossiers et leurs `attendu.json` inchangés octet pour octet ; deux générations identiques | fait (68 dossiers : 50 inchangés et 18 avec la partie, dont `valide-point-de-controle-point-contresigne`, `valide-point-de-controle-point-de-cloture` et `invalide-k1-double-defaut`, EX-A.16) |
+| `test/verificateur.test.js`, `test/confrontation.test.js`, `.github/workflows/ci.yml` | exemples 8.5 et 8.6 (huit schémas), 50 dossiers | V-9 ; exemple 8.6 à neuf schémas et `facts.checkpoint` ; nouveaux dossiers ; `openssl ts -verify -digest <checkpoint_hash> -token_in` et `python-opentimestamps` sur les nouveaux vecteurs (EX-A.17) | fait (lot CT-5) |
+| Vérificateurs Go indépendants (`spec/vecteurs/ct-1/verificateur-independant`, nouveau `spec/vecteurs/ct-5/verificateur-independant`) | douze parties, inclusion seule | treize parties, point, cohérence, K-1 à K-6 (CT-1 §17) ; K-7 à K-9 et R-11 hors du périmètre de ces modules, comme les contrôles 4, 5 et 8 | fait (CT-1 §17, CT-5 annexe A.5) |
+| CT-1 §11.4, K-3 | « clé absente : non exécuté, l'échec étant porté par E-8 » | la clé du point n'est pas exigée dans `cles.json` par CT-1 §11.2 : K-3 échoue quand elle en est absente (5.4) ; CT-1 à aligner d'un mot | fait (CT-1 §11.4, texte, 2026-10-25) |
+| CT-1 §11.4, K-8 | « `chain_id` et `contract` égaux à ceux du fichier d'ancres » | seul `contract` est comparé ; `chain_id` (identifiant EVM) n'a pas d'ancre et reste déclaratif (EX-11.25, section 17) ; CT-1 à aligner d'un mot | fait (CT-1 §11.4, texte, 2026-10-25) |
+| CT-5 §9.2 (EX-9.2), §14 | « R-9 étendu au `docType` du point » | vérification R-11 à part, R-9 inchangée (11.9) ; même effet sur les dossiers | fait (CT-5 version 0.1, EX-9.2, EX-10.4 et §14) |
+| CT-4 §6.4 | une ligne (`noortrace/periode/v0`) | ligne `noortrace/point-de-controle/v0` = `0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178` (CT-1 §11.2, CT-5 §9.5) | fait (CT-4 révision 0.3, texte) |
+| `spec/README.md` | CT-6 version 0.1 | CT-6 version 0.2 ; `-r spec/schemas/point-de-controle-v0.schema.json` dans toute commande `ajv` qui charge `dossier-v0.schema.json` (CT-1 §17) ; vecteurs nouveaux | fait (index) ; vecteurs nouveaux à produire |
+| `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | vérificateur à huit contrôles sur `periodHash` ; fenêtre « une heure » | le vérificateur vérifie aussi le point de contrôle du journal et énonce la fenêtre bornée au point (7.9) ; révision 0.2 au journal des changements | à faire (documents racine, hors de ce lot) |
 
 ## 17. Ce que cette version ne couvre pas
 
@@ -4012,6 +4990,18 @@ viennent des recherches du lot.
   chaque décision.
 - **Le binaire** lui-même (phase 2) et le lieu de publication de la clé
   publique minisign.
+- (révision 0.2) **Une exigence sur le point de contrôle du journal par
+  `--exiger`** : l'option ne nomme que les huit contrôles ; la borne au point
+  se lit dans l'énoncé (FK) et dans `facts.checkpoint`.
+- (révision 0.2) **L'identifiant EVM de la chaîne** dans la référence
+  `anchors.registry` (`chain_id`), déclaratif ; **la série des points**
+  (chaînage, monotonie, cadence, premier point couvrant), hors du dossier
+  (CT-1 §10.9, CT-5 §10) ; **plusieurs points** dans un dossier (la partie en
+  porte un).
+- (révision 0.2) **L'émetteur de l'ancre d'un point** quand aucune inscription
+  de la clé du point n'est jointe (AV-K-3), et la comparaison de la clé du
+  point à la clé en vigueur à `checkpoint_ts` (CT-1 §10.5, règle 5), que le
+  dossier ne permet pas sans la série.
 
 ## Annexe A — Vecteurs CT-6
 
@@ -4044,7 +5034,7 @@ dossier, ignoré par le vérificateur, CT-1 §11.1) :
 |---|---|
 | `valid` | booléen |
 | `target` | identifiant visé (`T-2`, `O-5`, `R-7`, `N-3`…) ou `null` |
-| `failed_checks` | liste exacte des vérifications en échec, dans l'ordre D, E, C, M, P, A (CT-1 §11.4), puis T, O, R, N par numéro |
+| `failed_checks` | liste exacte des vérifications en échec, dans l'ordre D, E, C, M, P, A, K (CT-1 §11.4), puis T, O, R, N par numéro |
 | `control_statuses` | `{ "1": …, …, "8": … }`, valeurs `reussi`, `echoue`, `non_execute` |
 | `not_executed` | liste `{id, reason}` des vérifications non exécutées, `reason` étant une raison de la table 6.2 (`prerequis_en_echec` pour une dépendance d'une vérification en échec) |
 | `warnings` | liste exacte des avertissements (`AV-…`), dans l'ordre de EX-6.15 |
@@ -4067,15 +5057,16 @@ spec/vecteurs/ct-6/
     crl/                        CRL de test (A.3)
     attendu.json
   ots/
-    entetes/                    chaînes d'en-têtes synthétiques (A.4)
+    entetes/                    chaînes d'en-têtes synthétiques (A.4 ; révision 0.2 : chaine-points.json)
     preuves/                    fichiers .ots (A.4)
     attendu.json
   registre/
     capture/                    entrée : réponses JSON-RPC brutes (A.5)
     periode-1/                  registre.json, certificat-commit.json, validateurs.json dérivés de la capture
     periode-2/                  idem pour la période 2 (sert à R-9)
+    periode-1-point/            révision 0.2 : periode-1 plus l'entrée ancre_point_de_controle et son certificat (EX-A.15)
     attendu.json                hachages BFT, racines des reçus, événements décodés
-  dossiers/                     dossiers complets (A.7)
+  dossiers/                     dossiers complets (A.7 ; révision 0.2 : dossiers avec points-de-controle.json, EX-A.16)
   confrontation/                programmes et sorties des implémentations tierces (A.8)
 ```
 
@@ -4151,6 +5142,23 @@ le code lu (R1 F5.12). Résultats relevés par la confrontation (A.8, OpenSSL
 failure` pour `t6` ; `invalid utf8string` pour `t1-cn-utf8-invalide`, qu'OpenSSL
 ne lit pas.
 
+**EX-A.13** (révision 0.2) `jetons/point-periode-1.der` : jeton sur le
+`checkpointHash` du **point couvrant** de l'événement seq 7 de la période 1,
+pris dans la série `spec/vecteurs/ct-1/points-de-controle/periode-1.json` de
+CT-1 révision 0.3 (le point de plus petit `tree_size > 6`, choisi par
+`choisirPointCouvrant` de `journal.mjs`, CT-1 §17), `genTime` =
+`checkpoint_ts` du point tronqué à la seconde + 2 s, `serialNumber` = 1001,
+`accuracy` = 1 s, même politique, `nonce` = 8 premiers octets de
+SHA-256(UTF-8(`noortrace/vecteurs/v0/ct-6/nonce-tsa/point-de-controle/periode-1`)),
+`certificates` = [`tsa-test.pem`], `signingCertificateV2` en SHA-256 ; variante
+`k7-point-signature.der` (dernier octet de la signature inversé, K-7 par T-6).
+Le rejeu d'un jeton de la clôture comme jeton du point (K-7 par T-2) emploie
+`periode-1.der` tel quel. `attendu.json` donne pour ce jeton `checkpoint_hash`,
+`gen_time`, `serial_number`, les statuts de T-1 à T-11 avec
+`ancres/ancres-test.json`, et le résultat attendu de `openssl ts -verify
+-digest <checkpoint_hash sans 0x> -token_in -in <jeton> -CAfile ac-test.pem
+-untrusted tsa-test.pem -attime <genTime>` : `Verification: OK`.
+
 ### A.4 `ots/`
 
 **EX-A.6** `entetes/chaine.json` : chaîne synthétique `regtest` de hauteur 990
@@ -4187,6 +5195,22 @@ bibliothèque de référence admet : O-1 réussie, AV-O-2) et
 O-3 réussie, AV-O-2, EX-10.7). La variante O-2 est `periode-2.ots`
 dans un dossier de la période 1 ; O-5 et O-6 se testent par les fichiers
 d'en-têtes.
+
+**EX-A.14** (révision 0.2) `preuves/point-periode-1.ots` : empreinte =
+`checkpointHash` du point couvrant d'EX-A.13, nonce `f0` de 16 octets =
+SHA-256(UTF-8(`noortrace/vecteurs/v0/ct-6/ots/nonce/point-de-controle/periode-1`))
+tronqué, puis le même chemin `f0`/`f1`/`08` que les preuves des périodes, et
+une attestation Bitcoin à la hauteur **1004** ;
+`preuves/point-periode-1-en-attente.ots` : la même empreinte avec une seule
+attestation en attente d'URI `https://alice.btc.calendar.opentimestamps.org`
+(K-9 `non_execute`, O-7). `entetes/chaine-points.json` : la chaîne `chaine.json`
+dont les en-têtes 990 à 1003 sont identiques octet pour octet, `racine(1004)`
+égale au résultat des opérations de `point-periode-1.ots`, et les en-têtes
+1004 à 1020 recalculés (`nNonce` minimal à la cible `regtest`, chaînage) ;
+`chaine.json` ne change pas, et tout dossier qui porte la partie avec une
+preuve `.ots` se vérifie avec `chaine-points.json` (`attendu.bitcoin_headers`).
+Le rejeu de la preuve de la clôture comme preuve du point (K-9 par O-2)
+emploie `periode-1.ots` tel quel.
 
 ### A.5 `registre/capture/` : capture unique
 
@@ -4229,6 +5253,32 @@ contrats, `deployments/noorcore.json` sauvegardé avant et restauré après.
 2026). Aucune vérification ne compare l'heure déclarée d'un bloc à
 `generated_at` (EX-11.18) : cette incohérence des vecteurs est sans effet et
 documentée dans `INDEX.md`.
+
+**EX-A.15** (révision 0.2) Complément de capture, exécuté une fois selon la
+procédure d'EX-A.8 sur le même réseau de développement (contrats de
+`deployments/noorcore.json`, `dev-net.sh start`, puis `stop`), sans recapturer
+les sept blocs existants : l'ancre du point couvrant d'EX-A.13 par
+`AttestationRegistry.anchor(keccak256(org_id ‖ journal_id ‖ checkpointHash),
+docType 0x72c4…2178)`, émise par la clé de chaîne de la clé qui a signé le
+point (`rec-test-01`, `0xaa2a59656361352e96ef2eed355316ef8b29dab7`, inscrite au
+bloc 16648), puis, dès le reçu, `eth_getBlockByNumber(h, false)`,
+`eth_getTransactionReceipt` de chaque transaction du bloc et
+`noor_getCommitCertificate(h)` (EX-13.8), écrits dans `bloc-<h>.json`,
+`recu-<hash>.json`, `certificat-<h>.json`, et une entrée dans la liste
+`points_de_controle` de `capture.json` (rôle `ancre_point_de_controle`,
+empreinte, bloc), distincte de `transactions`, que lit le générateur de
+CT-4 et qui ne change donc pas ; le complément est décrit sous la clé
+`complements`. L'empreinte
+du point n'ayant jamais été ancrée, `AttestationRegistry` l'accepte sur le
+réseau existant : aucun réseau neuf n'est nécessaire, mais la série de CT-1
+doit être figée avant la capture (son `checkpointHash` est l'entrée). Le jeu de
+validateurs est celui de `validators.json` ; si le réseau a changé de jeu
+depuis la capture du 2026-10-22, `ancres-test.json` reçoit un second jeu par
+hauteurs (12.2), ce qu'`INDEX.md` dit. `registre/periode-1-point/` reçoit
+`registre.json` (les quatre entrées de `periode-1/` plus l'entrée
+`ancre_point_de_controle`) et `certificat-commit.json` (cinq certificats)
+dérivés de la capture ; `attendu.json` du registre reçoit le hachage BFT, la
+racine des reçus et le journal `Anchored` décodé du nouveau bloc.
 
 ### A.6 `ancres/`
 
@@ -4332,6 +5382,47 @@ s'ajoute à `blocking_unexecuted`, non à `failed_checks`. Ailleurs, N-3 est
 réussie, ou absente du rapport (`invalide-nombre-non-entier`,
 `invalide-partie-nulle`).
 
+**EX-A.16** (révision 0.2) Dossiers avec la partie `points-de-controle.json`.
+Chacun est `valide-seq-7-complet` dont l'index passe à treize parties
+(`generated_at` inchangé, SHA-256 recalculés, écriture de CT-1 §11.1) et dont
+la treizième partie est construite depuis le point couvrant d'EX-A.13, la
+preuve de cohérence `PROOF(tree_size, D[9])` recalculée depuis les feuilles de
+la période 1 (CT-1 §10.7) et les ancres dites ; sauf mention, ancres
+`ancres-test.json`, en-têtes `chaine-points.json`, parties du registre de
+`registre/periode-1-point/` quand la référence au registre est non nulle,
+celles de `periode-1/` sinon. Deux dossiers font exception au point couvrant :
+`valide-point-de-controle-point-contresigne/` et
+`valide-point-de-controle-point-de-cloture/` portent un point plus tardif de la
+série, avec un jeton de la TSA de test sur son `checkpoint_hash` construit par
+le générateur (absent de `rfc3161/jetons`). Les cinquante dossiers antérieurs ne
+changent pas (EX-6.18).
+
+| Dossier | Partie | `failed_checks` | Remarque |
+|---|---|---|---|
+| `valide-point-de-controle-complet/` | jeton `point-periode-1.der`, preuve `point-periode-1.ots`, référence au registre et entrée `ancre_point_de_controle` | aucun | K-1 à K-9 et R-11 réussies ; FK avec ses trois clauses ; `facts.checkpoint` complet (`inclusion` `prouvee`) ; AV-O-3 deux fois (O-5, K-9) |
+| `valide-point-de-controle-jeton-seul/` | jeton seul, `registry` et `ots` nuls ; parties du registre de `periode-1/` | aucun | K-8, K-9 `non_execute` (`partie_absente`) ; FK avec la clause jeton seule ; F7 absent (contrôles réussis) |
+| `valide-point-de-controle-point-contresigne/` | point de 09:35:00.000Z (`tree_size` 8), celui que CT-5 contresigne à l'échéance D_7 ; jeton de la TSA de test sur son `checkpoint_hash` (`genTime` 09:35:02Z, numéro de série 1002) ; `registry` et `ots` nuls ; parties du registre de `periode-1/` | aucun | point retenu par EX-13.18 et CT-5 EX-10.2 (AN-51) plutôt que le point de 09:32, de même `tree_size` et ancré au registre seul ; K-1 à K-7 réussies ; K-8, K-9 `non_execute` (`partie_absente`) ; FK avec la clause jeton seule (« horodaté au plus tard le 2026-11-05T09:35:03Z ») |
+| `valide-point-de-controle-point-de-cloture/` | point de clôture (10:00:00.300Z, `tree_size` 9 = `count`) ; jeton de la TSA de test (`genTime` 10:00:02Z, numéro de série 1003) ; `registry` et `ots` nuls ; parties du registre de `periode-1/` | aucun | preuve de cohérence de 9 vers 9, chemin vide (CT-1 §10.7) ; K-6 `non_execute` (`piece_hors_dossier` : seq 9 hors du dossier) ; K-8, K-9 `non_execute` (`partie_absente`) ; FK avec la clause jeton seule |
+| `valide-point-de-controle-sans-ancre/` | trois ancres nulles | aucun | K-7 à K-9 `non_execute` (`partie_absente`) ; pas de FK ; `facts.checkpoint` non nul à `timestamp`, `bitcoin`, `registry` nuls ; énoncé égal à celui de `valide-seq-7-complet` |
+| `valide-point-de-controle-declare-absent/` | treize parties, la treizième absente avec la raison « aucun point de contrôle » | aucun | aucune K- au rapport ; `absent_parts` la porte ; énoncé, statuts et borne égaux à ceux de `valide-seq-7-complet` (EX-6.18) |
+| `valide-point-de-controle-sans-ancres-reviseur/` | comme `complet` ; vérifié sans fichier d'ancres, avec `chaine-points.json` | aucun | K-7, K-8, K-9 `non_execute` (`ancre_absente`) ; contrôles 4, 5, 8 `non_execute` comme dans `valide-seq-7-complet-sans-ancres` ; pas de FK ; les K- ne changent aucun statut (EX-5.8) |
+| `valide-point-de-controle-reference-declarative/` | comme `complet`, parties du registre de `periode-1/` (sans l'entrée du point) | aucun | K-8 réussie, `inclusion` `declarative`, AV-K-1 ; R-11 `non_execute` (`partie_absente`) ; FK sans clause registre |
+| `valide-point-de-controle-ots-en-attente/` | preuve `point-periode-1-en-attente.ots`, jeton et registre comme `complet` | aucun | K-9 `non_execute` (`partie_absente`, O-7) ; AV-O-2 (K-9) ; FK sans clause Bitcoin |
+| `invalide-k1-partie-inexploitable/` | `points-de-controle.json` réduit au littéral `null`, index recalculé | K-1 | K-2 à K-9 `non_execute` (`prerequis_en_echec`), dans `blocking_unexecuted` ; contrôle 3 `echoue` |
+| `invalide-k1-double-defaut/` | partie de `complet` avec un membre `extra` hors du schéma et un chemin de cohérence tronqué (dernier nœud retiré), index recalculé | K-1 | K-2 à K-9 `non_execute` (`prerequis_en_echec`), dans `blocking_unexecuted` : le chemin tronqué n'est pas examiné et K-5 n'est pas en échec (EX-5.9) ; contrôle 3 `echoue` |
+| `invalide-k7-jeton-autre-empreinte/` | jeton `periode-1.der` (celui de la clôture) embarqué comme jeton du point | K-7 | T-2 du point en échec ; contrôle 4 `echoue` ; les T- de la clôture restent réussies |
+| `invalide-k7-jeton-signature/` | jeton `k7-point-signature.der` | K-7 | T-6 du point en échec ; contrôle 4 `echoue` |
+| `invalide-k7-base64-non-canonique/` | `token` dont le dernier caractère utile porte des bits de bourrage non nuls (même longueur, même remplissage, décodage non canonique) | K-7 | K-1 réussie (motif du schéma respecté) ; K-7 `echoue`, jeton inexploitable (EX-4.14) |
+| `invalide-k8-empreinte/` | `anchors.registry.fingerprint` remplacée par `0x11…11` | K-8 | contrôle 8 `echoue` ; R-11 réussie (l'entrée est authentique et son `topics[1]` égale le recalcul : seule la référence de la partie est fausse) |
+| `invalide-k8-contrat/` | `anchors.registry.contract` = adresse de `PeriodRegistry` | K-8 | contrôle 8 `echoue` ; R-11 réussie (l'entrée, elle, est émise par `AttestationRegistry`) |
+| `invalide-k9-preuve-autre-empreinte/` | preuve `periode-1.ots` (celle de la clôture) embarquée comme preuve du point | K-9 | O-2 du point en échec ; contrôle 5 `echoue` |
+| `invalide-r11-ancre-de-periode/` | l'entrée `ancre` de la période 1 (bloc 16660) dupliquée sous le rôle `ancre_point_de_controle` ; `anchors.registry` de la partie porte l'empreinte et le `docType` du point mais désigne ce bloc et cette transaction | R-11 | règle 1 : `docType` de période ; règle 2 : `topics[1]` ≠ empreinte du point ; R-6, R-7 réussies (bloc authentique) ; K-8 réussie ; contrôle 8 `echoue` |
+
+Les dossiers `invalide-k1…` à `invalide-k6…` de K-1 à K-6 sont ceux de CT-1
+§11.5 (`spec/vecteurs/ct-1`), que le vérificateur de CT-6 rejoue avec les
+mêmes `controles_en_echec` (V-7). Chaque dossier ci-dessus porte un
+`attendu.json` d'EX-A.3, dont `statement` contient FK quand la table le dit.
+
 ### A.8 Confrontation par des implémentations tierces
 
 **EX-A.12** `confrontation/` porte les programmes et leurs sorties, publiées
@@ -4354,6 +5445,19 @@ cas, statuts du registre, aucune discordance) ; la CI rejoue les programmes
 
 La concordance des sorties tierces avec `attendu.json` est la condition de
 publication des vecteurs, comme pour CT-1 §13.
+
+**EX-A.17** (révision 0.2) La confrontation s'étend aux vecteurs des points :
+`confronter_rfc3161.py` vérifie `point-periode-1.der` par `openssl ts -verify
+-digest <checkpoint_hash> -token_in -attime <genTime>` (« Verification: OK »)
+et `k7-point-signature.der` (« signature failure ») ; `confronter_ots.py` lit
+`point-periode-1.ots` et `point-periode-1-en-attente.ots` avec
+`python-opentimestamps` et compare le résultat des opérations aux octets 36 à
+67 de l'en-tête 1004 de `chaine-points.json` ; `main.go` (go-ethereum)
+recalcule la racine des reçus du bloc de l'ancre du point et décode son journal
+`Anchored` (`docType` du point) ; les jetons embarqués dans les nouveaux
+dossiers sont extraits du base64 et confrontés de même. Les `TimeStampReq` et
+les fichiers `.ots` que CT-5 produit sont confrontés par CT-5 (annexe A.6 de
+CT-5), pas ici.
 
 ## Annexe B — Sources des faits externes
 
@@ -4649,3 +5753,24 @@ Conventions :
 | R4 (section 14.1) | point non vérifié 1 : récupération AIA sous Windows et macOS, non observée | https://learn.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-certgetcertificatechain ; <https://developer.apple.com/documentation/security/sectrustsetnetworkfetchallowed(_:_:)> ; https://pkg.go.dev/crypto/x509 ; point non vérifié de la note | 2026-10-22 |
 | R4 (section 14.2) | point non vérifié 4 : `unshare -rn` sans privilège, non essayé | https://man7.org/linux/man-pages/man1/unshare.1.html ; point non vérifié de la note | 2026-10-22 |
 | R4 (section 14.3) | essais de reproductibilité de la note | essais de la note, non publiés ; aucune source primaire publique dans la note ; fait non recoupable ; programme essayé : vérificateur indépendant de CT-1, `spec/vecteurs/ct-1/verificateur-independant/` (présent dépôt) | 2026-10-22 |
+
+
+### B.5 Notes du lot CT-5 (révision 0.2)
+
+La révision 0.2 cite deux notes du lot CT-5, relues le 2026-10-25, écrites
+« CT-5 R1-Fn » (prestataires RFC 3161, serveurs internes, OpenTimestamps,
+reprise) et « CT-5 R2-Fn » (points de contrôle, cohérence RFC 9162, témoins,
+stockage inaltérable, dépôt) ; l'annexe B de CT-5 en donne la liste complète.
+Les faits cités dans cette spécification :
+
+| Renvoi | Objet | Source(s) primaire(s) | Consultée le |
+|---|---|---|---|
+| CT-5 R1-F1, R1-F2 | nonce : fraîcheur, présence et égalité obligatoires dans le jeton, contrôlées à l'acquisition (9.9, EX-13.14) | https://www.rfc-editor.org/rfc/rfc3161.txt (§2.4.1, §2.4.2) | 2026-10-25 |
+| CT-5 R1-F43 | la partie utilisatrice établit le statut qualifié par une liste de confiance, non par la déclaration du prestataire (7.9) | https://www.digicert.com/content/dam/digicert/pdfs/legal/quovadis/archive/2023/qv-tsa-disclosure-statement-1.11-approved.pdf | 2026-10-25 |
+| CT-5 R1-F55 | un serveur d'horodatage interne prouve seulement qu'une clé de l'exploitant a signé un condensé et une heure déclarée (déduit de RFC 3161 §2.1 et des outils lus ; 7.9, 12.5) | https://www.rfc-editor.org/rfc/rfc3161.txt (§2.1) ; https://docs.openssl.org/master/man1/openssl-ts/ ; https://raw.githubusercontent.com/sigstore/timestamp-authority/main/README.md | 2026-10-25 |
+| CT-5 R1-F59, R1-F60 | une preuve OpenTimestamps en attente est un engagement et une URI de calendrier, promesse non vérifiable sans le calendrier (10.9) | https://petertodd.org/2016/opentimestamps-announcement ; https://raw.githubusercontent.com/opentimestamps/python-opentimestamps/master/opentimestamps/core/notary.py | 2026-10-25 |
+| CT-5 R2-F7, R2-F13 | algorithme de vérification de la preuve de cohérence RFC 9162 §2.1.4.2 et cas de bord du vérificateur de référence (K-5, CT-1 §10.7) | https://www.rfc-editor.org/rfc/rfc9162.txt ; https://raw.githubusercontent.com/transparency-dev/merkle/main/proof/verify.go | 2026-10-25 |
+| CT-5 R2-F21, R2-F26 | un signataire ne signe jamais un point incohérent avec un point antérieur ; cosignature : monotonie des tailles, sens « cohérent avec toutes les vues observées » (3.4, 7.9) | https://raw.githubusercontent.com/C2SP/C2SP/main/tlog-checkpoint.md ; https://raw.githubusercontent.com/C2SP/C2SP/main/tlog-cosignature.md | 2026-10-25 |
+| CT-5 R2-F36 | la rétention d'un objet verrouillé est lisible par l'API du stockage, sans signature : déclarative pour un réviseur (7.9) | https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObjectRetention.html | 2026-10-25 |
+| CT-5 R2-F45 | `docType` = keccak256 du libellé ; un libellé nouveau pour un sens nouveau (11.9) | `spec/CT-4-registre.md` §6.4 à §6.6 (présent dépôt) | 2026-10-25 |
+| CT-5 R2 (section 7.9) | conséquence 22 : aucune borne « pas avant » ; un point qui engagerait une valeur fraîche extérieure la donnerait ; proposition sans source, non retenue | aucune source primaire ; proposition de conception de la note | 2026-10-25 |
