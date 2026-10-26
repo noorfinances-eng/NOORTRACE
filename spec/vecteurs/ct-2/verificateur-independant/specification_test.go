@@ -65,10 +65,11 @@ func TestPolitiquePiiV1Empreinte(t *testing.T) {
 	}
 }
 
-// §10.6 : membre policy de l'exemple de 15.3, 6126 octets, policy_sha256
-// 0xa75a…8912 ; valeur en ligne de l'événement de politique, 116 octets,
-// sha256 0x77d3…253e (version 0.3 : 4482 octets et 0xd87b…c811 en version
-// 0.2) ; le membre redaction est pii-v1 octet pour octet ; rules est un
+// §10.6 (EX-10.21) : membre policy de l'exemple de 15.3 en révision 0.5
+// (route Gemini et policy.otel ajoutées), 6533 octets, policy_sha256
+// 0xd68b…e75c ; valeur en ligne de l'événement de politique, 116 octets,
+// sha256 0xad8d…246d (6126 octets et 0xa75a…8912 en version 0.4, 4482
+// octets et 0xd87b…c811 en version 0.2) ; le membre redaction est pii-v1 octet pour octet ; rules est un
 // document politique-approbation-v0, mode erreur, avec une entrée de
 // separation.identities pour poste-cursor, et storage.relay_mac_key porte un
 // encoding (15.3, EX-7.22).
@@ -79,7 +80,7 @@ func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c) != 6126 || Hex0x(SHA256(c)) != "0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912" {
+	if len(c) != 6533 || Hex0x(SHA256(c)) != "0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c" {
 		t.Errorf("policy : %d octets, %s", len(c), Hex0x(SHA256(c)))
 	}
 	val := Objet("policy_version", Chaine("2026-11-01"), "policy_sha256", Chaine(Hex0x(SHA256(c))))
@@ -87,8 +88,8 @@ func TestEnsembleDePolitiqueExemple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(cv) != `{"policy_sha256":"0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912","policy_version":"2026-11-01"}` ||
-		len(cv) != 116 || Hex0x(SHA256(cv)) != "0x77d3368adad6a5a62421901ee91ec7c500950a2c8038a7d58d0450b3665c253e" {
+	if string(cv) != `{"policy_sha256":"0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c","policy_version":"2026-11-01"}` ||
+		len(cv) != 116 || Hex0x(SHA256(cv)) != "0xad8d1179be58a4670d01873b45479c8269b1f18c77cfb0e515ad86ef81aa246d" {
 		t.Errorf("valeur en ligne : %s (%d octets, %s)", cv, len(cv), Hex0x(SHA256(cv)))
 	}
 	if !MemeValeur(pol.Get("redaction"), valeurSpec(t, "pii-v1.json")) {

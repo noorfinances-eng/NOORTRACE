@@ -1,0 +1,49 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x54b1f01e7fe4366404e86abbbdf214af195e937073933fa2bba32b345e361c73",
+      "length": 710,
+      "redacted": true,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Où en est le sinistre 2026-81044 ?\"}],\"role\":\"user\"},{\"parts\":[{\"functionCall\":{\"args\":{\"claim_id\":\"2026-81044\"},\"name\":\"demo__claims_get\"}}],\"role\":\"model\"},{\"parts\":[{\"functionResponse\":{\"name\":\"demo__claims_get\",\"response\":{\"output\":{\"devise\":\"CHF\",\"montant\":\"7400.00\",\"statut\":\"ouvert\"}}}}],\"role\":\"user\"},{\"parts\":[{\"text\":\"Résume le dossier en une phrase.\"}],\"role\":\"user\"}],\"systemInstruction\":{\"parts\":[{\"text\":\"[REDIGE:prompt-systeme]\"}]},\"tools\":[{\"functionDeclarations\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"name\":\"demo__claims_get\",\"parameters\":{\"properties\":{\"claim_id\":{\"type\":\"STRING\"}},\"required\":[\"claim_id\"],\"type\":\"OBJECT\"}}]}]}"
+    },
+    "response": {
+      "sha256": "0x2ef6ce5bd602941b7c76eea9f49278578bb6ea3b54d3012f41fe67a28300c36f",
+      "length": 330,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Le sinistre 2026-81044 est ouvert, \"},{\"text\":\"montant estimé 7400.00 CHF.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0002\",\"usageMetadata\":{\"candidatesTokenCount\":18,\"promptTokenCount\":96,\"totalTokenCount\":114}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": "Le sinistre 2026-81044 est ouvert, montant estimé 7400.00 CHF.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1/models/gemini-exemple:generateContent"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1/models/gemini-exemple:generateContent",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Le même échange sur la route de collection /v1/models, route distincte (EX-5.28) : la cible amont est reconstruite depuis cette route."
+}

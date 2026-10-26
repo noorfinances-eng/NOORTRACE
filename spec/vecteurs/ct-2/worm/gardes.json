@@ -1,0 +1,2316 @@
+{
+  "version": 0,
+  "family": "worm/gardes",
+  "description": "Règle de garde de la levée par deux personnes (CT-2 EX-12.38) sur une suite d'enregistrements du registre des gels (EX-12.37) : empreintes (SHA-256 du JCS intégral, dans l'ordre), verdict, erreurs { n, code } (n = rang de l'enregistrement fautif), une par enregistrement et par règle, dans l'ordre des rangs puis de la table.",
+  "cases": [
+    {
+      "id": "suite-valide",
+      "description": "La suite valide de l'exemple d'EX-12.37 : pose, pose_resultat, demande_levee par j.dupont, levee par m.keller le lendemain, levee_resultat ; empreintes imprimées en 12.11.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482"
+          }
+        ]
+      },
+      "expected": {
+        "valid": true,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482",
+          "0x1fa25acb0f9f78211f2abdbbd2217233f4b134a69534e2975fc3828dfe892c05"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "chaine-rompue",
+      "description": "prev_sha256 du cinquième enregistrement égal à l'empreinte du troisième : chaine_rompue.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482",
+          "0x015a5596170cfa9335fe1cca3cf3d71c6734ce4db7607bd4a4988bef2987b40f"
+        ],
+        "errors": [
+          {
+            "n": 5,
+            "code": "chaine_rompue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "premier-non-pose",
+      "description": "Suite sans son enregistrement pose (rangs décalés) : le premier n'est pas une pose ; la chaîne est aussi rompue (n ≠ rang, prev_sha256 non nul).",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482",
+          "0x1fa25acb0f9f78211f2abdbbd2217233f4b134a69534e2975fc3828dfe892c05"
+        ],
+        "errors": [
+          {
+            "n": 1,
+            "code": "chaine_rompue"
+          },
+          {
+            "n": 1,
+            "code": "premier_non_pose"
+          },
+          {
+            "n": 2,
+            "code": "chaine_rompue"
+          },
+          {
+            "n": 3,
+            "code": "chaine_rompue"
+          },
+          {
+            "n": 4,
+            "code": "chaine_rompue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ordre-invalide",
+      "description": "pose suivie directement d'une demande_levee, sans pose_resultat : ordre_invalide.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xa7e849391bb3fdabef40dc67d11071261b6aea57b3f55814505837d8c2456463",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xa7e849391bb3fdabef40dc67d11071261b6aea57b3f55814505837d8c2456463"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0xb4a9f7b28b5f5de534b86d1c2743e03768342f1b5dbfe20579001baf32f4b10f"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xa7e849391bb3fdabef40dc67d11071261b6aea57b3f55814505837d8c2456463",
+          "0xb4a9f7b28b5f5de534b86d1c2743e03768342f1b5dbfe20579001baf32f4b10f",
+          "0x444d0ce0d03abadb163ab2c5be00814136034813bba72cd877256e45091dec8e"
+        ],
+        "errors": [
+          {
+            "n": 2,
+            "code": "ordre_invalide"
+          }
+        ]
+      }
+    },
+    {
+      "id": "meme-identite",
+      "description": "La levée est exécutée par la personne qui a demandé : meme_identite.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x76583a1a5f359a19a4b0a066007c293da21bd0f9896e82db1aa98ae7fb57c519"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0x76583a1a5f359a19a4b0a066007c293da21bd0f9896e82db1aa98ae7fb57c519",
+          "0x0d8db2655dbf006d88c7a25b2fd38850a5f5e8c3e96ca54a3bac6b8a394ccbe9"
+        ],
+        "errors": [
+          {
+            "n": 4,
+            "code": "meme_identite"
+          }
+        ]
+      }
+    },
+    {
+      "id": "demande-inconnue",
+      "description": "request_sha256 de la levée = empreinte de la pose, pas de la dernière demande : demande_inconnue.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0xb6cb934aebcc958c3d926388f6da2c28418a6261ab79773248af4cc4c887b665"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0xb6cb934aebcc958c3d926388f6da2c28418a6261ab79773248af4cc4c887b665",
+          "0xc8aff1ce3880f5a2e99654f8bc4fb028f6d278b900a42281ffa791fb1cdc2cf9"
+        ],
+        "errors": [
+          {
+            "n": 4,
+            "code": "demande_inconnue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "demande-expiree",
+      "description": "Levée sept jours et une milliseconde après la demande (604 800 001 ms) : demande_expiree.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-22T08:00:00.001Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-22T08:00:01.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0xa4b21278126436a854f3a21fb62fd5355a20f20c227a92f2bde4046a422d0e85"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0xa4b21278126436a854f3a21fb62fd5355a20f20c227a92f2bde4046a422d0e85",
+          "0xe836eb981043543aa5749799d4c9970a45aeb7c56bb040a285ae3c6ca19d4297"
+        ],
+        "errors": [
+          {
+            "n": 4,
+            "code": "demande_expiree"
+          }
+        ]
+      }
+    },
+    {
+      "id": "levee-en-double",
+      "description": "Deux levées approuvent la même demande : levee_en_double (la seconde suit un levee_resultat : ordre_invalide aussi).",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 6,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T15:00:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0x1fa25acb0f9f78211f2abdbbd2217233f4b134a69534e2975fc3828dfe892c05"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482",
+          "0x1fa25acb0f9f78211f2abdbbd2217233f4b134a69534e2975fc3828dfe892c05",
+          "0x7a0dc4b0aeec54e0f37fa40cd108454a8ab9eb2c05b55fb0add4d44cad6fca34"
+        ],
+        "errors": [
+          {
+            "n": 6,
+            "code": "ordre_invalide"
+          },
+          {
+            "n": 6,
+            "code": "levee_en_double"
+          }
+        ]
+      }
+    },
+    {
+      "id": "objets-differents",
+      "description": "La demande de levée porte un autre nombre d'objets : objets_differents.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 5
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xef6f841ce18b6337579b4fb5bfdf110c55112ed705eddbd7e9fca3938b6064f7",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xef6f841ce18b6337579b4fb5bfdf110c55112ed705eddbd7e9fca3938b6064f7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x41a9975e2e12a3a47a6b26a9efbfcdc2a59c5fc03b8dbf0f737039920875e1ba"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xef6f841ce18b6337579b4fb5bfdf110c55112ed705eddbd7e9fca3938b6064f7",
+          "0x41a9975e2e12a3a47a6b26a9efbfcdc2a59c5fc03b8dbf0f737039920875e1ba",
+          "0x4d6bc221176a82207592db5ed6f9d446c868bc40edaa19a7cebf84dec58224a0"
+        ],
+        "errors": [
+          {
+            "n": 3,
+            "code": "objets_differents"
+          }
+        ]
+      }
+    },
+    {
+      "id": "periode-differente",
+      "description": "La demande de levée porte une autre plage de périodes : periode_differente.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794308400
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xa385ad400e0bf438eabe0c8b423dea4a90a8a27c9a68b35acf0b506d8b89ac4a",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xa385ad400e0bf438eabe0c8b423dea4a90a8a27c9a68b35acf0b506d8b89ac4a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x9a825d05af11bed13e53c28b0bf5a056a267acf5511a68765955e517d70d0877"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xa385ad400e0bf438eabe0c8b423dea4a90a8a27c9a68b35acf0b506d8b89ac4a",
+          "0x9a825d05af11bed13e53c28b0bf5a056a267acf5511a68765955e517d70d0877",
+          "0xcb74e40db8f62810cb5dece6e48b17dbd58e52eafcf9b6521dd378752c7ce762"
+        ],
+        "errors": [
+          {
+            "n": 3,
+            "code": "periode_differente"
+          }
+        ]
+      }
+    },
+    {
+      "id": "demande-remplacee",
+      "description": "Une seconde demande remplace la première ; la levée approuve la seconde, la dernière : valide.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T09:00:00.000Z",
+            "reason": "Litige LT-0042 clos ; demande précisée",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xc1e19647ee00f7079c1f2e6c2a64fec239e00f874afa107f036bb6902a006b55",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xc1e19647ee00f7079c1f2e6c2a64fec239e00f874afa107f036bb6902a006b55"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 6,
+            "kind": "levee_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:01.120Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0xa793ef1898cd5592f06e2343c082134f56b61993820c4686a06d03bd46ff418f"
+          }
+        ]
+      },
+      "expected": {
+        "valid": true,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0xc1e19647ee00f7079c1f2e6c2a64fec239e00f874afa107f036bb6902a006b55",
+          "0xa793ef1898cd5592f06e2343c082134f56b61993820c4686a06d03bd46ff418f",
+          "0x893762aedfd1a60414e62f49fb2d3ff8d8230c470fddc1df68dd5ac5f160d58a"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "levee-double-demande-inconnue",
+      "description": "Deux levées portent la même empreinte, qui ne désigne aucune demande : demande_inconnue pour chacune, jamais levee_en_double (la demande désignée n'existe pas, EX-12.38).",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "demande_levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2037-03-15T08:00:00.000Z",
+            "reason": "Litige LT-0042 clos par jugement définitif",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 4,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T14:30:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 5,
+            "kind": "levee",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "m.keller@assureur-demo.example",
+            "at": "2037-03-16T15:00:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": "0x80a9297aa9c932a7b1c77e7222d3181ed2beffb170eb27e6ddd64fa9db8efd52"
+          }
+        ]
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744",
+          "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+          "0x80a9297aa9c932a7b1c77e7222d3181ed2beffb170eb27e6ddd64fa9db8efd52",
+          "0x3bf624ef1f3a100bef89cf7732089048b16a900b26472bb01303d41945acaee1"
+        ],
+        "errors": [
+          {
+            "n": 4,
+            "code": "demande_inconnue"
+          },
+          {
+            "n": 5,
+            "code": "ordre_invalide"
+          },
+          {
+            "n": 5,
+            "code": "demande_inconnue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "suite-vide",
+      "description": "Suite vide : aucune pose, premier_non_pose au rang 1 (EX-12.38).",
+      "input": {
+        "records": []
+      },
+      "expected": {
+        "valid": false,
+        "record_sha256": [],
+        "errors": [
+          {
+            "n": 1,
+            "code": "premier_non_pose"
+          }
+        ]
+      }
+    },
+    {
+      "id": "reprise",
+      "description": "Reprise après un échec partiel : pose_resultat avec un objet en échec, puis un second pose_resultat complet (reprendre) : valide.",
+      "input": {
+        "records": [
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 1,
+            "kind": "pose",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:00.000Z",
+            "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": null,
+            "anomalies": [],
+            "prev_sha256": null
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 2,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:00:02.341Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 5,
+              "failed": [
+                {
+                  "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+                  "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+                  "status": "echec",
+                  "http_status": 503
+                }
+              ]
+            },
+            "anomalies": [],
+            "prev_sha256": "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a"
+          },
+          {
+            "version": 0,
+            "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+            "n": 3,
+            "kind": "pose_resultat",
+            "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+            "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+            "periods": {
+              "from": 1794304800,
+              "to": 1794304800
+            },
+            "support": {
+              "type": "s3-object-lock",
+              "bucket": "noortrace-demo-worm",
+              "prefix": "journal-demo/"
+            },
+            "objects": {
+              "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+              "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+              "count": 6
+            },
+            "actor": "j.dupont@assureur-demo.example",
+            "at": "2026-12-01T09:05:00.000Z",
+            "reason": null,
+            "reference": "dossier juridique LT-0042",
+            "request_sha256": null,
+            "results": {
+              "ok": 6,
+              "failed": []
+            },
+            "anomalies": [],
+            "prev_sha256": "0x513aeaa3736cf5e331fa6d3fec3487d7ef64436ded8463864f030ea9eb0dd15c"
+          }
+        ]
+      },
+      "expected": {
+        "valid": true,
+        "record_sha256": [
+          "0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a",
+          "0x513aeaa3736cf5e331fa6d3fec3487d7ef64436ded8463864f030ea9eb0dd15c",
+          "0x74f0a92bc9f2ea8f9b4dd6058ebd0af92c06c223e7d4f94dabcf4bfdc61e82cd"
+        ],
+        "errors": []
+      }
+    }
+  ]
+}

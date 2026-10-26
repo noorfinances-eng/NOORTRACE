@@ -77,6 +77,7 @@ func construireArbre(t *testing.T) string {
 	// ---- INDEX.md
 	a.ecrire("INDEX.md", []byte(fmt.Sprintf("# Vecteurs CT-2\n\njournal_id : %s\n\nclé de pseudonymisation de test : %s\n\nnonce noortrace/vecteurs/v0/nonce/journal-demo/periode-1 : %s\n\nFamilles : jcs-integral, redaction, pieces-mcp, pieces-modele, evenements.\n\nCas de pieces-mcp/appels : `annexe-a/`, `erreur-jsonrpc/`, `approbation-annexe-a/`, `approbation-refus/`, `approbation-en-attente/`.\n",
 		JournalIDVecteurs(), ClePseudoTestHex, NonceVecteurs(1))))
+	copierFamillesRevision05(a)
 
 	// ---- jcs-integral
 	cas := TableauVide()
@@ -543,4 +544,42 @@ func TestAlterationsVersion03(t *testing.T) {
 			t.Errorf("%s : altération non détectée (%v)", v, d)
 		}
 	}
+}
+
+// copierFamillesRevision05 recopie dans l'arbre synthétique les familles
+// otel/, worm/ et cout-agent/ des vecteurs publiés (révision 0.5,
+// annexes B.8 à B.10), indépendantes des autres familles, et ajoute à
+// INDEX.md ce que B.7 y exige pour elles.
+func copierFamillesRevision05(a *arbreSynthetique) {
+	a.t.Helper()
+	var cas []string
+	for _, fam := range []string{"otel", "worm", "cout-agent"} {
+		src := filepath.Join("..", fam)
+		if _, err := os.Stat(src); err != nil {
+			a.t.Skipf("vecteurs publiés absents (%s) : familles de la révision 0.5 non recopiables", src)
+		}
+		err := filepath.Walk(src, func(p string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() {
+				return err
+			}
+			rel, _ := filepath.Rel("..", p)
+			b, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			a.ecrire(rel, b)
+			return nil
+		})
+		if err != nil {
+			a.t.Fatal(err)
+		}
+	}
+	for _, c := range sousRepertoires(filepath.Join("..", "otel")) {
+		cas = append(cas, "`"+c+"/`")
+	}
+	p := filepath.Join(a.racine, "INDEX.md")
+	b, _ := os.ReadFile(p)
+	b = append(b, []byte("\n## `otel/`\n\n"+strings.Join(cas, ", ")+"\n\n## `worm/`\n\nBucket `"+BucketWormDemo+"`, préfixe `"+PrefixeWormDemo+
+		"`, période `1794304800`.\n\n## `cout-agent/`\n\nPrix en unités symboliques.\n")...)
+	a.ecrire("INDEX.md", b)
 }

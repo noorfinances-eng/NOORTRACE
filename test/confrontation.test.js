@@ -244,3 +244,104 @@ describe("CT-5 : sorties publiées de la confrontation par des outils tiers (ann
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// CT-2 (spec/CT-2-enregistreur.md, annexes B.5 et B.8 ; spec/vecteurs/ct-2/
+// confrontation/) : cas pieces-modele/gemini-* par le SDK google-genai 2.33.0,
+// famille otel/ par opentelemetry-proto 1.45.1 et protobuf 7.36.2. Les sorties
+// publiées doivent porter sur les vecteurs du dépôt (SHA-256 des fichiers
+// cités, un bloc par cas) et ne relever aucune discordance. Quand un
+// interpréteur Python porte exactement les versions d'exigences.txt
+// (NOORTRACE_PYTHON_CONFRONTATION, sinon python3), chaque programme est rejoué
+// et sa sortie doit égaler, octet pour octet, la sortie publiée.
+describe("CT-2 : sorties publiées de la confrontation par des outils tiers (annexes B.5 et B.8)", function () {
+  const CT2 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-2");
+  const CONFRONTATION2 = path.join(CT2, "confrontation");
+  const SORTIES2 = path.join(CONFRONTATION2, "sorties");
+  const MODELE = path.join(CT2, "pieces-modele");
+  const OTEL = path.join(CT2, "otel");
+  const lire2 = (f) => lire(SORTIES2, f);
+  const casGemini = fs.readdirSync(MODELE).filter((n) => n.startsWith("gemini-")).sort();
+  const casOtel = fs.readdirSync(OTEL).sort();
+  const section = (texte, n) => texte.split(`\n== ${n}. `)[1].split(/\n== \d+\. /)[0];
+
+  it("aucun chemin local dans les sorties publiées ; aucune discordance", function () {
+    expect(fs.readdirSync(SORTIES2).sort()).to.deep.equal(["gemini.txt", "otel.txt"]);
+    for (const f of fs.readdirSync(SORTIES2)) {
+      const texte = lire2(f);
+      expect(texte, f).not.to.match(/\/home\/|\/tmp\/|\/root\/|[A-Z]:\\/);
+      expect(texte, f).not.to.match(/DISCORDANCE/);
+      expect(texte, f).to.match(/^Discordances au total : 0$/m);
+    }
+  });
+
+  it("gemini.txt (google-genai 2.33.0) : chaque cas gemini-*, SHA-256 des requêtes et des réponses égaux aux fichiers, formes consolidées et refus", function () {
+    const sortie = lire2("gemini.txt");
+    expect(sortie).to.match(/^Confrontation des vecteurs CT-2 pieces-modele\/gemini-\* par google-genai 2\.33\.0 \(pydantic 2\.14\.1, /m);
+    expect(casGemini.length).to.be.above(0);
+    const s1 = section(sortie, 1);
+    const s3 = section(sortie, 3);
+    const s5 = section(sortie, 5);
+    const s6 = section(sortie, 6);
+    expect(s1.match(/^-- /gm).length).to.equal(casGemini.length);
+    expect(s3.match(/^-- /gm).length).to.equal(casGemini.length);
+    for (const cas of casGemini) {
+      const fichiers = fs.readdirSync(path.join(MODELE, cas));
+      const req = fichiers.includes("requete.brut") ? "requete.brut" : "requete.json";
+      expect(s1, cas).to.include(`-- ${cas} (${req}, SHA-256 ${sha256(MODELE, cas, req)}`);
+      const rep = ["reponse.sse", "reponse.json", "reponse-morceaux.json"].find((f) => fichiers.includes(f));
+      if (rep) expect(s3, cas).to.include(`-- ${cas} (${rep}, SHA-256 ${sha256(MODELE, cas, rep)}`);
+      else expect(s3, cas).to.include(`-- ${cas} : aucune réponse`);
+      const a = lireJSON(MODELE, cas, "attendu.json");
+      if (a.consolidated !== null) expect(s5, cas).to.match(new RegExp(`^-- ${echapper(cas)} \\(consolidated, `, "m"));
+      if (a.refused !== null) expect(s6, cas).to.match(new RegExp(`^-- ${echapper(cas)} \\(statut ${a.refused.status}, raison ${a.refused.reason}, `, "m"));
+    }
+    expect(sortie).to.match(new RegExp(`^Cas gemini-\\* : ${casGemini.length} ; discordances : 0 ;`, "m"));
+  });
+
+  it("otel.txt (opentelemetry-proto 1.45.1, protobuf 7.36.2) : chaque cas, SHA-256 des requêtes égaux aux fichiers, identifiants de chaque span", function () {
+    const sortie = lire2("otel.txt");
+    expect(sortie).to.match(/^Confrontation des vecteurs CT-2 otel\/ par opentelemetry-proto 1\.45\.1 et protobuf 7\.36\.2$/m);
+    const s1 = section(sortie, 1);
+    expect(s1.match(/^-- /gm).length).to.equal(casOtel.length);
+    const blocs = s1.split(/\n(?=-- )/);
+    for (const cas of casOtel) {
+      const req = fs.readdirSync(path.join(OTEL, cas)).find((f) => f.startsWith("requete.") && f !== "requete-entetes.json");
+      const a = lireJSON(OTEL, cas, "attendu.json");
+      const bloc = blocs.find((b) => b.startsWith(`-- ${cas} (`));
+      expect(bloc, cas).to.be.a("string");
+      expect(bloc, cas).to.include(`-- ${cas} (${req}, SHA-256 ${sha256(OTEL, cas, req)}, `);
+      expect(bloc, cas).to.match(new RegExp(`, statut attendu ${a.status}\\)`));
+      if (a.status !== 200) continue;
+      for (const sp of a.spans) {
+        expect(bloc, `${cas} ${sp.span_id}`).to.include(`  span [${sp.path.join(", ")}] (issue ${sp.issue}`);
+        expect(bloc, `${cas} ${sp.span_id}`).to.include(`trace_id : vecteur ${sp.trace_id} ; outil ${sp.trace_id} : concorde`);
+        expect(bloc, `${cas} ${sp.span_id}`).to.include(`span_id : vecteur ${sp.span_id} ; outil ${sp.span_id} : concorde`);
+        if (sp.normalized) expect(bloc, `${cas} ${sp.span_id}`).to.include(`start_time_unix_nano : vecteur ${sp.normalized.start_time_unix_nano} ; outil ${sp.normalized.start_time_unix_nano} : concorde`);
+      }
+    }
+    for (const paire of ["json-exemple-6-8-16 / pb-exemple-6-8-16", "json-identifiants-invalides / pb-identifiants-invalides"]) {
+      expect(section(sortie, 2), paire).to.include(`-- paire ${paire}`);
+    }
+    expect(sortie).to.match(new RegExp(`^Cas otel/ : ${casOtel.length} ;[^\\n]* divergences voulues : 4 ;[^\\n]* discordances : 0$`, "m"));
+  });
+
+  for (const [outil, programme, sortiePubliee] of [
+    ["gemini", "confronter_gemini.py", "gemini.txt"],
+    ["otel", "confronter_otel.py", "otel.txt"],
+  ]) {
+    it(`rejeu de ${outil}/${programme} (interpréteur aux versions d'exigences.txt présent) : code 0, sortie égale à sorties/${sortiePubliee}`, function () {
+      this.timeout(180_000);
+      const exigences = lire(CONFRONTATION2, outil, "exigences.txt").split("\n").filter((l) => /^[A-Za-z0-9_.-]+==/.test(l)).map((l) => l.split("=="));
+      const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
+      const code = `import importlib.metadata as m, json\nout = {}\nfor p in ${JSON.stringify(exigences.map(([p]) => p))}:\n    try: out[p] = m.version(p)\n    except m.PackageNotFoundError: out[p] = None\nprint(json.dumps(out))`;
+      const versions = spawnSync(python, ["-I", "-c", code], { encoding: "utf8" });
+      if (versions.error || versions.status !== 0) this.skip();
+      const lues = JSON.parse(versions.stdout);
+      if (!exigences.every(([p, v]) => lues[p] === v)) this.skip();
+      const r = spawnSync(python, ["-I", path.join(CONFRONTATION2, outil, programme), CT2], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      expect(r.status, r.stdout.split("\n").slice(-8).join("\n") + r.stderr).to.equal(0);
+      expect(r.stdout).to.equal(lire2(sortiePubliee));
+    });
+  }
+});

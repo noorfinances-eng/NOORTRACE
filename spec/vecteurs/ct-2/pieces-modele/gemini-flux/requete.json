@@ -1,0 +1,19 @@
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Le dossier 2026-81044 est-il complet ?"
+        }
+      ]
+    }
+  ],
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "Tu es l'agent sinistres de l'assureur de démonstration."
+      }
+    ]
+  }
+}

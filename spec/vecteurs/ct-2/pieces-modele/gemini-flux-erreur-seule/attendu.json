@@ -1,0 +1,49 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "noortrace_erreur_flux": {
+      "code": 503,
+      "message": "Service indisponible (message fictif de test).",
+      "status": "UNAVAILABLE"
+    }
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x9a311413eeed1c2dd53d6c81f6a9b2877b7b59de25f25dd8801393a6e477511a",
+      "length": 60,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Statut ?\"}],\"role\":\"user\"}]}"
+    },
+    "response": {
+      "sha256": "0x565b971a82406c86e53dcaf76b0378a8b47a5b45f9788ebe8f48d787502145bd",
+      "length": 120,
+      "redacted": false,
+      "bytes": "{\"noortrace_erreur_flux\":{\"code\":503,\"message\":\"Service indisponible (message fictif de test).\",\"status\":\"UNAVAILABLE\"}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple",
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": true,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Un morceau d'erreur reçu avant tout morceau valide : la forme réduite est exactement {\"noortrace_erreur_flux\": …}, sans noortrace_flux_incomplet ; la suite est ignorée ; is_error vrai (EX-5.35 pas 2)."
+}

@@ -1,0 +1,1 @@
+{"resourceSpans":[{"scopeSpans":[{"spans":[{"traceId":"1EEEBE66FF99E0ED610B1618ADECC064","spanId":"988BA8D1947CFB6A","name":"execute_tool claims.get","kind":1,"startTimeUnixNano":"1794307798000000000","endTimeUnixNano":"1794307799250500000","attributes":[{"key":"gen_ai.operation.name","value":{"stringValue":"execute_tool"}}],"flags":1.0}]}]}]}

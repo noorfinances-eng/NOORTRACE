@@ -139,6 +139,13 @@ export class ErreurModeDegrade extends Error {
 
 const RE_NOMBRE = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
 
+/** Nombre JSON gardé sur son texte (option `nombresTexte` d'analyserJSONIntegral, CT-2 EX-6.29). */
+export class NombreJSON {
+  constructor(texte) {
+    this.texte = texte;
+  }
+}
+
 /**
  * Analyse stricte d'un texte JSON (RFC 8259), telle que la fait le frontal
  * (CT-2 §4.4 pas 1, §5.3.1 pas 2) : clés en double, substituts isolés, octets
@@ -152,9 +159,12 @@ const RE_NOMBRE = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
  * `membresMax`, 4.4 pas 1) : un texte qui les dépasse est refusé, jamais une
  * pile épuisée. Lève J.ErreurJSON ; `raison` vaut « nombre_hors_double » pour
  * un nombre que la double précision ne contient pas, « bornes » pour une
- * borne dépassée.
+ * borne dépassée. Avec `nombresTexte: true` (ingestion OpenTelemetry,
+ * EX-6.29), chaque nombre est rendu comme un `NombreJSON` qui garde son texte,
+ * sans conversion ni contrôle de débordement ; les appels existants ne
+ * changent pas.
  */
-export function analyserJSONIntegral(entree, { positions = false, profondeurMax = PROFONDEUR_JSON_MAX, membresMax = MEMBRES_JSON_MAX } = {}) {
+export function analyserJSONIntegral(entree, { positions = false, profondeurMax = PROFONDEUR_JSON_MAX, membresMax = MEMBRES_JSON_MAX, nombresTexte = false } = {}) {
   let texte;
   if (typeof entree === "string") texte = entree;
   else {
@@ -238,6 +248,11 @@ export function analyserJSONIntegral(entree, { positions = false, profondeurMax 
     RE_NOMBRE.lastIndex = i;
     const m = RE_NOMBRE.exec(texte);
     if (!m) erreur("nombre invalide");
+    if (nombresTexte) {
+      // EX-6.29 : le nombre est gardé sur son texte ; sa lecture dépend du champ (entier exact, ou double précision).
+      i += m[0].length;
+      return new NombreJSON(m[0]);
+    }
     const v = Number(m[0]);
     if (!Number.isFinite(v)) erreur(`nombre « ${m[0].slice(0, 40)} » hors de la double précision IEEE 754`, true, "nombre_hors_double");
     i += m[0].length;
@@ -2003,7 +2018,14 @@ export function agregerOutils(serveurs, { prefix = true, page_size = 100, normal
  * rien ; un événement inachevé en fin de flux n'est pas distribué.
  */
 export class AnalyseurSSE {
-  constructor() {
+  /**
+   * `distribuerDataFinal` (EX-5.34, format `gemini` seulement) : à la fin du
+   * flux, un tampon `data` non vide resté sans ligne vide finale est distribué
+   * et compté (`dataFinal`) ; faux par défaut (EX-5.14 tel quel).
+   */
+  constructor({ distribuerDataFinal = false } = {}) {
+    this.distribuerDataFinal = distribuerDataFinal;
+    this.dataFinal = 0;
     this.decodeur = new TextDecoder("utf-8");
     this.ligne = "";
     this.crPrecedent = false;
@@ -2019,9 +2041,30 @@ export class AnalyseurSSE {
     return this.#traiter(this.decodeur.decode(Buffer.from(fragment), { stream: true }));
   }
 
-  /** Fin du flux : rend les événements encore distribuables (aucun : un événement sans ligne vide finale est perdu). */
+  /**
+   * Fin du flux : rend les événements encore distribuables (aucun : un
+   * événement sans ligne vide finale est perdu, EX-5.14), sauf avec
+   * `distribuerDataFinal` (EX-5.34) : une dernière ligne non vide sans fin de
+   * ligne est d'abord lue comme une ligne (comme le fait `iter_lines` de
+   * httpx sous le SDK Python), puis le tampon `data` non vide est distribué.
+   * Sans `distribuerDataFinal`, une dernière ligne sans fin de ligne n'est
+   * jamais lue.
+   */
   terminer() {
-    return this.#traiter(this.decodeur.decode());
+    const out = this.#traiter(this.decodeur.decode());
+    if (this.distribuerDataFinal && this.ligne !== "") {
+      this.#ligne(this.ligne);
+      this.ligne = "";
+    }
+    if (this.distribuerDataFinal && this.data !== "") {
+      const e = this.#ligne("");
+      if (e) {
+        this.dataFinal++;
+        this.evenements.push(e);
+        out.push(e);
+      }
+    }
+    return out;
   }
 
   #traiter(texte) {
@@ -2074,8 +2117,8 @@ export class AnalyseurSSE {
 }
 
 /** Les événements d'un flux SSE complet, éventuellement découpé en fragments : { evenements, commentaires }. */
-export function analyserSSE(octets, { fragments = null } = {}) {
-  const a = new AnalyseurSSE();
+export function analyserSSE(octets, { fragments = null, distribuerDataFinal = false } = {}) {
+  const a = new AnalyseurSSE({ distribuerDataFinal });
   const o = Buffer.from(octets);
   if (fragments === null) a.pousser(o);
   else {
@@ -2087,7 +2130,7 @@ export function analyserSSE(octets, { fragments = null } = {}) {
     if (k < o.length) a.pousser(o.subarray(k));
   }
   a.terminer();
-  return { evenements: a.evenements, commentaires: a.commentaires };
+  return distribuerDataFinal ? { evenements: a.evenements, commentaires: a.commentaires, dataFinal: a.dataFinal } : { evenements: a.evenements, commentaires: a.commentaires };
 }
 
 // ---------------------------------------------------------------------------
@@ -2362,13 +2405,128 @@ export function consoliderResponses(evenements) {
   return { forme, incomplet, erreur: erreurFlux !== null, is_error: incomplet || erreurFlux !== null || dernierType === "response.failed", ignores };
 }
 
-const CONSOLIDEURS = { "anthropic-messages": consoliderAnthropic, "openai-chat": consoliderChat, "openai-responses": consoliderResponses };
+/**
+ * Forme consolidée Gemini (EX-5.35, révision 0.5). `evenements` : valeurs
+ * `data` distribuées par 5.4.1 et EX-5.34 (`{ data }`, texte à analyser), ou
+ * valeurs déjà analysées (`{ valeur }`, éléments d'un tableau de morceaux du
+ * SDK, EX-6.8). `finNormale` : le corps amont s'est terminé normalement (ni
+ * coupure, ni délai, ni fermeture par l'hôte, ni borne d'EX-5.33). Rend
+ * { forme (objet, ou null si aucun morceau), incomplet, erreur, is_error,
+ * ignores }. Pas 1 à 7 d'EX-5.35 : aucun texte n'est fusionné, les parts sont
+ * ajoutées telles quelles ; seul `candidates` est réassemblé, par index.
+ */
+export function consoliderGemini(evenements, { finNormale = true } = {}) {
+  let forme = null;
+  let erreur = null;
+  let reduite = false;
+  let ignores = 0;
+  const candidats = [];
+  const parIndex = new Map();
+  for (const e of evenements) {
+    if (erreur !== null) {
+      ignores++;
+      continue;
+    }
+    const d = Object.hasOwn(e, "valeur") ? e.valeur : dataJSON(e);
+    if (!estObjet(d)) {
+      ignores++;
+      continue;
+    }
+    // Pas 2 : morceau d'erreur.
+    if (estObjet(d.error)) {
+      erreur = copieJSON(d.error);
+      if (forme === null) {
+        forme = {};
+        reduite = true;
+      }
+      continue;
+    }
+    // Pas 3 : membres de premier niveau, le dernier reçu l'emporte.
+    if (forme === null) forme = {};
+    for (const k of Object.keys(d)) if (k !== "candidates") poser(forme, k, copieJSON(d[k]));
+    // Pas 4 : candidats.
+    if (!Object.hasOwn(d, "candidates")) continue;
+    if (!Array.isArray(d.candidates)) {
+      ignores++;
+      continue;
+    }
+    for (const f of d.candidates) {
+      if (!estObjet(f)) {
+        ignores++;
+        continue;
+      }
+      let index = 0;
+      if (Object.hasOwn(f, "index")) {
+        if (!indexAdmis(f.index)) {
+          ignores++;
+          continue;
+        }
+        index = f.index;
+      }
+      if (!parIndex.has(index)) {
+        const nouveau = { index, content: { parts: [] } };
+        parIndex.set(index, nouveau);
+        candidats.push(nouveau);
+      }
+      const c = parIndex.get(index);
+      for (const k of Object.keys(f)) {
+        if (k === "index") continue;
+        if (k !== "content") {
+          poser(c, k, copieJSON(f[k]));
+          continue;
+        }
+        if (!estObjet(f.content)) {
+          ignores++;
+          continue;
+        }
+        if (!estObjet(c.content)) c.content = { parts: [] };
+        for (const ck of Object.keys(f.content)) {
+          if (ck !== "parts") {
+            poser(c.content, ck, copieJSON(f.content[ck]));
+            continue;
+          }
+          if (!Array.isArray(f.content.parts)) {
+            ignores++;
+            continue;
+          }
+          for (const p of f.content.parts) {
+            if (estObjet(p)) c.content.parts.push(copieJSON(p));
+            else ignores++;
+          }
+        }
+      }
+    }
+  }
+  // Pas 7 : aucun morceau.
+  if (forme === null) return { forme: null, incomplet: true, erreur: false, is_error: true, ignores };
+  // Pas 2 : forme réduite d'une erreur reçue avant tout morceau valide.
+  if (reduite) return { forme: { noortrace_erreur_flux: erreur }, incomplet: true, erreur: true, is_error: true, ignores };
+  // Pas 5 : clôture.
+  if (candidats.length > 0) forme.candidates = candidats;
+  // Pas 6 : fin normale.
+  const termine = candidats.some((c) => typeof c.finishReason === "string" && c.finishReason !== "") || (candidats.length === 0 && estObjet(forme.promptFeedback));
+  const incomplet = !(finNormale && termine);
+  if (erreur !== null) forme.noortrace_erreur_flux = erreur;
+  if (incomplet) forme.noortrace_flux_incomplet = true;
+  return { forme, incomplet, erreur: erreur !== null, is_error: incomplet || erreur !== null, ignores };
+}
 
-/** Forme consolidée d'un flux SSE (octets), selon le format de la route. */
+const CONSOLIDEURS = { "anthropic-messages": consoliderAnthropic, "openai-chat": consoliderChat, "openai-responses": consoliderResponses, gemini: consoliderGemini };
+
+/**
+ * Forme consolidée d'un flux SSE (octets), selon le format de la route. Pour
+ * `gemini`, le `data` final sans ligne vide est distribué (EX-5.34) et compté
+ * (`dataFinal`) ; `finNormale` (vrai par défaut) est transmis à EX-5.35.
+ */
 export function consoliderFlux(format, octets, options = {}) {
   const consolideur = CONSOLIDEURS[format];
   if (!consolideur) throw new Error(`format sans réassemblage en version 0 : ${format}`);
-  const { evenements, commentaires } = analyserSSE(octets, options);
+  const { finNormale = true, ...optionsSSE } = options;
+  if (format === "gemini") {
+    const { evenements, commentaires, dataFinal } = analyserSSE(octets, { ...optionsSSE, distribuerDataFinal: true });
+    return { ...consoliderGemini(evenements, { finNormale }), evenements: evenements.length, commentaires, dataFinal };
+  }
+  const { evenements, commentaires } = analyserSSE(octets, optionsSSE);
   return { ...consolideur(evenements), evenements: evenements.length, commentaires };
 }
 
@@ -2383,8 +2541,12 @@ export const FORMATS_V0 = Object.keys(CONSOLIDEURS);
 export function requeteDeForme(format, corps) {
   if (corps === null || typeof corps !== "object" || Array.isArray(corps)) return false;
   if (format === "openai-responses") return Object.hasOwn(corps, "input") || Object.hasOwn(corps, "previous_response_id");
+  if (format === "gemini") return Array.isArray(corps.contents);
   return Array.isArray(corps.messages);
 }
+
+/** `systemInstruction` Gemini porteur d'un prompt : un objet dont `parts` est un tableau (table de 5.5, EX-8.5). */
+const instructionGemini = (corps) => (estObjet(corps.systemInstruction) && Array.isArray(corps.systemInstruction.parts) ? corps.systemInstruction : null);
 
 const textesDeParties = (contenu, types) => {
   if (typeof contenu === "string") return [contenu];
@@ -2407,6 +2569,10 @@ function morceauxPrompt(format, corps) {
     if (Array.isArray(corps.input)) for (const it of corps.input) if (it && (it.role === "developer" || it.role === "system")) out.push(...textesDeParties(it.content, ["input_text", "text"]));
     return out;
   }
+  if (format === "gemini") {
+    const si = instructionGemini(corps);
+    return si ? si.parts.filter((p) => estObjet(p) && typeof p.text === "string").map((p) => p.text) : [];
+  }
   return [];
 }
 
@@ -2425,7 +2591,21 @@ export function remplacerPromptSysteme(format, corps) {
     if (typeof c.instructions === "string") c.instructions = JETON_PROMPT_SYSTEME;
     if (Array.isArray(c.input)) for (const it of c.input) if (it && (it.role === "developer" || it.role === "system")) it.content = JETON_PROMPT_SYSTEME;
   }
+  // Gemini (EX-8.5) : seul le tableau `parts` est remplacé ; `role` et les autres membres restent.
+  if (format === "gemini" && instructionGemini(c)) c.systemInstruction.parts = [{ text: JETON_PROMPT_SYSTEME }];
   return c;
+}
+
+/** Parts de `candidates[0].content.parts` d'une réponse Gemini (table de 5.5), ou [] . */
+function partsGemini(reponse) {
+  const c = Array.isArray(reponse?.candidates) ? reponse.candidates[0] : null;
+  return estObjet(c) && estObjet(c.content) && Array.isArray(c.content.parts) ? c.content.parts : [];
+}
+
+/** Texte Gemini : `text` (chaînes) des parts hors `thought: true`, concaténés SANS séparateur (table de 5.5) ; null si vide. */
+function texteGemini(parts) {
+  const t = parts.filter((p) => estObjet(p) && typeof p.text === "string" && p.thought !== true).map((p) => p.text).join("");
+  return t === "" ? null : t;
 }
 
 /** Texte produit par l'assistant (table de 5.5), ou null. */
@@ -2438,7 +2618,7 @@ export function extraireIntention(format, reponse) {
     morceaux = typeof c === "string" ? [c] : [];
   } else if (format === "openai-responses") {
     for (const it of Array.isArray(reponse.output) ? reponse.output : []) if (it && it.type === "message") morceaux.push(...textesDeParties(it.content, ["output_text"]));
-  }
+  } else if (format === "gemini") return texteGemini(partsGemini(reponse));
   const t = morceaux.join("\n");
   return t === "" ? null : t;
 }
@@ -2459,6 +2639,16 @@ export function extraireAppelsOutils(format, reponse) {
   if (format === "openai-responses") {
     return (Array.isArray(reponse.output) ? reponse.output : []).map((it, position) => ({ it, position })).filter(({ it }) => it && it.type === "function_call").map(({ it, position }) => ({ id: it.call_id ?? null, name: it.name, arguments: it.arguments, position }));
   }
+  if (format === "gemini") {
+    // Seule une part `functionCall` (objet) est un appel demandé au client ; `toolCall`, `executableCode` ne le sont pas (5.5).
+    return partsGemini(reponse)
+      .map((p, position) => ({ p, position }))
+      .filter(({ p }) => estObjet(p) && estObjet(p.functionCall))
+      .map(({ p, position }) => {
+        const fc = p.functionCall;
+        return { id: typeof fc.id === "string" ? fc.id : null, name: fc.name, arguments: Object.hasOwn(fc, "args") ? fc.args : {}, position };
+      });
+  }
   return [];
 }
 
@@ -2473,6 +2663,7 @@ export function texteAvantAppel(format, reponse, position) {
     const t = reponse.output.slice(0, position).filter((it) => it && it.type === "message").flatMap((it) => textesDeParties(it.content, ["output_text"])).join("\n");
     return t === "" ? null : t;
   }
+  if (format === "gemini") return texteGemini(partsGemini(reponse).slice(0, position));
   return null;
 }
 
@@ -2538,48 +2729,128 @@ export function redigerPromptEnPlace(format, corps, politique) {
     if (typeof c.instructions === "string") c.instructions = r(c.instructions);
     if (Array.isArray(c.input)) for (const it of c.input) if (it && (it.role === "developer" || it.role === "system")) it.content = parties(it.content, ["input_text", "text"]);
   }
+  if (format === "gemini") {
+    const si = instructionGemini(c);
+    if (si) for (const p of si.parts) if (estObjet(p) && typeof p.text === "string") p.text = r(p.text);
+  }
   return c;
 }
 
-/** Corps d'erreur au format du fournisseur pour un refus de la passerelle (EX-5.7, 14.2). */
-export function corpsErreurPasserelle(format, { type, message, code = null }) {
+/** Nom `google.rpc.Code` associé au statut HTTP d'un corps d'erreur Gemini de la passerelle (EX-5.30). */
+export const STATUTS_RPC_GEMINI = Object.freeze({ 400: "INVALID_ARGUMENT", 401: "UNAUTHENTICATED", 413: "INVALID_ARGUMENT", 415: "INVALID_ARGUMENT", 503: "UNAVAILABLE", 504: "DEADLINE_EXCEEDED" });
+
+/** Messages des corps d'erreur Gemini de la passerelle, par raison (table d'EX-5.30). */
+export const MESSAGES_REFUS_GEMINI = Object.freeze({
+  corps_non_analysable: [400, "noortrace: corps de requete non analysable"],
+  cle_dans_url: [400, "noortrace: cle d'API dans l'URL refusee"],
+  flux_sans_sse: [400, "noortrace: streamGenerateContent exige alt=sse"],
+  parametre_non_admis: [400, "noortrace: parametre de requete non admis"],
+  serveurs_mcp_fournisseur: [400, "noortrace: serveurs MCP declares au fournisseur refuses"],
+  cache_fournisseur: [400, "noortrace: contenu en cache du fournisseur refuse"],
+  hote_inconnu: [401, "noortrace: hote non authentifie"],
+  taille: [413, "noortrace: corps de requete trop grand"],
+  content_encoding: [415, "noortrace: requete comprimee refusee"],
+  mode_degrade: [503, "noortrace: echange bloque, enregistreur en mode degrade"],
+  delai: [504, "noortrace: delai du fournisseur depasse"],
+});
+
+/**
+ * Corps d'erreur au format du fournisseur pour un refus de la passerelle
+ * (EX-5.7, EX-5.33, 14.2). Gemini (EX-5.30) : `{"error":{"code","message",
+ * "status"}}` de l'AIP-193, sans `details`, membres construits dans cet ordre
+ * (`JSON.stringify` donne les octets exacts de la table) ; on passe alors
+ * `{ status, message }`.
+ */
+export function corpsErreurPasserelle(format, { type, message, code = null, status = null }) {
+  if (format === "gemini") return { error: { code: status, message, status: STATUTS_RPC_GEMINI[status] } };
   if (format === "anthropic-messages") return { type: "error", error: { type, message } };
   return { error: { message, type, param: null, code: code ?? type } };
 }
 
+/** Corps d'erreur Gemini de la passerelle pour une raison de la table d'EX-5.30. */
+export function corpsErreurGemini(raison) {
+  const [status, message] = MESSAGES_REFUS_GEMINI[raison];
+  return corpsErreurPasserelle("gemini", { status, message });
+}
+
+/** `Content-Type` d'une réponse de refus d'une route Gemini (EX-5.30) : `text/event-stream` pour `streamGenerateContent` avec `alt=sse`, sinon JSON. */
+export const contentTypeRefusGemini = (methode, altSse) => (methode === "streamGenerateContent" && altSse ? "text/event-stream" : "application/json; charset=UTF-8");
+
+/** Bornes de taille par défaut d'une requête et d'une réponse de modèle (`limits.model_request_max_bytes`, `…_response_max_bytes`, 5.3.1). */
+export const TAILLE_MODELE_MAX = 33554432;
+
+/** Refus d'une requête de modèle au format du fournisseur (EX-5.7, EX-5.33). */
+function refusModele(format, raison) {
+  if (format === "gemini") return { status: MESSAGES_REFUS_GEMINI[raison][0], raison, corps: corpsErreurGemini(raison) };
+  if (raison === "taille") {
+    const corps = format === "anthropic-messages" ? { type: "error", error: { type: "noortrace_taille", message: "noortrace: corps de requete trop grand" } } : corpsErreurPasserelle(format, { type: "invalid_request_error", message: "noortrace: corps de requete trop grand", code: "noortrace_taille" });
+    return { status: 413, raison, corps };
+  }
+  if (raison === "content_encoding") return { status: 415, raison, corps: corpsErreurPasserelle(format, { type: "invalid_request_error", message: "noortrace: requete comprimee refusee", code: "noortrace_requete_invalide" }) };
+  return { status: 400, raison, corps: corpsErreurPasserelle(format, { type: "invalid_request_error", message: "noortrace: corps de requete non analysable", code: "noortrace_requete_invalide" }) };
+}
+
+/** Motif du segment de modèle d'une route Gemini (EX-5.28). */
+export const RE_SEGMENT_GEMINI = /^[a-z0-9][a-z0-9.-]{0,127}$/;
+/** Les deux méthodes Gemini servies (EX-5.28). */
+export const METHODES_GEMINI = Object.freeze(["generateContent", "streamGenerateContent"]);
+
 /**
- * Pièces et grandeurs d'un échange de modèle (CT-2 §5.3, §5.5, §8.2). Entrée :
- * `format`, `provider_label`, `requete` = { corps: octets reçus, content_type,
- * content_encoding }, `reponse` = { status, content_type, corps: octets }, la
- * politique chargée, `prompt_in_request` (`reference` par défaut ou `inline`),
- * `prompt_system` (`redige` par défaut ou `named` avec `prompt_version_name`).
- * Une requête comprimée ou non analysable est refusée (EX-5.7) : rend alors
- * { refus: { status, corps, raison } } sans pièce. Sinon rend { pieces: {
- * requete, reponse, prompt_systeme, intention }, consolidated, forme (la
- * réponse en clair, pour la seule corrélation), forme_redigee, code_model,
- * prompt_version, intent, tool_calls, is_error, incomplete, correspondances }.
+ * `code.model` d'un échange Gemini (EX-5.36) : `<libellé>/` + `modelVersion`
+ * de la réponse rédigée (ou de la forme consolidée rédigée) si c'est une
+ * chaîne non vide ; sinon `<libellé>/` + le segment de modèle (repli, ou
+ * `request.model` privé de `models/` pour le SDK, EX-6.8), seulement s'il
+ * respecte le motif d'EX-5.28 et qu'aucun détecteur de texte de la
+ * politique n'y trouve de correspondance (contrôle d'EX-7.2) ; sinon null.
+ * 256 caractères au plus. Rend { code_model, segment_refuse }.
  */
-export function echangeModele({ format, provider_label, requete, reponse, politique = null, prompt_in_request = "reference", prompt_system = "redige", prompt_version_name = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null }) {
-  const correspondancesTotales = [];
-  const noter = (p, piece) => {
-    for (const c of p.correspondances ?? []) correspondancesTotales.push({ piece, ...c });
-  };
-  // Requête (EX-5.7).
-  if (requete.content_encoding && String(requete.content_encoding).toLowerCase() !== "identity") {
-    return { refus: { status: 415, raison: "content_encoding", corps: corpsErreurPasserelle(format, { type: "invalid_request_error", message: "noortrace: requete comprimee refusee", code: "noortrace_requete_invalide" }) } };
+export function codeModeleGemini(libelle, reponseRedigee, segment, { politique = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null } = {}) {
+  const mv = estObjet(reponseRedigee) ? reponseRedigee.modelVersion : undefined;
+  if (typeof mv === "string" && mv !== "") return { code_model: tronquer(`${libelle}/${mv}`, 256), segment_refuse: false };
+  if (typeof segment !== "string" || !RE_SEGMENT_GEMINI.test(segment)) return { code_model: null, segment_refuse: false };
+  if (examinerValeurEnLigne(politique, segment, { budgetMs, onDepassement, scope: "code.model" }).correspondance) return { code_model: null, segment_refuse: true };
+  return { code_model: tronquer(`${libelle}/${segment}`, 256), segment_refuse: false };
+}
+
+/** Nombre d'entrées `tools[].mcpServers` déclarées au fournisseur dans une requête Gemini analysée (EX-5.32) ; 0 s'il n'y en a pas. */
+export function serveursMcpFournisseur(corps) {
+  if (!estObjet(corps) || !Array.isArray(corps.tools)) return 0;
+  let n = 0;
+  for (const t of corps.tools) {
+    if (!estObjet(t)) continue;
+    // `mcp_servers` (nom d'origine en snake_case) suit la même règle : que l'API l'accepte n'est pas vérifié (EX-5.32).
+    for (const nom of ["mcpServers", "mcp_servers"]) {
+      if (!Object.hasOwn(t, nom)) continue;
+      const v = t[nom];
+      if (v === null || (Array.isArray(v) && v.length === 0)) continue;
+      n += Array.isArray(v) ? v.length : 1;
+    }
   }
-  let corpsRequete;
-  try {
-    corpsRequete = analyserJSONIntegral(requete.corps);
-  } catch {
-    return { refus: { status: 400, raison: "corps_non_analysable", corps: corpsErreurPasserelle(format, { type: "invalid_request_error", message: "noortrace: corps de requete non analysable", code: "noortrace_requete_invalide" }) } };
-  }
+  return n;
+}
+
+/**
+ * Référence à un contenu mis en cache chez le fournisseur (`cachedContent`,
+ * ou `cached_content`, dont l'acceptation par l'API n'est pas vérifiée) :
+ * vrai si le membre est présent et non `null` dans la valeur analysée
+ * (EX-5.32). Le contenu désigné (prompt système, outils, serveurs MCP)
+ * n'est jamais vu par la passerelle.
+ */
+export function cacheFournisseur(corps) {
+  if (!estObjet(corps)) return false;
+  return ["cachedContent", "cached_content"].some((k) => Object.hasOwn(corps, k) && corps[k] !== null);
+}
+
+/**
+ * Pièces « prompt système » et « requête » d'un corps de requête de modèle
+ * déjà analysé (5.3.1 pas 3, EX-5.7 point 3, EX-8.5, EX-10.23).
+ */
+function piecesRequeteModele(format, corpsRequete, { longueurRequete, content_type = null, politique, prompt_in_request, prompt_system, prompt_version_name, budgetMs, onDepassement, noter }) {
   let pieceRequete;
   let piecePrompt = null;
-  const longueurRequete = Buffer.from(requete.corps ?? []).length;
   const deForme = requeteDeForme(format, corpsRequete);
   if (!deForme) {
-    pieceRequete = pieceJSON(corpsRequete, { politique, portee: "requete", budgetMs, onDepassement, contentType: requete.content_type ?? null, longueurRecue: longueurRequete });
+    pieceRequete = pieceJSON(corpsRequete, { politique, portee: "requete", budgetMs, onDepassement, contentType: content_type, longueurRecue: longueurRequete });
   } else {
     const prompt = extrairePromptSysteme(format, corpsRequete);
     if (prompt !== null) {
@@ -2592,7 +2863,7 @@ export function echangeModele({ format, provider_label, requete, reponse, politi
     const b = politique ? sousBudget(() => passagesRedaction(politique, preparer(), { portee: "requete", outil: null, alias: null }), budgetMs) : { ok: true, valeur: { valeur: copieJSON(preparer()), correspondances: [], notes: [] } };
     if (!b.ok) {
       const note = noterDepassement(onDepassement, "piece", "requete", regleEnCours);
-      pieceRequete = pieceNonRedigeable({ content_type: requete.content_type ?? null, length: longueurRequete, reason: "budget_redaction" }, [`budget_redaction : règle ${note.rule ?? "?"}, portée requete`]);
+      pieceRequete = pieceNonRedigeable({ content_type, length: longueurRequete, reason: "budget_redaction" }, [`budget_redaction : règle ${note.rule ?? "?"}, portée requete`]);
     } else {
       const r = b.valeur;
       const octets = octetsJCSIntegral(r.valeur);
@@ -2601,47 +2872,125 @@ export function echangeModele({ format, provider_label, requete, reponse, politi
     }
   }
   noter(pieceRequete, "requete");
+  return { pieceRequete, piecePrompt, deForme };
+}
+
+/**
+ * Pièces et grandeurs d'un échange de modèle (CT-2 §5.3, §5.5, §8.2). Entrée :
+ * `format`, `provider_label`, `requete` = { corps: octets reçus, content_type,
+ * content_encoding }, `reponse` = { status, content_type, corps: octets,
+ * fin_normale (vrai par défaut : le corps amont s'est terminé normalement) },
+ * la politique chargée, `prompt_in_request` (`reference` par défaut ou
+ * `inline`), `prompt_system` (`redige` par défaut ou `named` avec
+ * `prompt_version_name`), les bornes `requestMaxBytes` et
+ * `responseMaxBytes` (EX-5.33). Pour `gemini` (révision 0.5) : `segment`
+ * (segment de modèle du chemin, repli de `code.model`, EX-5.36) et
+ * `provider_mcp` (`refuser` par défaut ou `relayer`, EX-5.32).
+ * Une requête trop grande, comprimée ou non analysable est refusée (EX-5.7,
+ * EX-5.33), de même, pour Gemini, une requête qui déclare des serveurs MCP au
+ * fournisseur sous `refuser` : rend alors { refus: { status, corps, raison },
+ * journal } sans pièce. Sinon rend { pieces: { requete, reponse,
+ * prompt_systeme, intention }, consolidated, forme (la réponse en clair, pour
+ * la seule corrélation), forme_redigee, code_model, prompt_version, intent,
+ * tool_calls, is_error, incomplete, correspondances, journal }. `journal` :
+ * lignes du journal d'exploitation `{ event, data }` (EX-17.2), sans valeur de
+ * paramètre ni contenu.
+ */
+export function echangeModele({ format, provider_label, requete, reponse, politique = null, prompt_in_request = "reference", prompt_system = "redige", prompt_version_name = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null, segment = null, provider_mcp = "refuser", provider_cache = "refuser", requestMaxBytes = TAILLE_MODELE_MAX, responseMaxBytes = TAILLE_MODELE_MAX }) {
+  const correspondancesTotales = [];
+  const journal = [];
+  const noter = (p, piece) => {
+    for (const c of p.correspondances ?? []) correspondancesTotales.push({ piece, ...c });
+  };
+  const gemini = format === "gemini";
+  // Requête (EX-5.33, EX-5.7).
+  const longueurRequete = Buffer.from(requete.corps ?? []).length;
+  const refuser = (raison, data = {}) => {
+    journal.push({ event: "model_request_refused", data: { reason: raison, length: longueurRequete, content_type: requete.content_type ?? null, ...data } });
+    return { refus: refusModele(format, raison), journal };
+  };
+  if (longueurRequete > requestMaxBytes) return refuser("taille");
+  if (requete.content_encoding && String(requete.content_encoding).toLowerCase() !== "identity") return refuser("content_encoding");
+  let corpsRequete;
+  try {
+    corpsRequete = analyserJSONIntegral(requete.corps);
+  } catch {
+    return refuser("corps_non_analysable");
+  }
+  if (gemini) {
+    // EX-5.32 : serveurs MCP déclarés au fournisseur, contrôlés sur la valeur analysée.
+    const n = serveursMcpFournisseur(corpsRequete);
+    if (n > 0) {
+      if (provider_mcp !== "relayer") return refuser("serveurs_mcp_fournisseur", { entries: n });
+      journal.push({ event: "provider_mcp_bypass", data: { entries: n } });
+    }
+    // Contenu en cache du fournisseur (cachedContent) : refusé par défaut, sinon relayé et consigné.
+    if (cacheFournisseur(corpsRequete)) {
+      if (provider_cache !== "relayer") return refuser("cache_fournisseur");
+      journal.push({ event: "provider_cache_reference", data: {} });
+    }
+  }
+  const { pieceRequete, piecePrompt, deForme } = piecesRequeteModele(format, corpsRequete, { longueurRequete, content_type: requete.content_type ?? null, politique, prompt_in_request, prompt_system, prompt_version_name, budgetMs, onDepassement, noter });
 
   // Réponse.
   const status = reponse.status;
   const mediaReponse = typeDeMedia(reponse.content_type);
+  const octetsReponse = Buffer.from(reponse.corps ?? []);
+  const tronquee = octetsReponse.length > responseMaxBytes;
+  if (tronquee) journal.push({ event: "model_response_truncated", data: { received_bytes: octetsReponse.length } });
+  const finNormale = reponse.fin_normale !== false && !tronquee;
   let forme = null;
   let consolidated = null;
   let incomplete = false;
   let is_error = false;
   let pieceReponse;
+  const nonRedigeableTaille = () => pieceNonRedigeable({ content_type: reponse.content_type ?? null, length: octetsReponse.length, reason: "taille" });
   if (status >= 400) {
-    const o = Buffer.from(reponse.corps ?? []);
-    let body = null;
-    if (o.length > 0) {
-      let texte = null;
-      try {
-        texte = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(o);
-      } catch {
-        texte = null;
-      }
-      if (texte === null) body = formeNonRedigeable({ content_type: reponse.content_type ?? null, length: o.length, reason: "non_utf8" });
-      else if (estTypeJSON(mediaReponse)) {
-        try {
-          body = analyserJSONIntegral(o);
-        } catch {
-          body = texte;
-        }
-      } else body = texte;
-    }
-    pieceReponse = pieceJSON({ noortrace_http_error: { status, content_type: reponse.content_type ?? null, body } }, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: o.length });
     is_error = true;
+    if (tronquee) pieceReponse = nonRedigeableTaille();
+    else {
+      let body = null;
+      if (octetsReponse.length > 0) {
+        let texte = null;
+        try {
+          texte = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(octetsReponse);
+        } catch {
+          texte = null;
+        }
+        if (texte === null) body = formeNonRedigeable({ content_type: reponse.content_type ?? null, length: octetsReponse.length, reason: "non_utf8" });
+        // Gemini (EX-5.31) : le corps d'erreur est analysé quel que soit le Content-Type, jamais par l'analyseur SSE.
+        else if (gemini || estTypeJSON(mediaReponse)) {
+          try {
+            body = analyserJSONIntegral(octetsReponse);
+          } catch {
+            body = texte;
+          }
+        } else body = texte;
+      }
+      pieceReponse = pieceJSON({ noortrace_http_error: { status, content_type: reponse.content_type ?? null, body } }, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: octetsReponse.length });
+    }
   } else if (mediaReponse === "text/event-stream") {
-    const c = consoliderFlux(format, reponse.corps);
+    // EX-5.33 : la capture s'arrête à la borne ; ce qui suit n'est pas analysé.
+    const c = consoliderFlux(format, tronquee ? octetsReponse.subarray(0, responseMaxBytes) : octetsReponse, { finNormale });
+    if (c.dataFinal) journal.push({ event: "sse_data_final_sans_ligne_vide", data: { count: c.dataFinal } });
     incomplete = c.incomplet;
     is_error = c.is_error;
+    if (c.forme !== null && (tronquee || !finNormale) && !c.forme.noortrace_flux_incomplet && !gemini) {
+      c.forme.noortrace_flux_incomplet = true;
+      incomplete = true;
+      is_error = true;
+    }
     if (c.forme === null) {
-      pieceReponse = pieceBrute(reponse.corps, { contentType: "text/event-stream", politique, portee: "reponse", budgetMs, onDepassement });
+      pieceReponse = tronquee ? nonRedigeableTaille() : pieceBrute(reponse.corps, { contentType: "text/event-stream", politique, portee: "reponse", budgetMs, onDepassement });
+      if (tronquee) is_error = true;
     } else {
       forme = c.forme;
       consolidated = c.forme;
-      pieceReponse = pieceJSON(c.forme, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: Buffer.from(reponse.corps ?? []).length });
+      pieceReponse = pieceJSON(c.forme, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: octetsReponse.length });
     }
+  } else if (tronquee) {
+    pieceReponse = nonRedigeableTaille();
+    is_error = true;
   } else {
     let analysee = false;
     if (estTypeJSON(mediaReponse)) {
@@ -2652,30 +3001,255 @@ export function echangeModele({ format, provider_label, requete, reponse, politi
         forme = null;
       }
     }
-    if (analysee) pieceReponse = pieceJSON(forme, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: Buffer.from(reponse.corps ?? []).length });
+    if (analysee) pieceReponse = pieceJSON(forme, { politique, portee: "reponse", budgetMs, onDepassement, contentType: reponse.content_type ?? null, longueurRecue: octetsReponse.length });
     else {
       pieceReponse = pieceBrute(reponse.corps, { contentType: reponse.content_type, politique, portee: "reponse", budgetMs, onDepassement });
       is_error = true;
     }
   }
   noter(pieceReponse, "reponse");
+  return valeursEchange({ format, provider_label, status, forme, consolidated, pieceRequete, piecePrompt, pieceReponse, deForme, is_error, incomplete, correspondancesTotales, journal, segment, politique, budgetMs, onDepassement });
+}
 
-  // Valeurs en ligne tirées des seules valeurs rédigées (EX-5.21, EX-10.2).
+/** Valeurs en ligne d'un échange, tirées des seules valeurs rédigées (EX-5.21, EX-5.36, EX-10.2). */
+function valeursEchange({ format, provider_label, status, forme, consolidated, pieceRequete, piecePrompt, pieceReponse, deForme, is_error, incomplete, correspondancesTotales, journal, segment, politique, budgetMs, onDepassement }) {
   const formeRedigee = forme === null ? null : pieceReponse.valeur;
-  const intention = status >= 400 ? intentionRedigee(null, null) : intentionRedigee(extraireIntention(format, formeRedigee), extraireIntention(format, forme));
+  const erreurHttp = status !== null && status >= 400;
+  const intention = erreurHttp ? intentionRedigee(null, null) : intentionRedigee(extraireIntention(format, formeRedigee), extraireIntention(format, forme));
+  let code_model;
+  let segmentRefuse = false;
+  if (format === "gemini") {
+    // EX-5.36 : jamais le membre `model` du corps ; le segment du chemin (ou, pour le SDK, request.model) en repli.
+    const cm = codeModeleGemini(provider_label, erreurHttp ? null : formeRedigee, segment, { politique, budgetMs, onDepassement });
+    // Refus du segment (EX-5.36) : consigné par model_segment_refused (EX-17.2), sans la valeur.
+    segmentRefuse = cm.segment_refuse;
+    if (segmentRefuse) journal.push({ event: "model_segment_refused", data: { reason: "detecteur", length: Buffer.byteLength(String(segment), "utf8") } });
+    code_model = cm.code_model;
+  } else code_model = codeModele(provider_label, erreurHttp ? null : formeRedigee, deForme ? pieceRequete.valeur : null);
   return {
     pieces: { requete: pieceRequete, reponse: pieceReponse, prompt_systeme: piecePrompt, intention: intention.piece },
     consolidated,
     forme,
     forme_redigee: formeRedigee,
-    code_model: codeModele(provider_label, status >= 400 ? null : formeRedigee, deForme ? pieceRequete.valeur : null),
+    code_model,
     prompt_version: piecePrompt ? piecePrompt.reference.sha256 : null,
     intent: intention.intent,
-    tool_calls: status >= 400 ? [] : extraireAppelsOutils(format, forme).map(({ id, name, arguments: a }) => ({ id, name, arguments: a })),
+    tool_calls: erreurHttp ? [] : extraireAppelsOutils(format, forme).map(({ id, name, arguments: a }) => ({ id, name, arguments: a })),
     is_error,
     incomplete,
     correspondances: correspondancesTotales,
+    journal,
+    segment_refuse: segmentRefuse,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Passerelle Gemini (CT-2 §5.3.3, EX-5.28 à EX-5.33, révision 0.5)
+// ---------------------------------------------------------------------------
+
+const NON_RESERVES_CHEMIN = /^[A-Za-z0-9\-._~]$/;
+
+/**
+ * Normalisation du chemin reçu (EX-5.2) : `400` pour `%2F` ou `%2f`, un
+ * segment `.` ou `..`, une barre oblique doublée, un octet hors de l'ASCII
+ * imprimable ; les encodages pourcent de caractères non réservés sont
+ * décodés, les autres gardés tels quels (`%3A` n'est pas `:`). Rend
+ * { chemin } ou { refus: "chemin_invalide" }.
+ */
+export function normaliserChemin(chemin) {
+  if (typeof chemin !== "string" || !/^[\x21-\x7e]*$/.test(chemin) || !chemin.startsWith("/")) return { refus: "chemin_invalide" };
+  if (/%2f/i.test(chemin) || chemin.includes("//")) return { refus: "chemin_invalide" };
+  const n = chemin.replace(/%([0-9A-Fa-f]{2})/g, (m, h) => {
+    const c = String.fromCharCode(parseInt(h, 16));
+    return NON_RESERVES_CHEMIN.test(c) ? c : m;
+  });
+  if (n.split("/").some((s) => s === "." || s === "..")) return { refus: "chemin_invalide" };
+  return { chemin: n };
+}
+
+/**
+ * Route Gemini (EX-5.28) : pour chaque route de format `gemini`, préfixe
+ * `<path>/`, segment conforme au motif, puis suffixe exact
+ * `:generateContent` ou `:streamGenerateContent`. Rend { route, segment,
+ * methode } ou null (préfixe `tunedModels/`, autre méthode, chemin Vertex,
+ * `%3A` : aucune correspondance).
+ */
+export function routeGemini(cheminNormalise, routes) {
+  for (const route of routes ?? []) {
+    if (route?.format !== "gemini" || typeof route.path !== "string") continue;
+    const prefixe = `${route.path}/`;
+    if (!cheminNormalise.startsWith(prefixe)) continue;
+    const reste = cheminNormalise.slice(prefixe.length);
+    for (const methode of METHODES_GEMINI) {
+      const suffixe = `:${methode}`;
+      if (!reste.endsWith(suffixe)) continue;
+      const segment = reste.slice(0, -suffixe.length);
+      if (RE_SEGMENT_GEMINI.test(segment)) return { route, segment, methode };
+    }
+  }
+  return null;
+}
+
+/** Cible envoyée à l'amont (EX-5.28, EX-5.29) : reconstruite depuis la route, le segment et la méthode, jamais le texte reçu. */
+export const cibleAmontGemini = (route, segment, methode) => `${route.path}/${segment}:${methode}${methode === "streamGenerateContent" ? "?alt=sse" : ""}`;
+
+function decoderPourcent(t) {
+  const octets = [];
+  for (let i = 0; i < t.length; i++) {
+    const m = /^%([0-9A-Fa-f]{2})/.exec(t.slice(i, i + 3));
+    if (m) {
+      octets.push(parseInt(m[1], 16));
+      i += 2;
+    } else octets.push(...Buffer.from(t[i], "utf8"));
+  }
+  return Buffer.from(octets).toString("utf8");
+}
+
+/**
+ * Chaîne de requête d'une route Gemini (EX-5.29) : coupée sur `&`, chaque
+ * élément `nom=valeur` ou `nom` seul, noms et valeurs décodés de l'encodage
+ * pourcent. Ordre d'examen : `key` présent → `cle_dans_url` ;
+ * `streamGenerateContent` sans paramètre `alt` de valeur `sse` →
+ * `flux_sans_sse` ; tout autre paramètre, valeur d'`alt` hors de la table,
+ * paramètre répété → `parametre_non_admis`. `chaine` : le texte qui suit le
+ * premier `?`, ou null sans `?` (une chaîne vide ne porte aucun paramètre).
+ * Rend { ok: true, altSse, noms } ou { refus: { status: 400, raison, noms },
+ * altSse } ; jamais les valeurs.
+ */
+/**
+ * Noms de paramètres consignés (EX-5.29) : seuls `key` et `alt` sont
+ * écrits ; tout autre nom, qui peut être un secret collé sans « = », devient
+ * `[autre:<longueur en octets>]`.
+ */
+export const nomsConsignes = (noms) => noms.map((n) => (n === "key" || n === "alt" ? n : `[autre:${Buffer.byteLength(n, "utf8")}]`));
+
+export function examinerRequeteGemini(methode, chaine) {
+  const params = chaine === null || chaine === undefined || chaine === "" ? [] : chaine.split("&").map((el) => {
+    const k = el.indexOf("=");
+    return { nom: decoderPourcent(k < 0 ? el : el.slice(0, k)), valeur: k < 0 ? "" : decoderPourcent(el.slice(k + 1)) };
+  });
+  const noms = params.map((p) => p.nom);
+  const altSse = params.some((p) => p.nom === "alt" && p.valeur === "sse");
+  const refus = (raison) => ({ refus: { status: 400, raison, noms }, altSse });
+  if (noms.includes("key")) return refus("cle_dans_url");
+  if (methode === "streamGenerateContent" && !altSse) return refus("flux_sans_sse");
+  if (new Set(noms).size !== noms.length) return refus("parametre_non_admis");
+  for (const p of params) {
+    if (p.nom !== "alt") return refus("parametre_non_admis");
+    if (p.valeur !== (methode === "streamGenerateContent" ? "sse" : "json")) return refus("parametre_non_admis");
+  }
+  return { ok: true, altSse, noms };
+}
+
+/**
+ * Échange reçu sur la passerelle pour une route Gemini (§5.3.3, pas 2 à 12,
+ * sans réseau) : `method` et `target` (chemin et chaîne de requête tels que
+ * reçus), `routes` (les routes de `policy.model.routes`), puis les entrées
+ * d'`echangeModele`. Rend, en plus de ce que rend `echangeModele`, `route`,
+ * `model_segment`, `methode` et `upstream_target` ; un refus porte
+ * `content_type` (EX-5.30) ; une route non trouvée donne `404`, raison
+ * `route_inconnue`, sans corps propre au format.
+ */
+export function echangeGemini({ method, target, routes, requete, reponse, hote_connu = true, politique = null, prompt_in_request = "reference", prompt_system = "redige", prompt_version_name = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null, requestMaxBytes = TAILLE_MODELE_MAX, responseMaxBytes = TAILLE_MODELE_MAX }) {
+  const k = target.indexOf("?");
+  const cheminRecu = k < 0 ? target : target.slice(0, k);
+  const chaine = k < 0 ? null : target.slice(k + 1);
+  const sansRoute = (raison, status) => ({ refus: { status, raison, corps: null, content_type: null }, journal: [{ event: "model_route_not_found", data: { method, path_length: Buffer.byteLength(cheminRecu, "utf8") } }], route: null, model_segment: null, methode: null, upstream_target: null });
+  const n = normaliserChemin(cheminRecu);
+  if (n.refus) return sansRoute(n.refus, 400);
+  const trouvee = method === "POST" ? routeGemini(n.chemin, routes) : null;
+  if (!trouvee) return sansRoute("route_inconnue", 404);
+  const { route, segment, methode } = trouvee;
+  const base = { route, model_segment: segment, methode };
+  const q = examinerRequeteGemini(methode, chaine);
+  // Hôte inconnu (5.3.3 pas 3, EX-5.8) : 401 avec le corps d'EX-5.30, après la route.
+  if (!hote_connu) return { refus: { status: 401, raison: "hote_inconnu", corps: corpsErreurGemini("hote_inconnu"), content_type: contentTypeRefusGemini(methode, q.altSse) }, journal: [{ event: "auth_failed", data: { component: "passerelle", route: route.path } }], ...base, upstream_target: null };
+  if (q.refus) {
+    const raison = q.refus.raison;
+    return { refus: { status: 400, raison, corps: corpsErreurGemini(raison), content_type: contentTypeRefusGemini(methode, q.altSse) }, journal: [{ event: "model_request_refused", data: { route: route.path, reason: raison, names: nomsConsignes(q.refus.noms) } }], ...base, upstream_target: null };
+  }
+  const r = echangeModele({ format: "gemini", provider_label: route.provider_label, requete, reponse, politique, prompt_in_request, prompt_system, prompt_version_name, budgetMs, onDepassement, segment, provider_mcp: route.provider_mcp ?? "refuser", provider_cache: route.provider_cache ?? "refuser", requestMaxBytes, responseMaxBytes });
+  // EX-17.2 : les lignes du journal d'exploitation portent la route.
+  r.journal = r.journal.map((l) => ({ event: l.event, data: { route: route.path, ...l.data } }));
+  if (r.refus) return { ...r, refus: { ...r.refus, content_type: contentTypeRefusGemini(methode, q.altSse) }, ...base, upstream_target: null };
+  return { ...r, ...base, upstream_target: cibleAmontGemini(route, segment, methode) };
+}
+
+/** Membres que le SDK Python ajoute à ses objets de réponse et que le démon retire (EX-6.8 pas 3). */
+export const MEMBRES_SDK_GEMINI = Object.freeze(["sdkHttpResponse", "automaticFunctionCallingHistory", "parsed"]);
+
+/**
+ * `noortrace/sdk/echangeModele` au format `gemini` (EX-6.8, ajout compatible
+ * de la révision 0.5). `request` : corps `GenerateContentRequest` déclaré ;
+ * `response` : objet (hors flux, ou corps d'erreur si `status ≥ 400`) ou
+ * tableau de morceaux (consolidé par EX-5.35, fin du tableau = fin normale ;
+ * tableau vide → `{"noortrace_flux_incomplet": true}`) ; les membres
+ * `sdkHttpResponse`, `automaticFunctionCallingHistory` et `parsed` sont
+ * retirés du premier niveau (de chaque élément) et notés
+ * (`sdk_member_removed`) ; `tools[].mcpServers` est noté
+ * (`provider_mcp_bypass`), jamais refusé. `code.model` : `modelVersion`,
+ * sinon `request.model` privé de `models/` (motif du segment, détecteurs),
+ * sinon null. L'échange est déclaratif (EX-6.8 pas 6). Rend ce que rend
+ * `echangeModele`, plus `removed_members`.
+ */
+export function echangeModeleSDKGemini({ provider_label, request, response, status = null, is_error = false, politique = null, prompt_in_request = "reference", prompt_system = "redige", prompt_version_name = null, budgetMs = BUDGET_REDACTION_MS, onDepassement = null }) {
+  const correspondancesTotales = [];
+  const journal = [];
+  const noter = (p, piece) => {
+    for (const c of p.correspondances ?? []) correspondancesTotales.push({ piece, ...c });
+  };
+  const n = serveursMcpFournisseur(request);
+  if (n > 0) journal.push({ event: "provider_mcp_bypass", data: { entries: n } });
+  if (cacheFournisseur(request)) journal.push({ event: "provider_cache_reference", data: {} });
+  const longueurRequete = octetsJCSIntegral(request).length;
+  const { pieceRequete, piecePrompt, deForme } = piecesRequeteModele("gemini", request, { longueurRequete, content_type: null, politique, prompt_in_request, prompt_system, prompt_version_name, budgetMs, onDepassement, noter });
+  // Pas 3 : retrait des membres propres au SDK, au premier niveau de l'objet ou de chaque élément.
+  const removed_members = [];
+  const retirer = (o) => {
+    if (!estObjet(o)) return o;
+    const c = copieJSON(o);
+    for (const m of MEMBRES_SDK_GEMINI) {
+      if (Object.hasOwn(c, m)) {
+        delete c[m];
+        removed_members.push(m);
+        journal.push({ event: "sdk_member_removed", data: { member: m } });
+      }
+    }
+    return c;
+  };
+  const reponseNettoyee = Array.isArray(response) ? response.map(retirer) : retirer(response);
+  let forme = null;
+  let consolidated = null;
+  let incomplete = false;
+  let erreur = Boolean(is_error);
+  let pieceReponse;
+  if (status !== null && status >= 400) {
+    // Pas 4.
+    pieceReponse = pieceJSON({ noortrace_http_error: { status, content_type: null, body: reponseNettoyee } }, { politique, portee: "reponse", budgetMs, onDepassement });
+    erreur = true;
+  } else if (Array.isArray(reponseNettoyee)) {
+    // Pas 2 : tableau de morceaux.
+    const c = consoliderGemini(reponseNettoyee.map((valeur) => ({ valeur })), { finNormale: true });
+    if (c.forme === null) {
+      forme = { noortrace_flux_incomplet: true };
+      incomplete = true;
+      erreur = true;
+    } else {
+      forme = c.forme;
+      incomplete = c.incomplet;
+      erreur = erreur || c.is_error;
+    }
+    consolidated = forme;
+    pieceReponse = pieceJSON(forme, { politique, portee: "reponse", budgetMs, onDepassement });
+  } else {
+    forme = reponseNettoyee;
+    pieceReponse = pieceJSON(forme, { politique, portee: "reponse", budgetMs, onDepassement });
+  }
+  noter(pieceReponse, "reponse");
+  // Pas 5 : repli de code.model sur request.model privé de `models/`.
+  const modele = typeof request?.model === "string" ? request.model.replace(/^models\//, "") : null;
+  const r = valeursEchange({ format: "gemini", provider_label, status, forme: estObjet(forme) ? forme : null, consolidated, pieceRequete, piecePrompt, pieceReponse, deForme, is_error: erreur, incomplete, correspondancesTotales, journal, segment: modele, politique, budgetMs, onDepassement });
+  return { ...r, removed_members };
 }
 
 /**
@@ -2723,9 +3297,13 @@ export function nomVuParModele(nom, { template = "{tool_announced}", sanitize = 
  */
 export function correler(appel, echanges, { fenetre_ms = 600000, template = "{tool_announced}", sanitize = false } = {}) {
   const groupe = appel.groupe ?? appel.hote;
-  const candidats = echanges
+  // EX-5.22 (révision 0.5) : un échange interposé (passerelle) est toujours préféré ; un échange déclaré par le
+  // SDK (`channel: "sdk"`) ne corrèle que si aucun échange interposé ne correspond, et la corrélation est alors
+  // signalée (`declaree`), pour être consignée.
+  const dansFenetre = echanges
     .filter((e) => (e.groupe ?? e.hote) === groupe && !(appel.run_id && e.run_id && e.run_id !== appel.run_id) && e.t <= appel.t_recu && e.t >= appel.t_recu - fenetre_ms)
     .sort((a, b) => b.t - a.t || b.seq - a.seq);
+  const candidats = [...dansFenetre.filter((e) => e.channel !== "sdk"), ...dansFenetre.filter((e) => e.channel === "sdk")];
   const vu = nomVuParModele(appel.tool_announced, { template, sanitize });
   const cible = J.canonicaliserJCSIntegral(appel.arguments ?? {});
   for (const e of candidats) {
@@ -2733,7 +3311,11 @@ export function correler(appel, echanges, { fenetre_ms = 600000, template = "{to
       if (e.consommes?.has(c.position)) continue;
       if (c.name !== appel.tool_announced && c.name !== vu) continue;
       let args;
-      if (typeof c.arguments === "string") {
+      if (e.format === "gemini") {
+        // EX-5.22 : `args` du functionCall (objet ; `{}` s'il est absent) ; un `args` présent qui n'est pas un objet ne correspond jamais.
+        if (!estObjet(c.arguments)) continue;
+        args = c.arguments;
+      } else if (typeof c.arguments === "string") {
         try {
           args = analyserJSONIntegral(c.arguments);
         } catch {
@@ -2749,10 +3331,33 @@ export function correler(appel, echanges, { fenetre_ms = 600000, template = "{to
       if (canon !== cible) continue;
       e.consommes ??= new Set();
       e.consommes.add(c.position);
-      return { echange: e, appel: c, texte: texteAvantAppel(e.format, e.forme_redigee ?? e.forme, c.position), texteClair: texteAvantAppel(e.format, e.forme, c.position) };
+      return { echange: e, appel: c, texte: texteAvantAppel(e.format, e.forme_redigee ?? e.forme, c.position), texteClair: texteAvantAppel(e.format, e.forme, c.position), declaree: e.channel === "sdk" };
     }
   }
   return { echange: null, appel: null, texte: null, texteClair: null };
+}
+
+/**
+ * Pièce de déclaration de source d'un événement de rang déclaratif (EX-6.35,
+ * EX-7.7) : JCS intégral de `{"noortrace_capture":{"channel","source"}}`,
+ * sans rédaction, `media_type: "application/json"` ; `channel` = `otel`
+ * (span) ou `sdk` (échange de modèle déclaré par `echangeModele`) ;
+ * ses octets ne dépendent que du canal et de l'alias.
+ */
+export const pieceDeclarationCanal = (channel, alias) => pieceJSON({ noortrace_capture: { channel, source: alias } }, { media_type: "application/json" });
+
+/**
+ * Classe effective d'un outil déclaré par le SDK (table de 6.2, EX-6.18) :
+ * la classe de la configuration du démon prime ; une classe déclarée ne peut
+ * que la renforcer (`lecture` → `ecriture`). Sans classe configurée : la
+ * déclarée, à défaut `ecriture`. Rend `{ classe, refusee }` ; `refusee` vrai
+ * quand une classe `lecture` déclarée est écartée pour un outil configuré
+ * `ecriture` (`sdk_class_override_refused`, consigné).
+ */
+export function classeEffectiveSDK({ declaree = null, configuree = null } = {}) {
+  if (configuree === "ecriture") return { classe: "ecriture", refusee: declaree === "lecture" };
+  if (configuree === "lecture") return { classe: declaree === "ecriture" ? "ecriture" : "lecture", refusee: false };
+  return { classe: declaree ?? "ecriture", refusee: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -3284,4 +3889,118 @@ export function reprise(texteIntentions, evenementsDurables, { resoudreOutil, re
     out.push({ intent_id: it.intent_id, partiel, piece, intention_sha256, sans_contexte: ctx === null });
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Contrôles de démarrage de la révision 0.5 (EX-15.4 pas 3)
+// ---------------------------------------------------------------------------
+
+const echapperPointeur = (s) => String(s).replace(/~/g, "~0").replace(/\//g, "~1");
+
+/** Vrai si `listen` (`hôte:port`) désigne une adresse de bouclage (`127.0.0.0/8`, `[::1]`, EX-6.40). */
+export function estBouclage(listen) {
+  if (typeof listen !== "string") return false;
+  if (listen.startsWith("[")) return listen.startsWith("[::1]");
+  const k = listen.lastIndexOf(":");
+  const hote = k < 0 ? listen : listen.slice(0, k);
+  return /^127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/.test(hote);
+}
+
+/**
+ * Règles du pas 3 d'EX-15.4 ajoutées par la révision 0.5, que le schéma
+ * n'exprime pas : ingestion OpenTelemetry (`otel`, `policy.otel`, EX-6.37,
+ * EX-6.40), alias du SDK (`policy.sdk`, EX-6.24), routes `gemini` (EX-5.28,
+ * EX-5.32), support WORM (EX-12.30, EX-12.31). Rend { erreurs,
+ * avertissements } (chaînes : pointeur JSON, règle).
+ */
+export function controlesConfigurationRevision05(config) {
+  const erreurs = [];
+  const avertissements = [];
+  const production = config?.recorder?.environment === "production";
+  const policy = config?.policy ?? {};
+  const otel = config?.otel ?? null;
+  const sdkAlias = (config?.sdk?.hosts ?? []).map((h) => h?.alias).filter((a) => typeof a === "string");
+  // Ingestion OpenTelemetry.
+  if (otel && otel.enabled === true) {
+    const sources = policy.otel?.sources ?? null;
+    if (!policy.otel) erreurs.push("/policy/otel : membre obligatoire quand otel.enabled est vrai (EX-15.4, EX-6.23)");
+    const jetons = new Set((otel.static_tokens ?? []).map((t) => t?.id));
+    const references = new Map();
+    const alias = new Map();
+    (otel.hosts ?? []).forEach((h, i) => {
+      const p = `/otel/hosts/${i}`;
+      const jeton = h?.match?.static_token;
+      if (typeof jeton !== "string" || !jetons.has(jeton)) erreurs.push(`${p}/match/static_token : doit désigner un id de otel.static_tokens (EX-6.37)`);
+      else if (references.has(jeton)) erreurs.push(`${p}/match/static_token : jeton déjà référencé par ${references.get(jeton)} (EX-6.37)`);
+      else references.set(jeton, p);
+      if (typeof h?.alias !== "string") erreurs.push(`${p}/alias : alias non nul exigé (EX-6.37)`);
+      else {
+        if (alias.has(h.alias)) erreurs.push(`${p}/alias : alias en double (EX-6.37)`);
+        alias.set(h.alias, p);
+        if (Object.hasOwn(policy.servers ?? {}, h.alias) || sdkAlias.includes(h.alias)) erreurs.push(`${p}/alias : distinct des alias de serveurs et du SDK (EX-6.37)`);
+        if (sources && !Object.hasOwn(sources, h.alias)) erreurs.push(`${p}/alias : doit être une clé de policy.otel.sources (EX-6.23)`);
+      }
+      if (typeof h?.launched_by === "string" && h.launched_by.includes("${")) erreurs.push(`${p}/launched_by : valeur fixe exigée (EX-6.37)`);
+      if ((h?.allowed_on_behalf_of ?? []).length > 0) erreurs.push(`${p}/allowed_on_behalf_of : doit être vide (EX-6.37)`);
+    });
+    for (const cle of Object.keys(sources ?? {})) {
+      if (!alias.has(cle)) erreurs.push(`/policy/otel/sources/${echapperPointeur(cle)} : aucune entrée de otel.hosts (EX-6.37)`);
+      if (sources[cle]?.overlap === "conserver") avertissements.push(`/policy/otel/sources/${echapperPointeur(cle)}/overlap : « conserver » scelle aussi les actes déjà journalisés par un chemin plus fort (EX-6.34)`);
+    }
+    if (production && !estBouclage(otel.listen) && (otel.tls === null || otel.tls === undefined)) erreurs.push("/otel/tls : non nul exigé en production hors adresse de bouclage (EX-6.40)");
+    if (!(otel.encodings ?? []).includes("protobuf")) avertissements.push("/otel/encodings : sans protobuf, les exportateurs réglés par défaut (http/protobuf) sont refusés (EX-6.27)");
+  } else if (policy.otel) avertissements.push("/policy/otel : présent sans otel activé (EX-15.4)");
+  // Alias du SDK (EX-6.24).
+  if (policy.sdk) {
+    const annonces = [...new Set(policy.sdk.aliases ?? [])].sort();
+    const attendus = [...new Set(sdkAlias)].sort();
+    if (JSON.stringify(annonces) !== JSON.stringify(attendus) || (policy.sdk.aliases ?? []).length !== annonces.length) erreurs.push("/policy/sdk/aliases : doit être exactement l'ensemble des alias de sdk.hosts (EX-6.24)");
+  } else if (config?.sdk?.enabled === true) avertissements.push("/policy/sdk : absent alors que le SDK est activé (EX-6.24)");
+  // Routes du frontal modèle.
+  const chemins = new Set();
+  (policy.model?.routes ?? []).forEach((r, i) => {
+    const p = `/policy/model/routes/${i}`;
+    if (chemins.has(r?.path)) erreurs.push(`${p}/path : chemin en double (EX-15.4)`);
+    chemins.add(r?.path);
+    if (r?.format === "gemini") {
+      if (typeof r.path !== "string" || !r.path.endsWith("/models")) erreurs.push(`${p}/path : une route gemini se termine par /models (EX-5.28)`);
+      else if (r.path !== "/v1beta/models" && r.path !== "/v1/models") avertissements.push(`${p}/path : collection ni /v1beta/models ni /v1/models (EX-5.28)`);
+      if (r.provider_mcp === "relayer") avertissements.push(`${p}/provider_mcp : route ${r.path} : les serveurs MCP déclarés au fournisseur contournent le frontal MCP (EX-5.32)`);
+      if (r.provider_cache === "relayer") avertissements.push(`${p}/provider_cache : route ${r.path} : le contenu mis en cache chez le fournisseur (prompt système, outils, serveurs MCP) n'est pas capturé (EX-5.32)`);
+      (r.passthrough ?? []).forEach((pt, k) => {
+        const chemin = typeof pt?.path === "string" ? pt.path : "";
+        if (pt?.method === "POST" && (/\/cachedContents(\/|$)/.test(chemin) || chemin.startsWith("/upload/"))) erreurs.push(`${p}/passthrough/${k} : création de contenu en cache ou téléversement refusé sur une route gemini (EX-15.4)`);
+      });
+    } else if (r && (Object.hasOwn(r, "provider_mcp") || Object.hasOwn(r, "provider_cache"))) erreurs.push(`${p}/${Object.hasOwn(r, "provider_mcp") ? "provider_mcp" : "provider_cache"} : réservé aux routes gemini (EX-5.32)`);
+  });
+  // Support WORM.
+  const worm = config?.storage?.seal?.worm ?? null;
+  if (worm) {
+    if (production && worm.mode !== "compliance") erreurs.push("/storage/seal/worm/mode : compliance exigé en production (EX-12.30)");
+    if (worm.type === "azure-immutable-blob" && (worm.endpoint === null || worm.endpoint === undefined)) erreurs.push("/storage/seal/worm/endpoint : obligatoire pour azure-immutable-blob (EX-15.4)");
+    if (worm.type === "gcs-object-retention" && worm.endpoint !== null && worm.endpoint !== undefined) erreurs.push("/storage/seal/worm/endpoint : doit être nul pour gcs-object-retention (EX-15.4)");
+    if (worm.legal_hold_on_write === true && worm.type !== "s3-object-lock") erreurs.push("/storage/seal/worm/legal_hold_on_write : seulement avec s3-object-lock (EX-12.31)");
+    if (worm.legal_hold_on_write === true && production) erreurs.push("/storage/seal/worm/legal_hold_on_write : refusé en production : le rôle de l'écrivain détiendrait le droit de pose du gel, qui permet aussi sa levée (EX-12.31, 18.5)");
+    if (worm.type === "gcs-object-retention" && production) erreurs.push("/storage/seal/worm/type : gcs-object-retention n'est pas admis en production en version 0 (EX-12.30, section 21)");
+    // Rétention des copies (EX-15.4 pas 3, EX-12.19).
+    const ans = config?.storage?.retention?.events_years;
+    if (Number.isInteger(ans) && Number.isInteger(worm.retain_days)) {
+      if (worm.retain_days < 365 * ans) erreurs.push(`/storage/seal/worm/retain_days : au moins 365 × events_years = ${365 * ans} jours (EX-15.4, EX-12.19)`);
+      else if (worm.retain_days < 365 * (ans + 1)) avertissements.push(`/storage/seal/worm/retain_days : inférieur à 365 × (events_years + 1) = ${365 * (ans + 1)} jours, la fin de l'exercice en cours n'est pas couverte (EX-12.19)`);
+    }
+    if (worm.credentials) {
+      const ref = J.canonicaliserJCSIntegral(worm.credentials);
+      const autres = [];
+      const parcourir = (v, chemin) => {
+        if (Array.isArray(v)) v.forEach((x, k) => parcourir(x, `${chemin}/${k}`));
+        else if (v !== null && typeof v === "object") {
+          if (chemin !== "/storage/seal/worm/credentials" && (Object.hasOwn(v, "file") || Object.hasOwn(v, "env") || Object.hasOwn(v, "vault")) && Object.keys(v).length <= 2 && J.canonicaliserJCSIntegral(v) === ref) autres.push(chemin);
+          for (const k of Object.keys(v)) parcourir(v[k], `${chemin}/${echapperPointeur(k)}`);
+        }
+      };
+      parcourir(config, "");
+      if (autres.length) avertissements.push(`/storage/seal/worm/credentials : même référence que ${autres.join(", ")} (EX-15.4)`);
+    }
+  }
+  return { erreurs, avertissements };
 }

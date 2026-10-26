@@ -1,0 +1,6 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Je vérifie le dossier puis je crée le paiement de 7400.00 CHF."}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0004"}
+
+data: {"candidates":[{"content":{"parts":[{"functionCall":{"id":"appel-exemple-0001","name":"demo__claims_get","args":{"claim_id":"2026-81044"}}}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0004"}
+
+data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"demo__payments_create","args":{"claim_id":"2026-81044","amount":"7400.00","currency":"CHF","beneficiary_iban":"CH93 0076 2011 6238 5295 7"}}}],"role":"model"},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":120,"candidatesTokenCount":64,"totalTokenCount":184},"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0004"}
+

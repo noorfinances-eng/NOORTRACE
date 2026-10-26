@@ -1,0 +1,203 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 1,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "5802fc0eb97ea4e519e23b9da5d330c2",
+      "span_id": "46f823fc6c752632",
+      "issue": "scelle",
+      "reason": null,
+      "overlap_seq": null,
+      "normalized": {
+        "trace_id": "5802fc0eb97ea4e519e23b9da5d330c2",
+        "span_id": "46f823fc6c752632",
+        "parent_span_id": "c28b21a99fbebfa4",
+        "trace_state": "",
+        "name": "chat modele-demo-1",
+        "flags": 0,
+        "kind": 3,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "1794307799250500000",
+        "attributes": {
+          "gen_ai.operation.name": "chat",
+          "gen_ai.provider.name": "openai",
+          "gen_ai.request.model": "modele-demo-1",
+          "gen_ai.conversation.id": "conv-2026-11-10-0011",
+          "gen_ai.system_instructions": [
+            {
+              "type": "text",
+              "content": "Contact interne : support@assureur-demo.example (jamais communiqué)."
+            }
+          ],
+          "gen_ai.input.messages": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "type": "text",
+                  "content": "Où en est le sinistre 2026-81044 ?"
+                }
+              ]
+            }
+          ],
+          "gen_ai.output.messages": [
+            {
+              "role": "assistant",
+              "parts": [
+                {
+                  "type": "text",
+                  "content": "Le sinistre 2026-81044 est ouvert."
+                }
+              ],
+              "finish_reason": "stop"
+            }
+          ],
+          "gen_ai.response.model": "modele-demo-1-2026-09",
+          "gen_ai.usage.input_tokens": 120,
+          "gen_ai.usage.output_tokens": 18
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": {
+        "source": {
+          "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+          "length": 66,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"noortrace_capture\":{\"channel\":\"otel\",\"source\":\"otel-sinistres\"}}"
+        },
+        "envelope": {
+          "sha256": "0x3fa7564dd1caa46918ce6485500be0b992d7b28e679807e8250d1e55f2eeefdc",
+          "length": 638,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"attributes\":{},\"dropped_attributes_count\":0,\"dropped_events_count\":0,\"dropped_links_count\":0,\"end_time_unix_nano\":\"1794307799250500000\",\"events\":[],\"flags\":0,\"kind\":3,\"links_count\":0,\"name\":\"chat modele-demo-1\",\"parent_span_id\":\"c28b21a99fbebfa4\",\"resource\":{\"attributes\":{\"service.name\":\"agent-sinistres\",\"service.version\":\"3.2.0\"},\"dropped_attributes_count\":0},\"schema_url\":null,\"scope\":{\"attributes\":{},\"name\":\"agent-sinistres.instrumentation\",\"version\":\"1.0.0\"},\"span_id\":\"46f823fc6c752632\",\"start_time_unix_nano\":\"1794307798000000000\",\"status\":{\"code\":1,\"message\":\"\"},\"trace_id\":\"5802fc0eb97ea4e519e23b9da5d330c2\",\"trace_state\":\"\"}"
+        },
+        "request": {
+          "sha256": "0xa4653267bc346b531df48849dd0c1071165b462f33582c9981e142d67aef36e2",
+          "length": 381,
+          "redacted": true,
+          "bytes": "{\"gen_ai.conversation.id\":\"conv-2026-11-10-0011\",\"gen_ai.input.messages\":[{\"parts\":[{\"content\":\"Où en est le sinistre 2026-81044 ?\",\"type\":\"text\"}],\"role\":\"user\"}],\"gen_ai.operation.name\":\"chat\",\"gen_ai.provider.name\":\"openai\",\"gen_ai.request.model\":\"modele-demo-1\",\"gen_ai.system_instructions\":[{\"content\":\"Contact interne : [REDIGE:email] (jamais communiqué).\",\"type\":\"text\"}]}"
+        },
+        "response": {
+          "sha256": "0x193db805ee84d582ed8a40d78b1f3e158792e1d6bccb03027d5868d960d8f1dd",
+          "length": 257,
+          "redacted": false,
+          "bytes": "{\"gen_ai.output.messages\":[{\"finish_reason\":\"stop\",\"parts\":[{\"content\":\"Le sinistre 2026-81044 est ouvert.\",\"type\":\"text\"}],\"role\":\"assistant\"}],\"gen_ai.response.model\":\"modele-demo-1-2026-09\",\"gen_ai.usage.input_tokens\":120,\"gen_ai.usage.output_tokens\":18}"
+        },
+        "system_prompt": {
+          "sha256": "0x358557217ae41f8a5ed1104c0c038e9572b76f35358bb4e1cf189a7642de4caf",
+          "length": 54,
+          "redacted": true,
+          "media_type": "text/plain",
+          "bytes": "Contact interne : [REDIGE:email] (jamais communiqué)."
+        },
+        "intent": null
+      },
+      "event": {
+        "version": 0,
+        "seq": 2,
+        "ts": "2026-11-10T10:50:00.010Z",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+        "recorder_key_id": "rec-test-01",
+        "prev_hash": "0x13152cec57f3e91564bd00385c525ac571978bdb6b546d1fd3048b79ad316699",
+        "delegation": {
+          "launched_by": "svc-agent-sinistres@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": "conv-2026-11-10-0011"
+        },
+        "code": {
+          "model": "openai/modele-demo-1-2026-09",
+          "prompt_version": "0x358557217ae41f8a5ed1104c0c038e9572b76f35358bb4e1cf189a7642de4caf",
+          "policy_version": "2026-11-10-otel",
+          "recorder": "0.1.0"
+        },
+        "intent": "Le sinistre 2026-81044 est ouvert.",
+        "policy": {
+          "rule": null,
+          "decision": "sans_objet",
+          "ticket": null,
+          "redaction": "pii-v1"
+        },
+        "approval": null,
+        "execution": {
+          "tool": "noortrace.modele.echange",
+          "arguments": {
+            "sha256": "0xa4653267bc346b531df48849dd0c1071165b462f33582c9981e142d67aef36e2",
+            "length": 381,
+            "redacted": true
+          },
+          "status": "executee",
+          "result": {
+            "sha256": "0x193db805ee84d582ed8a40d78b1f3e158792e1d6bccb03027d5868d960d8f1dd",
+            "length": 257,
+            "redacted": false
+          },
+          "duration_ms": 1250,
+          "is_error": false
+        },
+        "effects": [],
+        "context": [
+          {
+            "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+            "length": 66,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          },
+          {
+            "sha256": "0x3fa7564dd1caa46918ce6485500be0b992d7b28e679807e8250d1e55f2eeefdc",
+            "length": 638,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          }
+        ],
+        "hash": "0x9cab2d50a3e6743930a46b5058cf9c08e1840d7ecb54c4febe95d3cb57caa7a8",
+        "sig": "0xd153345ea9c55f8fb798d304590e1872a8101021887b5a90bf35b10e36cb387f5c0c669f204414814f50d642d6faf6760313363b5db21ec297ab7c2adab9e10c"
+      },
+      "lag_ms": 759
+    }
+  ],
+  "note": "model.prompt_in_request: inline : gen_ai.system_instructions reste dans la pièce « requête », chaque content rédigé par les seules règles de portée prompt_systeme (l'adresse devient [REDIGE:email]) ; la pièce « prompt système » est produite en plus (EX-6.35)."
+}

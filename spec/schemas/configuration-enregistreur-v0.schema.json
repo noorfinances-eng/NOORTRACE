@@ -1082,49 +1082,7 @@
                   "type": "null"
                 },
                 {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "type",
-                    "bucket",
-                    "prefix",
-                    "mode",
-                    "retain_days",
-                    "credentials"
-                  ],
-                  "properties": {
-                    "type": {
-                      "enum": [
-                        "s3-object-lock",
-                        "azure-immutable-blob",
-                        "gcs-object-retention"
-                      ]
-                    },
-                    "bucket": {
-                      "type": "string",
-                      "minLength": 3,
-                      "maxLength": 255
-                    },
-                    "prefix": {
-                      "type": "string",
-                      "maxLength": 512
-                    },
-                    "mode": {
-                      "enum": [
-                        "compliance",
-                        "governance"
-                      ],
-                      "description": "S3 : COMPLIANCE ou GOVERNANCE ; GCS : Locked ou Unlocked ; Azure : politique verrouillée ou non (CT-2 §12.5)."
-                    },
-                    "retain_days": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 36500
-                    },
-                    "credentials": {
-                      "$ref": "#/$defs/secret_reference"
-                    }
-                  }
+                  "$ref": "#/$defs/worm"
                 }
               ]
             }
@@ -1600,6 +1558,10 @@
     },
     "policy": {
       "$ref": "#/$defs/policy_set"
+    },
+    "otel": {
+      "$ref": "#/$defs/otel",
+      "description": "(révision 0.5, facultatif) Point d'entrée OpenTelemetry du démon : réception OTLP/HTTP des spans GenAI (CT-2 6.8). Absent : aucune ingestion."
     }
   },
   "$defs": {
@@ -2553,96 +2515,17 @@
             "routes": {
               "type": "array",
               "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "path",
-                  "format",
-                  "upstream",
-                  "provider_label",
-                  "credentials",
-                  "secret",
-                  "auth_header",
-                  "passthrough"
-                ],
-                "properties": {
-                  "path": {
-                    "type": "string",
-                    "pattern": "^/[A-Za-z0-9._~/-]{0,255}$",
-                    "description": "Chemin exact, comparé par égalité au chemin normalisé de la requête (CT-2 EX-5.2)."
-                  },
-                  "format": {
-                    "enum": [
-                      "anthropic-messages",
-                      "openai-chat",
-                      "openai-responses"
-                    ]
-                  },
-                  "upstream": {
-                    "type": "string",
-                    "pattern": "^https?://[^\\s]+$",
-                    "description": "URL de base du fournisseur, sans le chemin de la route."
-                  },
-                  "provider_label": {
-                    "type": "string",
-                    "pattern": "^[a-z0-9][a-z0-9.-]{0,31}$",
-                    "description": "Préfixe de code.model (EX-5.19)."
-                  },
-                  "credentials": {
-                    "enum": [
-                      "propre",
-                      "relayer"
-                    ],
-                    "description": "propre : clé de l'enregistreur (secret) ; relayer : seul l'en-tête auth_header de l'hôte traverse (CT-2 EX-5.8)."
-                  },
-                  "secret": {
-                    "oneOf": [
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "$ref": "#/$defs/secret_reference"
-                      }
-                    ]
-                  },
-                  "auth_header": {
-                    "enum": [
-                      "x-api-key",
-                      "authorization-bearer",
-                      "api-key"
-                    ],
-                    "description": "En-tête d'authentification du fournisseur : posé par l'enregistreur (propre) ou seul relayé (relayer)."
-                  },
-                  "passthrough": {
-                    "type": "array",
-                    "maxItems": 32,
-                    "items": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "method",
-                        "path"
-                      ],
-                      "properties": {
-                        "method": {
-                          "enum": [
-                            "GET",
-                            "POST"
-                          ]
-                        },
-                        "path": {
-                          "type": "string",
-                          "pattern": "^/[A-Za-z0-9._~/-]{0,255}$"
-                        }
-                      }
-                    },
-                    "description": "Couples (méthode, chemin) exacts relayés sans événement avec l'amont et les identifiants de la route (CT-2 EX-5.2)."
-                  }
-                }
+                "$ref": "#/$defs/model_route"
               }
             }
           },
           "description": "Routes du frontal modèle (CT-2 EX-5.2) : membre de l'ensemble de politique."
+        },
+        "otel": {
+          "$ref": "#/$defs/otel_policy"
+        },
+        "sdk": {
+          "$ref": "#/$defs/sdk_policy"
         }
       }
     },
@@ -2699,6 +2582,537 @@
           "$ref": "#/$defs/secret_reference"
         }
       }
+    },
+    "model_route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "format",
+        "upstream",
+        "provider_label",
+        "credentials",
+        "secret",
+        "auth_header",
+        "passthrough"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9._~/-]{0,255}$",
+          "description": "Chemin exact, comparé par égalité au chemin normalisé de la requête (CT-2 EX-5.2) ; pour le format gemini, chemin de la collection des modèles (/v1beta/models ou /v1/models), suivi dans la requête de /{modèle}:generateContent ou /{modèle}:streamGenerateContent (révision 0.5)."
+        },
+        "format": {
+          "enum": [
+            "anthropic-messages",
+            "openai-chat",
+            "openai-responses",
+            "gemini"
+          ],
+          "description": "Format de la version 0 (CT-2 5.2) ; gemini depuis la révision 0.5."
+        },
+        "upstream": {
+          "type": "string",
+          "pattern": "^https?://[^\\s]+$",
+          "description": "URL de base du fournisseur, sans le chemin de la route."
+        },
+        "provider_label": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.-]{0,31}$",
+          "description": "Préfixe de code.model (EX-5.19)."
+        },
+        "credentials": {
+          "enum": [
+            "propre",
+            "relayer"
+          ],
+          "description": "propre : clé de l'enregistreur (secret) ; relayer : seul l'en-tête auth_header de l'hôte traverse (CT-2 EX-5.8)."
+        },
+        "secret": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/secret_reference"
+            }
+          ]
+        },
+        "auth_header": {
+          "enum": [
+            "x-api-key",
+            "authorization-bearer",
+            "api-key",
+            "x-goog-api-key"
+          ],
+          "description": "En-tête d'authentification du fournisseur : posé par l'enregistreur (propre) ou seul relayé (relayer) ; x-goog-api-key pour le format gemini (révision 0.5)."
+        },
+        "passthrough": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "method",
+              "path"
+            ],
+            "properties": {
+              "method": {
+                "enum": [
+                  "GET",
+                  "POST"
+                ]
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/[A-Za-z0-9._~/-]{0,255}$"
+              }
+            }
+          },
+          "description": "Couples (méthode, chemin) exacts relayés sans événement avec l'amont et les identifiants de la route (CT-2 EX-5.2)."
+        },
+        "provider_mcp": {
+          "enum": [
+            "refuser",
+            "relayer"
+          ],
+          "description": "Format gemini seulement (révision 0.5, facultatif, défaut refuser) : refuser rend 400 à une requête dont un élément de tools porte mcpServers non vide ; relayer la relaie et consigne le contournement du frontal MCP (CT-2 EX-5.32)."
+        },
+        "provider_cache": {
+          "enum": [
+            "refuser",
+            "relayer"
+          ],
+          "description": "Format gemini seulement (révision 0.5, facultatif, défaut refuser) : refuser rend 400 (cache_fournisseur) à une requête qui porte cachedContent non nul ; relayer la relaie et consigne provider_cache_reference : le contenu mis en cache chez le fournisseur n'est pas capturé (CT-2 EX-5.32)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "gemini"
+              }
+            },
+            "required": [
+              "format"
+            ]
+          },
+          "then": {
+            "properties": {
+              "auth_header": {
+                "const": "x-goog-api-key"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "provider_mcp": false,
+              "provider_cache": false
+            }
+          }
+        }
+      ],
+      "description": "Route du frontal modèle (CT-2 EX-5.2 ; format gemini, EX-5.28, révision 0.5)."
+    },
+    "otel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "listen",
+        "tls",
+        "path",
+        "encodings",
+        "max_body_bytes",
+        "static_tokens",
+        "hosts",
+        "dedup_window_ms",
+        "overlap_window_ms",
+        "retry_after_s"
+      ],
+      "description": "Ingestion OpenTelemetry (CT-2 6.8, révision 0.5). Configuration d'exploitation : ce qui change ce que le journal prouve (sources, sortes ingérées, recouvrement) est dans policy.otel.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "listen": {
+          "$ref": "#/$defs/listen_address",
+          "description": "Adresse d'écoute OTLP/HTTP (EX-6.26). Défaut de la configuration de référence : 127.0.0.1:4318."
+        },
+        "tls": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/tls_server"
+            }
+          ],
+          "description": "TLS du point d'entrée ; requis en production hors adresse de bouclage (EX-6.40)."
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9._~/-]{0,255}$",
+          "description": "Chemin exact servi, comparé par égalité ; /v1/traces par défaut (OTLP/HTTP)."
+        },
+        "encodings": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "protobuf",
+              "json"
+            ]
+          },
+          "description": "Encodages admis : protobuf (application/x-protobuf) et json (application/json). La configuration de référence admet les deux (EX-6.27)."
+        },
+        "max_body_bytes": {
+          "$ref": "#/$defs/bytes",
+          "description": "Borne du corps après décompression ; 67 108 864 (64 MiB) dans la configuration de référence ; au-delà, 413 (EX-6.28)."
+        },
+        "static_tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/static_token"
+          },
+          "description": "Jetons des sources, présentés par X-Noortrace-Token ou Authorization: Bearer (EX-6.37)."
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/host_connection"
+          },
+          "description": "Connexions d'hôte des sources OpenTelemetry : match.static_token, alias non nul égal à une clé de policy.otel.sources (EX-6.37, EX-15.4)."
+        },
+        "dedup_window_ms": {
+          "$ref": "#/$defs/ms",
+          "description": "Fenêtre de la table des spans déjà scellés, par (alias, trace_id, span_id) ; 3 600 000 dans la configuration de référence (EX-6.33)."
+        },
+        "overlap_window_ms": {
+          "$ref": "#/$defs/ms",
+          "description": "Fenêtre de la règle de recouvrement avec le frontal MCP, la passerelle et le SDK ; 600 000 dans la configuration de référence (EX-6.34)."
+        },
+        "retry_after_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Valeur de l'en-tête Retry-After des réponses 429 et 503 (EX-6.39)."
+        },
+        "spans_per_request": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000,
+          "description": "Révision 0.5, facultatif. Nombre maximal de spans d'une requête OTLP ; au-delà, 413 sans rien sceller (EX-6.28). Absent : pas de borne propre."
+        },
+        "events_per_minute": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000,
+          "description": "Révision 0.5, facultatif. Événements scellés par minute glissante pour une source, contrôlés span par span ; au-delà, 429 avec Retry-After, les spans déjà scellés restant (EX-6.28)."
+        },
+        "event_bytes_per_minute": {
+          "$ref": "#/$defs/bytes",
+          "description": "Révision 0.5, facultatif. Octets d'événements et de pièces écrits par minute glissante pour une source, contrôlés span par span ; au-delà, 429 (EX-6.28)."
+        },
+        "min_free_bytes": {
+          "$ref": "#/$defs/bytes",
+          "description": "Révision 0.5, facultatif. Sous ce volume libre du disque des segments, l'ingestion répond 503 (volume_ingestion) avant le seuil « disque presque plein » qui bloque tous les hôtes (EX-6.28, 14.2)."
+        }
+      }
+    },
+    "otel_tool_settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "effects"
+      ],
+      "properties": {
+        "class": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "lecture",
+                "ecriture"
+              ]
+            }
+          ],
+          "description": "null : class_default de la source, à défaut ecriture (EX-6.36)."
+        },
+        "effects": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/effect_template"
+              }
+            }
+          ],
+          "description": "Gabarit d'effets (EX-7.6), évalué sur les valeurs rédigées des pièces « arguments » et « résultat » du span."
+        }
+      }
+    },
+    "otel_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ingest",
+        "overlap",
+        "class_default",
+        "tools"
+      ],
+      "properties": {
+        "ingest": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "inference",
+              "outil"
+            ]
+          },
+          "description": "Sortes de spans qui produisent un événement : inference (chat, generate_content, text_completion), outil (execute_tool, tools/call MCP) (EX-6.32)."
+        },
+        "overlap": {
+          "enum": [
+            "ignorer",
+            "conserver"
+          ],
+          "description": "ignorer : un span recouvert par un événement du frontal MCP, de la passerelle ou du SDK du même groupe d'hôte n'est pas scellé ; conserver : il l'est aussi (EX-6.34)."
+        },
+        "class_default": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "lecture",
+                "ecriture"
+              ]
+            }
+          ]
+        },
+        "tools": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,125}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/otel_tool_settings"
+          },
+          "description": "Réglages par nom d'outil N tel que le span le déclare (gen_ai.tool.name)."
+        }
+      }
+    },
+    "otel_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semconv",
+        "sources"
+      ],
+      "description": "Membre de l'ensemble de politique (révision 0.5, facultatif) : sources OpenTelemetry admises. Il est haché avec l'ensemble et annoncé dans la chaîne : un lecteur sait quels préfixes d'outils et quelles pièces de déclaration de source désignent une déclaration OpenTelemetry (EX-6.23).",
+      "properties": {
+        "semconv": {
+          "const": "1.41.1",
+          "description": "Version épinglée des conventions sémantiques GenAI lues par l'ingestion (EX-6.25)."
+        },
+        "sources": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/otel_source"
+          },
+          "description": "Sources par alias ; chaque alias est celui d'une entrée de otel.hosts."
+        }
+      }
+    },
+    "sdk_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aliases"
+      ],
+      "description": "Membre de l'ensemble de politique (révision 0.5, facultatif) : alias des entrées de sdk.hosts, annoncés dans la chaîne pour qu'un lecteur reconnaisse un appel déclaré par le SDK à son préfixe (EX-6.24).",
+      "properties": {
+        "aliases": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 256,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+          }
+        }
+      }
+    },
+    "worm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "bucket",
+        "prefix",
+        "mode",
+        "retain_days",
+        "credentials"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "s3-object-lock",
+            "azure-immutable-blob",
+            "gcs-object-retention"
+          ],
+          "description": "Type de support. s3-object-lock : Amazon S3 et services compatibles S3 (MinIO, Exoscale SOS, cloudscale.ch) ; azure-immutable-blob ; gcs-object-retention (CT-2 §12.6)."
+        },
+        "bucket": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 255
+        },
+        "prefix": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "Préfixe des clés d'objets, concaténé tel quel au chemin relatif de §12.1 (révision 0.5 : aucun séparateur n'est ajouté ; l'exemple de §15.3 se termine par /)."
+        },
+        "mode": {
+          "enum": [
+            "compliance",
+            "governance"
+          ],
+          "description": "S3 : COMPLIANCE ou GOVERNANCE ; GCS : Locked ou Unlocked ; Azure : politique verrouillée ou non (CT-2 §12.6). Révision 0.5 : governance est refusé quand recorder.environment vaut production (EX-15.4)."
+        },
+        "retain_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 36500,
+          "description": "Rétention par défaut du support, en jours, en mode compliance : au moins 365 × storage.retention.events_years (EX-15.4), 3 650 au moins ; 4 018 recommandé (EX-12.19). Révision 0.5 : c'est la rétention par défaut du bucket (DefaultRetention), posée une fois par l'exploitant, jamais par l'écrivain."
+        },
+        "credentials": {
+          "$ref": "#/$defs/secret_reference",
+          "description": "Identifiants du rôle de l'écrivain (EX-12.32 de la révision 0.5) : copie, lecture, liste des versions, lecture du verrou et du gel ; jamais la suppression, la levée de gel, la modification de la rétention ni de la politique du bucket. L'outil de gel de §12.11 n'emploie jamais ces identifiants."
+        },
+        "endpoint": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^https://[A-Za-z0-9.-]{1,253}(:[0-9]{1,5})?$"
+            }
+          ],
+          "description": "Révision 0.5, facultatif, défaut null. Adresse du service : null pour Amazon S3 (adresse de la région) et pour Google Cloud Storage ; adresse du service compatible S3 (MinIO, Exoscale SOS, cloudscale.ch) ; adresse du compte de stockage pour Azure, obligatoire (EX-15.4). Origine HTTPS seule, sans chemin."
+        },
+        "region": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
+            }
+          ],
+          "description": "Révision 0.5, facultatif, défaut null. Région du support quand le type ou le service l'exige (signature des requêtes S3) ; null sinon."
+        },
+        "legal_hold_on_write": {
+          "type": "boolean",
+          "description": "Révision 0.5, facultatif, défaut false. true : chaque copie porte x-amz-object-lock-legal-hold: ON (type s3-object-lock seulement, EX-12.31). Le rôle de l'écrivain détiendrait alors le droit de pose, qui est aussi celui de levée sauf restriction vérifiée de la politique : refusé en production (EX-15.4, §18.5)."
+        },
+        "lock_audit_interval_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 366,
+          "description": "Révision 0.5, facultatif, défaut 30. Intervalle, en jours, du relevé complet de verrouillage (EX-17.6) : liste des versions et lecture du verrou et du gel de chacune."
+        },
+        "copy_pieces": {
+          "type": "boolean",
+          "description": "Révision 0.5, facultatif, défaut false. true : les pièces sont copiées vers le support (<prefix>pieces/<xx>/<sha256>, EX-12.16) et gelées avec le journal (EX-12.35 pas 4) ; false : elles ne le sont pas, et seule la suspension de la purge pendant un gel les garde (EX-12.20)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "azure-immutable-blob"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "endpoint"
+            ],
+            "properties": {
+              "endpoint": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "gcs-object-retention"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "endpoint": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "azure-immutable-blob",
+                  "gcs-object-retention"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "legal_hold_on_write": {
+                "const": false
+              }
+            }
+          }
+        }
+      ],
+      "description": "Support WORM des copies (CT-2 §12.6) ; révision 0.5 : membres facultatifs endpoint, region, legal_hold_on_write et lock_audit_interval_days, ajoutés de façon compatible."
     }
   }
 }

@@ -1,0 +1,65 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0007",
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Collision du 2026-11-02, "
+            }
+          ],
+          "role": "model"
+        }
+      }
+    ],
+    "noortrace_erreur_flux": {
+      "code": 500,
+      "message": "Erreur interne fictive du fournisseur.",
+      "status": "INTERNAL"
+    },
+    "noortrace_flux_incomplet": true
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0xd9a71abe0d751caee733fbfb8d895dcdcdf4a07cc5e1d877014d3234b9d1fd84",
+      "length": 83,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Résume le sinistre 2026-81044.\"}],\"role\":\"user\"}]}"
+    },
+    "response": {
+      "sha256": "0x1395f0844422e7c304f38435be680864504cc72d86ed38ed6d49c0edc1a684b8",
+      "length": 310,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Collision du 2026-11-02, \"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"noortrace_erreur_flux\":{\"code\":500,\"message\":\"Erreur interne fictive du fournisseur.\",\"status\":\"INTERNAL\"},\"noortrace_flux_incomplet\":true,\"responseId\":\"rep-exemple-0007\"}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": null,
+  "intent": "Collision du 2026-11-02, ",
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": true,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Un morceau valide puis data: {\"error\": {…}} après le 200 (forme non observée, R11-NV7) : la forme reçoit noortrace_erreur_flux (l'objet error), tout ce qui suit est ignoré (EX-5.35 pas 2), et faute de finishReason elle est aussi incomplète ; is_error vrai."
+}

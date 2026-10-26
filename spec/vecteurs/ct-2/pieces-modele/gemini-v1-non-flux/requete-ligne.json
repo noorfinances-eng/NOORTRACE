@@ -1,0 +1,4 @@
+{
+  "method": "POST",
+  "target": "/v1/models/gemini-exemple:generateContent"
+}

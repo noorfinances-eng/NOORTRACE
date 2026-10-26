@@ -1,0 +1,20 @@
+{
+  "status": 400,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {
+      "message": "noortrace: corps OTLP non decodable"
+    }
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [],
+  "note": "Corps qui n'est pas du JSON : 400, corps {\"message\": …} (EX-6.27, EX-6.29)."
+}

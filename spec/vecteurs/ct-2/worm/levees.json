@@ -1,0 +1,227 @@
+{
+  "version": 0,
+  "family": "worm/levees",
+  "description": "Versions à lever quand un gel est levé alors que d'autres gels actifs du même préfixe couvrent certaines de ses versions (CT-2 EX-12.40) : le gel étant un drapeau unique par version sur S3, Azure et GCS, une version couverte par un autre gel actif n'est pas levée ; elle est inscrite dans levee_resultat (results.kept) avec le gel_id qui la couvre (premier gel reçu).",
+  "cases": [
+    {
+      "id": "sans-autre-gel",
+      "description": "Aucun autre gel actif : toutes les versions du gel sont levées.",
+      "input": {
+        "objects": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+            "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj"
+          }
+        ],
+        "other_holds": []
+      },
+      "expected": {
+        "lift": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+            "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj"
+          }
+        ],
+        "keep": []
+      }
+    },
+    {
+      "id": "chevauchement-partiel",
+      "description": "Le gel A couvre P1 et P2 ; le gel B, actif, couvre P2 : les versions de P2 restent gelées et sont inscrites dans levee_resultat (kept), seules celles de P1 sont levées (EX-12.40).",
+      "input": {
+        "objects": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+            "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj"
+          }
+        ],
+        "other_holds": [
+          {
+            "gel_id": "gel-20270115T100000Z-a1b2c3d4",
+            "objects": [
+              {
+                "key": "journal-demo/manifestes/periode-1794308400.json",
+                "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"
+              },
+              {
+                "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+                "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "lift": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "keep": [
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj",
+            "gel_id": "gel-20270115T100000Z-a1b2c3d4"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+            "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj",
+            "gel_id": "gel-20270115T100000Z-a1b2c3d4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "deux-gels-couvrants",
+      "description": "Deux autres gels couvrent la même version : elle est conservée sous le premier gel reçu ; les autres gels ne changent rien aux versions qu'ils ne couvrent pas.",
+      "input": {
+        "objects": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+            "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj"
+          }
+        ],
+        "other_holds": [
+          {
+            "gel_id": "gel-20270115T100000Z-a1b2c3d4",
+            "objects": [
+              {
+                "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+                "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj"
+              }
+            ]
+          },
+          {
+            "gel_id": "gel-20270301T080000Z-0e1f2a3b",
+            "objects": [
+              {
+                "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+                "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj"
+              },
+              {
+                "key": "journal-demo/points/periode-1794312000.ndjson",
+                "version_id": "Zz0Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "lift": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"
+          }
+        ],
+        "keep": [
+          {
+            "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+            "version_id": "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj",
+            "gel_id": "gel-20270115T100000Z-a1b2c3d4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "meme-cle-autre-version",
+      "description": "Un autre gel couvre une autre version de la même clé : la version du gel levé n'est pas couverte, elle est levée (le gel est un drapeau par version).",
+      "input": {
+        "objects": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "other_holds": [
+          {
+            "gel_id": "gel-20270115T100000Z-a1b2c3d4",
+            "objects": [
+              {
+                "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+                "version_id": "Autre0Version1Aa2Bb3Cc4Dd5Ee6Ff7"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "lift": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "keep": []
+      }
+    }
+  ]
+}

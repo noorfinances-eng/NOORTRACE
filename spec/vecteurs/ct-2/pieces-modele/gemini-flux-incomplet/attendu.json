@@ -1,0 +1,69 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0005",
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Collision du 2026-11-02, "
+            },
+            {
+              "text": "dommages estimés à "
+            }
+          ],
+          "role": "model"
+        }
+      }
+    ],
+    "noortrace_flux_incomplet": true
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0xa15658ca5b85fac6774015256943cee6c5bca6b8edb9b9803e05c04c250ec84c",
+      "length": 150,
+      "redacted": true,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Résume le sinistre 2026-81044.\"}],\"role\":\"user\"}],\"systemInstruction\":{\"parts\":[{\"text\":\"[REDIGE:prompt-systeme]\"}]}}"
+    },
+    "response": {
+      "sha256": "0x70e58f5b30f4831281209e2b1944d863001d03d394a9fdca6fc4ae5ebb6c3c1c",
+      "length": 235,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Collision du 2026-11-02, \"},{\"text\":\"dommages estimés à \"}],\"role\":\"model\"},\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"noortrace_flux_incomplet\":true,\"responseId\":\"rep-exemple-0005\"}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": "Collision du 2026-11-02, dommages estimés à ",
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": true,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Corps terminé sans finishReason : la fin n'est pas normale (EX-5.35 pas 6), la forme porte noortrace_flux_incomplet: true, is_error vrai (EX-5.13)."
+}

@@ -1,0 +1,1350 @@
+{
+  "version": 0,
+  "family": "worm/perimetres",
+  "description": "Périmètre d'un gel (CT-2 EX-12.35, pas 2 à 6) à partir de la liste des versions déjà lue : bucket noortrace-demo-worm, préfixe journal-demo/, période de démonstration 1794304800 ; liste des objets triée par clé (octets UTF-8) puis dans l'ordre de la liste des versions, empreinte SHA-256 du fichier objets-0001.ndjson (lignes JCS intégral suivies de \\n). Identifiants de version fictifs.",
+  "cases": [
+    {
+      "id": "exemple-ex-12-35",
+      "description": "L'exemple d'EX-12.35 : période de démonstration de journal-demo, un segment (first_seq 1, last_seq 8), deux fichiers d'ancres ; six objets, 673 octets. Les versions sont listées dans un ordre quelconque : la liste est triée par clé.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+        "count": 6,
+        "anomalies": []
+      }
+    },
+    {
+      "id": "deux-periodes-dont-une-vide",
+      "description": "Deux périodes, la seconde vide (last_seq = first_seq − 1) : aucun segment attendu pour elle, ses manifeste, signature et série de points sont gelés.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794308400,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          },
+          {
+            "period_start": 1794308400,
+            "first_seq": 9,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.sig",
+            "version_id": "Sg4Ha9Lk2Pq7Rt0Vw5Xy8Zb1Cd6Ef3Gi",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794308400.ndjson",
+            "version_id": "Pt6Jb1Mc4Nd7Qe0Rf3Sg8Th5Ui2Vj9Wk",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "version_id": "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.sig",
+            "version_id": "Sg4Ha9Lk2Pq7Rt0Vw5Xy8Zb1Cd6Ef3Gi"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/points/periode-1794308400.ndjson",
+            "version_id": "Pt6Jb1Mc4Nd7Qe0Rf3Sg8Th5Ui2Vj9Wk"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0x86c8651618df1b998fd18b340275ef053997464b5294226f729b08d0cded8f38",
+        "count": 9,
+        "anomalies": []
+      }
+    },
+    {
+      "id": "segment-ecrivain-perime",
+      "description": "Deux époques pour un même first_seq (copie d'un écrivain périmé, section 13) : toutes deux retenues et gelées, rien n'est jugé.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000002.ndjson",
+            "version_id": "Ep2Xk7Ln4Qw1Rz8Sd5Tf0Vg3Yh6Bj9Cm",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000002.ndjson",
+            "version_id": "Ep2Xk7Ln4Qw1Rz8Sd5Tf0Vg3Yh6Bj9Cm"
+          }
+        ],
+        "objects_sha256": "0x17410835fd95bfa2ae9e3af081c3c72bb89237372c729e8be71c2f0db2249962",
+        "count": 7,
+        "anomalies": []
+      }
+    },
+    {
+      "id": "versions-multiples",
+      "description": "Deux versions de la série de points : anomalie versions_multiples, toutes deux gelées.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Vm0Ab3Cd6Ef9Gh2Ij5Kl8Mn1Op4Qr7St",
+            "is_latest": false,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Vm0Ab3Cd6Ef9Gh2Ij5Kl8Mn1Op4Qr7St"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0xb1be5db4ba7cca211960440a6ed9a05822067f0dc9d3eaa406bdf20a8955ddef",
+        "count": 7,
+        "anomalies": [
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "kind": "versions_multiples"
+          }
+        ]
+      }
+    },
+    {
+      "id": "marqueur-de-suppression",
+      "description": "Un marqueur de suppression en version courante de la signature : anomalie marqueur_de_suppression ; la version recouverte est gelée, le marqueur ne peut pas l'être.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": false,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Dm7Zy4Xw1Vu8Ts5Rq2Po9Nm6Lk3Ji0Hg",
+            "is_latest": true,
+            "delete_marker": true
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+        "count": 6,
+        "anomalies": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "kind": "marqueur_de_suppression"
+          }
+        ]
+      }
+    },
+    {
+      "id": "manifeste-absent",
+      "description": "Manifeste de la période sans version : manifeste_absent puis segments_indetermines sur <prefix>segments/ ; aucun segment n'est pris.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          }
+        ],
+        "objects_sha256": "0x4244d5c0de14634f67935f28fe585d80b3ef06e5af9594700691578b2fe95255",
+        "count": 4,
+        "anomalies": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "kind": "manifeste_absent"
+          },
+          {
+            "key": "journal-demo/segments/",
+            "kind": "segments_indetermines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "segment-absent",
+      "description": "Manifeste présent mais aucun segment de f = first_seq : segment_absent sur la clé attendue d'époque inconnue (vingt 0).",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          }
+        ],
+        "objects_sha256": "0x3026446c326b2aca65533f6dcca7eaaa49707cc39d0a9837472d28ed191b6e9a",
+        "count": 5,
+        "anomalies": [
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000000.ndjson",
+            "kind": "segment_absent"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pieces-copiees",
+      "description": "Pièces copiées (EX-12.16) : les clés <prefix>pieces/<xx>/<sha256 sans 0x> des empreintes référencées par les segments retenus sont gelées.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/pieces/80/8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
+            "version_id": "Pc0Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/pieces/2f/2f2d9c5e977bede0ecd28d814bc7effec1844ed52e149d9a4f71dab1c228195a",
+            "version_id": "Pc1Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": [
+          "0x8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
+          "0x2f2d9c5e977bede0ecd28d814bc7effec1844ed52e149d9a4f71dab1c228195a"
+        ]
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/pieces/2f/2f2d9c5e977bede0ecd28d814bc7effec1844ed52e149d9a4f71dab1c228195a",
+            "version_id": "Pc1Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0"
+          },
+          {
+            "key": "journal-demo/pieces/80/8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
+            "version_id": "Pc0Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0x8bc6b71bfe843cfb843566eaff15f6e0294952b955ac2dcf73d6593c7b993369",
+        "count": 8,
+        "anomalies": []
+      }
+    },
+    {
+      "id": "deux-periodes-anomalies",
+      "description": "Deux périodes portant chacune des anomalies : période par période, celles du pas 2 puis du pas 3 ; ensuite celles du pas 5 (EX-12.35, ordre des anomalies).",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794308400,
+        "manifests": [],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Vm1Ab3Cd6Ef9Gh2Ij5Kl8Mn1Op4Qr7St",
+            "is_latest": false,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Vm1Ab3Cd6Ef9Gh2Ij5Kl8Mn1Op4Qr7St"
+          }
+        ],
+        "objects_sha256": "0x0ed6d1d21652438225c62b15ecb97f0711d348ca0baf8b85fd7675450ab5e792",
+        "count": 4,
+        "anomalies": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "kind": "manifeste_absent"
+          },
+          {
+            "key": "journal-demo/segments/",
+            "kind": "segments_indetermines"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "kind": "objet_absent"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.json",
+            "kind": "manifeste_absent"
+          },
+          {
+            "key": "journal-demo/segments/",
+            "kind": "segments_indetermines"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794308400.sig",
+            "kind": "objet_absent"
+          },
+          {
+            "key": "journal-demo/points/periode-1794308400.ndjson",
+            "kind": "objet_absent"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "kind": "versions_multiples"
+          }
+        ]
+      }
+    },
+    {
+      "id": "signature-marqueur-seul",
+      "description": "La signature n'a qu'un marqueur de suppression : il compte comme une version pour le pas 3 (pas d'objet_absent), la clé est retenue sans objet et le pas 5 rend marqueur_de_suppression.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Dm8Zy4Xw1Vu8Ts5Rq2Po9Nm6Lk3Ji0Hg",
+            "is_latest": true,
+            "delete_marker": true
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0x3dd7047baef6415dc2407f9510fc4b560b9776c4868d232a814f57f50ab3f015",
+        "count": 5,
+        "anomalies": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "kind": "marqueur_de_suppression"
+          }
+        ]
+      }
+    },
+    {
+      "id": "manifeste-illisible",
+      "description": "Le manifeste a une version que l'outil n'a pas pu lire : la clé est gelée quand même ; anomalies manifeste_illisible puis segments_indetermines, aucun segment n'est pris.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          }
+        ],
+        "objects_sha256": "0x3026446c326b2aca65533f6dcca7eaaa49707cc39d0a9837472d28ed191b6e9a",
+        "count": 5,
+        "anomalies": [
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "kind": "manifeste_illisible"
+          },
+          {
+            "key": "journal-demo/segments/",
+            "kind": "segments_indetermines"
+          }
+        ]
+      }
+    },
+    {
+      "id": "piece-absente",
+      "description": "Pièces copiées, mais une empreinte référencée n'a aucune version sur le support : anomalie piece_absente (EX-12.35 pas 4).",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/pieces/80/8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
+            "version_id": "Pc0Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": [
+          "0x8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
+          "0x2f2d9c5e977bede0ecd28d814bc7effec1844ed52e149d9a4f71dab1c228195a"
+        ]
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/pieces/80/8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
+            "version_id": "Pc0Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0x59a8346e9258d2e3c5aa276560077581b308969601ba1f5212ae208fea3123f9",
+        "count": 7,
+        "anomalies": [
+          {
+            "key": "journal-demo/pieces/2f/2f2d9c5e977bede0ecd28d814bc7effec1844ed52e149d9a4f71dab1c228195a",
+            "kind": "piece_absente"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pieces-non-copiees",
+      "description": "Pièces non copiées (copy_pieces faux) et purgeables localement (pieces_days non nul) : anomalie pieces_non_copiees sur <prefix>pieces/ ; la purge locale est suspendue pendant le gel (EX-12.20).",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null,
+        "pieces_purgeable": true
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+        "count": 6,
+        "anomalies": [
+          {
+            "key": "journal-demo/pieces/",
+            "kind": "pieces_non_copiees"
+          }
+        ]
+      }
+    },
+    {
+      "id": "cles-hors-plage-ignorees",
+      "description": "Segments hors de [first_seq, last_seq], ancres et manifestes d'autres périodes, clé d'un autre préfixe : ignorés.",
+      "input": {
+        "prefix": "journal-demo/",
+        "from": 1794304800,
+        "to": 1794304800,
+        "manifests": [
+          {
+            "period_start": 1794304800,
+            "first_seq": 1,
+            "last_seq": 8
+          }
+        ],
+        "versions": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000009-00000000000000000001.ndjson",
+            "version_id": "Hp1Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794308400/acquisitions.ndjson",
+            "version_id": "Hp2Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794301200.json",
+            "version_id": "Hp3Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj",
+            "is_latest": true,
+            "delete_marker": false
+          },
+          {
+            "key": "autre-journal/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "Hp4Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj",
+            "is_latest": true,
+            "delete_marker": false
+          }
+        ],
+        "pieces": null
+      },
+      "expected": {
+        "objects": [
+          {
+            "key": "journal-demo/ancres/periode-1794304800/acquisitions.ndjson",
+            "version_id": "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"
+          },
+          {
+            "key": "journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots",
+            "version_id": "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.json",
+            "version_id": "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"
+          },
+          {
+            "key": "journal-demo/manifestes/periode-1794304800.sig",
+            "version_id": "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"
+          },
+          {
+            "key": "journal-demo/points/periode-1794304800.ndjson",
+            "version_id": "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"
+          },
+          {
+            "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+            "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo"
+          }
+        ],
+        "objects_sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+        "count": 6,
+        "anomalies": []
+      }
+    }
+  ]
+}

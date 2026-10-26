@@ -1,0 +1,101 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "agent-sinistres"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "3.2.0"
+            }
+          }
+        ],
+        "inconnu": "x"
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "agent-sinistres.instrumentation",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "E171DCFDF0A7ADF5E5D434660E9E374E",
+              "spanId": "5783EE9F13B21514",
+              "parentSpanId": "C31C3AB749122F04",
+              "name": "execute_tool claims.get",
+              "kind": 1,
+              "startTimeUnixNano": "1794307798000000000",
+              "endTimeUnixNano": "1794307799250500000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "claims.get"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.id",
+                  "value": {
+                    "stringValue": "call_11"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.type",
+                  "value": {
+                    "stringValue": "function"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.arguments",
+                  "value": {
+                    "stringValue": "{\"claim_id\":\"2026-81044\"}"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.result",
+                  "value": {
+                    "stringValue": "{\"statut\":\"ouvert\"}"
+                  }
+                },
+                {
+                  "key": "avec.inconnu",
+                  "value": {
+                    "stringValue": "x"
+                  },
+                  "inconnu": true
+                }
+              ],
+              "status": {
+                "code": 1
+              },
+              "champInconnu": {
+                "a": 1
+              },
+              "dropped_attributes_count": 0,
+              "trace_state": ""
+            }
+          ],
+          "schema_url": ""
+        }
+      ],
+      "champInconnu": [
+        1,
+        2
+      ]
+    }
+  ],
+  "inconnuRacine": null
+}

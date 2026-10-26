@@ -1,0 +1,179 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 1,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "fe9d15fe7a16f1185ede01573ccd84f3",
+      "span_id": "132952ebe2b5e090",
+      "issue": "scelle",
+      "reason": null,
+      "overlap_seq": null,
+      "normalized": {
+        "trace_id": "fe9d15fe7a16f1185ede01573ccd84f3",
+        "span_id": "132952ebe2b5e090",
+        "parent_span_id": "63c6a44d301fc46e",
+        "trace_state": "",
+        "name": "execute_tool paiement.creer",
+        "flags": 0,
+        "kind": 1,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "1794307799250500000",
+        "attributes": {
+          "gen_ai.operation.name": "execute_tool",
+          "gen_ai.tool.name": "paiement.creer",
+          "gen_ai.tool.call.id": "call_11",
+          "gen_ai.tool.type": "function",
+          "gen_ai.tool.call.arguments": {
+            "montant": "7400.00"
+          },
+          "gen_ai.tool.call.result": {
+            "statut": "ouvert"
+          }
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": {
+        "source": {
+          "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+          "length": 66,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"noortrace_capture\":{\"channel\":\"otel\",\"source\":\"otel-sinistres\"}}"
+        },
+        "envelope": {
+          "sha256": "0xf060ab5385abc05a30bebbc1c076d6ec82930af1784844d47467a0662944ac4c",
+          "length": 783,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"attributes\":{\"gen_ai.operation.name\":\"execute_tool\",\"gen_ai.tool.call.id\":\"call_11\",\"gen_ai.tool.name\":\"paiement.creer\",\"gen_ai.tool.type\":\"function\"},\"dropped_attributes_count\":0,\"dropped_events_count\":0,\"dropped_links_count\":0,\"end_time_unix_nano\":\"1794307799250500000\",\"events\":[],\"flags\":0,\"kind\":1,\"links_count\":0,\"name\":\"execute_tool paiement.creer\",\"parent_span_id\":\"63c6a44d301fc46e\",\"resource\":{\"attributes\":{\"service.name\":\"agent-sinistres\",\"service.version\":\"3.2.0\"},\"dropped_attributes_count\":0},\"schema_url\":null,\"scope\":{\"attributes\":{},\"name\":\"agent-sinistres.instrumentation\",\"version\":\"1.0.0\"},\"span_id\":\"132952ebe2b5e090\",\"start_time_unix_nano\":\"1794307798000000000\",\"status\":{\"code\":1,\"message\":\"\"},\"trace_id\":\"fe9d15fe7a16f1185ede01573ccd84f3\",\"trace_state\":\"\"}"
+        },
+        "arguments": {
+          "sha256": "0x3e6933d6b176b70a63a93d2d671de5d5180ed9708e5fb9d4861311ce43b51f6e",
+          "length": 21,
+          "redacted": false,
+          "bytes": "{\"montant\":\"7400.00\"}"
+        },
+        "result": {
+          "sha256": "0x4b764f255f4ed4fd2f5f03e223487af47c7d3a7df26c1cbc7c81a1bf9e061bb1",
+          "length": 19,
+          "redacted": false,
+          "bytes": "{\"statut\":\"ouvert\"}"
+        },
+        "system_prompt": null,
+        "intent": null
+      },
+      "event": {
+        "version": 0,
+        "seq": 2,
+        "ts": "2026-11-10T10:50:00.010Z",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+        "recorder_key_id": "rec-test-01",
+        "prev_hash": "0x8b8603dab5fee0c333b988672bc27f78a00010e350f90fec543c633bf078bbb0",
+        "delegation": {
+          "launched_by": "svc-agent-sinistres@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": null
+        },
+        "code": {
+          "model": null,
+          "prompt_version": null,
+          "policy_version": "2026-11-10-otel",
+          "recorder": "0.1.0"
+        },
+        "intent": null,
+        "policy": {
+          "rule": null,
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "approval": null,
+        "execution": {
+          "tool": "otel-sinistres__paiement.creer",
+          "arguments": {
+            "sha256": "0x3e6933d6b176b70a63a93d2d671de5d5180ed9708e5fb9d4861311ce43b51f6e",
+            "length": 21,
+            "redacted": false
+          },
+          "status": "executee",
+          "result": {
+            "sha256": "0x4b764f255f4ed4fd2f5f03e223487af47c7d3a7df26c1cbc7c81a1bf9e061bb1",
+            "length": 19,
+            "redacted": false
+          },
+          "duration_ms": 1250,
+          "is_error": false
+        },
+        "effects": [
+          {
+            "system": "otel-sinistres",
+            "action": "ecriture",
+            "object": "paiement.creer",
+            "amount": null,
+            "currency": null
+          }
+        ],
+        "context": [
+          {
+            "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+            "length": 66,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          },
+          {
+            "sha256": "0xf060ab5385abc05a30bebbc1c076d6ec82930af1784844d47467a0662944ac4c",
+            "length": 783,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          }
+        ],
+        "hash": "0x482eb09aa86a06e4c34c55714f78215fa78a6d89b7f18bd14c7600418671f981",
+        "sig": "0xa9734ed7bfcc6506bdffa6929b0a46fedb2caccadec6062139467f5a8858bcde10e942684babdf6734289183589bfe89900d0e28b116a228395440bf080f2a02"
+      },
+      "lag_ms": 759
+    }
+  ],
+  "note": "overlap: conserver : le span apparié est scellé aussi ; deux événements pour un acte, que leurs marques distinguent (EX-6.34, 6.7)."
+}

@@ -1,0 +1,49 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "inline",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x8c6db7b4a5d3df9dc83368105292cd7877456d6f81ffa6afa504133ac5b72c8d",
+      "length": 265,
+      "redacted": true,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Résume le sinistre 2026-81044.\"}],\"role\":\"user\"}],\"systemInstruction\":{\"parts\":[{\"text\":\"Tu es l'agent sinistres de l'assureur de démonstration.\"},{\"text\":\"Contact interne : [REDIGE:email] (jamais communiqué).\"}],\"role\":\"system\"}}"
+    },
+    "response": {
+      "sha256": "0x7520c6fb8d3f3c099d5213e9352d4377471c857aa8bf03a9a05581d03d5b4114",
+      "length": 183,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Sinistre ouvert.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0012\"}"
+    },
+    "system_prompt": {
+      "sha256": "0xe7f62b6bb14440e11e0bb5d5474e4b479f443376cbca46edeff643e960a9eab7",
+      "length": 111,
+      "redacted": true,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration.\nContact interne : [REDIGE:email] (jamais communiqué)."
+    },
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": "0xe7f62b6bb14440e11e0bb5d5474e4b479f443376cbca46edeff643e960a9eab7",
+  "intent": "Sinistre ouvert.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:generateContent"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:generateContent",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "prompt_in_request: inline : chaque text de systemInstruction.parts reste dans la pièce « requête », rédigé par les règles de portée prompt_systeme (l'adresse devient [REDIGE:email]) ; role reste en place ; la pièce « prompt système » (parts jointes par \\n, rédigée) donne code.prompt_version (EX-8.5)."
+}

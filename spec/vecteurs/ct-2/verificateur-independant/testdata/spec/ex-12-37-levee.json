@@ -1,0 +1,23 @@
+{
+  "version": 0,
+  "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+  "n": 4,
+  "kind": "levee",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+  "periods": { "from": 1794304800, "to": 1794304800 },
+  "support": { "type": "s3-object-lock", "bucket": "noortrace-demo-worm", "prefix": "journal-demo/" },
+  "objects": {
+    "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+    "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+    "count": 6
+  },
+  "actor": "m.keller@assureur-demo.example",
+  "at": "2037-03-16T14:30:00.000Z",
+  "reason": null,
+  "reference": "dossier juridique LT-0042",
+  "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+  "results": null,
+  "anomalies": [],
+  "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+}

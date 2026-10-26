@@ -7,9 +7,10 @@ par `test/enregistreur.test.js`, confrontés par le vérificateur Go indépendan
 produit exactement les mêmes octets. Les clés JSON sont en anglais, les
 descriptions en français ; chaque famille porte ses attendus.
 
-Le générateur n'écrit que les entrées décrites ici (`INDEX.md`, `jcs-integral`, `redaction`, `pieces-mcp`, `pieces-modele`, `evenements`),
+Le générateur n'écrit que les entrées décrites ici (`INDEX.md`, `jcs-integral`, `redaction`, `pieces-mcp`, `pieces-modele`, `evenements`, `otel`, `worm`, `cout-agent`),
 qu'il efface et réécrit à chaque exécution ; toute autre entrée du répertoire
-(le vérificateur Go de `verificateur-independant/`) est laissée telle quelle.
+(le vérificateur Go de `verificateur-independant/`, les scripts de confrontation
+tierce de `confrontation/`) est laissée telle quelle.
 Les vecteurs de CT-1 (`../ct-1/`) ne changent pas.
 
 ## Constantes
@@ -288,6 +289,23 @@ Les transcriptions sont écrites à la main d'après les formes documentées
 vus par le modèle n'ont pas de point (l'API Messages et Chat Completions le
 refusent) : `demo__claims_get` pour l'outil annoncé `demo__claims.get`.
 
+Révision 0.5, cas `gemini-*` (annexe B.5) : routes de collection `/v1beta/models` et
+`/v1/models`, libellé `gemini`, `provider_mcp` absent (refuser).
+`requete-ligne.json` porte la méthode et la cible reçues (chemin et chaîne de
+requête), d'où se tirent la route, le segment de modèle, la méthode et le refus
+(EX-5.28, EX-5.29) ; `attendu.json` porte en plus `request_line`,
+`model_segment`, `upstream_target` (cible reconstruite envoyée à l'amont),
+`via` (`passerelle` ou `sdk`), `removed_members` (EX-6.8) et, pour un refus,
+`refused.content_type` (EX-5.30 ; corps AIP-193 dont les octets compacts sont
+`{"error":{"code","message","status"}}` dans cet ordre). Les réponses en flux ont un
+`data` par objet JSON sur une ligne, séparés par une ligne vide, fins de ligne LF,
+sauf `gemini-flux-crlf-data-final` (CRLF, dernier `data` sans ligne vide finale,
+distribué, EX-5.34). `gemini-sdk-morceaux/` (`noortrace/sdk/echangeModele` au
+format `gemini`) porte `requete.json`, `reponse-morceaux.json` (le tableau
+`response`) et `attendu.json`, sans ligne de requête ni en-têtes. Valeurs
+fictives : segment `gemini-exemple`, `modelVersion` `gemini-exemple-001`,
+`responseId` `rep-exemple-NNNN`.
+
 | Cas | Format, route | code.model | intent | is_error | Note |
 |---|---|---|---|---|---|
 | `anthropic-messages-erreur-http/` | anthropic-messages, `/v1/messages` | `anthropic/modele-messages-exemple` | null | vrai | Statut 529 : pièce « réponse » {"noortrace_http_error": {status, content_type, body}} avec le corps d'erreur entier (F-A32), is_error vrai ; code.model tiré de la requête faute de réponse exploitable ; pas de prompt système, prompt_version null ; la requête n'est pas rédigée (redacted faux). |
@@ -299,6 +317,36 @@ refusent) : `demo__claims_get` pour l'outil annoncé `demo__claims.get`.
 | `anthropic-messages-reponse-non-json/` | anthropic-messages, `/v1/messages` | `anthropic/modele-messages-exemple` | null | vrai | Statut 200 dont le corps n'est pas du JSON (Content-Type Text/HTML avec paramètre) : media_type text/html (minuscules, sans paramètre) ; le texte UTF-8 est rédigé par les règles de portée reponse (adresse → [REDIGE:email]), pièce redacted ; aucune forme exploitable, is_error vrai, intent null, code.model tiré de la requête (5.3.1, EX-8.7). |
 | `anthropic-messages-requete-non-analysable/` | anthropic-messages, `/v1/messages` | — | — | refus 400 (corps_non_analysable) | Corps de requête tronqué (JSON invalide) : la passerelle répond 400 avec un corps d'erreur au format du fournisseur (type invalid_request_error), ne relaie rien et n'écrit aucun événement (EX-5.7) ; requete.brut porte les octets reçus. |
 | `bedrock-mantle-non-flux/` | anthropic-messages, `/anthropic/v1/messages` | `bedrock-mantle/anthropic.modele-messages-exemple` | chaîne | faux | Même corps que l'API Messages, route distincte, libellé bedrock-mantle ; le model de la réponse porte le préfixe anthropic. (F-A34) : code.model = bedrock-mantle/anthropic.modele-messages-exemple. |
+| `gemini-erreur-http/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | `gemini/gemini-exemple` | null | vrai | generateContent, statut 400, application/json; charset=UTF-8 : pièce noortrace_http_error avec le corps AIP-193 analysé (EX-5.23, EX-5.31), is_error vrai, code.model tiré du segment (EX-5.36). |
+| `gemini-erreur-http-sse/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple` | null | vrai | Statut 400 en text/event-stream, objet JSON indenté sans ligne data: (forme observée, R11-F19) : le corps est analysé en JSON quel que soit le Content-Type, jamais par l'analyseur SSE (EX-5.31) ; body de noortrace_http_error = la valeur analysée ; code.model = gemini/ + segment (EX-5.36). |
+| `gemini-flux/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | référence | faux | streamGenerateContent?alt=sse, trois morceaux de texte, finishReason et usageMetadata complet sur le dernier : les parts sont ajoutées sans fusion (EX-5.35), usageMetadata du dernier morceau ; l'intention contient une adresse : rédigée, elle devient une référence text/plain (EX-5.21). |
+| `gemini-flux-crlf-data-final/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | faux | Fins de ligne CRLF ; le dernier data, terminé par CRLF, n'est suivi d'aucune ligne vide : il est distribué à la fin du corps (EX-5.34) et compté (sse_data_final_sans_ligne_vide). Sans systemInstruction : pas de pièce « prompt système », prompt_version null. |
+| `gemini-flux-data-final-sans-fin-de-ligne/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | faux | Le dernier data n'a ni fin de ligne ni ligne vide : la dernière ligne non terminée est lue comme une ligne, puis le tampon data est distribué (EX-5.34), comme le fait le SDK Python (iter_lines de httpx) ; sse_data_final_sans_ligne_vide consigné. |
+| `gemini-flux-erreur-morceau/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | vrai, incomplet | Un morceau valide puis data: {"error": {…}} après le 200 (forme non observée, R11-NV7) : la forme reçoit noortrace_erreur_flux (l'objet error), tout ce qui suit est ignoré (EX-5.35 pas 2), et faute de finishReason elle est aussi incomplète ; is_error vrai. |
+| `gemini-flux-erreur-seule/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple` | null | vrai, incomplet | Un morceau d'erreur reçu avant tout morceau valide : la forme réduite est exactement {"noortrace_erreur_flux": …}, sans noortrace_flux_incomplet ; la suite est ignorée ; is_error vrai (EX-5.35 pas 2). |
+| `gemini-flux-incomplet/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | vrai, incomplet | Corps terminé sans finishReason : la fin n'est pas normale (EX-5.35 pas 6), la forme porte noortrace_flux_incomplet: true, is_error vrai (EX-5.13). |
+| `gemini-flux-index/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | faux | Deux candidats (index absent → 0, puis 1), créés dans l'ordre de première apparition ; un fragment d'index "0" (chaîne) est ignoré et compté (EX-5.27 (1), EX-5.35 pas 4) ; intent vient du premier candidat créé. |
+| `gemini-flux-index-desordre/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | faux | Le premier fragment reçu porte l'index 1 : les candidats sont créés dans l'ordre de première apparition (index 1, puis 0), et intent vient de candidates[0] de la forme, soit l'index 1 (EX-5.35 pas 4, 5.5). |
+| `gemini-flux-index-limites/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | faux | La valeur d'un index est le double IEEE 754 le plus proche du texte reçu (EX-5.27 (1), EX-8.1) : 1.0 vaut 1 ; 9007199254740993 vaut 2^53, admis ; 9007199254740994 dépasse 2^53, le fragment est ignoré et compté. |
+| `gemini-flux-outils/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | faux | Texte puis deux functionCall : tool_calls dans l'ordre des parts, id "appel-exemple-0001" puis null (membre facultatif, 5.5), arguments = args en clair (ils servent à la corrélation, EX-5.22) ; l'IBAN est rédigé dans la pièce « réponse ». |
+| `gemini-flux-outils-serveur/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | faux | toolConfig.includeServerSideToolInvocations : parts toolCall et toolResponse (outil exécuté par Google, R11-F14) gardées dans la pièce ; elles ne sont jamais des appels pour 5.6 : tool_calls vide (5.5, 5.8). |
+| `gemini-flux-pensee/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple-001` | chaîne | faux | Part thought: true et part portant thoughtSignature (base64) : toutes deux gardées dans la pièce « réponse » ; intent exclut la part thought: true (5.5). |
+| `gemini-flux-vide/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse` | `gemini/gemini-exemple` | null | vrai, incomplet | Statut 200 en text/event-stream sans aucun morceau : pas de forme consolidée, la pièce « réponse » est le flux brut (zéro octet), is_error vrai et l'échange incomplet (EX-5.35 pas 7). |
+| `gemini-forme-inattendue/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | `gemini/gemini-exemple` | null | vrai | Corps JSON strict sans contents (seulement systemInstruction et generationConfig) : relayé tel quel (EX-5.7 point 3), pièce « requête » = JCS intégral du corps rédigé par les règles de portée requete, sans pièce « prompt système » (systemInstruction n'est pas extrait, prompt_version null) ; le fournisseur refuse : noortrace_http_error. |
+| `gemini-hote-inconnu/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | — | — | refus 401 (hote_inconnu, application/json; charset=UTF-8) | Route gemini trouvée, mais aucune entrée de model.hosts ne reconnaît l'hôte (host_known: false dans requete-ligne.json) : 401 sans relais, corps AIP-193 d'EX-5.30 de status UNAUTHENTICATED (5.3.3 pas 3, EX-5.8). |
+| `gemini-non-flux/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | `gemini/gemini-exemple-001` | chaîne | faux | generateContent hors flux (EX-5.28) : historique contents avec un functionCall (rôle model) et sa functionResponse (rôle user), systemInstruction (pièce « prompt système », remplacé dans la requête par [{"text":"[REDIGE:prompt-systeme]"}], EX-8.5), tools[].functionDeclarations ; code.model = gemini/ + modelVersion (EX-5.36) ; intent = textes des parts concaténés sans séparateur (5.5) ; aucune chaîne de requête vers l'amont (EX-5.29). |
+| `gemini-prompt-inline/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | `gemini/gemini-exemple-001` | chaîne | faux | prompt_in_request: inline : chaque text de systemInstruction.parts reste dans la pièce « requête », rédigé par les règles de portée prompt_systeme (l'adresse devient [REDIGE:email]) ; role reste en place ; la pièce « prompt système » (parts jointes par \n, rédigée) donne code.prompt_version (EX-8.5). |
+| `gemini-refus-cache/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | — | — | refus 400 (cache_fournisseur, application/json; charset=UTF-8) | cachedContent non nul, provider_cache absent (refuser) : refus 400 cache_fournisseur, sans relais ni événement : le contenu mis en cache (prompt système, outils, serveurs MCP) ne serait vu ni par la pièce « requête » ni par EX-5.32 (EX-5.32, 5.8). |
+| `gemini-refus-cle-url/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse&key=cle-fictive-de-test` | — | — | refus 400 (cle_dans_url, text/event-stream) | Paramètre key dans l'URL : refus 400 cle_dans_url, examiné en premier (EX-5.29) ; streamGenerateContent avec alt=sse : corps AIP-193 en text/event-stream (EX-5.30). Seuls les noms des paramètres sont consignés, jamais leur valeur. |
+| `gemini-refus-flux-sans-sse/` | gemini, `POST /v1beta/models/gemini-exemple:streamGenerateContent` | — | — | refus 400 (flux_sans_sse, application/json; charset=UTF-8) | streamGenerateContent sans alt=sse : refus 400 flux_sans_sse, corps AIP-193 d'EX-5.30 en application/json; charset=UTF-8, sans relais ni événement (EX-5.29). |
+| `gemini-refus-mcp-fournisseur/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | — | — | refus 400 (serveurs_mcp_fournisseur, application/json; charset=UTF-8) | tools[].mcpServers non vide, provider_mcp absent (refuser) : refus 400 serveurs_mcp_fournisseur, sans relais ni événement (EX-5.32) ; le nombre d'entrées est consigné, jamais leur URL. |
+| `gemini-refus-parametre/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent?alt=proto` | — | — | refus 400 (parametre_non_admis, application/json; charset=UTF-8) | generateContent?alt=proto : valeur d'alt hors de la table (proto changerait le format de la réponse), refus 400 parametre_non_admis (EX-5.29). |
+| `gemini-requete-non-analysable/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | — | — | refus 400 (corps_non_analysable, application/json; charset=UTF-8) | Clé contents en double : JSON non strict, refus 400 corps_non_analysable avec le corps AIP-193 d'EX-5.30 (EX-5.7 point 2) ; requete.brut porte les octets reçus. |
+| `gemini-route-inconnue/` | gemini, `POST /v1beta/tunedModels/m:generateContent` | — | — | refus 404 (route_inconnue) | POST /v1beta/tunedModels/m:generateContent : aucune route gemini ne correspond (préfixe tunedModels/, EX-5.28) : 404 sans relais, sans corps propre au format, aucune pièce ; model_route_not_found consigné. |
+| `gemini-sans-modelversion/` | gemini, `POST /v1beta/models/gemini-exemple:generateContent` | `gemini/gemini-exemple` | chaîne | faux | Réponse sans modelVersion : code.model = gemini/ + segment de modèle du chemin, qui passe le motif d'EX-5.28 et qu'aucun détecteur de pii-v1 ne vise (EX-5.36) ; le membre model du corps n'est jamais lu. |
+| `gemini-sdk-erreur-declaree/` | gemini, SDK `echangeModele` | `gemini/gemini-exemple-001` | chaîne | vrai | Statut déclaré 200 et is_error déclaré vrai (echange-sdk.json) : is_error = déclaré OU calculé (EX-6.8), vrai même si la forme est complète. |
+| `gemini-sdk-morceaux/` | gemini, SDK `echangeModele` | `gemini/gemini-exemple-001` | chaîne | faux | noortrace/sdk/echangeModele au format gemini (EX-6.8) : response en tableau de deux morceaux consolidé par EX-5.35 (fin du tableau = fin normale) ; sdkHttpResponse, ajouté par le SDK Python, est retiré avant tout traitement (sdk_member_removed) ; l'échange est déclaratif. |
+| `gemini-v1-non-flux/` | gemini, `POST /v1/models/gemini-exemple:generateContent` | `gemini/gemini-exemple-001` | chaîne | faux | Le même échange sur la route de collection /v1/models, route distincte (EX-5.28) : la cible amont est reconstruite depuis cette route. |
 | `openai-chat-flux/` | openai-chat, `/v1/chat/completions` | `openai/modele-chat-exemple` | chaîne | faux | Chunks data seuls, un commentaire SSE, champ obfuscation jamais recopié, usage du dernier chunk (include_usage), fin par data: [DONE] (EX-5.16). |
 | `openai-chat-flux-outils/` | openai-chat, `/v1/chat/completions` | `openai/modele-chat-exemple` | null | faux | Deux appels d'outils accumulés par index : id, type et function.name fixés par le premier fragment qui les porte, function.arguments concaténé et gardé en chaîne, jamais analysé pour la pièce (F-O10) ; content reste null, intent null. |
 | `openai-chat-non-flux/` | openai-chat, `/v1/chat/completions` | `openai/modele-chat-exemple` | chaîne | faux | Prompt système = contenus des messages developer et system dans l'ordre (chaîne, ou text des parties), joints par \n ; chacun est remplacé par [REDIGE:prompt-systeme] dans la pièce « requête ». intent = choices[0].message.content. |
@@ -341,3 +389,131 @@ tirent `intent` de la réponse rédigée ; seq 7, ré-émission après approbati
 pas par la corrélation : elle reprend de seq 5 `policy`, `intent` et `code` (4.4 pas 3,
 EX-7.12). Les effets sont évalués sur les valeurs rédigées des pièces (EX-7.6). Vérification du dossier :
 `node scripts/verify/dossier.mjs spec/vecteurs/ct-2/evenements/journal-demo/dossier-seq-7` (code 0).
+
+## `otel/` (révision 0.5)
+
+Un répertoire par cas (annexe B.8) : une requête OTLP/HTTP reçue de la source
+`otel-sinistres` (entrée `otel-agent-sinistres`, groupe d'hôte `agent-sinistres`) et ce qu'un
+enregistreur conforme à CT-2 6.8 en fait. `source.json` : alias, entrée de
+`otel.hosts` (sans secret : le jeton est désigné par son `id`), entrée de
+`policy.otel.sources`, version de politique `2026-11-10-otel`, politique de rédaction
+`pii-v1`, options, instant de réception, chaîne de départ (`seq_start`,
+`prev_hash`, `ts` de l'écrivain pour chaque événement scellé), table des doublons
+(`seen`) et registre de recouvrement (`recorded`) avant la requête.
+`requete.json`, `requete.pb` ou `requete.brut` : le corps reçu, octets exacts (le
+protobuf est écrit par l'encodeur du générateur, champs dans l'ordre de leur numéro,
+chacun une fois ; le gzip de `gzip-json` est à blocs stockés, celui de
+`trop-grand-apres-decompression` est une constante). `requete-entetes.json` :
+méthode, chemin, `content-type`, `content-encoding` éventuel et `token_id`.
+`attendu.json` : statut, réponse (`content_type`, `body_json` ou `body_hex`,
+`retry_after`), `rejected_spans`, comptes par issue, et pour chaque span, dans
+l'ordre du document : `path` [r, s, p], identifiants, issue, raison,
+`overlap_seq`, forme normalisée (EX-6.31 ; null pour un span ignoré), pièces
+(référence et octets), événement scellé par `rec-test-01` et `lag_ms` (null quand
+la fin déclarée du span vaut 0). Chaque cas est un fragment de chaîne qui ne
+commence jamais à `seq` 1 : CT-1 (§5, contrôle C-2) réserve à `seq` 1 le
+`prev_hash` nul, et les événements scellés passent E-1 à E-7 et C-1 à C-3.
+L'exemple de 6.8.16, sous ses deux encodages (`json-exemple-6-8-16`,
+`pb-exemple-6-8-16`), porte la chaîne du texte (`seq_start` 21). Les autres cas
+ont `seq_start` 2 et `prev_hash` = SHA-256(UTF-8
+`noortrace/vecteurs/v0/otel/<cas>/precedent`), à une exception près :
+`pb-identifiants-invalides` reprend la chaîne de son jumeau
+`json-identifiants-invalides` (même événement), soit `prev_hash` =
+SHA-256(UTF-8 `noortrace/vecteurs/v0/otel/json-identifiants-invalides/precedent`).
+
+| Cas | Encodage | Statut | Spans par issue | Note |
+|---|---|---|---|---|
+| `json-exemple-6-8-16/` | application/json | 200 | scelle 2 | L'exemple calculé de CT-2 6.8.16, lot JSON relu dans le texte : un span d'inférence et un span d'outil retenus et scellés ; pièces et événements identiques au texte (seq 21 et 22, ts de l'écrivain .512 et .514, jamais les horodatages des spans). |
+| `pb-exemple-6-8-16/` | application/x-protobuf | 200 | scelle 2 | Le même lot en protobuf (encodeur du générateur : champs dans l'ordre de leur numéro, chacun une fois) : mêmes formes normalisées, pièces et événements ; réponse protobuf vide (zéro octet). |
+| `json-inference-sans-contenu/` | application/json | 200 | scelle 1 | Span d'inférence sans attribut de contenu (l'instrumentation ne les enregistre pas par défaut) : requête sans messages, pas de prompt système (prompt_version null), intent null, réponse réduite au modèle et à l'usage. |
+| `json-inference-gemini/` | application/json | 200 | scelle 1 | Opération generate_content, fournisseur gcp.gemini (valeur du registre) : code.model = gcp.gemini/ + modèle de la réponse (EX-6.36). |
+| `json-inference-fournisseur/` | application/json | 200 | scelle 2 | Deux spans : gen_ai.system seul (déprécié, remplacé par gen_ai.provider.name) donne le fournisseur ; un fournisseur hors du motif ^[a-z0-9][a-z0-9._-]{0,31}$ donne inconnu/<modèle> (EX-6.36). |
+| `json-inference-erreur/` | application/json | 200 | scelle 1 | status.code 2 (STATUS_CODE_ERROR) et error.type : is_error vrai ; sans gen_ai.output.messages ni modèle de réponse, code.model vient du modèle demandé. |
+| `json-inference-prompt-inline/` | application/json | 200 | scelle 1 | model.prompt_in_request: inline : gen_ai.system_instructions reste dans la pièce « requête », chaque content rédigé par les seules règles de portée prompt_systeme (l'adresse devient [REDIGE:email]) ; la pièce « prompt système » est produite en plus (EX-6.35). |
+| `json-outil-sans-contenu/` | application/json | 200 | scelle 1 | Span d'outil sans gen_ai.tool.call.arguments ni gen_ai.tool.call.result : pièces réduites à la marque {"noortrace_otel_absent": <attribut>} ; un attribut absent ne veut pas dire un appel sans argument (EX-6.35). |
+| `json-outil-erreur/` | application/json | 200 | scelle 1 | Outil en erreur (error.type, status.code 2) : is_error vrai ; résultat absent marqué noortrace_otel_absent. |
+| `json-outil-mcp-tools-call/` | application/json | 200 | scelle 1 | Span d'une instrumentation MCP, nom « tools/call claims.get », mcp.method.name = tools/call, sans gen_ai.operation.name : opération execute_tool, nom déclaré pris après le préfixe tools/call (EX-6.32, EX-6.35). |
+| `json-outil-nom-invalide/` | application/json | 200 | scelle 1 | gen_ai.tool.name qui contient « __ » : l'outil est <alias>__nom-invalide, le nom reçu reste dans la pièce d'enveloppe (EX-6.35). |
+| `json-outil-gabarit-effets/` | application/json | 200 | scelle 1 | Gabarit d'effets de policy.otel.sources.<alias>.tools.paiement.creer évalué sur les valeurs rédigées de la pièce « arguments » (EX-7.6, EX-6.36) : objet, montant et devise tirés des arguments ; l'IBAN est rédigé. |
+| `json-spans-ignores/` | application/json | 200 | ignore 3 | Span HTTP sans attribut GenAI (hors_genai), embeddings et invoke_agent (operation_non_retenue) : tous ignorés, acceptés au sens d'OTLP, réponse {}, aucune pièce, rien n'est stocké ni haché (EX-6.32). |
+| `json-sorte-desactivee/` | application/json | 200 | scelle 1, ignore 1 | ingest: ["outil"] : le span d'inférence est ignoré (sorte_desactivee), le span d'outil scellé. |
+| `json-identifiants-invalides/` | application/json | 200 | scelle 1, rejete 2 | traceId tout à zéro, spanId de 12 chiffres : deux rejets (identifiants_invalides), succès partiel rejectedSpans "2" (entier 64 bits en chaîne) ; le troisième span est scellé (EX-6.32, EX-6.27). |
+| `pb-identifiants-invalides/` | application/x-protobuf | 200 | scelle 1, rejete 2 | Le même lot en protobuf : corps de réponse protobuf du succès partiel, octet pour octet (champ 1 partial_success ; champ 1 rejected_spans, champ 2 error_message), même événement que le cas JSON. |
+| `json-doublon-meme-requete/` | application/json | 200 | scelle 1, doublon 1 | Le même span deux fois dans la requête : le second est un doublon, compté et accepté, non scellé (EX-6.33). |
+| `json-doublon-deja-vu/` | application/json | 200 | doublon 1 | Clé (alias, trace_id, span_id) déjà dans la table des doublons (seen, dans la fenêtre dedup_window_ms) : un lot renvoyé par l'exportateur ne donne rien de scellé (EX-6.33). |
+| `json-recouvrement-mcp/` | application/json | 200 | recouvrement 1 | Span d'outil apparié à un appel du frontal MCP du même groupe d'hôte, de même nom vu par le modèle, inscrit dans la fenêtre overlap_window_ms : recouvrement non scellé, overlap_seq 7, consigné otel_span_overlap (EX-6.34). |
+| `json-recouvrement-passerelle/` | application/json | 200 | recouvrement 1 | Span d'inférence apparié à un échange de la passerelle du même groupe dont code.model a pour modèle M ; l'échange d'un autre groupe n'est pas candidat (EX-6.34). |
+| `json-recouvrement-conserve/` | application/json | 200 | scelle 1 | overlap: conserver : le span apparié est scellé aussi ; deux événements pour un acte, que leurs marques distinguent (EX-6.34, 6.7). |
+| `json-entiers-64-bits/` | application/json | 200 | scelle 1 | Horodatages en nombres JSON au-delà de 2^53, lus exactement sur leur texte ; intValue 9007199254740993 (nombre) rendu en chaîne, -5 en nombre, -2^63 (chaîne) en chaîne ; flags 257 (EX-6.29, EX-6.31). |
+| `json-valeurs-diverses/` | application/json | 200 | scelle 1 | bytesValue (base64 avec remplissage), doubleValue "NaN", "-Infinity" et 1.5, boolValue faux, tableaux et listes imbriqués, AnyValue vide (null), stringValueStrindex (valeur absente, null), keyStrindex sans key (attribut ignoré) (EX-6.29, EX-6.31). |
+| `json-cle-double/` | application/json | 200 | scelle 1 | Attribut présent deux fois (clés d'attributs uniques exigées par OTLP, comportement non défini) : la première occurrence est gardée, la suivante ignorée et comptée (otel_cle_double, EX-6.31). |
+| `json-contenu-chaine-non-json/` | application/json | 200 | scelle 1 | gen_ai.tool.call.arguments en chaîne qui n'est pas du JSON strict : gardée telle quelle ; la pièce « arguments » est le JCS intégral de cette chaîne (EX-6.31, EX-6.35). |
+| `json-champ-inconnu/` | application/json | 200 | scelle 1 | Champs inconnus à plusieurs niveaux (racine, ResourceSpans, Resource, Span, KeyValue) : ignorés ; noms de champs en snake_case (dropped_attributes_count, trace_state, schema_url) : champs inconnus, ignorés (EX-6.29) ; leurs valeurs sont celles par défaut, de sorte qu'une bibliothèque qui les lirait donnerait la même forme. |
+| `json-run-id-refuse/` | application/json | 200 | scelle 3 | gen_ai.conversation.id qui contient une adresse électronique (hors du motif d'EX-7.2), puis un IBAN (dans le motif, mais un détecteur de pii-v1 y correspond) : run_id null ; le troisième passe EX-7.2 et devient run_id (EX-6.36). |
+| `json-retard/` | application/json | 200 | scelle 1 | Span terminé deux heures avant la réception (lot gardé par l'exportateur) : ts est celui de l'écrivain à la réception, jamais l'horodatage du span ; lag_ms ≈ 2 h (EX-6.36, EX-6.41). |
+| `json-lot-vide/` | application/json | 200 | — | Lot vide : 200 et {} (OTLP : un lot vide est un succès), aucun span. |
+| `pb-champ-inconnu/` | application/x-protobuf | 200 | scelle 1 | Numéros de champ inconnus de chaque type de fil (0 varint, 1 I64, 2 LEN, 5 I32), dans la requête, le ResourceSpans et le Span : sautés (EX-6.30) ; le span est scellé comme sans eux. |
+| `json-enum-en-chaine/` | application/json | 400 | — | "kind": "SPAN_KIND_CLIENT" : le nom d'énumération ne doit pas être employé en JSON OTLP (« MUST NOT be used ») : 400, rien n'est scellé (EX-6.29). Divergence voulue avec json_format de Python, qui l'accepte. |
+| `json-identifiant-non-hexadecimal/` | application/json | 400 | — | traceId en base64 (non hexadécimal) : 400 ; un identifiant OTLP/JSON est hexadécimal, jamais base64 (EX-6.29). |
+| `json-non-analysable/` | application/json | 400 | — | Corps qui n'est pas du JSON : 400, corps {"message": …} (EX-6.27, EX-6.29). |
+| `pb-champ-double/` | application/x-protobuf | 400 | — | Champ non répété (Span.name, 5) présent deux fois : 400 (EX-6.30). Divergence voulue : une bibliothèque protobuf garde le dernier. |
+| `pb-tronque/` | application/x-protobuf | 400 | — | Corps protobuf tronqué : 400, corps protobuf Status (champ 2 message, code omis) (EX-6.27, EX-6.30). |
+| `gzip-json/` | application/json, gzip | 200 | scelle 1 | Content-Encoding: gzip (tout serveur OTLP doit l'accepter) : même résultat que le corps décomprimé ; le corps est un gzip à blocs DEFLATE stockés, octets constants (EX-6.28). |
+| `deflate-refuse/` | application/json, deflate | 415 | — | Content-Encoding: deflate (proposé par l'exportateur Python) : 415, seuls identity et gzip sont admis (EX-6.28). |
+| `type-de-contenu-inconnu/` | text/plain | 415 | — | Content-Type text/plain : 415 ; la réponse est en application/json, la requête n'ayant pas de type admis (EX-6.27). |
+| `trop-grand/` | application/json | 413 | — | Corps au-delà de max_body_bytes (borne réduite à 256 octets dans source.json) : 413 (EX-6.28). |
+| `trop-grand-apres-decompression/` | application/json, gzip | 413 | — | Corps comprimé de 100 octets, sous la borne de 4 096 octets, qui en fait 65 538 décomprimé : la décompression s'arrête à la borne, avant toute allocation au-delà, 413 (EX-6.28). |
+| `non-authentifie/` | application/json | 401 | — | token_id null (aucun jeton valide) : 401, qu'un client OTLP ne relance pas ; corps {"message": …} (EX-6.37). |
+| `non-authentifie-type-texte/` | text/plain | 401 | — | Deux causes de refus à la fois, jeton absent et Content-Type text/plain : l'authentification est jugée avant le type de contenu, 401 (ordre des décisions d'EX-6.27). |
+| `deflate-trop-grand/` | application/json, deflate | 415 | — | Content-Encoding: deflate et corps au-delà de max_body_bytes (256 octets) : le codage de contenu est jugé avant la taille, 415 (ordre des décisions d'EX-6.27). |
+| `non-chemin-normalisable/` | application/json | 404 | — | Chemin que la normalisation d'EX-5.2 refuse (segment point encodé) : il ne peut pas égaler otel.path, 404 (EX-6.26, EX-6.27). |
+| `json-entier-fractionnaire/` | application/json | 400 | — | flags écrit 1.0 : un entier 32 bits doit avoir un texte sans fraction ni exposant, 400 (EX-6.29). Divergence voulue avec json_format de Python, qui lit 1.0 comme 1. |
+| `json-fin-nulle/` | application/json | 200 | scelle 1 | endTimeUnixNano 0 (fin non déclarée) : le span est scellé, duration_ms vaut 0 et lag_ms est null (EX-6.36, EX-6.41). |
+| `json-contenu-hors-span/` | application/json | 200 | scelle 1 | Attributs de contenu en chaîne JSON hors des attributs du span (événement, ressource, kvlistValue imbriquée) : gardés en chaîne, seuls ceux des attributs du span sont analysés (EX-6.31). |
+| `json-operation-renommee/` | application/json | 200 | ignore 1 | gen_ai.operation.name renommé (gen_ai.operation) : le span n'a pas d'opération, il est ignoré (hors_genai) sans événement invalide ; la supervision le signale (EX-6.25, EX-6.41). |
+
+## `worm/` (révision 0.5)
+
+Cinq fichiers `{ version: 0, family, description, cases }` validés par le schéma
+`worm-v0` (annexe B.9), attendus calculés par `scripts/lib/worm.mjs`, sans réseau.
+Constantes : bucket `noortrace-demo-worm`, préfixe `journal-demo/`, période de démonstration
+`1794304800`, copie du `2026-11-10T11:00:05.412Z`, `retain_days` 4018 ; identifiants de version
+fictifs (`3/L4kqtJl40Nr8X8gdRQBpUMLUo` est repris de l'exemple de la page
+`ListObjectVersions`, pour exercer l'encodage de `/`). Ordre des anomalies d'un
+périmètre (EX-12.35) : période par période dans l'ordre croissant,
+celles du pas 2 (`manifeste_absent` puis `segments_indetermines`) et du pas 3
+(`objet_absent` de la signature, puis de la série des points, puis
+`segment_absent`) ; ensuite celles du pas 5, clé par clé dans l'ordre des clés
+(octets UTF-8), `versions_multiples` avant `marqueur_de_suppression` ; les anomalies
+du pas 4 (`pieces_non_copiees` ou `piece_absente`) viennent avant celles du pas 5. Un
+marqueur de suppression compte comme une version pour les pas 2 et 3. Les erreurs
+d'une suite de garde portent le rang de l'enregistrement fautif (EX-12.38).
+
+| Fichier | Cas |
+|---|---|
+| `requetes.json` | `s3-gel-pose`, `s3-gel-levee`, `s3-lire-gel`, `s3-etat-version`, `s3-liste-premiere-page`, `s3-liste-page-suivante`, `s3-configuration-verrou-4018`, `s3-lire-configuration`, `s3-copie`, `s3-copie-gel-a-l-ecriture`, `s3-cle-a-encoder`, `azure-gel-pose`, `azure-gel-levee`, `azure-etat-version`, `gcs-gel-pose`, `gcs-gel-levee`, `gcs-etat-version` |
+| `etats.json` | `s3-conforme-sans-gel`, `s3-conforme-gele`, `s3-gel-attendu-absent`, `s3-gel-off-attendu`, `s3-mode-governance`, `s3-sans-mode`, `s3-echeance-courte`, `s3-echeance-imf-fixdate`, `s3-echeance-decalage`, `s3-echeance-illisible`, `s3-gel-inattendu`, `azure-conforme`, `azure-unlocked`, `gcs-conforme`, `gcs-sans-retention`, `s3-gel-illisible` |
+| `perimetres.json` | `exemple-ex-12-35`, `deux-periodes-dont-une-vide`, `segment-ecrivain-perime`, `versions-multiples`, `marqueur-de-suppression`, `manifeste-absent`, `segment-absent`, `pieces-copiees`, `deux-periodes-anomalies`, `signature-marqueur-seul`, `manifeste-illisible`, `piece-absente`, `pieces-non-copiees`, `cles-hors-plage-ignorees` |
+| `gardes.json` | `suite-valide`, `chaine-rompue`, `premier-non-pose`, `ordre-invalide`, `meme-identite`, `demande-inconnue`, `demande-expiree`, `levee-en-double`, `objets-differents`, `periode-differente`, `demande-remplacee`, `levee-double-demande-inconnue`, `suite-vide`, `reprise` |
+| `levees.json` | `sans-autre-gel`, `chevauchement-partiel`, `deux-gels-couvrants`, `meme-cle-autre-version` |
+
+## `cout-agent/` (révision 0.5)
+
+`cas.json` : les neuf cas de CT-2 §16.4 (`{ id, description, input, expected }`,
+schéma `cout-agent-v0`), sorties de `coutAgent` (`scripts/lib/cout-agent.mjs`)
+arrondies à trois décimales (EX-16.5). **Les prix sont en unités symboliques `p`,
+jamais un prix réel.** Le `anchoring_cost_per_journal` (`C_anc`) est le
+`cost_per_journal` du cas `defaut-second-rang-a1` de `../ct-5/cout/cout.json`,
+relu par le générateur sans être recalculé.
+
+| Cas | `C` par agent (p) | `C_J` du journal (p) |
+|---|---|---|
+| `reference` | 2881.27 | 28812.701 |
+| `sans-worm` | 2819.423 | 28194.226 |
+| `pieces-dans-le-worm` | 3922.643 | 39226.428 |
+| `taille-minimale-facturable` | 2875.799 | 28757.992 |
+| `gel-juridique` | 2882.448 | 28824.482 |
+| `segments-scindes` | 3605.9 | 36058.997 |
+| `agent-inactif` | 2855.931 | 28559.314 |
+| `un-agent-par-journal` | 28588.475 | 28588.475 |
+| `pieces-purgees` | 2871.237 | 28712.368 |

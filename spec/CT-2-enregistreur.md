@@ -1,18 +1,23 @@
 # CT-2 — Enregistreur
 
-Version 0.4, 2026-10-26 (révision 0.4 minimale ; version 0.3 du 2026-10-23).
-Spécification normative, soumise à revue. Elle met en œuvre la section
-« Capture : où l'enregistreur se place » et la section « Journal : comment un
-événement est écrit » de l'[architecture cible](../ARCHITECTURE.md), s'appuie
-sur le format d'événement de [CT-1](CT-1-evenements-et-formats.md) sans le
-modifier, et clôt les décisions ouvertes 2 (clés de l'enregistreur) et 3
-(rédaction avant hachage) de l'architecture (section 20). La révision 0.3
-l'aligne sur [CT-3](CT-3-approbations.md) (interface du service
-d'approbation), retire les codes d'erreur de la plage que la révision MCP
-`2026-07-28` dit héritée et borne le coût des motifs de rédaction ; la
-révision 0.4, du 2026-10-26, minimale, spécifie la production des points de
-contrôle de CT-1 (révision 0.3) et leur remise au composant d'ancrage de
-[CT-5](CT-5-ancrage.md) (12.10) ; la section 0.4 dit ce que chacune change.
+Version 0.5, 2026-10-26 (révision 0.5 ; version 0.4 du même jour, version 0.3
+du 2026-10-23). Spécification normative, soumise à revue. Elle met en œuvre la
+section « Capture : où l'enregistreur se place » et la section « Journal :
+comment un événement est écrit » de l'[architecture cible](../ARCHITECTURE.md),
+s'appuie sur le format d'événement de [CT-1](CT-1-evenements-et-formats.md)
+sans le modifier, et clôt les décisions ouvertes 2 (clés de l'enregistreur) et
+3 (rédaction avant hachage) de l'architecture (section 20). La révision 0.3
+l'aligne sur [CT-3](CT-3-approbations.md) (interface du service d'approbation),
+retire les codes d'erreur de la plage que la révision MCP `2026-07-28` dit
+héritée et borne le coût des motifs de rédaction ; la révision 0.4, du
+2026-10-26, minimale, spécifie la production des points de contrôle de CT-1
+(révision 0.3) et leur remise au composant d'ancrage de [CT-5](CT-5-ancrage.md)
+(12.10) ; la révision 0.5, du même jour, porte l'API Gemini à la passerelle en
+version 0 (5.3.3, 5.4.5), fixe l'interface publique des SDK Python et
+TypeScript, les adaptateurs des cadres d'agents, le rang de preuve des chemins
+déclaratifs et l'ingestion OpenTelemetry (6.5 à 6.8), le gel juridique des
+copies WORM (12.11) et le coût annuel par agent (16.4), et ajoute des fichiers
+d'intégration (19.5.7 à 19.5.11) ; la section 0.4 dit ce que chacune change.
 
 ## 0. En-tête, conventions, lecture
 
@@ -24,15 +29,21 @@ français, sans accent (`bloquant`, `passant`, `executee`, `lecture`,
 `ecriture`), comme dans CT-1 et l'architecture.
 
 Chaque règle normative porte un identifiant **EX-<section>.<n>** (par exemple
-EX-4.3 : troisième règle de la section 4), stable, auquel le plan de tests
-(CT-9) attache ses tests. Les identifiants de la version 0.1 sont numérotés
-dans l'ordre du texte à l'intérieur de chaque section de premier niveau,
-sous-sections comprises. Une règle ajoutée par une révision reçoit le numéro
-qui suit le plus grand de sa section, quel que soit l'endroit où elle est
-insérée (la version 0.2 ajoute ainsi EX-4.43 et suivants, la version 0.3
-EX-4.49 et suivants) ; aucun numéro n'est jamais réattribué. Une règle
-retirée garde son numéro, marqué « retiré ». Les règles ajoutées, modifiées
-ou retirées par chaque révision sont listées en 0.4.
+EX-4.3 : troisième règle de la section 4 ; EX-6.5 est la cinquième règle de
+la section 6, qui se lit en 6.4, et non une règle de la sous-section 6.5),
+stable, auquel le plan de tests (CT-9) attache ses tests. Les identifiants de la
+version 0.1 sont numérotés dans l'ordre du texte à l'intérieur de chaque section
+de premier niveau, sous-sections comprises. Une règle ajoutée par une révision
+reçoit le numéro qui suit le plus grand de sa section, quel que soit l'endroit
+où elle est insérée (la version 0.2 ajoute ainsi EX-4.43 et suivants, la version
+0.3 EX-4.49 et suivants) ; les règles nouvelles d'une même révision dans une
+section y sont numérotées dans l'ordre du texte (la version 0.5 ajoute ainsi
+EX-5.28 à EX-5.36) ; aucun numéro n'est jamais réattribué. Les identifiants
+ne suivent donc pas toujours l'ordre du texte : une règle ajoutée par une
+révision peut se lire avant une règle de plus petit numéro (en 6.2, EX-6.6
+suit EX-6.4, et EX-6.5 se lit plus loin, en 6.4) ; aucune n'est perdue pour
+autant. Une règle retirée garde son numéro, marqué « retiré ». Les règles
+ajoutées, modifiées ou retirées par chaque révision sont listées en 0.4.
 
 Les faits externes (révision du protocole MCP, formats d'API, variables des
 SDK, comportement des mandataires et des pare-feu) viennent des digests de
@@ -53,6 +64,23 @@ sous le renvoi qui l'accompagne ; certaines de ces URL figurent aussi dans le
 texte. Ce qui n'a pas pu être vérifié est écrit comme tel, dans le texte comme
 dans l'annexe C ; l'annexe C signale aussi ce que la note n'appuie sur aucune
 page publique.
+
+La révision 0.5 s'appuie sur trois notes de plus, relues le 2026-10-26 sur
+leurs sources primaires : **R11** (API Gemini et Vertex AI, conventions
+sémantiques GenAI d'OpenTelemetry, OTLP), **R12** (points d'accroche des cadres
+d'agents et des SDK) et **R13** (supports WORM : gel juridique et équivalents,
+ce qu'un tiers peut en lire, double contrôle de la levée, postes de coût ;
+pages officielles d'Amazon S3, d'AWS IAM et AWS Organizations, d'Azure Blob
+Storage et d'Entra, de Google Cloud Storage et IAM, d'Exoscale et de MinIO).
+Leurs faits portent la forme « R11-F5 », « R12-F10 » ou « R13-F4 », leurs
+points non vérifiés « R11-NV2 », « NV-R12-5 » ou « R13 NV-1 », leurs points de
+conception « R11-C4 », « R12, conséquence 7 » ou « R13 conséquence 3 ». Les
+pages de prix n'ont été lues que pour le nom des postes : aucun prix ne figure
+dans cette spécification. D'autres faits de la révision 0.5 viennent d'une
+lecture directe d'une source primaire faite pour cette révision, à la même date
+: ils sont cités soit dans le texte (URL, paquet et version, fichier et
+lignes), soit par un renvoi « L5-1 » ou « L-C1 » que l'annexe C résout (C.13,
+C.14).
 
 Les séquences « octet par octet » sont des listes numérotées où chaque pas nomme
 ce qui est lu, écrit, haché ou envoyé, dans l'ordre réel d'exécution. Les
@@ -124,6 +152,198 @@ hors de la plage réservée et rend les issues d'approbation comme des
 résultats d'outil (4.4, « Codes d'erreur de l'enregistreur »).
 
 ### 0.4 Révisions
+
+**Révision 0.5** (2026-10-26). Elle porte la capture et l'exploitation au
+niveau d'exigences mesurables (formats de modèle, SDK de langage, cadres
+d'agents, OpenTelemetry, conservation WORM, coût) sans rien retirer de ce que
+la version 0.4 garantit : capture hors du processus de l'agent, trois ancres,
+approbation à seuil, registre substituable.
+
+*Gemini à la passerelle.* `generateContent` et `streamGenerateContent` de
+l'API Gemini passent en version 0 (5.2) : route de format `gemini` sur le
+chemin de la collection des modèles, segment de modèle et nom de méthode
+reconnus dans le chemin (EX-5.28), chaîne de requête interprétée (`alt=sse`
+exigé pour le flux, clé d'API dans l'URL refusée, EX-5.29), corps d'erreur de
+la passerelle au format AIP-193 (EX-5.30), corps d'erreur amont lu comme JSON
+quel que soit son `Content-Type` (EX-5.31), serveurs MCP déclarés au
+fournisseur refusés par défaut (EX-5.32), bornes de taille de la requête et
+de la réponse pour tous les formats (EX-5.33, valeur `taille` de `reason`
+d'EX-8.7), `data` final sans ligne vide distribué (EX-5.34), forme
+consolidée (5.4.5, EX-5.35), `code.model` tiré de `modelVersion`, à défaut du
+segment de modèle (EX-5.36) ; colonne Gemini des tables de 5.5 et de 8.2,
+corrélation de 5.6 sur `functionCall`, corps de blocage de 14.2, chemin de
+données de bout en bout et ses pannes (5.3.3). Vertex AI et la surface
+« Interactions » restent en version 1. Format `gemini` de
+`noortrace/sdk/echangeModele`, réponse en objet ou en tableau de morceaux
+(EX-6.8, ajout compatible).
+
+*SDK, adaptateurs, OpenTelemetry.* Interface publique des SDK Python et
+TypeScript : noms, erreurs, connexion, reprise, ce qui bloque et ce qui ne
+bloque jamais l'agent, fils et asynchrone (6.5, EX-6.9 à EX-6.15) ;
+adaptateurs des cadres LangChain et LangGraph, CrewAI, LlamaIndex, SDK Agents
+d'OpenAI et LiteLLM, chacun avec son point d'accroche lu dans le code publié,
+sa règle de non-double capture et ses tests obligatoires (6.6, EX-6.16 à
+EX-6.22) ; rang de preuve des chemins déclaratifs, sources OpenTelemetry et
+alias du SDK annoncés dans l'ensemble de politique (6.7, EX-6.23,
+EX-6.24) ; ingestion OpenTelemetry : réception OTLP/HTTP en protobuf et en
+JSON (gRPC non servi en version 0), conventions GenAI épinglées en v1.41.1
+(statut Development), correspondance exacte d'un span avec un événement de
+CT-1 sans nouvelle valeur ni nouveau champ, `ts` de l'enregistreur et jamais
+du span, doublons, recouvrement avec le frontal MCP, la passerelle et le SDK,
+pannes, sécurité, supervision, exemple calculé (6.8, EX-6.25 à EX-6.41).
+Le protocole `noortrace/sdk/*` et sa sémantique ne changent pas. Node.js 22
+devient le plancher du SDK TypeScript (EX-6.5).
+
+*Copies WORM, gel juridique, coût.* La copie S3 porte `Content-MD5` et
+l'écrivain inscrit la version écrite dans un registre des copies (EX-12.16
+complétée, EX-12.29) ; la rétention vient de la configuration par défaut du
+support, en mode Compliance, dix ans au moins, posée par l'exploitant et
+jamais par l'écrivain (EX-12.30) ; gel à l'écriture facultatif
+(EX-12.31) ; droits du rôle de l'écrivain, sans suppression, sans levée de
+gel, sans changement de rétention (EX-12.32) ; contrôle du verrou de chaque
+version copiée (EX-12.33). Sous-section 12.11 nouvelle : gel juridique
+d'une plage de périodes d'un journal, mécanisme par support (EX-12.34),
+périmètre (EX-12.35), commande d'exploitation `noortrace-ctl worm gel`
+exécutée hors du démon avec les identifiants d'un exploitant (EX-12.36),
+registre des gels écrit sur le support WORM (EX-12.37), levée par deux
+personnes (EX-12.38), requêtes exactes (EX-12.39), pas à pas et pannes
+(EX-12.40), ce qu'un réviseur peut vérifier (EX-12.41). Relevé
+périodique du verrouillage et lecture du registre des gels par la supervision
+(EX-17.5 complétée, EX-17.6, EX-17.7) ; rôles et droits sur le support
+(EX-18.9). Coût annuel par agent, formule à prix paramétrés et exemples en
+unités symboliques (16.4, EX-16.4 à EX-16.6).
+
+*Configuration, intégrations, vecteurs.* Schéma `configuration-enregistreur-v0`
+étendu de façon compatible, même `$id` : `$defs/model_route` (format
+`gemini`, en-tête `x-goog-api-key`, membre facultatif `provider_mcp`),
+membres facultatifs `otel`, `policy.otel` et `policy.sdk`, `$defs/worm`
+(membres facultatifs `endpoint`, `region`, `legal_hold_on_write`,
+`lock_audit_interval_days`) ; schémas nouveaux `worm-v0` et `cout-agent-v0`.
+L'exemple de 15.3 porte la route Gemini, une source OpenTelemetry et les
+membres facultatifs du support WORM : les valeurs de 10.6 changent. Fichiers
+d'intégration nouveaux : google-genai (19.5.7, EX-19.6), CrewAI (19.5.8),
+LlamaIndex (19.5.9), LiteLLM (19.5.10), agent instrumenté OpenTelemetry
+(19.5.11) ; 19.5.4 et 19.5.5 complétés ; chaque fichier dit, chemin par
+chemin, ce qui est interposé et ce qui est déclaratif (EX-19.5). Vecteurs
+nouveaux : cas `pieces-modele/gemini-*` (B.5), familles `otel/` (B.8),
+`worm/` (B.9) et `cout-agent/` (B.10), confrontation tierce par
+`google-genai` et `opentelemetry-proto` (`confrontation/`).
+
+Ce que la révision 0.5 ne change pas : les formats v0 de CT-1 (événement,
+manifeste, dossier, objets `policy` et `approval`, signatures) ; aucune
+sorte, aucune clé et aucune valeur énumérée de CT-1 n'est ajoutée : un
+échange Gemini est un `noortrace.modele.echange` comme les autres, un span
+OpenTelemetry se projette sur les valeurs existantes (EX-6.23,
+EX-6.36), le gel juridique n'est pas un événement de la chaîne (12.11) ; le
+protocole `noortrace/sdk/*` ; les vecteurs `ct-1`, `ct-3` à `ct-6` ; les
+fichiers de vecteurs existants de `spec/vecteurs/ct-2`, hors `INDEX.md`
+(complété, B.7) et le module `verificateur-independant/` (étendu, section
+22) ; CT-6, sans changement normatif.
+Deux changements de comportement sont voulus : en `environment:
+"production"`, une copie WORM en mode `governance` et une copie de type
+`gcs-object-retention`, admises en version 0.4, sont refusées (EX-15.4,
+EX-12.30). Le membre nouveau `legal_hold_on_write` y est refusé aussi
+(EX-12.31).
+
+- Règles ajoutées : EX-5.28 à EX-5.36, EX-6.8 à EX-6.41, EX-12.29 à
+  EX-12.41, EX-16.4 à EX-16.6, EX-17.6, EX-17.7, EX-18.9, EX-19.5, EX-19.6.
+  Les règles nouvelles d'une section sont numérotées dans l'ordre du texte, à
+  la suite du plus grand numéro de la section (0.1).
+- Règles modifiées : EX-5.2, EX-5.7, EX-5.13, EX-5.14, EX-5.18, EX-5.19,
+  EX-5.22, EX-5.23, EX-5.24, EX-5.27, EX-6.5, EX-6.11, EX-6.13, EX-6.15,
+  EX-6.18, EX-7.2, EX-7.7, EX-8.5, EX-8.7, EX-9.5, EX-10.21 (valeurs de
+  l'exemple), EX-12.1, EX-12.12, EX-12.16, EX-12.19, EX-12.20, EX-15.1,
+  EX-15.4, EX-17.2, EX-17.5, EX-18.1, EX-18.3 ; tables de 2, 3.1, 3.3, 3.4, 3.5,
+  5.2, 5.3, 5.5, 6.2 (`echangeModele`), 7.2 (`code`), 8.2, 10.2.1 (`tools`),
+  10.2.2, 12.6, 14.2, 15.1, 17.2, 17.4 ; sections 1, 3.2, 5.1, 5.6, 5.8, 6
+  (titre), 6.1, 6.3, 7.2, 9.1, 14, 15.3 (exemple étendu), 18.5, 19.5, 20, 21,
+  22 ; annexes B et C.
+- Règles retirées : aucune.
+- Vecteurs `spec/vecteurs/ct-2` : cas `pieces-modele/gemini-*`, familles
+  `otel/`, `worm/` et `cout-agent/`, lignes correspondantes d'`INDEX.md`,
+  répertoire `confrontation/` ; aucun fichier de vecteurs existant ne
+  change, hors `INDEX.md` (complété, B.7) ; deux générations identiques.
+
+La relecture de la révision 0.5 l'a complétée, à la même date, sans
+identifiant nouveau, sur les points suivants. Ingestion OpenTelemetry : la
+pièce d'enveloppe ne rédige que les membres textuels de la forme
+normalisée, horodatages et identifiants restant lisibles (EX-6.35) ; les
+attributs de contenu ne sont analysés que dans les attributs du span
+(EX-6.31) ; ordre des décisions de refus, entiers 32 bits sans fraction
+(EX-6.27, EX-6.29) ; bornes propres à l'ingestion, `spans_per_request`,
+`events_per_minute`, `event_bytes_per_minute`, `min_free_bytes`, et priorité
+des frontaux interposés (EX-6.28, EX-6.40) ; spans rejoués avec un autre
+contenu (EX-6.33) ; pièce au-delà de `limits.piece_max_bytes`, démon arrêté
+(EX-6.35, EX-6.39) ; `otel_request` pour toute requête, raison des spans
+ignorés et alertes (EX-6.41) ; les fragments de chaîne des vecteurs `otel/`
+ne commencent plus à `seq` 1 (B.8). Gemini : dernière ligne sans fin de
+ligne lue avant le `data` final (EX-5.34) ; forme réduite d'une erreur sans
+annotation (EX-5.35) ; index en double précision (EX-5.27) ; `cachedContent`
+refusé par défaut, `provider_cache` (EX-5.32, 5.8) ; corps `401` d'un hôte
+inconnu (EX-5.30) ; noms de paramètres consignés (EX-5.29) ; pare-feu en
+liste d'autorisation, voie « sans changer le code », conditions de
+corrélation (19.5.7). SDK : un `echangeModele` porte la pièce de
+déclaration de source du SDK et cède toujours devant un échange interposé
+pour la corrélation (EX-7.7, EX-5.22, EX-6.8, 6.3, 6.7) ; `is_error` déclaré
+ou calculé (EX-6.8) ; classe de la configuration qui prime (table de 6.2,
+EX-6.15, EX-6.18) ; `fin_appel` d'une session perdue, intention d'un
+`debutAppel` approuvé (EX-6.13, EX-12.12), file du fil de fond (EX-6.11).
+WORM et gel : l'écrivain n'écrit jamais sous `<prefix>gels/` (EX-12.32) ;
+levée par deux personnes sans authentification multifacteur seule
+(EX-12.38, EX-18.9) ; relecture quotidienne de l'état de gel, aussi par le
+rôle Lecteur hors du démon (EX-17.7, 18.5, EX-12.41) ; gels qui se
+chevauchent (EX-12.40, EX-17.6) ; pièces d'un gel et purge suspendue
+(EX-12.16, EX-12.20, EX-12.35) ; ordre des anomalies et des erreurs de garde
+(EX-12.35, EX-12.38) ; `gel_illisible` et droit de lecture du gel (EX-12.33) ;
+Google Cloud Storage hors production en version 0 et `legal_hold_on_write`
+refusé en production (EX-12.30, EX-12.31, EX-15.4) ; contrôle de
+`retain_days` et `events_years` de l'exemple de 15.3 à 10 (EX-15.4).
+Exploitation : pertes des échanges de modèle en vol (13.5, 5.3.3), cadences
+des contrôles et métriques et alertes manquantes (EX-17.5, 17.2, 17.4),
+noms d'événements des refus (EX-17.2) ; paramètres `k` et `D_g` et agent
+déclaratif dans la formule de coût (16.4) ; tables des fichiers
+d'intégration (EX-19.5, 19.5.1 à 19.5.6). Vecteurs : cas `gemini-*`,
+`otel/` et `worm/` nouveaux (B.5, B.8, B.9), `echange-sdk.json`, famille
+`worm/levees.json`.
+
+Des clarifications ont suivi, à la même date, sans changement normatif, sans
+identifiant nouveau et sans changement des vecteurs ; le texte d'EX-6.8,
+d'EX-6.34, d'EX-6.39 et d'EX-17.5 est complété sans que leur portée change.
+Elles portent sur : les identifiants qui ne suivent pas toujours l'ordre du
+texte (0.1) ; le jeton d'hôte de Claude Code, porté par `ANTHROPIC_API_KEY`
+ou par `X-Noortrace-Token` avec la route `auth_header: "x-api-key"` de 15.3,
+et l'en-tête que le client `anthropic` emploie derrière `ChatAnthropic`
+(19.5.2, 19.5.5) ; l'emploi direct du SDK de langage pour les fonctions
+locales d'un agent Gemini, le fragment de corrélation, rendu asynchrone, et
+la version de Node.js (19.5.7, 5.4.5) ; l'unité du délai de l'exportateur
+OTLP (EX-6.39, 6.8.15, 19.5.11) ; le pare-feu et l'ingestion OpenTelemetry
+(6.8.15) ; un modèle différent dans le recouvrement d'un span d'inférence
+(EX-6.34) ; la réponse `200` retardée sous charge (6.8.11, 21) ;
+`cachedContent` dans un échange déclaré par le SDK (EX-6.8) ; l'interface
+de `MiddlewareNoortrace` et les échanges observés par `on_llm_end` (6.6) ;
+la reprise de la file d'échanges après une perte de connexion (6.5) ; les
+durées de conservation des premières années et l'ajout de `365 × g` à `k`
+(16.4) ; le gel posé par un gardien chez Exoscale (12.6) ; le relevé fondé
+sur les registres sur Azure et Google Cloud Storage et la forme `Years` de
+la rétention par défaut (EX-17.5, EX-17.6). Une seconde série, de même
+nature, complète le texte d'EX-17.7 et d'EX-19.6 sans que leur portée
+change ; elle porte sur : le délai de l'exportateur OTLP, sorti du bloc
+commun de 6.8.15 ; le recouvrement vu des chemins interposés (19.5.11) ; le
+démon arrêté avant la réception d'un échange (5.3.3) ; les chemins Gemini
+qui reçoivent `404` (19.5.7) ; le SDK de langage employé directement
+(EX-19.6) ; le résumé de la pose et de la levée d'un gel (12.6) ; l'état
+attendu d'une version d'un gel actif et la levée en cours (EX-17.7, 17.4).
+Une troisième série, de même nature, complète le texte d'EX-5.22,
+d'EX-6.13, d'EX-6.18, d'EX-6.28, d'EX-12.38, d'EX-16.4, d'EX-17.7 et
+d'EX-18.9 sans que leur portée change ; elle porte sur : la corrélation
+d'un appel déclaré par le SDK, le nom comparé et son `intent` (EX-5.22, 6.2,
+6.3, EX-6.18) ; le `host_group` d'un agent Gemini et le fragment Python de
+corrélation (19.5.7) ; les bornes facultatives de l'ingestion et le temps de
+capture (EX-6.28, 6.8.15) ; l'hypothèse d'agents semblables de la formule
+de coût (EX-16.4, 21) ; le moment des événements de reprise d'un
+`debutAppel` (EX-6.13) ; la syntaxe de `demander-levee` et de `lever`, qui
+peut demander et qui peut lever (12.6, EX-12.38, EX-12.41, EX-18.9) ;
+l'étiquette `registre_gels` (EX-17.7, 17.4).
 
 **Révision 0.4** (2026-10-26, minimale). Production des points de contrôle
 de CT-1 §10.5 par l'enregistreur : cadence `checkpoint_interval_s` alignée sur
@@ -230,13 +450,17 @@ CT-2 fixe, pour la version 0 de l'enregistreur :
 3. le **frontal modèle** : les modes passerelle, ICAP, miroir et désactivé, la
    passerelle comme mode nominal, les formats d'API de modèle de la version 0
    (API Messages d'Anthropic et ses variantes de corps identique, Chat
-   Completions et Responses d'OpenAI) et ceux reportés en version 1, le chemin
-   de données en flux et hors flux, le réassemblage des flux SSE en une forme
-   consolidée fournisseur par fournisseur, l'extraction de `code.model`, de
-   l'intention et du prompt système, la corrélation entre appel d'outil et
-   échange de modèle, les erreurs et les délais (section 5) ;
-4. le **SDK** : périmètre, interface minimale, limites, exigence de pare-feu,
-   langages (section 6) ;
+   Completions et Responses d'OpenAI et, depuis la révision 0.5,
+   `generateContent` et `streamGenerateContent` de l'API Gemini) et ceux
+   reportés en version 1, le chemin de données en flux et hors flux, le
+   réassemblage des flux SSE en une forme consolidée fournisseur par
+   fournisseur, l'extraction de `code.model`, de l'intention et du prompt
+   système, la corrélation entre appel d'outil et échange de modèle, les
+   erreurs et les délais (section 5) ;
+4. le **SDK** et les autres chemins déclaratifs : périmètre, interface
+   minimale, limites, exigence de pare-feu, langages, interface publique des
+   SDK Python et TypeScript, adaptateurs des cadres d'agents, rang de preuve,
+   et **ingestion OpenTelemetry** des spans GenAI (section 6) ;
 5. la **construction de l'événement CT-1** depuis la capture, champ par champ et
    sorte par sorte, les règles de `ts` et de `seq`, l'horloge (section 7) ;
 6. la **sérialisation des pièces** : JCS intégral après rédaction, pièce par
@@ -248,11 +472,14 @@ CT-2 fixe, pour la version 0 de l'enregistreur :
 9. les **clés de l'enregistreur**, classes de garde A à D, rotation,
    inscription et révocation (section 11, décision ouverte 2) ;
 10. le **stockage en ajout seul**, les segments, le journal d'intention, la
-    reprise après arrêt, les supports WORM, la rétention (section 12) ;
+    reprise après arrêt, les supports WORM et le contrôle de leur verrouillage,
+    le gel juridique des copies et sa levée par deux personnes, la rétention
+    (section 12) ;
 11. la **haute disponibilité** à écrivain unique avec bail (section 13) ;
 12. le **comportement en panne**, matrice et erreurs rendues (section 14) ;
 13. la **configuration**, document unique et schéma (section 15) ;
-14. les **objectifs de performance** et la méthode de mesure (section 16) ;
+14. les **objectifs de performance** et la méthode de mesure, et la **formule
+    du coût annuel par agent** à prix paramétrés (section 16) ;
 15. la **supervision** (section 17) et la **sécurité de l'enregistreur
     lui-même** (section 18) ;
 16. la **démonstration de référence** et les fichiers d'intégration des hôtes
@@ -327,7 +554,7 @@ S'y ajoutent, fixés pour toute la spécification :
 | Ère moderne, ère héritée | Révision MCP `2026-07-28` et suivantes (métadonnées par requête) ; révisions `2025-11-25` et antérieures (poignée de main `initialize`), vocabulaire de la spécification MCP (R1 Q2). |
 | Connexion d'hôte | Le lien par lequel un hôte parle au frontal MCP, au frontal modèle ou au point d'entrée SDK : un processus connecteur stdio, une identité HTTP authentifiée (jeton OAuth ou jeton statique), ou, en modes ICAP et miroir, une adresse source. Elle est décrite par une entrée de `mcp.hosts`, `model.hosts` ou `sdk.hosts` ; la délégation (CT-1 `delegation`) lui est attachée (7.2). |
 | Groupe d'hôte | Étiquette `host_group` qu'une entrée de connexion d'hôte porte dans la configuration ; elle relie, pour la corrélation de 5.6, une connexion MCP et une connexion de passerelle qui servent le même agent. Elle est fixée par le client, jamais déclarée par l'hôte. |
-| Route de modèle | Entrée de configuration du frontal modèle : un chemin exact, un format v0, un fournisseur amont, ses identifiants, un libellé de fournisseur pour `code.model`, et la liste exacte des couples (méthode, chemin) relayés sans événement (EX-5.2). |
+| Route de modèle | Entrée de configuration du frontal modèle : un chemin (exact pour les formats `anthropic-messages`, `openai-chat` et `openai-responses` ; chemin de la collection des modèles pour le format `gemini`, suivi dans la requête d'un segment de modèle et d'un nom de méthode, EX-5.28), un format v0, un fournisseur amont, ses identifiants, un libellé de fournisseur pour `code.model`, et la liste exacte des couples (méthode, chemin) relayés sans événement (EX-5.2). |
 | Ensemble de politique | Le document JSON unique nommé par `code.policy_version` : règles d'approbation (CT-3), règles de rédaction, carte des serveurs d'outils et réglages de panne (7.2, 9.1, 15). |
 | Référence de secret | Désignation d'un secret par son emplacement (variable d'environnement, fichier, coffre), jamais sa valeur, dans la configuration (15). |
 | Service d'approbation | Le composant de CT-3 que l'enregistreur appelle avant relais et qui lui rend les décisions. |
@@ -335,6 +562,24 @@ S'y ajoutent, fixés pour toute la spécification :
 | Signal d'approbation | Le résultat d'outil `isError: true`, de texte fixe, que le frontal rend pour un appel dont le ticket est en attente, refusé ou expiré (EX-4.49) ; ce n'est pas une erreur JSON-RPC. |
 | MAC de relais | HMAC-SHA-256, sous une clé propre au noyau, du JCS intégral des arguments en clair d'un appel retenu ; il permet de comparer l'appel relayé à la demande approuvée sans garder le clair (EX-7.22). |
 | Fichiers des approbations | Fichiers hors chaîne, en ajout seul, où le noyau garde les jeux d'approbateurs reçus du service et les MAC de relais (EX-12.23). |
+| SDK de langage | Bibliothèque Python (`noortrace_sdk`) ou TypeScript (`noortrace-sdk`) qui enveloppe les méthodes `noortrace/sdk/*` de 6.2 sans en changer la sémantique (6.5). |
+| Adaptateur de cadre | Code du SDK de langage qui s'accroche à un cadre d'agents (LangChain, LangGraph, CrewAI, LlamaIndex, SDK Agents d'OpenAI, LiteLLM) pour appeler le SDK aux bons instants (6.6). |
+| Point d'interception | Point d'accroche d'un cadre qui s'exécute avant un outil, attend sa réponse et peut empêcher l'exécution (6.6, EX-6.16). |
+| Point d'observation | Point d'accroche d'un cadre qui s'exécute pendant ou après l'opération, en tâche de fond ou en avalant ses erreurs : il ne peut rien empêcher (6.6, EX-6.16). |
+| Ingestion OpenTelemetry | Réception par le démon de traces OTLP/HTTP et projection de leurs spans GenAI sur des événements CT-1 (6.8). |
+| Source OpenTelemetry | Émetteur authentifié de traces OTLP (un agent instrumenté, son exportateur) ; décrite par une entrée de `otel.hosts` et une entrée de `policy.otel.sources` de même alias (6.8). |
+| Span GenAI | Span qui porte `gen_ai.operation.name` (ou `mcp.method.name = "tools/call"`) selon les conventions sémantiques GenAI d'OpenTelemetry (6.8.6). |
+| Forme normalisée d'un span | L'objet JSON que l'enregistreur tire d'un span décodé, avant toute pièce (EX-6.31). |
+| Pièce de déclaration de source | Pièce de contexte `{"noortrace_capture":{"channel":"otel","source":"<alias>"}}` qui marque, dans l'événement, une déclaration reçue d'une source OpenTelemetry (EX-6.35). |
+| Pièce d'enveloppe | Pièce de contexte qui porte la forme normalisée du span, privée des attributs placés dans d'autres pièces (EX-6.35). |
+| Recouvrement | Un span qui décrit un appel ou un échange déjà journalisé par le frontal MCP, la passerelle ou le SDK pour le même groupe d'hôte (EX-6.34). |
+| Copie WORM | Copie, sur le support de `storage.seal.worm`, d'un fichier fermé du journal (segment, manifeste, signature, série de points, fichier d'ancres, pièce), écrite une fois sous une clé d'objet qui porte l'époque (EX-12.16). Le support fait foi de son verrou ; la copie ne remplace ni la signature ni l'ancre (EX-12.21). |
+| Registre des copies | Fichier local hors chaîne, en ajout seul, `worm/copies-<epoch>.ndjson`, où l'écrivain inscrit la clé, la version et l'empreinte de chaque copie réussie, et le verrou relu (EX-12.29). |
+| Gel (juridique) | Protection sans échéance d'une version d'objet du support, indépendante de la rétention : *legal hold* d'Amazon S3 et des services compatibles, gel de niveau version d'Azure, `temporaryHold` de Google Cloud Storage (EX-12.34). Un gel prolonge la conservation ; sa levée ne raccourcit jamais la rétention. |
+| Registre des gels | Suite d'enregistrements JSON écrits sur le support WORM sous `<prefix>gels/<gel_id>/` par l'outil de gel : pose, résultat, demande de levée, levée, résultat (EX-12.37). |
+| Gardien | Exploitant qui détient, sur le support, le droit de poser un gel (gardien de pose) ou de le lever (gardien de levée) ; jamais le rôle de l'écrivain (EX-18.9). |
+| Relevé de verrouillage | Lecture périodique, par la supervision, du verrou et du gel de chaque version copiée (EX-17.6). |
+| Coût par agent | Coût annuel, en régime établi, du stockage, des copies, des requêtes, du réseau et de l'ancrage qu'un agent fait porter à son journal, en unités symboliques (16.4). |
 
 ## 3. Architecture interne de l'enregistreur
 
@@ -345,6 +590,7 @@ S'y ajoutent, fixés pour toute la spécification :
 | Frontal MCP | Serveur MCP pour l'hôte, client MCP pour chaque serveur d'outils ; agrège `tools/list`, relaie `tools/call`, relaie hors chaîne les autres méthodes. | 4 |
 | Frontal modèle | Reçoit (passerelle), lit (ICAP) ou observe (miroir) les requêtes d'API de modèle et leurs réponses ; réassemble les flux. | 5 |
 | Point d'entrée SDK | Reçoit du SDK, par une prise locale, les appels d'outils et échanges de modèle que l'agent exécute lui-même. | 6 |
+| Point d'entrée OpenTelemetry | Reçoit en OTLP/HTTP (protobuf ou JSON) les traces des sources OpenTelemetry authentifiées, décode, normalise et classe les spans, écarte les doublons et les recouvrements, remet au noyau les événements des spans GenAI ; ne bloque jamais l'agent, qui a déjà agi. | 6.8 |
 | Moteur de politique (point d'appel de CT-3) | Classe l'outil, soumet la demande au service d'approbation, qui évalue la règle, applique sa réponse (`autorise`, `a_approuver` ou `refuse`, état du ticket), gère l'attente de la décision, vérifie les remises et les relais d'appels approuvés. | 7.2, 7.5, 14, CT-3 |
 | Rédacteur | Applique les règles de rédaction de l'ensemble de politique aux pièces, avant hachage. | 10 |
 | Noyau | Construit l'événement CT-1, sérialise les pièces (JCS intégral) et l'événement (JCS v0), hache, fait signer, chaîne. | 7, 8 |
@@ -401,11 +647,21 @@ Le SDK remet au point d'entrée les mêmes grandeurs (outil, arguments, résulta
 durée, erreur ; requête et réponse de modèle) : les pas 3 à 9 s'appliquent, les
 pas 1, 7 et 10 n'existent pas.
 
+Une trace OpenTelemetry suit un autre chemin : l'exportateur de l'agent
+poste un lot de spans au point d'entrée OpenTelemetry **après** que
+l'agent a agi ; le démon authentifie la source, décode le lot, normalise
+chaque span (EX-6.31), écarte les spans qui ne sont pas des spans GenAI,
+les doublons et les recouvrements, puis, pour chaque span retenu, dans
+l'ordre du lot : pièces rédigées (pas 4 et 8 du squelette), événement
+(pas 9), sans politique évaluée, sans intention écrite et sans relais
+(pas 3, 5, 6, 7 et 10 n'existent pas). Le démon répond `200` quand tous
+les événements du lot sont durables (EX-6.38).
+
 ### 3.3 Limites de confiance
 
 | Frontière | Ce qui la traverse | Confiance |
 |---|---|---|
-| Hôte et agent ↔ enregistreur | Messages JSON-RPC MCP, requêtes HTTP d'API de modèle, appels SDK | Aucune. Tout ce qui vient de l'hôte est une donnée d'attaquant potentiel : l'agent peut mentir sur sa délégation, forger des `_meta`, répéter des appels. L'enregistreur n'y puise que ce qui est déclaratif par nature (CT-1 §15). |
+| Hôte et agent ↔ enregistreur | Messages JSON-RPC MCP, requêtes HTTP d'API de modèle, appels SDK, lots de spans OTLP | Aucune. Tout ce qui vient de l'hôte est une donnée d'attaquant potentiel : l'agent peut mentir sur sa délégation, forger des `_meta`, répéter des appels. L'enregistreur n'y puise que ce qui est déclaratif par nature (CT-1 §15). Un span OTLP est une déclaration de l'agent, horodatée par son horloge : rien n'y est cru que la configuration de la source ne fixe (6.8). |
 | Enregistreur ↔ serveurs d'outils | JSON-RPC MCP, identifiants propres de l'enregistreur | Partielle : le serveur est celui du client, mais ses annotations sont « untrusted unless they come from trusted servers » (page Tools, https://modelcontextprotocol.io/specification/2026-07-28/server/tools, R1 Q3) ; ses descriptions sont le vecteur de l'empoisonnement décrit par Invariant Labs et Trail of Bits (R9 F-160, F-170) ; les résultats peuvent contenir des instructions pour le modèle. |
 | Enregistreur ↔ fournisseur de modèle | HTTP, identifiants du client ou de l'enregistreur | Partielle : le contenu produit par le modèle est une donnée, jamais une instruction pour l'enregistreur. |
 | Enregistreur ↔ signataire | Messages à signer, signatures | Pleine, authentifiée (section 11) : le signataire ne signe que pour l'enregistreur qui détient le bail. |
@@ -426,7 +682,7 @@ accès en écriture au stockage du journal.
 
 | Processus | Où il tourne | Ce qu'il porte |
 |---|---|---|
-| Démon de l'enregistreur | Service dédié, utilisateur système propre, hôte ou conteneur distinct de celui de l'agent quand c'est possible | Frontaux (serveur HTTP du frontal MCP, passerelle, serveur ICAP, point d'entrée SDK), moteur de politique, rédacteur, noyau, stockage, bail, clôture, exportateur, supervision |
+| Démon de l'enregistreur | Service dédié, utilisateur système propre, hôte ou conteneur distinct de celui de l'agent quand c'est possible | Frontaux (serveur HTTP du frontal MCP, passerelle, serveur ICAP, point d'entrée SDK, point d'entrée OpenTelemetry), moteur de politique, rédacteur, noyau, stockage, bail, clôture, exportateur, supervision |
 | Connecteur stdio | Processus enfant de l'hôte, lancé par la configuration MCP de l'hôte | Relais de lignes JSON-RPC entre son `stdin`/`stdout` et la prise locale du démon ; aucun état, aucune clé |
 | Signataire | Dans le démon (classes C et D), ou hors du démon : service de signature, module matériel (classes A et B) | La clé privée ou son accès |
 | Serveurs d'outils stdio | Processus enfants **du démon**, jamais de l'hôte, chacun sous un utilisateur système distinct de celui du démon (EX-3.5) | Les outils du client |
@@ -511,6 +767,7 @@ borné par son quota (EX-4.47).
 | Frontal modèle, passerelle et ICAP | — | Démon |
 | Frontal modèle, miroir | — | Équipement du client et adaptateur |
 | SDK | La bibliothèque : capture des appels locaux, envoi au démon | Démon : tout le reste |
+| Ingestion OpenTelemetry | L'instrumentation, le processeur de spans et l'exportateur OTLP | Démon : réception, projection, rédaction, scellement |
 | Clé, politique, stockage | jamais | Démon, signataire |
 
 C'est ce qui donne sa valeur au journal : l'étude arXiv 2609.30266 (septembre
@@ -1673,12 +1930,17 @@ faits établis par les digests conduisent à inverser l'ordre :
    `OPENAI_BASE_URL` (SDK Python et Node, R2 F-S3, F-S4). Claude Code la lit
    aussi (`ANTHROPIC_BASE_URL`, avec `ANTHROPIC_AUTH_TOKEN` ou
    `ANTHROPIC_API_KEY`, R7 F-30, F-31), le SDK Agents d'OpenAI en Python
-   (`OPENAI_BASE_URL`, R7 F-61) et LangChain (`ChatOpenAI`, `ChatAnthropic`,
-   R7 F-80, F-81). LiteLLM, Portkey, Helicone et Cloudflare AI Gateway se
-   branchent par l'URL de base du SDK (R4 F1.6.1 à F1.6.8) ; Kong AI Gateway
-   et Azure APIM exposent aussi des points d'API aux formats d'OpenAI ou
-   d'Anthropic (R4 F1.6.11, F1.6.13) : c'est le mode d'intégration le moins
-   intrusif.
+   (`OPENAI_BASE_URL`, R7 F-61) et LangChain (`ChatOpenAI`, `ChatAnthropic`, R7
+   F-80, F-81). Les deux SDK officiels de Gemini (`google-genai` en Python,
+   `@google/genai` en JavaScript) prennent une URL de base par
+   `HttpOptions.base_url` (`httpOptions.baseUrl`) ou par la variable
+   `GOOGLE_GEMINI_BASE_URL`, et y ajoutent eux-mêmes
+   `v1beta/models/<modèle>:<méthode>` (R11-F7 à F9, R12-F41) ; leur clé passe
+   par l'en-tête `x-goog-api-key` (R11-F6). LiteLLM, Portkey, Helicone et
+   Cloudflare AI Gateway se branchent par l'URL de base du SDK (R4 F1.6.1 à
+   F1.6.8) ; Kong AI Gateway et Azure APIM exposent aussi des points d'API aux
+   formats d'OpenAI ou d'Anthropic (R4 F1.6.11, F1.6.13) : c'est le mode
+   d'intégration le moins intrusif.
 2. **L'interception TLS coûte trois injections de confiance et un piège Node.**
    La racine d'interception doit être placée dans le magasin système, dans les
    variables des piles HTTP (`SSL_CERT_FILE`/`SSL_CERT_DIR` pour httpx et Go,
@@ -1722,23 +1984,27 @@ politique : changer une route change ce que le journal prouve) : chaque route
 associe un **chemin exact** (`/v1/messages`, `/v1/chat/completions`,
 `/v1/responses`, ou le chemin d'une variante d'hébergeur) et la méthode `POST`
 à un format de la version 0 (5.2), à l'URL amont du fournisseur, à ses
-identifiants et à un libellé de fournisseur pour `code.model`. Le chemin de
-la requête est d'abord **normalisé** : une requête dont le chemin contient
-`%2F` ou `%2f`, un segment `.` ou `..`, une barre oblique doublée, ou un
-octet hors de l'ASCII imprimable, est refusée par `400` ; les encodages
-pourcent de caractères non réservés sont décodés (RFC 3986 §6.2.2) ; le
-chemin normalisé est comparé **par égalité** à ceux des routes (jamais par
-préfixe). La chaîne de requête (`?beta=true`) est relayée telle quelle et
-consignée par son `sha256`, jamais interprétée. Vers l'amont, la passerelle
-n'envoie que le chemin de la route trouvée, pas le texte reçu. Chaque route
-porte en outre une liste **exacte** de couples relayés **sans événement**,
-`passthrough: [{ "method": "POST", "path": "/v1/messages/count_tokens" },
-{ "method": "GET", "path": "/v1/models" }]` (chemins que Claude Code peut
-appeler, R7 F-33, F-37), servis avec l'amont et les identifiants de la route
-et consignés ; liste vide par défaut. Tout autre couple (méthode, chemin)
-reçoit `404` sans relais : les lots, fichiers et plongements d'un fournisseur
-ne traversent pas la passerelle hors capture, puisqu'ils ne sont relayés que
-s'ils sont nommés.
+identifiants et à un libellé de fournisseur pour `code.model`. Le chemin de la
+requête est d'abord **normalisé** : une requête dont le chemin contient `%2F`
+ou `%2f`, un segment `.` ou `..`, une barre oblique doublée, ou un octet hors
+de l'ASCII imprimable, est refusée par `400` ; les encodages pourcent de
+caractères non réservés sont décodés (RFC 3986 §6.2.2) ; le chemin normalisé
+est comparé **par égalité** à ceux des routes (jamais par préfixe). La chaîne
+de requête (`?beta=true`) est relayée telle quelle et consignée par son
+`sha256`, jamais interprétée. Vers l'amont, la passerelle n'envoie que le
+chemin de la route trouvée, pas le texte reçu. Chaque route porte en outre une
+liste **exacte** de couples relayés **sans événement**, `passthrough: [{
+"method": "POST", "path": "/v1/messages/count_tokens" }, { "method": "GET",
+"path": "/v1/models" }]` (chemins que Claude Code peut appeler, R7 F-33, F-37),
+servis avec l'amont et les identifiants de la route et consignés ; liste vide
+par défaut. Tout autre couple (méthode, chemin) reçoit `404` sans relais : les
+lots, fichiers et plongements d'un fournisseur ne traversent pas la passerelle
+hors capture, puisqu'ils ne sont relayés que s'ils sont nommés. Une route de
+format `gemini` est la seule exception à la comparaison par égalité et à la
+chaîne de requête jamais interprétée : son chemin est celui de la collection
+des modèles, le segment de modèle et le nom de méthode sont reconnus dans le
+chemin (EX-5.28), et sa chaîne de requête est interprétée et n'est pas
+consignée par son `sha256` (EX-5.29).
 
 #### 5.1.2 Mode ICAP
 
@@ -1836,34 +2102,43 @@ construit que si un client l'exige (section 21).
 | Variante Azure OpenAI « v1 » (`…/openai/v1/chat/completions`, `…/openai/v1/responses`) | **v0**, route distincte | préfixe `/openai/v1/` | Corps OpenAI, sans `api-version`, en-tête `api-key` ou `Authorization: Bearer` (R2 F-Z2) ; l'identité exacte du corps n'est vérifiée que pour la v1, pas pour l'API datée (R2 NV-10) |
 | Anthropic sur Google Cloud (`rawPredict`, `streamRawPredict`) | v1 | — | `model` dans l'URL et `anthropic_version` dans le corps (R2 F-A38) ; format de sortie de `streamRawPredict` non documenté (R2 NV-5) |
 | Amazon Bedrock `InvokeModel`, `InvokeModelWithResponseStream`, `Converse` | v1 | — | Flux `application/vnd.amazon.eventstream` binaire, `chunk.bytes` en base64, corps `anthropic_version: "bedrock-2023-05-31"` ou schéma `toolUse`/`toolResult` (R2 F-A35 à F-A37, F-B1, F-B2, NV-4) |
-| Gemini `generateContent`, `streamGenerateContent`, « Interactions » | v1 | — | Schéma distinct (`contents`/`parts`, `functionCall`/`functionResponse`), `alt=sse` présent seulement dans les exemples, surface « Interactions » en cours d'introduction (R2 F-G1 à F-G7, NV-8, NV-9) |
+| API Gemini (`generativelanguage.googleapis.com`) `generateContent` et `streamGenerateContent` | **v0** (révision 0.5) | chemin de collection `/v1beta/models` (et `/v1/models` en route distincte), méthodes `POST <chemin>/<modèle>:generateContent` et `POST <chemin>/<modèle>:streamGenerateContent?alt=sse` (EX-5.28) | Routes, corps de requête et de réponse lus dans les documents de découverte v1 et v1beta du 2026-10-24 (R11-F1, F2, F11 à F14 ; première lecture en version 0.1 : R2 F-G1 à F-G6) ; les deux SDK officiels envoient toujours `?alt=sse` pour le flux (R11-F5) ; leur lecture du flux est connue par le code (R11-F16, F17) ; forme des erreurs observée (R11-F19, F20) ; forme exacte d'un flux réussi non observée (R11-NV1, NV4) : la forme consolidée de 5.4.5 ne dépend que des membres documentés |
+| Vertex AI (« Agent Platform API », `aiplatform.googleapis.com`) `generateContent`, `streamGenerateContent` | v1 | — | Même schéma de base mais chemin par projet et région, jeton OAuth `Bearer`, pas de `continuationToken`, et arguments d'appel de fonction en flux (`partialArgs`, `jsonPath` RFC 9535) qui exigent un réassemblage propre non lu (R11-F10, F21, F23, F24, NV5) ; en mode Vertex avec une URL de base et sans projet, région ni clé, le SDK Python poste sur l'URL de base sans chemin de méthode (R11-F9, NV6) |
+| Gemini, surface « Interactions » | v1 | — | Surface non lue (R11-NV8, R2 F-G7, NV-9) |
 | Azure OpenAI API datée (`api-version`) | v1 | — | Chemin par déploiement, référence REST séparée non lue (R2 F-Z1, NV-10) |
 
 **EX-5.7** Une requête reçue sur une route de la version 0 :
 
 1. qui porte un en-tête `Content-Encoding` autre que `identity` est refusée
    par `415` ;
-2. dont le corps ne s'analyse pas en **JSON strict** (clé en double,
-   substitut isolé, marque d'ordre d'octets, texte qui n'est pas du JSON,
-   nombre hors de la double précision, bornes de profondeur et de membres de
-   4.4 pas 1) est refusée par `400` avec un corps d'erreur au format du
-   fournisseur (`{"type":"error","error":{"type":"invalid_request_error","message":"noortrace: corps de requete non analysable"}}`
-   pour Messages, `{"error":{"message":"noortrace: corps de requete non analysable","type":"invalid_request_error","param":null,"code":"noortrace_requete_invalide"}}`
-   pour Chat Completions et Responses) ;
+2. dont le corps ne s'analyse pas en **JSON strict** (clé en double, substitut
+   isolé, marque d'ordre d'octets, texte qui n'est pas du JSON, nombre hors de
+   la double précision, bornes de profondeur et de membres de 4.4 pas 1) est
+   refusée par `400` avec un corps d'erreur au format du fournisseur
+   (`{"type":"error","error":{"type":"invalid_request_error","message":"noortrace:
+   corps de requete non analysable"}}` pour Messages,
+   `{"error":{"message":"noortrace: corps de requete non
+   analysable","type":"invalid_request_error","param":null,"code":"noortrace_requete_invalide"}}`
+   pour Chat Completions et Responses, et le corps AIP-193 d'EX-5.30 pour
+   Gemini) ;
 
 dans ces deux cas, rien n'est relayé, **aucun événement** n'est produit (rien
 n'a atteint le fournisseur) et le refus est consigné avec la longueur, la
 raison et le `Content-Type`, jamais le corps. Motif : un corps non analysable
-ne peut pas être rédigé ; le stocker tel quel mettrait dans la chaîne le
-clair ou son empreinte (EX-10.2), et un agent pourrait le provoquer exprès
-(une clé en double suffit). 3. Une requête JSON stricte qui n'a pas la forme
-attendue du format (`messages` absent pour Messages et Chat Completions ; ni
-`input` ni `previous_response_id` pour Responses) est relayée telle quelle au
-fournisseur — qui la refusera ou non — et donne un événement dont la pièce
-« requête » est le JCS intégral du corps **rédigé** par les règles de portée
-`requete` (section 8), sans pièce « prompt système » (`prompt_version:
-null`) ; `code.model` est alors tiré de la réponse si elle en porte un, sinon
-`null` (jamais de la requête).
+ne peut pas être rédigé ; le stocker tel quel mettrait dans la chaîne le clair
+ou son empreinte (EX-10.2), et un agent pourrait le provoquer exprès (une clé
+en double suffit).
+
+3. Une requête JSON stricte qui n'a pas la forme attendue du
+format (`messages` absent pour Messages et Chat Completions ; ni `input` ni
+`previous_response_id` pour Responses ; `contents` absent ou qui n'est pas un
+tableau pour Gemini) est relayée telle quelle au fournisseur — qui la refusera
+ou non — et donne un événement dont la pièce « requête » est le JCS intégral du
+corps **rédigé** par les règles de portée `requete` (section 8), sans pièce «
+prompt système » (`prompt_version: null`) ; `code.model` est alors tiré de la
+réponse si elle en porte un, sinon `null` (jamais du corps de la requête ; pour
+Gemini, le segment de modèle du chemin sert de repli selon EX-5.36, puisqu'il
+n'est pas dans le corps).
 
 ### 5.3 Chemin de données
 
@@ -1877,11 +2152,15 @@ consigné.
 |---|---|---|
 | Authentification de l'hôte auprès de la passerelle | `X-Noortrace-Token` ; en `credentials: "propre"`, aussi l'en-tête d'authentification du fournisseur que la route déclare (`auth_header`) | Lus pour identifier la connexion d'hôte (EX-5.8), comparés en temps constant, **toujours retirés**, jamais stockés ni journalisés |
 | Délégation déclarée | `X-Noortrace-Run-Id`, `X-Noortrace-On-Behalf-Of` | Traités comme `_meta["noortrace/delegation"]` (EX-7.2), **toujours retirés** avant le relais ; tout autre `X-Noortrace-*` est retiré |
-| Authentification auprès du fournisseur | `credentials: "propre"` : l'en-tête `auth_header` de la route, posé par la passerelle avec le secret de la route ; `credentials: "relayer"` : **seul** l'en-tête `auth_header` déclaré par la route est relayé tel que l'hôte l'envoie | Absents de toute pièce et de tout journal ; `Authorization`, `x-api-key`, `api-key`, `Proxy-Authorization`, `Cookie` et les en-têtes de `model.strip_headers` ne sont jamais relayés autrement |
-| Relayés et notés | `anthropic-version`, `anthropic-beta`, `openai-organization`, `openai-project`, `x-client-request-id`, `user-agent`, les en-têtes d'attribution `x-claude-code-*` (R7 F-34) | Relayés vers le fournisseur inchangés ; valeur notée dans le journal d'exploitation (pas dans l'événement) |
+| Authentification auprès du fournisseur | `credentials: "propre"` : l'en-tête `auth_header` de la route, posé par la passerelle avec le secret de la route ; `credentials: "relayer"` : **seul** l'en-tête `auth_header` déclaré par la route est relayé tel que l'hôte l'envoie ; pour une route `gemini`, `auth_header` vaut `x-goog-api-key` (R11-F6, schéma de 15.1) | Absents de toute pièce et de tout journal ; `Authorization`, `x-api-key`, `api-key`, `x-goog-api-key`, `Proxy-Authorization`, `Cookie` et les en-têtes de `model.strip_headers` ne sont jamais relayés autrement ; une clé d'API Gemini dans la chaîne de requête (`key=`) est refusée (EX-5.29) |
+| Relayés et notés | `anthropic-version`, `anthropic-beta`, `openai-organization`, `openai-project`, `x-client-request-id`, `user-agent`, les en-têtes d'attribution `x-claude-code-*` (R7 F-34), `x-goog-api-client` (identification du SDK Gemini, de la forme `google-genai-sdk/<version> gl-python/<version>`, R11-F10) | Relayés vers le fournisseur inchangés ; valeur notée dans le journal d'exploitation (pas dans l'événement) |
 | Relayés | `Content-Type`, `Accept` | Relayés |
 | Posés par la passerelle | `Host` (celui du fournisseur amont), `Accept-Encoding: identity` (EX-5.9), `Content-Length` calculé sur les octets envoyés | Jamais recopiés de l'hôte |
 | Réponse : relayés et notés | `Content-Type`, `request-id` (Anthropic, R2 F-A33), `x-request-id` et `openai-version` (OpenAI, R2 F-O3), `retry-after`, `x-should-retry`, `anthropic-ratelimit-*` (R7 F-35) | Relayés à l'hôte inchangés ; `request-id`/`x-request-id` noté dans le journal d'exploitation avec le `seq` de l'événement ; le cadrage de la réponse à l'hôte est calculé par la passerelle |
+
+(`x-goog-user-project`, que le SDK Gemini pose en mode Vertex, R11-F10, n'est
+dans aucune classe : il est retiré et son nom consigné, comme tout en-tête hors
+liste.)
 
 **EX-5.26** **Cadrage HTTP.** La passerelle ne relaie jamais le cadrage reçu :
 une requête qui porte à la fois `Content-Length` et `Transfer-Encoding` est
@@ -1911,9 +2190,12 @@ rattachée à une entrée de `model.hosts` (EX-7.3), de même forme que celles d
 
 1. `static_token` : le jeton statique de l'hôte est porté par l'en-tête
    `X-Noortrace-Token` ; en `credentials: "propre"`, il PEUT aussi être porté
-   par l'en-tête d'authentification du fournisseur que la route déclare
-   (Claude Code l'envoie par `ANTHROPIC_AUTH_TOKEN` en `Authorization: Bearer`,
-   R7 F-30 à F-32), puisque l'hôte n'y a pas de clé à mettre ; en
+   par l'en-tête d'authentification du fournisseur que la route déclare,
+   puisque l'hôte n'y a pas de clé à mettre (sur une route
+   `auth_header: "authorization-bearer"`, c'est ce que fait Claude Code,
+   qui l'envoie par `ANTHROPIC_AUTH_TOKEN` en `Authorization: Bearer`,
+   R7 F-30 à F-32 ; sur une route `"x-api-key"`, c'est l'en-tête
+   `x-api-key` ou `X-Noortrace-Token` qui le porte) ; en
    `credentials: "relayer"`, cet en-tête porte la clé du fournisseur et le
    jeton DOIT être dans `X-Noortrace-Token` ;
 2. `oauth_subject` : jeton OAuth dont l'audience est l'URI de la passerelle,
@@ -2025,11 +2307,325 @@ octet et la mesure de l'absence de tampon sont les objectifs de la section 16.
 en a besoin pendant les pauses, R7 F-35) et ignorés par l'analyseur.
 
 **EX-5.13** Un flux coupé par le fournisseur avant son événement terminal
-(`message_stop`, `data: [DONE]`, `response.completed`/`failed`/`incomplete`)
-donne une forme consolidée marquée `"noortrace_flux_incomplet": true` et
-`is_error: true` ; la coupure côté hôte (l'hôte ferme) fait fermer la
-connexion amont et donne la même marque. La passerelle NE DOIT PAS réémettre
-la requête (5.7).
+(`message_stop`, `data: [DONE]`, `response.completed`/`failed`/`incomplete` ;
+pour Gemini, qui n'a pas d'événement terminal, la condition de fin normale
+d'EX-5.35 pas 6) donne une forme consolidée marquée
+`"noortrace_flux_incomplet": true` et `is_error: true` ; la coupure côté hôte
+(l'hôte ferme) fait fermer la connexion amont et donne la même marque. La
+passerelle NE DOIT PAS réémettre la requête (5.7).
+
+#### 5.3.3 Gemini : du premier octet au dernier (révision 0.5)
+
+Une route de format `gemini` suit 5.3.1 et 5.3.2 avec les règles propres de
+cette sous-section. Les faits de l'API viennent des documents de découverte
+v1 et v1beta (révision `20261024`, R11-F1 à F3, F11 à F15), du code des deux
+SDK officiels (R11-F5 à F9, F16 à F18, F22) et d'observations directes avec
+une clé invalide (R11-F19 à F21).
+
+**EX-5.28** **Route Gemini.** Une route de format `gemini` porte comme `path`
+le chemin de la **collection des modèles** d'une version de l'API :
+`/v1beta/models` (celle que les deux SDK emploient par défaut, R11-F6, F7)
+ou `/v1/models` (R11-F2), une route par version. Elle sert exactement deux
+couples, et aucun autre :
+
+| Méthode | Chemin reçu (après la normalisation d'EX-5.2) | Méthode Gemini |
+|---|---|---|
+| `POST` | `<path>/<modèle>:generateContent` | réponse entière (R11-F1) |
+| `POST` | `<path>/<modèle>:streamGenerateContent` | réponse en flux (R11-F1, F5) |
+
+où `<modèle>` est un segment unique qui respecte
+`^[a-z0-9][a-z0-9.-]{0,127}$` (motif de l'enregistreur : ni `/`, ni `:`, ni
+encodage pourcent ; il admet les identifiants des exemples officiels, comme
+`gemini-2.0-flash`, R11-F4) et où le `:` qui précède le nom de méthode est
+littéral (`%3A` est un caractère réservé, que la normalisation d'EX-5.2 ne
+décode pas : un chemin qui l'emploie ne correspond pas). La correspondance
+est : préfixe égal à `<path>/`, puis segment conforme au motif, puis suffixe
+égal, octet pour octet, à `:generateContent` ou à `:streamGenerateContent`.
+Toute autre forme reçoit `404` sans relais, comme tout couple non nommé
+(EX-5.2) : préfixe `tunedModels/` (R11-F7), autre méthode (`countTokens`,
+par exemple), chemin Vertex `projects/…/locations/…` (R11-F23), URL de base
+seule (SDK en mode Vertex sans projet, région ni clé, R11-F9). Vers l'amont,
+la passerelle envoie `POST <upstream><path>/<modèle>:<méthode>`, **reconstruit**
+depuis la route, le segment admis et le nom de méthode reconnu (jamais le
+texte reçu), suivi de `?alt=sse` pour `streamGenerateContent` et d'aucune
+chaîne de requête pour `generateContent` (EX-5.29). Le segment `<modèle>`
+est inscrit au journal d'exploitation avec le `seq` de l'échange, et sert de
+repli à `code.model` (EX-5.36). La liste `passthrough` d'une route `gemini`
+ne contient que des couples exacts (par exemple `{ "method": "GET", "path":
+"/v1beta/models" }`) ; un chemin de `passthrough` ne peut pas contenir `:`
+(motif du schéma), il ne recouvre donc jamais les deux couples servis.
+
+**EX-5.29** **Chaîne de requête d'une route Gemini.** Par exception à EX-5.2,
+la chaîne de requête d'une route `gemini` est **interprétée** : le texte qui
+suit le premier `?` est coupé sur `&` ; chaque élément est `nom=valeur` (ou
+`nom` seul, valeur vide) ; noms et valeurs sont décodés de l'encodage
+pourcent. Sont admis, et seulement eux :
+
+| Méthode | Chaîne admise | Envoyée à l'amont |
+|---|---|---|
+| `generateContent` | aucune, ou exactement un paramètre `alt` de valeur `json` (la valeur par défaut du paramètre, R11-F3) | aucune |
+| `streamGenerateContent` | exactement un paramètre `alt` de valeur `sse` | `?alt=sse` |
+
+Tout autre cas est refusé par `400` avec le corps d'EX-5.30, sans relais et
+sans événement, et consigné (`model_request_refused`, route, raison, **noms**
+des paramètres reçus, dont seuls `key` et `alt` sont écrits tels quels :
+tout autre nom, qui peut être un secret collé sans `=`, est écrit
+`[autre:<longueur en octets>]` ; jamais leurs valeurs, ni le `sha256` de la
+chaîne),
+la raison étant, dans cet ordre d'examen : `cle_dans_url` si un paramètre
+`key` est présent (le paramètre que le document de découverte décrit comme
+« API key », R11-F3 : une clé dans l'URL se retrouve dans les journaux des
+intermédiaires, et les SDK officiels envoient la clé par l'en-tête
+`x-goog-api-key`, R11-F6) ; `flux_sans_sse` pour `streamGenerateContent`
+sans `alt=sse` (la forme d'un flux réussi sans `alt=sse` n'est pas vérifiée,
+R11-NV2 ; l'erreur observée est un tableau JSON, R11-F19 ; les SDK officiels
+envoient toujours `alt=sse`, R11-F5) ; `parametre_non_admis` pour tout autre
+paramètre, une valeur d'`alt` hors de la table (le document de découverte
+énumère `json`, `media` et `proto`, R11-F3, qui changeraient le format de la
+réponse) ou un paramètre répété. Ainsi `streamGenerateContent?alt=sse&x=1`
+donne `parametre_non_admis` (un paramètre `alt` de valeur `sse` est présent,
+`x` ne l'est pas dans la table) et `streamGenerateContent?alt=json` donne
+`flux_sans_sse`. La chaîne n'étant pas relayée telle quelle, son `sha256`
+n'est pas consigné (il serait, avec `key`, l'empreinte d'un secret).
+
+**EX-5.30** **Corps d'erreur de la passerelle au format Gemini.** Toute
+réponse qu'une route `gemini` produit elle-même (refus d'EX-5.7, d'EX-5.8
+pour un hôte inconnu, d'EX-5.29, d'EX-5.32, d'EX-5.33 ; délai d'EX-5.24 ;
+blocage de 14.2) porte le corps
+JSON de l'AIP-193
+`{"error":{"code":<statut HTTP>,"message":"noortrace: …","status":"<nom>"}}`
+sans `details` (forme lue par le SDK Python, qui lit `error.code`,
+`error.message` et `error.status`, R11-F20), avec le `Content-Type` que le
+fournisseur emploie pour une erreur de la même méthode : `application/json;
+charset=UTF-8` pour `generateContent` et pour un `streamGenerateContent`
+refusé par `flux_sans_sse`, `text/event-stream` pour un
+`streamGenerateContent` avec `alt=sse` (observé, R11-F19, F21). Le nom de
+`status` est celui que l'énumération `google.rpc.Code` associe au statut
+HTTP (fichier `google/rpc/code.proto` du dépôt `googleapis/googleapis`,
+commit `728c111a933ef4c7fc4cbc35894c559aa9eb2615`, lignes 57-58
+`INVALID_ARGUMENT` « HTTP Mapping: 400 Bad Request », 66-67
+`DEADLINE_EXCEEDED` « HTTP Mapping: 504 Gateway Timeout », 179-180
+`UNAVAILABLE` « HTTP Mapping: 503 Service Unavailable », lu le 2026-10-26 ;
+`UNAUTHENTICATED` « HTTP Mapping: 401 Unauthorized » dans l'énumération
+`status` du document de découverte de Vertex AI v1, révision `20261012`,
+R11-F23, relu le 2026-10-26 ;
+la page « Troubleshooting » de l'API Gemini cite aussi « 503 UNAVAILABLE »,
+https://ai.google.dev/gemini-api/docs/troubleshooting, mise à jour du
+2026-10-23, lue le 2026-10-26) ; `413` et `415` n'ont pas de correspondance
+dans `code.proto` : l'enregistreur emploie `INVALID_ARGUMENT`. Corps exacts
+(octets ASCII, sans espace) :
+
+| Statut | Cas | Corps |
+|---|---|---|
+| `400` | corps non analysable (EX-5.7 point 2) | `{"error":{"code":400,"message":"noortrace: corps de requete non analysable","status":"INVALID_ARGUMENT"}}` |
+| `400` | `cle_dans_url` (EX-5.29) | `{"error":{"code":400,"message":"noortrace: cle d'API dans l'URL refusee","status":"INVALID_ARGUMENT"}}` |
+| `400` | `flux_sans_sse` (EX-5.29) | `{"error":{"code":400,"message":"noortrace: streamGenerateContent exige alt=sse","status":"INVALID_ARGUMENT"}}` |
+| `400` | `parametre_non_admis` (EX-5.29) | `{"error":{"code":400,"message":"noortrace: parametre de requete non admis","status":"INVALID_ARGUMENT"}}` |
+| `400` | `serveurs_mcp_fournisseur` (EX-5.32) | `{"error":{"code":400,"message":"noortrace: serveurs MCP declares au fournisseur refuses","status":"INVALID_ARGUMENT"}}` |
+| `400` | `cache_fournisseur` (EX-5.32) | `{"error":{"code":400,"message":"noortrace: contenu en cache du fournisseur refuse","status":"INVALID_ARGUMENT"}}` |
+| `401` | `hote_inconnu` (EX-5.8, pas 3 de 5.3.3) | `{"error":{"code":401,"message":"noortrace: hote non authentifie","status":"UNAUTHENTICATED"}}` |
+| `413` | `taille` (EX-5.33) | `{"error":{"code":413,"message":"noortrace: corps de requete trop grand","status":"INVALID_ARGUMENT"}}` |
+| `415` | `content_encoding` (EX-5.7 point 1) | `{"error":{"code":415,"message":"noortrace: requete comprimee refusee","status":"INVALID_ARGUMENT"}}` |
+| `503` | échange bloqué, mode dégradé (14.2) | `{"error":{"code":503,"message":"noortrace: echange bloque, enregistreur en mode degrade","status":"UNAVAILABLE"}}` |
+| `504` | délai du fournisseur, rien encore relayé (EX-5.24) | `{"error":{"code":504,"message":"noortrace: delai du fournisseur depasse","status":"DEADLINE_EXCEEDED"}}` |
+
+**EX-5.31** **Réponse amont d'erreur sur une route Gemini.** Quand le statut
+amont est `≥ 400`, la passerelle relaie à l'hôte le statut, les en-têtes de la
+liste de 5.3 et le corps inchangés (EX-5.23) ; pour la pièce « réponse », le
+corps entier (dans la borne d'EX-5.33) est analysé en JSON strict **quel que
+soit le `Content-Type`** : avec `alt=sse`, Gemini rend son erreur en
+`text/event-stream`, sous forme d'un objet JSON indenté, sans ligne `data:`
+(observé pour `400` et pour `401` Vertex, R11-F19, F21), que l'analyseur de
+5.4.1 ne distribuerait pas. Le membre `body` de l'objet `noortrace_http_error`
+de 5.3.1 pas 7 est la valeur analysée si l'analyse réussit, sinon la règle de
+5.3.1 pas 7 s'applique telle quelle (chaîne UTF-8, objet
+`noortrace_non_redigeable`, ou `null` si le corps est vide). L'analyseur SSE
+n'est jamais appliqué à une réponse de statut `≥ 400` d'une route `gemini`.
+Exemple de pièce (avant rédaction ; corps observé, R11-F19, tronqué ici à son
+premier élément de `details`) :
+
+```json
+{
+  "noortrace_http_error": {
+    "status": 400,
+    "content_type": "text/event-stream",
+    "body": {
+      "error": {
+        "code": 400,
+        "message": "API key not valid. Please pass a valid API key.",
+        "status": "INVALID_ARGUMENT",
+        "details": [
+          {
+            "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+            "reason": "API_KEY_INVALID",
+            "domain": "googleapis.com",
+            "metadata": { "service": "generativelanguage.googleapis.com" }
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+**EX-5.32** **Serveurs MCP déclarés au fournisseur.** Le membre
+`tools[].mcpServers` d'une requête Gemini demande au **serveur de Google** de
+se connecter lui-même à des serveurs MCP (« MCP Servers to connect to »,
+R11-F14 ; un tableau dans le SDK Python, `mcp_servers:
+Optional[list[McpServer]]`, paquet `google-genai` 2.33.0,
+`google/genai/types.py`, classe `Tool` à partir de la ligne 5369, lu le
+2026-10-26) : ces appels d'outils passent entre Google et le serveur MCP,
+hors du frontal MCP et hors du pare-feu de sortie du client (4.9, EX-6.2).
+Une requête dont un élément de `tools` est un objet qui porte `mcpServers`
+avec une valeur autre que `null` et `[]` est, selon le membre `provider_mcp`
+de la route (15.1) : `refuser` (défaut, membre absent compris) → refusée par
+`400` avec le corps `serveurs_mcp_fournisseur` d'EX-5.30, sans relais et
+sans événement, consignée (`model_request_refused`, raison
+`serveurs_mcp_fournisseur`, nombre d'entrées, jamais leurs URL) ; `relayer`
+→ relayée, consignée (`provider_mcp_bypass`, route, nombre d'entrées), et
+l'échange donne son événement normal (la déclaration est dans la pièce
+« requête », rédigée). Le contrôle porte sur la valeur analysée, après
+EX-5.7 point 2. Les parts `toolCall` et `toolResponse` (outils exécutés par
+Google, « The client is NOT expected to execute this `ToolCall` », R11-F14)
+ne sont jamais refusées : elles restent dans les pièces et ne sont jamais des
+appels d'outil (5.5, 5.8).
+
+**Contenu mis en cache chez le fournisseur.** Le membre `cachedContent` de
+`GenerateContentRequest` désigne un contenu « to use as context to serve the
+prediction » (format `cachedContents/{cachedContent}`) ; un `CachedContent`
+porte `contents`, `systemInstruction`, `tools` (donc `mcpServers`) et
+`toolConfig`, et se crée par `POST v1beta/cachedContents` (document de
+découverte v1beta, révision `20261024`, R11-F1, relu le 2026-10-26). Ce
+contenu n'est jamais vu par la passerelle : ni la pièce « requête », ni le
+prompt système (5.5), ni le contrôle de `mcpServers` ci-dessus ne le
+couvrent, et un cache créé par une autre charge du même projet suffit à
+l'employer. Une requête dont la valeur analysée (après EX-5.7 point 2) porte
+`cachedContent` avec une valeur autre que `null` est, selon le membre
+`provider_cache` de la route (15.1) : `refuser` (défaut, membre absent
+compris) → refusée par `400` avec le corps `cache_fournisseur` d'EX-5.30,
+sans relais et sans événement, consignée (`model_request_refused`, raison
+`cache_fournisseur`) ; `relayer` → relayée et consignée
+(`provider_cache_reference`, route), l'échange donnant son événement normal
+(la référence est dans la pièce « requête »). Que l'API accepte aussi les
+noms d'origine en snake_case (`cached_content`, `mcp_servers`) n'est pas
+vérifié : la passerelle applique à ces deux noms les mêmes règles. La
+validation (EX-15.4) refuse sur une route `gemini` un couple `passthrough`
+`POST` dont le chemin contient le segment `cachedContents` ou commence par
+`/upload/`, qui créerait hors capture le contenu désigné. Pour le SDK
+(EX-6.8), `cachedContent` est consigné (`provider_cache_reference`), jamais
+refusé.
+
+**EX-5.33** **Bornes de taille (tous formats).** Une requête de modèle dont
+le corps dépasse `limits.model_request_max_bytes` est refusée par `413`, sans
+relais et sans événement, et consignée (`model_request_refused`, raison
+`taille`, longueur reçue jusqu'à la borne) ; corps : celui d'EX-5.30 pour
+Gemini, `{"type":"error","error":{"type":"noortrace_taille","message":"noortrace: corps de requete trop grand"}}`
+pour Messages, `{"error":{"message":"noortrace: corps de requete trop grand","type":"invalid_request_error","param":null,"code":"noortrace_taille"}}`
+pour Chat Completions et Responses. Une réponse dont le corps (décomprimé,
+EX-5.9) dépasse `limits.model_response_max_bytes` continue d'être relayée à
+l'hôte octet pour octet, sans tampon (la passerelle ne tronque pas ce que
+l'hôte reçoit) ; la capture s'arrête à la borne : en flux, les événements
+au-delà ne sont pas analysés et la forme consolidée reçoit
+`"noortrace_flux_incomplet": true` ; hors flux, ou pour un corps d'erreur, la
+pièce est la forme `noortrace_non_redigeable` d'EX-8.7 avec `"reason":
+"taille"` et `length` = nombre d'octets reçus en tout ; dans les deux cas
+`is_error: true`, et la ligne `model_response_truncated` (route, octets reçus)
+est consignée. (La version 0.4 donne les deux bornes sans dire ce qui se
+passe au-delà ; cette règle comble ce manque pour tous les formats.)
+
+**Chemin de données d'un échange Gemini, dans l'ordre.** Les pas de 5.3.1
+s'appliquent ; voici, pour une route `gemini`, ce qui est lu, vérifié, écrit,
+haché et envoyé, du premier octet reçu au dernier octet relayé :
+
+1. **Réception.** La passerelle lit la ligne de requête et les en-têtes sur
+   `model.listen` ; `t_recu`. Cadrage d'EX-5.26 (`400` si `Content-Length` et
+   `Transfer-Encoding` sont tous deux présents).
+2. **Chemin.** Normalisation d'EX-5.2 (`400` pour `%2F`, segment `.` ou
+   `..`, barre oblique doublée, octet hors de l'ASCII imprimable) ;
+   correspondance d'EX-5.28 parmi les routes `gemini`, puis égalité avec les
+   routes des autres formats et les couples `passthrough` ; aucune → `404`
+   sans relais. La méthode Gemini (`generateContent` ou
+   `streamGenerateContent`) et le segment `<modèle>` sont fixés.
+3. **Connexion d'hôte.** EX-5.8 : `X-Noortrace-Token` ou, en `credentials:
+   "propre"`, l'en-tête `x-goog-api-key` (le SDK y met la valeur de son
+   paramètre `api_key`, R11-F6 : l'hôte y met le jeton statique de la
+   passerelle) ; aucune entrée de `model.hosts` → `401` sans relais. Les
+   en-têtes `X-Noortrace-Run-Id` et `X-Noortrace-On-Behalf-Of` sont lus
+   (EX-7.2) puis retirés.
+4. **Chaîne de requête.** EX-5.29 (`400`).
+5. **Corps.** Lecture complète dans la borne `limits.model_request_max_bytes`
+   (`413`, EX-5.33) ; `Content-Encoding` autre que `identity` → `415`
+   (EX-5.7 point 1) ; analyse en JSON strict → `400` (EX-5.7 point 2).
+6. **Serveurs MCP et contenu en cache au fournisseur.** EX-5.32 (`400`
+   sous `refuser`, pour `mcpServers` puis pour `cachedContent`).
+7. **Forme attendue.** `contents` est un tableau : sinon la requête est
+   relayée telle quelle, sans pièce « prompt système » (EX-5.7 point 3).
+8. **Pièces de requête.** Prompt système tiré de `systemInstruction` (table
+   de 5.5) ; pièce « prompt système » (8.2) ; pièce « requête » : JCS
+   intégral du corps rédigé (portée `requete`), `systemInstruction` remplacé
+   ou rédigé en place selon `model.prompt_in_request` (EX-8.5) ; écriture des
+   deux pièces sous leur `sha256` et `fsync` **avant** l'envoi (EX-5.10).
+9. **Envoi.** `POST <upstream><path>/<modèle>:<méthode>` (et `?alt=sse` pour
+   le flux) ; en-têtes : `Host` du fournisseur, `Accept-Encoding: identity`,
+   `Content-Type` et `Accept` relayés, `Content-Length` calculé,
+   `x-goog-api-key` (secret de la route en `propre` ; valeur de l'hôte en
+   `relayer`), `user-agent` et `x-goog-api-client` relayés et notés ; corps =
+   octets reçus recopiés ; `t_envoi` ; délai `model.connect_timeout_ms`.
+10. **Réponse.** Statut et en-têtes relayés à l'hôte dès réception. Statut
+    `≥ 400` → EX-5.31. Statut `2xx` : type de média `text/event-stream` →
+    5.3.2 (relais octet par octet dès réception, analyse en parallèle par
+    5.4.1 et EX-5.34, réassemblage par EX-5.35) ; `application/json` →
+    corps lu entièrement et analysé (5.3.1 pas 5) ; autre type, ou corps qui
+    ne s'analyse pas → pièce non JSON (EX-8.7), `is_error: true`.
+11. **Fin de la réponse.** Fin du corps amont : `t_reponse`, `duration_ms =
+    t_reponse − t_envoi`. La forme en clair (corps hors flux ou forme
+    consolidée) est inscrite au registre de corrélation **avant** le
+    scellement (5.6) ; pièce « réponse » = JCS intégral de la forme rédigée
+    (portée `reponse`) ; extraction de `code.model` (EX-5.36), d'`intent`
+    et des appels de fonction (5.5) depuis la forme **rédigée** ;
+    `is_error` (EX-5.35 pas 6, ou statut `≥ 400`).
+12. **Événement.** `noortrace.modele.echange`, construit comme pour les
+    autres formats (7.2) : `arguments` = référence à la pièce « requête »,
+    `result` = référence à la pièce « réponse », `status: "executee"`,
+    `duration_ms`, `is_error`, `effects: []`, `context: []`, `policy.decision:
+    "sans_objet"`, `approval: null`, `delegation` de l'entrée de
+    `model.hosts`, `code.prompt_version` = `sha256` de la pièce « prompt
+    système » ou `null` ; scellé, ajouté au segment, `fsync`. Aucune valeur
+    nouvelle de CT-1 n'est employée.
+
+**Pannes d'un échange Gemini et réponse écrite de chacune.**
+
+| Panne | Moment | Rendu à l'hôte | Événement | Journal d'exploitation |
+|---|---|---|---|---|
+| Démon arrêté ou injoignable avant la réception (rien n'écoute sur `model.listen`) | avant le pas 1 | aucune réponse HTTP : le SDK de l'agent reçoit une erreur de connexion et ne relance pas par défaut (R11-F22) ; le pare-feu de sortie (4.9 point 2) lui interdit de joindre Google directement | aucun ; aucune pièce | rien (le démon ne tourne pas ; un démon qui n'a pas démarré faute de configuration valide a seulement consigné `config_invalid`, 14.2) |
+| Chemin non reconnu (`tunedModels/`, `countTokens`, chemin Vertex, URL de base seule) | pas 2 | `404`, sans corps propre au format (aucune route n'est trouvée) | aucun | `model_route_not_found` (méthode, longueur du chemin) |
+| Hôte inconnu | pas 3 | `401`, corps d'EX-5.30 (`hote_inconnu`) | aucun | refus consigné (EX-5.8) |
+| Chaîne de requête refusée (`key`, flux sans `alt=sse`, paramètre non admis) | pas 4 | `400`, corps d'EX-5.30 | aucun | `model_request_refused` (raison, noms des paramètres) |
+| Corps trop grand, comprimé, non analysable | pas 5 | `413`, `415` ou `400`, corps d'EX-5.30 | aucun | `model_request_refused` (raison, longueur, `Content-Type`) |
+| `mcpServers` sous `provider_mcp: "refuser"` | pas 6 | `400`, corps d'EX-5.30 | aucun | `model_request_refused` (`serveurs_mcp_fournisseur`) |
+| `cachedContent` sous `provider_cache: "refuser"` | pas 6 | `400`, corps d'EX-5.30 | aucun | `model_request_refused` (`cache_fournisseur`) |
+| Mode dégradé bloquant pour les échanges (14.2) | avant le pas 9 | `503`, corps d'EX-5.30 | aucun | `call_blocked` |
+| Connexion au fournisseur impossible ou délai de connexion | pas 9 | `504`, corps d'EX-5.30 | `executee`, `is_error: true`, pièce `noortrace_timeout` phase `connexion` (EX-5.24) | `provider_error` |
+| Délai du premier octet | pas 10 | `504`, corps d'EX-5.30 | idem, phase `premier_octet` | `provider_error` |
+| Statut amont `≥ 400` (clé invalide, quota, `500`, `503`) | pas 10 | statut, en-têtes et corps amont inchangés (EX-5.23) | `executee`, `is_error: true`, pièce `noortrace_http_error` (EX-5.31) | `provider_error` (statut) |
+| Silence au-delà d'`idle_timeout_ms` pendant le flux | pas 10 | flux clos vers l'hôte | `executee`, `is_error: true`, forme consolidée incomplète | `provider_error` |
+| Coupure amont pendant le flux, ou fin du corps sans candidat terminé | pas 10-11 | flux clos (ce qui a été reçu a été relayé) | `executee`, `is_error: true`, `noortrace_flux_incomplet` (EX-5.35) | `provider_error` |
+| Morceau d'erreur `{"error":…}` dans un `data` après un `200` (forme non observée, R11-NV7) | pas 10 | relayé tel quel | `executee`, `is_error: true`, `noortrace_erreur_flux` (EX-5.35) | `provider_error` |
+| L'hôte ferme la connexion pendant le flux | pas 10 | — | connexion amont fermée ; `executee`, `is_error: true`, forme incomplète (EX-5.13) | `host_disconnected` |
+| Réponse au-delà de `limits.model_response_max_bytes` | pas 10 | relayée entière | `executee`, `is_error: true` (EX-5.33) | `model_response_truncated` |
+| Panne de stockage, de clé, de bail ou d'horloge après l'envoi | pas 11-12 | réponse déjà relayée | événement en attente (EX-4.46, 14.5) | ligne de la panne (14.2) |
+| Arrêt du démon (plantage, arrêt brutal) après l'envoi et avant le scellement | pas 9-12 | réponse relayée en tout (hors flux) ou en partie (flux), ou rien | aucun : perte admise, comme une lecture en vol (13.5) ; les pièces « requête » et « prompt système », durables depuis le pas 8, restent dans `pieces/` sans événement qui les cite | rien avant la reprise (13.5) |
+
+Sur une route d'un autre format (5.7), un démon arrêté ou injoignable
+avant la réception donne de même : aucune réponse HTTP, une erreur de
+connexion pour le SDK de l'hôte, aucun événement ni aucune pièce ; une
+relance éventuelle appartient au SDK de l'hôte (EX-5.25) et échoue de même
+tant que rien n'écoute.
+
+La passerelle ne réémet jamais une requête Gemini (EX-5.25) : les SDK
+officiels ne relancent pas par défaut (R11-F22), et la continuation
+automatique du SDK Python (`continuationToken`, active par défaut, R11-F15)
+envoie des requêtes nouvelles, chacune un échange distinct.
 
 ### 5.4 Réassemblage des flux, fournisseur par fournisseur
 
@@ -2045,15 +2641,21 @@ seul espace initial ; une ligne sans `:` est un nom de champ à valeur vide ;
 dernier `\n` est retiré à la distribution ; `id` et `retry` sont lus et
 ignorés par l'enregistreur ; tout autre champ est ignoré ; le type par défaut
 est `message` ; un tampon `data` vide ne distribue rien ; un `data` en attente
-sans ligne vide finale n'est pas distribué. La valeur `data` distribuée est
+sans ligne vide finale n'est pas distribué, et une dernière ligne sans fin de
+ligne n'est pas lue (sauf pour une route `gemini`, EX-5.34). La valeur `data`
+distribuée est
 analysée en JSON ; une valeur qui n'est pas du JSON (`[DONE]` chez OpenAI) est
 traitée par la règle du fournisseur.
 
-**EX-5.27** Règles communes aux trois réassemblages, qui bornent ce qu'un
+**EX-5.27** Règles communes aux quatre réassemblages (Anthropic, Chat
+Completions, Responses, Gemini par EX-5.35 pas 4), qui bornent ce qu'un
 fournisseur (ou un flux altéré) peut faire de la forme consolidée : (1) un
-**index** (`index` d'Anthropic et de Chat Completions, `output_index` de
-Responses) n'est admis que s'il est un nombre JSON de valeur entière, au
-moins 0 et au plus 2^53 (une chaîne `"0"` n'est pas un index) ; (2) un
+**index** (`index` d'Anthropic, de Chat Completions et de Gemini,
+`output_index` de Responses) n'est admis que s'il est un nombre JSON (une
+chaîne `"0"` n'est pas un index) dont la valeur, le double IEEE 754 le plus
+proche du texte reçu (celui d'EX-8.1), est entière, au moins 0 et au plus
+2^53 : `1.0` est admis et vaut 1, `9007199254740993` est admis et vaut 2^53,
+`9007199254740994` est refusé ; (2) un
 index qui désigne une position d'un tableau (`content` d'Anthropic, `output`
 de Responses) n'est admis que s'il est au plus égal à la longueur courante du
 tableau (égal : l'élément est ajouté ; inférieur : il est remplacé) ; un index
@@ -2064,6 +2666,27 @@ dont un membre attendu manque ou n'a pas le type attendu (objet pour
 chaîne pour `text`, `partial_json`, `thinking`, `signature`) est ignoré ;
 (4) tout événement ignoré est compté dans le journal d'exploitation et
 n'est jamais une erreur de l'enregistreur (EX-7.1).
+
+**EX-5.34** **`data` final d'un flux Gemini.** Pour une route `gemini` (et
+pour une réponse déclarée au format `gemini` par le SDK, EX-6.8), à la fin
+du corps amont, quelle qu'en soit la cause, une dernière ligne non vide
+sans fin de ligne **est d'abord lue comme une ligne** (règles d'EX-5.14),
+puis un tampon `data` non vide resté sans ligne vide finale **est
+distribué**, par exception aux deux dernières règles d'EX-5.14, et compté
+dans le journal d'exploitation (`sse_data_final_sans_ligne_vide`). Motif : la
+forme exacte d'un flux réussi (fin de ligne, ligne vide finale) n'est pas
+observée (R11-NV1) ; le SDK Python lit le flux par `iter_lines()` de httpx
+(`_api_client.py` l. 488), qui rend aussi une dernière ligne sans fin de ligne
+(httpx 0.28.1, `_decoders.py`, `LineDecoder.flush`, l. 371-377, lu le
+2026-10-26), et rend le `data` en attente à la fin du flux (`_api_client.py`
+l. 521-522, R11-F16) ; le SDK JavaScript lève une erreur dans ce cas
+(R11-F17). Distribuer ne fait entrer dans la forme qu'un objet JSON complet :
+un `data` tronqué ne s'analyse pas et est ignoré (EX-5.35 pas 1) ; ainsi
+`data: {"a":1}` CRLF `data: {"b"` sans fin distribue `{"a":1}\n{"b"`, qui ne
+s'analyse pas et est ignoré. Les autres règles d'EX-5.14 s'appliquent telles
+quelles : fins de ligne CRLF, LF ou CR, un seul espace retiré après `data:` (le
+SDK Python n'accepte que `data: ` avec espace, le SDK JavaScript accepte `data:`
+seul, R11-F16, F17), lignes `event:`, `id:` et commentaires lus et ignorés.
 
 #### 5.4.2 API Messages d'Anthropic
 
@@ -2187,31 +2810,167 @@ flux brut (EX-8.7). Les deltas (`response.output_text.delta`,
 `response.function_call_arguments.delta`) ne sont pas accumulés : la réponse
 terminale les contient.
 
-**EX-5.18** Les trois formes consolidées sont des valeurs JSON ; la pièce
-« réponse » est leur JCS intégral après rédaction (section 8). Les clés
-`noortrace_flux_incomplet`, `noortrace_erreur_flux` et
-`noortrace_input_json_invalide` sont les seules que l'enregistreur ajoute à
-une forme consolidée ; un vérificateur ou un lecteur les reconnaît à leur
-préfixe.
+#### 5.4.5 Gemini (révision 0.5)
+
+Les événements du flux sont des lignes `data:` seules ; chaque `data` porte un
+objet `GenerateContentResponse` complet (« a stream of GenerateContentResponse
+instances », R11-F4) dont les membres sont `candidates`, `modelStatus`,
+`modelVersion`, `promptFeedback`, `responseId` et `usageMetadata` (R11-F12) ;
+il n'y a pas d'événement terminal. Le SDK officiel ne fusionne pas les
+morceaux : chaque `data` devient un objet distinct, et l'historique de
+conversation ajoute un `Content` par morceau (R11-F18). Que les `text`
+successifs soient des incréments, et que `usageMetadata` et `finishReason` ne
+figurent que sur le dernier morceau, n'est pas documenté (R11-NV4) : la règle
+ci-dessous ne fusionne rien et ne dépend pas de ces deux points.
+
+**EX-5.35** **Forme consolidée Gemini.** À partir des valeurs `data`
+distribuées par 5.4.1 et EX-5.34, dans l'ordre :
+
+1. **Analyse.** Chaque valeur est analysée en JSON strict (bornes de
+   profondeur et de membres de 4.4 pas 1) ; une valeur qui ne s'analyse pas,
+   ou qui n'est pas un objet JSON, est ignorée et comptée (EX-5.27 (4)).
+2. **Morceau d'erreur.** Un objet dont le membre `error` est un objet est un
+   morceau d'erreur (le SDK JavaScript lève une erreur sur un tel objet dont
+   `error.code` est un nombre de 400 à 599, R11-F17 ; la forme réelle d'une
+   erreur en cours de flux n'est pas observée, R11-NV7) : la forme reçoit
+   `"noortrace_erreur_flux": <l'objet error>` et `is_error = true` ; reçu
+   avant tout morceau valide, il donne la forme réduite, exactement
+   `{"noortrace_erreur_flux": <objet error>}`, sans
+   `noortrace_flux_incomplet` (comme la forme réduite de Responses, 5.4.4) :
+   les pas 5 et 6 ne s'appliquent pas à elle, et l'échange est incomplet
+   (`is_error = true`). Tout ce qui suit un morceau d'erreur est ignoré et
+   compté.
+3. **Membres de premier niveau.** Au premier morceau valide, la forme est
+   l'objet vide `{}`. Pour chaque morceau, chaque membre autre que
+   `candidates` **remplace** celui de la forme (le dernier reçu l'emporte :
+   `modelVersion`, `responseId`, `usageMetadata`, `promptFeedback`,
+   `modelStatus`, et tout membre inconnu).
+4. **Candidats.** Un membre `candidates` qui n'est pas un tableau est ignoré
+   et compté. Chaque élément du tableau qui est un objet est un fragment de
+   candidat ; un élément qui n'est pas un objet est ignoré et compté. L'index
+   du fragment est son membre `index` s'il est présent et admis par EX-5.27
+   (1), `0` s'il est absent ; un `index` présent et non admis (chaîne `"0"`,
+   nombre non entier, négatif) fait ignorer le fragment, compté. Le candidat
+   d'index égal est créé au besoin, **à la suite** des candidats déjà créés
+   (ordre de première apparition, comme les choix de Chat Completions,
+   EX-5.16), sous la forme `{"index": n, "content": {"parts": []}}`. Puis,
+   pour chaque membre du fragment :
+   - `index` : déjà lu ;
+   - `content` : s'il n'est pas un objet, ignoré et compté ; sinon chaque
+     élément objet de `content.parts` (un tableau ; sinon ignoré et compté)
+     est **ajouté à la fin** de `content.parts` du candidat, dans l'ordre
+     reçu, sans fusion avec la part précédente (un élément de `parts` qui
+     n'est pas un objet est ignoré et compté), et chaque autre membre de
+     `content` (`role`, et tout membre inconnu) remplace celui du candidat ;
+   - tout autre membre (`finishReason`, `finishMessage`, `safetyRatings`,
+     `citationMetadata`, `groundingMetadata`, `tokenCount`, `avgLogprobs`,
+     `logprobsResult`, `urlContextMetadata`, `continuationToken`, et tout
+     membre inconnu, R11-F12) remplace celui du candidat.
+5. **Clôture.** À la fin du corps amont, si au moins un candidat a été créé,
+   la forme reçoit `candidates` = le tableau des candidats dans l'ordre de
+   création ; sinon elle n'a pas de membre `candidates`.
+6. **Fin normale.** La fin est normale si et seulement si le corps amont
+   s'est terminé normalement (ni coupure amont, ni délai, ni fermeture par
+   l'hôte, ni borne d'EX-5.33) **et** soit au moins un candidat porte un
+   `finishReason` qui est une chaîne non vide (« If empty, the model has not
+   stopped generating tokens », R11-F12), soit aucun candidat n'a été créé et
+   la forme porte un `promptFeedback` objet (réponse sans candidat ; sa forme
+   en flux n'est pas observée, R11-NV4). Sinon la forme reçoit
+   `"noortrace_flux_incomplet": true` et `is_error = true`. La valeur de
+   `finishReason` est acceptée telle quelle, sans déduction (comme
+   `stop_reason`, 5.4.2) ; une génération arrêtée sur `CONTINUATION`
+   (R11-F12, F15) est un échange terminé normalement, et sa reprise par
+   `continuationToken` est un échange distinct.
+7. **Aucun morceau.** Si aucun morceau valide ni aucun morceau d'erreur n'a
+   été reçu (flux vide compris), il n'y a pas de forme consolidée : la pièce
+   « réponse » est le flux brut (règle de 8.3) ; l'échange est marqué
+   incomplet (aucun membre n'est ajouté, puisqu'il n'y a pas de forme), et
+   `is_error = true`.
+
+Les parts sont gardées telles quelles, `thought`, `thoughtSignature`,
+`functionCall`, `toolCall`, `toolResponse`, `executableCode`,
+`codeExecutionResult` et `inlineData` compris (R11-F13, F14) : la pièce
+prouve ce qui a été reçu, part par part ; seules les valeurs tirées pour
+l'événement (5.5) choisissent parmi elles. Un `functionCall` de Vertex
+transmis en flux par `partialArgs` (R11-F24) n'est pas réassemblé : Vertex est
+en version 1 (5.2).
+
+Exemple. Transcription d'un flux `alt=sse` de deux morceaux (forme de
+l'enregistreur pour les vecteurs, fins de ligne LF, R11-NV1) :
+
+```text
+data: {"candidates": [{"content": {"parts": [{"text": "Je consulte "}],"role": "model"},"index": 0}],"usageMetadata": {"promptTokenCount": 58,"totalTokenCount": 58},"modelVersion": "gemini-exemple-001","responseId": "rep-exemple-0001"}
+
+data: {"candidates": [{"content": {"parts": [{"text": "le sinistre 2026-81044."},{"functionCall": {"name": "demo__claims_get","args": {"claim_id": "2026-81044"}}}],"role": "model"},"finishReason": "STOP","index": 0}],"usageMetadata": {"promptTokenCount": 58,"candidatesTokenCount": 21,"totalTokenCount": 79},"modelVersion": "gemini-exemple-001","responseId": "rep-exemple-0001"}
+
+```
+
+Forme consolidée (avant rédaction ; la pièce « réponse » est son JCS intégral
+après rédaction) :
+
+```json
+{
+  "usageMetadata": { "promptTokenCount": 58, "candidatesTokenCount": 21, "totalTokenCount": 79 },
+  "modelVersion": "gemini-exemple-001",
+  "responseId": "rep-exemple-0001",
+  "candidates": [
+    {
+      "index": 0,
+      "content": {
+        "parts": [
+          { "text": "Je consulte " },
+          { "text": "le sinistre 2026-81044." },
+          { "functionCall": { "name": "demo__claims_get", "args": { "claim_id": "2026-81044" } } }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}
+```
+
+Valeurs tirées (5.5) : `code.model = "gemini/gemini-exemple-001"` (route de
+libellé `gemini`) ; `intent = "Je consulte le sinistre 2026-81044."` ; un
+appel de fonction demandé `{ "id": null, "name": "demo__claims_get",
+"arguments": { "claim_id": "2026-81044" } }`, à la position 2 des parts ;
+`is_error: false`. Si le corps s'était arrêté après le premier morceau, la
+forme porterait `"noortrace_flux_incomplet": true` (aucun `finishReason`) et
+`is_error` vaudrait `true`. Chaque morceau et la forme consolidée, sans les
+clés `noortrace_*`, s'analysent sans erreur dans le type
+`GenerateContentResponse` du SDK Python officiel (`google-genai` 2.33.0,
+`model_validate_json`, modèles `pydantic` à alias camelCase et membres
+inconnus refusés : `google/genai/_common.py` l. 600-607, lu le 2026-10-26) ;
+c'est la confrontation tierce des vecteurs (annexe B.5). Le nom
+`demo__claims_get` illustre ici la forme consolidée d'un flux, pas la
+corrélation de 5.6 : il ne correspond au nom annoncé `demo__claims.get`
+qu'avec `tool_name_sanitize: true` (19.5.7, condition (1)).
+
+**EX-5.18** Les quatre formes consolidées (Anthropic, Chat Completions,
+Responses, Gemini) sont des valeurs JSON ; la pièce « réponse » est leur JCS
+intégral après rédaction (section 8). Les clés `noortrace_flux_incomplet`,
+`noortrace_erreur_flux` et `noortrace_input_json_invalide` sont les seules que
+l'enregistreur ajoute à une forme consolidée ; un vérificateur ou un lecteur
+les reconnaît à leur préfixe.
 
 ### 5.5 Extraction
 
-| Grandeur CT-1 | Anthropic Messages | OpenAI Chat Completions | OpenAI Responses | Si absent |
-|---|---|---|---|---|
-| `code.model` | `<libellé de la route>/` + `message.model` de la réponse (hors flux) ou de la forme consolidée | `<libellé>/` + `completion.model` | `<libellé>/` + `response.model` | `<libellé>/` + `model` de la requête si elle a la forme attendue (EX-5.7) ; sinon `null` |
-| Prompt système (pièce) | `system` : chaîne, ou concaténation des `text` des blocs `TextBlockParam` (type `text`) séparés par `\n` (R2 F-A9) | Concaténation, dans l'ordre, des `content` des messages de rôle `system` et `developer` (chaîne, ou `text` de leurs parties de type `text`), séparés par `\n` (R2 F-O4) | `instructions` (chaîne), puis les `content` des items de rôle `developer` ou `system` de `input` (chaîne, ou `text` de leurs parties de type `input_text` ou `text`), séparés par `\n` (R2 F-R1) | pas de pièce, `prompt_version: null` |
-| `code.prompt_version` | SHA-256 des octets UTF-8 de la pièce « prompt système » rédigée (8.2) | idem | idem | `null` |
-| `intent` | Concaténation des `text` des blocs `content` de type `text` de la réponse, séparés par `\n` | `choices[0].message.content` | Concaténation des `text` des parties `output_text` des items `message` de `output`, séparés par `\n` | `null` |
-| Appels d'outils demandés par le modèle (pour 5.6) | blocs `tool_use` : `id`, `name`, `input` (R2 F-A15) | `choices[0].message.tool_calls[]` : `id`, `function.name`, `function.arguments` (chaîne JSON) (R2 F-O10) | items `function_call` : `call_id`, `name`, `arguments` (chaîne JSON) (R2 F-R3) | aucun |
-| Résultats d'outils fournis par l'hôte | blocs `tool_result` : `tool_use_id`, `content`, `is_error` (R2 F-A16) | messages `role: "tool"` : `tool_call_id`, `content` (R2 F-O8) | items `function_call_output` : `call_id`, `output` (R2 F-R4) | aucun |
-| Usage | `usage` (`input_tokens`, `output_tokens`, caches ; cumulatif en flux, R2 F-A20, F-A21) | `usage` (dernier chunk seulement, R2 F-O12) | `usage` (R2 F-R2) | — |
+| Grandeur CT-1 | Anthropic Messages | OpenAI Chat Completions | OpenAI Responses | Gemini | Si absent |
+|---|---|---|---|---|---|
+| `code.model` | `<libellé de la route>/` + `message.model` de la réponse (hors flux) ou de la forme consolidée | `<libellé>/` + `completion.model` | `<libellé>/` + `response.model` | `<libellé>/` + `modelVersion` de la réponse ou de la forme consolidée (R11-F12, la réponse n'a pas de membre `model`), EX-5.36 | `<libellé>/` + `model` de la requête si elle a la forme attendue (EX-5.7) ; Gemini : `<libellé>/` + segment de modèle du chemin (EX-5.36) ; sinon `null` |
+| Prompt système (pièce) | `system` : chaîne, ou concaténation des `text` des blocs `TextBlockParam` (type `text`) séparés par `\n` (R2 F-A9) | Concaténation, dans l'ordre, des `content` des messages de rôle `system` et `developer` (chaîne, ou `text` de leurs parties de type `text`), séparés par `\n` (R2 F-O4) | `instructions` (chaîne), puis les `content` des items de rôle `developer` ou `system` de `input` (chaîne, ou `text` de leurs parties de type `input_text` ou `text`), séparés par `\n` (R2 F-R1) | `systemInstruction` (un objet `Content`, « Currently, text only », R11-F11) : concaténation, dans l'ordre, des `text` (chaînes) des éléments de son tableau `parts`, séparés par `\n` ; un `systemInstruction` qui n'est pas un objet à `parts` tableau ne donne pas de pièce | pas de pièce, `prompt_version: null` |
+| `code.prompt_version` | SHA-256 des octets UTF-8 de la pièce « prompt système » rédigée (8.2) | idem | idem | idem | `null` |
+| `intent` | Concaténation des `text` des blocs `content` de type `text` de la réponse, séparés par `\n` | `choices[0].message.content` | Concaténation des `text` des parties `output_text` des items `message` de `output`, séparés par `\n` | Concaténation, **sans séparateur**, des `text` (chaînes) des parts de `candidates[0].content.parts` qui ne portent pas `thought: true` (R11-F13) : les parts d'un flux ne sont pas fusionnées (EX-5.35), et un séparateur insérerait dans le texte un caractère que le modèle n'a pas produit ; texte vide → `null` | `null` |
+| Appels d'outils demandés par le modèle (pour 5.6) | blocs `tool_use` : `id`, `name`, `input` (R2 F-A15) | `choices[0].message.tool_calls[]` : `id`, `function.name`, `function.arguments` (chaîne JSON) (R2 F-O10) | items `function_call` : `call_id`, `name`, `arguments` (chaîne JSON) (R2 F-R3) | parts de `candidates[0].content.parts` qui portent un objet `functionCall` : `id` (chaîne, sinon `null` : membre facultatif, R11-F13, NV3), `name`, `args` (objet ; absent → `{}`) ; seule une part `functionCall` est un appel demandé au client (« If populated, the client to execute the `function_call` », R11-F13) : une part `toolCall` est exécutée par Google (R11-F14), et les parts `executableCode` et `codeExecutionResult` (R11-F13), dont l'exécutant n'a pas été lu, ne sont pas des appels pour 5.6 | aucun |
+| Résultats d'outils fournis par l'hôte | blocs `tool_result` : `tool_use_id`, `content`, `is_error` (R2 F-A16) | messages `role: "tool"` : `tool_call_id`, `content` (R2 F-O8) | items `function_call_output` : `call_id`, `output` (R2 F-R4) | parts `functionResponse` (`id`, `name`, `response`) des éléments de `contents`, de rôle `user` ou `function` (les deux rôles sont écrits dans la référence, R11-F11, F13) | aucun |
+| Usage | `usage` (`input_tokens`, `output_tokens`, caches ; cumulatif en flux, R2 F-A20, F-A21) | `usage` (dernier chunk seulement, R2 F-O12) | `usage` (R2 F-R2) | `usageMetadata` (R11-F12 ; en flux, celui du dernier morceau qui le porte, EX-5.35 pas 3 ; cumulatif ou non : non vérifié, R11-NV4) | — |
 
 **EX-5.19** Le libellé de fournisseur est celui de la route de configuration
 (`provider_label`, motif `^[a-z0-9][a-z0-9.-]{0,31}$` ; valeurs recommandées :
-`anthropic`, `openai`, `bedrock-mantle`, `azure-openai`) ; `code.model` =
-`<libellé>/<champ model de la réponse>`, tronqué à 256 caractères si
-nécessaire (borne de CT-1). Le modèle de la réponse prime sur celui de la
-requête parce que c'est celui qui a servi.
+`anthropic`, `openai`, `bedrock-mantle`, `azure-openai`, `gemini`) ;
+`code.model` = `<libellé>/<champ model de la réponse>`, tronqué à 256
+caractères si nécessaire (borne de CT-1). Le modèle de la réponse prime sur
+celui de la requête parce que c'est celui qui a servi.
 
 **EX-5.20** `usage` n'entre pas dans l'événement (CT-1 n'a pas de champ pour
 lui) : il est dans la pièce « réponse » et dans le journal d'exploitation et
@@ -2225,6 +2984,25 @@ donnerait sur la réponse en clair (une règle de rédaction l'a modifié), il
 devient une référence à une pièce (CT-1 §5.3 : « ou référence quand le texte
 est plus long ou rédigé ») dont les octets sont le texte UTF-8, `media_type:
 "text/plain"`, et `redacted` vaut `true` dans le second cas.
+
+**EX-5.36** **`code.model` d'un échange Gemini.** `code.model` vaut
+`<libellé>/` suivi du `modelVersion` de la réponse **rédigée** (hors flux) ou
+de la forme consolidée rédigée, si c'est une chaîne non vide ; à défaut
+(réponse sans `modelVersion`, statut `≥ 400`, forme réduite à une erreur,
+requête sans la forme attendue), `<libellé>/` suivi du **segment de modèle**
+du chemin (EX-5.28) ; tronqué à 256 caractères (EX-5.19). Le repli sur le
+segment est une exception écrite à EX-5.7 point 3 (« jamais de la
+requête ») : la réponse Gemini ne porte pas de membre `model` (R11-F12), le
+segment n'est pas une valeur du corps de l'agent, il a passé le motif
+d'EX-5.28, et c'est la passerelle qui l'a envoyé au fournisseur dans l'URL
+qu'elle a reconstruite. Il entre en ligne dans la chaîne et ne peut pas être
+purgé : il n'y entre que si aucun détecteur de texte de la politique de
+rédaction (ceux de toutes ses règles, quels que soient leur portée, leurs
+outils et leur `path`) n'y trouve de correspondance, comme un `run_id`
+déclaré (EX-7.2) ; sinon `code.model` vaut `null` et le refus est consigné
+(`model_segment_refused`, EX-17.2), sans la valeur. Le membre `model` du corps
+(`GenerateContentRequest.model`, R11-F11) n'est jamais lu. Le SDK en déclare un
+autre repli (EX-6.8).
 
 ### 5.6 Corrélation appel d'outil ↔ échange de modèle
 
@@ -2272,23 +3050,48 @@ que :
    du nom deviennent `_`, R9 F-05 ; le gabarit par défaut est
    `{tool_announced}` sans normalisation, c'est-à-dire l'identité) ;
 2. les arguments correspondent : `JCS_integral(A) = JCS_integral(args)`, où
-   `args` est `input` (Anthropic) ou le résultat de l'analyse JSON de la
-   chaîne `arguments` (OpenAI) ; une chaîne `arguments` qui n'est pas du JSON
-   ne correspond jamais.
+   `args` est `input` (Anthropic), `args` du `functionCall` (Gemini : un objet,
+   `{}` s'il est absent ; un `args` présent qui n'est pas un objet ne
+   correspond jamais), ou le résultat de l'analyse JSON de la chaîne
+   `arguments` (OpenAI) ; une chaîne `arguments` qui n'est pas du JSON ne
+   correspond jamais.
+
+Pour un appel déclaré par `debutAppel` (6.2), qui exécute le pas 3 de 4.4,
+la règle s'applique de même : `N` est le `tool` déclaré, nom court que le
+modèle voit (EX-6.18), et non le nom `<alias>__<tool>` de l'événement
+(EX-6.6), comme pour le recouvrement (EX-6.34 : « pour le SDK, le `tool`
+déclaré ») ; `A` sont les `arguments` déclarés ; `G` est le `host_group` de
+l'entrée de `sdk.hosts` de la session, et `R` le `run_id` de sa délégation
+(7.2). Seuls `code.model` et `code.prompt_version` en sont tirés :
+l'`intent` d'un appel du SDK est la valeur que `debutAppel` déclare (table
+`intent` de 7.2), jamais un intent corrélé.
+
+**Préférence de l'échange interposé** (révision 0.5). Le registre de
+corrélation note, pour chaque échange, s'il a été vu par la passerelle
+(interposé) ou déclaré par le SDK (`echangeModele`, EX-6.8). La recherche
+porte d'abord sur les seuls échanges interposés ; un échange déclaré n'est
+retenu que si aucun échange interposé ne correspond, et la corrélation est
+alors consignée comme déclarée (`correlation_declaree`, `seq` de l'échange).
+Un agent ne peut donc pas, en déclarant un échange fabriqué, faire préférer
+son `intent`, son `code.model` et son `code.prompt_version` à ceux d'un
+échange que la passerelle a vu.
 
 Si un échange correspond : `intent` = le texte de l'assistant qui précède
-l'appel, extrait de la **réponse rédigée** (Anthropic : concaténation des
-blocs `text` d'index inférieur à celui du bloc `tool_use` ; Chat Completions
-: `choices[0].message.content` ; Responses : concaténation des `output_text`
-des items `message` d'`output_index` inférieur), borné et mis en référence
-comme en EX-5.21 ; `code.model` et `code.prompt_version` = ceux de
-l'échange ; l'appel du modèle est marqué consommé (un même bloc `tool_use` ne
-sert qu'à un appel). Sinon : `intent`, `code.model` et `code.prompt_version`
-valent `null` ; aucun échange antérieur n'est repris par défaut. Le
-résultat de la corrélation (`seq` de l'échange, ou de son inscription s'il
-n'est pas encore scellé, ou `aucun`) est consigné dans le journal
-d'exploitation. Une ré-émission après approbation ne passe pas par cette
-règle : elle reprend l'intention de l'appel retenu (4.4 pas 3, EX-7.12).
+l'appel, extrait de la **réponse rédigée** (Anthropic : concaténation des blocs
+`text` d'index inférieur à celui du bloc `tool_use` ; Chat Completions :
+`choices[0].message.content` ; Responses : concaténation des `output_text` des
+items `message` d'`output_index` inférieur ; Gemini : concaténation, sans
+séparateur, des `text` des parts de `candidates[0].content.parts` d'indice
+inférieur à celui de la part `functionCall`, hors parts `thought: true`), borné
+et mis en référence comme en EX-5.21 ; `code.model` et `code.prompt_version` =
+ceux de l'échange ; l'appel du modèle est marqué consommé (un même bloc
+`tool_use`, ou une même part `functionCall`, ne sert qu'à un appel). Sinon :
+`intent`, `code.model` et `code.prompt_version` valent `null` ; aucun échange
+antérieur n'est repris par défaut. Le résultat de la corrélation (`seq` de
+l'échange, ou de son inscription s'il n'est pas encore scellé, ou `aucun`) est
+consigné dans le journal d'exploitation. Une ré-émission après approbation ne
+passe pas par cette règle : elle reprend l'intention de l'appel retenu (4.4 pas
+3, EX-7.12).
 
 Limites, dites en clair : la corrélation est heuristique et **déclarative** ;
 elle échoue si l'hôte réécrit les arguments entre le modèle et l'appel MCP, si
@@ -2296,13 +3099,23 @@ le modèle demande deux appels identiques, si plusieurs agents partagent un
 groupe d'hôte sans déclarer de `run_id`, si l'hôte exécute un appel d'outil
 avant la fin de la réponse du modèle (au `content_block_stop` du bloc
 `tool_use`, par exemple : l'échange n'est alors pas encore inscrit), ou si le
-frontal modèle est désactivé. En modes `icap` et `miroir`, l'hôte ne déclare
+frontal modèle est désactivé. Quand aucun échange interposé ne correspond,
+un `intent` corrélé peut venir d'un échange déclaré par le SDK : la
+corrélation consignée le dit, et l'événement de l'échange porte sa marque
+(EX-7.7). En modes `icap` et `miroir`, l'hôte ne déclare
 pas de `run_id` (EX-5.8) : seule la règle de groupe s'applique. Le groupe
 d'hôte est fixé par le client, jamais par l'hôte : une session SDK ou un hôte
-d'un autre groupe ne peut pas faire attribuer son échange aux appels d'un
-agent en déclarant son `run_id`. Un `intent` corrélé n'est pas une preuve
-que ce texte a causé cet appel : il est le texte que le modèle a produit
-avant de demander un appel identique.
+d'un autre groupe ne peut pas faire attribuer son échange aux appels d'un agent
+en déclarant son `run_id`. Un `intent` corrélé n'est pas une preuve que ce
+texte a causé cet appel : il est le texte que le modèle a produit avant de
+demander un appel identique. Pour Gemini, `functionCall.id` est facultatif et
+son remplissage par l'API n'est pas observé (R11-F13, NV3) : la règle ne s'en
+sert pas (elle ne s'en sert pour aucun format) ; deux `functionCall` de même
+nom et de mêmes arguments dans une réponse ne se distinguent que par l'ordre de
+consommation. Avec l'appel automatique de fonctions de google-genai, actif par
+défaut (R12-F42), le SDK exécute lui-même une fonction Python, hors de tout
+frontal : l'appel n'est visible que par la part `functionResponse` de la
+requête suivante (5.8, EX-19.6).
 
 ### 5.7 Erreurs HTTP, délais, aucune relance autonome
 
@@ -2316,18 +3129,23 @@ request_too_large`, `429 rate_limit_error`, `500 api_error`, `504
 timeout_error`, `529 overloaded_error`, R2 F-A31) et une erreur en cours de
 flux après un `200` (R2 F-A23) sont tous des échanges `executee` avec
 `is_error: true`, comme CT-1 §5.3 l'exige (« une requête qui n'obtient pas de
-réponse exploitable est journalisée avec `is_error: true` »).
+réponse exploitable est journalisée avec `is_error: true` »). Pour Gemini, la
+forme de corps d'erreur est celle de l'AIP-193 (`error.code` = statut HTTP,
+`error.message`, `error.status`, `error.details`, R11-F20), lue quel que soit
+le `Content-Type` (EX-5.31).
 
-**EX-5.24** Délais : `connect_timeout_ms` (connexion au fournisseur, défaut
-10 000), `first_byte_timeout_ms` (premier octet de réponse, défaut 120 000),
+**EX-5.24** Délais : `connect_timeout_ms` (connexion au fournisseur, défaut 10
+000), `first_byte_timeout_ms` (premier octet de réponse, défaut 120 000),
 `idle_timeout_ms` (silence entre deux octets d'un flux, défaut 120 000). Au
 délai, la passerelle ferme la connexion amont et répond à l'hôte `504` avec le
-corps `{"type":"error","error":{"type":"noortrace_timeout","message":"noortrace:
-delai du fournisseur depasse"}}` (si rien n'a encore été relayé) ou clôt le
-flux (si la réponse est déjà en cours) ; l'événement porte `is_error: true`
-et la pièce `{"noortrace_http_error": {"status": 504, "content_type": null,
-"body": {"noortrace_timeout": {"phase": "connexion" ou "premier_octet" ou
-"inactivite", "timeout_ms": N}}}}` ou la forme consolidée incomplète.
+corps
+`{"type":"error","error":{"type":"noortrace_timeout","message":"noortrace:
+delai du fournisseur depasse"}}` (sur une route `gemini`, le corps `504`
+d'EX-5.30) (si rien n'a encore été relayé) ou clôt le flux (si la réponse est
+déjà en cours) ; l'événement porte `is_error: true` et la pièce
+`{"noortrace_http_error": {"status": 504, "content_type": null, "body":
+{"noortrace_timeout": {"phase": "connexion" ou "premier_octet" ou "inactivite",
+"timeout_ms": N}}}}` ou la forme consolidée incomplète.
 
 **EX-5.25** La passerelle NE DOIT jamais réémettre d'elle-même une requête de
 modèle (pas de relance sur `429`, `500`, `529`, ni sur coupure) : la relance
@@ -2357,8 +3175,28 @@ la chaîne. Elle relaie `retry-after` et `x-should-retry` tels quels (R7 F-35).
 - L'exécution des outils par l'hôte lui-même quand le frontal MCP n'est pas
   sur le chemin : visible seulement par les `tool_result` de la requête
   suivante, qui sont dans la pièce « requête ».
+- Pour Gemini : ce que Google exécute de son côté (parts `toolCall` et
+  `toolResponse` des types `GOOGLE_SEARCH_WEB`, `GOOGLE_SEARCH_IMAGE`,
+  `URL_CONTEXT`, `GOOGLE_MAPS`, `FILE_SEARCH`, R11-F14) : visible seulement par
+  les parts de la réponse, dans la pièce ; les serveurs MCP déclarés au
+  fournisseur (`tools[].mcpServers`), refusés par défaut et, sous
+  `provider_mcp: "relayer"`, connus par leur seule déclaration (EX-5.32) ; le
+  contenu désigné par `cachedContent` (prompt système, contenus, outils et
+  serveurs MCP mis en cache chez Google, R11-F1), refusé par défaut et, sous
+  `provider_cache: "relayer"`, connu par sa seule référence (EX-5.32).
+- Les fonctions Python exécutées par l'appel automatique de fonctions de
+  google-genai (actif par défaut, sans rappel d'observation trouvé dans le
+  code lu, R12-F42, NV-R12-6) : visibles seulement par la part
+  `functionResponse` de la requête suivante, sans politique ni approbation
+  (EX-19.6).
+- Une erreur Gemini insérée au milieu d'un flux réussi hors d'une ligne
+  `data:` (forme non observée, R11-NV7) : relayée à l'hôte, absente de la
+  forme consolidée, qui est alors incomplète faute de `finishReason`.
+- Vertex AI et la surface « Interactions » (version 1, 5.2) : leurs chemins
+  reçoivent `404` (EX-5.28).
 
-## 6. SDK
+## 6. SDK, adaptateurs et ingestion OpenTelemetry
+
 
 ### 6.1 Périmètre
 
@@ -2369,6 +3207,16 @@ Le SDK **ne capture rien par lui-même** : il remet au démon, par la prise
 locale, ce que l'agent déclare, et le démon fait le reste (politique,
 rédaction, pièces, scellement, stockage). Il ne détient ni clé, ni politique,
 ni stockage.
+
+Depuis la révision 0.5, la section couvre trois chemins **déclaratifs**,
+par opposition aux frontaux des sections 4 et 5, qui s'interposent : le
+SDK appelé directement par l'agent (6.2, 6.5) ; les **adaptateurs de
+cadres**, qui appellent le SDK depuis les points d'accroche des cadres
+d'agents (6.6) ; l'**ingestion OpenTelemetry**, par laquelle le démon
+reçoit, après coup, les spans GenAI que l'agent exporte (6.8). Aucun des
+trois ne voit ce qui passe sur le réseau : chacun remet ce que le
+processus de l'agent déclare. La section 6.7 dit ce que chacun prouve et
+ne prouve pas par rapport à la passerelle et au frontal MCP.
 
 **EX-6.1** Le SDK est une bibliothèque dans le processus de l'agent qui parle
 au démon par une prise de domaine Unix (ou une prise TCP locale) avec le
@@ -2397,10 +3245,10 @@ sémantique. Les valeurs sont celles de CT-1.
 |---|---|---|---|
 | `noortrace/sdk/ouvrir` | `{ "run_id": chaîne ou null, "on_behalf_of": chaîne ou null }` | `{ "session": chaîne, "org_id", "journal_id", "policy_version" }` | Ouvre une session SDK ; `launched_by` et `scope` viennent de la configuration de la connexion d'hôte (EX-7.3), `run_id` et `on_behalf_of` sont déclarés par l'agent (déclaratif) |
 | `noortrace/sdk/declarerContexte` | `{ "session", "kind": "document" ou "donnees" ou "memoire" ou "autre", "media_type": chaîne ou null, "bytes_base64": chaîne }` | `{ "sha256", "length", "redacted" }` | Le démon rédige si la politique le prévoit (portée `contexte`), stocke la pièce, rend la référence ; l'agent la cite ensuite par `sha256`, dans la même session seulement |
-| `noortrace/sdk/debutAppel` | `{ "session", "tool": nom court (motif CT-1, sans `__`, hors `noortrace.`), "arguments": valeur JSON, "class": "lecture" ou "ecriture" ou null, "context": [sha256…], "intent": chaîne ou null, "effects": [effets déclarés] ou null }` | `{ "call": chaîne ou null, "decision": "autorise" ou "a_approuver" ou "refuse", "ticket": chaîne ou null, "ticket_state": "nouveau" ou "en_attente" ou "approuve" ou "refuse" ou "expire" ou null }` | Pas 2 à 8 de 4.4 : nom annoncé `<alias SDK>__<tool>` (EX-6.6), classe (déclarée, à défaut configuration, à défaut `ecriture`), politique (réponse d'`evaluer`, EX-7.16), pièce « arguments », événement `retenue` ou `refusee` s'il y a lieu, vérifications de relais pour un ticket approuvé (EX-7.21), intention écrite et `fsync` pour `ecriture` ; le SDK n'exécute l'outil que si `decision = "autorise"` (EX-6.7) ; `call` est nul sauf pour `autorise` |
+| `noortrace/sdk/debutAppel` | `{ "session", "tool": nom court (motif CT-1, sans `__`, hors `noortrace.`), "arguments": valeur JSON, "class": "lecture" ou "ecriture" ou null, "context": [sha256…], "intent": chaîne ou null, "effects": [effets déclarés] ou null }` | `{ "call": chaîne ou null, "decision": "autorise" ou "a_approuver" ou "refuse", "ticket": chaîne ou null, "ticket_state": "nouveau" ou "en_attente" ou "approuve" ou "refuse" ou "expire" ou null }` | Pas 2 à 8 de 4.4 : nom annoncé `<alias SDK>__<tool>` (EX-6.6), corrélation de 5.6 pour `code.model` et `code.prompt_version` (pas 3, EX-5.22 ; l'`intent` est celui que l'agent déclare, 7.2), classe (celle de la configuration du démon prime ; une classe déclarée ne peut que la renforcer, de `lecture` à `ecriture`, et un écart est consigné `sdk_class_override_refused` ; sans classe configurée, la déclarée, à défaut `ecriture`), politique (réponse d'`evaluer`, EX-7.16), pièce « arguments », événement `retenue` ou `refusee` s'il y a lieu, vérifications de relais pour un ticket approuvé (EX-7.21), intention écrite et `fsync` pour `ecriture` ; le SDK n'exécute l'outil que si `decision = "autorise"` (EX-6.7) ; `call` est nul sauf pour `autorise` |
 | `noortrace/sdk/finAppel` | `{ "call", "result": valeur JSON ou null, "is_error": booléen, "duration_ms": entier }` | `{ "seq", "hash" }` | Pas 12 et 13 : pièce « résultat », événement `executee` scellé et durable ; le résultat est rendu après `fsync` |
-| `noortrace/sdk/echangeModele` | `{ "session", "format": "anthropic-messages" ou "openai-chat" ou "openai-responses" ou "autre", "provider_label", "request": valeur JSON, "response": valeur JSON, "status": entier HTTP ou null, "duration_ms": entier, "is_error": booléen }` | `{ "seq", "hash" }` | Événement `noortrace.modele.echange` ; pour un format v0, l'extraction de 5.5 s'applique ; pour `autre`, `code.model = provider_label + "/" + request.model` si présent, `intent = null`, `prompt_version = null` |
-| `noortrace/sdk/fermer` | `{ "session" }` | `{}` | Clôt la session ; un `debutAppel` sans `finAppel` à la fermeture donne l'événement de reprise de la section 12 (l'agent a disparu pendant l'appel) |
+| `noortrace/sdk/echangeModele` | `{ "session", "format": "anthropic-messages" ou "openai-chat" ou "openai-responses" ou "gemini" ou "autre", "provider_label", "request": valeur JSON, "response": valeur JSON, "status": entier HTTP ou null, "duration_ms": entier, "is_error": booléen }` | `{ "seq", "hash" }` | Événement `noortrace.modele.echange` ; pour un format v0, l'extraction de 5.5 s'applique ; pour `gemini`, EX-6.8 ; pour `autre`, `code.model = provider_label + "/" + request.model` si présent, `intent = null`, `prompt_version = null` ; `context[0]` porte la pièce de déclaration de source du SDK (EX-7.7) |
+| `noortrace/sdk/fermer` | `{ "session" }` | `{}` | Clôt la session ; un `debutAppel` qui a écrit une intention (classe `ecriture`, ou approuvé, EX-6.7 ; EX-12.12) sans `finAppel` à la fermeture donne l'événement de reprise de la section 12 (l'agent a disparu pendant l'appel) ; un `debutAppel` de lecture non soumis à approbation n'en donne aucun (13.5) |
 
 **EX-6.3** `debutAppel` DOIT précéder l'exécution de l'outil par l'agent et
 `finAppel` la suivre ; la durée `duration_ms` est mesurée par le SDK autour de
@@ -2456,28 +3304,1515 @@ borne de temps, pour un outil de classe `ecriture` ou susceptible
 d'approbation, rend `-31010`, raison `redaction`, avant l'intention ou
 l'événement `retenue` (4.4 pas 4, EX-10.23).
 
+**EX-6.8** **Échange Gemini déclaré par le SDK.** Avec `"format":
+"gemini"`, ajout compatible de la révision 0.5 (aucune méthode, aucun
+paramètre et aucun résultat nouveaux ; les autres formats ne changent pas) :
+
+1. `request` est le corps `GenerateContentRequest` de l'API (`contents`,
+   `systemInstruction`, `tools`, `toolConfig`, `generationConfig`, …,
+   R11-F11), en JSON aux noms de l'API (camelCase), tel que l'agent l'a
+   envoyé ; il est traité comme le corps d'une requête de route `gemini`
+   (EX-5.7 point 3, pièces de 5.3.1 pas 3, EX-8.5) ; un membre
+   `tools[].mcpServers` non vide y est consigné (`provider_mcp_bypass`) mais
+   jamais refusé : le SDK déclare un échange déjà fait ; de même, un membre
+   `cachedContent` de valeur autre que `null` y est consigné
+   (`provider_cache_reference`), jamais refusé (EX-5.32, dernière phrase).
+2. `response` est soit un **objet** (réponse hors flux, ou corps d'erreur
+   quand `status ≥ 400`), soit un **tableau d'objets** : les morceaux d'un
+   flux, dans l'ordre de réception (le SDK officiel rend un objet par
+   morceau, R11-F18). Un tableau est consolidé par EX-5.35 comme si chacun
+   de ses éléments était une valeur `data` distribuée, et la fin du tableau
+   vaut fin normale du corps ; la pièce « réponse » est la forme consolidée.
+   Un tableau vide donne la forme `{"noortrace_flux_incomplet": true}` et
+   `is_error: true`.
+3. Avant tout traitement, le démon retire de l'objet de premier niveau de
+   `response` (et de chaque élément d'un tableau) les membres
+   `sdkHttpResponse`, `automaticFunctionCallingHistory` et `parsed`, que le
+   SDK Python ajoute à ses objets et qui ne sont pas des membres de l'API
+   (`google-genai` 2.33.0, `google/genai/types.py`, classe
+   `GenerateContentResponse` à partir de la ligne 8754 : `sdk_http_response`,
+   `automatic_function_calling_history`, `parsed`, lu le 2026-10-26 ;
+   `sdkHttpResponse` porte les en-têtes HTTP de la réponse) ; chaque retrait
+   est consigné (`sdk_member_removed`, nom du membre). L'adaptateur DEVRAIT
+   les exclure lui-même à la sérialisation.
+4. `status ≥ 400` : la pièce « réponse » est l'objet `noortrace_http_error`
+   de 5.3.1 pas 7 avec `content_type: null` et `body` = `response` ;
+   `is_error: true`. Dans tous les cas, `is_error` de l'événement est le
+   `is_error` déclaré **ou** l'erreur calculée (`status ≥ 400`, forme
+   incomplète, morceau d'erreur, tableau vide) ; `duration_ms` est recopié
+   tel que déclaré et n'entre dans aucune pièce.
+5. `code.model` = `provider_label + "/" + modelVersion` de la réponse rédigée
+   (ou de la forme consolidée rédigée) si c'est une chaîne non vide ; sinon
+   `provider_label + "/" + request.model` si `request.model` est une chaîne
+   qui, privée d'un préfixe `models/` (R11-F7), respecte le motif du segment
+   d'EX-5.28 et ne déclenche aucun détecteur de texte (EX-5.36) ; sinon
+   `null`. `intent`, prompt système et appels de fonction : table de 5.5,
+   colonne Gemini.
+6. L'échange est **déclaratif** (6.3) : le démon n'a vu ni la requête HTTP ni
+   le flux ; la forme consolidée prouve ce que l'agent a déclaré, pas ce que
+   Google a rendu. Il entre au registre de corrélation de 5.6 **comme échange
+   déclaré** (la session SDK porte son groupe d'hôte) : un échange interposé
+   lui est toujours préféré (EX-5.22). Son événement porte en `context[0]`
+   la pièce de déclaration de source du SDK (EX-7.7), à quoi un lecteur le
+   distingue d'un échange de la passerelle.
+
+Exemple de paramètres d'un `echangeModele` en flux (valeurs illustratives) :
+
+```json
+{
+  "session": "s-0000000000000001",
+  "format": "gemini",
+  "provider_label": "gemini",
+  "request": {
+    "contents": [{ "role": "user", "parts": [{ "text": "Ouvre le sinistre 2026-81044." }] }],
+    "systemInstruction": { "parts": [{ "text": "Tu es l'agent sinistres de l'assureur de démonstration." }] }
+  },
+  "response": [
+    { "candidates": [{ "content": { "parts": [{ "text": "Je consulte " }], "role": "model" }, "index": 0 }], "modelVersion": "gemini-exemple-001" },
+    { "candidates": [{ "content": { "parts": [{ "text": "le sinistre." }], "role": "model" }, "finishReason": "STOP", "index": 0 }], "modelVersion": "gemini-exemple-001" }
+  ],
+  "status": 200,
+  "duration_ms": 812,
+  "is_error": false
+}
+```
+
 ### 6.3 Limites
 
 - Ce que le SDK voit est ce que l'agent lui montre : arguments, résultat,
   requête, réponse et `intent` sont déclaratifs. `effects` déclarés par le SDK
   sont recopiés tels quels après validation de forme (CT-1 §5.3) et marqués
   comme déclarés dans le journal d'exploitation.
-- Le SDK ne corrèle pas lui-même appel et échange : la règle 5.6 s'applique
-  côté démon si l'agent a déclaré ses échanges de modèle par `echangeModele`.
+- Le SDK ne corrèle pas lui-même appel et échange : le démon applique la
+  règle 5.6 à chaque `debutAppel`, qui exécute le pas 3 de 4.4 (EX-5.22).
+  `code.model` et `code.prompt_version` de l'appel en viennent (colonne
+  « Appel d'outil (MCP, SDK) » de la table `code` de 7.2). La recherche se
+  fait dans le groupe d'hôte de l'entrée de `sdk.hosts` de la session :
+  parmi les échanges interposés de la passerelle d'abord, puis parmi les
+  échanges déclarés par `echangeModele` (« Préférence de l'échange
+  interposé », EX-5.22). Un échange déclaré peut donc servir à la
+  corrélation, sans en être la condition : avec `modele="passerelle"`
+  (EX-6.17), c'est l'échange interposé qui corrèle. L'`intent` d'un appel
+  déclaré par `debutAppel` ne vient jamais de la corrélation : c'est la
+  valeur déclarée, rédigée selon la portée `arguments`, sinon `null` (table
+  `intent` de 7.2) ; un adaptateur la laisse à `null` (EX-6.18).
+- Un `echangeModele` est une déclaration : un agent compromis peut déclarer
+  une requête et une réponse fabriquées. Son événement a la forme d'un
+  échange de la passerelle (`noortrace.modele.echange`), mais porte en
+  `context[0]` la pièce de déclaration de source du SDK
+  `{"noortrace_capture":{"channel":"sdk","source":"<alias>"}}` (EX-7.7), que
+  la passerelle ne pose jamais : c'est à elle seule que le lecteur reconnaît
+  le rang déclaratif (6.7). Un échange déclaré ne corrèle un appel du frontal
+  MCP que faute d'échange interposé correspondant (EX-5.22) ; la corrélation
+  est alors consignée comme déclarée, et l'`intent` qu'elle donne est une
+  déclaration de l'agent.
 - Un agent compromis peut ne pas appeler le SDK, appeler `finAppel` avec un
   faux résultat, ou déclarer un faux `intent` : seul le pare-feu (EX-6.2) borne
   le premier cas ; les deux autres restent possibles et sont la raison pour
   laquelle le SDK est dit « faible » dans l'architecture.
+- Un adaptateur hérite des limites du SDK et de celles de son cadre : il
+  ne voit que les outils que le cadre fait passer par son point
+  d'accroche ; un outil que l'agent appelle hors du cadre, ou qu'un
+  fournisseur exécute de son côté, n'est pas déclaré (6.6).
+- L'ingestion OpenTelemetry est postérieure à l'acte : elle ne peut rien
+  bloquer, elle dépend de l'échantillonnage et de l'exportateur de
+  l'agent, et le contenu (messages, arguments, résultats) n'y est présent
+  que si l'instrumentation l'enregistre, ce qu'elle ne fait pas par défaut
+  (R11-F31, 6.8).
 
 ### 6.4 Langages de la version 0
 
-**EX-6.5** La version 0 publie le SDK en **TypeScript/JavaScript** (Node.js 20
-ou plus, la version minimale du SDK TypeScript d'Anthropic, R4 F1.5.11) et en
-**Python** (3.10 ou plus, la version minimale d'`openai-agents` 0.24.0 et de
-`langchain` 1.4.7, R7 F-52, F-72), parce que ce sont les deux langages des
-hôtes et des cadres d'agents de la section 19. Les deux SDK partagent les
-vecteurs de l'annexe B (`pieces-mcp`, `redaction` : le SDK ne calcule rien,
-mais ses tests vérifient que le démon rend les références attendues).
+**EX-6.5** (modifiée par la révision 0.5) La version 0 publie le SDK en
+**TypeScript/JavaScript**, pour **Node.js 22 ou plus**, et en **Python**,
+**3.10 ou plus**, parce que ce sont les deux langages des hôtes et des
+cadres d'agents de la section 19. Node.js 20 est en fin de vie depuis le
+2026-04-30 (calendrier officiel de Node.js, R12-F43) ; le SDK `openai`
+pour npm 7.43.0 exige Node.js 22 et `@openai/agents` 0.21.0 le demande ;
+le SDK TypeScript d'Anthropic 1.3.0 ne prend en charge que les versions
+qui ne sont pas en fin de vie (R12-F45). Python 3.10 est en fin de vie
+depuis le 2026-10-01 (R12-F44), mais les SDK et cadres lus l'acceptent
+encore au 2026-10-26 (`openai` 3.37.0, `anthropic` 2.3.0, `mcp` 2.3.0,
+`openai-agents` 0.24.0, `langchain` 1.4.7, `langgraph` 1.2.17,
+`crewai` 1.15.30, `llama-index-core` 0.14.25, `litellm` 1.106.4 :
+R12-F1, R12-F46) : 3.10 reste le plancher de compatibilité. L'intégration
+continue du SDK Python essaie au moins 3.10 et 3.13 (`crewai` 1.15.30
+exclut 3.14 et `litellm` 1.106.4 exclut 3.15, R12-F46). Les deux SDK
+partagent les vecteurs de l'annexe B (`pieces-mcp`, `redaction`,
+`pieces-modele` : le SDK ne calcule rien, mais ses tests vérifient que le démon
+rend les références attendues).
+
+### 6.5 Interface publique des SDK de langage
+
+Les SDK de langage enveloppent les méthodes de 6.2 : ils n'en ajoutent
+aucune, n'ajoutent aucun paramètre, et ne changent ni les résultats ni leur
+sémantique. Ce qui suit est propre au côté client : noms, erreurs,
+connexion, reprise, fils. Le démon ne distingue pas un appel venu d'un SDK de
+langage d'un appel JSON-RPC écrit à la main.
+
+**EX-6.9** **Paquets et noms.** Le SDK Python est la distribution
+`noortrace-sdk`, module `noortrace_sdk` ; le SDK TypeScript est le paquet
+npm `noortrace-sdk` (module ECMAScript, types inclus). La disponibilité de
+ces noms sur PyPI et npm n'est pas vérifiée à la date de cette révision.
+L'interface publique est exactement la suivante ; les paramètres portent les
+noms et les valeurs de 6.2 (`run_id`, `on_behalf_of`, `kind`, `effects` :
+valeurs de CT-1), sauf `classe`, `contexte` et `resultat`, qui portent
+`class`, `context` et `result` (`class` est un mot réservé de Python) ;
+en TypeScript, les noms sont en camelCase. `ouvrir` rend un objet qui
+peut être attendu ou employé comme gestionnaire de contexte (`with`,
+`async with`).
+
+| Python : client synchrone `ClientNoortrace`, client asynchrone `ClientNoortraceAsync` (mêmes noms, méthodes `async`) | TypeScript : `ClientNoortrace` (promesses) | Méthode de 6.2 | L'appelant attend |
+|---|---|---|---|
+| `ClientNoortrace(socket=None, tcp=None, jeton=None, delai_s=30.0, reprises=2, sur_indisponibilite_lecture="bloquer")` ; `ClientNoortrace.depuis_environnement()` | `new ClientNoortrace({ socket, tcp, jeton, delaiMs = 30000, reprises = 2, surIndisponibiliteLecture = "bloquer" })` ; `ClientNoortrace.depuisEnvironnement()` | aucune : la connexion est ouverte au premier appel (EX-6.10) | rien |
+| `client.ouvrir(run_id=None, on_behalf_of=None) -> Session` | `client.ouvrir({ runId, onBehalfOf }): Promise<Session>` | `noortrace/sdk/ouvrir` | la réponse |
+| `session.declarer_contexte(kind, octets, media_type=None) -> Reference` | `session.declarerContexte({ kind, octets, mediaType })` | `noortrace/sdk/declarerContexte` | la référence de la pièce stockée |
+| `session.debut_appel(tool, arguments, classe=None, contexte=(), intent=None, effects=None) -> Debut` | `session.debutAppel({ tool, arguments, classe, contexte, intent, effects })` | `noortrace/sdk/debutAppel` | la décision et, pour `ecriture`, l'intention durable (EX-6.3) |
+| `session.fin_appel(debut, resultat, is_error, duration_ms) -> Scelle` | `session.finAppel(debut, { resultat, isError, durationMs })` | `noortrace/sdk/finAppel` | l'événement durable |
+| `session.appel_outil(tool, arguments, fonction, classe=None, contexte=(), intent=None, effects=None)` | `session.appelOutil({ tool, arguments, classe, contexte, intent, effects }, fonction)` | `debutAppel`, exécution de `fonction`, `finAppel` | le résultat de `fonction`, rendu après l'événement durable |
+| `session.echange_modele(format, provider_label, request, response, status, duration_ms, is_error) -> Scelle` | `session.echangeModele({ format, providerLabel, request, response, status, durationMs, isError })` | `noortrace/sdk/echangeModele` | l'événement durable |
+| `session.fermer()` ; `with client.ouvrir(…) as session:` (`async with` pour le client asynchrone) | `session.fermer()` (dans un `finally`) | `noortrace/sdk/fermer` | la réponse |
+
+`Debut` porte exactement les quatre membres du résultat de `debutAppel`
+(`call`, `decision`, `ticket`, `ticket_state`) ; `Scelle` porte `seq` et
+`hash` ; `Reference` porte `sha256`, `length`, `redacted`. `appel_outil`
+(`appelOutil`) est la seule méthode composée : elle appelle `debut_appel`,
+lève `AppelNonAutorise` si `decision` n'est pas `autorise` sans exécuter
+`fonction`, mesure `duration_ms` sur l'horloge monotone autour de
+`fonction(**arguments)` (Python) ou `fonction(arguments)` (TypeScript), puis
+appelle `fin_appel` avec la valeur rendue et `is_error: false`, ou, si
+`fonction` lève une exception, avec `{"noortrace_sdk_exception": "<nom de
+la classe de l'exception>"}` et `is_error: true`, puis relance l'exception.
+Le message de l'exception n'est jamais transmis (il peut porter un secret
+que la rédaction ne reconnaît pas). Une valeur rendue qui n'est pas une
+valeur JSON (Python : `dict` à clés chaînes, `list`, `str`, `int`, `float`
+fini, `bool`, `None`, récursivement ; TypeScript : ce que `JSON.stringify`
+rend sans perte, sans `undefined`, fonction ni nombre non fini) est
+transmise sous la forme `{"noortrace_sdk_non_json": "<nom du type>"}`.
+
+**EX-6.10** **Connexion.** L'adresse du démon est, dans cet ordre : les
+paramètres du constructeur ; les variables d'environnement
+`NOORTRACE_SDK_SOCKET` (chemin de la prise Unix), `NOORTRACE_SDK_TCP`
+(`hôte:port`), `NOORTRACE_SDK_TOKEN` (jeton de la prise TCP),
+`NOORTRACE_SDK_TLS_CA`, `NOORTRACE_SDK_TLS_CERT`, `NOORTRACE_SDK_TLS_KEY`
+(mTLS) ; à défaut, la prise Unix `/run/noortrace/sdk.sock`. Le chemin d'une
+prise Unix DOIT faire au plus 103 octets : Node.js tronque ce chemin à
+`sizeof(sockaddr_un.sun_path) - 1`, typiquement 107 octets sous Linux et 103
+sous macOS (R12-F50) ; le SDK refuse un chemin plus long à la construction
+(`NoortraceConfiguration`), au lieu de joindre une autre prise. Sur une
+prise TCP, la première ligne envoyée est `{"noortrace_token": "<jeton>"}`
+(EX-4.39), sauf en mTLS. Le cadrage est celui de 4.7.1 : une ligne JSON-RPC
+2.0 par message, `\n` final ; les `id` sont des entiers croissants à partir
+de 1 sur chaque connexion. Le SDK n'ouvre la connexion qu'au premier appel,
+et n'y reçoit jamais de requête du démon.
+
+**EX-6.11** **Ce qui bloque l'agent et ce qui ne le bloque jamais.**
+(1) Les méthodes de la table d'EX-6.9 appelées directement attendent la
+réponse du démon, au plus `delai_s` (défaut 30 s) ; aucune n'est mise en
+file par le SDK. (2) Un outil n'est jamais exécuté par `appel_outil` ni par
+un adaptateur tant que `debut_appel` n'a pas répondu `autorise`. (3) Seul
+`echange_modele` appelé depuis un **point d'observation** d'un adaptateur
+(6.6) passe par une file : bornée (`file_max`, défaut 1 000 échanges), vidée
+par un unique fil ou une unique tâche de fond ; quand elle est pleine,
+l'échange le plus récent est abandonné, compté (`echanges_perdus`) et noté
+dans le journal du SDK (journaliseur `noortrace_sdk` en Python, sortie
+d'erreur en TypeScript) ; une erreur de cette file n'atteint jamais l'agent.
+Un échange que le fil de fond ne peut pas remettre parce que le démon est
+injoignable reste en tête de la file, dans sa borne, tant que la requête n'a
+pas été écrite sur la prise (`envoyee` faux) ; le fil le retente après la
+reprise de connexion d'EX-6.13. Un échange dont la requête a été écrite
+(`envoyee` vrai) sans réponse n'est jamais renvoyé (EX-6.13) : il est
+abandonné et compté dans `echanges_perdus`.
+Le `BatchTraceProcessor` du SDK Agents d'OpenAI fait de même pour ses spans
+(file de 8 192, abandon quand elle est pleine, R12-F34) : c'est acceptable
+pour un échange de modèle, interdit pour un appel d'outil. (4) À la sortie du
+processus, le SDK tente `fermer` avec une borne de 2 s, sans retarder
+davantage la sortie.
+
+**EX-6.12** **Erreurs.** Toutes les exceptions du SDK dérivent de
+`NoortraceErreur` (Python) ou `ErreurNoortrace` (TypeScript) :
+
+| Cause | Python | TypeScript | Attributs |
+|---|---|---|---|
+| Prise injoignable, connexion coupée, délai `delai_s` écoulé | `NoortraceIndisponible` | `ErreurNoortraceIndisponible` | `envoyee` : vrai si la requête a été écrite sur la prise |
+| `-31010` | `NoortraceDegrade` | `ErreurNoortraceDegrade` | `raison` (`data.reason`) |
+| `-31013` | `NoortraceLimite` | `ErreurNoortraceLimite` | `direction`, et `limite` (octets, requêtes ou millisecondes) |
+| `-31017` (`finAppel` après une panne du démon, 14.2) | `NoortraceNonDurable` | `ErreurNoortraceNonDurable` | `intent_id` |
+| `-32602` | `NoortraceEntreeInvalide` | `ErreurNoortraceEntreeInvalide` | `raison` (`data.reason`) |
+| Tout autre code JSON-RPC | `NoortraceErreur` | `ErreurNoortrace` | `code`, `message`, `data` |
+| `decision` autre que `autorise` (`appel_outil` seulement) | `AppelNonAutorise` | `AppelNonAutorise` | `decision`, `ticket`, `ticket_state`, `texte` |
+| Configuration du client invalide | `NoortraceConfiguration` | `ErreurNoortraceConfiguration` | — |
+
+`texte` est exactement le texte du résultat d'outil d'EX-4.49 : `noortrace:
+appel refuse par la politique` sans ticket, sinon `noortrace: appel soumis a
+approbation ; ticket=<ticket> ; state=<ticket_state>`. Une décision
+`a_approuver` ou `refuse` n'est pas une erreur du protocole (EX-6.4) :
+`debut_appel` la rend dans `Debut`, et seule `appel_outil` la change en
+exception, pour qu'aucun code appelant ne l'exécute par mégarde.
+
+**EX-6.13** **Reprise de connexion.** Une connexion perdue clôt la
+session : son identifiant n'est jamais réutilisé, et le démon produit les
+événements de reprise de ses `debutAppel` d'écriture ou approuvés (EX-6.7)
+restés sans `finAppel` (EX-12.15). Quand seule la connexion est perdue, le
+démon tournant, ces événements sont produits à la clôture de la session
+(EX-12.15) ; quand c'est le démon qui s'est arrêté, ils sont scellés à sa
+reprise, au pas 5 d'EX-12.10, par la relecture du journal d'intention
+(EX-12.14), avec un `ts` égal à l'instant de la reprise (règle 7.4). Au
+premier appel qui suit, le SDK rouvre la
+connexion, en au plus `1 + reprises` tentatives séparées par
+`min(0,5 × 2^n, 8) × (1 − 0,25 × u)` secondes (n = 0, 1, … ; u tiré uniformément
+dans [0, 1[), la pratique des bibliothèques clientes officielles d'OpenAI et
+d'Anthropic (R12-F48), puis ouvre une nouvelle session (`ouvrir`, même `run_id`
+et même `on_behalf_of`) que l'objet `Session` désigne désormais. Les références
+rendues par `declarer_contexte` dans la session perdue ne valent plus :
+`debut_appel` qui en cite une lève `NoortraceEntreeInvalide` sans rien envoyer.
+**Une requête déjà écrite (`envoyee` vrai) n'est jamais renvoyée** : le
+protocole n'a pas de clé d'idempotence, et un `debutAppel` renvoyé créerait une
+seconde intention (l'ajout d'un identifiant d'appel serait un changement de
+l'interface de 6.2, R12 conséquence 9, que cette révision ne fait pas). Pour
+`debut_appel`, l'outil n'est donc pas exécuté ; pour `fin_appel`, l'outil a été
+exécuté et l'événement de reprise du démon dira « résultat inconnu »
+(EX-12.14) ; le SDK lève `NoortraceIndisponible` dans les deux cas. De même, un
+`fin_appel` dont la session a été perdue **avant** son envoi n'est pas envoyé
+sur la nouvelle session (le démon le refuserait par `-32602`, EX-6.3, son `call`
+appartenant à la session close) : le SDK lève `NoortraceIndisponible`,
+l'adaptateur rend « noortrace: appel execute, evenement non durable » (EX-6.19),
+et l'événement de reprise du démon dit, pour un appel d'écriture ou approuvé,
+« résultat inconnu ». Seuls l'établissement de la connexion et `ouvrir` sont
+retentés.
+
+La tentative du fil de fond d'EX-6.11 (3) est un appel au sens de cette
+règle : elle déclenche la reconnexion et l'ouverture de la nouvelle session
+(même `run_id`, même `on_behalf_of`), et l'échange en file y est remis,
+puisque l'objet `Session` désigne désormais cette session. L'échange en
+tête de file est envoyé une fois la connexion rétablie s'il n'avait pas été
+écrit (`envoyee` faux) ; sinon il est compté dans `echanges_perdus`.
+
+**EX-6.14** **Fils et asynchrone.** Le client Python synchrone peut être
+partagé entre fils : une connexion, des écritures sérialisées par un verrou,
+un fil lecteur qui remet chaque réponse au fil qui attend son `id`. Le client
+asynchrone appartient à la boucle d'événements qui l'a créé (connexion par
+`asyncio.open_unix_connection`, R12-F51) et lève `NoortraceConfiguration`
+s'il est employé depuis une autre boucle. Le client synchrone appelé depuis
+une coroutine bloquerait la boucle : les adaptateurs emploient le client
+asynchrone sur les chemins asynchrones (`awrap_tool_call`, `acall`,
+`on_invoke_tool`). Après `os.fork()`, le processus enfant ne réutilise
+jamais la prise du parent : le SDK compare l'identifiant de processus à
+chaque appel et, s'il a changé, rouvre une connexion et une session. Le SDK
+TypeScript s'exécute dans la boucle d'événements de Node.js ; chaque `Worker`
+a son propre client. Les clients synchrone et asynchrone distincts suivent
+la pratique des SDK officiels (R12-F47).
+
+**EX-6.15** **Démon injoignable.** Quand `debut_appel` échoue
+(`NoortraceIndisponible`, `NoortraceDegrade`, ou toute autre erreur), un
+outil de classe `ecriture` n'est jamais exécuté, quelle que soit la
+configuration ; la classe est celle que le code appelant déclare, sinon
+celle de la configuration de l'adaptateur, sinon `ecriture` (côté SDK, faute
+de réponse du démon ; côté démon, la classe de sa configuration prime et
+une classe déclarée ne peut que la renforcer, table de 6.2). Pour un outil
+déclaré `lecture`, `sur_indisponibilite_lecture` vaut `"bloquer"` (défaut :
+l'outil n'est pas exécuté) ou `"executer"` (l'outil est exécuté **sans
+aucun événement**, puisque le démon n'a rien reçu, et le SDK le note dans
+son journal). Le défaut diffère du comportement « passant » des lectures
+(EX-14.2) parce qu'ici aucun événement en attente ne peut être gardé : le
+démon n'a pas vu l'appel.
+
+### 6.6 Adaptateurs de cadres
+
+Un adaptateur relie un cadre d'agents au SDK de langage. Il est décrit ici
+du premier octet au dernier : où il s'accroche (code publié lu à la version
+indiquée, R12 et lectures directes L5-), ce qu'il déclare, ce qu'il ne voit
+pas, comment il évite une double capture, ce qu'il rend au modèle quand
+l'outil n'est pas exécuté. Chaque adaptateur est **à tester en phase 2** ;
+les tests d'EX-6.20 sont obligatoires.
+
+**EX-6.16** **Deux familles de points d'accroche.** Un **point
+d'interception** s'exécute avant l'outil, attend sa propre réponse et peut
+empêcher l'exécution : `wrap_tool_call`/`awrap_tool_call` (LangChain,
+LangGraph), `wrapToolCall` (LangChain JavaScript), le crochet
+`before_tool_call` qui rend `False` (CrewAI), l'enveloppe d'un outil
+(LlamaIndex, `on_invoke_tool` du SDK Agents d'OpenAI). Un **point
+d'observation** s'exécute pendant ou après l'opération, en tâche de fond,
+ou en avalant ses erreurs : rappels de LangChain (une exception d'un
+gestionnaire asynchrone est toujours avalée, R12-F9 ; sans `awaitHandlers`,
+les gestionnaires JavaScript s'exécutent en tâche de fond, R12-F14),
+écouteurs d'événements de CrewAI (exécutés dans un groupe de fils, R12-F18),
+gestionnaires d'instrumentation de LlamaIndex (exceptions avalées,
+R12-F24), `TracingProcessor` du SDK Agents d'OpenAI (exceptions journalisées
+et non propagées, R12-F31), `CustomLogger` de LiteLLM (une exception de
+`log_pre_api_call` n'arrête pas l'appel, R12-F38). Un adaptateur NE DOIT
+appeler `debut_appel` et `fin_appel` que depuis un point d'interception : un
+point d'observation laisserait l'outil s'exécuter quand le démon est
+injoignable, contre EX-6.3. Un point d'observation ne sert qu'à
+`echange_modele` (EX-6.11, point 3).
+
+**EX-6.17** **Pas de double capture.** Un adaptateur NE DOIT PAS déclarer
+(a) un outil qu'il reconnaît comme un outil MCP (marques de la table
+ci-dessous) : un tel outil passe par le frontal MCP, qui le journalise avec
+plus de force, et le déclarer donnerait deux événements pour un appel, l'un
+`<alias SDK>__<outil>`, l'autre au nom annoncé (R12 conséquence 5) ; (b) un
+outil dont le nom figure dans sa liste `ignorer`, qui couvre les outils MCP
+que les marques ne reconnaissent pas ; (c) un échange de modèle, sauf avec
+le réglage `modele="declarer"`, que l'intégration ne pose que pour un
+modèle que la passerelle ne voit pas (modèle local, format de la version 1
+de 5.2). Le défaut est `modele="passerelle"` : l'échange est journalisé par
+la passerelle, vers laquelle l'URL de base du client de modèle est dirigée
+(19.5). Le démon ne déduplique pas les déclarations du SDK : le protocole de
+6.2 et sa sémantique ne changent pas, et un `echangeModele` reçu donne
+toujours un événement ; la règle de recouvrement d'EX-6.34 ne s'applique
+qu'aux spans OpenTelemetry.
+
+**EX-6.18** **Ce que l'adaptateur déclare.** `tool` : le nom que le
+cadre donne à l'outil et que le modèle voit ; s'il ne respecte pas le motif
+de 6.2 (sans `__`, hors `noortrace.`), l'adaptateur ne l'exécute pas et rend
+le texte d'EX-6.19 pour `NoortraceEntreeInvalide`. `classe` : celle de la
+configuration de l'adaptateur (`classes={"<nom>": "lecture"}`), sinon `null`
+(le démon applique alors sa configuration, à défaut `ecriture`). Le démon
+n'admet une classe déclarée que si elle renforce celle de sa configuration :
+`lecture` déclarée pour un outil configuré `ecriture` reste `ecriture`, et
+l'écart est consigné (`sdk_class_override_refused`, alias, outil), table de
+6.2. `arguments` :
+les arguments que le cadre transmet à l'outil, tels que le modèle les a
+produits, après la validation du cadre quand il en fait une, **sans** les
+arguments injectés par le cadre (LangChain retire des rappels les arguments
+`InjectedToolArg`, R12-F8 ; l'adaptateur déclare l'objet `args` de l'appel du
+modèle) : le MAC de relais d'un appel approuvé (EX-7.22, RL-2) porte sur
+ces arguments. `resultat` : la valeur que le cadre rend au modèle pour cet
+appel quand l'adaptateur la voit (R12 conséquence 4) ; la table précise
+laquelle. `intent` : `null` (les adaptateurs ne déclarent pas d'intention ;
+voir la table `intent` de 7.2 : l'`intent` d'un appel du SDK est la valeur
+déclarée, jamais un intent corrélé). `duration_ms` : horloge monotone autour de l'exécution.
+
+**EX-6.19** **Ce que le modèle reçoit quand l'outil n'est pas exécuté.**
+L'adaptateur rend au cadre un **résultat d'erreur d'outil** (et non une
+exception, que plusieurs cadres propagent hors de l'agent, R12-F10) dont le
+texte est : `texte` d'`AppelNonAutorise` (EX-6.12) ; `noortrace: appel
+bloque, enregistreur en mode degrade` pour `NoortraceDegrade` (message de
+`-31010`) ; `noortrace: enregistreur injoignable` pour
+`NoortraceIndisponible` ; `noortrace: taille maximale depassee` pour
+`NoortraceLimite` ; `noortrace: appel refuse, entree invalide` pour
+`NoortraceEntreeInvalide`. Ces textes sont en ASCII, en français sans accent,
+fixes, comme ceux de 14.3. Quand `fin_appel` échoue après l'exécution, le
+modèle reçoit `noortrace: appel execute, evenement non durable` (message de
+`-31017`) à la place du résultat, comme l'hôte du frontal MCP (EX-4.46) : le
+texte dit que l'appel a eu lieu, pour que l'agent ne le répète pas en le
+croyant perdu. La représentation du résultat d'erreur est propre à chaque
+cadre (table).
+
+**EX-6.20** **Tests obligatoires de chaque adaptateur** (R12 conséquence
+2), sur un démon de test : (i) démon arrêté : un outil de classe `ecriture`
+n'est pas exécuté et le modèle reçoit `noortrace: enregistreur injoignable` ;
+(ii) `decision = "a_approuver"` : l'outil n'est pas exécuté et le modèle
+reçoit le signal d'approbation exact ; (iii) l'instant où `debut_appel` a
+répondu précède le premier effet de l'outil (l'outil de test note son
+instant de départ sur la même horloge monotone) ; (iv) un agent qui a un
+outil local et un outil MCP passé par le frontal produit exactement un
+événement par appel ; (v) une exception levée dans le code de l'adaptateur,
+injectée par le test, ne laisse jamais l'outil s'exécuter.
+
+Table des adaptateurs (versions lues le 2026-10-26 ; un numéro de ligne
+renvoie au fichier du paquet publié à cette version ; une référence de
+fichier qui ne porte pas de renvoi R12 est une lecture directe, L5-11 à
+L5-18, résolue en annexe C) :
+
+| Cadre | Point d'interception des outils | Résultat d'erreur rendu au modèle | Résultat déclaré à `fin_appel` | Reconnaissance d'un outil MCP | Échanges de modèle (observation, `modele="declarer"` seulement) | Ce qui n'est pas capturé |
+|---|---|---|---|---|---|---|
+| LangChain 1.4.7 et LangGraph 1.2.17 (Python ; `langgraph-prebuilt` 1.1.1, `langchain-core` 1.7.0) | Intergiciel `MiddlewareNoortrace(AgentMiddleware)` qui définit `wrap_tool_call(request, handler)` et `awrap_tool_call` (`langchain/agents/middleware/types.py` L674-L681 et L756, R12-F10), passé par `create_agent(model, tools, middleware=[…])` (`langchain/agents/factory.py` L824-L829, L5-12) ; sans `create_agent`, par `ToolNode(tools, wrap_tool_call=…, awrap_tool_call=…)` (`langgraph/prebuilt/tool_node.py` L763-L764, R12-F11). Les intergiciels se composent, « first defined = outermost » (`types.py` L683) : celui de NOORTRACE est le **dernier** de la liste, pour voir les arguments après toute réécriture par un autre intergiciel ; un intergiciel qui relance `handler` produit un événement par tentative. | `ToolMessage(content=<texte>, tool_call_id=request.tool_call["id"], status="error")`, sans appeler `handler` (`langchain_core/messages/tool.py` L67, L81, L5-13) | `request.tool_call["args"]` déclarés (dict `name`, `args`, `id`, `tool_node.py` L141-L156) ; résultat : `content` du `ToolMessage` rendu par `handler`, `is_error` = `status == "error"` ; un `Command` de LangGraph est déclaré `{"noortrace_sdk_non_json": "Command"}` | `request.tool.metadata` porte la clé `mcp` pour un outil converti par `langchain.mcp` (`langchain/mcp/tools.py` L183-L209 et L302, L5-11) ; la clé manque quand l'outil n'a ni annotations, ni `_meta`, ni serveur connecté : liste `ignorer` | `BaseCallbackHandler.on_llm_end` (R12-F6), format `autre` | Arguments injectés ; outils exécutés côté fournisseur (NV-R12-2) ; outils appelés hors de `ToolNode` et de l'intergiciel ; transformations du résultat par un intergiciel extérieur |
+| LangChain 1.5.19 (JavaScript) | Intergiciel `wrapToolCall` (`dist/agents/middleware/types.d.ts` L352, R12-F15) ; le reste de l'interface n'est pas lu : à tester en phase 2 | Résultat d'outil d'erreur du cadre (non lu) | idem | non lu (`@langchain/mcp-adapters` 2.0.1) : liste `ignorer` | `handleLLMEnd` (R12-F13), avec `awaitHandlers` faux par défaut (R12-F14) | idem |
+| CrewAI 1.15.30 | Crochets globaux `register_before_tool_call_hook` et `register_after_tool_call_hook` (`crewai/hooks/tool_hooks.py` L208, L245), enregistrés **en dernier** (EX-6.21) | Le crochet `before` rend `False` (`HookAborted`, `tool_hooks.py` L142-L150) ; CrewAI rend alors `Tool execution blocked by hook. Tool: <nom>` (`crewai/utilities/agent_utils.py` L1585), que le crochet `after` de l'adaptateur remplace par le texte d'EX-6.19 (un crochet `after` qui rend une chaîne remplace le résultat, `tool_hooks.py` L153-L161) | `context.tool_input` déclarés ; résultat : `context.tool_result` vu par le crochet `after` (chaîne rendue à l'agent, `tool_hooks.py` L48-L51) ; `is_error` vrai si cette chaîne commence par `Error executing tool: ` (`agent_utils.py` L1609) | `context.tool._original_tool` est une instance de `MCPNativeTool` ou de `MCPToolWrapper` (`crewai/tools/structured_tool.py` L217, `base_tool.py` L420, `tools/mcp_native_tool.py` L18, `tools/mcp_tool_wrapper.py` L17) | Écouteur `BaseEventListener` sur `LLMCallCompletedEvent` (R12-F17, R12-F18) | Chemin d'appel « ReAct » de CrewAI : non lu (seul le chemin de `agent_utils.py` l'est) ; résultats servis par le cache (EX-6.21) |
+| LlamaIndex (`llama-index-core` 0.14.25, Python) | Aucun point d'interception dans l'instrumentation (gestionnaires dont les exceptions sont avalées, R12-F24) : l'adaptateur **enveloppe chaque outil** par `envelopper_outil(outil) -> AsyncBaseTool`, dont `call` et `acall` appellent `debut_appel`, l'outil d'origine, puis `fin_appel` (`llama_index/core/tools/types.py` L229-L250) ; l'agent par flux appelle `tool.acall(**tool_input)` (`agent/workflow/base_agent.py` L372-L374, R12-F26) | `ToolOutput(blocks=[texte], tool_name, raw_input, raw_output=None, is_error=True)` (`types.py` L106-L113) | arguments `tool_input` ; résultat : `raw_output` du `ToolOutput` d'origine, `is_error` du `ToolOutput` | L'intégration n'enveloppe que les outils locaux qu'elle énumère ; aucune marque MCP lue | Gestionnaire d'événements sur `LLMChatEndEvent` (R12-F26), enregistré par `get_dispatcher().add_event_handler` (R12-F22) | Outils non enveloppés ; paquets JavaScript (NV-R12-4) |
+| SDK Agents d'OpenAI 0.24.0 (Python) | Pour chaque `FunctionTool` local, l'adaptateur remplace `on_invoke_tool`, la fonction qui reçoit le contexte et « the arguments from the LLM, as a JSON string », et qui peut rendre « a string representation of the tool output » (`agents/tool.py` L469-L476, L5-14), par une enveloppe : analyse JSON stricte de la chaîne (une chaîne qui n'est pas du JSON est déclarée telle quelle), `debut_appel`, fonction d'origine, `fin_appel`. `needs_approval` (`tool.py` L500-L512) interrompt l'exécution pour une approbation propre au cadre et n'est pas employé ; une exception levée dans `on_tool_start` (`agents/lifecycle.py` L83-L96) a un effet non vérifié : ce crochet n'est pas employé | La chaîne du texte, valeur rendue par `on_invoke_tool` | arguments analysés ; résultat : la valeur rendue par la fonction d'origine | Les outils de `mcp_servers` ne sont pas dans `agent.tools` (champs distincts, réunis seulement à l'exécution par `get_all_tools`, `agents/agent.py` L198, L201, L262, L286-L312, L5-15) et ne sont pas enveloppés ; leurs spans portent `mcp_data` (R12-F33) | `TracingProcessor.on_span_end` sur `GenerationSpanData` et `ResponseSpanData` (R12-F28 à F30), seulement si `trace_include_sensitive_data` est vrai (défaut, variable `OPENAI_AGENTS_TRACE_INCLUDE_SENSITIVE_DATA`, R12-F31) ; jamais `on_span_start`, où l'entrée de l'outil n'est pas encore posée (R12-F30) | Outils hébergés par le fournisseur (non lu) ; transport WebSocket (5.8) |
+| SDK Agents d'OpenAI 0.21.0 (TypeScript) | L'intégration enveloppe la fonction `execute` qu'elle passe à `tool({…})` par `envelopperExecution(nom, execute)` du SDK NOORTRACE, sans toucher au cadre ; `needsApproval` (`dist/tool.d.ts` L247, R12-F36) n'est pas employé | La chaîne du texte | idem | Outils de `mcpServers` non enveloppés | `addTraceProcessor` (R12-F35), `onSpanEnd` | idem |
+| LiteLLM 1.106.4 (Python, bibliothèque) | Aucun : LiteLLM n'exécute pas d'outil en bibliothèque (R12 conséquence 7) | — | — | — | `CustomLogger.async_log_success_event` et `async_log_failure_event` (`litellm/integrations/custom_logger.py` L189, L192, R12-F37), enregistré par `litellm.callbacks = [gestionnaire]` ; jamais `log_pre_api_call` pour bloquer (R12-F38) | Ce que LiteLLM fait en mandataire (EX-6.22) |
+
+**Interface de l'adaptateur LangChain et LangGraph**, rassemblée depuis
+EX-6.17, EX-6.18, la table et l'exemple ci-dessous :
+`MiddlewareNoortrace(session, classes={nom: "lecture" ou "ecriture"},
+modele="passerelle" (défaut) ou "declarer", ignorer=[noms])`, du module
+`noortrace_sdk.adaptateurs.langchain`, passé en dernier à
+`create_agent(model, tools, middleware=[…])` ; sans `create_agent`,
+`ToolNode(tools, wrap_tool_call=…, awrap_tool_call=…)`. La table d'EX-6.9
+ne couvre que le SDK, pas les adaptateurs ; les noms de paquets ne sont pas
+vérifiés (EX-6.9) et chaque adaptateur est à tester en phase 2.
+
+**Échanges de modèle observés par `on_llm_end`** (colonne « Échanges de
+modèle » de la ligne LangChain et LangGraph). La table ne fixe pas ce que
+l'adaptateur met dans `request` et `response` : `on_llm_end` ne donne que
+le résultat (R12-F6), et la forme de `request` est à écrire en phase 2.
+D'ici là, la table de 6.2 au format `autre` s'applique : `code.model` vaut
+`provider_label + "/" + request.model` seulement si `request` porte `model` ;
+`intent` et `prompt_version` valent `null`. Ce chemin ne sert qu'avec
+`modele="declarer"`, pour un modèle que la passerelle ne voit pas
+(EX-6.17), et il est de rang « point d'observation » (6.7).
+
+**EX-6.21** **CrewAI.** Les crochets `before` et `after` de l'adaptateur
+sont enregistrés **après** tout autre crochet global, parce qu'un crochet
+`before` peut modifier `tool_input` en place (`tool_hooks.py` L39-L43) et un
+crochet `after` peut remplacer le résultat. Le crochet `before` rend `False`
+pour toute issue autre que `autorise` **et** pour toute exception qu'il
+attrape lui-même : CrewAI avale toute exception d'un crochet autre que
+`HookAborted` et laisse l'outil s'exécuter (« fail-open »,
+`crewai/hooks/dispatch.py` L21-L23, R12-F20). Les crochets sont synchrones
+(`dispatch.py` L19-L20) : l'adaptateur emploie le client synchrone et son
+attente est bornée par `delai_s`. CrewAI passe au crochet `after` un objet
+distinct de celui du crochet `before` (`agent_utils.py` L1559-L1567 et
+L1637-L1647) : l'adaptateur apparie les deux par une pile propre au fil,
+indexée par `(tool_name, JCS intégral de tool_input)`. Un résultat servi par
+le cache de CrewAI produirait un événement d'appel exécuté alors que l'outil
+ne l'a pas été : l'intégration DOIT laisser `Crew(cache=False)`, la valeur
+par défaut (`crewai/crew.py` L234-L235).
+
+**EX-6.22** **LiteLLM en mandataire.** Deux dispositions sont possibles.
+(a) Agent → passerelle de l'enregistreur → mandataire LiteLLM →
+fournisseurs : la route de la passerelle a pour amont l'URL du mandataire et
+pour format celui que l'agent emploie ; l'enregistreur voit la requête de
+l'agent ; le pare-feu interdit à l'agent de joindre le mandataire
+directement. C'est la disposition recommandée. (b) Agent → mandataire
+LiteLLM → passerelle (`api_base` des modèles du mandataire, R12-F40) :
+l'enregistreur voit les requêtes émises par le mandataire, dont la forme
+exacte n'est pas lue (NV-R12-5), et tous les agents servis par le mandataire
+partagent une entrée de `model.hosts`, donc un groupe d'hôte : la
+corrélation de 5.6 ne distingue plus les agents, sauf si le mandataire
+relaie les en-têtes `X-Noortrace-*`, ce qui n'est pas vérifié. La
+disposition (b) n'est admise que si la documentation d'intégration le dit.
+Les crochets `async_pre_call_hook` du mandataire (R12-F39) ne sont pas
+employés en version 0.
+
+**Exemple : un agent LangGraph par le SDK Python.** Le modèle passe par la
+passerelle (URL de base, 19.5.5) ; les outils locaux passent par
+l'intergiciel ; les outils MCP passent par le frontal MCP et ne sont pas
+déclarés.
+
+```python
+import os
+from langchain.agents import create_agent
+from langchain.mcp import MCPAdapter
+from langchain_anthropic import ChatAnthropic
+from fastmcp import Client
+from noortrace_sdk import ClientNoortraceAsync
+from noortrace_sdk.adaptateurs.langchain import MiddlewareNoortrace
+
+def preparer_paiement(sinistre: str, montant: str, devise: str) -> dict:
+    """Prépare un ordre de paiement dans l'outil interne (outil local)."""
+    ...
+
+modele = ChatAnthropic(model="…", base_url="http://127.0.0.1:8400",
+                       api_key="jeton-statique-passerelle")
+noortrace = ClientNoortraceAsync.depuis_environnement()  # NOORTRACE_SDK_SOCKET
+
+async def main():
+    async with noortrace.ouvrir(run_id="run-2026-11-10-0007") as session, \
+               MCPAdapter(Client("http://127.0.0.1:8300/mcp",
+                                 auth=os.environ["NOORTRACE_TOKEN"])) as mcp:
+        outils = [preparer_paiement, *await mcp.list_tools()]
+        agent = create_agent(
+            modele, outils,
+            middleware=[MiddlewareNoortrace(session,
+                                            classes={"preparer_paiement": "ecriture"},
+                                            modele="passerelle")])
+        await agent.ainvoke({"messages": [("user", "Traite le sinistre 2026-77812.")]})
+```
+
+Pour `preparer_paiement`, l'intergiciel appelle `debutAppel` avec `tool:
+"preparer_paiement"` (événement `<alias SDK>__preparer_paiement`), les
+arguments du modèle et `class: "ecriture"` ; l'outil ne s'exécute qu'après
+`decision: "autorise"` et l'intention durable ; `finAppel` porte le
+`content` du `ToolMessage`. Pour un outil MCP, l'intergiciel voit la clé
+`mcp` des métadonnées et laisse passer sans rien déclarer : le frontal MCP
+journalise l'appel. Les échanges avec le modèle sont journalisés par la
+passerelle. Ce que chaque événement prouve est dit en 6.7.
+
+### 6.7 Rang de preuve des chemins déclaratifs
+
+Cette table dit, chemin par chemin, ce qu'un événement prouve, sous les
+hypothèses de CT-6 (signature, chaîne, ancres), et ce qu'il ne prouve pas.
+Elle se lit avec CT-1 §15 : la chaîne prouve ce que l'enregistreur a scellé,
+jamais plus que ce qu'il a pu voir.
+
+| Chemin | L'événement prouve | Il ne prouve pas | Peut empêcher l'acte | Comment le lecteur reconnaît le chemin dans l'événement |
+|---|---|---|---|---|
+| Frontal MCP, avec la mise en application d'EX-4.1 | Que l'enregistreur a relayé cet appel, avec ces arguments (rédigés), au serveur nommé par l'alias, reçu ce résultat, et n'a relayé aucune écriture sans intention durable | Que le serveur a produit l'effet (`effects` est déclaré) ; ce qui a contourné la capture (21) | Oui : politique, approbation, panne, avant le relais | `execution.tool` est un nom annoncé, de préfixe un alias de `policy.servers` |
+| Passerelle, `credentials: "propre"` et pare-feu de sortie | Que l'enregistreur a envoyé cette requête au fournisseur et reçu cette réponse | Ce que le fournisseur a fait de son côté (5.8) | Oui pour la requête ; une réponse en flux est déjà en route (EX-5.11 (b), 5.3.1 pas 8) | `noortrace.modele.echange` ; `context` vide (EX-7.7) |
+| SDK appelé directement, ou adaptateur depuis un point d'interception (6.6) | Que le processus de l'agent a déclaré cet appel **avant** de l'exécuter, avec ces arguments, puis ce résultat ; que la politique a été évaluée sur ces arguments et qu'un code coopérant n'a exécuté l'outil qu'après `autorise` (et, pour `ecriture`, l'intention durable) | Que les arguments déclarés sont ceux de l'acte, que le résultat est vrai, que rien d'autre n'a été exécuté : un agent compromis peut se taire ou mentir (6.3) ; le pare-feu d'EX-6.2 borne seulement ce qu'il peut joindre sans l'enregistreur | Oui, si le code de l'agent coopère | `execution.tool` de préfixe `<alias SDK>__`, alias annoncé par `policy.sdk.aliases` (EX-6.24) ; un `echangeModele` du SDK porte en `context[0]` la pièce de déclaration de source du SDK, `channel` `sdk` (EX-7.7, 6.3), qu'un échange de la passerelle ne porte jamais |
+| Adaptateur depuis un point d'observation (échanges de modèle seulement) | Que le processus de l'agent a déclaré cet échange après coup | Tout ce qui précède, et l'exhaustivité : un échange peut manquer (file pleine, EX-6.11) | Non | Comme le SDK |
+| Ingestion OpenTelemetry (6.8) | Que la source authentifiée a exporté ce span, et que l'enregistreur l'a reçu au plus tard à l'instant `ts` | L'instant de l'acte (les horodatages du span sont dans la pièce d'enveloppe, déclarés par l'horloge de l'agent, R11-F42) ; l'exhaustivité (échantillonnage, file et délai de l'exportateur) ; l'exactitude du contenu, absent par défaut (R11-F31) ; aucune politique n'a été évaluée | Non : l'acte a déjà eu lieu | `context[0]` est la pièce de déclaration de source (EX-6.35) ; pour un appel d'outil, `execution.tool` de préfixe `<alias de source>__` et `policy = {"rule": null, "decision": "autorise", …}` |
+
+**EX-6.23** **Sources OpenTelemetry annoncées dans la chaîne.** Chaque
+source OpenTelemetry est déclarée par son alias dans `policy.otel.sources`,
+membre de l'ensemble de politique : l'alias, les sortes ingérées et la règle
+de recouvrement sont ainsi hachés avec l'ensemble et annoncés par
+l'événement `noortrace.journal.politique` (EX-9.1, EX-8.11). Tout événement
+issu d'un span porte en `context[0]` la pièce de déclaration de source de
+sa source, dont les octets ne dépendent que de l'alias (EX-6.35) : un
+lecteur qui a cette pièce, ou qui la recalcule depuis l'alias, reconnaît
+l'événement comme une déclaration OpenTelemetry sans valeur nouvelle de
+CT-1. Un appel d'outil issu d'un span porte `policy.decision: "autorise"` et
+`policy.rule: null` : CT-1 n'a pas de valeur pour un acte constaté après
+coup (`sans_objet` est refusé pour un appel d'outil par E-3, vecteur de
+CT-1 `invalide-sans-objet-appel`), et cette révision n'en ajoute pas ;
+`rule: null` dit qu'aucune règle n'a été appliquée, comme pour une lecture
+passante dont le service d'approbation est indisponible (EX-7.4).
+
+**EX-6.24** **Alias du SDK annoncés.** Le membre facultatif
+`policy.sdk.aliases` de l'ensemble de politique DEVRAIT lister les alias de
+toutes les entrées de `sdk.hosts` : un lecteur reconnaît alors, par la seule
+chaîne, qu'un nom d'outil de préfixe `<alias>__` est une déclaration du SDK.
+La validation (EX-15.4) refuse un `policy.sdk.aliases` présent qui diffère de
+l'ensemble des alias de `sdk.hosts`, et avertit quand il manque alors que le
+SDK est activé.
+
+### 6.8 Ingestion OpenTelemetry
+
+#### 6.8.1 Rôle
+
+Beaucoup d'agents sont déjà instrumentés selon les conventions sémantiques
+GenAI d'OpenTelemetry : un span par inférence et un span par exécution
+d'outil (R11-F28, R11-F32). L'ingestion les reçoit sans changer le code de
+l'agent, par l'exportateur OTLP déjà en place, et en tire des événements de
+CT-1 de rang déclaratif (6.7). Chemin de données, du premier octet au
+dernier : l'exportateur de l'agent poste un lot (`POST /v1/traces`) ; le
+démon authentifie la source (EX-6.37), borne et décomprime le corps
+(EX-6.28), le décode en protobuf ou en JSON (EX-6.29, EX-6.30),
+normalise chaque span (EX-6.31), le classe (EX-6.32), écarte doublons et
+recouvrements (EX-6.33, EX-6.34), construit les pièces rédigées
+(EX-6.35) puis l'événement (EX-6.36), le remet à l'écrivain, et répond
+quand tous les événements du lot sont durables (EX-6.38). L'ingestion ne
+bloque jamais l'agent ni un autre frontal (EX-6.39).
+
+#### 6.8.2 Versions épinglées
+
+**EX-6.25** **Versions.** Le protocole est OTLP de `opentelemetry-proto`
+**v1.11.1**, de statut Stable pour les traces (R11-F37), messages
+`ExportTraceServiceRequest`, `ExportTraceServiceResponse`,
+`ResourceSpans`, `ScopeSpans`, `Span`, `Status`, `KeyValue`, `AnyValue`
+(L5-1 à L5-5). Les conventions sont celles de `semantic-conventions`
+**v1.41.1** (étiquette du 2026-05-11, commit
+`ead83b9b0fa36540c1642fce46e874f002ac23f1`), dernière version publiée qui
+les contient, de statut **Development** (R11-F25, R11-F26, L5-6) ; le dépôt
+`semantic-conventions-genai` qui les reprend n'a publié aucune version
+(`schema_url` `https://opentelemetry.io/schemas/gen-ai-dev/1.42.0-dev`,
+R11-F27) ; les noms que l'ingestion lit y sont les mêmes au commit
+`20259355b9631e3f032dcc099d1b5a2666818c42` (R11-F28 à R11-F30, R11-F32),
+sauf `mcp.method.name` et `gen_ai.system`, qui n'y ont pas été relus. La
+valeur `policy.otel.semconv` est la constante `"1.41.1"`. L'ingestion
+**interprète** les seuls attributs suivants, tous les autres étant gardés
+comme données dans les pièces : `gen_ai.operation.name`,
+`gen_ai.provider.name` (à défaut `gen_ai.system`, déprécié et remplacé par
+lui, L5-6), `gen_ai.request.model`, `gen_ai.response.model`,
+`gen_ai.conversation.id`, `gen_ai.system_instructions`,
+`gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.tool.name`,
+`gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`, `error.type`,
+`mcp.method.name`. Les conventions étant en développement, un changement de
+nom est suivi par une révision de CT-2 ; d'ici là, un span qui emploie
+d'autres noms est ignoré ou projeté avec des valeurs absentes, jamais
+transformé en événement invalide.
+
+Un renommage d'attribut des conventions (par exemple de
+`gen_ai.operation.name`) ne produit jamais d'événement invalide : les spans
+concernés sont ignorés (`hors_genai`, EX-6.32) ; la supervision le rend
+visible par la raison de `noortrace_otel_spans_total` et par une alerte
+(EX-6.41), et la famille `otel/` de l'annexe B en porte un cas
+(`json-operation-renommee`).
+
+#### 6.8.3 Point d'entrée, types de contenu, réponses
+
+**EX-6.26** **Point d'entrée.** Quand `otel.enabled` est vrai, le démon
+sert OTLP/HTTP sur `otel.listen` (`127.0.0.1:4318` dans la configuration de
+référence ; 4318 est le port par défaut d'OTLP/HTTP, R11-F38), en HTTP/1.1
+(OTLP admet HTTP/1.1 et HTTP/2, avec repli sur HTTP/1.1, L5-1), et seulement
+la méthode `POST` sur le chemin exact `otel.path` (`/v1/traces` par défaut,
+R11-F38), comparé après la normalisation d'EX-5.2 (un chemin que cette
+normalisation refuse ne peut pas égaler `otel.path` : `404`). Une chaîne de
+requête est ignorée et consignée par l'indicateur `query_string` de la ligne
+`otel_request`, jamais sa valeur. Un autre chemin reçoit `404` (dont
+`/v1/metrics` et `/v1/logs` : la version 0 n'ingère que les traces) ; une autre
+méthode sur ce chemin reçoit `405` avec `Allow: POST`. **OTLP/gRPC n'est pas
+servi en version 0** : un serveur PEUT servir les deux transports (L5-1), et la
+spécification de l'exportateur demande aux SDK de prendre en charge
+`http/protobuf` ou `grpc`, de préférence les deux, `http/protobuf` étant le
+défaut recommandé (L5-7) ; un SDK limité à gRPC se raccorde par un collecteur
+placé auprès de l'agent, qui devient alors la source (il détient le jeton, et
+l'enregistreur voit le collecteur, pas l'agent), limite que la documentation
+d'intégration dit.
+
+**EX-6.27** **Types de contenu et réponses.** Le type de média du
+`Content-Type` de la requête (en minuscules, sans paramètres) décide :
+`application/x-protobuf` → décodage protobuf (EX-6.30), si `"protobuf"`
+figure dans `otel.encodings` ; `application/json` → décodage JSON
+(EX-6.29), si `"json"` y figure ; tout autre → `415`. La configuration de
+référence admet les deux : OTLP demande aux serveurs d'accepter les deux
+encodages sur le même port (SHOULD, L5-1). La réponse porte le même
+`Content-Type` que la requête (R11-F38), `application/json` quand la
+requête n'en a pas d'admis. Corps, exactement :
+
+| Issue | Statut | Corps JSON | Corps protobuf |
+|---|---|---|---|
+| Aucun span rejeté (lot vide compris, L5-1) | `200` | `{}` | vide (zéro octet : `ExportTraceServiceResponse` sans `partial_success`, R11-F41) |
+| n ≥ 1 span rejeté (EX-6.32) | `200` | `{"partialSuccess":{"rejectedSpans":"<n>","errorMessage":"noortrace: <n> span(s) rejete(s), identifiants invalides"}}` (entier 64 bits en chaîne décimale, R11-F39) | `0a` L₁ `08` varint(n) `12` L₂ message (champ 1 `partial_success` ; dans `ExportTracePartialSuccess`, champ 1 `rejected_spans`, champ 2 `error_message`, R11-F41) |
+| Refus (table ci-dessous) | `4xx`, `503` | `{"message":"<texte>"}` | `12` L texte (message `Status`, champ 2 ; `code` omis, ce qu'OTLP permet, L5-1) |
+
+| Statut | Cause | Texte |
+|---|---|---|
+| `400` | Corps non décodable (EX-6.29, EX-6.30) | `noortrace: corps OTLP non decodable` |
+| `401` | Source non authentifiée (EX-6.37) | `noortrace: source OpenTelemetry non authentifiee` |
+| `404` | Chemin inconnu | `noortrace: chemin inconnu` |
+| `405` | Méthode autre que `POST` | `noortrace: methode non admise` |
+| `413` | Corps au-delà de `otel.max_body_bytes` (EX-6.28) | `noortrace: corps OTLP trop grand` |
+| `415` | Type de contenu, encodage ou codage de contenu non admis | `noortrace: type de contenu ou codage non admis` |
+| `429` | Quota de la source (EX-6.28), avec `Retry-After: <otel.retry_after_s>` | `noortrace: quota de la source atteint` |
+| `503` | Mode dégradé (EX-6.39), avec `Retry-After: <otel.retry_after_s>` | `noortrace: enregistreur en mode degrade` |
+
+**Ordre des décisions.** Quand plusieurs causes de refus coexistent, la
+première de cet ordre décide, et lui seul : (a) chemin (`404`, normalisation
+d'EX-5.2 refusée comprise) ; (b) méthode (`405`) ; (c) jeton (`401`) ;
+(d) quota de la source (`429`) ; (e) mode dégradé (`503`) ; (f) type de
+contenu (`415`) ; (g) `Content-Encoding` non admis (`415`), jugé avant la
+taille ; (h) octets reçus au-delà de `otel.max_body_bytes` (`413`) ;
+(i) gzip invalide (`400`), puis octets décomprimés au-delà de la borne
+(`413`) ; (j) décodage et bornes de profondeur et de membres (`400`) ;
+(k) nombre de spans au-delà de `otel.spans_per_request` (`413`, EX-6.28).
+La famille `otel/` de l'annexe B porte des cas à causes combinées
+(`non-authentifie-type-texte`, `deflate-trop-grand`,
+`non-chemin-normalisable`).
+
+Les textes sont en ASCII, en français sans accent, fixes, comme ceux de 14.3 ;
+OTLP recommande un message en anglais pour `error_message` (SHOULD, L5-1) :
+CT-2 garde la langue de tous ses textes rendus. OTLP fait relancer un client
+sur `429`, `502`, `503` et `504`, et seulement sur eux ; un `400` ou un succès
+partiel n'est jamais relancé (R11-F41).
+
+**EX-6.28** **Compression, bornes, quotas.** `Content-Encoding` absent ou
+`identity` : corps lu tel quel ; `gzip` : corps décomprimé (tout serveur
+OTLP DOIT accepter `gzip`, R11-F40) ; toute autre valeur (dont `deflate`,
+que propose l'exportateur Python 1.45.1, L5-8) : `415`. La borne
+`otel.max_body_bytes` (67 108 864 octets dans la configuration de
+référence, la valeur que recommande OTLP, R11-F40) s'applique aux octets
+reçus **et** aux octets décomprimés ; la décompression s'arrête dès que la
+borne est dépassée, avant toute allocation au-delà, et la requête reçoit
+`413`. Les quotas de l'entrée de la source (EX-4.47) s'appliquent :
+requêtes en cours (`quota.max_concurrent`), octets reçus
+(`quota.received_bytes_per_minute`), octets de pièces écrits
+(`quota.piece_bytes_per_minute`) et temps de capture
+(`quota.redaction_ms_per_minute`) par minute glissante ; au-delà, `429`. Ces quotas sont
+jugés à l'entrée de la requête, alors qu'une requête OTLP donne N
+événements signés (un span en protobuf tient en quelques dizaines
+d'octets, son événement et sa pièce d'enveloppe en font plus d'un millier) :
+l'ingestion a donc ses propres bornes, membres facultatifs de `otel`
+(15.1) : `spans_per_request` (au-delà, `413` sans rien sceller, après le
+décodage ; le lot ne passera jamais, et OTLP ne relance pas un `413`) ;
+`events_per_minute` et `event_bytes_per_minute` (événements scellés et
+octets d'événements et de pièces écrits par minute glissante, pour la
+source), contrôlés **span par span** : au-delà, les spans déjà scellés de la
+requête restent scellés, le traitement s'arrête, la réponse est `429` avec
+`Retry-After`, et le lot renvoyé donne des doublons pour les spans déjà
+scellés (EX-6.33) ; `min_free_bytes` : sous ce volume libre du disque des
+segments, l'ingestion répond `503` (raison `volume_ingestion`) avant
+d'atteindre le seuil « disque presque plein » qui bloque tous les hôtes
+(14.2). Ces quatre membres sont facultatifs : un membre absent ne pose
+aucune borne propre à l'ingestion (pour `spans_per_request`, « Absent : pas
+de borne propre », description du schéma), et seuls les quotas de l'entrée
+s'appliquent alors. La configuration de référence de 6.8.15, dont le point
+d'entrée est une adresse de bouclage, n'en pose aucun, alors qu'EX-6.40 (6)
+les tient pour nécessaires contre une source qui inonde le point d'entrée :
+une configuration qui veut cette protection les pose. L'écrivain et le signataire servent les frontaux interposés (MCP,
+passerelle) **avant** l'ingestion : un événement de span n'est remis à
+l'écrivain que si aucun événement d'un frontal interposé n'attend. Les
+bornes
+`limits.json_max_depth` et `limits.json_max_members` s'appliquent au JSON et,
+dans les deux encodages, à l'imbrication des `arrayValue` et `kvlistValue`
+et au nombre de leurs éléments : au-delà, `400`.
+
+#### 6.8.4 Décodage JSON
+
+**EX-6.29** **Décodage JSON.** Le corps DOIT être du JSON strict au sens
+d'EX-5.7 point 2 (clé en double, substitut isolé, marque d'ordre d'octets,
+texte qui n'est pas du JSON → `400`), à une différence près : un nombre est
+lu **sur son texte**, sans passer par la double précision, là où le champ est
+un entier. Règles de l'encodage JSON d'OTLP (R11-F39, L5-1) : les clés sont
+les noms des champs en lowerCamelCase (un nom de champ d'origine en
+snake_case est un champ inconnu) ; un champ inconnu est ignoré, à tout
+niveau ; une valeur `null` vaut champ absent ; un champ message DOIT être un
+objet, un champ répété un tableau, un champ chaîne une chaîne, sinon `400`.
+Formes des valeurs :
+
+| Champ | Forme admise | Sinon |
+|---|---|---|
+| `traceId`, `spanId`, `parentSpanId` | Chaîne de chiffres hexadécimaux, majuscules ou minuscules, de longueur paire (jamais du base64 : `json_format.Parse` de Python lit un `traceId` hexadécimal comme du base64 sans erreur et rend 24 octets faux, R11-F44) ; convertie en minuscules | `400` ; la longueur et la valeur nulle sont jugées en EX-6.32 |
+| `kind`, `status.code` | Nombre JSON dont le texte a la forme `^-?(0|[1-9][0-9]*)$` (énumération ouverte : une valeur inconnue est gardée) | Une chaîne, dont `"SPAN_KIND_CLIENT"` (« the enum name strings MUST NOT be used », R11-F39) : `400` |
+| `startTimeUnixNano`, `endTimeUnixNano`, `timeUnixNano` (`fixed64`) | Chaîne `^(0|[1-9][0-9]*)$` ou nombre JSON dont le texte a cette forme, au plus 2^64 − 1 (« either numbers or strings are accepted when decoding », R11-F39) | `400` |
+| `intValue` (`int64`) | Chaîne ou nombre de texte `^-?(0|[1-9][0-9]*)$`, de −2^63 à 2^63 − 1 | `400` |
+| Entiers 32 bits (`flags`, `droppedAttributesCount`, …) | Nombre JSON dont le texte a la forme `^-?(0|[1-9][0-9]*)$` (sans signe pour un type non signé : ni fraction, ni exposant, `1.0` et `1e0` refusés), dans les bornes du type, ou chaîne décimale de cette forme | `400` |
+| `doubleValue` | Nombre JSON, ou l'une des chaînes `"NaN"`, `"Infinity"`, `"-Infinity"` | `400` |
+| `boolValue` | `true` ou `false` | `400` |
+| `bytesValue` | Chaîne base64 (RFC 4648 § 4 ou § 5, avec ou sans remplissage) | `400` |
+| `AnyValue` | Objet qui porte zéro ou un des membres `stringValue`, `boolValue`, `intValue`, `doubleValue`, `arrayValue`, `kvlistValue`, `bytesValue` ; `stringValueStrindex`, champ du signal des profils, vaut valeur absente (L5-2) | Deux membres ou plus : `400` |
+| `KeyValue` | Objet `key`, `value` ; un `keyStrindex` sans `key` fait ignorer l'attribut (L5-2) | — |
+
+#### 6.8.5 Décodage protobuf
+
+**EX-6.30** **Décodage protobuf.** Le corps DOIT être l'encodage binaire
+proto3 d'un `ExportTraceServiceRequest` (R11-F38). Numéros et types des
+champs lus (L5-2 à L5-5 ; `opentelemetry-proto` v1.11.1) :
+
+| Message | Champs |
+|---|---|
+| `ExportTraceServiceRequest` | 1 `resource_spans` (LEN, répété) |
+| `ResourceSpans` | 1 `resource` (LEN), 2 `scope_spans` (LEN, répété), 3 `schema_url` (LEN) |
+| `Resource` | 1 `attributes` (LEN, répété), 2 `dropped_attributes_count` (VARINT) ; 3 `entity_refs` ignoré |
+| `ScopeSpans` | 1 `scope` (LEN), 2 `spans` (LEN, répété), 3 `schema_url` (LEN) |
+| `InstrumentationScope` | 1 `name`, 2 `version` (LEN), 3 `attributes` (LEN, répété), 4 `dropped_attributes_count` (VARINT) |
+| `Span` | 1 `trace_id`, 2 `span_id`, 3 `trace_state`, 4 `parent_span_id`, 5 `name` (LEN), 6 `kind` (VARINT), 7 `start_time_unix_nano`, 8 `end_time_unix_nano` (I64), 9 `attributes` (LEN, répété), 10 `dropped_attributes_count` (VARINT), 11 `events` (LEN, répété), 12 `dropped_events_count` (VARINT), 13 `links` (LEN, répété), 14 `dropped_links_count` (VARINT), 15 `status` (LEN), 16 `flags` (I32) |
+| `Span.Event` | 1 `time_unix_nano` (I64), 2 `name` (LEN), 3 `attributes` (LEN, répété), 4 `dropped_attributes_count` (VARINT) |
+| `Status` | 2 `message` (LEN), 3 `code` (VARINT) |
+| `KeyValue` | 1 `key` (LEN), 2 `value` (LEN), 3 `key_strindex` (VARINT) |
+| `AnyValue` | 1 `string_value` (LEN), 2 `bool_value` (VARINT), 3 `int_value` (VARINT, entier signé en complément à deux sur 64 bits), 4 `double_value` (I64), 5 `array_value` (LEN), 6 `kvlist_value` (LEN), 7 `bytes_value` (LEN), 8 `string_value_strindex` (VARINT) |
+| `ArrayValue`, `KeyValueList` | 1 `values` (LEN, répété) |
+
+Règles : un champ dont le type de fil ne correspond pas à la table, une
+étiquette de champ 0, un type de fil 3, 4, 6 ou 7, un varint de plus de dix
+octets, une longueur qui dépasse le message englobant, un corps tronqué →
+`400` ; un champ de numéro inconnu est sauté selon son type de fil (0, 1, 2,
+5) ; un champ non répété présent deux fois dans un même message, ou deux
+membres du `oneof` d'`AnyValue`, → `400` (là où une bibliothèque protobuf
+garderait le dernier ou fusionnerait, l'enregistreur refuse : un
+sérialiseur conforme n'émet chaque champ qu'une fois, et deux lectures
+différentes d'un même corps ne doivent pas être possibles) ; une chaîne qui
+n'est pas de l'UTF-8 valide → `400` ; `bool_value` autre que 0 ou 1 → `400`.
+Les champs `trace_id`, `span_id` et `parent_span_id` sont convertis en
+chiffres hexadécimaux minuscules ; `string_value_strindex` et
+`key_strindex` suivent la règle d'EX-6.29. Un corps protobuf et un corps
+JSON qui portent les mêmes valeurs donnent la même forme normalisée
+(EX-6.31) : la famille `otel/` de l'annexe B le vérifie sur des paires de
+cas.
+
+#### 6.8.6 Forme normalisée d'un span
+
+**EX-6.31** **Normalisation.** Pour chaque span de chaque `ScopeSpans` de
+chaque `ResourceSpans`, dans l'ordre du document, l'enregistreur calcule en
+mémoire la **forme normalisée** N(S), objet JSON aux membres exactement
+suivants (noms de champs proto, en snake_case, pour que la forme ne dépende
+pas de l'encodage reçu) :
+
+| Membre | Valeur |
+|---|---|
+| `trace_id`, `span_id` | chiffres hexadécimaux minuscules (32 et 16 attendus, EX-6.32) |
+| `parent_span_id` | 16 chiffres hexadécimaux minuscules, ou `null` si le champ est vide (span racine, R11-F42) |
+| `trace_state`, `name` | chaînes (`""` si absentes) |
+| `flags`, `kind` | entiers (`0` si absents) |
+| `start_time_unix_nano`, `end_time_unix_nano` | entiers en chaînes décimales sans zéro de tête (`"0"` si absents) |
+| `attributes` | A(attributs du span) |
+| `dropped_attributes_count`, `dropped_events_count`, `dropped_links_count` | entiers |
+| `events` | tableau, dans l'ordre reçu, de `{ "name", "time_unix_nano", "attributes": A(…), "dropped_attributes_count" }` |
+| `links_count` | nombre de liens reçus (les liens eux-mêmes ne sont pas gardés) |
+| `status` | `{ "code": entier (0 si absent), "message": chaîne }` |
+| `resource` | `{ "attributes": A(attributs de la ressource), "dropped_attributes_count" }` |
+| `scope` | `{ "name", "version", "attributes": A(…) }` |
+| `schema_url` | `schema_url` du `ScopeSpans` s'il n'est pas vide, sinon celui du `ResourceSpans` s'il n'est pas vide, sinon `null` ; jamais visité |
+
+A(liste) est l'objet qui associe à chaque `key` la valeur V de son
+`AnyValue`. Les clés DOIVENT être uniques et le comportement d'un récepteur
+devant une clé en double n'est pas défini (L5-2, L5-3) : la **première**
+occurrence est gardée, les suivantes sont ignorées et comptées
+(`otel_cle_double`). V(`AnyValue`) : `string_value` → la chaîne ;
+`bool_value` → booléen ; `int_value` → nombre JSON si sa valeur absolue est
+au plus 2^53 − 1, sinon sa chaîne décimale (aucune perte silencieuse,
+EX-8.2) ; `double_value` → nombre JSON s'il est fini (`-0` s'écrit `0`,
+EX-8.1), sinon la chaîne `"NaN"`, `"Infinity"` ou `"-Infinity"` ;
+`array_value` → tableau des V ; `kvlist_value` → A(ses valeurs) ;
+`bytes_value` → chaîne base64 (RFC 4648 § 4, avec remplissage) ; aucune
+valeur → `null`. Une clé en double est comptée à tout niveau, `kvlist_value`
+imbriquées comprises. **Attributs de contenu** : dans A(attributs du span)
+**seulement** (jamais dans les attributs des événements, de la ressource, de
+la portée, ni dans une `kvlist_value`, où la chaîne est gardée), pour les six
+clés
+`gen_ai.input.messages`, `gen_ai.output.messages`,
+`gen_ai.system_instructions`, `gen_ai.tool.definitions`,
+`gen_ai.tool.call.arguments` et `gen_ai.tool.call.result`, qu'un span PEUT
+porter sous forme de chaîne JSON (L5-6, notes [3], [11], [12] et [13] du
+registre), une valeur V qui est une chaîne et qui s'analyse en JSON strict
+(EX-5.7 point 2, nombres en JCS intégral, 8.1) est remplacée par la valeur
+analysée ; sinon la chaîne est gardée. `gen_ai.tool.definitions` est ainsi
+analysée, non interprétée : elle va dans la pièce « requête » d'un span
+d'inférence (EX-6.35) et aucun nom ni aucune classe d'outil n'en est tiré.
+N(S) n'existe qu'en mémoire : rien
+n'en est stocké avant la rédaction des pièces (EX-6.35).
+
+#### 6.8.7 Classification, spans ignorés et rejetés
+
+**EX-6.32** **Classification.** L'opération d'un span est
+`attributes["gen_ai.operation.name"]` s'il est une chaîne ; à défaut,
+`execute_tool` si `attributes["mcp.method.name"]` vaut `tools/call` (span
+d'une instrumentation MCP, L5-9) ; à défaut, aucune. La sorte est :
+**inférence** pour `chat`, `generate_content` et `text_completion` ;
+**outil** pour `execute_tool` (valeurs du registre, L5-6) ; aucune sinon. Le
+nom et la sorte de span OpenTelemetry (`kind`) ne servent pas à classer : ce
+sont des recommandations des conventions (R11-F28, R11-F32). Un span est :
+
+1. **ignoré**, raison `hors_genai`, s'il n'a pas d'opération ; raison
+   `operation_non_retenue` si son opération n'a pas de sorte (`embeddings`,
+   `retrieval`, `create_agent`, `invoke_agent`, `invoke_workflow`, valeur
+   propre à une instrumentation) ; raison `sorte_desactivee` si sa sorte
+   n'est pas dans `policy.otel.sources.<alias>.ingest` ;
+2. **rejeté**, raison `identifiants_invalides`, si sa sorte est retenue et
+   que `trace_id` n'a pas 32 chiffres hexadécimaux ou n'a que des zéros, que
+   `span_id` n'en a pas 16 ou n'a que des zéros, ou que `parent_span_id`,
+   non nul, n'en a pas 16 ou n'a que des zéros (un identifiant vide ou de
+   longueur fausse est invalide, R11-F42) ;
+3. **retenu** sinon.
+
+Un span ignoré est **accepté** au sens d'OTLP : il n'entre pas dans
+`rejected_spans`, qui ne compte que les spans rejetés (R11-F41) ; ni son
+contenu, ni son nom, ni ses attributs ne sont stockés, hachés ou écrits au
+journal d'exploitation, qui ne reçoit que les comptes par raison. Un span
+rejeté entre dans `rejected_spans` ; le journal d'exploitation reçoit
+`trace_id`, `span_id` et la raison, jamais son contenu.
+
+#### 6.8.8 Doublons et recouvrement
+
+**EX-6.33** **Doublons.** La clé d'un span retenu est (alias de la source,
+`trace_id`, `span_id`). Le démon tient en mémoire la table des clés des spans
+scellés ou écartés comme recouvrements pendant `otel.dedup_window_ms`
+(3 600 000 dans la configuration de référence), au plus 1 000 000 de clés,
+les plus anciennes sortant les premières (sortie comptée,
+`otel_dedup_evicted`). Un span dont la clé est dans la table, ou déjà vue
+plus haut dans la même requête, est un **doublon** : il n'est pas scellé, il
+est compté et accepté. Un client OTLP renvoie un lot dont il n'a pas reçu
+l'accusé, et le serveur reçoit alors des doublons, « a deliberate choice »
+d'OTLP (R11-F41). La table n'est pas reconstruite au redémarrage en version
+0 : un lot renvoyé après un redémarrage du démon peut donner un second
+événement pour un span ; les deux portent alors la **même pièce
+d'enveloppe** (même `sha256` en `context[1]`, puisque la forme normalisée et
+la rédaction sont déterministes), à quoi un lecteur reconnaît le doublon ;
+il le reconnaît aussi, dans tous les cas, aux `trace_id` et `span_id` lus
+dans la pièce d'enveloppe. La table garde avec chaque clé le SHA-256 du JCS
+intégral de N(S) : un span de même clé dont l'empreinte diffère (un span
+rejoué avec un autre contenu) reste un doublon non scellé, mais il est
+consigné (`otel_span_conflict` : `trace_id`, `span_id`, les deux
+empreintes) et compté dans l'alerte mineure de 17.4 ; au-delà de la fenêtre,
+d'une sortie de la table ou d'un redémarrage, il serait scellé avec une autre
+enveloppe, ce que les deux enveloppes, de mêmes identifiants, montrent.
+
+**EX-6.34** **Recouvrement.** Avec
+`policy.otel.sources.<alias>.overlap = "ignorer"` (valeur de la
+configuration de référence), un span retenu est un **recouvrement**, non
+scellé, quand le démon trouve dans son **registre de recouvrement**
+(ci-dessous), pour le groupe d'hôte de la source (`host_group` de son entrée
+de `otel.hosts`), un événement que le span décrit et qu'aucun autre span n'a
+déjà apparié, inscrit dans la fenêtre `[t − otel.overlap_window_ms, t]`, où
+`t` est l'instant de réception de la requête OTLP ; le plus ancien est
+apparié. Sorte outil : un appel d'outil du frontal MCP ou du SDK dont le nom
+vu par le modèle (règle 1 d'EX-5.22, gabarit et normalisation de sa
+connexion d'hôte ; pour le SDK, le `tool` déclaré) est égal au nom N du span
+(EX-6.35). Sorte inférence : un échange de la passerelle ou du SDK dont la
+partie de `code.model` qui suit le premier `/` est égale au modèle M du span
+(EX-6.36). Le registre de recouvrement garde en mémoire, par groupe d'hôte
+et pendant `otel.overlap_window_ms`, pour chaque appel d'outil et chaque
+échange scellé par le frontal MCP, la passerelle ou le SDK : l'instant
+d'inscription, le nom vu par le modèle ou le modèle, le `seq`, et s'il est
+apparié ; il n'est ni persistant, ni reconstruit au redémarrage. Un
+recouvrement est consigné (`otel_span_overlap` : `trace_id`, `span_id`,
+`seq` de l'événement apparié) et sa clé entre dans la table des doublons.
+Avec `overlap = "conserver"`, tout span retenu est scellé, y compris quand
+l'acte a déjà été journalisé par un chemin plus fort : deux événements pour
+un acte, que leurs marques distinguent (6.7). Limites, dites en clair :
+l'appariement se fait par nom et par temps ; deux appels identiques d'un même
+groupe dans la fenêtre peuvent être appariés en croix, sans conséquence (les
+deux spans sont écartés, les deux événements forts restent) ; un outil local
+qui porte le nom d'un outil MCP du même groupe et s'exécute dans la fenêtre
+après lui est pris pour un recouvrement et n'est pas scellé, le journal
+d'exploitation nommant le `seq` apparié : l'intégration l'évite par des noms
+distincts ou par `overlap = "conserver"` ; pour la sorte inférence, quand M
+diffère de la partie de `code.model` qui suit le premier `/` dans l'échange
+de la passerelle (pour Gemini, `modelVersion` ou, à défaut, le segment de
+modèle du chemin, EX-5.36 ; M est `gen_ai.response.model` ou
+`gen_ai.request.model` de l'instrumentation, EX-6.36, et leur égalité n'est
+pas vérifiée), aucun appariement n'a lieu et le span est scellé, comme sous
+`overlap = "conserver"` : rien n'est perdu, mais l'acte a alors deux
+événements, que leurs marques distinguent (`context` vide pour l'échange de
+la passerelle, `context[0]` de `channel` `otel` pour le span) ; celui de la
+passerelle fait foi (6.7).
+
+#### 6.8.9 Pièces
+
+**EX-6.35** **Pièces.** Pour un span retenu qui n'est ni un doublon ni un
+recouvrement, l'enregistreur construit, à partir de N(S) et dans cet ordre :
+
+1. **Pièce de déclaration de source** : JCS intégral de
+   `{"noortrace_capture":{"channel":"otel","source":"<alias>"}}`, sans
+   rédaction (ce sont des octets de configuration), `media_type:
+   "application/json"`, `kind: "autre"` ; ses octets ne dépendent que de
+   l'alias (66 octets pour `otel-sinistres`).
+2. Pour la sorte **inférence**, OUT désignant les attributs
+   `gen_ai.output.messages` et `gen_ai.completion` et ceux dont le nom
+   commence par `gen_ai.response.` ou `gen_ai.usage.` :
+   - Req = l'objet des attributs de N(S) dont le nom commence par `gen_ai.`
+     et qui ne sont pas dans OUT ; Resp = l'objet des attributs de OUT
+     (`{}` s'il n'y en a pas) ;
+   - **texte du prompt système** T : si `Req["gen_ai.system_instructions"]`
+     est une chaîne, cette chaîne ; si c'est un tableau, le `content` de
+     chacun de ses éléments objets de `type` `"text"` dont le `content` est
+     une chaîne (schéma des instructions système, L5-6) ; puis, pour chaque
+     élément objet de `Req["gen_ai.input.messages"]` de `role` `"system"`,
+     le `content` chaîne de chacune de ses `parts` de `type` `"text"` ; le
+     tout joint par `\n` ; aucun texte : pas de pièce, `prompt_version:
+     null` ;
+   - **pièce « prompt système »** : les octets UTF-8 de T rédigé par les
+     règles de portée `prompt_systeme`, `media_type: "text/plain"` (8.2) ;
+     avec `model.prompt_system: "named"`, la chaîne
+     `[PROMPT:<prompt_version_name de l'entrée de la source>]` (EX-8.6) ;
+   - **pièce « requête »** : avec `model.prompt_in_request: "reference"`
+     (défaut), une copie de Req où `gen_ai.system_instructions`, s'il est
+     présent, devient la chaîne `[REDIGE:prompt-systeme]` et où chaque
+     `content` pris dans T depuis un message de `role` `"system"` devient la
+     même chaîne ; avec `"inline"`, chacune de ces chaînes est rédigée par
+     les seules règles de portée `prompt_systeme` ; puis les règles de portée
+     `requete` s'appliquent à l'objet entier, racine des pointeurs ; JCS
+     intégral ; référence sans `media_type` ; `redacted: true` dès que T
+     existe en mode `reference` (EX-8.5) ;
+   - **pièce « réponse »** : Resp rédigé par les règles de portée `reponse`,
+     JCS intégral, sans `media_type` ;
+   - **pièce « intention »** quand EX-5.21 la demande ;
+   - **pièce d'enveloppe** : N(S) dont `attributes` ne garde que les
+     attributs dont le nom ne commence pas par `gen_ai.`, rédigée par les
+     règles de portée `contexte` (sélecteur `tools` : seule la valeur `"*"`
+     s'applique) selon la règle des membres textuels ci-dessous, JCS
+     intégral, `media_type: "application/json"`, `kind: "autre"`.
+3. Pour la sorte **outil** :
+   - **nom déclaré** N : `attributes["gen_ai.tool.name"]` si c'est une
+     chaîne non vide ; sinon ce qui suit le préfixe `execute_tool ` du nom du
+     span (nom recommandé, L5-6) ou le préfixe `tools/call ` (nom d'un span
+     MCP, L5-9) ; sinon la chaîne vide ; **nom de l'outil** `<alias>__<N>` si
+     N respecte `^[A-Za-z0-9][A-Za-z0-9._:/-]*$`, ne contient pas `__`, ne
+     commence pas par `noortrace.` et que le nom entier tient en 128
+     caractères ; sinon `<alias>__nom-invalide` (le nom reçu reste dans la
+     pièce d'enveloppe) ;
+   - **pièce « arguments »** : la valeur de `gen_ai.tool.call.arguments` si
+     l'attribut est présent, sinon l'objet
+     `{"noortrace_otel_absent":"gen_ai.tool.call.arguments"}` ; rédigée par
+     les règles de portée `arguments` pour l'outil `<alias>__<N>` (le
+     sélecteur `<alias>__*` désigne toute la source) ; JCS intégral ;
+   - **pièce « résultat »** : de même avec `gen_ai.tool.call.result`, portée
+     `resultat` ;
+   - **pièce d'enveloppe** : N(S) sans ces deux attributs, rédigée par les
+     règles de portée `contexte` pour l'outil `<alias>__<N>` selon la règle
+     des membres textuels ci-dessous, JCS intégral, `media_type:
+     "application/json"`, `kind: "autre"`.
+
+**Membres textuels de la pièce d'enveloppe.** Les règles de portée
+`contexte` ne s'appliquent qu'aux membres textuels de N(S) : `name`,
+`trace_state`, `attributes`, `events[].name`, `events[].attributes`,
+`status.message`, `resource`, `scope` et `schema_url`, lus dans une
+projection qui garde leurs pointeurs (`/attributes/…`, `/events/0/name`,
+`/status/message`, …). Les membres structurels restent tels quels :
+`trace_id`, `span_id`, `parent_span_id`, `flags`, `kind`,
+`start_time_unix_nano`, `end_time_unix_nano`, `events[].time_unix_nano`,
+`dropped_attributes_count`, `dropped_events_count`, `dropped_links_count`,
+`links_count` et `status.code`. Motif : un horodatage de 19 chiffres qui
+passe le contrôle de Luhn serait sinon rédigé en `[REDIGE:carte]` par
+`pii-v1`, et l'ordre déclaré des actes, que la pièce d'enveloppe seule porte
+(6.7, EX-6.38), serait perdu sans signal. Les horodatages restent des
+chaînes décimales (un nombre JSON de 19 chiffres dépasserait la double
+précision).
+
+Les bornes de 8 et de 10 s'appliquent. Au-delà de la borne de temps
+d'EX-10.23 (toute la rédaction d'une pièce, y compris celle des chaînes du
+prompt en mode `inline`), la pièce est la forme `noortrace_non_redigeable`
+d'EX-8.7 règle 3 (raison `budget_redaction`, `length` celle du JCS intégral
+de la valeur en clair) et l'événement est quand même scellé. Au-delà de
+`limits.piece_max_bytes` (une pièce peut dépasser le corps reçu : un
+`bytes_value` devient du base64, quatre octets pour trois), la pièce est la
+même forme avec `"reason": "taille"` et `length` = la longueur du JCS
+intégral de la valeur, l'événement est scellé, la ligne
+`otel_piece_too_large` (`trace_id`, `span_id`, pièce, longueur) est
+consignée et la réponse reste `200`. Les clés `noortrace_capture` et
+`noortrace_otel_absent` sont les seules que l'ingestion ajoute ; un lecteur les
+reconnaît à leur préfixe, comme celles d'EX-5.18. Un attribut de contenu absent
+ne veut pas dire un appel sans argument : l'instrumentation ne les enregistre
+pas par défaut (R11-F31, R11-F32) ; la marque `noortrace_otel_absent` le dit.
+
+#### 6.8.10 Champs de l'événement
+
+**EX-6.36** **Champs.** L'événement d'un span retenu est construit comme
+suit ; ce qui n'est pas nommé suit 7.2.
+
+| Champ | Sorte inférence | Sorte outil |
+|---|---|---|
+| Enveloppe (`version` à `prev_hash`) | 7.2 et 7.3 ; `ts` est lu sur l'horloge de l'écrivain quand il scelle (EX-7.9), **jamais** tiré des horodatages du span, qui sont ceux de l'horloge de l'agent (R11-F42, R11-C11) et ne figurent que dans la pièce d'enveloppe | idem |
+| `delegation.launched_by`, `delegation.scope` | ceux de l'entrée de la source dans `otel.hosts` | idem |
+| `delegation.on_behalf_of` | celui de l'entrée ; aucun attribut du span ne le fixe | idem |
+| `delegation.run_id` | `attributes["gen_ai.conversation.id"]` si l'entrée a `accept_declared_delegation: true` et que la valeur passe EX-7.2 (motif et détecteurs) ; sinon `null` | idem |
+| `code.model` | `<fournisseur>/<M>` tronqué à 256 points de code, ou `null` sans M ; M = `gen_ai.response.model` de la pièce « réponse » **rédigée** s'il est une chaîne non vide, sinon `gen_ai.request.model` de la pièce « requête » rédigée s'il l'est ; fournisseur = `gen_ai.provider.name`, à défaut `gen_ai.system`, de la pièce « requête » rédigée, s'il respecte `^[a-z0-9][a-z0-9._-]{0,31}$` (les valeurs du registre comprennent `gcp.gen_ai`, `mistral_ai`, `x_ai`, L5-6), sinon `inconnu` | `null` |
+| `code.prompt_version` | SHA-256 de la pièce « prompt système », ou `null` | `null` |
+| `code.policy_version`, `code.recorder` | 7.2 | 7.2 |
+| `intent` | les `content` chaînes des `parts` de `type` `"text"` du premier élément de `gen_ai.output.messages` de la pièce « réponse » **rédigée** (chaque message est une génération, R11-F30), joints par `\n` ; EX-5.21 (chaîne d'au plus 4 096 caractères et identique au texte en clair, sinon référence `text/plain`) ; `null` sans texte | `null` |
+| `policy` | `{ "rule": null, "decision": "sans_objet", "ticket": null, "redaction" }` | `{ "rule": null, "decision": "autorise", "ticket": null, "redaction" }` (EX-6.23) |
+| `approval` | `null` | `null` |
+| `execution.tool` | `noortrace.modele.echange` | `<alias>__<N>` ou `<alias>__nom-invalide` |
+| `execution.arguments`, `execution.result` | pièces « requête » et « réponse » | pièces « arguments » et « résultat » |
+| `execution.status` | `executee` | `executee` |
+| `execution.duration_ms` | ⌊(fin − début) / 10^6⌋ des horodatages du span si les deux sont non nuls et que fin ≥ début, borné à 2^53 − 1 ; sinon `0` ; **déclaré** par l'agent | idem |
+| `execution.is_error` | vrai si `status.code` vaut 2 (`STATUS_CODE_ERROR`, R11-F42) ou si `error.type` est une chaîne non vide (R11-F28) | idem |
+| `effects` | `[]` | EX-7.6, gabarit `policy.otel.sources.<alias>.tools.<N>.effects` évalué sur les valeurs rédigées des pièces ; sans gabarit, classe `tools.<N>.class`, à défaut `class_default`, à défaut `ecriture` : effet par défaut `{ "system": <alias>, "action": "ecriture", "object": <N ou "nom-invalide">, "amount": null, "currency": null }` pour `ecriture`, `[]` pour `lecture` |
+| `context` | `[déclaration de source, enveloppe]` (EX-7.7) | idem |
+| `policy.redaction` | EX-10.20, toutes les références comprises (contexte inclus) | idem |
+
+Un événement issu d'un span n'est pas inscrit au registre de corrélation de
+5.6, et un appel d'outil issu d'un span n'est pas corrélé : le span arrive
+après l'appel, par lots (cinq secondes entre deux exportations par défaut,
+L5-10), quand la corrélation a déjà été jugée.
+
+#### 6.8.11 Sources, ordre, réponse
+
+**EX-6.37** **Sources et authentification.** Chaque source est une entrée
+de `otel.hosts` : `match.static_token` désigne un jeton de
+`otel.static_tokens`, que la source présente dans l'en-tête
+`X-Noortrace-Token` ou `Authorization: Bearer` ; la comparaison est faite en
+temps constant, l'en-tête n'est jamais stocké ni journalisé, et les échecs
+sont limités comme en EX-18.3. Une requête sans jeton valide reçoit `401`,
+qu'un client OTLP ne relance pas (R11-F41). L'entrée porte un `alias` non nul,
+distinct des alias de serveurs et des alias du SDK, égal à une clé de
+`policy.otel.sources` (et chaque clé a une entrée) ; `launched_by` est une
+valeur fixe (`${peer_user}` et `${oauth_subject}` n'ont pas de sens ici) ;
+`allowed_on_behalf_of` est vide ; `tool_name_template`,
+`tool_name_sanitize` et `prompt_version_name` suivent 15.1 (le gabarit n'est
+pas employé par l'ingestion). mTLS et OAuth ne sont pas pris en charge pour
+les sources en version 0. Un exportateur configuré par l'environnement pose
+l'en-tête par `OTEL_EXPORTER_OTLP_TRACES_HEADERS=x-noortrace-token=<jeton>`
+(liste de paires au format W3C Baggage, L5-7).
+
+**EX-6.38** **Ordre et réponse.** Dans une requête, les spans sont traités
+dans l'ordre du document (`resourceSpans`, puis `scopeSpans`, puis `spans`),
+et leurs événements remis à l'écrivain dans cet ordre ; les événements de
+deux requêtes concurrentes d'une source (au plus `quota.max_concurrent`) ou
+de deux sources peuvent s'entrelacer. L'ordre de la chaîne est donc l'ordre
+de réception, pas l'ordre des actes : celui-ci se lit, déclaré, dans les
+pièces d'enveloppe (horodatages, `parent_span_id`). Le démon ne répond `200`
+qu'une fois **tous** les événements de la requête durables (`fdatasync`,
+12.3) ; si une panne l'en empêche, il répond selon EX-6.39, le client
+renvoie le lot, et les spans déjà scellés sont alors des doublons
+(EX-6.33). Chaque requête est consignée (`otel_request`, 6.8.14).
+
+Sous charge, l'écrivain sert d'abord les frontaux interposés (EX-6.28) : le
+`200` d'une requête peut donc tarder. Le texte ne fixe aucun délai maximal
+entre la réception d'un lot et son `200`, et ne dit pas si le démon continue
+de sceller les spans d'une requête dont l'exportateur a fermé la connexion
+pendant le traitement : c'est un point ouvert, à écrire (section 21). Ce qui
+est écrit : les événements déjà scellés restent scellés (EX-6.38) ; un lot
+que l'exportateur renvoie dans `otel.dedup_window_ms` ne donne pas de second
+événement pour ces spans, hors redémarrage du démon (EX-6.33) ; un lot que
+le démon n'a jamais reçu et que l'exportateur abandonne est perdu sans que
+le démon le compte (EX-6.39). Une perte due au seul retard du `200` n'est
+donc ni établie ni exclue par le texte : elle dépend du point ouvert
+ci-dessus. Le retard est visible par
+`noortrace_otel_reception_lag_ms` et par l'alerte « Retard de réception »
+(17.4).
+
+#### 6.8.12 Pannes
+
+**EX-6.39** **Pannes.** L'ingestion n'est jamais bloquante pour l'agent,
+qui a déjà agi, et sa panne ne met pas, à elle seule, le démon en mode
+dégradé. Ses réponses :
+
+| Panne (14.2) | Réponse | Événements de la requête | Journal d'exploitation |
+|---|---|---|---|
+| Stockage indisponible, disque presque plein, clé indisponible, bail perdu ou non détenu, horloge hors seuil, événement invalide (EX-7.1) | `503`, `Retry-After` | aucun nouveau ; jamais d'événement en attente (14.5) : l'exportateur garde le lot et le renvoie (R11-F41) | `otel_refused` (raison de 14.2) |
+| Quota de la source | `429`, `Retry-After` | aucun | `otel_refused` (`quota`) |
+| Corps non décodable, type ou codage non admis, trop grand, non authentifié, chemin ou méthode | `400`, `415`, `413`, `401`, `404`, `405` | aucun | `otel_refused`, `auth_failed` pour `401` |
+| Span rejeté (EX-6.32) | `200` avec `partialSuccess` | les autres spans sont scellés | `otel_span_rejected` |
+| Borne de temps de rédaction dépassée (EX-10.23) | `200` | l'événement est scellé avec la pièce non rédigeable | `redaction_budget_exceeded` |
+| Pièce au-delà de `limits.piece_max_bytes` (EX-6.35) | `200` | l'événement est scellé avec la pièce non rédigeable (`taille`) | `otel_piece_too_large` |
+| Événements par minute de la source (EX-6.28) | `429`, `Retry-After` | les spans déjà scellés restent ; le lot renvoyé donne des doublons | `otel_refused` (`evenements_par_minute`) |
+| Démon arrêté ou injoignable (rien n'écoute sur `otel.listen`, ou connexion coupée sans réponse) | aucune | aucun ; l'exportateur traite l'échec comme une erreur transitoire et relance avec attente exponentielle dans la limite de son délai (L5-7, section « Retry » ; OTLP, « If the client cannot connect to the server, the client SHOULD retry the connection using an exponential backoff strategy », L5-1), puis abandonne le lot : spans perdus chez l'agent, que le démon ne peut pas compter | rien (le démon ne tourne pas) |
+| Service d'approbation (CT-3), registre (CT-4), ancrage (CT-5) indisponibles | sans effet | la politique n'est pas évaluée sur un span ; CT-4 et CT-5 ne bloquent jamais (14.2) | — |
+
+Conséquence côté agent : l'exportateur relance dans la limite de son délai,
+dix secondes par défaut **attentes comprises**, puis abandonne le lot
+(L5-7) ; un mode dégradé ou un arrêt plus long perd des spans chez l'agent,
+que le démon ne peut pas compter. Au redémarrage, la table des doublons
+(EX-6.33) et le registre de recouvrement (EX-6.34) sont vides : un lot
+scellé mais non acquitté avant l'arrêt et renvoyé ensuite donne un second
+événement (même pièce d'enveloppe), et un span qui décrit un acte journalisé
+avant l'arrêt par un frontal ne trouve rien à apparier et est scellé, malgré
+`overlap = "ignorer"`. L'implémentation de la relance dans l'exportateur
+Python 1.45.1 (`opentelemetry.exporter.otlp.common.http`) n'a pas été lue ;
+un essai de phase 2 (démon arrêté, puis spans relancés et reçus après le
+redémarrage dans le délai) le vérifiera. L'intégration porte ce délai
+(`OTEL_EXPORTER_OTLP_TRACES_TIMEOUT`, ou le paramètre `timeout` de
+l'exportateur Python, en secondes, L5-8) au-delà de la durée de bascule
+attendue (13.4). L'unité de la variable n'est pas la même partout. La
+spécification d'OpenTelemetry v1.62.0 range `OTEL_EXPORTER_OTLP_TIMEOUT` et
+`OTEL_EXPORTER_OTLP_TRACES_TIMEOUT` dans le type `Timeout`, défaut `10s`
+(`specification/protocol/exporter.md` L66-L73), que
+`specification/configuration/common.md`, section « Timeout » (L86-L97),
+définit ainsi : « Any value that represents a timeout MUST be an integer
+representing a number of milliseconds » (lus le 2026-10-26). L'exportateur
+Python 1.45.1 lit pourtant la même variable en secondes :
+`_resolve_timeout` la convertit par `float()`
+(`opentelemetry/exporter/otlp/proto/http/_common/__init__.py` L152-L165), et
+`DEFAULT_TIMEOUT = 10  # in seconds` (`trace_exporter/__init__.py` L63,
+employé L157 ; roue `opentelemetry-exporter-otlp-proto-http` 1.45.1, lue le
+2026-10-26). Pour porter le délai à 30 s par l'environnement, il faut donc
+écrire `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT=30000` selon la spécification (la
+lecture par `@opentelemetry/sdk-node` 0.300.0 n'est pas vérifiée : à tester
+en phase 2), mais `30` pour l'exportateur Python, de préférence par son
+paramètre `timeout=30`, qui prime sur la variable (L157). La valeur de 30 s
+est un exemple : la règle est un délai supérieur à la durée de bascule
+mesurée (13.4).
+
+#### 6.8.13 Sécurité
+
+**EX-6.40** **Sécurité.** (1) `otel.listen` est une adresse de bouclage
+dans la configuration de référence ; en `environment: "production"`, la
+validation exige `otel.tls` non nul dès que `otel.listen` n'est pas une
+adresse de bouclage (`127.0.0.0/8`, `[::1]`). (2) Une source ne peut
+produire que des échanges de modèle et des appels d'outils de préfixe
+`<son alias>__`, avec la délégation de son entrée : jamais un nom annoncé
+par le frontal MCP, un alias du SDK ou d'une autre source, une décision
+d'approbation, un événement `retenue` ou `refusee`, ni un autre nom réservé
+que `noortrace.modele.echange`. (3) Le contenu d'un span ignoré n'est ni
+stocké, ni haché, ni journalisé. (4) Aucune URL lue dans un span
+(`schema_url`, `server.address`, attributs) n'est jamais visitée. (5) Le
+décodage est borné en taille, en profondeur et en nombre d'éléments
+(EX-6.28 à EX-6.30), la décompression avant allocation. (6) Une source
+compromise peut fabriquer des spans : c'est la déclarante, et 6.7 le dit ;
+elle peut inonder le point d'entrée : ses quotas (EX-4.47) et les bornes
+propres à l'ingestion (`spans_per_request`, `events_per_minute`,
+`event_bytes_per_minute`, `min_free_bytes`, EX-6.28) la bornent, et
+l'écrivain sert les frontaux interposés avant elle ; sans ces bornes, les
+quotas jugés à l'entrée ne suffiraient pas, une requête donnant N
+événements. (7) La surface d'écoute d'EX-18.1 comprend
+`otel.listen`.
+
+#### 6.8.14 Supervision
+
+**EX-6.41** **Supervision.** Métriques (17.2), sans contenu de span :
+
+| Nom | Type | Étiquettes | Sens |
+|---|---|---|---|
+| `noortrace_otel_requests_total` | compteur | `source` (alias), `status` (code HTTP) | Requêtes OTLP traitées |
+| `noortrace_otel_spans_total` | compteur | `source`, `issue` (`scelle`, `ignore`, `doublon`, `recouvrement`, `rejete`), `reason` (`hors_genai`, `operation_non_retenue`, `sorte_desactivee`, `identifiants_invalides`, ou vide) | Spans par issue et par raison |
+| `noortrace_otel_reception_lag_ms` | histogramme (bornes 1 000, 5 000, 10 000, 30 000, 60 000, 300 000, 3 600 000) | `source` | `ts` de l'événement moins la fin déclarée du span, en millisecondes (0 si négatif) ; aucune observation quand la fin déclarée vaut 0 (`lag_ms` null dans les vecteurs) |
+| `noortrace_otel_conflicts_total` | compteur | `source` | Spans de même clé rejoués avec un autre contenu (`otel_span_conflict`, EX-6.33) |
+
+Événements du journal d'exploitation, composant `otel` : `otel_request`
+(`info`, une ligne pour **toute** requête, refusée comprise : source, type
+de contenu, codage, `query_string` vrai si une chaîne de requête a été
+reçue et ignorée, jamais sa valeur, octets reçus et décomprimés, nombre de
+spans, et par issue et par raison ; statut rendu),
+`otel_span_conflict` (`warning` : `trace_id`, `span_id`, les deux
+empreintes, EX-6.33), `otel_piece_too_large` (`warning` : `trace_id`,
+`span_id`, pièce, longueur, EX-6.35),
+`otel_span_rejected` (`warning` : `trace_id`, `span_id`, raison),
+`otel_span_overlap` (`info` : `trace_id`, `span_id`, `seq` apparié),
+`otel_refused` (`warning` : statut, raison), `otel_cle_double` (`debug` :
+nombre), `otel_dedup_evicted` (`warning` : nombre). Aucun n'écrit un nom, un
+attribut ou une valeur de span. Alertes (17.4) : ingestion refusée,
+`increase(noortrace_otel_requests_total{status=~"429|503"}[5m]) > 0`,
+majeure (l'exportateur abandonne un lot au-delà de son délai) ; spans
+rejetés, `increase(noortrace_otel_spans_total{issue="rejete"}[1h]) > 0`,
+mineure ; retard de réception,
+`histogram_quantile(0.99, noortrace_otel_reception_lag_ms) > 60000` sur
+15 min, mineure ; conventions renommées, une heure où une source a reçu des
+spans dont aucun n'est scellé et tous sont ignorés pour `hors_genai`
+(`increase(noortrace_otel_spans_total{issue="ignore",reason="hors_genai"}[1h]) > 0`
+et `increase(noortrace_otel_spans_total{issue="scelle"}[1h]) == 0`),
+mineure ; span rejoué avec un autre contenu,
+`increase(noortrace_otel_conflicts_total[1h]) > 0`, mineure.
+
+#### 6.8.15 Raccorder un agent instrumenté
+
+Côté démon, la configuration porte le membre `otel` et, dans l'ensemble de
+politique, `policy.otel` :
+
+<!-- schema: configuration-enregistreur/otel -->
+```json
+{
+  "enabled": true,
+  "listen": "127.0.0.1:4318",
+  "tls": null,
+  "path": "/v1/traces",
+  "encodings": ["protobuf", "json"],
+  "max_body_bytes": 67108864,
+  "static_tokens": [
+    { "id": "otel-agent-sinistres", "token": { "file": "/run/secrets/noortrace-otel-agent-sinistres" } }
+  ],
+  "hosts": [
+    {
+      "id": "otel-agent-sinistres",
+      "match": { "static_token": "otel-agent-sinistres" },
+      "launched_by": "svc-agent-sinistres@assureur-demo.example",
+      "scope": "sinistres:lecture,paiement",
+      "on_behalf_of": "service-sinistres",
+      "accept_declared_delegation": true,
+      "tool_name_template": "{tool_announced}",
+      "tool_name_sanitize": false,
+      "prompt_version_name": null,
+      "host_group": "agent-sinistres",
+      "allowed_on_behalf_of": [],
+      "quota": { "max_concurrent": 8, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
+      "alias": "otel-sinistres"
+    }
+  ],
+  "dedup_window_ms": 3600000,
+  "overlap_window_ms": 600000,
+  "retry_after_s": 5
+}
+```
+
+<!-- schema: configuration-enregistreur/otel_policy -->
+```json
+{
+  "semconv": "1.41.1",
+  "sources": {
+    "otel-sinistres": { "ingest": ["inference", "outil"], "overlap": "ignorer", "class_default": null, "tools": {} }
+  }
+}
+```
+
+<!-- schema: configuration-enregistreur/sdk_policy -->
+```json
+{ "aliases": ["agent-local"] }
+```
+
+Le membre `otel` ci-dessus ne pose aucune des bornes facultatives propres à
+l'ingestion (`spans_per_request`, `events_per_minute`,
+`event_bytes_per_minute`, `min_free_bytes`) : seuls les quotas de son
+entrée la bornent (EX-6.28). Une configuration qui veut la protection
+qu'EX-6.40 (6) décrit contre une source qui inonde le point d'entrée les
+pose.
+
+Côté agent, l'exportateur OTLP est dirigé vers le démon, par
+l'environnement, que les SDK OpenTelemetry lisent (L5-7, L5-10) :
+
+```text
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces
+OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/protobuf
+OTEL_EXPORTER_OTLP_TRACES_HEADERS=x-noortrace-token=<jeton de la source>
+OTEL_TRACES_SAMPLER=always_on
+```
+
+Le délai de l'exportateur, qui doit dépasser la durée de bascule mesurée
+(13.4), n'est pas dans ce bloc commun : son unité dépend de l'exportateur
+(EX-6.39). Il se pose selon l'une de ces deux lignes (30 s, valeur
+d'exemple) :
+
+- exportateur Python 1.45.1 : ne pas poser la variable
+  `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT`, qu'il lit en secondes (`30000` y
+  donnerait 30 000 s) ; passer `timeout=30` (secondes) à
+  `OTLPSpanExporter` (19.5.11) ;
+- autres SDK : `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT=30000` (millisecondes
+  selon la spécification ; lecture par `@opentelemetry/sdk-node` 0.300.0
+  non vérifiée, à tester en phase 2).
+
+L'adresse par signal est employée telle quelle et DOIT donc finir par
+`/v1/traces` (L5-7) ; `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318`
+donne le même résultat, `v1/traces` étant ajouté à cette base. Le
+protocole est `http/protobuf` ou `http/json`, jamais `grpc` (EX-6.26). La
+compression est `gzip` ou aucune. L'échantillonneur par défaut,
+`parentbased_always_on`, suit la décision d'un parent distant (L5-10) : un
+span dont le parent n'est pas échantillonné ne serait jamais exporté, d'où
+`always_on`. Le contenu (messages, arguments, résultats) n'est enregistré que
+si l'instrumentation le permet et que l'intégration l'active : pour
+l'instrumentation de google-genai d'`opentelemetry-python-genai`, la variable
+`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` et le mode `SPAN_ONLY`
+(R11-F36 ; la valeur exacte attendue par la variable n'est pas vérifiée) ;
+sans contenu, les événements existent et prouvent ce que dit 6.7, avec des
+pièces sans messages et la marque `noortrace_otel_absent`. Le fichier
+d'intégration de 19.5 donne le code Python (19.5.11).
+
+Aucun pare-feu de sortie n'est exigé pour l'ingestion seule, et son rang
+n'en dépend pas : elle ne prétend ni à l'exhaustivité ni à rien empêcher
+(6.7, ligne « Ingestion OpenTelemetry »). Le pare-feu d'EX-6.2 borne ce que
+l'agent peut joindre sans l'enregistreur ; il ne rend pas un span plus
+probant. Un agent qui emploie aussi la passerelle, le frontal MCP ou le SDK
+garde le pare-feu qu'exigent ces chemins (4.9, 5.1, EX-6.2).
+
+#### 6.8.16 Exemple calculé
+
+La source `otel-sinistres` ci-dessus, la politique de rédaction `pii-v1`
+(10.9), `model.prompt_in_request: "reference"`, `model.prompt_system:
+"redige"` et la version de politique `"2026-11-10-otel"` reçoivent, à
+2026-11-10T10:41:07.5Z, ce lot JSON d'un span d'inférence et d'un span
+d'outil (les contenus sont enregistrés par l'instrumentation) :
+
+```json
+{
+  "resourceSpans": [{
+    "resource": { "attributes": [
+      { "key": "service.name", "value": { "stringValue": "agent-sinistres" } },
+      { "key": "service.version", "value": { "stringValue": "3.2.0" } } ] },
+    "scopeSpans": [{
+      "scope": { "name": "agent-sinistres.instrumentation", "version": "1.0.0" },
+      "spans": [
+        {
+          "traceId": "5B8EFFF798038103D269B633813FC60C",
+          "spanId": "EEE19B7EC3C1B174",
+          "parentSpanId": "EEE19B7EC3C1B173",
+          "name": "chat modele-demo-1",
+          "kind": 3,
+          "startTimeUnixNano": "1794307263100250000",
+          "endTimeUnixNano": "1794307264312750000",
+          "attributes": [
+            { "key": "gen_ai.operation.name", "value": { "stringValue": "chat" } },
+            { "key": "gen_ai.provider.name", "value": { "stringValue": "openai" } },
+            { "key": "gen_ai.request.model", "value": { "stringValue": "modele-demo-1" } },
+            { "key": "gen_ai.conversation.id", "value": { "stringValue": "conv-2026-11-10-0007" } },
+            { "key": "gen_ai.system_instructions", "value": { "stringValue": "[{\"type\":\"text\",\"content\":\"Tu traites les sinistres de l’assureur. Ne paie jamais sans pièces justificatives.\"}]" } },
+            { "key": "gen_ai.input.messages", "value": { "stringValue": "[{\"role\":\"user\",\"parts\":[{\"type\":\"text\",\"content\":\"Prépare le règlement du sinistre 2026-77812 ; l’assuré écrit depuis jean.exemple@assureur-demo.example.\"}]}]" } },
+            { "key": "gen_ai.output.messages", "value": { "stringValue": "[{\"role\":\"assistant\",\"parts\":[{\"type\":\"text\",\"content\":\"Je prépare le paiement de 7400.00 CHF au bénéficiaire du sinistre.\"},{\"type\":\"tool_call\",\"id\":\"call_01\",\"name\":\"paiement.creer\",\"arguments\":{\"montant\":\"7400.00\",\"devise\":\"CHF\",\"iban_beneficiaire\":\"CH93 0076 2011 6238 5295 7\"}}],\"finish_reason\":\"tool_call\"}]" } },
+            { "key": "gen_ai.response.model", "value": { "stringValue": "modele-demo-1-2026-09" } },
+            { "key": "gen_ai.response.id", "value": { "stringValue": "resp-0007" } },
+            { "key": "gen_ai.response.finish_reasons", "value": { "arrayValue": { "values": [ { "stringValue": "tool_call" } ] } } },
+            { "key": "gen_ai.usage.input_tokens", "value": { "intValue": "412" } },
+            { "key": "gen_ai.usage.output_tokens", "value": { "intValue": "38" } },
+            { "key": "server.address", "value": { "stringValue": "passerelle-fournisseur.example" } }
+          ],
+          "status": { "code": 1 }
+        },
+        {
+          "traceId": "5B8EFFF798038103D269B633813FC60C",
+          "spanId": "EEE19B7EC3C1B175",
+          "parentSpanId": "EEE19B7EC3C1B173",
+          "name": "execute_tool paiement.creer",
+          "kind": 1,
+          "startTimeUnixNano": "1794307264320000000",
+          "endTimeUnixNano": "1794307264733500000",
+          "attributes": [
+            { "key": "gen_ai.operation.name", "value": { "stringValue": "execute_tool" } },
+            { "key": "gen_ai.tool.name", "value": { "stringValue": "paiement.creer" } },
+            { "key": "gen_ai.tool.call.id", "value": { "stringValue": "call_01" } },
+            { "key": "gen_ai.tool.type", "value": { "stringValue": "function" } },
+            { "key": "gen_ai.tool.call.arguments", "value": { "kvlistValue": { "values": [
+              { "key": "montant", "value": { "stringValue": "7400.00" } },
+              { "key": "devise", "value": { "stringValue": "CHF" } },
+              { "key": "iban_beneficiaire", "value": { "stringValue": "CH93 0076 2011 6238 5295 7" } } ] } } },
+            { "key": "gen_ai.tool.call.result", "value": { "stringValue": "{\"statut\":\"cree\",\"reference\":\"PAY-2026-55120\"}" } }
+          ],
+          "status": { "code": 1 }
+        }
+      ]
+    }]
+  }]
+}
+```
+
+Les deux spans sont retenus (opérations `chat` et `execute_tool`, aucune
+entrée dans les tables de doublons et de recouvrement). Pièces stockées
+(octets exacts, JCS intégral ou texte) :
+
+| Pièce | `sha256` | `length` | `redacted` | `media_type` | Octets |
+|---|---|---|---|---|---|
+| prompt système (inférence) | `0xd9908f3ea8908b3578e2ba5e95971616b9510c2c00accef44605cf1ffb7f8db5` | 85 | `false` | `text/plain` | `Tu traites les sinistres de l’assureur. Ne paie jamais sans pièces justificatives.` |
+| requête (inférence) | `0x69a9e553553b5c0bdfe6c3ee6b9bc45ebd1ce1b891682659cf192a681de34ea5` | 376 | `true` | — | `{"gen_ai.conversation.id":"conv-2026-11-10-0007","gen_ai.input.messages":[{"parts":[{"content":"Prépare le règlement du sinistre 2026-77812 ; l’assuré écrit depuis [REDIGE:email].","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.system_instructions":"[REDIGE:prompt-systeme]"}` |
+| réponse (inférence) | `0x74df77a8761266e52028f81b17ea815dbb4c2b0a22f43647bd1ecc2c0a3f0730` | 522 | `true` | — | `{"gen_ai.output.messages":[{"finish_reason":"tool_call","parts":[{"content":"Je prépare le paiement de 7400.00 CHF au bénéficiaire du sinistre.","type":"text"},{"arguments":{"devise":"CHF","iban_beneficiaire":"[REDIGE:iban]","montant":"7400.00"},"id":"call_01","name":"paiement.creer","type":"tool_call"}],"role":"assistant"}],"gen_ai.response.finish_reasons":["tool_call"],"gen_ai.response.id":"resp-0007","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":412,"gen_ai.usage.output_tokens":38}` |
+| déclaration de source (les deux) | `0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922` | 66 | `false` | `application/json` | `{"noortrace_capture":{"channel":"otel","source":"otel-sinistres"}}` |
+| enveloppe (inférence) | `0x06cffdf0bf57b6b0d1f560223c777b31312ae3758a096b0fa750f4a7b542f511` | 687 | `false` | `application/json` | `{"attributes":{"server.address":"passerelle-fournisseur.example"},"dropped_attributes_count":0,"dropped_events_count":0,"dropped_links_count":0,"end_time_unix_nano":"1794307264312750000","events":[],"flags":0,"kind":3,"links_count":0,"name":"chat modele-demo-1","parent_span_id":"eee19b7ec3c1b173","resource":{"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0},"schema_url":null,"scope":{"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"},"span_id":"eee19b7ec3c1b174","start_time_unix_nano":"1794307263100250000","status":{"code":1,"message":""},"trace_id":"5b8efff798038103d269b633813fc60c","trace_state":""}` |
+| arguments (outil) | `0x9a3a2950fcddea1685d5f41cd3a7fa0d5085aa76c8bb127d186cae6439851090` | 72 | `true` | — | `{"devise":"CHF","iban_beneficiaire":"[REDIGE:iban]","montant":"7400.00"}` |
+| résultat (outil) | `0x2f2d9c5e977bede0ecd28d814bc7effec1844ed52e149d9a4f71dab1c228195a` | 46 | `false` | — | `{"reference":"PAY-2026-55120","statut":"cree"}` |
+| enveloppe (outil) | `0xdd76be17ddfcd0dba01e9f10536830636a3d90c483781bd7578118fc7f2091b2` | 783 | `false` | `application/json` | `{"attributes":{"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.id":"call_01","gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"},"dropped_attributes_count":0,"dropped_events_count":0,"dropped_links_count":0,"end_time_unix_nano":"1794307264733500000","events":[],"flags":0,"kind":1,"links_count":0,"name":"execute_tool paiement.creer","parent_span_id":"eee19b7ec3c1b173","resource":{"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0},"schema_url":null,"scope":{"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"},"span_id":"eee19b7ec3c1b175","start_time_unix_nano":"1794307264320000000","status":{"code":1,"message":""},"trace_id":"5b8efff798038103d269b633813fc60c","trace_state":""}` |
+
+Événements scellés par la clé de test `rec-test-01` (CT-1 §13), sur un
+journal `journal-demo` dont le dernier événement durable est un `seq 20`
+fictif de `hash`
+`0x51fd37e0be1bd585252709bf83e7d51e317b51e0c5ff2142bfe5f4667be99aa8`
+(SHA-256 de `noortrace/exemple/ct-2/6.8/evenement-precedent`), aux instants
+de scellement 2026-11-10T10:41:07.512Z et .514Z :
+
+<!-- schema: evenement -->
+```json
+{
+  "version": 0,
+  "seq": 21,
+  "ts": "2026-11-10T10:41:07.512Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0x51fd37e0be1bd585252709bf83e7d51e317b51e0c5ff2142bfe5f4667be99aa8",
+  "delegation": {
+    "launched_by": "svc-agent-sinistres@assureur-demo.example",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement",
+    "run_id": "conv-2026-11-10-0007"
+  },
+  "code": {
+    "model": "openai/modele-demo-1-2026-09",
+    "prompt_version": "0xd9908f3ea8908b3578e2ba5e95971616b9510c2c00accef44605cf1ffb7f8db5",
+    "policy_version": "2026-11-10-otel",
+    "recorder": "0.1.0"
+  },
+  "intent": "Je prépare le paiement de 7400.00 CHF au bénéficiaire du sinistre.",
+  "policy": { "rule": null, "decision": "sans_objet", "ticket": null, "redaction": "pii-v1" },
+  "approval": null,
+  "execution": {
+    "tool": "noortrace.modele.echange",
+    "arguments": { "sha256": "0x69a9e553553b5c0bdfe6c3ee6b9bc45ebd1ce1b891682659cf192a681de34ea5", "length": 376, "redacted": true },
+    "status": "executee",
+    "result": { "sha256": "0x74df77a8761266e52028f81b17ea815dbb4c2b0a22f43647bd1ecc2c0a3f0730", "length": 522, "redacted": true },
+    "duration_ms": 1212,
+    "is_error": false
+  },
+  "effects": [],
+  "context": [
+    { "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922", "length": 66, "redacted": false, "media_type": "application/json", "kind": "autre" },
+    { "sha256": "0x06cffdf0bf57b6b0d1f560223c777b31312ae3758a096b0fa750f4a7b542f511", "length": 687, "redacted": false, "media_type": "application/json", "kind": "autre" }
+  ],
+  "hash": "0x120b63ed9c35030f17764ebcee60d3192706089769f04e2084f86165c62235f0",
+  "sig": "0x9bea66cf8fc441e2219131ac7458a7281ef9cea0449af661c06ed9efea6da2820173085b1767384e3403f55c882b9a104750c72bd808d009c216bf12c22eb503"
+}
+```
+
+<!-- schema: evenement -->
+```json
+{
+  "version": 0,
+  "seq": 22,
+  "ts": "2026-11-10T10:41:07.514Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0x120b63ed9c35030f17764ebcee60d3192706089769f04e2084f86165c62235f0",
+  "delegation": {
+    "launched_by": "svc-agent-sinistres@assureur-demo.example",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement",
+    "run_id": null
+  },
+  "code": { "model": null, "prompt_version": null, "policy_version": "2026-11-10-otel", "recorder": "0.1.0" },
+  "intent": null,
+  "policy": { "rule": null, "decision": "autorise", "ticket": null, "redaction": "pii-v1" },
+  "approval": null,
+  "execution": {
+    "tool": "otel-sinistres__paiement.creer",
+    "arguments": { "sha256": "0x9a3a2950fcddea1685d5f41cd3a7fa0d5085aa76c8bb127d186cae6439851090", "length": 72, "redacted": true },
+    "status": "executee",
+    "result": { "sha256": "0x2f2d9c5e977bede0ecd28d814bc7effec1844ed52e149d9a4f71dab1c228195a", "length": 46, "redacted": false },
+    "duration_ms": 413,
+    "is_error": false
+  },
+  "effects": [
+    { "system": "otel-sinistres", "action": "ecriture", "object": "paiement.creer", "amount": null, "currency": null }
+  ],
+  "context": [
+    { "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922", "length": 66, "redacted": false, "media_type": "application/json", "kind": "autre" },
+    { "sha256": "0xdd76be17ddfcd0dba01e9f10536830636a3d90c483781bd7578118fc7f2091b2", "length": 783, "redacted": false, "media_type": "application/json", "kind": "autre" }
+  ],
+  "hash": "0xee35fdc3a3f8ce5caf5491cb73a8e01f64c98b2756a286f336d07769c9da570a",
+  "sig": "0xa99fd27260d49cc3260ccfa4a677a8ac257857a1bfc982be4247ec1d3000e72eb2e3f4498b4ed11c4910c86642a91624c57f1a7cf7b82fa869f81fcd5b42e403"
+}
+```
+
+Ce que l'exemple montre : `ts` est l'instant de scellement, trois secondes
+après la fin déclarée des spans ; `duration_ms` vient des horodatages
+déclarés (1 212,5 ms et 413,5 ms, arrondis vers le bas) ; l'IBAN est rédigé
+dans les arguments et dans l'appel d'outil que le modèle a demandé,
+l'adresse électronique dans la requête ; le prompt système est remplacé dans
+la requête par son jeton et stocké à part ; le second événement a `run_id:
+null` parce que le span d'outil ne porte pas `gen_ai.conversation.id` (la
+trace commune se lit dans les deux pièces d'enveloppe) ; la classe de
+l'outil, faute de réglage, est `ecriture`, d'où l'effet par défaut ; la
+même pièce de déclaration de source ouvre le `context` des deux événements.
+Le cas `otel/json-exemple-6-8-16` de l'annexe B porte ce lot, et
+`otel/pb-exemple-6-8-16` le même lot en protobuf, qui donne les mêmes
+pièces et les mêmes événements.
 
 ## 7. Construction de l'événement CT-1 depuis la capture
 
@@ -2535,11 +4870,11 @@ correspondance ; un
 `allowed_on_behalf_of` de l'entrée de connexion d'hôte (une liste fixée par
 le client : aucune valeur libre de l'hôte n'entre dans la chaîne). Une
 valeur refusée est remplacée par la règle de la table ci-dessus, et le refus
-consigné, sans la valeur. `launched_by` et `scope` ne sont jamais pris de
-l'hôte : ils viennent de l'identité de la connexion d'hôte et de la
-configuration. La clé `_meta` est `noortrace/…` (préfixe à un seul label,
-admis par la règle des clés `_meta` qui n'impose la notation DNS inversée
-qu'en SHOULD, page Overview 2026-07-28, R1 Q4).
+consigné (`delegation_refused`, EX-17.2), sans la valeur. `launched_by` et
+`scope` ne sont jamais pris de l'hôte : ils viennent de l'identité de la
+connexion d'hôte et de la configuration. La clé `_meta` est `noortrace/…`
+(préfixe à un seul label, admis par la règle des clés `_meta` qui n'impose la
+notation DNS inversée qu'en SHOULD, page Overview 2026-07-28, R1 Q4).
 
 **EX-7.3** La configuration DOIT donner, pour chaque connexion d'hôte
 possible (chaque hôte HTTP authentifié du frontal MCP ou de la passerelle,
@@ -2551,11 +4886,17 @@ passerelle). Une entrée de `model.hosts` PEUT reprendre le jeton statique
 d'une entrée de `mcp.hosts` ; les deux restent deux entrées, reliées par leur
 `host_group`.
 
+**Événements issus d'un span OpenTelemetry.** Pour un événement que
+l'ingestion OpenTelemetry construit depuis un span (6.8), chaque champ est
+fixé par la table d'EX-6.36 ; les tables de cette section ne s'y
+appliquent que là où cette table y renvoie (enveloppe, `code.policy_version`,
+`code.recorder`, `policy.redaction`, gabarit d'effets d'EX-7.6).
+
 **`code`.**
 
 | Sous-champ | Appel d'outil (MCP, SDK) | Échange de modèle | Journal sur lui-même, décision |
 |---|---|---|---|
-| `model` | corrélation 5.6 : échange correspondant, sinon `null` ; appel relayé après approbation : celui de l'appel retenu (EX-7.12) | `<libellé>/<model>`, le `model` étant lu dans la réponse **rédigée** (à défaut dans la requête rédigée, EX-5.7), de sorte que les détecteurs de la portée s'y sont appliqués (EX-5.19) ; `hote/<model>` pour un sampling (EX-4.29) | `null` ; pour une décision d'approbation, ceux de l'appel retenu (CT-1 annexe A seq 3 reprend ceux de seq 2) |
+| `model` | corrélation 5.6 : échange correspondant, sinon `null` ; appel relayé après approbation : celui de l'appel retenu (EX-7.12) | `<libellé>/<model>`, le `model` étant lu dans la réponse **rédigée** (à défaut dans la requête rédigée, EX-5.7 ; pour Gemini, `modelVersion` à défaut du segment de modèle du chemin, EX-5.36, ou de `request.model` pour le SDK, EX-6.8), de sorte que les détecteurs de la portée s'y sont appliqués (EX-5.19) ; `hote/<model>` pour un sampling (EX-4.29) | `null` ; pour une décision d'approbation, ceux de l'appel retenu (CT-1 annexe A seq 3 reprend ceux de seq 2) |
 | `prompt_version` | corrélation 5.6, sinon `null` | SHA-256 de la pièce « prompt système » rédigée (8.2), `null` sans prompt système | `null` ; décision : ceux de l'appel retenu |
 | `policy_version` | `version` de l'ensemble de politique en vigueur (section 15) | idem | idem |
 | `recorder` | version du logiciel de l'enregistreur (chaîne 1–64, celle de `serverInfo`) | idem | idem |
@@ -2713,14 +5054,25 @@ détecteurs de texte de la portée `arguments` à leurs chaînes (EX-6.6).
 
 **EX-7.7** Pour un appel d'outil par le frontal MCP, `context` contient, dans
 cet ordre (EX-4.45) : la pièce de la définition servie à la connexion d'hôte ;
-la pièce de la définition courante si elle diffère ; la pièce « liste
-annoncée ». Chacune est `{ "sha256", "length", "redacted": false,
-"media_type": "application/json", "kind": "autre" }`. La configuration PEUT
-retirer les définitions (`tools.definition_in_context: false`) et la liste
+la pièce de la définition courante si elle diffère ; la pièce « liste annoncée
+». Chacune est `{ "sha256", "length", "redacted": false, "media_type":
+"application/json", "kind": "autre" }`. La configuration PEUT retirer les
+définitions (`tools.definition_in_context: false`) et la liste
 (`tools.list_in_context: false`) ; sans les deux, `context` est `[]`. Pour un
 appel par le SDK : les références déclarées par `declarerContexte`, dans
-l'ordre déclaré. Pour un échange de modèle, une décision, une rotation, une
-politique : `[]`. Une pièce de contexte n'est jamais en ligne (CT-1 §5.3) ;
+l'ordre déclaré. Pour un échange de modèle déclaré par `echangeModele`
+(révision 0.5) : la pièce de déclaration de source du SDK, JCS intégral de
+`{"noortrace_capture":{"channel":"sdk","source":"<alias de l'entrée de
+sdk.hosts>"}}`, sans rédaction, `{ "sha256", "length", "redacted": false,
+"media_type": "application/json", "kind": "autre" }`, seule (ses octets ne
+dépendent que de l'alias, comme ceux d'EX-6.35). Pour un échange de modèle
+reçu par la passerelle, par ICAP, par le miroir ou par un
+`sampling/createMessage`, pour une décision, une rotation, une politique :
+`[]`. Pour un événement issu d'un span
+OpenTelemetry (6.8), échange de modèle ou appel d'outil : la pièce de
+déclaration de source puis la pièce d'enveloppe, dans cet ordre (EX-6.35),
+chacune `{ "sha256", "length", "redacted", "media_type": "application/json",
+"kind": "autre" }`. Une pièce de contexte n'est jamais en ligne (CT-1 §5.3) ;
 plus généralement, en version 0, **seuls les quatre événements réservés**
 portent une référence en ligne (`value`) : leur valeur d'`arguments` (8.2) ;
 toute pièce d'appel d'outil, d'échange de modèle ou de contexte est une
@@ -3139,16 +5491,23 @@ référence.
 | arguments | valeur de `params.arguments` du `tools/call` (ou de `debutAppel`) ; `{}` si absent | `arguments` | JCS intégral | absent (JSON implicite) |
 | résultat | valeur du membre `result` de la réponse JSON-RPC (objet `CallToolResult` entier) ; pour une erreur JSON-RPC, `{"noortrace_jsonrpc_error": <error>}` ; pour un délai, une annulation, une taille dépassée, la même forme avec le code de l'enregistreur (4.4) ; pour une reprise, l'objet de la section 12.5 ; pour un événement en attente dont le résultat a été perdu, l'objet `noortrace_attente` de la section 14.5 | `resultat` | JCS intégral | absent |
 | requête | corps JSON de la requête de modèle, le prompt système remplacé par `[REDIGE:prompt-systeme]` si `model.prompt_in_request: "reference"` (défaut), ou laissé en place et rédigé par les règles `prompt_systeme` avec `"inline"` (EX-8.5) ; pour un sampling, `params` de `CreateMessageRequest` ; pour `echangeModele`, `request` | `requete` et, pour le prompt, `prompt_systeme` | JCS intégral | absent |
-| réponse | corps JSON de la réponse hors flux, ou forme consolidée (5.4), ou `{"noortrace_http_error": …}` (5.3.1) ; pour un sampling, `CreateMessageResult` ; pour `echangeModele`, `response` | `reponse` | JCS intégral | absent |
+| réponse | corps JSON de la réponse hors flux, ou forme consolidée (5.4 ; pour Gemini, 5.4.5), ou `{"noortrace_http_error": …}` (5.3.1 ; pour Gemini, corps lu quel que soit le `Content-Type`, EX-5.31) ; pour un sampling, `CreateMessageResult` ; pour `echangeModele`, `response`, ou sa forme consolidée si c'est un tableau de morceaux Gemini (EX-6.8) | `reponse` | JCS intégral | absent |
 | prompt système | texte UTF-8 extrait selon 5.5 | `prompt_systeme` | **octets UTF-8 du texte rédigé**, sans guillemets ni échappement, sans saut de ligne final (c'est la convention de CT-1 §5.5 : `prompt systeme fictif v3`, 24 octets) | `text/plain` |
 | intention (`intent` en référence) | texte de l'assistant, extrait de la réponse rédigée (EX-5.21) | déjà rédigé par la portée `reponse` (EX-10.18) | octets UTF-8 du texte | `text/plain` |
 | document de contexte | octets remis par `declarerContexte` | `contexte` (règle de 8.3 pour un document non JSON) | JCS intégral si `media_type` est `application/json` ou de suffixe `+json` et que les octets s'analysent, sinon règle de 8.3 | déclaré par l'appelant (assaini, EX-8.7) |
 | définition d'outil | objet `Tool` servi ou courant (EX-4.16, EX-4.45) | aucune | JCS intégral | `application/json` |
 | liste annoncée | `{"tools": [<définitions servies, dans l'ordre servi>]}` (EX-4.45) | aucune | JCS intégral | `application/json` |
 | document d'ensemble de politique | le document JSON de la section 15 | aucune | JCS intégral | `application/json` |
+| déclaration de source (OpenTelemetry) | `{"noortrace_capture":{"channel":"otel","source":"<alias>"}}` (EX-6.35) | aucune | JCS intégral | `application/json` |
+| enveloppe de span (OpenTelemetry) | forme normalisée du span (EX-6.31), sans les attributs placés dans une autre pièce (EX-6.35) | `contexte` | JCS intégral | `application/json` |
 | annonce de politique | `{ "policy_version", "policy_sha256" }` | aucune | **JCS v0**, en ligne (`value`) | — |
 | annonce de rotation | CT-1 §8 | aucune | **JCS v0**, en ligne | — |
 | objet `A` d'approbation | CT-1 §6.3 | aucune | **JCS v0**, en ligne | — |
+
+Pour un span OpenTelemetry, les pièces « arguments », « résultat »,
+« requête », « réponse », « prompt système » et « intention » ont la source
+et la rédaction que fixe EX-6.35 ; leur sérialisation et leur
+`media_type` sont ceux de la table ci-dessus.
 
 **EX-8.4** La pièce « résultat » est le membre `result` **entier** tel que reçu
 du serveur d'outils (avant les réécritures de 4.4 pas 14), y compris
@@ -3157,23 +5516,30 @@ du serveur d'outils (avant les réécritures de 4.4 pas 14), y compris
 base64) y figure telle quelle : l'enregistreur ne déréférence rien et
 n'extrait rien.
 
-**EX-8.5** Le remplacement du prompt système par `[REDIGE:prompt-systeme]`
-dans la pièce « requête » marque la requête `redacted: true` et exige
+**EX-8.5** Le remplacement du prompt système par `[REDIGE:prompt-systeme]` dans
+la pièce « requête » marque la requête `redacted: true` et exige
 `policy.redaction` non nul (E-4), même si aucune autre règle n'a joué ; c'est
 la forme de CT-1 annexe A seq 1. Avec `model.prompt_in_request: "inline"`, le
 prompt reste dans la requête, **rédigé** : chaque chaîne porteuse du prompt
 (Anthropic : `system` s'il est une chaîne, ou le `text` de chacun de ses blocs
-de type `text` ; Chat Completions : le `content` chaîne, ou le `text` de
-chaque partie de type `text`, des messages de rôle `system` et `developer` ;
-Responses : `instructions`, et le `content` chaîne, ou le `text` de chaque
-partie de type `input_text` ou `text`, des items de rôle `developer` ou
-`system`) est remplacée par le résultat des règles de portée
-`prompt_systeme` appliquées à cette chaîne seule (la chaîne est la racine) ;
-les règles de portée `requete` s'appliquent ensuite au corps entier. La
-pièce « prompt système » est produite en plus, sur le texte joint (table de
-5.5). Une règle `champ` de portée `prompt_systeme` (EX-10.19) remplace donc
-aussi le prompt dans la requête : la protection n'est pas annulée par le
-mode `inline`.
+de type `text` ; Chat Completions : le `content` chaîne, ou le `text` de chaque
+partie de type `text`, des messages de rôle `system` et `developer` ; Responses
+: `instructions`, et le `content` chaîne, ou le `text` de chaque partie de type
+`input_text` ou `text`, des items de rôle `developer` ou `system` ; Gemini : le
+`text` de chaque élément de `systemInstruction.parts`) est remplacée par le
+résultat des règles de portée `prompt_systeme` appliquées à cette chaîne seule
+(la chaîne est la racine) ; les règles de portée `requete` s'appliquent ensuite
+au corps entier. La pièce « prompt système » est produite en plus, sur le texte
+joint (table de 5.5). Une règle `champ` de portée `prompt_systeme` (EX-10.19)
+remplace donc aussi le prompt dans la requête : la protection n'est pas annulée
+par le mode `inline`.
+
+Avec `"reference"`, le remplacement de Gemini porte sur le seul tableau
+`systemInstruction.parts`, qui devient `[{"text": "[REDIGE:prompt-systeme]"}]` ;
+les autres membres de `systemInstruction` (`role`) restent en place, de
+sorte que la pièce garde la forme d'un `Content` (R11-F11) ; un
+`systemInstruction` qui n'est pas un objet à `parts` tableau n'est pas
+remplacé et reste soumis aux règles de portée `requete`.
 
 **EX-8.6** `code.prompt_version` = SHA-256 des octets de la pièce « prompt
 système » (sans préfixe de domaine : CT-1 §5.3, « SHA-256 des octets UTF-8 du
@@ -3216,21 +5582,20 @@ analysable n'en devient jamais une (elle est refusée, EX-5.7). Règles :
    autre) ; la pièce est l'UTF-8 du texte rédigé, `redacted: true` si une
    règle a joué, et ses octets sont exactement ceux reçus si aucune n'a joué
    (marque d'ordre d'octets comprise) ;
-3. sinon (binaire, ou codage de contenu inconnu, EX-5.9), si au moins une
-   règle de rédaction s'applique à la portée, la pièce est le JCS intégral de
+3. sinon (binaire, ou codage de contenu inconnu, EX-5.9), si au moins une règle
+   de rédaction s'applique à la portée, la pièce est le JCS intégral de
    `{"noortrace_non_redigeable": {"content_type": <valeur reçue ou null>,
    "length": <longueur>, "reason": "non_utf8" ou "codage_inconnu" ou
-   "budget_redaction"}}`, `redacted: true`, sans `media_type` : un
+   "budget_redaction" ou "taille"}}`, `redacted: true`, sans `media_type` : un
    contenu qui ne peut pas être rédigé n'est pas stocké, et son empreinte
    n'entre pas dans la chaîne (EX-10.2) ; si aucune règle ne s'applique, les
    octets sont stockés tels quels. `length` est le nombre d'octets du corps
-   reçu (requête ou réponse de modèle, document de contexte, corps HTTP) ;
-   pour une pièce JSON tirée d'un message JSON-RPC, que la borne d'EX-10.23
-   remplace par cette forme (arguments, résultat d'outil), c'est la longueur
-   en octets du JCS intégral de la valeur en clair, la sérialisation
-   qu'EX-10.16 calcule déjà, une fois, avant la rédaction ; pour une pièce
-   texte (prompt système, intention, contexte `text/plain`), la longueur
-   UTF-8 du texte.
+   reçu (requête ou réponse de modèle, document de contexte, corps HTTP) ; pour
+   une pièce JSON tirée d'un message JSON-RPC, que la borne d'EX-10.23 remplace
+   par cette forme (arguments, résultat d'outil), c'est la longueur en octets
+   du JCS intégral de la valeur en clair, la sérialisation qu'EX-10.16 calcule
+   déjà, une fois, avant la rédaction ; pour une pièce texte (prompt système,
+   intention, contexte `text/plain`), la longueur UTF-8 du texte.
 
 Un flux SSE dont aucun événement n'a pu être interprété est traité de même
 (`text/event-stream`, règle 2), avec `noortrace_flux_incomplet` noté dans le
@@ -3355,9 +5720,13 @@ le refus scellé (un événement `refusee` par tentative, EX-7.12) tant que cour
 le délai de reconnaissance (CT-3 EX-7.18), puis devient un nouvel appel.
 
 L'enregistreur ne produit aucun autre événement sur lui-même : démarrage,
-arrêt, bascule de bail, rotation de segment, clôture de période, purge,
-mode dégradé et retour à la normale vont dans le journal d'exploitation, et la
-clôture de période produit un manifeste, pas un événement (CT-1 §10).
+arrêt, bascule de bail, rotation de segment, clôture de période, purge, mode
+dégradé et retour à la normale, contrôle du verrouillage des copies WORM, pose
+et levée d'un gel juridique (12.11) vont dans le journal d'exploitation, et la
+pose et la levée d'un gel aussi dans le registre des gels du support WORM
+(EX-12.37) : aucune des quatre sortes réservées de CT-1 §5.1 ne porte un gel,
+et CT-2 n'en ajoute aucune (E-3), et la clôture de période produit un
+manifeste, pas un événement (CT-1 §10).
 
 ### 9.2 Journal d'exploitation
 
@@ -3372,7 +5741,7 @@ remplace rien de la chaîne.
 |---|---|---|
 | `ts` | horodatage RFC 3339 UTC à la milliseconde | horloge murale |
 | `level` | `debug`, `info`, `warning`, `error` | |
-| `component` | `frontal_mcp`, `frontal_modele`, `sdk`, `politique`, `redaction`, `noyau`, `stockage`, `bail`, `signataire`, `cloture`, `config`, `supervision` | |
+| `component` | `frontal_mcp`, `frontal_modele`, `sdk`, `otel` (révision 0.5, ingestion OpenTelemetry, 6.8), `politique`, `redaction`, `noyau`, `stockage`, `bail`, `signataire`, `cloture`, `worm` (révision 0.5 : copie et contrôle du verrou des copies WORM, relevé, lecture du registre des gels par le démon, et lignes de l'outil de gel, 12.11), `config`, `supervision` | |
 | `event` | chaîne `snake_case` | nom de l'événement d'exploitation (`tool_rejected`, `tool_definition_changed`, `relay_out_of_chain`, `correlation`, `child_stderr`, `degraded_enter`, `degraded_exit`, `lease_acquired`, `lease_lost`, `segment_rotated`, `period_closed`, `intent_recovered`, `clock_skew`, …) |
 | `org_id`, `journal_id` | hex 32 ou `null` | journal concerné |
 | `seq` | entier ou `null` | événement de la chaîne concerné |
@@ -3971,7 +6340,7 @@ Une règle :
 |---|---|---|
 | `id` | chaîne `^[a-z0-9][a-z0-9-]{0,63}$`, unique | Reprise dans le journal d'exploitation (`redaction_applied`, 10.4). |
 | `scopes` | tableau non vide, sans doublon, de portées | Pièces visées : `arguments`, `resultat`, `requete`, `reponse`, `prompt_systeme`, `contexte` (10.2.2). |
-| `tools` | `"*"` ou tableau de noms | Outils visés : noms annoncés exacts, ou `<alias>__*` pour tous les outils d'un serveur. Pour les portées `requete`, `reponse`, `prompt_systeme`, seule la valeur `"*"` rend la règle applicable (il n'y a pas d'outil). Pour `contexte` par le SDK, le nom est celui de l'appel auquel la pièce est rattachée, `"*"` sinon. |
+| `tools` | `"*"` ou tableau de noms | Outils visés : noms annoncés exacts, ou `<alias>__*` pour tous les outils d'un serveur. Pour les portées `requete`, `reponse`, `prompt_systeme`, seule la valeur `"*"` rend la règle applicable (il n'y a pas d'outil). Pour `contexte` par le SDK, le nom est celui de l'appel auquel la pièce est rattachée, `"*"` sinon. Pour les pièces d'un span OpenTelemetry d'outil (6.8), le nom est `<alias de source>__<N>` et `<alias de source>__*` désigne toute la source ; pour celles d'un span d'inférence, comme pour les portées `requete`, `reponse` et `prompt_systeme`, seule la valeur `"*"` rend la règle applicable. |
 | `path` | pointeur JSON RFC 6901, optionnel | Si présent, la règle ne porte que sur la valeur désignée : pour un détecteur de texte, toutes les chaînes contenues dans cette valeur (récursivement, dans l'ordre de parcours de 10.4) ; pour `champ`, la valeur elle-même. Si absent, toutes les chaînes de la pièce. Évaluation : RFC 6901 § 4 (`~1` décodé avant `~0`, comparaison des noms octet par octet, aucune normalisation Unicode, R6) ; un pointeur qui ne résout pas rend la règle sans effet pour cette pièce, sans erreur, avec une note dans le journal d'exploitation. Le pointeur est relatif à la **racine de la pièce** : pour `arguments`, l'objet `params.arguments` ; pour `resultat`, l'objet `result` reçu ; pour `requete`, le corps JSON de la requête de modèle ; pour `reponse`, la forme consolidée ou le corps JSON ; pour `prompt_systeme`, la racine est une chaîne (le pointeur vide `""` seul résout) ; pour `contexte`, la valeur JSON de la pièce si elle est JSON, sinon la chaîne de son texte. |
 | `detectors` | tableau de 1 à 16 détecteurs | `{ "type": "iban" }`, `{ "type": "avs" }`, `{ "type": "email" }`, `{ "type": "telephone" }`, `{ "type": "carte" }`, `{ "type": "regex", "name": "<clé de named_patterns>" }`, `{ "type": "champ", "label": "<étiquette>" }`. Appliqués dans l'ordre du tableau (10.4). |
 | `action` | `{ "kind": "remplacer" }`, `{ "kind": "pseudonyme" }` ou `{ "kind": "supprimer" }` | 10.2.3. |
@@ -4086,12 +6455,12 @@ admis, la première correspondance de textes donnés (B.3).
 
 | Portée | Pièce (section 8) | Racine du pointeur | Produite par |
 |---|---|---|---|
-| `arguments` | « arguments » d'un appel d'outil (`params.arguments`) | l'objet des arguments | frontal MCP (4.4 pas 4), SDK (`debutAppel`) |
-| `resultat` | « résultat » d'un appel d'outil (`result` reçu, membres présents) | l'objet `result` | frontal MCP (4.4 pas 12), SDK (`finAppel`) |
-| `requete` | « requête » d'un échange de modèle (corps JSON de la requête ; `params` de `sampling/createMessage`) | le corps | frontal modèle (5.3), frontal MCP (EX-4.29), SDK (`echangeModele`) |
+| `arguments` | « arguments » d'un appel d'outil (`params.arguments`) | l'objet des arguments | frontal MCP (4.4 pas 4), SDK (`debutAppel`), ingestion OpenTelemetry (span d'outil, EX-6.35) |
+| `resultat` | « résultat » d'un appel d'outil (`result` reçu, membres présents) | l'objet `result` | frontal MCP (4.4 pas 12), SDK (`finAppel`), ingestion OpenTelemetry (span d'outil) |
+| `requete` | « requête » d'un échange de modèle (corps JSON de la requête ; `params` de `sampling/createMessage`) | le corps | frontal modèle (5.3), frontal MCP (EX-4.29), SDK (`echangeModele`), ingestion OpenTelemetry (span d'inférence) |
 | `reponse` | « réponse » d'un échange de modèle (corps JSON hors flux, forme consolidée en flux, `CreateMessageResult`) et, par extension, le texte `intent` qui en est tiré (EX-5.21) | la réponse | idem |
-| `prompt_systeme` | « prompt système » (8.2, pièce `text/plain`), texte extrait selon la table de 5.5 | la chaîne | frontal modèle, SDK |
-| `contexte` | pièces de contexte remises par le SDK (`declarerContexte`) ; la pièce de définition d'outil (EX-4.16) **n'est pas** rédigée (c'est l'annonce du serveur, prouvée telle quelle) | la valeur ou la chaîne | SDK |
+| `prompt_systeme` | « prompt système » (8.2, pièce `text/plain`), texte extrait selon la table de 5.5 | la chaîne | frontal modèle, SDK, ingestion OpenTelemetry (span d'inférence) |
+| `contexte` | pièces de contexte remises par le SDK (`declarerContexte`) ; la pièce de définition d'outil (EX-4.16) **n'est pas** rédigée (c'est l'annonce du serveur, prouvée telle quelle) | la valeur ou la chaîne | SDK ; ingestion OpenTelemetry (pièce d'enveloppe ; la pièce de déclaration de source n'est pas rédigée) |
 
 #### 10.2.3 Actions et jetons de remplacement
 
@@ -4641,21 +7010,24 @@ d'une nouvelle valeur de `policy.version` ; un rechargement qui change le
 membre sans changer `version` est refusé (15.5). Un changement de `redaction`
 DOIT changer `redaction.name` en plus de `policy.version`.
 
-Pour l'exemple de configuration de la section 15.3, `JCS_integral(policy)`
-fait 6126 octets et `policy_sha256 =
-0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912` ; la
-valeur en ligne de l'événement de politique est alors
-`{"policy_sha256":"0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912","policy_version":"2026-11-01"}`
+Pour l'exemple de configuration de la section 15.3, `JCS_integral(policy)` fait
+6533 octets et `policy_sha256 =
+0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c` ; la valeur
+en ligne de l'événement de politique est alors
+`{"policy_sha256":"0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c","policy_version":"2026-11-01"}`
 (116 octets, `sha256` de la référence :
-`0x77d3368adad6a5a62421901ee91ec7c500950a2c8038a7d58d0450b3665c253e`). La
-version 0.3 a changé ces valeurs (4 482 octets et `0xd87b…c811` en version
-0.2) en remplaçant le tableau illustratif de `policy.approval.rules` par un
-document `politique-approbation-v0`, `mode: "retenir"` par `"erreur"`, et en
-donnant au demandeur `poste-cursor` une entrée de `separation.identities`. Le
-document `pii-v1` seul (10.9) fait 1462 octets en JCS intégral et a pour
-SHA-256 `0x9116aac6ee1d124d155ffb22acd39b1cf2270cac07b30b239e9996012d787f4e` ;
-cette empreinte n'entre pas dans l'événement (seule celle de l'ensemble y
-entre), elle sert au vecteur `redaction` de l'annexe B.
+`0xad8d1179be58a4670d01873b45479c8269b1f18c77cfb0e515ad86ef81aa246d`). La
+version 0.3 a changé ces valeurs (4 482 octets et `0xd87b…c811` en version 0.2)
+en remplaçant le tableau illustratif de `policy.approval.rules` par un document
+`politique-approbation-v0`, `mode: "retenir"` par `"erreur"`, et en donnant au
+demandeur `poste-cursor` une entrée de `separation.identities`. La version 0.5
+les change de nouveau (6126 octets et `0xa75a…f8912` en version 0.4) en
+ajoutant à `policy.model.routes` la route Gemini et le membre `policy.otel`
+(15.3). Le document `pii-v1` seul (10.9) fait 1462 octets en JCS intégral et a
+pour SHA-256
+`0x9116aac6ee1d124d155ffb22acd39b1cf2270cac07b30b239e9996012d787f4e` ; cette
+empreinte n'entre pas dans l'événement (seule celle de l'ensemble y entre),
+elle sert au vecteur `redaction` de l'annexe B.
 
 ### 10.7 Coffre optionnel des originaux
 
@@ -5167,6 +7539,7 @@ par ses identifiants en hexadécimal minuscule sans `0x` :
   manifestes/periode-<period_start>.json        manifeste de période (CT-1 §10) ; <period_start> en secondes UNIX, 10 chiffres
   manifestes/periode-<period_start>.sig         sa signature (CT-1 §10.2)
   points/periode-<period_start>.ndjson          série des points de contrôle de la période (12.10, révision 0.4)
+  worm/copies-<epoch>.ndjson                    registre des copies WORM : clé, version, sha256, verrou relu (EX-12.29, révision 0.5)
   journal.json                                  identité du journal (12.1), écrit une fois
 ```
 
@@ -5176,10 +7549,12 @@ jamais modifié ; il n'est pas une pièce et n'entre dans aucune chaîne. Il n'y
 **aucun fichier d'état mutable** : l'état de l'écrivain (dernier `seq`, dernier
 `hash`, clé courante, époque) se dérive à la reprise des segments et de leurs
 en-têtes (12.4), et ce que le noyau doit garder de plus pour les approbations
-est écrit en ajout seul (EX-12.23). Les noms de fichiers sont ASCII et triables
-: l'ordre lexicographique des segments est l'ordre des `first_seq`, puis des
-époques. L'époque tient sur 20 chiffres parce qu'elle peut venir d'un compteur
-de 64 bits partagé (la `mod_revision` d'etcd, compteur de toute la grappe ; le
+est écrit en ajout seul (EX-12.23). Le registre des copies (EX-12.29) est de
+même en ajout seul ; il ne fait foi de rien et se reconstruit depuis la liste
+des versions du support. Les noms de fichiers sont ASCII et triables : l'ordre
+lexicographique des segments est l'ordre des `first_seq`, puis des époques.
+L'époque tient sur 20 chiffres parce qu'elle peut venir d'un compteur de 64
+bits partagé (la `mod_revision` d'etcd, compteur de toute la grappe ; le
 `bigint` de PostgreSQL, 13.2) : sur 8 chiffres, une époque au-delà de 99 999
 999 casserait le tri.
 
@@ -5338,7 +7713,8 @@ compte d'un appel d'écriture parti vers un serveur d'outils sans que son
 le client pourrait n'avoir aucune trace.
 
 **EX-12.12** Pour tout appel de classe `ecriture` ou soumis à approbation, et
-pour tout `debutAppel` du SDK de classe `ecriture`, l'écrivain ajoute au
+pour tout `debutAppel` du SDK de classe `ecriture` ou rendu `autorise` sur un
+ticket approuvé (EX-6.7), l'écrivain ajoute au
 fichier `intentions/intentions-<epoch>.ndjson` (ouvert `O_APPEND` comme un
 segment) **deux lignes**, puis `fdatasync`, **avant** le relais (4.4 pas 8,
 EX-6.3). Chaque ligne est le JCS intégral (section 8) d'un objet, suivi de
@@ -5467,41 +7843,117 @@ frontal.
 
 ### 12.6 Supports WORM
 
-Le stockage local est modifiable au sens de l'Olico (12.7) ; la copie WORM
-est une protection supplémentaire contre la réécriture par l'opérateur, qui
+Le stockage local est modifiable au sens de l'Olico (12.7) ; la copie WORM est
+une protection supplémentaire contre la réécriture par l'opérateur, qui
 complète les ancres de CT-5 sans les remplacer. Les comportements ci-dessous
-sont ceux des pages officielles lues (R5 § 1.1 à 1.5).
+sont ceux des pages officielles lues (R5 § 1.1 à 1.5). La révision 0.5 ajoute
+ici le registre des copies (EX-12.29), la rétention par défaut en mode
+Compliance (EX-12.30), le gel à l'écriture (EX-12.31), les droits du rôle de
+l'écrivain (EX-12.32) et le contrôle du verrou et du gel d'une version
+(EX-12.33) ; ce qu'un tiers peut en vérifier est en EX-12.41. La procédure du gel juridique est en
+12.11 : mécanisme par support (EX-12.34), périmètre (EX-12.35), commande
+(EX-12.36), registre des gels (EX-12.37), règle de garde de la levée par
+deux personnes (EX-12.38), requêtes exactes (EX-12.39), pas à pas et pannes
+(EX-12.40), vérification par un réviseur (EX-12.41). Le gel se pose par
+`noortrace-ctl worm gel poser --configuration <fichier> --identifiants
+<référence> --identite <nom> --de <period_start> --a <period_start> --motif
+<texte>`, hors du démon, avec les identifiants d'un gardien de pose, jamais
+ceux de l'écrivain ; `--de` et `--a` sont des bornes comprises, deux valeurs
+de `period_start` multiples de 3 600, `--de` ≤ `--a` (EX-12.35). La levée
+se fait en deux temps, par deux personnes : une première personne écrit la
+demande par `noortrace-ctl worm gel demander-levee --configuration
+<fichier> --identifiants <référence> --identite <nom> --gel <gel_id>
+--motif <texte>`, qui imprime son empreinte ; une autre personne que le
+demandeur, le gardien de levée, avec ses propres identifiants, lève dans
+les sept jours par `noortrace-ctl worm gel lever --configuration <fichier>
+--identifiants <référence> --identite <nom> --gel <gel_id> --demande
+<empreinte>` (EX-12.36, EX-12.38, EX-18.9). `--identifiants` porte les
+identifiants du demandeur ou du gardien de levée ; `--identite` est
+l'identité déclarée que compare la règle `meme_identite` (EX-12.38). L'outil refuse, code `3`, toute levée qui
+viole la règle de garde, vérifiée sur le registre des gels relu avant toute
+requête de levée (EX-12.36, EX-12.38). Le résumé pas à pas est à la fin
+d'EX-12.41.
 
 **EX-12.16** Quand `storage.seal.worm` est configuré, chaque segment **fermé**,
 chaque manifeste et sa signature, la série des points de chaque période close
-(révision 0.4, EX-12.27) et (si la rétention des pièces l'exige) les
-pièces, sont copiés vers le support après fermeture, sous une clé d'objet qui
-porte l'époque : `<prefix>/segments/seg-<first_seq>-<epoch>.ndjson`. La copie
-est **conditionnelle à l'absence** de l'objet : S3 `PutObject` avec
-`If-None-Match: *` (signature SigV4 obligatoire ; `412 Precondition Failed`
-si un autre écrivain a gagné, `409 Conflict` à réessayer, R5 § 1.2) ; la
-politique de bucket PEUT imposer la condition. Dans un bucket versionné
-(obligatoire avec Object Lock), la condition ne porte que sur la **version
-courante** : « The HTTP If-None-Match header only applies to the current
-version of an object in a version bucket », et si cette version courante est
-un marqueur de suppression, l'écriture réussit
+(révision 0.4, EX-12.27) et, si `storage.seal.worm.copy_pieces` est vrai
+(révision 0.5, défaut faux), les pièces, sont copiés vers le support après
+fermeture, sous une clé d'objet qui porte
+l'époque : `<prefix>segments/seg-<first_seq>-<epoch>.ndjson`, où `<prefix>`,
+valeur de `storage.seal.worm.prefix`, est concaténé tel quel au chemin relatif
+de 12.1 (révision 0.5 : aucun séparateur n'est ajouté ; la configuration de
+15.3 termine son préfixe par `/`) ; les manifestes, signatures, séries de
+points, fichiers d'ancres et pièces suivent la même règle
+(`<prefix>manifestes/periode-<period_start>.json`, …). La copie est
+**conditionnelle à l'absence** de l'objet : S3 `PutObject` avec `If-None-Match:
+*` (signature SigV4 obligatoire ; `412 Precondition Failed` si un autre
+écrivain a gagné, `409 Conflict` à réessayer, R5 § 1.2) ; la politique de
+bucket PEUT imposer la condition. Dans un bucket versionné (obligatoire avec
+Object Lock), la condition ne porte que sur la **version courante** : « The
+HTTP If-None-Match header only applies to the current version of an object in a
+version bucket », et si cette version courante est un marqueur de suppression,
+l'écriture réussit
 (https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html,
-R5 § 1.2) ; après un `DELETE` simple (qui pose un marqueur, 12.6), un
-écrivain périmé pourrait donc réécrire la clé : la garantie d'EX-13.5 (3)
-suppose que le rôle de l'enregistreur n'a pas `s3:DeleteObject`, et le
-lecteur liste les **versions**. Le nom porte l'époque pour que
-deux écrivains d'époques différentes ne se disputent jamais la même clé
-(section 13). Une copie en échec est réessayée par la supervision et consignée
-; elle ne bloque jamais un appel (section 14).
+R5 § 1.2) ; après un `DELETE` simple (qui pose un marqueur, 12.6), un écrivain
+périmé pourrait donc réécrire la clé : la garantie d'EX-13.5 (3) suppose que le
+rôle de l'enregistreur n'a pas `s3:DeleteObject`, et le lecteur liste les
+**versions**. Le nom porte l'époque pour que deux écrivains d'époques
+différentes ne se disputent jamais la même clé (section 13). Une copie en échec
+est réessayée par la supervision et consignée ; elle ne bloque jamais un appel
+(section 14).
+
+Révision 0.5. Sur un support de type `s3-object-lock`, la copie est la
+requête suivante, dont la forme exacte (cible encodée, en-têtes triés) est
+fixée par EX-12.39 ; l'hôte, la date et la signature sont ajoutés par
+la couche d'accès du support :
+
+```text
+PUT /<clé encodée> HTTP/1.1
+Content-Length: <longueur du fichier>
+Content-MD5: <base64 des 16 octets du MD5 des octets du fichier>
+If-None-Match: *
+x-amz-object-lock-legal-hold: ON        (seulement avec legal_hold_on_write, EX-12.31)
+
+<octets du fichier, tels quels>
+```
+
+`Content-MD5` est la valeur de la RFC 1864 (base64 des 16 octets du
+condensé MD5 du corps, L-C5) ; il est exigé pour toute écriture dans un
+bucket où une rétention est configurée par Object Lock (« The Content-MD5
+or x-amz-sdk-checksum-algorithm header is required for any request to
+upload an object with a retention period configured using Object Lock »,
+R13-F10), et l'enregistreur l'envoie toujours. La copie ne porte ni
+`x-amz-object-lock-mode` ni `x-amz-object-lock-retain-until-date` : la
+rétention de chaque version vient de la configuration par défaut du
+support (EX-12.30). Sur `200`, l'écrivain lit l'en-tête
+`x-amz-version-id` de la réponse, présent quand le bucket est versionné
+(L-C6 : page `PutObject`), contrôle la version écrite (EX-12.33) et
+l'inscrit au registre des copies (EX-12.29). Sur Azure et Google Cloud
+Storage, la copie est l'écriture d'un objet sous la même condition
+d'absence ; l'identifiant de version qu'elle rend (Azure `versionid`,
+GCS `generation`) est inscrit de même ; les noms des en-têtes et champs de
+réponse qui le portent n'ont pas été relus pour cette révision et sont
+fixés en phase 2 (section 21).
 
 | Support | Ce que la page officielle établit | Réglage retenu |
 |---|---|---|
-| **Amazon S3 Object Lock** | WORM par **version** d'objet, versioning obligatoire, activation irréversible ; mode **Compliance** (« can't be overwritten or deleted by any user, including the root user » ; rétention non réductible) ; mode Governance contournable avec `s3:BypassGovernanceRetention` et l'en-tête `x-amz-bypass-governance-retention: true`, que la console ajoute par défaut ; un `DELETE` simple pose un marqueur (`200 OK`) sans détruire la version ; rétention prolongeable seulement ; `legal hold` indépendant | Bucket dédié, créé avec Object Lock ; `mode: "compliance"` recommandé, `governance` admis pour un environnement de test ; rétention par défaut du bucket = `retain_days` ; le rôle de l'enregistreur n'a jamais `s3:BypassGovernanceRetention` ; le lecteur liste les **versions**, pas la vue courante |
-| **Azure Blob, stockage immuable** | WORM de niveau conteneur ou de niveau version (versioning requis ; activation au niveau compte seulement à la création) ; politique **verrouillée** requise pour la conformité (« Microsoft recommends that you lock the policy […] typically less than 24 hours ») ; rétention 1 jour à 146 000 jours, prolongeable ; cinq prolongations au plus pour une politique verrouillée de niveau conteneur ; `allowProtectedAppendWrites` pour les append blobs ; incompatible NFS 3.0 et SFTP | Conteneur dédié, politique de niveau version verrouillée ; les segments sont des **block blobs** écrits une fois après fermeture (pas d'append blob : le segment courant reste local) |
-| **Google Cloud Storage** | Bucket Lock (politique de rétention verrouillée, irréversible, `400 BadRequestException` à toute réduction, 100 ans au plus) ; Object Retention Lock par objet, mode **Locked** (= `COMPLIANCE` en API XML, « permanently prevents the retention date from being reduced or removed ») ou Unlocked (= `GOVERNANCE`) ; `enableObjectRetention: true` à la création ; holds | Bucket dédié avec `enableObjectRetention`, configuration par objet en mode Locked avec `retain-until` = fin de rétention ; `mode: "compliance"` ↔ Locked |
-| **Exoscale SOS** (Suisse) | Verrouillage S3 implémenté par le **legal hold** (« cannot be deleted indefinitely until the legal hold has been explicitly removed ») ; activation à la création du bucket seulement, versioning implicite ; exemple officiel de rétention par défaut en mode `GOVERNANCE` 30 jours ; gratuit ; mode `COMPLIANCE`, bornes et `bypass-governance` : **non documentés** (R5 § 2) | Type `s3-object-lock` ; `mode: "compliance"` à valider auprès de l'hébergeur ; à défaut, legal hold posé par l'enregistreur sur chaque objet et levé par un acte d'exploitation à l'échéance (CT-8) |
+| **Amazon S3 Object Lock** | WORM par **version** d'objet, versioning obligatoire, activation irréversible ; mode **Compliance** (« can't be overwritten or deleted by any user, including the root user » ; rétention non réductible) ; mode Governance contournable avec `s3:BypassGovernanceRetention` et l'en-tête `x-amz-bypass-governance-retention: true`, que la console ajoute par défaut ; un `DELETE` simple pose un marqueur (`200 OK`) sans détruire la version ; rétention prolongeable seulement ; `legal hold` indépendant ; en mode Compliance, seule la suppression du compte AWS efface une version avant son échéance (« The only way to delete an object under the compliance mode before its retention date expires is to delete the associated AWS account », R13-F6) ; rétention par défaut du bucket en jours ou en années, appliquée à chaque version à partir de sa date de création (L-C2, L-C6) ; un gel (*legal hold*) protège une version sans échéance, indépendamment de la rétention, et se pose ou se lève par quiconque détient `s3:PutObjectLegalHold` (R13-F3, R13-F4) | Bucket dédié, créé avec Object Lock ; `mode: "compliance"`, seul admis en `environment: "production"` depuis la révision 0.5, `governance` admis en développement (EX-15.4) ; rétention par défaut du bucket en mode `COMPLIANCE`, `Days` = `retain_days`, dix ans au moins, posée par l'exploitant (EX-12.30) ; droits de l'écrivain d'EX-12.32 ; gel juridique par `PutObjectLegalHold` (12.11) ; le rôle de l'enregistreur n'a jamais `s3:BypassGovernanceRetention` ; le lecteur liste les **versions**, pas la vue courante |
+| **Azure Blob, stockage immuable** | WORM de niveau conteneur ou de niveau version (versioning requis ; activation au niveau compte seulement à la création) ; politique **verrouillée** requise pour la conformité (« Microsoft recommends that you lock the policy […] typically less than 24 hours ») ; rétention 1 jour à 146 000 jours, prolongeable ; cinq prolongations au plus pour une politique verrouillée de niveau conteneur ; `allowProtectedAppendWrites` pour les append blobs ; incompatible NFS 3.0 et SFTP | Conteneur dédié, politique de niveau version verrouillée ; les segments sont des **block blobs** écrits une fois après fermeture (pas d'append blob : le segment courant reste local) ; gel juridique de niveau version (12.11) ; le gel de niveau conteneur est exclu, puisqu'il interdit la politique de niveau version sur le même conteneur (R13-F18) ; `endpoint` = adresse du compte de stockage (révision 0.5, obligatoire) |
+| **Google Cloud Storage** | Bucket Lock (politique de rétention verrouillée, irréversible, `400 BadRequestException` à toute réduction, 100 ans au plus) ; Object Retention Lock par objet, mode **Locked** (= `COMPLIANCE` en API XML, « permanently prevents the retention date from being reduced or removed ») ou Unlocked (= `GOVERNANCE`) ; `enableObjectRetention: true` à la création ; holds | Hors production seulement en version 0 (EX-12.30, EX-15.4) : la rétention par objet se pose à chaque écriture et la copie GCS n'est pas fixée (section 21) ; bucket dédié avec `enableObjectRetention` ; `mode: "compliance"` ↔ Locked ; gel juridique par `temporaryHold` seulement (12.11) : l'`eventBasedHold` remet à zéro le temps de rétention de l'objet à sa levée (R13-F22) et n'est pas employé ; bucket sans espace de noms hiérarchique, où les holds ne sont pas pris en charge (R13-F23) |
+| **Exoscale SOS** (Suisse) | Verrouillage S3 implémenté par le **legal hold** (« cannot be deleted indefinitely until the legal hold has been explicitly removed ») ; activation à la création du bucket seulement, versioning implicite ; exemple officiel de rétention par défaut en mode `GOVERNANCE` 30 jours ; gratuit ; mode `COMPLIANCE`, bornes et `bypass-governance` : **non documentés** (R5 § 2) | Type `s3-object-lock` avec `endpoint` (révision 0.5) ; `mode: "compliance"` à valider auprès de l'hébergeur ; à défaut, gel posé sur chaque copie : soit par un gardien de pose, hors du démon, après chaque copie (12.11, commande `poser` sur la période close), soit à l'écriture par l'écrivain (`legal_hold_on_write: true`, EX-12.31, refusé en production par EX-15.4). Dans le second cas, le rôle de l'écrivain détient `s3:PutObjectLegalHold`, qui chez S3 et MinIO permet aussi la levée (R13-F3, R13-F29) ; la restriction de ce droit à la seule pose par la clé `s3:object-lock-legal-hold` est documentée chez MinIO (R13-F30), non vérifiée chez AWS (R13 NV-1) et non documentée chez Exoscale, dont les pages lues ne montrent ni la requête de pose ni sa restriction (R13-F27, R13-F28, R13 NV-5) : un enregistreur compromis pourrait alors lever le gel (18.5, R13 conséquence 2). La levée à l'échéance suit la règle de garde d'EX-12.38. |
 | **cloudscale.ch** (Suisse) | Object Lock documenté (objets protégés « for a predefined period of time »), à activer à la création du bucket ; **site RMA seulement** ; modes et legal hold non documentés (R5 § 2) | Type `s3-object-lock`, bucket au site RMA ; réglages à valider |
 | Swisscom, Infomaniak S3/Swift | Aucune page officielle documentant un verrouillage ; Infomaniak écrit que l'immuabilité « is not available on other Swiss Backup storage protocols, such as Swift and S3 » (R5 § 1.5, § 2) | **Non retenus** comme support WORM |
+
+Exoscale avec un gel posé par un gardien de pose (ligne de la table) : la
+version 0 ne fixe ni la cadence ni le délai de cette pose. Entre la copie et
+la pose, une période n'est protégée que par la rétention par défaut du
+bucket, dont le mode Compliance n'est pas documenté chez Exoscale (R5 § 2).
+Aucun contrôle ne signale une période copiée et pas encore gelée : le relevé
+n'attend le gel d'une version qu'une fois le gel inscrit au registre des
+gels (EX-17.6 pas 2, EX-17.7). L'exploitant lance donc `poser` à chaque
+clôture de période ; la tâche planifiée et l'alerte de retard relèvent de
+CT-8, à écrire. À défaut de mode Compliance validé, Exoscale reste un
+support à valider auprès de l'hébergeur.
 
 **EX-12.17** Le support WORM reçoit des **copies** ; l'original local reste la
 référence de l'écrivain pour la chaîne. À la reprise d'une instance dont le
@@ -5524,21 +7976,200 @@ n'a pas cette capacité : c'est un service compagnon ou une tâche de
 l'orchestrateur qui la pose (CT-8), de sorte qu'un démon compromis ne puisse pas
 la retirer.
 
+**EX-12.29** **Registre des copies.** Après chaque copie réussie et son
+contrôle (EX-12.33), l'écrivain ajoute au fichier
+`worm/copies-<epoch>.ndjson` (12.1 ; ouvert `O_APPEND` comme un segment)
+une ligne, JCS intégral d'un objet `$defs/ligne_copie` du schéma
+`worm-v0` suivi de `\n` : `key` (clé complète, non encodée), `version_id`
+(identifiant rendu par le support, ou `null` s'il n'en rend pas),
+`sha256` et `length` du fichier local copié, `copied_at` (horloge murale
+à la réponse `200`), `lock` (`verdict`, `retain_until`, `legal_hold` du
+contrôle). La ligne n'a pas de `fdatasync` propre ; elle n'est ni une
+pièce ni une preuve : le support fait foi, et le registre se reconstruit
+depuis la liste des versions (EX-17.6). Il sert au relevé de
+verrouillage et à l'outil de gel, qui peut aussi s'en passer. Le fichier
+est tourné avec le segment et conservé avec le journal (12.8). Exemple
+(segment de `journal-demo`, annexe B.6) :
+
+<!-- schema: worm/ligne_copie -->
+```json
+{
+  "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+  "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+  "sha256": "0x8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1",
+  "length": 14293,
+  "copied_at": "2026-11-10T11:00:05.412Z",
+  "lock": {
+    "verdict": "conforme",
+    "retain_until": "2037-11-10T11:00:05.000Z",
+    "legal_hold": "jamais"
+  }
+}
+```
+
+**EX-12.30** **Rétention par défaut, en mode Compliance.** La rétention
+des copies est celle que le **support** applique par défaut à toute
+version écrite, posée **une fois** par l'exploitant à la création du
+support, jamais par l'écrivain : sur Amazon S3 et les services
+compatibles, bucket créé avec Object Lock et configuration par défaut
+`DefaultRetention` en mode `COMPLIANCE`, période en jours `Days` =
+`retain_days` (`Days` et `Years` sont exclusifs, L-C2 ; requête
+`PutObjectLockConfiguration` exacte en EX-12.39), de sorte que chaque
+version reçoit une échéance égale à sa date de création plus `retain_days`
+(« Amazon S3 calculates a Retain Until Date for the object version by
+adding the specified duration to the object version's creation
+timestamp », L-C6) ; sur Azure, la politique de niveau version
+verrouillée. Sur Google Cloud Storage, Object Retention Lock est une
+rétention **posée objet par objet**, distincte de Bucket Lock, sans
+rétention d'objet par défaut (« Object Retention Lock lets you define data
+retention requirements on a per-object basis. This differs from Bucket
+Lock », page officielle `storage/docs/object-lock`, relue le 2026-10-26) :
+elle se pose à l'écriture par les en-têtes `x-goog-object-lock-mode:
+COMPLIANCE` et `x-goog-object-lock-retain-until-date: <RFC 3339>`,
+obligatoires ensemble, « included in requests that upload, copy, or
+compose an object » (référence des en-têtes de l'API XML, relue le
+2026-10-26), ce qui ferait poser la rétention par l'écrivain, contrairement
+à la règle ci-dessus, et lui donnerait `storage.objects.setRetention`
+(R13-F25 ; le droit exigé pour un téléversement qui porte ces en-têtes
+n'est documenté que pour `PATCH` : non vérifié). Avec Bucket Lock seul,
+`retention.mode` est absent (R13-F24). La copie WORM vers GCS n'est donc
+**pas admise en production en version 0** : `gcs-object-retention` y est
+refusé (EX-15.4) et passe en version 1 (section 21), qui fixera la copie,
+la pose de la rétention et son contrôle ; il reste admis hors production,
+pour les essais du gel (`temporaryHold`). `retain_days` vaut au moins dix
+ans (3 650 jours, puisque `retain_days ≥ 365 × events_years` et
+`events_years ≥ 10`, EX-15.4) ; 4 018 jours sont recommandés pour couvrir la
+fin de l'exercice en cours plus dix ans (EX-12.19). En `environment:
+"production"`, `mode` vaut `compliance` (EX-15.4) : le mode Governance se
+contourne par `s3:BypassGovernanceRetention` (table de 12.6). La
+rétention variable par *event hold*, qui fixerait l'échéance à la clôture
+de l'exercice (R13-F7, R13 conséquence 6), n'est pas employée en version
+0 (section 21). La supervision relit chaque jour la configuration par
+défaut (EX-17.5).
+
+**EX-12.31** **Gel à l'écriture.** Avec `storage.seal.worm.
+legal_hold_on_write: true` (type `s3-object-lock` seulement, défaut
+`false`), chaque copie porte `x-amz-object-lock-legal-hold: ON` (« Specifies
+whether a legal hold will be applied to this object », valeurs `ON` et
+`OFF`, R13-F2) ; le rôle de l'écrivain détient alors
+`s3:PutObjectLegalHold` (« Required if you want to place an Object Lock
+legal hold on the new object », R13-F3). Ce réglage n'est utile que sur
+un support sans mode Compliance vérifié (ligne Exoscale de la table) ; il
+affaiblit la règle de garde (EX-12.38), puisque le même droit permet la
+levée sauf restriction de la politique (R13-F3, R13-F29, R13-F30, R13
+NV-1) : la commande de validation le **refuse** en production (EX-15.4),
+où la pose du gel se fait par un gardien de pose hors du démon (12.11), et
+18.5 le dit. Le contrôle d'EX-12.33 attend alors `legal_hold` à `on`
+pour toute copie.
+
+**EX-12.32** **Droits du rôle de l'écrivain.** Les identifiants
+`storage.seal.worm.credentials` sont ceux d'un rôle qui a, sur le préfixe,
+exactement les droits de copier, de lire et de lister (S3 :
+`s3:PutObject`, `s3:GetObject`, `s3:GetObjectVersion`,
+`s3:ListBucketVersions`, `s3:GetObjectRetention`, `s3:GetObjectLegalHold`
+et la lecture de la configuration de verrouillage du bucket, L-C6), et
+**jamais** : `s3:DeleteObject` ni `s3:DeleteObjectVersion` (une
+suppression simple pose un marqueur sous lequel un écrivain périmé
+pourrait réécrire la clé, EX-12.16, et ni la rétention ni le gel ne
+protègent contre un marqueur ou une nouvelle version, R13-F5) ;
+`s3:BypassGovernanceRetention` ; `s3:PutObjectRetention` et
+`s3:PutBucketObjectLockConfiguration` (la rétention n'est jamais posée ni
+changée par l'écrivain, EX-12.30) ; `s3:PutBucketPolicy` ;
+`s3:PutObjectLegalHold`, sauf avec `legal_hold_on_write` (EX-12.31).
+Le droit d'écrire de l'écrivain est **limité aux sous-préfixes qu'il
+copie** (`<prefix>segments/`, `<prefix>manifestes/`, `<prefix>points/`,
+`<prefix>ancres/`, et `<prefix>pieces/` avec `copy_pieces`) : il n'a
+**jamais** le droit d'écrire sous `<prefix>gels/`, où seuls les gardiens
+écrivent le registre des gels (EX-12.37). Sans cette restriction, un démon
+compromis pourrait écrire une suite demande, levée, résultat qui passe la
+règle de garde (les enregistrements ne sont pas signés et les identités sont
+déclarées), éteindre la surveillance d'EX-17.7 et occuper d'avance la clé
+`<nnnn>` suivante pour bloquer les actions légitimes (18.5). Le moyen exact
+(politique du rôle limitée aux ressources de ces sous-préfixes, ou registre
+des gels sous un préfixe ou dans un bucket hors de ses droits) relève du
+support et de CT-8, à écrire ; sa limite est que l'administrateur du compte
+peut retirer une politique de bucket (R13-F14). Les droits des gardiens, du
+lecteur et de l'administrateur sont en EX-18.9. Ces droits sont posés par le
+client sur son support et ne sont pas vérifiables par l'enregistreur, qui n'en
+contrôle que les effets : un verrou ou un gel lu non conforme (EX-12.33) et une
+version inattendue au relevé (EX-17.6) sont alertés.
+
+**EX-12.33** **Contrôle du verrou d'une version.** Après chaque copie
+(`200`), puis à chaque relevé (EX-17.6), le lecteur du support lit
+l'état de la version écrite (S3 : `HEAD` avec `versionId` ; Azure :
+`HEAD` avec `versionid` ; GCS : lecture de la ressource objet par l'API
+JSON avec `generation` ; requêtes exactes en EX-12.39) et en tire,
+dans cet ordre :
+
+1. **mode** : S3, en-tête `x-amz-object-lock-mode`, attendu `COMPLIANCE`
+   (`GOVERNANCE` si `mode: "governance"`) ; Azure,
+   `x-ms-immutability-policy-mode`, attendu `locked` (`unlocked` en
+   Governance) ; GCS, membre `retention.mode`, attendu `Locked`
+   (`Unlocked`). Absent : raison `mode_absent` (l'en-tête n'est rendu
+   qu'à qui détient `s3:GetObjectRetention`, R13-F8 : une absence est soit
+   un verrou absent, soit un droit manquant, deux défauts) ; autre valeur
+   : `mode_non_conforme` ;
+2. **échéance** : S3, `x-amz-object-lock-retain-until-date` ; Azure,
+   `x-ms-immutability-policy-until-date` ; GCS, `retention.retainUntilTime`
+   (R13-F8, R13-F19, R13-F24). La forme de la valeur rendue n'est montrée
+   par aucune page lue : le lecteur accepte un horodatage RFC 3339 (avec
+   ou sans fraction, `Z` ou décalage) et la forme `IMF-fixdate` de HTTP
+   (`Tue, 10 Nov 2037 11:00:05 GMT`), et la ramène à la forme de CT-1 §3
+   (millisecondes, `Z`, fraction au-delà de la milliseconde tronquée) ;
+   absente : `echeance_absente` ; illisible : `date_illisible` ;
+   antérieure à `copied_at + retain_days × 86 400 s − 3 600 s` :
+   `echeance_courte` (la tolérance d'une heure couvre l'écart entre
+   `copied_at`, horloge de l'écrivain, et la date de création que le
+   support emploie) ;
+3. **gel** : S3, `x-amz-object-lock-legal-hold` (`ON` → `on`, `OFF` →
+   `off`) ; Azure, `x-ms-legal-hold` (`true` → `on`, `false` → `off`) ;
+   GCS, `temporaryHold` (`true` → `on`, `false` → `off`). Absent : `jamais`,
+   avec la note `jamais_gele` (« This header is not returned if the
+   specified version of this object has never had a legal hold applied »,
+   R13-F8 ; Azure : « This header isn't returned if there's no legal hold
+   on the blob », R13-F19). Sur S3, l'en-tête n'est rendu qu'à qui détient
+   `s3:GetObjectLegalHold` (« This header is only returned if the requester
+   has the s3:GetObjectLegalHold permission », R13-F8) : une absence est
+   soit une version jamais gelée, soit un droit manquant, et la note
+   `jamais_gele` ne distingue pas les deux ; seul le droit accordé par
+   EX-12.32 au lecteur permet de lire `jamais` comme « jamais gelée ». Une
+   valeur hors de cette table (`on` en minuscules pour S3, un
+   `temporaryHold` non booléen) n'est jamais lue comme `off` : l'état est
+   `illisible`, raison `gel_illisible`. Quand un gel est attendu (gel actif
+   du registre, EX-17.7, ou `legal_hold_on_write`) et que l'état n'est pas
+   `on` : raison `gel_absent`. Un gel présent sans être attendu n'est pas
+   un défaut (il ne fait qu'ajouter une protection) : note `gel_inattendu`.
+
+Le verdict est `conforme` sans raison, `non_conforme` sinon. Un verdict
+`non_conforme` à la copie ne fait ni réécrire ni supprimer la version (le
+rôle ne le peut pas) : il est consigné (`worm_lock_check`), compté et
+alerté en critique (17.4) ; la copie compte comme faite pour EX-12.17. La
+famille de vecteurs `worm/etats.json` (annexe B.9) fixe ces règles cas par
+cas.
+
 ### 12.7 Rétention et purge des pièces
 
-**EX-12.19** Les événements (segments), les manifestes et leurs signatures
-sont conservés **au moins dix ans à compter de la fin de l'exercice** auquel
-ils se rapportent : CO art. 958f al. 1 (« conservés pendant dix ans. Ce délai
-court à partir de la fin de l'exercice », état au 1er octobre 2026, R5
-§ 1.9), la rétention probatoire visée par l'architecture. La configuration
-porte `storage.retention.events_years ≥ 10` ; la rétention WORM `retain_days`
-DEVRAIT couvrir la fin de l'exercice en cours plus dix ans, soit jusqu'à
-environ onze ans après l'écriture (R5, conséquences). Rien dans l'enregistreur
-ne supprime un segment ; la fin de rétention est un acte d'exploitation
-(CT-8).
+**EX-12.19** Les événements (segments), les manifestes et leurs signatures sont
+conservés **au moins dix ans à compter de la fin de l'exercice** auquel ils se
+rapportent : CO art. 958f al. 1 (« conservés pendant dix ans. Ce délai court à
+partir de la fin de l'exercice », état au 1er octobre 2026, R5 § 1.9), la
+rétention probatoire visée par l'architecture. La configuration porte
+`storage.retention.events_years ≥ 10` ; la rétention WORM `retain_days` DEVRAIT
+couvrir la fin de l'exercice en cours plus dix ans, soit jusqu'à environ onze
+ans après l'écriture (R5, conséquences). Rien dans l'enregistreur ne supprime
+un segment ; la fin de rétention est un acte d'exploitation (CT-8, à écrire ;
+proposition de la section 22). Un gel
+juridique (12.11) prolonge la conservation des copies WORM qu'il couvre au-delà
+de leur échéance, jusqu'à sa levée par deux personnes (EX-12.38) ; il ne
+touche ni les fichiers locaux ni l'échéance elle-même (R13-F4).
 
 **EX-12.20** Les **pièces** PEUVENT être purgées après
-`storage.retention.pieces_days` (ou jamais, `null`) : la chaîne garde leurs
+`storage.retention.pieces_days` (ou jamais, `null`), sauf (révision 0.5)
+les pièces référencées par un événement des segments des périodes d'un gel
+**actif** (EX-17.7) : la purge les saute et consigne ce saut dans la ligne
+`pieces_purged` (liste des `sha256` sautés) ; sans registre des gels
+lisible, la purge est suspendue, et non exécutée. Une pièce déjà purgée avant
+la pose d'un gel ne se reconstitue pas (EX-12.40) : la chaîne garde leurs
 références (`sha256`, `length`, `redacted`), le dossier reste vérifiable sur
 tout ce qui ne dépend pas du contenu (CT-1 §11.4 : E-6 sur une pièce fournie à
 part devient « non exécuté, pièce absente », ce que le vérificateur dit), et le
@@ -5681,6 +8312,557 @@ clôture, avec le manifeste (EX-12.16), et le répertoire `ancres/` que CT-5
 **EX-12.28** Une bascule d'écrivain (section 13) ne change pas la série : le
 nouvel écrivain relit la série de la période en cours, chaîne son premier
 point au dernier point écrit et reprend à l'instant aligné suivant.
+
+### 12.11 Gel juridique des copies WORM (révision 0.5)
+
+Un **gel** protège une version d'objet du support sans échéance, tant
+qu'il n'est pas levé, **indépendamment de sa rétention** : « Legal holds
+are independent from retention periods. […] If the retention period
+expires, the object doesn't lose its WORM protection. Rather, the legal
+hold continues to protect the object until an authorized user explicitly
+removes the legal hold. Similarly, if you remove a legal hold while an
+object version has a retention period in effect, the object version
+remains protected until the retention period expires. » (R13-F4 ; même
+comportement chez MinIO, R13-F29). Il sert quand un litige, une enquête ou
+une demande d'autorité exige de garder une plage du journal au-delà de
+`retain_days`. Il ne remplace pas la rétention en mode Compliance, ne
+couvre ni les nouvelles versions ni les marqueurs de suppression (R13-F5),
+et ne dispense ni de la signature ni de l'horodatage (EX-12.21) : les
+droits de l'écrivain (EX-12.32) et la liste des versions par le lecteur
+restent nécessaires. Le gel porte sur les **copies WORM**, jamais sur les
+fichiers locaux.
+
+Ni la pose ni la levée d'un gel ne sont des événements de la chaîne :
+aucune des quatre sortes réservées de CT-1 §5.1 ne les porte, et un nom
+`noortrace.` hors de cette liste est invalide (CT-1 E-3). Leur trace est
+le **registre des gels**, écrit sur le support WORM lui-même et protégé
+par sa rétention (EX-12.37), et le journal d'exploitation (9.1).
+
+**EX-12.34** **Mécanisme par support.**
+
+| Type | Gel employé | Pose et levée | Lecture | Droit de pose et de levée |
+|---|---|---|---|---|
+| `s3-object-lock` (Amazon S3, MinIO, services compatibles) | *legal hold* d'une **version** (`versionId`), statut `ON` ou `OFF` (R13-F1) | `PutObjectLegalHold` (R13-F1) ; à l'écriture, en-tête `x-amz-object-lock-legal-hold` de `PutObject` (R13-F2, EX-12.31) | `GetObjectLegalHold` (R13-F2) ; `HEAD`, en-tête `x-amz-object-lock-legal-hold`, absent si la version n'a jamais été gelée (R13-F8) | `s3:PutObjectLegalHold`, **le même pour poser et pour lever** (R13-F3) ; restriction à `ON` par la clé `s3:object-lock-legal-hold` : documentée chez MinIO (R13-F30), présente dans le jeu de clés d'AWS (R13-F13) mais non vérifiée pour cette action (R13 NV-1) |
+| `s3-object-lock` chez Exoscale SOS | *legal hold*, seul verrou décrit (R13-F27) | requête non montrée par les pages lues (R13 NV-5) : l'outil emploie celle de S3 et s'arrête sur un refus (EX-12.40) | idem, non documentée (R13 NV-5) | non documenté (R13-F28, R13 NV-5) |
+| `azure-immutable-blob` | gel de **niveau version** (`versionid`), `x-ms-legal-hold: true` ou `false` (R13-F16) ; jamais le gel de niveau conteneur, incompatible avec la politique de niveau version (R13-F18) | `Set Blob Legal Hold` (R13-F16) | `Get Blob Properties`, en-tête `x-ms-legal-hold`, absent sans gel (R13-F19) | action RBAC `Microsoft.Storage/storageAccounts/blobServices/containers/write` (R13-F16) ; aucune action distincte pour la levée n'est documentée (R13 NV-7) ; les changements de gel de niveau version ne sont pas audités par le service (R13-F18) |
+| `gcs-object-retention` | `temporaryHold` (`true` ou `false`), dont la levée ne touche pas l'échéance (R13-F22) ; jamais `eventBasedHold`, dont la levée remet à zéro le temps de rétention (R13-F22) | `PATCH` de la ressource objet par l'API JSON ; l'API XML ne gère pas les holds (R13-F23) ; paramètre `generation` pour viser une révision (L-C7) | lecture de la ressource objet par l'API JSON, membres `temporaryHold`, `retention`, `retentionExpirationTime` (R13-F24) | `storage.objects.update` (R13-F25) ; aucune condition sur la valeur trouvée (R13 NV-8) |
+
+Sur S3, MinIO, Azure et GCS, qui peut poser peut donc lever, sauf
+restriction vérifiée sur le support : la **règle de garde** de la levée
+(EX-12.38) ne repose pas sur le droit du support seul.
+
+**EX-12.35** **Périmètre d'un gel.** Un gel vise **un journal**
+(`org_id`, `journal_id` de `recorder`) et une **plage de périodes**
+`[from, to]`, bornes comprises, deux valeurs de `period_start` (multiples
+de 3 600, `from ≤ to`). Son périmètre est calculé ainsi, dans cet ordre :
+
+1. **Liste des versions.** Lister toutes les versions sous `<prefix>` (S3 :
+   `ListObjectVersions` avec `prefix`, puis, tant que la réponse porte
+   `IsTruncated` vrai, la requête suivante avec `key-marker` = `NextKeyMarker`
+   et `version-id-marker` = `NextVersionIdMarker`, L-C1 ; sur Azure et GCS, la
+   liste des versions n'a pas été relue pour cette révision : l'outil prend les
+   clés et versions des lignes du registre des copies, EX-12.29, que
+   l'exploitant lui passe par `--registre-copies <répertoire>`, copie du
+   répertoire `worm/` du journal, et lit chaque version qu'elles désignent).
+   Chaque élément donne une clé, une version, `IsLatest`, et s'il s'agit d'un
+   marqueur de suppression.
+2. **Manifestes.** Pour chaque période `P` de la plage, lire chaque
+   version de `<prefix>manifestes/periode-<P>.json` (dix chiffres) et en
+   prendre `first_seq` et `last_seq` (CT-1 §10.1). Sans version : anomalie
+   `manifeste_absent` pour cette clé, puis anomalie
+   `segments_indetermines` pour `<prefix>segments/`, et aucun segment de
+   `P` n'est pris. Avec une version que l'outil n'a pas pu lire : la clé est
+   retenue (elle est gelée), anomalie `manifeste_illisible` puis
+   `segments_indetermines`, et aucun segment de `P` n'est pris.
+3. **Clés attendues de `P`** : le manifeste, `<prefix>manifestes/
+   periode-<P>.sig`, `<prefix>points/periode-<P>.ndjson` (anomalie
+   `objet_absent` pour chacune qui n'a aucune version) ; toutes les clés
+   qui commencent par `<prefix>ancres/periode-<P>/` ; toutes les clés de
+   la forme `<prefix>segments/seg-<f>-<e>.ndjson` (`f` sur 16 chiffres,
+   `e` sur 20) avec `first_seq ≤ f ≤ last_seq`, **toutes époques
+   comprises** (une copie d'écrivain périmé est gelée aussi : rien n'est
+   jugé, tout est gardé) ; si `last_seq ≥ first_seq` et qu'aucun segment
+   n'a `f = first_seq` : anomalie `segment_absent` pour la clé attendue
+   d'époque inconnue, écrite avec `e` = vingt `0`.
+4. **Pièces.** Si elles sont copiées (`copy_pieces`, EX-12.16) : les clés
+   `<prefix>pieces/<xx>/<sha256 sans 0x>` de chaque empreinte référencée
+   par un événement des segments retenus (toute référence `{ sha256,
+   length, redacted }` de l'événement, `code.prompt_version`, et
+   `policy_sha256` d'un événement de politique), lues dans les copies
+   WORM de ces segments ; une empreinte dont la clé n'a aucune version :
+   anomalie `piece_absente`, dans l'ordre des empreintes. Si elles ne sont
+   pas copiées et que `storage.retention.pieces_days` n'est pas `null`
+   (les pièces locales sont purgeables) : anomalie `pieces_non_copiees`
+   pour `<prefix>pieces/` ; le gel ne protège alors pas le contenu des
+   pièces, que seule la suspension de la purge d'EX-12.20 garde
+   localement.
+5. **Versions retenues** : pour chaque clé retenue, toutes ses versions
+   qui ne sont pas des marqueurs de suppression. Plus d'une version :
+   anomalie `versions_multiples` (toutes sont gelées) ; un marqueur de
+   suppression en version courante : anomalie `marqueur_de_suppression`
+   (les versions qu'il recouvre sont gelées ; le marqueur ne peut pas
+   l'être, R13-F5). Une anomalie n'arrête pas la pose : elle est inscrite
+   dans l'enregistrement `pose` et rend le code de sortie `1`. Un marqueur
+   de suppression compte comme une version pour les pas 2 et 3 (ni
+   `manifeste_absent` ni `objet_absent`) : la clé est retenue, sans objet
+   si elle n'a que des marqueurs, et le pas 5 rend
+   `marqueur_de_suppression`.
+
+   **Ordre des anomalies** : période par période, dans l'ordre croissant,
+   celles du pas 2 (`manifeste_absent` ou `manifeste_illisible`, puis
+   `segments_indetermines`) puis celles du pas 3 (`objet_absent` de la
+   signature, puis de la série des points, puis `segment_absent`) ; ensuite
+   celles du pas 4 ; enfin celles du pas 5, clé par clé dans l'ordre des
+   clés (octets UTF-8), `versions_multiples` avant
+   `marqueur_de_suppression`.
+6. **Liste des objets** : les couples `{ "key", "version_id" }`, triés
+   par clé (octets UTF-8 croissants) puis dans l'ordre de la liste des
+   versions ; chacun est écrit en JCS intégral suivi de `\n` dans
+   `<prefix>gels/<gel_id>/objets-<nnnn>.ndjson` (`$defs/ligne_objet_gel`
+   du schéma `worm-v0`) ; son empreinte `objects.sha256` est le SHA-256
+   de ces octets.
+
+Exemple : la période de démonstration `1794304800` de `journal-demo`
+(annexe B.6 : un segment, `first_seq` 1, `last_seq` 8), deux fichiers
+d'ancres ; les six lignes, dans l'ordre :
+
+```text
+{"key":"journal-demo/ancres/periode-1794304800/acquisitions.ndjson","version_id":"Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"}
+{"key":"journal-demo/ancres/periode-1794304800/ots/manifeste-1.ots","version_id":"Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"}
+{"key":"journal-demo/manifestes/periode-1794304800.json","version_id":"Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"}
+{"key":"journal-demo/manifestes/periode-1794304800.sig","version_id":"Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"}
+{"key":"journal-demo/points/periode-1794304800.ndjson","version_id":"Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"}
+{"key":"journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson","version_id":"3/L4kqtJl40Nr8X8gdRQBpUMLUo"}
+```
+
+soit 673 octets, `objects.sha256 =
+0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c`
+(identifiants de version fictifs).
+
+**EX-12.36** **Commande d'exploitation.** Le gel se pose et se lève par
+`noortrace-ctl worm gel <action>`, **processus distinct du démon** et
+exécuté par un exploitant avec **ses propres identifiants** sur le
+support, jamais avec ceux de l'écrivain : la commande refuse (code `2`)
+des `--identifiants` égaux à la référence `storage.seal.worm.credentials`
+de la configuration. Cette comparaison de **références** ne prouve rien :
+une autre référence vers le même secret passe ; seule la séparation des
+rôles sur le support (EX-12.32, EX-18.9) fait foi. Par exception à EX-18.1
+(`noortrace-ctl` local, sous l'utilisateur du démon), les actions `worm gel` ne
+parlent pas au démon et s'exécutent sous l'identité de l'exploitant, au besoin
+hors de l'hôte du démon : elles ne lisent que le document de configuration
+(`recorder.org_id`, `recorder.journal_id`, `storage.seal.worm` sans résoudre ses
+identifiants), les copies WORM et, sur Azure et GCS, la copie du registre des
+copies passée par `--registre-copies` (EX-12.35) ; elles n'ouvrent ni
+`storage.root`, ni le bail, ni le signataire, et n'envoient rien au démon.
+
+```text
+noortrace-ctl worm gel poser            --configuration <fichier> --identifiants <référence> --identite <nom> --de <period_start> --a <period_start> --motif <texte> [--reference <texte>] [--registre-copies <répertoire>] [--journal-exploitation <chemin>]
+noortrace-ctl worm gel demander-levee   --configuration <fichier> --identifiants <référence> --identite <nom> --gel <gel_id> --motif <texte> [--journal-exploitation <chemin>]
+noortrace-ctl worm gel lever            --configuration <fichier> --identifiants <référence> --identite <nom> --gel <gel_id> --demande <sha256> [--journal-exploitation <chemin>]
+noortrace-ctl worm gel reprendre        --configuration <fichier> --identifiants <référence> --identite <nom> --gel <gel_id> [--journal-exploitation <chemin>]
+noortrace-ctl worm gel etat             --configuration <fichier> --identifiants <référence> --gel <gel_id>
+```
+
+`--identifiants` est une référence de secret de la forme de 15.2 (`{"env":
+…}`, `{"file": …}`, `{"vault": …}`), écrite en JSON sur la ligne de
+commande ; son contenu suit le format d'identifiants du support et n'est
+jamais écrit nulle part. `--identite` est l'identité déclarée de la
+personne qui agit (1 à 256 caractères, telle que le système d'identité du
+client la nomme). `--motif` et `--reference` sont écrits tels quels dans
+le registre, qui n'est pas rédigé : ils ne portent aucune donnée
+personnelle autre que des identifiants de dossier (CT-8). `--journal-
+exploitation` désigne le fichier où l'outil ajoute ses lignes, au format
+d'EX-9.5 (composant `worm`) ; à défaut, elles vont sur la sortie
+d'erreur. Codes de sortie : `0` tout est fait ; `1` fait en partie (un
+objet au moins en échec, ou une anomalie de périmètre) ; `2` usage ou
+configuration ; `3` règle de garde refusée (EX-12.38) ; `4` support
+injoignable ou refusant la première requête : rien n'a été changé.
+
+**EX-12.37** **Registre des gels.** Chaque action écrit, **avant** et
+**après** ses requêtes de gel, des objets du support sous
+`<prefix>gels/<gel_id>/`, par une écriture conditionnelle à l'absence
+comme les copies d'EX-12.16 (avec les identifiants de l'exploitant) ; la
+rétention par défaut du support (EX-12.30) les protège donc comme le
+journal :
+
+- `objets-<nnnn>.ndjson` : la liste des objets (EX-12.35), écrite par
+  `poser` (`<nnnn>` = `0001`) ;
+- `<nnnn>-<kind>.json`, `<nnnn>` sur quatre chiffres à partir de `0001`,
+  `<kind>` ∈ `pose`, `pose_resultat`, `demande_levee`, `levee`,
+  `levee_resultat` : un enregistrement, octets = JCS intégral d'un objet
+  `$defs/enregistrement_gel` du schéma `worm-v0`, dont l'empreinte est le
+  SHA-256 de ces octets.
+
+| Clé | Règle |
+|---|---|
+| `version` | constante `0` |
+| `gel_id` | `gel-<AAAAMMJJ>T<hhmmss>Z-<8 hex>` : instant UTC de la pose et quatre octets aléatoires ; une collision (`412` sur `objets-0001` ou `0001-pose`) fait tirer un autre identifiant, une fois |
+| `n` | rang de l'enregistrement dans le gel, 1, 2, … ; `n = 1` est la `pose` |
+| `kind` | `pose`, `pose_resultat`, `demande_levee`, `levee`, `levee_resultat` |
+| `org_id`, `journal_id` | ceux de `recorder` |
+| `periods` | `{ "from", "to" }`, la plage du gel |
+| `support` | `{ "type", "bucket", "prefix" }` de `storage.seal.worm` |
+| `objects` | `{ "key", "sha256", "count" }` : clé de `objets-0001.ndjson`, son empreinte, son nombre de lignes ; identique dans tous les enregistrements du gel |
+| `actor` | `--identite` de la personne qui exécute l'action |
+| `at` | horloge de l'outil à l'écriture (CT-1 §3) |
+| `reason` | `--motif` ; obligatoire pour `pose` et `demande_levee`, `null` ailleurs ou s'il n'est pas donné |
+| `reference` | `--reference` de la pose, recopiée dans chaque enregistrement, ou `null` |
+| `request_sha256` | pour `levee` : l'empreinte de l'enregistrement `demande_levee` approuvé ; `null` ailleurs |
+| `results` | pour `pose_resultat` et `levee_resultat` : `{ "ok", "failed": [ { "key", "version_id", "status", "http_status" } ] }`, `status` ∈ `refuse`, `absent`, `echec`, `non_confirme` ; pour `levee_resultat`, membre facultatif `kept` : `[ { "key", "version_id", "gel_id" } ]`, les versions laissées gelées parce qu'un autre gel actif les couvre (EX-12.40), qui ne sont pas des échecs ; `null` ailleurs |
+| `anomalies` | pour `pose` : les anomalies du périmètre `{ "key", "kind" }` (EX-12.35) ; `[]` ailleurs |
+| `prev_sha256` | empreinte de l'enregistrement `n − 1` ; `null` pour `n = 1` |
+
+Enregistrement `0001-pose.json` du gel de l'exemple (811 octets en JCS
+intégral, empreinte
+`0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a`) :
+
+<!-- schema: worm/enregistrement_gel -->
+```json
+{
+  "version": 0,
+  "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+  "n": 1,
+  "kind": "pose",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+  "periods": { "from": 1794304800, "to": 1794304800 },
+  "support": { "type": "s3-object-lock", "bucket": "noortrace-demo-worm", "prefix": "journal-demo/" },
+  "objects": {
+    "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+    "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+    "count": 6
+  },
+  "actor": "j.dupont@assureur-demo.example",
+  "at": "2026-12-01T09:00:00.000Z",
+  "reason": "Litige LT-0042 : conservation au-delà de l'échéance de rétention",
+  "reference": "dossier juridique LT-0042",
+  "request_sha256": null,
+  "results": null,
+  "anomalies": [],
+  "prev_sha256": null
+}
+```
+
+Les empreintes des enregistrements suivants de l'exemple sont, dans
+l'ordre : `0002-pose_resultat` (`results: {"ok": 6, "failed": []}`)
+`0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744` ;
+`0003-demande_levee` (par `j.dupont@assureur-demo.example`, le
+2037-03-15 à 08:00 UTC, motif « Litige LT-0042 clos par jugement
+définitif »)
+`0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7` ;
+`0004-levee`
+`0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482` ;
+`0005-levee_resultat`
+`0x1fa25acb0f9f78211f2abdbbd2217233f4b134a69534e2975fc3828dfe892c05`.
+L'enregistrement `levee` :
+
+<!-- schema: worm/enregistrement_gel -->
+```json
+{
+  "version": 0,
+  "gel_id": "gel-20261201T090000Z-5f0c2a1e",
+  "n": 4,
+  "kind": "levee",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+  "periods": { "from": 1794304800, "to": 1794304800 },
+  "support": { "type": "s3-object-lock", "bucket": "noortrace-demo-worm", "prefix": "journal-demo/" },
+  "objects": {
+    "key": "journal-demo/gels/gel-20261201T090000Z-5f0c2a1e/objets-0001.ndjson",
+    "sha256": "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c",
+    "count": 6
+  },
+  "actor": "m.keller@assureur-demo.example",
+  "at": "2037-03-16T14:30:00.000Z",
+  "reason": null,
+  "reference": "dossier juridique LT-0042",
+  "request_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7",
+  "results": null,
+  "anomalies": [],
+  "prev_sha256": "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7"
+}
+```
+
+Dans cet exemple, la levée a lieu avant l'échéance des copies
+(2037-11-10, EX-12.29) : elle ne les rend pas supprimables, la
+rétention continue jusqu'à son terme (R13-F4). Le registre des gels est
+une donnée du client conservée avec le journal ; il porte les identités
+déclarées des exploitants, et le journal d'exploitation ne les recopie
+pas (EX-9.6) : il ne porte que `gel_id`, `n`, `kind` et l'empreinte de
+l'enregistrement.
+
+**EX-12.38** **Règle de garde : levée par deux personnes.** Poser un
+gel n'exige qu'une personne : il n'ôte aucune protection. Lever un gel
+exige deux personnes, et l'outil refuse (code `3`, sans aucune requête de
+levée, ligne `worm_legal_hold_guard_refused`) toute suite
+d'enregistrements qui viole l'une des règles suivantes, vérifiées sur les
+enregistrements relus du support avant toute requête :
+
+| Code | Règle |
+|---|---|
+| `chaine_rompue` | `n` vaut 1, 2, … sans trou ; `prev_sha256` de `n` est l'empreinte de l'enregistrement `n − 1` ; `gel_id`, `org_id`, `journal_id` et `support` sont ceux de l'enregistrement 1 |
+| `premier_non_pose` | l'enregistrement 1 est une `pose` |
+| `ordre_invalide` | successions admises : `pose` → `pose_resultat` ; `pose_resultat` → `pose_resultat` (reprise) ou `demande_levee` ; `demande_levee` → `demande_levee` (nouvelle demande) ou `levee` ; `levee` → `levee_resultat` ; `levee_resultat` → `levee_resultat` (reprise) ; `at` ne décroît pas |
+| `meme_identite` | l'`actor` de la `levee` diffère, octet pour octet, de l'`actor` de la `demande_levee` qu'elle approuve |
+| `demande_inconnue` | `request_sha256` de la `levee` est l'empreinte de la **dernière** `demande_levee` du gel |
+| `demande_expiree` | `0 ≤ at(levee) − at(demande) ≤ 604 800 000 ms` (sept jours) |
+| `levee_en_double` | une `demande_levee` n'est approuvée que par une `levee` |
+| `objets_differents` | `objects` est identique dans tous les enregistrements (la levée porte sur tout le gel ; la levée partielle n'est pas dans la version 0) |
+| `periode_differente` | `periods` est identique dans tous les enregistrements |
+
+Le résultat est la liste des erreurs `{ n, code }`, où `n` est le **rang**
+(1, 2, …) de l'enregistrement fautif dans la suite relue, et non son champ
+`n` : une erreur par enregistrement fautif et par règle violée (au plus une
+par rang et par code), triées par rang puis dans l'ordre de la table. Une
+suite vide n'a pas de pose : `premier_non_pose` au rang 1. La demande
+approuvée par une `levee` est la `demande_levee` antérieure dont
+l'empreinte égale son `request_sha256` ; `meme_identite`, `demande_expiree`
+et `levee_en_double` ne sont jugées que si cette demande existe (sinon
+seule `demande_inconnue` s'applique) ; `levee_en_double` vise une `levee`
+dont la demande désignée a déjà été approuvée par une `levee` antérieure ;
+`objets_differents` et `periode_differente` comparent chaque enregistrement
+au premier ; un `at` illisible viole `ordre_invalide` et, pour une levée,
+`demande_expiree`.
+
+La levée est exécutée par **la seconde personne**, avec **ses**
+identifiants (rôle de gardien de levée, EX-18.9), jamais avec ceux de
+la personne qui a demandé ni avec ceux de l'écrivain. Ce que l'outil
+établit est mesurable : deux enregistrements immuables, une demande et
+une levée, d'identités déclarées distinctes, liés par une empreinte, à
+moins de sept jours d'écart. Ce qu'il **n'établit pas** : que les deux
+identités déclarées sont deux personnes distinctes.
+
+**Qui peut demander, qui peut lever.** Le demandeur peut être le gardien
+de pose : c'est le cas de l'exemple (`j.dupont@assureur-demo.example` pose,
+puis demande), et c'est ce que recommande la restriction du registre
+ci-dessous (une `demande_levee` écrivable par le seul rôle de pose). Le
+gardien de levée doit avoir une identité déclarée différente de celle du
+demandeur de la demande qu'il approuve (`meme_identite`) : c'est le seul
+contrôle d'identité de l'outil, qui ne compare pas l'identité de la levée à
+celle de la pose. La personne qui a posé le gel PEUT donc lever ce gel
+comme gardien de levée, pourvu qu'une **autre** personne ait écrit la
+demande : la règle des deux personnes porte sur la demande et la levée,
+qui ont toujours deux identités distinctes, et non sur la pose. Un client
+qui veut que trois personnes distinctes interviennent (pose, demande,
+levée) l'impose par la répartition des rôles de la procédure de levée
+proposée à CT-8 (section 22) ; la version 0 ne l'exige pas. Aucun support lu ne
+l'impose sur l'opération de gel elle-même : MFA delete ne couvre pas le
+gel (R13-F11) ; l'approbation à plusieurs d'AWS Organizations ne couvre
+aucune opération S3 (R13-F15, R13 NV-4). La garantie vient donc de la
+séparation des rôles sur le support, que CT-8 fait poser et que le client
+DOIT appliquer : le droit de levée n'appartient qu'au rôle de gardien de
+levée, distinct de celui de pose quand le support permet de restreindre
+la pose à `ON` (R13-F30, R13 NV-1) ; l'activation de ce rôle est soumise à
+l'approbation d'une **autre personne** (Entra PIM, R13-F21 ; Privileged
+Access Manager de Google, en Preview, R13-F26), l'authentification
+multifacteur (`aws:MultiFactorAuthPresent` ou `aws:MultiFactorAuthAge`,
+présentes seulement avec des identifiants temporaires, R13-F12) ne
+suffisant pas : seule, elle authentifie une personne, elle n'en fait pas
+deux ; le registre DEVRAIT n'être écrivable, pour une `demande_levee`, que
+par le rôle de pose, et pour une `levee`, que par le rôle de levée, par une
+condition de ressource sur le suffixe de clé (`-demande_levee.json`,
+`-levee.json`), à vérifier sur chaque support (non vérifié pour cette
+révision) ; et,
+chez AWS, une politique de contrôle de service ou de ressource posée
+depuis le compte de gestion de l'organisation lie la racine du compte du
+bucket, ce qu'une politique de bucket ne fait pas (R13-F14). Le
+journal des opérations du fournisseur, quand il est activé (événements de
+données CloudTrail, payants et désactivés par défaut, R13-F9), est une
+pièce d'exploitation complémentaire (R13 conséquence 3, conséquence 4).
+
+**EX-12.39** **Requêtes exactes.** L'enregistreur (copie, contrôle,
+relevé) et l'outil de gel construisent leurs requêtes ainsi ; la
+référence est `scripts/lib/worm.mjs`, sans réseau, et la famille de
+vecteurs `worm/requetes.json` (annexe B.9) les fixe octet pour octet.
+
+- **Cible** : chemin et requête relatifs au service, sans hôte. Une clé
+  ou une valeur de paramètre est encodée octet par octet : chaque octet
+  UTF-8 hors des caractères non réservés de la RFC 3986 (`A`–`Z`, `a`–`z`,
+  `0`–`9`, `-`, `.`, `_`, `~`, L-C4) devient `%` suivi de deux chiffres
+  hexadécimaux **majuscules** ; dans le chemin S3 et Azure, `/` est
+  gardé ; dans le nom d'objet de GCS, `/` devient `%2F` (« OBJECT_NAME is
+  the URL-encoded name of the relevant object. For example, pets/dog.png,
+  URL-encoded as pets%2Fdog.png », R13-F23).
+- **En-têtes** : ceux que fixe NOORTRACE, triés par nom en minuscules.
+  `Host`, `Date`, `x-amz-date`, `x-ms-date`, `Authorization` et les
+  en-têtes de signature sont ajoutés par la couche d'accès du support et
+  n'en font pas partie.
+- **Corps XML de S3** : sans blanc ni saut de ligne, déclaration XML de la
+  syntaxe de la page d'API, puis l'élément racine avec l'espace de noms
+  de la page (R13-F1, L-C2) ; `Content-MD5` est la base64 du MD5 du corps
+  (RFC 1864, L-C5), toujours envoyé (que la page de `PutObjectLegalHold`
+  le marque obligatoire ou non, R13 NV-2).
+
+| Opération | Méthode et cible | En-têtes | Corps |
+|---|---|---|---|
+| S3, poser ou lever un gel | `PUT /<clé>?legal-hold&versionId=<version>` | `Content-Length`, `Content-MD5` | `<?xml version="1.0" encoding="UTF-8"?><LegalHold xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Status>ON</Status></LegalHold>` (128 octets ; `OFF` : 129 octets) |
+| S3, lire le gel | `GET /<clé>?legal-hold&versionId=<version>` | — | — |
+| S3, lire l'état d'une version | `HEAD /<clé>?versionId=<version>` | — | — |
+| S3, lister les versions | `GET /?versions[&key-marker=<k>]&max-keys=1000&prefix=<préfixe>[&version-id-marker=<v>]` (paramètres dans l'ordre de la syntaxe de la page, L-C1) | — | — |
+| S3, rétention par défaut (exploitant) | `PUT /?object-lock` | `Content-Length`, `Content-MD5` | `<?xml version="1.0" encoding="UTF-8"?><ObjectLockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><ObjectLockEnabled>Enabled</ObjectLockEnabled><Rule><DefaultRetention><Days>4018</Days><Mode>COMPLIANCE</Mode></DefaultRetention></Rule></ObjectLockConfiguration>` (273 octets pour 4 018 jours ; éléments dans l'ordre de la syntaxe de la page, L-C2) |
+| S3, lire la rétention par défaut | `GET /?object-lock` (L-C3) | — | — |
+| S3, copier | `PUT /<clé>` | `Content-Length`, `Content-MD5`, `If-None-Match: *`, et `x-amz-object-lock-legal-hold: ON` avec `legal_hold_on_write` | octets du fichier |
+| Azure, poser ou lever un gel | `PUT /<conteneur>/<blob>?comp=legalhold&versionid=<version>` (R13-F16) | `Content-Length: 0`, `x-ms-legal-hold: true` ou `false`, `x-ms-version: 2020-06-12` | — (« Request body : None ») |
+| Azure, lire l'état d'une version | `HEAD /<conteneur>/<blob>?versionid=<version>` (L-C8) | `x-ms-version: 2020-06-12` | — |
+| GCS, poser ou lever un gel | `PATCH /storage/v1/b/<bucket>/o/<nom>?generation=<g>` (R13-F23, L-C7) | `Content-Length`, `Content-Type: application/json` | `{"temporaryHold":true}` (22 octets) ou `{"temporaryHold":false}` (23 octets), JCS intégral |
+| GCS, lire l'état d'une version | `GET /storage/v1/b/<bucket>/o/<nom>?generation=<g>` | — | — |
+
+`x-ms-version` vaut `2020-06-12`, version à partir de laquelle
+`Set Blob Legal Hold` (disponible depuis 2020-04-08) et les en-têtes
+`x-ms-immutability-policy-*` et `x-ms-legal-hold` de `Get Blob Properties`
+existent tous (R13-F16, R13-F19). Exemple calculé : le gel de la version
+`3/L4kqtJl40Nr8X8gdRQBpUMLUo` du segment de l'exemple d'EX-12.35 est
+
+```text
+PUT /journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?legal-hold&versionId=3%2FL4kqtJl40Nr8X8gdRQBpUMLUo HTTP/1.1
+Content-Length: 128
+Content-MD5: PabGSMHFuZL/pMW6ZUAWbQ==
+
+<?xml version="1.0" encoding="UTF-8"?><LegalHold xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Status>ON</Status></LegalHold>
+```
+
+sa levée porte `Content-Length: 129` et `Content-MD5:
+dUbasAU9gptvOryKx8wHGQ==` ; la rétention par défaut de 4 018 jours,
+`Content-MD5: MrEn2+g7Ii+EumTicoW97w==`. Sur Azure, le gel de la version
+`2026-11-10T11:00:05.1234567Z` du même blob (conteneur
+`noortrace-demo-worm`) vise
+`/noortrace-demo-worm/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?comp=legalhold&versionid=2026-11-10T11%3A00%3A05.1234567Z`.
+
+**EX-12.40** **Pas à pas, et réponse à chaque panne.**
+
+`poser` :
+
+1. lire la configuration en JSON strict et la valider contre le schéma ;
+   `storage.seal.worm` nul ou invalide → code `2` ;
+2. résoudre `--identifiants` (refus s'ils désignent ceux de l'écrivain) ;
+   tirer `gel_id` ;
+3. calculer le périmètre (EX-12.35) ; la première requête de liste en
+   échec (`403`, injoignable après trois essais) → code `4`, rien n'est
+   écrit ;
+4. écrire `objets-0001.ndjson` puis `0001-pose.json` (avec ses
+   anomalies) ; aucune requête de gel n'est envoyée avant que
+   l'enregistrement `pose` soit écrit, de sorte qu'aucun gel n'existe sans
+   sa trace ;
+5. pour chaque objet de la liste, dans l'ordre : envoyer la requête de
+   pose ; puis relire le gel de la version (S3 `GET ?legal-hold`, Azure
+   `HEAD`, GCS lecture de la ressource) et exiger `on` ;
+6. écrire `0002-pose_resultat.json` (`ok`, et pour chaque échec la clé,
+   la version, `status` et le statut HTTP) ; ajouter les lignes du journal
+   d'exploitation ; rendre `0`, ou `1` s'il y a un échec ou une anomalie.
+
+`demander-levee` : relire le registre du gel, vérifier la règle de garde
+sur ce qui existe (code `3` sinon) et que le dernier enregistrement est un
+`pose_resultat` ou une `demande_levee` ; écrire `<nnnn>-demande_levee.json`
+avec `--motif` ; afficher son empreinte, que la seconde personne passera à
+`--demande`. Aucune requête de gel.
+
+`lever` : relire le registre ; vérifier la règle de garde **avec**
+l'enregistrement `levee` à écrire (`actor` = `--identite`, `request_sha256`
+= `--demande`, `at` = maintenant) ; écrire `<nnnn>-levee.json` **avant**
+toute requête ; juste avant les requêtes, relire le registre de **tous** les
+gels du préfixe et calculer les gels actifs au sens d'EX-17.7 autres que
+celui-ci (pose en cours comprise) : les couples `{ key, version_id }` de
+leurs listes sont exclus des requêtes de levée (sur S3, Azure et GCS, le gel
+est un drapeau unique par version, et lever une version couverte par un
+autre gel lèverait aussi celui-ci, sans sa règle de garde) ; pour chaque
+autre objet de la liste, envoyer la requête de levée puis relire et exiger
+`off` ; écrire `<nnnn>-levee_resultat.json`, les couples exclus dans
+`results.kept` avec le `gel_id` du premier gel qui les couvre. La référence
+`versionsALever` de `scripts/lib/worm.mjs` et la famille `worm/levees.json`
+(annexe B.9) fixent ce calcul. Après les requêtes, l'outil relit encore le
+registre : si un gel posé entre-temps couvre une version mise à `off`, il
+renvoie la pose pour cette version et le consigne ; la course résiduelle
+(pose concurrente pendant la levée) est une limite, que le relevé détecte
+(EX-17.6, EX-17.7).
+
+`reprendre` : relire le registre ; selon le dernier enregistrement
+(`pose`, `pose_resultat` avec échecs, `levee`, `levee_resultat` avec
+échecs), relire l'état de chaque objet, renvoyer la requête de pose ou de
+levée pour ceux dont l'état n'est pas celui attendu (pour une levée, avec
+la même exclusion des versions couvertes par un autre gel actif que
+`lever`) (la requête est
+idempotente : poser un gel posé laisse `ON`), et écrire un nouveau
+`*_resultat`. `etat` : relire le registre et l'état de chaque objet,
+imprimer, ne rien écrire.
+
+| Panne | Détection | Réponse | Code |
+|---|---|---|---|
+| Configuration illisible, `worm` nul, `--identifiants` absents ou égaux à ceux de l'écrivain | pas 1 et 2 | rien n'est envoyé ; `worm_legal_hold_failed` (`raison` : `configuration` ou `identifiants`) | `2` |
+| Support injoignable, délai de 10 s par requête dépassé, `500`, `502`, `503`, `504` | à chaque requête | trois essais de la même requête, après 1 s, 2 s puis 4 s ; ensuite l'objet est `echec` et l'outil passe au suivant | `1` (`4` si la première requête de liste échoue) |
+| `403` | réponse | à la première requête de liste ou de gel : arrêt, rien n'a été gelé (droit manquant) ; ensuite : objet `refuse` | `4` ou `1` |
+| `404`, version inconnue | réponse | objet `absent` | `1` |
+| État relu différent de celui attendu après un `200` | relecture | objet `non_confirme` | `1` |
+| Requête de gel non prise en charge par le support (`501`, ou erreur `NotImplemented`) | première requête de gel | arrêt : le support n'offre pas le gel par cette API (cas possible chez Exoscale, R13 NV-5) | `4` |
+| Marqueur de suppression, versions multiples, manifeste ou objet absent | périmètre | anomalie inscrite dans `pose`, les versions présentes sont gelées ; `worm_versions_unexpected` | `1` |
+| Pièces non copiées et purgeables, ou pièce copiée sans version (EX-12.35 pas 4) | périmètre | anomalie `pieces_non_copiees` ou `piece_absente` inscrite dans `pose` ; la purge locale des pièces référencées est suspendue pendant le gel (EX-12.20) ; une pièce purgée avant la pose ne se reconstitue pas, et E-6 sur elle devient « non exécuté, pièce absente » (CT-1 §11.4) | `1` |
+| Version couverte par un autre gel actif, à la levée | relecture du registre (`lever`, `reprendre`) | la version n'est pas levée ; inscrite dans `results.kept` | `0` |
+| Enregistrement déjà présent (`412`) | écriture du registre | à la pose, un autre `gel_id`, une fois ; ailleurs, un autre exploitant a écrit : relire le registre, recommencer la vérification de la garde, ne rien envoyer | `3` si la garde échoue |
+| Écriture d'un enregistrement en échec (autre cause) | écriture du registre | avant les requêtes : rien n'est envoyé ; après : les requêtes ont eu lieu, le résultat manque, `reprendre` l'écrit | `4` ou `1` |
+| Arrêt de l'outil pendant les requêtes | — | l'enregistrement `pose` ou `levee` existe ; `reprendre` complète | — |
+| Règle de garde violée | relecture du registre | aucune requête de levée ; `worm_legal_hold_guard_refused` (code de la règle) | `3` |
+| Bucket GCS à espace de noms hiérarchique, gel de niveau conteneur Azure présent | première requête, ou réponse du support | arrêt : gel non pris en charge (R13-F23, R13-F18) | `4` |
+
+Lignes du journal d'exploitation de l'outil (composant `worm`) :
+`worm_legal_hold_set` (après `pose_resultat` : `gel_id`, `n`,
+`record_sha256`, `objects`, `ok`, `failed`, `anomalies`),
+`worm_legal_hold_release_requested`, `worm_legal_hold_released`,
+`worm_legal_hold_failed` (`raison`, statut HTTP, nombre d'objets),
+`worm_legal_hold_guard_refused` (`code`), `worm_versions_unexpected`.
+Exemple :
+
+```json
+{"ts":"2026-12-01T09:00:02.355Z","level":"info","component":"worm","event":"worm_legal_hold_set","org_id":"0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab","journal_id":"0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e","seq":null,"host":null,"request_id":null,"data":{"gel_id":"gel-20261201T090000Z-5f0c2a1e","n":2,"kind":"pose_resultat","record_sha256":"0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744","objects":6,"ok":6,"failed":0,"anomalies":0}}
+```
+
+**EX-12.41** **Ce qu'un réviseur peut vérifier, et ce qui reste
+déclaratif.**
+
+| Constat | Comment le réviseur l'obtient | Ce qu'il vaut |
+|---|---|---|
+| Les octets d'une copie sont ceux du journal | SHA-256 de la copie comparé à celui du segment, du manifeste ou de la série du dossier (CT-6) | Vérifiable, mais ce sont la chaîne, les signatures et les ancres qui prouvent le contenu ; la copie n'ajoute que la conservation (EX-12.21) |
+| Une version est en mode Compliance jusqu'à telle échéance | `HEAD` avec des identifiants de lecture accordés par le propriétaire (`s3:GetObjectRetention`, R13-F8 ; Azure, R13-F19 ; GCS, API JSON seulement, R13-F23, R13-F24) | Constat d'une réponse **non signée** par le fournisseur (R13 NV-9) : déclaratif, daté par le lecteur ; le réviseur dit qui a lu, quand, avec quels en-têtes |
+| Une version est gelée | idem, `s3:GetObjectLegalHold` ; en-tête absent = « jamais gelée », pas « non gelée », pour un lecteur qui détient `s3:GetObjectLegalHold` ; sans ce droit, l'en-tête manque aussi (R13-F8) | idem |
+| Qui a posé, demandé, levé un gel | lecture de `<prefix>gels/<gel_id>/` et de ses versions ; règle de garde recalculée sur les enregistrements (EX-12.38) | Les enregistrements sont protégés par la rétention du support (non effaçables avant l'échéance par aucun rôle, sauf suppression du compte, R13-F6) ; les **identités sont déclarées**, et la date d'écriture rendue par le support n'est pas signée (CT-5 EX-5.15) |
+| L'opération de gel a eu lieu chez le fournisseur | journal du fournisseur, s'il est activé : événements de données CloudTrail (`PutObjectLegalHold` y figure, R13-F9) ; journal d'audit d'un conteneur Azure, qui n'audite pas le niveau version (R13-F18) | Pièce d'exploitation complémentaire, déclarative |
+| L'inventaire de l'état de verrouillage | S3 Inventory (jusqu'à 48 h de retard, R13-F8) | Déclaratif et daté par le fournisseur |
+
+CT-6 ne vérifie aucun état WORM : son verdict porte sur la chaîne, les
+signatures, les manifestes et les ancres (CT-6 §7), et l'état WORM reste
+hors du dossier. Restent déclaratifs, et le réviseur le dit : que les deux
+identités d'une levée sont deux personnes (EX-12.38) ; que le registre des
+gels n'a été écrit que par les gardiens (seule la séparation des droits
+d'EX-12.32 et d'EX-18.9 l'établit, et le journal du fournisseur, s'il est
+activé, nomme le principal qui a écrit, R13-F9) ; et que l'état `on` des
+versions gelées a été relu par un autre que le démon : la contre-vérification
+DOIT être faite aussi par le rôle Lecteur d'EX-18.9, hors du démon
+(`noortrace-ctl worm gel etat` sous les identifiants du lecteur, ou une
+supervision tierce, EX-17.7).
+
+**En résumé : poser et lever un gel** (options communes d'EX-12.36
+omises : `--configuration`, `--identifiants`, `--identite`).
+
+1. L'exploitant A pose : `noortrace-ctl worm gel poser --de <début> --a
+   <fin> --motif "…"` avec ses identifiants de gardien de pose ; l'outil
+   liste les versions, écrit la liste et l'enregistrement `pose` sur le
+   support, gèle chaque version, relit, écrit `pose_resultat`.
+2. La supervision voit le gel au registre et vérifie chaque jour que
+   chaque version du gel est `on` (EX-17.7) ; le rôle Lecteur fait la même
+   relecture hors du démon.
+3. Pour lever, A (ou toute autre personne) écrit une demande :
+   `noortrace-ctl worm gel demander-levee --gel <id> --motif "…"`, qui
+   imprime l'empreinte de la demande.
+4. Une autre personne B, avec ses identifiants de gardien de levée (rôle
+   activé sur approbation d'une autre personne), lève dans les sept
+   jours : `noortrace-ctl worm
+   gel lever --gel <id> --demande <empreinte>` ; l'outil refuse si
+   l'identité déclarée de B est celle du demandeur (ici A, règle
+   `meme_identite`), si l'empreinte n'est pas celle de la dernière demande, ou si la demande
+   a plus de sept jours ; il écrit `levee`, lève, relit, écrit
+   `levee_resultat`.
+5. Une levée avant l'échéance ne rend rien supprimable (la rétention
+   continue) ; après l'échéance, elle rend les versions supprimables par
+   qui en a le droit, ce qui relève de la fin de rétention (EX-12.19,
+   CT-8, à écrire).
 
 ## 13. Haute disponibilité à écrivain unique avec bail
 
@@ -5866,6 +9048,16 @@ ment :
   de lecture en vol est perdu sans trace s'il n'avait pas atteint le
   stockage (son intention n'est pas écrite : c'est la définition d'une
   lecture).
+- **Les échanges de modèle en vol**, tous formats (5.3.1, 5.3.3) : un arrêt
+  du démon après l'envoi au fournisseur et avant le scellement perd
+  l'échange sans événement, comme une lecture en vol ; l'hôte a pu recevoir
+  la réponse entière (hors flux) ou en partie (flux). Les pièces « requête »
+  et « prompt système », durables avant l'envoi (EX-5.10), restent dans
+  `pieces/` sans événement qui les cite ; elles ne sont pas copiées par un
+  gel (EX-12.35 ne prend que les pièces référencées) et suivent la purge
+  d'EX-12.20. Le drain d'un arrêt propre (`drain_timeout_ms`) s'applique
+  aussi aux échanges de modèle en cours : la passerelle cesse d'accepter des
+  échanges nouveaux et attend la fin de ceux en cours dans ce délai.
 - **Les événements en attente du mode dégradé** (14.5) : ils sont dans le
   fichier d'attente de `A` (`fdatasync` au mieux) ; perdus si ce fichier n'est
   pas accessible à `B`.
@@ -5918,14 +9110,19 @@ différentes sont donc la trace normale d'un redémarrage.
 La règle de l'architecture est reprise telle quelle : **bloquant** pour les
 écritures et pour les actions soumises à approbation, **passant** pour les
 lectures, réglable par le client, par outil. Un appel est « bloqué » quand
-l'enregistreur ne le relaie pas et rend une erreur JSON-RPC ; « passant »
-quand il est relayé sans que l'événement soit durable à l'instant de la
-réponse, l'événement étant mis en attente (14.5) ; « retardé » quand
-l'enregistreur attend un délai borné avant de décider. Les codes et messages
-rendus sont ceux de la table de 4.4 (EX-4.24) ; aucune panne ne produit un
-code nouveau. L'attente d'une approbation et le refus d'un ticket ne sont
-pas des pannes : l'hôte reçoit le signal d'approbation, un résultat d'outil
-(EX-4.49).
+l'enregistreur ne le relaie pas et rend une erreur JSON-RPC ; « passant » quand
+il est relayé sans que l'événement soit durable à l'instant de la réponse,
+l'événement étant mis en attente (14.5) ; « retardé » quand l'enregistreur
+attend un délai borné avant de décider. Les codes et messages rendus sont ceux
+de la table de 4.4 (EX-4.24) ; aucune panne ne produit un code nouveau.
+L'attente d'une approbation et le refus d'un ticket ne sont pas des pannes :
+l'hôte reçoit le signal d'approbation, un résultat d'outil (EX-4.49).
+L'ingestion OpenTelemetry (6.8) n'a pas de colonne dans la matrice de 14.2 :
+elle n'est jamais bloquante pour l'agent, qui a déjà agi, et ses réponses en
+panne sont celles de la table d'EX-6.39 (`503` avec `Retry-After`, jamais
+d'événement en attente). Un adaptateur de cadre (6.6) rend au modèle les
+erreurs de cette section sous la forme d'un résultat d'erreur d'outil
+(EX-6.19).
 
 ### 14.1 Classification des outils
 
@@ -5958,16 +9155,18 @@ pourront n'avoir qu'un événement en attente.
 
 Colonnes : **E** = écritures et actions soumises à approbation ; **L** =
 lectures (avec `failure.lecture: "passant"`, le défaut) ; **M** = échanges de
-modèle par la passerelle (`policy.failure.modele`, `bloquant` par défaut ;
-ICAP et miroir : EX-14.12). « Événement en attente » renvoie à 14.5. Les
-codes sont ceux de 4.4 ; `-31010` porte `data.reason` avec la valeur de la
-colonne « Raison ». Un échange **bloqué** n'est pas relayé et reçoit `503`
-avec le corps d'erreur du format de la route
-(`{"type":"error","error":{"type":"noortrace_degrade","message":"noortrace: echange bloque, enregistreur en mode degrade"}}`
-pour Messages,
-`{"error":{"message":"noortrace: echange bloque, enregistreur en mode degrade","type":"noortrace_degrade","param":null,"code":"noortrace_degrade"}}`
-pour Chat Completions et Responses), sans événement : rien n'a atteint le
-fournisseur.
+modèle par la passerelle (`policy.failure.modele`, `bloquant` par défaut ; ICAP
+et miroir : EX-14.12). « Événement en attente » renvoie à 14.5. Les codes sont
+ceux de 4.4 ; `-31010` porte `data.reason` avec la valeur de la colonne «
+Raison ». Un échange **bloqué** n'est pas relayé et reçoit `503` avec le corps
+d'erreur du format de la route
+(`{"type":"error","error":{"type":"noortrace_degrade","message":"noortrace:
+echange bloque, enregistreur en mode degrade"}}` pour Messages,
+`{"error":{"message":"noortrace: echange bloque, enregistreur en mode
+degrade","type":"noortrace_degrade","param":null,"code":"noortrace_degrade"}}`
+pour Chat Completions et Responses, `{"error":{"code":503,"message":"noortrace:
+echange bloque, enregistreur en mode degrade","status":"UNAVAILABLE"}}` pour
+Gemini, EX-5.30), sans événement : rien n'a atteint le fournisseur.
 
 | Panne | Détection | E | L | M | Rendu à l'hôte (E) | Raison (`data.reason`) | Journal d'exploitation | Réglage |
 |---|---|---|---|---|---|---|---|---|
@@ -5986,6 +9185,7 @@ fournisseur.
 | **Expiration atteinte pendant un mode dégradé** (EX-9.4) | Minuteur (échéance `request_ts + E`, plus `timeout_ms` pour le noyau seul) | la décision `expire` est scellée à la sortie du mode dégradé, avec la raison fixe de la remise ou du noyau (EX-9.4) | sans objet | sans objet | signal `state: "expire"` à une ré-émission, après scellement | — | `approval_expired_deferred` | `expire_after_ms` de la version de la `retenue` |
 | **Ancrage (CT-5) indisponible** : horodateur RFC 3161, calendriers OpenTimestamps | Clôture de période | **jamais bloquant** : la clôture produit le manifeste et sa signature, l'ancre est réessayée par la supervision | idem | idem | aucune | — | `anchor_pending` (période, ancre, tentative) | `anchoring.*` |
 | **Ancrage des points (CT-5) indisponible** (révision 0.4) : registre, horodateur ou composant d'ancrage injoignable | Production d'un point de contrôle | **jamais bloquant** : le point est produit, écrit dans la série (EX-12.26) et remis au composant d'ancrage, qui réessaie ses ancres (CT-5 §8) | idem | idem | aucune | — | `anchor_pending` (CT-5 8.9) | `anchoring.*` |
+| **Support WORM non conforme ou illisible** (révision 0.5) : version copiée au verrou ou au gel non conforme (EX-12.33), rétention par défaut du support non conforme, relevé impossible (support injoignable, `403`), version inattendue ou marqueur de suppression, registre des gels qui viole la règle de garde | Contrôle après copie, contrôles quotidiens et relevé (EX-17.5, EX-17.6, EX-17.7) | **jamais bloquant** : la copie est faite ou réessayée (EX-12.16) ; rien n'est réécrit ni supprimé ; l'anomalie est consignée et alertée | idem | idem | aucune | — | `worm_lock_check`, `worm_lock_config_check`, `worm_lock_audit`, `worm_versions_unexpected`, `worm_legal_hold_observed` | `storage.seal.worm.lock_audit_interval_days` |
 | **Registre (CT-4) indisponible** : RPC injoignable, transaction non confirmée, clé non encore inscrite | Clôture de période, inscription de clé | **jamais bloquant** : le manifeste est produit ; `submitPeriod` et l'inscription sont réessayés ; les événements restent valides (CT-1 §15 : le registre est déclaratif sans le contrôle 8) | idem | idem | aucune | — | `registry_pending` | `anchoring.registry.*` |
 | **Horloge qui recule** au-delà de `clock.max_backstep_ms` (EX-7.9) | À la lecture de `ts` par l'écrivain | **bloquant pour tout** : l'enregistreur ne peut plus dater honnêtement ; tant que l'horloge murale n'a pas rejoint le `ts` précédent, ou jusqu'à la procédure d'EX-7.13 | **bloquant** | bloquant (`503`) | `-31010` | `horloge` | `clock_backstep` (écart) | `clock.max_backstep_ms`, `clock.max_wait_ms` ; sous le seuil : `ts = max(maintenant, ts précédent)` et `clock_skew` si > `warn_skew_ms` |
 | **Horloge qui avance brutalement** (saut en avant, EX-7.13) | Avance murale supérieure à l'avance monotone + `clock.max_forward_ms`, ou écart à l'horloge du magasin de bail | **bloquant pour tout** : aucun `ts` n'est posé dans le futur ; sortie quand l'horloge revient dans la tolérance ou sur confirmation de l'exploitant | **bloquant** | bloquant (`503`) | `-31010` | `horloge` | `clock_forward_jump` (écart) | `clock.max_forward_ms` |
@@ -6134,13 +9334,14 @@ la troisième colonne) :
 | `clock` | `max_backstep_ms`, `warn_skew_ms`, `max_forward_ms`, `max_wait_ms` | 7.4, 14 | `clock.*` → `/clock/*` |
 | `model` | frontal modèle : `mode`, `listen`, `tls`, **connexions d'hôte** de la passerelle, de l'ICAP et du miroir (`hosts[]`, même forme que `mcp.hosts`), `static_tokens`, `forward_headers`, `strip_headers`, `prompt_in_request` (`reference` ou `inline`, EX-8.5), `prompt_system` (`redige` ou `named`, EX-8.6), délais, `correlation_window_ms`, `icap` (`listen`, `tls_listen`, `client_ca`, `allowed_sources`, `client_address_header`), `mirror` ; les **routes** sont dans `policy.model` | 5, 8 | `model.*` → `/model/*` ; `connect_timeout_ms`, `first_byte_timeout_ms`, `idle_timeout_ms` → `/model/…` ; routes, `credentials`, `provider_label`, `passthrough` → `/policy/model/routes/<i>/…` |
 | `sdk` | `enabled`, `socket`, `tcp_listen` (jeton ou mTLS), `hosts[]` (avec `alias`, EX-6.6) | 6 | — |
+| `otel` | (révision 0.5, facultatif) point d'entrée OpenTelemetry : `enabled`, `listen`, `tls`, `path`, `encodings`, `max_body_bytes`, `static_tokens`, `hosts[]` (même forme que `mcp.hosts`, `alias` non nul : la source), `dedup_window_ms`, `overlap_window_ms`, `retry_after_s`, et, facultatifs, `spans_per_request`, `events_per_minute`, `event_bytes_per_minute`, `min_free_bytes` (EX-6.28) | 6.8 | `otel.*` → `/otel/*` |
 | `signer` | `class`, `key_id`, `backend`, `verify_after_sign`, `max_message_bytes`, `timeout_ms`, `health_interval_ms`, `rotation` | 11 | `signer.*` → `/signer/*` |
-| `storage` | `root`, `segment_max_bytes`, `fsync`, `seal` (`append_only_attribute`, `worm`), `retention`, `vault`, `relay_mac_key` (clé du MAC de relais, EX-7.22) | 7.5, 10.7, 12 | `storage.*` → `/storage/*` |
+| `storage` | `root`, `segment_max_bytes`, `fsync`, `seal` (`append_only_attribute`, `worm` : `type`, `bucket`, `prefix`, `mode`, `retain_days`, `credentials`, et depuis la révision 0.5, facultatifs, `endpoint`, `region`, `legal_hold_on_write`, `lock_audit_interval_days`, `copy_pieces` (EX-12.16, défaut faux), `$defs/worm` du schéma), `retention`, `vault`, `relay_mac_key` (clé du MAC de relais, EX-7.22) | 7.5, 10.7, 12, 12.11, 17.5 | `storage.*` → `/storage/*` |
 | `lease` | `store` (`file`, `postgresql`, `etcd`), `ttl_ms`, `renew_ms`, `acquire_wait_ms`, `fencing` (EX-13.10) | 13 | `lease.*` → `/lease/*` |
 | `anchoring` | raccords CT-4 (`registry` : `rpc_url`, `chain_key`, `next_chain_key`, EX-11.19) et CT-5 (`rfc3161`, `opentimestamps` ; depuis la révision 0.4, `ancrage` : chemin du document `ancrage-v0` de CT-5 EX-4.8, facultatif, `null` ou absent tant que le composant d'ancrage n'est pas déployé), jamais bloquants | 11, 14 | — |
 | `checkpoint_interval_s` | (révision 0.4, facultatif, défaut 60) cadence des points de contrôle, diviseur de 3600 entre 10 et 3600 (EX-12.24) | 12.10 | — |
 | `supervision` | `health_listen`, `metrics`, `ops_log` (`path`, `level`, `rotate_max_bytes`, `keep_files`, `child_stderr`, `child_stderr_max_bytes`, `child_stderr_lines_per_second`) | 9.2, 17 | `logging.rotate_bytes` → `/supervision/ops_log/rotate_max_bytes` ; `logging.keep_files` → `/supervision/ops_log/keep_files` ; `logging.child_stderr_max_bytes` → `/supervision/ops_log/child_stderr_max_bytes` |
-| `policy` | **l'ensemble de politique** (10.6) : `version`, `approval` (`rules`, document `politique-approbation-v0` de CT-3 §4, que CT-2 valide sans l'évaluer, EX-15.4 ; `mode`, requis, `erreur` dans la configuration de référence, CT-3 EX-11.1 ; `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`), `redaction` (document de la section 10), `servers` (carte des serveurs d'outils par alias : `transport` avec, en stdio, `user` et `integrity`, et en HTTP les épinglages OAuth, `protocol`, `class_default`, `timeout_ms`, `tools.<nom>.{class, timeout_ms, effects, failure}`, `uri_prefixes`, `relay`), `model` (`routes` : `path`, `format`, `upstream`, `provider_label`, `credentials`, `secret`, `auth_header`, `passthrough`), `failure` (dont `modele`) | 4.3, 4.4, 5.1, 7.2, 10, 14 | `approval.mode`, `approval.hold_timeout_ms`, `approval.expire_after_ms` → `/policy/approval/…` ; `policy.timeout_ms` → `/policy/approval/timeout_ms` ; `resources.uri_prefixes` → `/policy/servers/<alias>/uri_prefixes` ; `protocol` d'un serveur → `/policy/servers/<alias>/protocol` ; `timeout_ms` par outil → `/policy/servers/<alias>/tools/<nom>/timeout_ms` ; `effects` (gabarit) → `…/tools/<nom>/effects` ; `relay.server_requests` par serveur → `/policy/servers/<alias>/relay` ; `passthrough` → `/policy/model/routes/<i>/passthrough` |
+| `policy` | **l'ensemble de politique** (10.6) : `version`, `approval` (`rules`, document `politique-approbation-v0` de CT-3 §4, que CT-2 valide sans l'évaluer, EX-15.4 ; `mode`, requis, `erreur` dans la configuration de référence, CT-3 EX-11.1 ; `hold_timeout_ms`, `expire_after_ms`, `timeout_ms`, `service`), `redaction` (document de la section 10), `servers` (carte des serveurs d'outils par alias : `transport` avec, en stdio, `user` et `integrity`, et en HTTP les épinglages OAuth, `protocol`, `class_default`, `timeout_ms`, `tools.<nom>.{class, timeout_ms, effects, failure}`, `uri_prefixes`, `relay`), `model` (`routes` : `path`, `format` (`anthropic-messages`, `openai-chat`, `openai-responses`, `gemini`), `upstream`, `provider_label`, `credentials`, `secret`, `auth_header` (`x-api-key`, `authorization-bearer`, `api-key`, `x-goog-api-key`), `passthrough`, et, pour `gemini` seulement, `provider_mcp` et `provider_cache` facultatifs (`refuser` par défaut, ou `relayer`, EX-5.32) ; `$defs/model_route` du schéma), `failure` (dont `modele`) ; depuis la révision 0.5, facultatifs, `otel` (`semconv`, constante `"1.41.1"` ; `sources` par alias : `ingest`, `overlap`, `class_default`, `tools.<N>.{class, effects}`, EX-6.23) et `sdk` (`aliases`, EX-6.24) | 4.3, 4.4, 5.1, 6.7, 6.8, 7.2, 10, 14 | `approval.mode`, `approval.hold_timeout_ms`, `approval.expire_after_ms` → `/policy/approval/…` ; `policy.timeout_ms` → `/policy/approval/timeout_ms` ; `resources.uri_prefixes` → `/policy/servers/<alias>/uri_prefixes` ; `protocol` d'un serveur → `/policy/servers/<alias>/protocol` ; `timeout_ms` par outil → `/policy/servers/<alias>/tools/<nom>/timeout_ms` ; `effects` (gabarit) → `…/tools/<nom>/effects` ; `relay.server_requests` par serveur → `/policy/servers/<alias>/relay` ; `passthrough` → `/policy/model/routes/<i>/passthrough` ; `policy.otel.sources.<alias>` → `/policy/otel/sources/<alias>` ; `policy.sdk.aliases` → `/policy/sdk/aliases` |
 
 **EX-15.2** Les membres hors `policy` sont la **configuration d'exploitation**
 : un changement y exige un redémarrage du démon et ne produit aucun événement
@@ -6183,33 +9384,33 @@ contient `KEY`, `TOKEN`, `SECRET`, `PASSWORD` ou `PIN`.
 
 Le document ci-dessous valide contre le schéma (vérifié avec `npx --yes
 ajv-cli@5 validate --spec=draft2020 --strict=true -s
-configuration-enregistreur-v0.schema.json -r
-politique-redaction-v0.schema.json -r politique-approbation-v0.schema.json`,
-aucun avertissement) ;
-il décrit l'enregistreur d'un journal `journal-sinistres` (`journal_id` des
-vecteurs CT-1) avec deux serveurs d'outils (un ERP en Streamable HTTP, un
-serveur de fichiers stdio sous un utilisateur propre et un bac à sable
-`bwrap`, épinglé par l'empreinte de son exécutable), la passerelle de modèle
-en mode `propre` pour trois routes, une clé de classe A par le module
-PKCS#11 du fabricant d'un module matériel, une clé de chaîne en enveloppe, un
-bail PostgreSQL avec détachement du volume à la bascule et une copie WORM S3
-en mode Compliance. Les chemins du module PKCS#11 et du serveur de fichiers,
+configuration-enregistreur-v0.schema.json -r politique-redaction-v0.schema.json
+-r politique-approbation-v0.schema.json`, aucun avertissement) ; il décrit
+l'enregistreur d'un journal `journal-sinistres` (`journal_id` des vecteurs
+CT-1) avec deux serveurs d'outils (un ERP en Streamable HTTP, un serveur de
+fichiers stdio sous un utilisateur propre et un bac à sable `bwrap`, épinglé
+par l'empreinte de son exécutable), la passerelle de modèle en mode `propre`
+pour quatre routes (dont, depuis la révision 0.5, la route Gemini), une source
+OpenTelemetry (révision 0.5), une clé de classe A par le module PKCS#11 du
+fabricant d'un module matériel, une clé de chaîne en enveloppe, un bail
+PostgreSQL avec détachement du volume à la bascule et une copie WORM S3 en mode
+Compliance. Les chemins du module PKCS#11 et du serveur de fichiers,
 l'empreinte de ce dernier et l'adresse de la clé de chaîne sont illustratifs ;
-la ligne de commande `bwrap` (qui part d'un espace de montage vide :
-`/usr`, les liens de bibliothèques, `/proc` et `/dev` y sont montés, et le
-seul répertoire inscriptible est celui où le serveur écrit) est à tester en
-phase 2. Sa politique d'approbation (`policy.approval.rules`) est un
-document `politique-approbation-v0` qui passe les vérifications de CT-3
-EX-4.2 et EX-8.2 : mode d'attente `erreur` (CT-3 EX-11.1) ; jeu
-d'approbateurs lu au registre, puisque `recorder.environment` vaut
-`production`, où un jeu `statique` est refusé (CT-3 EX-8.2) ; `chain_id`,
-`registry` et `set` repris de l'exemple de CT-3 §4.3 ; noms d'outils aux
-préfixes `sap__` et `fichiers__` ; demandeur `agent-sinistres`
-(l'utilisateur du connecteur, `${peer_user}`), détenteur de l'adresse du
-compte Hardhat 3, exclu de l'approbation de ses propres demandes. Les outils
-susceptibles d'approbation de cet exemple (`CANDIDATS`, CT-3 EX-4.11) sont
-`fichiers__write_file` et `sap__payments.create`. Son membre `policy` est
-celui dont l'empreinte figure en 10.6.
+la ligne de commande `bwrap` (qui part d'un espace de montage vide : `/usr`,
+les liens de bibliothèques, `/proc` et `/dev` y sont montés, et le seul
+répertoire inscriptible est celui où le serveur écrit) est à tester en phase 2.
+Sa politique d'approbation (`policy.approval.rules`) est un document
+`politique-approbation-v0` qui passe les vérifications de CT-3 EX-4.2 et EX-8.2
+: mode d'attente `erreur` (CT-3 EX-11.1) ; jeu d'approbateurs lu au registre,
+puisque `recorder.environment` vaut `production`, où un jeu `statique` est
+refusé (CT-3 EX-8.2) ; `chain_id`, `registry` et `set` repris de l'exemple de
+CT-3 §4.3 ; noms d'outils aux préfixes `sap__` et `fichiers__` ; demandeur
+`agent-sinistres` (l'utilisateur du connecteur, `${peer_user}`), détenteur de
+l'adresse du compte Hardhat 3, exclu de l'approbation de ses propres demandes.
+Les outils susceptibles d'approbation de cet exemple (`CANDIDATS`, CT-3
+EX-4.11) sont `fichiers__write_file` et `sap__payments.create`. Son membre
+`policy` est celui dont l'empreinte figure en 10.6 ; la révision 0.5 l'a étendu
+(notes après l'exemple).
 
 <!-- schema: configuration-enregistreur -->
 ```json
@@ -6342,6 +9543,37 @@ celui dont l'empreinte figure en 10.6.
     "mirror": null
   },
   "sdk": { "enabled": false, "socket": null, "tcp_listen": null, "hosts": [] },
+  "otel": {
+    "enabled": true,
+    "listen": "127.0.0.1:4318",
+    "tls": null,
+    "path": "/v1/traces",
+    "encodings": ["protobuf", "json"],
+    "max_body_bytes": 67108864,
+    "static_tokens": [
+      { "id": "otel-agent-sinistres", "token": { "file": "/run/secrets/noortrace-otel-agent-sinistres" } }
+    ],
+    "hosts": [
+      {
+        "id": "otel-agent-sinistres",
+        "match": { "static_token": "otel-agent-sinistres" },
+        "launched_by": "svc-agent-sinistres@assureur-demo.example",
+        "scope": "sinistres:lecture,paiement",
+        "on_behalf_of": "service-sinistres",
+        "accept_declared_delegation": true,
+        "tool_name_template": "{tool_announced}",
+        "tool_name_sanitize": false,
+        "prompt_version_name": null,
+        "host_group": "agent-sinistres",
+        "allowed_on_behalf_of": [],
+        "quota": { "max_concurrent": 8, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
+        "alias": "otel-sinistres"
+      }
+    ],
+    "dedup_window_ms": 3600000,
+    "overlap_window_ms": 600000,
+    "retry_after_s": 5
+  },
   "signer": {
     "class": "A",
     "key_id": "rec-sinistres-2026-01",
@@ -6372,10 +9604,14 @@ celui dont l'empreinte figure en 10.6.
         "prefix": "journal-sinistres/",
         "mode": "compliance",
         "retain_days": 4018,
-        "credentials": { "file": "/run/secrets/sos-worm" }
+        "credentials": { "file": "/run/secrets/worm-ecrivain" },
+        "endpoint": null,
+        "region": null,
+        "legal_hold_on_write": false,
+        "lock_audit_interval_days": 30
       }
     },
-    "retention": { "events_years": 11, "pieces_days": null },
+    "retention": { "events_years": 10, "pieces_days": null },
     "vault": { "enabled": false, "path": null, "key": null },
     "relay_mac_key": { "file": "/run/secrets/cle-mac-relais", "encoding": "hex" }
   },
@@ -6694,8 +9930,25 @@ celui dont l'empreinte figure en 10.6.
           "secret": { "file": "/run/secrets/cle-openai" },
           "auth_header": "authorization-bearer",
           "passthrough": []
+        },
+        {
+          "path": "/v1beta/models",
+          "format": "gemini",
+          "upstream": "https://generativelanguage.googleapis.com",
+          "provider_label": "gemini",
+          "credentials": "propre",
+          "secret": { "file": "/run/secrets/cle-gemini" },
+          "auth_header": "x-goog-api-key",
+          "passthrough": [],
+          "provider_mcp": "refuser"
         }
       ]
+    },
+    "otel": {
+      "semconv": "1.41.1",
+      "sources": {
+        "otel-sinistres": { "ingest": ["inference", "outil"], "overlap": "ignorer", "class_default": null, "tools": {} }
+      }
     },
     "failure": {
       "ecriture": "bloquant",
@@ -6718,6 +9971,62 @@ validation (15.6) l'avertirait (CT-3 EX-4.14, cinquième point, EX-10.5). Les
 avertissements des contrôles de démarrage sont donc vides pour cet exemple.
 Chaque connexion d'hôte porte les quatre quotas d'EX-4.47.
 
+Depuis la révision 0.5, `policy.model.routes` porte la route Gemini
+`/v1beta/models` (format `gemini`, en-tête `x-goog-api-key`, `provider_mcp:
+"refuser"`, EX-5.28, EX-5.32) ; une seconde route de même forme, de `path`
+`/v1/models`, servirait les hôtes qui emploient la version `v1`. La route
+seule a la forme `$defs/model_route` du schéma :
+
+<!-- schema: configuration-enregistreur/model_route -->
+```json
+{
+  "path": "/v1beta/models",
+  "format": "gemini",
+  "upstream": "https://generativelanguage.googleapis.com",
+  "provider_label": "gemini",
+  "credentials": "propre",
+  "secret": { "file": "/run/secrets/cle-gemini" },
+  "auth_header": "x-goog-api-key",
+  "passthrough": [],
+  "provider_mcp": "refuser"
+}
+```
+
+L'ajout de cette route et du membre `policy.otel` change l'ensemble de
+politique et les valeurs de 10.6 ; appliqué par rechargement à une
+configuration de la version 0.4, il produirait un événement
+`noortrace.journal.politique` (EX-15.2).
+
+Le membre de premier niveau `otel` et le membre `policy.otel` (révision 0.5)
+déclarent une source OpenTelemetry, `otel-sinistres`, du groupe d'hôte
+`agent-sinistres` : ses spans qui recouvrent un appel du frontal MCP ou un
+échange de la passerelle du même groupe sont écartés (`overlap: "ignorer"`,
+EX-6.34). L'exemple ne porte pas `policy.sdk`, le SDK étant désactivé. Les
+formes de ces membres sont données en 6.8.15 et validées contre `$defs/otel`,
+`$defs/otel_policy` et `$defs/sdk_policy` du schéma.
+
+Le membre `storage.seal.worm` de l'exemple porte les membres facultatifs de
+la révision 0.5 à leur valeur par défaut : `endpoint: null` (Amazon S3),
+`region: null`, `legal_hold_on_write: false` et
+`lock_audit_interval_days: 30`. Pour un service compatible S3 en Suisse,
+le même membre s'écrit, par exemple (adresse et région illustratives) :
+
+<!-- schema: configuration-enregistreur/worm -->
+```json
+{
+  "type": "s3-object-lock",
+  "bucket": "noortrace-sinistres-worm",
+  "prefix": "journal-sinistres/",
+  "mode": "compliance",
+  "retain_days": 4018,
+  "credentials": { "file": "/run/secrets/worm-ecrivain" },
+  "endpoint": "https://objets.hebergeur-suisse.example",
+  "region": "ch-ouest-1",
+  "legal_hold_on_write": false,
+  "lock_audit_interval_days": 30
+}
+```
+
 ### 15.4 Validation au démarrage
 
 **EX-15.4** Le démon DOIT, dans cet ordre, et s'arrêter à la première erreur
@@ -6736,6 +10045,22 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      `tools.prefix: false` seulement avec un seul serveur (EX-4.10) ;
    - (révision 0.4) `checkpoint_interval_s`, s'il est présent, divise 3600
      (EX-12.24) ;
+   - (révision 0.5) `otel`, s'il est présent avec `enabled: true` :
+     `policy.otel` présent ; chaque entrée de `otel.hosts` a un
+     `match.static_token` qui désigne un `id` de `otel.static_tokens`
+     (chaque jeton référencé par une seule entrée), un `alias` non nul,
+     unique, distinct de tout alias de `policy.servers` et de `sdk.hosts`,
+     et égal à une clé de `policy.otel.sources`, chaque clé ayant une
+     entrée ; `launched_by` ne contient pas `${` ; `allowed_on_behalf_of`
+     est vide ; en `environment: "production"`, `otel.tls` est non nul si
+     `otel.listen` n'est pas une adresse de bouclage (EX-6.40) ;
+     avertissement pour une source à `overlap: "conserver"` (EX-6.34) et
+     pour `encodings` sans `protobuf` (les SDK OpenTelemetry exportent en
+     `http/protobuf` par défaut, L5-7) ; `policy.otel` présent sans `otel`
+     activé : avertissement ;
+   - (révision 0.5) `policy.sdk`, s'il est présent : `aliases` est
+     exactement l'ensemble des `alias` de `sdk.hosts` ; absent avec
+     `sdk.enabled: true` : avertissement (EX-6.24) ;
    - `match.static_token` désigne un `id` existant de `mcp.http.static_tokens`
      (entrées de `mcp.hosts`) ou de `model.static_tokens` ou
      `mcp.http.static_tokens` (entrées de `model.hosts`) ; chaque `id` de jeton
@@ -6747,9 +10072,19 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      `accept_declared_delegation: true` ;
    - noms annoncés : aucune collision après application du gabarit et de la
      normalisation de chaque connexion d'hôte (EX-4.11) ;
-   - routes du frontal modèle (`policy.model.routes`) : chemins exacts
-     distincts, aucun couple (méthode, chemin) de `passthrough` égal à une
-     route ou présent deux fois, `secret` non nul si `credentials: "propre"` ;
+   - routes du frontal modèle (`policy.model.routes`) : chemins distincts ;
+     aucun couple (méthode, chemin) de `passthrough` égal à une route ou
+     présent deux fois ; `secret` non nul si `credentials: "propre"` ; pour
+     une route `gemini` (révision 0.5) : `path` qui se termine par
+     `/models` (avertissement si ce n'est ni `/v1beta/models` ni
+     `/v1/models`, les seules collections lues, R11-F1, F2), `auth_header`
+     égal à `x-goog-api-key` (le schéma l'impose), `provider_mcp: "relayer"`
+     affiché comme un avertissement nominatif (contournement du frontal MCP
+     accepté, EX-5.32), de même `provider_cache: "relayer"` ; un couple
+     `passthrough` `POST` dont le chemin contient le segment `cachedContents`
+     ou commence par `/upload/` est une erreur (EX-5.32) ; `provider_mcp` ou
+     `provider_cache` sur une route d'un autre format est une erreur (le
+     schéma l'impose) ;
      `listen` non nul en mode `passerelle` ; `icap` non nul en mode `icap` ;
      `mirror` non nul en mode `miroir` ;
    - politique de rédaction : règles d'EX-10.6, sous-ensemble commun des
@@ -6793,8 +10128,20 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
      classe A ;
    - `lease.renew_ms < lease.ttl_ms / 2` ;
    - `storage.retention.events_years ≥ 10` et, si `worm` est configuré,
-     `retain_days ≥ 365 × events_years` (avertissement si inférieur à
-     365 × (events_years + 1), 12.7) ;
+     `retain_days ≥ 365 × events_years` (erreur sinon ; avertissement si
+     inférieur à 365 × (events_years + 1), la fin de l'exercice en cours
+     n'étant alors pas couverte, EX-12.19 ; l'exemple de 15.3, 10 ans et
+     4 018 jours, passe sans avertissement) ; (révision 0.5) en
+     `environment: "production"`, `worm.mode` vaut `compliance`
+     (EX-12.30) et `worm.type` n'est pas `gcs-object-retention` (version
+     1, EX-12.30) ; `worm.endpoint` non nul pour `azure-immutable-blob`,
+     nul pour `gcs-object-retention` (le schéma l'impose aussi) ;
+     `legal_hold_on_write: true` seulement avec `s3-object-lock`, et
+     **refusé en production** : le rôle de l'écrivain détiendrait le droit
+     de pose du gel, qui permet aussi sa levée sauf restriction vérifiée
+     de la politique du support (EX-12.31, 18.5) ; avertissement si
+     `worm.credentials` est la même référence qu'un autre secret de la
+     configuration ;
    - `signer.max_message_bytes` : avertissement si la borne peut être
      dépassée par une approbation de `threshold.size` signatures (EX-11.7) :
      pour un jeu `statique`, `approver_set.threshold.size` de
@@ -6976,6 +10323,211 @@ compte pas pour les cibles.
 Les clés sont en anglais, les valeurs énumérées en français sans accent ; le
 rapport n'est pas une pièce et n'entre pas dans la chaîne.
 
+### 16.4 Coût annuel par agent (révision 0.5)
+
+Cette sous-section donne la **formule** du coût annuel qu'un agent fait
+porter à son journal, en fonction de paramètres mesurables et de **prix
+unitaires paramétrés** ; elle ne contient aucun prix, et ses exemples
+sont en **unités symboliques** notées `p`, jamais un prix, comme ceux de
+CT-5 §12.3. Elle couvre les postes que la note R13 relève chez les
+fournisseurs de stockage objet (R13 conséquence 7) : stockage par volume
+et par durée, toutes versions comprises (R13-F31, R13-F33, R13-F34) ;
+requêtes d'écriture et de lecture, comptées par 1 000 ou par 10 000 selon
+le fournisseur, d'où un prix **par requête** en paramètre (R13-F31 à
+R13-F33) ; sortie et entrée réseau (R13-F31, R13-F33, R13-F34) ; taille
+minimale facturable par objet (R13-F31, R13-F34) ; requêtes de gel,
+facturées comme une écriture chez Azure et comme une opération de classe
+A chez Google Cloud Storage (R13-F32, R13-F33 ; catégorie non vérifiée
+chez AWS, R13 NV-3) ; et le coût d'**ancrage** du journal, qui est le
+`C_j` de CT-5 EX-12.2, pris tel quel par renvoi. Elle ne couvre pas : le
+calcul et la mémoire du démon, le signataire (classe A à D), le journal
+des opérations du fournisseur (CloudTrail en événements de données,
+payant, R13-F9), la récupération et la suppression anticipée des classes
+froides (R13-F31, R13-F33), que la version 0 n'emploie pas.
+
+**Notations.** Paramètres de l'agent : `H` heures d'activité par an ;
+`e` événements de la chaîne par heure d'activité (appels d'outils,
+échanges de modèle, décisions ; métrique `noortrace_events_total`) ;
+`b_e` octets d'une ligne de segment, saut de ligne compris (grandeur
+« Taille sur disque » de 16.1 ; la ligne de l'annexe A fait 2 465
+octets) ; `b_p` octets de **pièces nouvelles** par événement, après
+rédaction et déduplication par `sha256` (`noortrace_pieces_bytes_total`
+rapporté aux événements) ; `n_p` pièces nouvelles (fichiers) par
+événement. Paramètres du journal : `A` agents qui partagent le journal ;
+`N_h` heures de l'année (8 760, ou 8 784) ; `o_j` et `b_j` objets et
+octets de journal copiés par heure **hors segments** (manifeste,
+signature, série de points, fichiers d'ancres de CT-5 EX-5.14), qui
+existent même pour une heure vide ; `S` = `storage.segment_max_bytes` ;
+`C_anc` le coût annuel d'ancrage du journal (`C_j` de CT-5 EX-12.2).
+Conservation : `D_l` jours de conservation locale des segments et objets
+de journal ; `D_lp` jours de conservation locale des pièces
+(`storage.retention.pieces_days`, ou `D_l` s'il est `null`) ; avec un
+support WORM : `D_w` = `retain_days`, `pieces_in_worm` (les pièces sont
+copiées, EX-12.16), `m` taille minimale facturée par objet (0 sans
+minimum), `k` relevés de verrouillage par an, paramètre d'entrée voisin
+de `365 / lock_audit_interval_days` (EX-17.6 ; le défaut de 30 jours donne
+12,167), auquel l'exploitant ajoute `365 × g` quand des gels sont actifs
+(relecture quotidienne de l'état de gel des versions gelées, EX-17.7 ; les
+cas de la famille ne le font pas, pour ne faire varier qu'un paramètre à la
+fois), `g` part des objets d'une année placés sous gel et `D_g` la moyenne,
+sur **tous** les objets que compte `g`, de `max(0, date de levée −
+échéance)` en jours, arrondie au jour entier supérieur (paramètre entier du
+schéma `cout-agent-v0`) : un gel levé avant l'échéance y compte pour 0 jour,
+et ses requêtes de pose et de levée restent comptées dans `g × O_w × 2 ×
+p_lh`. Prix unitaires (en `p`) : `p_l` stockage local par Gio et par an ;
+`p_w` stockage WORM par Gio et par an ; `p_put` requête d'écriture ou de
+liste ; `p_get` requête de lecture (`GET`, `HEAD`) ; `p_lh` requête de
+gel ; `p_out` et `p_in` sortie et entrée réseau par Gio. `GiB` = 2^30 =
+1 073 741 824.
+
+**EX-16.4** **Formule.** Hypothèse de la formule : les `A` agents du
+journal sont **semblables** (mêmes `e` et `b_e`) et actifs aux mêmes
+heures ; elle porte sur `B_h`, donc sur `s_h` et `O_s`, et non sur le seul
+`C_J`. Pour un journal d'agents hétérogènes, la formule ne donne pas de
+valeur exacte : ce cas est hors de la version 0 (section 21). Le coût
+annuel d'un agent en **régime établi**
+(activité et prix constants depuis au moins `max(D_l, D_w) / 365` ans)
+est calculé ainsi, dans cet ordre, en double précision IEEE 754, chaque
+ligne de gauche à droite avec les parenthèses écrites ; `ceil` est
+l'arrondi à l'entier supérieur :
+
+```text
+E    = e × H                                     événements par an
+V_e  = E × b_e                                   octets d'événements
+V_p  = E × b_p                                   octets de pièces
+N_p  = E × n_p                                   pièces
+B_h  = A × e × b_e                               octets du journal par heure d'activité
+s_h  = max(1, ceil(B_h / S)) si e > 0, sinon 0   segments copiés par heure d'activité (un au moins : un segment se ferme à chaque période, EX-12.4)
+O_s  = (H × s_h) / A                             part des segments de l'agent
+O_j  = (N_h × o_j) / A                           part des objets de journal
+V_j  = (N_h × b_j) / A                           part de leurs octets
+L    = ((V_e + V_j) / GiB) × p_l × (D_l / 365) + (V_p / GiB) × p_l × (D_lp / 365)
+
+sans support WORM : O_w = B_w = W_st = W_gel = W_put = W_get = W_net = 0 ; sinon :
+O_w  = O_s + O_j + (N_p si pieces_in_worm, sinon 0)                       objets copiés par an
+B_w  = max(V_e, O_s × m) + max(V_j, O_j × m) + (max(V_p, N_p × m) si pieces_in_worm, sinon 0)   octets facturés
+R_w  = D_w / 365
+W_st = (B_w / GiB) × p_w × R_w
+W_gel= g × (B_w / GiB) × p_w × (D_g / 365) + g × O_w × 2 × p_lh          prolongation et requêtes de pose et de levée
+T_k  = O_w × R_w                                                          versions en stock attribuables à l'agent
+W_put= O_w × p_put + ((k × T_k) / 1000) × p_put                           copies, et listes des relevés (1 000 versions par réponse)
+W_get= O_w × 2 × p_get + k × T_k × p_get                                  lecture de contrôle (EX-12.17) et HEAD (EX-12.33) de chaque copie ; HEAD de chaque version à chaque relevé
+V_c  = V_e + V_j + (V_p si pieces_in_worm, sinon 0)
+W_net= (V_c / GiB) × p_out + (V_c / GiB) × p_in
+
+C_a  = C_anc / A
+C    = L + W_st + W_gel + W_put + W_get + W_net + C_a                     coût annuel par agent
+C_J  = C × A                                                              coût annuel du journal, A agents semblables
+```
+
+En régime établi, le coût de stockage d'une année est égal au coût de
+conservation, pendant toute sa rétention, de la production d'une année
+d'activité : c'est le sens de `× (D / 365)`. Pendant les premières années
+(année `y` depuis la mise en service, `y` entier ≥ 1), les termes de
+stockage local et WORM se multiplient par `min(y, D / 365) / (D / 365)`,
+et le terme des relevés par le même facteur. `D` y est, terme par terme, la
+durée de conservation du terme concerné : `D_l` pour le terme des segments
+et objets de journal de `L`, `D_lp` pour celui des pièces de `L`, `D_w`
+pour `W_st` et pour les termes des relevés (`k × T_k` dans `W_put` et dans
+`W_get`) ; les copies (`O_w × p_put`, `O_w × 2 × p_get`), le réseau,
+l'ancrage et `W_gel` restent tels quels. `W_gel` est ainsi une
+approximation par excès pendant les premières années : la prolongation de
+rétention qu'il compte ne commence qu'après la première échéance de
+rétention, donc pas avant l'année `D_w / 365`. La référence `coutAgent` ne
+calcule que le régime établi : les premières années ne sont pas dans les
+vecteurs.
+Ajouter `365 × g` à `k` (notations) donne bien, dans `W_get`, une lecture
+par version gelée et par jour ; il ajoute aussi à `W_put` des requêtes de
+liste (`365 × g × T_k / 1 000 × p_put`), alors que la relecture d'EX-17.7
+ne liste que `<prefix>gels/`. C'est une approximation par excès, voulue,
+d'au plus `365 × g × T_k / 1 000` requêtes de liste par an, dont le coût
+est à ce que le même ajout donne à `W_get` dans le rapport `p_put / (1 000
+× p_get)` (1 / 100 avec les prix de l'exemple ci-dessous) ; la formule et
+les vecteurs ne changent pas. La taille minimale
+facturable s'applique par classe d'objets à leur taille moyenne : c'est
+une approximation, exacte quand les objets d'une classe ont la même
+taille. Un agent qui passe par un chemin déclaratif (SDK, OpenTelemetry)
+entre dans la même formule avec **ses propres** paramètres `e`, `b_e`,
+`b_p` et `n_p`, mesurés sur sa connexion (EX-16.6), et non ceux de la
+passerelle ou du frontal MCP : pour OpenTelemetry, chaque événement porte
+une pièce d'enveloppe nouvelle, et la pièce de déclaration de source,
+dédupliquée par `sha256`, ne compte qu'une fois (EX-6.35) ; les doublons
+après un redémarrage (EX-6.33) et `overlap = "conserver"` (EX-6.34)
+augmentent `e`.
+
+**EX-16.5** **Arrondi, référence et vecteurs.** Les sorties sont
+rendues arrondies à trois décimales (`round(x × 1000) / 1000`, demi vers
+le haut, toutes les grandeurs étant positives), comme celles de CT-5
+AN-59 : `E`, `V_e`, `V_p`, `O_s` (`segments_per_year`), `O_j`
+(`journal_objects_per_year`), `O_w`, `B_w`, et les coûts `L`
+(`local_storage`), `W_st` (`worm_storage`), `W_gel` (`legal_hold`),
+`W_put` (`write_requests`), `W_get` (`read_requests`), `W_net`
+(`network`), `C_a` (`anchoring`), `C` (`total`) et `C_J`
+(`cost_journal_total`). La référence est `coutAgent` de
+`scripts/lib/cout-agent.mjs` ; les entrées et sorties suivent le schéma
+`cout-agent-v0` ; la famille `cout-agent/` des vecteurs (annexe B.10) donne
+pour chaque cas les sorties exactes, que le vérificateur Go recalcule
+depuis la présente règle. Aucun prix réel ne figure dans le dépôt : les
+prix des vecteurs sont des unités symboliques, et `INDEX.md` le dit.
+
+**EX-16.6** **Paramètres mesurés.** L'exploitant tire les paramètres de
+ses mesures, jamais d'un forfait : `e` et `H` de `noortrace_events_total`
+par connexion d'hôte et des heures où elle émet ; `b_e` de la grandeur
+« Taille sur disque » du rapport de 16.3 (ou `noortrace_segment_bytes`
+rapporté aux événements) ; `b_p` et `n_p` de
+`noortrace_pieces_bytes_total` et du nombre de fichiers de `pieces/` ;
+`o_j` et `b_j` de la liste des versions du support (EX-17.6) ; `C_anc`
+de la formule de CT-5 §12 avec ses propres cadences ; les prix, de son
+contrat. Les unités `p` de CT-5 §12.3 et celles des exemples ci-dessous ne
+se comparent pas entre elles tant que le client n'a pas fixé ses prix :
+les exemples les additionnent pour montrer la formule, pas des ordres de
+grandeur.
+
+**Exemple** (cas `reference` de la famille `cout-agent/`). Un agent
+actif 8 heures par jour (`H` = 2 920), 120 événements par heure,
+`b_e` = 2 560 octets, `b_p` = 6 144 octets et `n_p` = 2 pièces par
+événement ; 10 agents par journal ; `o_j` = 40 objets et `b_j` = 131 072
+octets de journal par heure ; `S` = 268 435 456 ; `C_anc` = 28 032 `p`
+(cas `defaut-second-rang-a1` de CT-5 §12.3) ; `D_l` = `D_lp` = `D_w` =
+4 018 jours ; pièces non copiées ; `m` = 0 ; `k` = 12 (un relevé par mois,
+valeur arrondie ; le défaut de 30 jours donne 12,167) ; aucun gel ; prix
+`p_l` = 0,5, `p_w` = 1, `p_put` = 0,0001, `p_get` = 0,00001, `p_lh` =
+0,0001, `p_out` = 0,1, `p_in` = 0 (unités `p`).
+
+| Grandeur | Calcul | Valeur |
+|---|---|---|
+| `E` | 120 × 2 920 | 350 400 événements |
+| `V_e` | 350 400 × 2 560 | 897 024 000 octets (0,835 Gio) |
+| `V_p` | 350 400 × 6 144 | 2 152 857 600 octets (2,005 Gio) |
+| `s_h`, `O_s` | 10 × 120 × 2 560 = 3 072 000 < `S` → 1 ; 2 920 × 1 / 10 | 292 segments |
+| `O_j`, `V_j` | 8 760 × 40 / 10 ; 8 760 × 131 072 / 10 | 35 040 objets ; 114 819 072 octets |
+| `L` | (1 011 843 072 / GiB) × 0,5 × 11,008 + (2 152 857 600 / GiB) × 0,5 × 11,008 | **16,223 p** |
+| `O_w`, `B_w` | 292 + 35 040 ; 897 024 000 + 114 819 072 | 35 332 objets ; 1 011 843 072 octets |
+| `W_st` | 0,942 × 1 × 11,008 | **10,374 p** |
+| `W_put` | 35 332 × 0,0001 + (12 × 388 943 / 1 000) × 0,0001 | **4 p** |
+| `W_get` | 35 332 × 2 × 0,00001 + 12 × 388 943 × 0,00001 | **47,38 p** |
+| `W_net` | 0,942 × 0,1 | **0,094 p** |
+| `C_a` | 28 032 / 10 | **2 803,2 p** |
+| `C` | somme | **2 881,27 p** par agent et par an ; `C_J` = 28 812,701 p |
+
+Lecture : hors ancrage, le poste dominant de cet exemple est la lecture
+des versions par les relevés mensuels (`W_get`), non le stockage ; un
+relevé moins fréquent, ou par l'inventaire du fournisseur (déclaratif, R13-F8),
+le réduit. Les autres cas de la famille (annexe B.10) font varier un
+paramètre à la fois :
+
+| Cas | Variation | `C` (p) |
+|---|---|---|
+| `reference` | — | 2 881,27 |
+| `sans-worm` | aucun support WORM | 2 819,423 |
+| `pieces-dans-le-worm` | pièces copiées | 3 922,643 |
+| `taille-minimale-facturable` | `m` = 131 072, requêtes gratuites | 2 875,799 |
+| `gel-juridique` | `g` = 0,1, `D_g` = 1 826 | 2 882,448 |
+| `segments-scindes` | `H` = 8 760, `e` = 1 200, `S` = 16 777 216 (deux segments par heure) | 3 605,9 |
+| `agent-inactif` | `e` = 0 : la part des objets de journal et de l'ancrage seule | 2 855,931 |
+| `un-agent-par-journal` | `A` = 1 | 28 588,475 |
+| `pieces-purgees` | `D_lp` = 365 | 2 871,237 |
+
 ## 17. Supervision
 
 ### 17.1 Santé
@@ -7009,6 +10561,10 @@ un nom d'utilisateur, un identifiant de ticket ou un nom d'hôte de client.
 | `noortrace_approval_remises_refused_total` | compteur | `check` (`SG-1` à `SG-7`) | Remises refusées (EX-7.5) |
 | `noortrace_approval_relays_refused_total` | compteur | `check` (`RL-1` à `RL-4`, `retenue_decidee`) | Relais refusés (EX-7.21) et `retenue` refusées (EX-7.17) |
 | `noortrace_redaction_budget_exceeded_total` | compteur | `operation` (`piece`, `extract`, `valeur`, `jetons`), `scope` | Dépassements du budget de rédaction (EX-10.23, opérations 1 à 4) |
+| `noortrace_otel_requests_total` | compteur | `source` (alias), `status` (code HTTP) | Requêtes OTLP traitées (EX-6.41) |
+| `noortrace_otel_spans_total` | compteur | `source`, `issue` (`scelle`, `ignore`, `doublon`, `recouvrement`, `rejete`), `reason` (`hors_genai`, `operation_non_retenue`, `sorte_desactivee`, `identifiants_invalides`, ou vide) | Spans par issue et par raison (EX-6.32 à EX-6.34) |
+| `noortrace_otel_conflicts_total` | compteur | `source` | Spans rejoués avec un autre contenu (EX-6.33) |
+| `noortrace_otel_reception_lag_ms` | histogramme (bornes 1 000, 5 000, 10 000, 30 000, 60 000, 300 000, 3 600 000) | `source` | `ts` moins la fin déclarée du span (EX-6.41) |
 | `noortrace_pending_events` | jauge | — | Taille de la file d'attente (14.5) |
 | `noortrace_pending_oldest_ms` | jauge | — | Âge de l'événement en attente le plus ancien |
 | `noortrace_degraded` | jauge | `reason` | 1 en mode dégradé pour cette raison, 0 sinon |
@@ -7023,7 +10579,15 @@ un nom d'utilisateur, un identifiant de ticket ou un nom d'hôte de client.
 | `noortrace_upstream_errors_total` | compteur | `server` ou `provider`, `kind` (`injoignable`, `delai`, `jsonrpc`, `http_4xx`, `http_5xx`, `flux_incomplet`) | Erreurs amont |
 | `noortrace_anchor_pending` | jauge | `anchor` (`registre`, `rfc3161`, `ots`) | Périodes dont l'ancre n'est pas confirmée |
 | `noortrace_worm_copy_pending` | jauge | — | Segments fermés sans copie WORM vérifiée |
+| `noortrace_worm_lock_checks_total` | compteur | `verdict` (`conforme`, `non_conforme`), `when` (`copie`, `releve`) | Contrôles du verrou d'une version (EX-12.33) |
+| `noortrace_worm_lock_nonconforming` | jauge | — | Versions non conformes depuis le dernier relevé complet, contrôles de copie compris (EX-17.6) |
+| `noortrace_worm_last_audit_age_s` | jauge | — | Âge, en secondes, du dernier relevé complet réussi |
+| `noortrace_worm_versions_unexpected` | jauge | — | Clés à plusieurs versions ou sous un marqueur de suppression au dernier relevé |
+| `noortrace_worm_legal_holds_active` | jauge | — | Gels du registre dont le dernier enregistrement valide n'est pas un `levee_resultat` sans échec (EX-17.7) |
 | `noortrace_clock_skew_ms` | jauge | — | Dernier écart mesuré (EX-7.10) |
+| `noortrace_integrity_check_failures_total` | compteur | `check` (`relecture`, `copie_worm`, `configuration_worm`, `registre_gels`, `manifeste`, `signature`, `continuite`, `signataire`) | Contrôles périodiques en échec (EX-17.5) |
+| `noortrace_ops_log_dropped_total` | compteur | — | Lignes du journal d'exploitation non écrites (EX-17.4) |
+| `noortrace_calls_executed_not_durable_total` | compteur | `class` | Appels relayés sans événement durable, `-31017` (EX-4.46) |
 | `noortrace_build_info` | jauge (1) | `version`, `protocol_versions` | Version du logiciel |
 
 ### 17.3 Journal d'exploitation
@@ -7035,9 +10599,9 @@ fixe ce que la supervision y attend et ce qui n'y va jamais.
 (`debug`, `info`, `warning`, `error`), `component`, `event` (code ASCII en
 `snake_case`), `org_id`, `journal_id`, `seq`, `host` (identité de connexion
 d'hôte), `request_id`, `data` (objet propre à l'événement ; il porte
-`instance_id` dans un déploiement à plusieurs instances, et `server`
-(alias) quand un serveur d'outils est concerné). Les noms d'événements
-employés par cette spécification, en plus de ceux de 9.2 (`tool_call_relayed`,
+`instance_id` dans un déploiement à plusieurs instances, et `server` (alias)
+quand un serveur d'outils est concerné). Les noms d'événements employés par
+cette spécification, en plus de ceux de 9.2 (`tool_call_relayed`,
 `tool_rejected`, `tool_definition_changed`, `relay_out_of_chain`,
 `correlation`, `child_stderr`, `degraded_enter`, `degraded_exit`,
 `lease_acquired`, `lease_lost`, `segment_rotated`, `period_closed`,
@@ -7054,10 +10618,41 @@ employés par cette spécification, en plus de ceux de 9.2 (`tool_call_relayed`,
 `redaction_budget_exceeded`, `effect_omitted`, `anchor_pending`,
 `registry_pending`, `clock_backstep`, `disk_low`, `pending_limit_reached`,
 `worm_copy_failed`, `pieces_purged`, `integrity_check`, `auth_failed`,
-`model_exchange_relayed` (pendant de `tool_call_relayed` pour un échange de
-modèle : `data` porte le libellé de la route, `code.model`, le statut HTTP,
-`request-id`, les `sha256` des pièces, le `seq` et l'objet `usage` tel que
-reçu, EX-5.20).
+`model_request_refused` (route, raison : `content_encoding`,
+`corps_non_analysable`, `cle_dans_url`, `flux_sans_sse`, `parametre_non_admis`,
+`serveurs_mcp_fournisseur`, `cache_fournisseur`, `taille` ; longueur,
+`Content-Type`, noms des paramètres de requête selon EX-5.29 ; jamais le
+corps ni une valeur de paramètre), `provider_cache_reference` (route,
+EX-5.32), `model_segment_refused` (route, raison `detecteur`, longueur du
+segment ; jamais le segment, EX-5.36), `delegation_refused` (composant,
+champ refusé `run_id` ou `on_behalf_of`, raison `motif`, `detecteur` ou
+`hors_liste`, longueur ; jamais la valeur, EX-7.2, ligne `delegation.run_id`
+de la table d'EX-6.36), `correlation_declaree` (`seq` de l'échange déclaré
+par le SDK retenu faute d'échange interposé, EX-5.22),
+`sdk_class_override_refused` (alias, outil, classe déclarée, classe
+configurée ; table de 6.2),
+`model_route_not_found` (méthode, longueur du chemin ; jamais le chemin, qui
+peut porter une donnée de l'agent), `provider_mcp_bypass` (route, nombre
+d'entrées), `model_response_truncated` (route, octets reçus),
+`sse_data_final_sans_ligne_vide` (route), `host_disconnected` (route),
+`sdk_member_removed` (nom du membre, EX-6.8), `model_exchange_relayed`
+(pendant de `tool_call_relayed` pour un échange de modèle : `data` porte le
+libellé de la route, `code.model`, le statut HTTP, `request-id`, les `sha256`
+des pièces, le `seq` et l'objet `usage` tel que reçu, EX-5.20) ; depuis la
+révision 0.5, composant `otel` : `otel_request`, `otel_span_rejected`,
+`otel_span_overlap`, `otel_refused`, `otel_cle_double`, `otel_dedup_evicted`,
+`otel_span_conflict`, `otel_piece_too_large` (EX-6.41) ; composant `worm` :
+`worm_lock_check` (clé, version, verdict, raisons, notes ; EX-12.33),
+`worm_lock_config_check` (mode et durée lus de la rétention par défaut,
+verdict ; EX-17.5), `worm_lock_audit` (versions lues, non conformes,
+inattendues, durée ; EX-17.6), `worm_versions_unexpected` (clé, nombre de
+versions, marqueur ; EX-17.6, EX-12.40), `worm_legal_hold_observed` (`gel_id`,
+`n`, `kind`, empreinte de l'enregistrement, règle de garde respectée ou code de
+la règle violée ; EX-17.7) ; et, écrits par l'outil de gel dans son propre
+fichier, `worm_legal_hold_set`, `worm_legal_hold_release_requested`,
+`worm_legal_hold_released`, `worm_legal_hold_failed`,
+`worm_legal_hold_guard_refused` (EX-12.40) ; aucun ne porte l'identité d'un
+exploitant (EX-9.6), qui est au registre des gels.
 
 **EX-17.3** Ne vont **jamais** dans le journal d'exploitation : une pièce ou
 un fragment de pièce (arguments, résultats, messages, prompt), une valeur
@@ -7089,6 +10684,13 @@ les règles Prometheus) :
 | Bail | `noortrace_lease_epoch == 0` sur l'instance attendue active, ou `increase(noortrace_lease_renew_failures_total[5m]) > 0` | critique |
 | Ancre en retard | `noortrace_anchor_pending > 0` pendant plus de 2 h | majeure (la preuve de date de ces périodes attend) |
 | Copie WORM en retard | `noortrace_worm_copy_pending > 0` pendant plus de 1 h | majeure |
+| Verrou WORM non conforme | `noortrace_worm_lock_nonconforming > 0`, ou `worm_lock_config_check` non conforme dans le journal d'exploitation | critique : une copie n'est pas protégée comme la configuration le dit (EX-12.33) |
+| Relevé de verrouillage en retard | `noortrace_worm_last_audit_age_s > 2 × lock_audit_interval_days × 86 400` | majeure |
+| Versions inattendues | `noortrace_worm_versions_unexpected > 0` | majeure : une clé a reçu une seconde version ou un marqueur de suppression, ce que les droits d'EX-12.32 devraient empêcher |
+| Registre des gels invalide | `worm_legal_hold_observed` avec une règle de garde violée | critique : une levée a eu lieu hors de la règle d'EX-12.38, ou le registre a été écrit hors de l'outil |
+| Gel non posé sur une version d'un gel actif | relecture quotidienne d'EX-17.7 : une version d'un gel actif dont l'état attendu est `on` (aucune `levee` valide inscrite, ou version de `results.kept`) n'est pas `on` ; entre une `levee` valide et un `levee_resultat` sans échec, `off` n'est jamais alerté | critique : un gel a été levé hors de l'outil, ou par une seule personne |
+| Contrôle d'intégrité en échec | `increase(noortrace_integrity_check_failures_total{check!="configuration_worm"}[1h]) > 0` | critique : un segment diffère de sa copie WORM, un manifeste, une signature ou la continuité manque, ou le signataire ne répond pas (EX-17.5), ou la lecture du registre des gels a échoué (`registre_gels`, EX-17.7 ; une règle de garde violée a sa propre alerte, « Registre des gels invalide ») ; la rétention par défaut (`configuration_worm`) a sa propre alerte, « Verrou WORM non conforme » |
+| Gel levé | `worm_legal_hold_observed` d'un enregistrement `levee` | mineure : à rapprocher de la procédure de CT-8 |
 | Horloge | `abs(noortrace_clock_skew_ms) > warn_skew_ms` | mineure ; critique si `degraded{reason="horloge"}` |
 | Définition d'outil changée | `increase(noortrace_tool_definition_changes_total[1h]) > 0` | mineure, à examiner : c'est le signal du « rug pull » (EX-4.16) |
 | Fourche | `journal_fork` dans le journal d'exploitation : un fichier d'époque inférieure a grandi après la reprise (EX-13.10) | critique |
@@ -7098,22 +10700,113 @@ les règles Prometheus) :
 | Budget de rédaction | `increase(noortrace_redaction_budget_exceeded_total[1h]) > 0` (EX-10.23) | mineure quand une pièce de lecture ou une valeur a perdu son contenu ; majeure quand un appel a été bloqué (`noortrace_calls_blocked_total{reason="redaction"}`, opération 1) : examiner la taille ou la forme des entrées, et les motifs nommés |
 | Clé du MAC de relais | `relay_mac_key_mismatch` dans le journal d'exploitation (EX-7.22, 13.4) | critique : deux instances d'un même journal n'ont pas la même clé ; la bascule est refusée |
 | Quota d'un hôte | `increase(noortrace_calls_blocked_total{code="-31013",reason="quota"}[5m]) > 0` (EX-4.47) | mineure : un hôte atteint son quota d'octets, de requêtes ou de temps de capture |
+| Ingestion OpenTelemetry refusée | `increase(noortrace_otel_requests_total{status=~"429\|503"}[5m]) > 0` | majeure : l'exportateur abandonne un lot au-delà de son délai (EX-6.39) |
+| Spans rejetés | `increase(noortrace_otel_spans_total{issue="rejete"}[1h]) > 0` | mineure |
+| Retard de réception | `histogram_quantile(0.99, noortrace_otel_reception_lag_ms) > 60000` sur 15 min | mineure |
+| Conventions OpenTelemetry renommées | une source a reçu des spans pendant une heure, aucun n'est scellé et tous sont ignorés pour `hors_genai` (EX-6.41) | mineure : vérifier la version des conventions émises (EX-6.25) |
+| Span OpenTelemetry rejoué avec un autre contenu | `increase(noortrace_otel_conflicts_total[1h]) > 0` (EX-6.33) | mineure |
 | Latence | `histogram_quantile(0.99, noortrace_relay_latency_ms) > 50` sur 15 min | mineure |
 | Disque | `disk_low` dans le journal, ou espace libre < 2 × `min_free_bytes` | majeure |
 
 ### 17.5 Contrôles périodiques
 
-**EX-17.5** Un fil de supervision exécute, à une cadence fixe en version 0
-(toutes les heures après la clôture de période, et une fois par jour pour la
-relecture complète) : la relecture et la vérification des
-segments fermés de la journée (EX-12.10, pas 2, sur tout le segment) ; la
-comparaison `sha256` de chaque segment fermé avec sa copie WORM (EX-12.17) ;
-la vérification que chaque période close a son manifeste, sa signature, et
-que la continuité de CT-1 §10.3 tient ; le `health()` du signataire. Les
-résultats vont dans le journal d'exploitation (`integrity_check`), avec
+**EX-17.5** Un fil de supervision exécute, à des cadences fixes en version
+0 : **toutes les heures**, après la clôture de période, la vérification que
+la période close a son manifeste et sa signature et que la continuité de
+CT-1 §10.3 tient, la comparaison `sha256` de chaque segment fermé dans
+l'heure avec sa copie WORM (EX-12.17), et le `health()` du signataire ;
+**une fois par jour**, la relecture et la vérification complètes des
+segments fermés de la journée (EX-12.10, pas 2, sur tout le segment),
+(révision 0.5) la lecture de la rétention par défaut du support (S3 : `GET
+/?object-lock`, attendu `Mode` égal au mode configuré et `Days` égal à
+`retain_days`, ou `Years × 365` au moins égal ; ligne `worm_lock_config_check` ;
+`Days` est la forme que l'exploitant pose, EX-12.30 : le contrôle admet aussi
+une configuration existante en `Years`, qui protège au moins autant que
+`retain_days`, sans la recommander)
+et la lecture du registre des gels avec l'état de gel des versions des gels
+actifs (EX-17.7) ; **tous les `lock_audit_interval_days` jours**, le relevé
+de verrouillage (EX-17.6). Les résultats
+vont dans le journal d'exploitation (`integrity_check`), avec
 `noortrace_integrity_check_failures_total`. C'est le contrôle que demande
 l'Olico, art. 10 al. 1 : « L'intégrité et la lisibilité des supports
 d'information sont régulièrement contrôlées » (R5 § 1.9).
+
+**EX-17.6** **Relevé de verrouillage.** Tous les
+`storage.seal.worm.lock_audit_interval_days` jours (défaut 30), et à la
+demande (`noortrace-ctl worm releve`, consignée), le fil de supervision,
+avec les identifiants de l'écrivain, dont il n'emploie que les droits de
+lecture (EX-12.32) :
+
+1. liste toutes les versions sous `<prefix>` (S3 : `ListObjectVersions`
+   paginé, EX-12.35 pas 1 ; Azure et GCS : chaque version du registre
+   des copies et du registre des gels, la liste des versions de ces
+   supports n'ayant pas été relue pour cette révision) ;
+2. pour chaque version qui n'est pas un marqueur, lit son état et en tire
+   le verdict d'EX-12.33, le gel étant attendu pour chaque version d'un
+   gel actif (EX-17.7) ou pour toute version avec `legal_hold_on_write` ;
+   une version couverte par plusieurs gels est attendue `on` tant qu'un
+   seul d'entre eux est actif ;
+3. compare la liste au registre des copies : une clé de copie sans la
+   version inscrite, une seconde version d'une clé, un marqueur de
+   suppression sont consignés (`worm_versions_unexpected`) ; une version
+   sans ligne au registre (registre perdu ou incomplet) est inscrite, sans
+   alerte si elle est seule sous sa clé ;
+4. consigne la synthèse (`worm_lock_audit`) et met à jour les jauges de
+   17.2.
+
+Sur Azure (et sur Google Cloud Storage, hors production), le pas 1 a une
+conséquence qu'il faut dire en clair : une version présente sur le support
+mais absente des deux registres n'est pas vue par le relevé en version 0,
+par exemple une seconde version d'une clé, ou une version écrite hors de
+l'écrivain et de l'outil (EX-12.29). Les alertes « Versions inattendues » et
+« Verrou WORM non conforme » (17.4) ne couvrent alors que les versions
+inscrites. La limite tombe quand la liste des versions de ces supports sera
+lue (section 21).
+
+Le relevé n'écrit jamais sur le support, ne bloque aucun appel (14.2) et
+s'interrompt sans dommage ; un relevé interrompu est repris en entier au
+suivant. Son coût en requêtes entre dans la formule de 16.4 (`k`).
+
+**EX-17.7** **Lecture du registre des gels.** Une fois par jour et à
+chaque relevé, le fil de supervision liste `<prefix>gels/`, lit chaque
+enregistrement qu'il n'a pas encore vu, recalcule son empreinte et la
+règle de garde du gel sur toute sa suite (EX-12.38), et consigne une
+ligne `worm_legal_hold_observed` par enregistrement. Un gel est **actif**
+tant que son dernier enregistrement valide n'est pas un `levee_resultat`
+sans échec ; pour un gel actif, le relevé attend `on` pour chaque version
+de sa liste d'objets, tant qu'aucune `levee` n'est inscrite ; après une
+`levee` valide et jusqu'à un `levee_resultat` sans échec, il tolère `on` et
+`off` (levée en cours : l'enregistrement `levee` est écrit et l'outil envoie
+ses requêtes de levée, EX-12.40 ; reprise attendue : le dernier
+`levee_resultat` porte des échecs, ou l'outil s'est arrêté avant de
+l'écrire, et `noortrace-ctl worm gel reprendre` doit compléter la levée),
+puis n'attend plus rien, sauf pour les versions de `results.kept`, couvertes
+par un autre gel actif. La
+lecture quotidienne relit aussi l'**état de gel de chaque version de chaque
+gel actif** (S3 `GET ?legal-hold` ou `HEAD`, EX-12.39) et alerte en
+critique dès qu'une version d'un gel actif dont l'état attendu est `on`
+(aucune `levee` valide inscrite, ou version de `results.kept`) n'est pas
+`on` (17.4) ; entre une `levee` valide et un `levee_resultat` sans échec,
+`off` n'est jamais alerté. Une levée faite hors de l'outil, par une seule
+personne, se voit ainsi en un jour et non au relevé suivant ; cette
+relecture coûte une lecture par version gelée et par jour, qui entre dans
+`k` de 16.4. Une suite qui viole la règle de garde est alertée en critique
+(17.4). L'étiquette `check="registre_gels"` de
+`noortrace_integrity_check_failures_total` (17.2) compte les échecs de
+cette lecture elle-même : liste de `<prefix>gels/` ou lecture d'un
+enregistrement en échec auprès du support ; ils sont alertés par
+« Contrôle d'intégrité en échec ». Une règle de garde violée n'est pas un
+échec de lecture : elle est consignée par `worm_legal_hold_observed` et
+alertée par « Registre des gels invalide » ; une version d'un gel actif qui
+n'est pas `on`, par « Gel non posé sur une version d'un gel actif ». Une
+même cause ne donne ainsi qu'une alerte critique. Le démon n'écrit jamais dans le registre des gels, et n'en a pas le
+droit (EX-12.32). Ce fil tourne dans le démon : contre un démon compromis,
+la même relecture du registre et de l'état `on` DOIT être faite aussi par le
+rôle Lecteur d'EX-18.9, hors du démon (`noortrace-ctl worm gel etat` sous
+les identifiants du lecteur, ou une supervision tierce) ; quand le support
+nomme le principal qui a écrit un objet (journal du fournisseur, R13-F9),
+cette relecture alerte sur un enregistrement du registre écrit par un
+principal autre que les gardiens ; à défaut, ce point reste déclaratif.
 
 ## 18. Sécurité de l'enregistreur lui-même
 
@@ -7129,9 +10822,11 @@ démon, mode `0660`, groupe des utilisateurs d'hôtes autorisés) ; le point de
 terminaison Streamable HTTP (`mcp.http.listen`, `127.0.0.1` par défaut) ; la
 passerelle de modèle (`model.listen`) ; le serveur ICAP (`model.icap.listen`)
 en mode `icap` ; la santé et les métriques (`supervision.health_listen`) ;
-rien d'autre. Aucune interface d'administration réseau en version 0 : la
-gestion passe par la ligne de commande locale (`noortrace-ctl`, même
-utilisateur que le démon) et par la configuration.
+depuis la révision 0.5, le point d'entrée OpenTelemetry (`otel.listen`) quand
+`otel.enabled` est vrai (EX-6.40) ; rien d'autre. Aucune interface
+d'administration réseau en version 0 : la gestion passe par la ligne de
+commande locale (`noortrace-ctl`, même utilisateur que le démon) et par la
+configuration.
 
 **EX-18.2** Surface sortante, exhaustive : les serveurs d'outils configurés,
 les fournisseurs de modèle des routes, le signataire (classes A et B), le
@@ -7149,21 +10844,20 @@ destinations (4.9).
 
 ### 18.2 Authentification et autorisation
 
-**EX-18.3** Tout appelant est authentifié : identité du processus pair sur
-les prises locales, jeton OAuth 2.1 ou jeton statique en HTTP (EX-4.39),
-identifiants propres de l'enregistreur vers chaque amont (EX-4.40), aucun
-relais de jeton (EX-4.41). Les jetons statiques sont comparés en temps
-constant ; une tentative échouée est consignée (`auth_failed`, sans le jeton)
-et limitée en fréquence **par identifiant de jeton présenté** (les huit
-premiers caractères hexadécimaux du SHA-256 du jeton) et par connexion (10
-échecs par minute, puis refus de ce jeton ou de cette connexion pendant
-60 s), **jamais par adresse source** : sur `127.0.0.1` ou derrière un
-mandataire inverse, tous les hôtes partagent une adresse, et un processus
-local ne doit pas pouvoir bloquer les hôtes légitimes ; un jeton valide
-n'est jamais refusé à cause des échecs d'un autre. Les points `/healthz` et
-`/readyz` sont publics sur leur
-adresse d'écoute ; `/metrics` l'est aussi mais ne porte aucune donnée de
-client (17.2).
+**EX-18.3** Tout appelant est authentifié : identité du processus pair sur les
+prises locales, jeton OAuth 2.1 ou jeton statique en HTTP (EX-4.39), jeton
+statique pour une source OpenTelemetry (EX-6.37), identifiants propres de
+l'enregistreur vers chaque amont (EX-4.40), aucun relais de jeton (EX-4.41).
+Les jetons statiques sont comparés en temps constant ; une tentative échouée
+est consignée (`auth_failed`, sans le jeton) et limitée en fréquence **par
+identifiant de jeton présenté** (les huit premiers caractères hexadécimaux du
+SHA-256 du jeton) et par connexion (10 échecs par minute, puis refus de ce
+jeton ou de cette connexion pendant 60 s), **jamais par adresse source** : sur
+`127.0.0.1` ou derrière un mandataire inverse, tous les hôtes partagent une
+adresse, et un processus local ne doit pas pouvoir bloquer les hôtes légitimes
+; un jeton valide n'est jamais refusé à cause des échecs d'un autre. Les points
+`/healthz` et `/readyz` sont publics sur leur adresse d'écoute ; `/metrics`
+l'est aussi mais ne porte aucune donnée de client (17.2).
 
 ### 18.3 Moindre privilège
 
@@ -7186,6 +10880,27 @@ dans `/proc/<pid>/environ` par qui passe le contrôle ptrace (EX-3.5).
 configuration est lisible par le seul utilisateur du démon (il contient des
 chemins et des références, pas des secrets, mais il décrit la politique). Les
 fichiers de secrets sont `0400`/`0600` (15.2).
+
+**EX-18.9** **Rôles sur le support WORM.** Le client répartit les droits
+du support entre cinq rôles distincts, que CT-8 (à écrire ; proposition de
+la section 22) fera poser à la création du support ; d'ici là, cette
+séparation est une exigence portée par le client, que CT-2 ne vérifie pas ;
+l'enregistreur n'en tient qu'un.
+
+| Rôle | Porté par | Droits (noms S3 ; équivalents Azure et GCS en EX-12.34) | Jamais |
+|---|---|---|---|
+| Écrivain | le démon, `storage.seal.worm.credentials` | ceux d'EX-12.32 : écrire sous les seuls sous-préfixes copiés, lire, lister les versions, lire rétention et gel | supprimer, contourner, poser une rétention, changer la configuration ou la politique du bucket, lever un gel, **écrire sous `<prefix>gels/`** ; poser un gel, sauf `legal_hold_on_write` (hors production) |
+| Gardien de pose | un exploitant, hors du démon | `s3:PutObjectLegalHold` restreint à `ON` là où la restriction est vérifiée (R13-F30 ; non vérifiée chez AWS, R13 NV-1) ; `s3:PutObject` sur `<prefix>gels/` ; lectures | supprimer, contourner ; lever, là où la restriction existe |
+| Gardien de levée | une **autre** personne que le demandeur de la levée (identité déclarée distincte : règle `meme_identite` d'EX-12.38, seul contrôle de l'outil, qui ne la compare pas à celle de la pose), rôle dont l'activation est approuvée par une autre personne (R13-F21, R13-F26) ; l'authentification multifacteur (R13-F12) s'y ajoute, elle ne suffit pas seule | `s3:PutObjectLegalHold` ; `s3:PutObject` sur `<prefix>gels/` (de préférence sur les seuls enregistrements `-levee.json` et `-levee_resultat.json`, EX-12.38) ; lectures | supprimer, contourner |
+| Lecteur | supervision d'un tiers, réviseur ; contre-vérification quotidienne du registre des gels et de l'état `on` des versions gelées, hors du démon (EX-17.7) | `s3:GetObject`, `s3:GetObjectVersion`, `s3:ListBucketVersions`, `s3:GetObjectRetention`, `s3:GetObjectLegalHold` | toute écriture |
+| Administrateur du compte | le client | création du bucket avec Object Lock, rétention par défaut (EX-12.30), politiques | — ; il n'est lié que par une politique posée depuis le compte de gestion d'une organisation (SCP ou RCP, R13-F14) ; une politique de bucket qui refuse tout peut être supprimée par la racine du compte (R13-F14) |
+
+Sur Azure (`…/containers/write`, R13-F16, R13 NV-7) et sur Google Cloud
+Storage (`storage.objects.update`, R13-F25, R13 NV-8), aucune séparation
+de la pose et de la levée n'a été trouvée : les deux gardiens y ont le
+même droit, et la règle de garde d'EX-12.38 repose sur l'activation
+approuvée du rôle (Entra PIM, R13-F21 ; Privileged Access Manager, R13-F26)
+et sur la procédure de CT-8, à écrire.
 
 ### 18.4 Intégrité de la configuration et du logiciel
 
@@ -7234,8 +10949,28 @@ lui-même est compromis ») :
 - il **ne peut pas** exporter une clé de classe A ou B non exportable ; la
   rotation d'urgence (EX-11.16) et la révocation (CT-4) ferment la fenêtre ;
 - il **ne peut pas** effacer les copies WORM en mode Compliance ou Locked
-  (12.6) ni les événements que les hôtes ont déjà vus confirmés par une
-  réponse (ils existent chez le client sous forme d'effets) ;
+  (12.6), ni raccourcir leur rétention, ni lever un gel (EX-12.32,
+  EX-18.9), ni effacer les événements que les hôtes ont déjà vus
+  confirmés par une réponse (ils existent chez le client sous forme
+  d'effets) ; trois exceptions sont dites : avec `legal_hold_on_write`
+  (refusé en production, EX-15.4), il détient le droit de pose du gel, qui
+  permet aussi la levée sur tout support où la politique ne peut pas
+  réserver la levée à un autre rôle (R13-F3, R13 NV-1, R13 NV-5 ; R13
+  conséquence 2) ; si le client laisse `<prefix>gels/` dans ses droits
+  d'écriture, contrairement à EX-12.32, il peut **falsifier le registre des
+  gels** : écrire une suite demande, levée, résultat qui passe la règle de
+  garde (les enregistrements ne sont pas signés et les identités sont
+  déclarées), éteindre ainsi la surveillance d'EX-17.7 qu'il exécute
+  lui-même, et occuper d'avance la clé `<nnnn>` suivante pour bloquer les
+  demandes légitimes ; avec `legal_hold_on_write` en plus, il envoie
+  lui-même `OFF`, et l'attaque est complète : seule la relecture par le
+  rôle Lecteur hors du démon (EX-17.7) la voit ; et la copie qu'il n'a pas
+  encore faite (segment courant, segment fermé avant sa copie) n'est
+  protégée que par l'attribut local d'EX-12.18 ;
+- ce que le WORM ne couvre pas, quel que soit l'enregistreur : la
+  suppression du compte du fournisseur, seule voie d'effacement d'une
+  version en Compliance avant son échéance (R13-F6), et l'administrateur
+  du compte, que seule une politique d'organisation lie (R13-F14) ;
 - ce qu'il a vu passer en clair (arguments, prompts) a transité par sa
   mémoire : la rédaction protège le journal, pas le processus. La séparation
   en démon dédié, hors de l'hôte (3.4), vise à ce qu'une compromission de
@@ -7426,6 +11161,30 @@ par la politique`), ne pas répéter l'appel, ne pas le fractionner ni le
 reformuler (autre écriture d'un montant, d'une devise, d'un identifiant),
 et le dire à l'utilisateur.
 
+La passerelle sert aussi, depuis la révision 0.5, la route Gemini
+`/v1beta/models` (15.3, EX-5.28). Chaque fichier d'intégration dit, chemin par
+chemin, ce qui passe par un chemin **interposé** (le frontal MCP ou la
+passerelle : l'enregistreur relaie, peut bloquer, et, avec le pare-feu de
+sortie et `credentials: "propre"`, l'agent ne peut pas joindre la cible
+autrement) et ce qui est **déclaratif** (le SDK, ses adaptateurs et l'ingestion
+OpenTelemetry : ce que l'agent montre, 6.1, EX-6.2 ; rang de preuve de 6.7)
+(EX-19.5). Les versions citées sont les dernières publiées au 2026-10-26
+(R12-F1, F3, et les lectures directes nommées dans chaque fichier).
+
+**EX-19.5** **Ce que chaque intégration prouve.** Chaque fichier d'intégration
+publié DOIT porter, pour l'hôte ou le cadre qu'il décrit, une table « chemin,
+ce qui est capturé, interposé ou déclaratif, ce qui n'est pas capturé », et la
+règle de non-double capture qui s'applique (un outil MCP qui passe par le
+frontal MCP n'est jamais déclaré aussi par un adaptateur du SDK ; un échange de
+modèle qui passe par la passerelle n'est jamais déclaré aussi par
+`echangeModele` ; EX-6.17 pour les adaptateurs, EX-6.34 pour l'ingestion
+OpenTelemetry). Motif : l'agent ou le cadre voit souvent le même appel par deux
+points d'accroche (un outil MCP de LangChain, de CrewAI ou du SDK Agents
+d'OpenAI passe aussi par les rappels du cadre, R12-F12, F21, F33), et un
+lecteur du journal doit savoir lequel des deux événements fait foi. Les
+hôtes de 19.5.6, décrits en une ligne chacun, partagent la table commune
+donnée à la fin de 19.5.6.
+
 #### 19.5.1 Claude Desktop (macOS, Windows, Linux)
 
 Fichier `claude_desktop_config.json` (macOS `~/Library/Application
@@ -7459,6 +11218,15 @@ reste donc un serveur stdio (ou un paquet `.mcpb`, R7 F-12, prévu en phase
 2). Les noms d'outils contenant un point sont refusés par l'API Messages
 (EX-4.12).
 
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Frontal MCP (connecteur stdio) | appel, arguments, résultat, politique, approbation, effets | interposé, bloquant pour les écritures | — |
+| Passerelle de modèle, seulement si l'hôte permet de changer l'URL de base (aucun réglage de ce genre n'est décrit par les pages lues, R7) | requête rédigée, prompt système, réponse ou forme consolidée, appels demandés | interposé | les échanges de modèle d'un hôte qui ne passe pas par la passerelle |
+| Hors des deux | — | — | les outils internes de l'hôte (fichiers, terminal, recherche), qui ne passent par aucun frontal |
+
+Règle de non-double capture (EX-19.5) : l'hôte n'emploie pas d'adaptateur
+du SDK ; chaque outil MCP n'a qu'un événement, celui du frontal MCP.
+
 #### 19.5.2 Claude Code
 
 Fichier `.mcp.json` à la racine du projet (portée `project`), ou `claude mcp
@@ -7484,15 +11252,27 @@ F-30 à F-32) :
 {
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:8400",
-    "ANTHROPIC_AUTH_TOKEN": "${NOORTRACE_TOKEN_PASSERELLE}",
+    "ANTHROPIC_API_KEY": "${NOORTRACE_TOKEN_PASSERELLE}",
     "ANTHROPIC_CUSTOM_HEADERS": "X-Noortrace-Run-Id: ${NOORTRACE_RUN_ID}",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   }
 }
 ```
 
-La route `/v1/messages` est en `credentials: "propre"` : le jeton envoyé par
-`ANTHROPIC_AUTH_TOKEN` (`Authorization: Bearer …`, R7 F-31) est le jeton
+La route `/v1/messages` de 15.3 est en `credentials: "propre"` avec
+`auth_header: "x-api-key"` : la passerelle n'y lit le jeton d'hôte que dans
+`X-Noortrace-Token` ou dans `x-api-key`, et retire sans le lire tout autre
+en-tête d'authentification, `Authorization` compris (EX-5.8 point 1, table
+des en-têtes de 5.3). Le jeton passe donc par `ANTHROPIC_API_KEY`, que
+Claude Code envoie en `X-Api-Key` (R7 F-31), et non par
+`ANTHROPIC_AUTH_TOKEN`, envoyé en `Authorization: Bearer …` (R7 F-31), qui
+recevrait `401` avec cette route. Autre voie : le porter dans
+`ANTHROPIC_CUSTOM_HEADERS`, en `X-Noortrace-Token: <jeton>` à côté de
+`X-Noortrace-Run-Id`, un en-tête par ligne (R7 F-31). `ANTHROPIC_AUTH_TOKEN`
+ne convient qu'à une route en `credentials: "propre"` déclarée `auth_header:
+"authorization-bearer"`.
+Plusieurs hôtes partagent une même route sans difficulté, chacun présentant
+son jeton par l'un de ces deux en-têtes. Ce jeton est le jeton
 statique de la connexion d'hôte de la passerelle (EX-5.8), une entrée de
 `model.hosts` distincte de celle de `mcp.hosts` (jeton `NOORTRACE_TOKEN`
 pour le MCP, `NOORTRACE_TOKEN_PASSERELLE` pour la passerelle) et reliée à
@@ -7511,6 +11291,15 @@ inchangées, R7 F-33 à F-36) ; `/v1/messages/count_tokens` et `/v1/models` en
 `tool_name_sanitize: true` pour la corrélation (EX-5.22). Un nom complet de
 plus de 128 caractères est exclu par Claude Code (R7 F-28) : alias et noms
 courts.
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Frontal MCP (Streamable HTTP ou stdio) | appel, arguments, résultat, politique, approbation, effets | interposé, bloquant pour les écritures | — |
+| Passerelle de modèle (`ANTHROPIC_BASE_URL`) | requête rédigée, prompt système, réponse ou forme consolidée, appels demandés | interposé | les outils serveur exécutés par le fournisseur (5.8) |
+| Hors des deux | — | — | les outils internes de l'hôte (fichiers, terminal, recherche), qui ne passent par aucun frontal |
+
+Règle de non-double capture (EX-19.5) : l'hôte n'emploie pas d'adaptateur
+du SDK ; chaque outil MCP n'a qu'un événement, celui du frontal MCP.
 
 #### 19.5.3 Cursor
 
@@ -7537,6 +11326,15 @@ l'enregistreur ne capture que les appels d'outils ; le mode `icap` de la
 section 5 est l'alternative si le client dispose d'un mandataire
 d'interception. Aucune limite de nombre d'outils n'est publiée par l'éditeur
 (R7 NV-01).
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Frontal MCP (Streamable HTTP) | appel, arguments, résultat, politique, approbation, effets | interposé, bloquant pour les écritures | — |
+| Passerelle de modèle (seulement par un mandataire d'interception (mode `icap` ou `miroir`, section 5)) | requête rédigée, prompt système, réponse ou forme consolidée, appels demandés | interposé | les échanges de modèle sans mandataire d'interception |
+| Hors des deux | — | — | les outils internes de l'hôte (fichiers, terminal, recherche), qui ne passent par aucun frontal |
+
+Règle de non-double capture (EX-19.5) : l'hôte n'emploie pas d'adaptateur
+du SDK ; chaque outil MCP n'a qu'un événement, celui du frontal MCP.
 
 #### 19.5.4 SDK Agents d'OpenAI (Python)
 
@@ -7574,14 +11372,38 @@ exécution (R7 F-58) ; `list_changed` l'invalide (EX-4.15). Variante
 TypeScript (`@openai/agents` 0.21.0) : `MCPServerStreamableHttp({ url, name })`
 et `setDefaultOpenAIClient(new OpenAI({ baseURL }))` (R7 F-63 à F-67).
 
+`openai-agents` 0.24.0 et `@openai/agents` 0.21.0 sont encore les dernières
+versions au 2026-10-26 (R12-F1, F3) ; `@openai/agents` demande Node.js 22
+ou plus (R12-F45). Les **outils de fonction locaux** (`@function_tool`)
+n'empruntent ni le frontal MCP ni la passerelle : ils sont déclarés par
+l'adaptateur du SDK Agents de 6.6, qui enveloppe la fonction
+`on_invoke_tool` de chaque `FunctionTool` local, point d'interception qui
+appelle `debutAppel` **avant** l'exécution (EX-6.16) ; `needs_approval` et
+`on_tool_start` ne sont pas employés (6.6). Le processeur de traces
+(`add_trace_processor`, R12-F28) ne sert qu'à déclarer après coup un échange
+de modèle qui ne passe pas par la passerelle (`modele="declarer"`,
+EX-6.17) : l'entrée d'un outil n'est pas posée quand `on_span_start` est
+appelé (R12-F30) et ne l'est que si
+`OPENAI_AGENTS_TRACE_INCLUDE_SENSITIVE_DATA` vaut `true`, sa valeur par
+défaut (R12-F31). Les outils de `mcp_servers` ne sont pas enveloppés ; leur
+span porte `mcp_data` (R12-F33) ; ils passent par le frontal MCP
+(EX-6.17, EX-19.5).
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Frontal MCP (`MCPServerStreamableHttp`) | appel, arguments, résultat, politique, approbation | interposé, bloquant | — |
+| Passerelle (`OPENAI_BASE_URL`, routes `/v1/responses`, `/v1/chat/completions`) | requête, réponse consolidée, prompt système, appels demandés | interposé | outils hébergés exécutés par OpenAI (5.8) ; WebSocket (5.8) |
+| Adaptateur du SDK (outils de fonction locaux) | ce que l'adaptateur déclare avant et après l'exécution | déclaratif | ce que l'agent tait ou falsifie (6.3) |
+
 #### 19.5.5 LangGraph / LangChain (Python)
 
 API actuelle `langchain.mcp.MCPAdapter` (`langchain[mcp] >= 1.4.0`, bêta,
-`langchain` 1.4.7, `langgraph` 1.2.16 ; le dépôt `langchain-mcp-adapters`
-n'est plus maintenu, R7 F-69 à F-75) ; `create_agent` (et non
-`create_react_agent`, déprécié, R7 F-79) ; URL de base par
-`ChatAnthropic(base_url=…)` ou `ANTHROPIC_BASE_URL`, `ChatOpenAI(base_url=…)` ou
-`OPENAI_BASE_URL` (R7 F-80, F-81) :
+`langchain` 1.4.7, `langgraph` 1.2.17 (publiée le 2026-10-24, qui remplace la
+1.2.16 lue en R7, R12-F2), `langchain-core` 1.7.0 (R12-F1) ; le dépôt
+`langchain-mcp-adapters` n'est plus maintenu, R7 F-69 à F-75) ; `create_agent`
+(et non `create_react_agent`, déprécié, R7 F-79) ; URL de base par
+`ChatAnthropic(base_url=…)` ou `ANTHROPIC_BASE_URL`, `ChatOpenAI(base_url=…)`
+ou `OPENAI_BASE_URL` (R7 F-80, F-81) :
 
 ```python
 import os
@@ -7599,6 +11421,20 @@ async def main():
         await agent.ainvoke({"messages": [("user", "Traite le sinistre 2026-77812.")]})
 ```
 
+`api_key` porte le jeton statique de la connexion d'hôte de la passerelle
+(EX-5.8), que la route `/v1/messages` de 15.3 lit dans `x-api-key` :
+`langchain-anthropic` 1.7.6 passe `api_key` au client `anthropic`
+(`langchain_anthropic/chat_models.py` L1429, L1740-L1750) et exige
+`anthropic` < 2.0.0 (métadonnées de la roue) ; le client `anthropic` 1.17.0,
+la plus récente des versions admises, envoie `api_key` en `X-Api-Key`
+(`anthropic/_client.py` L389-L393). La série 2.x du client l'envoie en
+`Authorization: Bearer` (`anthropic` 2.3.0, `anthropic/_client.py`
+L376-L380), en-tête que cette route retire sans le lire (19.5.2) : si une
+version de `langchain-anthropic` admet un jour cette série, le jeton passe
+par `default_headers={"X-Noortrace-Token": …}` (`chat_models.py` L1445,
+L1742-L1744). Roues lues le 2026-10-26. L'exemple de 6.6 suit la même
+règle.
+
 Hors du contexte `async with`, l'adaptateur ouvre une session MCP par appel
 d'outil (R7 F-75,
 https://docs.langchain.com/oss/python/langchain/mcp/connections) ; dans
@@ -7612,6 +11448,31 @@ de configuration (`noortrace_…`, R7 F-74) : la connexion d'hôte porte alors
 `new MCPAdapter({ servers: { noortrace: { url } } })`, `listTools()` (R7 F-82,
 F-83).
 
+Les outils locaux d'un agent LangGraph (fonctions `@tool`, `ToolNode`) ne
+sont déclarés que si l'adaptateur LangChain et LangGraph de 6.6 est
+accroché : `MiddlewareNoortrace(session, …)` passé à `create_agent(model,
+tools, middleware=[…])`, en dernier de la liste, ou, sans `create_agent`,
+`ToolNode(tools, wrap_tool_call=…, awrap_tool_call=…)` (R12-F10, R12-F11,
+L5-12). L'exemple ci-dessus, sans intergiciel, n'a que des outils MCP et ne
+déclare aucun outil local ; sans cet intergiciel, un outil local n'est pas
+journalisé. L'exemple complet d'un agent LangGraph par le SDK Python est en
+6.6. Un outil issu de `langchain.mcp` porte la marque de son origine MCP dans
+ses métadonnées (R12-F12) et n'est pas déclaré (EX-6.17, EX-19.5).
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Frontal MCP (`langchain.mcp.MCPAdapter`) | appel, arguments, résultat, politique, approbation, effets | interposé, bloquant pour les écritures | — |
+| Passerelle (`ChatAnthropic(base_url=…)`, `ChatOpenAI(base_url=…)`) | requête rédigée, prompt système, réponse ou forme consolidée, appels demandés | interposé | outils serveur exécutés par le fournisseur (5.8) |
+| Intergiciel `MiddlewareNoortrace` sur les outils locaux (6.6) | ce que l'adaptateur déclare avant et après l'exécution | déclaratif (6.7) | ce que l'agent tait ou falsifie (6.3) ; les outils appelés hors de `ToolNode` et de l'intergiciel |
+| Échanges de modèle hors passerelle (`on_llm_end`, format `autre`, 6.6) | ce que l'adaptateur déclare après coup | déclaratif, point d'observation | l'exhaustivité (file pleine, EX-6.11) |
+
+Règle de non-double capture : un outil de `langchain.mcp` qui ne porte pas
+la clé `mcp` dans ses métadonnées (sans annotations, sans `_meta` ni
+serveur connecté) DOIT figurer dans la liste `ignorer` de l'intergiciel,
+faute de quoi il est capturé deux fois (table de 6.6, EX-6.17) ; un modèle
+qui passe par la passerelle n'est pas déclaré par `echangeModele`
+(`modele="passerelle"`).
+
 #### 19.5.6 Autres hôtes (une ligne chacun, formats lus en R7)
 
 VS Code : `.vscode/mcp.json`, objet `servers`, `"type": "http"` + `url` +
@@ -7624,6 +11485,504 @@ F-87) ; Google ADK : `McpToolset(StreamableHTTPConnectionParams(url, headers))`
 Codex CLI : `[mcp_servers.noortrace]` avec `url` et `bearer_token_env_var`
 dans `~/.codex/config.toml` (R7 F-90). Ces hôtes changent de nom et d'URL
 (R7 C-14) : chaque page d'intégration publiée porte la date de sa lecture.
+
+Table commune à ces hôtes (EX-19.5) :
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Frontal MCP (entrée MCP de l'hôte ci-dessus) | appel, arguments, résultat, politique, approbation, effets | interposé, bloquant pour les écritures | — |
+| Passerelle, si l'hôte permet de changer l'URL de base du modèle | requête rédigée, prompt système, réponse ou forme consolidée, appels demandés | interposé | les échanges de modèle d'un hôte qui ne le permet pas |
+| Hors des deux | — | — | les outils internes de l'hôte |
+
+Le SDK google-genai (Gemini), CrewAI, LlamaIndex et LiteLLM ont chacun leur
+fichier (19.5.7 à 19.5.10), un agent instrumenté OpenTelemetry le sien
+(19.5.11).
+
+#### 19.5.7 Gemini (SDK google-genai, Python et JavaScript)
+
+Paquets `google-genai` 2.33.0 (Python 3.10 ou plus, publié le 2026-10-23,
+R12-F1) et `@google/genai` 2.31.0 (`engines.node` `>=20.0.0`, R12-F3). Le
+SDK construit l'URL `<URL de base>/v1beta/models/<modèle>:generateContent`
+ou `…:streamGenerateContent?alt=sse` (R11-F5, F7, F9) et envoie la clé par
+l'en-tête `x-goog-api-key` (R11-F6) : la passerelle sert ces deux chemins
+par sa route `gemini` (15.3) et reconnaît le jeton statique de l'hôte dans
+cet en-tête en `credentials: "propre"` (EX-5.8). La passerelle seule
+n'impose rien au runtime de l'agent : `@google/genai` tourne dès Node.js 20.
+Un agent Gemini JavaScript qui déclare des fonctions locales par le SDK
+NOORTRACE TypeScript doit en revanche tourner sous Node.js 22 ou plus
+(EX-6.5).
+
+**Sans changer le code**, par l'environnement de l'agent (le SDK prend l'URL
+de base de `HttpOptions`, puis de `set_default_base_urls`, puis de
+l'environnement, R11-F8 ; il lit `GOOGLE_API_KEY` avant `GEMINI_API_KEY`,
+R11-F6 : la première doit être absente) :
+
+```sh
+export GOOGLE_GEMINI_BASE_URL="http://127.0.0.1:8400"
+export GEMINI_API_KEY="jeton-statique-passerelle"
+unset GOOGLE_API_KEY
+```
+
+Cette voie suppose la route en `credentials: "propre"` : le jeton passe par
+`x-goog-api-key` (EX-5.8 point 1), et l'environnement ne permet pas de poser
+`X-Noortrace-Token` (en `relayer`, le jeton DOIT y être). Le SDK ne lit dans
+l'environnement aucun en-tête supplémentaire : cette voie n'envoie aucun
+`X-Noortrace-Run-Id`, `run_id` vaut `null` (7.2), et la corrélation de 5.6
+ne repose que sur le `host_group`. Elle exige donc un `host_group` propre à
+cet agent (une entrée de `model.hosts` et une de `mcp.hosts` par agent).
+Un `run_id` déclaré demande `HttpOptions(headers={"X-Noortrace-Run-Id": …})`
+(Python) ou `httpOptions.headers` (JavaScript), voie « Dans le code » : seule
+celle-ci donne un effet à `accept_declared_delegation: true`.
+
+**Dans le code**, en Python (`genai.Client(api_key=…, http_options=…)`,
+paquet `google-genai` 2.33.0, `google/genai/client.py` l. 358-368 ;
+`HttpOptions.base_url` et `headers`, `types.py` l. 2712-2730 ;
+`GenerateContentConfig.automatic_function_calling`, l. 6739 ;
+`models.generate_content_stream`, `models.py` l. 6360 ; lus le
+2026-10-26) :
+
+```python
+from google import genai
+from google.genai import types
+
+client = genai.Client(
+    api_key="jeton-statique-passerelle",
+    http_options=types.HttpOptions(
+        base_url="http://127.0.0.1:8400",
+        headers={"X-Noortrace-Run-Id": "run-2026-11-10-0001"},
+    ),
+)
+config = types.GenerateContentConfig(
+    system_instruction="Tu es l'agent sinistres de l'assureur de démonstration.",
+    tools=[outils],  # déclarations de fonctions ; exécution : voir EX-19.6
+    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+)
+for morceau in client.models.generate_content_stream(
+    model="gemini-…", contents="Traite le sinistre 2026-77812.", config=config
+):
+    ...
+```
+
+En JavaScript (`new GoogleGenAI({ apiKey, httpOptions: { baseUrl, headers }
+})`, R11-C8, R12-F41 ; `headers` de `HttpOptions` et
+`AutomaticFunctionCallingConfig.disable`, `@google/genai` 2.31.0,
+`dist/genai.d.ts` l. 8481-8495 et l. 1034-1040 ; `models.generateContentStream`,
+l. 12097 ; lus le 2026-10-26) :
+
+```js
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({
+  apiKey: "jeton-statique-passerelle",
+  httpOptions: { baseUrl: "http://127.0.0.1:8400", headers: { "X-Noortrace-Run-Id": "run-2026-11-10-0001" } },
+});
+const flux = await ai.models.generateContentStream({
+  model: "gemini-…",
+  contents: "Traite le sinistre 2026-77812.",
+  config: { automaticFunctionCalling: { disable: true } },
+});
+for await (const morceau of flux) { /* … */ }
+```
+
+Configuration de l'enregistreur : la route de 15.3 (`/v1beta/models`,
+`credentials: "propre"`, `provider_mcp: "refuser"`), et une entrée de
+`model.hosts` dont `match.static_token` désigne le jeton de l'agent, avec
+`accept_declared_delegation: true` pour que `X-Noortrace-Run-Id` soit admis
+(EX-7.2), pour la voie « Dans le code ». Pare-feu de sortie : la règle est
+une **liste d'autorisation** (4.9 point 2) : seul le démon sort vers les
+domaines de Google. Une liste de refus serait incomplète : les documents de
+découverte publient, en plus de `generativelanguage.googleapis.com` et
+`aiplatform.googleapis.com`, les racines
+`generativelanguage.mtls.googleapis.com` et
+`generativelanguage.us.rep.googleapis.com` (v1beta, révision `20261024`,
+R11-F1), `aiplatform.mtls.googleapis.com`, 46 racines régionales
+`<région>-aiplatform.googleapis.com`, `aiplatform.us.rep.googleapis.com`,
+`aiplatform.eu.rep.googleapis.com` et
+`aiplatform-preprod.{us,eu}.rep.googleapis.com` (Vertex v1, révision `20261012`,
+R11-F23), énumération non exhaustive, datée par ces révisions. Aucun identifiant
+OAuth Google (Vertex s'authentifie par `Authorization: Bearer`, R11-F10) ni
+aucune clé d'API Gemini ne doit être accessible à l'agent ; le moyen de
+l'interdire dépend de l'hébergement et n'est pas vérifié ici.
+
+Brancher un agent Gemini, pas à pas : (1) ajouter la route `gemini` de 15.3
+à `policy.model.routes` (rechargement, événement de politique) ; (2) ajouter
+l'entrée de `model.hosts` de l'agent (jeton statique, `launched_by`, `scope`,
+et un `host_group`, le même dans son entrée de `model.hosts` et dans son
+entrée de `mcp.hosts`, pour la corrélation de 5.6 ; avec la voie par
+l'environnement, sans `X-Noortrace-Run-Id`, ce groupe doit être propre à
+cet agent et n'être partagé avec aucun autre, faute de quoi la corrélation
+de 5.6 peut attribuer l'échange d'un agent aux appels d'un autre, limites
+de 5.6) ; (3) donner à l'agent `GOOGLE_GEMINI_BASE_URL` et le jeton comme clé
+(ou `HttpOptions`) ; (4) fermer la sortie de l'agent vers Google ; (5)
+désactiver l'appel automatique de fonctions et faire passer les outils par le
+frontal MCP (19.5.6 pour Google ADK, par exemple) ou par le SDK de langage
+employé directement (6.5 ; voir après EX-19.6). Contrôle : chaque appel du
+modèle donne un événement `noortrace.modele.echange` dont `code.model` commence par `gemini/` ; une
+requête `?key=…` ou un flux sans `alt=sse` reçoit `400` (EX-5.29). En
+version 0, la route `gemini` ne sert que `generateContent` et
+`streamGenerateContent` (EX-5.28) : `countTokens`, `tunedModels/`, les
+chemins Vertex et la surface « Interactions » (5.8) reçoivent `404`. Aucun
+couple `passthrough` ne peut ouvrir un appel de méthode comme
+`…:countTokens`, `tunedModels/…:generateContent` ou un chemin Vertex
+`…/models/…:generateContent`, puisqu'un chemin de `passthrough` ne peut pas
+contenir « : » (EX-5.28) ; la surface « Interactions », non lue
+(R11-NV8), reste hors de la version 0 (5.2). Un agent qui en dépend ne se
+branche pas par la passerelle en version 0.
+
+Pour que la corrélation de 5.6 relie un `functionCall` au `tools/call` que
+le code de l'agent émet lui-même, trois conditions d'EX-5.22 : (1) chaque
+fonction est déclarée au modèle sous le nom que donnent le
+`tool_name_template` de la connexion d'hôte et, si elle est active, la
+normalisation `tool_name_sanitize`, appliqués au nom annoncé N par le
+frontal ; avec le défaut `{tool_announced}` sans normalisation, c'est N
+lui-même, par exemple `demo__claims.get` (Gemini admet le point, longueur
+maximale 128, `FunctionDeclaration.name` de `google-genai` 2.33.0, lu le
+2026-10-26) ; `demo__claims_get` n'est attendu qu'avec `tool_name_sanitize:
+true` ; (2) le `tools/call` porte le nom annoncé N et `arguments` =
+`functionCall.args` sans modification (`{}` si `args` est absent ; égalité
+du JCS intégral) ; (3) il est émis **après** la réception complète de la
+réponse (fin du flux), sur une connexion de `mcp.hosts` de même
+`host_group` que l'entrée de `model.hosts`, avec le même `run_id` si les
+deux en déclarent un, et dans la fenêtre `model.correlation_window_ms`.
+
+Dans le fragment suivant, `client` et `config` sont ceux de l'exemple
+ci-dessus ; `mcp` désigne une session MCP déjà ouverte vers le frontal
+(`http://127.0.0.1:8300/mcp`, par exemple ouverte par `async with` comme en
+19.5.5), sur une connexion dont l'entrée de `mcp.hosts` a le même
+`host_group` que l'entrée de `model.hosts`. Le fragment s'exécute dans une
+coroutine : l'appel du modèle y passe par la variante asynchrone du client,
+`client.aio.models.generate_content` (`google-genai` 2.33.0,
+`google/genai/client.py` l. 589-590, `models.py` l. 8399, lus le
+2026-10-26), puisque `client.models.generate_content` est l'appel
+synchrone ; un client MCP synchrone conviendrait aussi avec l'appel
+synchrone.
+
+```python
+reponse = await client.aio.models.generate_content(model="gemini-…", contents=historique, config=config)
+contenu = reponse.candidates[0].content
+historique.append(contenu)  # tour du modèle qui porte les functionCall, avant leurs réponses
+for part in contenu.parts:
+    if part.function_call is not None:
+        # nom annoncé par le frontal (gabarit {tool_announced}, sans normalisation)
+        resultat = await mcp.call_tool(part.function_call.name,
+                                       part.function_call.args or {})
+        # resultat est un CallToolResult de MCP, pas une valeur JSON
+        historique.append(types.Content(role="user", parts=[types.Part(
+            function_response=types.FunctionResponse.from_mcp_response(
+                name=part.function_call.name, response=resultat))]))
+```
+
+Ce fragment est un exemple, non normatif. Le tour du modèle qui porte les
+`functionCall` est ajouté à `historique` avant les réponses de fonction :
+sans lui, le tour suivant contiendrait une `functionResponse` sans l'appel
+qui la précède. Que l'API l'exige n'est pas vérifié ; le SDK (`chats.py`)
+ajoute bien à l'historique qu'il tient les `Content` du modèle, un par
+morceau en flux (R11-F18). `resultat` est un
+objet résultat de MCP (`mcp.types.CallToolResult`), et non une valeur JSON :
+`types.FunctionResponse.from_mcp_response(name=…, response=resultat)` rend
+la réponse `{"result": resultat.content}`, ou `{"error": "MCP response is
+error."}` quand le résultat est en erreur (`google-genai` 2.33.0,
+`google/genai/types.py` l. 2064-2080 ; le module `mcp` doit être importé,
+l. 72-73 ; lu le 2026-10-26) ; à défaut, on passe en `response` un
+dictionnaire JSON tiré du résultat. La corrélation n'en dépend pas :
+EX-5.22 compare les `args` du `functionCall`, pas la réponse de fonction.
+
+**EX-19.6** **Appel automatique de fonctions de google-genai.** Le SDK
+google-genai exécute par défaut, dans le processus de l'agent, les fonctions
+Python passées comme outils (« If not set or set to False, will enable
+automatic function calling », jusqu'à 10 appels, R12-F42), sans rappel
+d'observation trouvé dans le code lu (NV-R12-6). Une intégration google-genai
+dont l'agent dispose d'une fonction locale de classe `ecriture` DOIT
+désactiver cet appel automatique (`AutomaticFunctionCallingConfig(disable=True)`
+en Python, `automaticFunctionCalling: { disable: true }` en JavaScript) et
+faire exécuter chaque `functionCall` reçu soit par le frontal MCP (l'hôte
+appelle l'outil MCP de même nom, `tools/call`), soit par le SDK de langage
+employé directement (6.5 : `session.appel_outil`, ou `debut_appel` avant
+l'exécution puis `fin_appel` après ; `appelOutil`, `debutAppel`, `finAppel`
+en TypeScript), la version 0 n'ayant pas d'adaptateur de cadre pour
+google-genai (6.6). Sans
+cela, l'appel n'est connu que par la part `functionResponse` de la requête
+suivante (5.8) : aucune politique, aucune approbation, aucun événement
+d'appel d'outil.
+
+La version 0 n'a pas d'adaptateur de cadre pour google-genai (table de
+6.6) : EX-19.6 renvoie donc à l'emploi direct du SDK de langage de 6.5.
+Pour chaque part `functionCall` reçue, le code de l'agent
+appelle `session.appel_outil(part.function_call.name,
+part.function_call.args or {}, fonction, classe="ecriture")` (ou
+`"lecture"`), ou `debut_appel` puis `fin_appel`. La fonction ne s'exécute
+qu'après `decision: "autorise"` et, pour une écriture, après l'intention
+durable (EX-6.9, EX-6.11 (2), EX-6.3) ; sinon `appel_outil` lève
+`AppelNonAutorise`, et l'agent renvoie au modèle, dans la part
+`functionResponse`, le `texte` de l'exception (EX-6.12). Le nom déclaré au
+modèle doit respecter le motif de 6.2 (pas de `__`, pas de préfixe
+`noortrace.`) ; l'événement porte `<alias SDK>__<nom>` (EX-6.6).
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Passerelle, route `gemini` | requête rédigée, prompt système (`systemInstruction`), réponse ou forme consolidée, `code.model` (`modelVersion`), `intent`, appels demandés (`functionCall`), résultats renvoyés (`functionResponse` dans la requête suivante) | interposé : l'enregistreur relaie et peut refuser (EX-5.29, EX-5.32, 14.2) | ce que Google exécute côté serveur (`toolCall`, recherche, `mcpServers` sous `relayer`) ; Vertex AI et « Interactions » (`404`, version 1) |
+| Frontal MCP (fonctions exécutées comme outils MCP) | appel, arguments, résultat, politique, approbation, effets | interposé, bloquant pour les écritures | — |
+| SDK de langage employé directement (fonctions locales, 6.5) | ce que le code de l'agent déclare (`debutAppel`, `finAppel`) | déclaratif (EX-6.2, 6.7) | ce que l'agent tait ou falsifie |
+| Appel automatique de fonctions laissé actif | rien de l'appel lui-même ; seulement `functionResponse` dans la requête suivante | — | l'appel, ses arguments au moment de l'exécution, toute décision : interdit pour une écriture (EX-19.6) |
+
+Ce que la passerelle prouve ici, et pas plus : que la requête, dont la pièce
+« requête » est la forme rédigée (les octets envoyés au fournisseur sont
+ceux reçus de l'agent, non rédigés, 5.3.1 pas 4), a été envoyée au
+fournisseur sous cette délégation, et qu'une réponse, dont la pièce
+« réponse » est la forme consolidée rédigée, a été reçue, à la date de
+l'événement ; elle ne prouve
+pas que l'agent a exécuté la fonction demandée, ni comment (c'est le rôle du
+frontal MCP ou, à défaut, de la déclaration du SDK). Un échange déclaré par
+`echangeModele` au format `gemini` (EX-6.8) ne prouve que ce que l'agent a
+déclaré : un agent qui emploie la passerelle ne le déclare pas aussi
+(EX-19.5).
+
+#### 19.5.8 CrewAI (Python)
+
+Paquet `crewai` 1.15.30 (Python 3.10 à 3.13, « Requires-Python:
+<3.14,>=3.10 », R12-F1, F46). Lectures directes dans ce paquet
+(https://pypi.org/project/crewai/1.15.30/, roue lue le 2026-10-26) :
+`MCPServerHTTP(url, headers, streamable=True, cache_tools_list)`
+(`crewai/mcp/config.py` l. 53-87), membre `mcps` des agents
+(`crewai/agents/agent_builder/base_agent.py` l. 381) ; `LLM(…, base_url,
+api_base, api_key)` (`crewai/llm.py` l. 258-280) ; le fournisseur natif
+Anthropic passe `base_url` au SDK d'Anthropic
+(`crewai/llms/providers/anthropic/completion.py` l. 447-452) ; le fournisseur
+natif Gemini construit `genai.Client` sans URL de base
+(`crewai/llms/providers/gemini/completion.py` l. 250-290), de sorte que
+`GOOGLE_GEMINI_BASE_URL` s'applique (R11-F8) ; un modèle que CrewAI ne
+reconnaît pas comme natif passe par LiteLLM (`crewai/llm.py` l. 495-520),
+voie dont l'URL émise n'est pas vérifiée ici.
+
+```python
+import os
+from crewai import Agent, Crew, Task, LLM
+from crewai.mcp import MCPServerHTTP
+
+llm = LLM(model="anthropic/…", base_url="http://127.0.0.1:8400",
+          api_key="jeton-statique-passerelle")
+
+agent = Agent(
+    role="Gestionnaire de sinistres",
+    goal="Traiter les sinistres de démonstration",
+    backstory="…",
+    llm=llm,
+    mcps=[MCPServerHTTP(
+        url="http://127.0.0.1:8300/mcp",
+        headers={"Authorization": f"Bearer {os.environ['NOORTRACE_TOKEN']}"},
+        cache_tools_list=True,
+    )],
+)
+Crew(agents=[agent], tasks=[Task(description="Traite le sinistre 2026-77812.",
+     expected_output="…", agent=agent)]).kickoff()
+```
+
+Pour Gemini :
+`LLM(model="gemini/gemini-…", api_key="jeton-statique-passerelle")` et
+`GOOGLE_GEMINI_BASE_URL` (19.5.7). Les outils locaux de CrewAI (`BaseTool`,
+`@tool`) sont déclarés par l'adaptateur CrewAI de 6.6 (EX-6.21), accroché par
+`before_tool_call` (qui peut bloquer l'appel, `HookAborted`) et
+`after_tool_call` (R12-F19 à F21) ; les écouteurs d'événements
+(`ToolUsageStartedEvent`, …) avalent les erreurs ou s'exécutent dans un groupe
+de fils (R12-F18, F20) et ne portent pas `debutAppel` d'une écriture. Un outil
+issu de `mcps` passe aussi par ces crochets (R12-F21) : l'adaptateur le
+reconnaît (`MCPNativeTool`, `MCPToolWrapper`, 6.6) et l'ignore (EX-6.17,
+EX-19.5).
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Frontal MCP (`mcps`) | appel, arguments, résultat, politique, approbation | interposé, bloquant | — |
+| Passerelle (`LLM(base_url=…)`, `GOOGLE_GEMINI_BASE_URL`) | échanges de modèle | interposé | voie LiteLLM d'un modèle non natif : à vérifier en phase 2 |
+| Adaptateur CrewAI (outils locaux) | ce que l'adaptateur déclare | déclaratif | ce que l'agent tait ; un outil exécuté depuis le cache de CrewAI (R12-F21) n'est pas un appel relayé |
+
+#### 19.5.9 LlamaIndex (Python)
+
+Paquets `llama-index-core` 0.14.25 (R12-F1), `llama-index-tools-mcp` 0.6.0
+(publié le 2026-08-31, dépend de `mcp>=2.0.0,<3`), `llama-index-llms-anthropic`
+0.12.3, `llama-index-llms-openai` 0.8.3, `llama-index-llms-google-genai`
+0.11.3 (publiés les 12 et 14 octobre 2026), Python 3.10 ou plus. Lectures
+directes (https://pypi.org/project/llama-index-tools-mcp/0.6.0/ et pages des
+trois autres paquets à leur version, roues lues le 2026-10-26) :
+`BasicMCPClient(command_or_url, …, headers=…)`, dont les en-têtes servent à
+construire le client HTTP du transport Streamable HTTP
+(`llama_index/tools/mcp/client.py` l. 118-155, 250-262) ; `McpToolSpec(client)`
+et `to_tool_list_async()` (`llama_index/tools/mcp/base.py` l. 19, 126) ;
+`Anthropic(model, base_url, api_key, …)` (`llama_index/llms/anthropic/base.py`
+l. 218-230) ; `OpenAI(api_base=…)`, transmis comme `base_url`
+(`llama_index/llms/openai/base.py` l. 231, 271, 450) ;
+`GoogleGenAI(…, http_options=types.HttpOptions(base_url=…))`
+(`llama_index/llms/google_genai/base.py` l. 190-200, 247-255) ;
+`FunctionAgent(tools, llm, system_prompt)` de
+`llama_index.core.agent.workflow` (`llama-index-core` 0.14.25,
+`agent/workflow/__init__.py`, `base_agent.py` l. 99-162).
+
+```python
+import os
+from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.llms.anthropic import Anthropic
+from llama_index.tools.mcp import BasicMCPClient, McpToolSpec
+
+llm = Anthropic(model="…", base_url="http://127.0.0.1:8400",
+                api_key="jeton-statique-passerelle")
+
+async def main():
+    client = BasicMCPClient("http://127.0.0.1:8300/mcp",
+                            headers={"Authorization": f"Bearer {os.environ['NOORTRACE_TOKEN']}"})
+    outils = await McpToolSpec(client=client).to_tool_list_async()
+    agent = FunctionAgent(tools=outils, llm=llm, system_prompt="…")
+    await agent.run("Traite le sinistre 2026-77812.")
+```
+
+Le constructeur `Anthropic` de LlamaIndex relance par défaut jusqu'à dix fois
+(`max_retries: int = 10`, même fichier, l. 225) : chaque tentative est un
+échange distinct de la chaîne (EX-5.25). Les outils locaux (`FunctionTool`)
+sont déclarés par l'adaptateur LlamaIndex de 6.6, qui enveloppe chaque outil
+(`envelopper_outil`, point d'interception) ; les gestionnaires
+d'instrumentation (`get_dispatcher`, `BaseSpanHandler`, `BaseEventHandler`,
+R12-F22 à F25), dont les exceptions sont avalées (R12-F24), ne servent qu'aux
+échanges de modèle (EX-6.16) ; un outil issu de `McpToolSpec` passe aussi
+par l'instrumentation (le mixin de span s'applique à tout `BaseTool`,
+R12-F25), n'est pas enveloppé et n'est pas déclaré (EX-6.17, EX-19.5).
+`AgentToolCallEvent` n'est émis nulle part dans `llama-index-core` 0.14.25
+(R12-F27) : aucun adaptateur ne doit en dépendre. Le paquet JavaScript
+`llamaindex` (0.12.1, R12-F3) n'est pas couvert (NV-R12-4).
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Frontal MCP (`BasicMCPClient`) | appel, arguments, résultat, politique, approbation | interposé, bloquant | — |
+| Passerelle (`base_url`, `api_base`, `http_options`) | échanges de modèle | interposé | — |
+| Adaptateur LlamaIndex (outils locaux) | ce que l'adaptateur déclare | déclaratif | ce que l'agent tait |
+
+#### 19.5.10 LiteLLM (bibliothèque et mandataire)
+
+Paquet `litellm` 1.106.4 (Python 3.10 à 3.14, « Requires-Python:
+<3.15,>=3.10 », R12-F1, F46). LiteLLM n'exécute pas d'outil : seuls les
+échanges de modèle sont en jeu (R12, conséquence 7).
+
+**En bibliothèque.** `litellm.completion(…, api_base=…)` (R12-F40) ; pour un
+modèle `openai/…`, LiteLLM construit le client OpenAI avec
+`base_url=api_base` (`litellm/llms/openai/openai.py` l. 418) et ajoute
+`chat/completions` à `api_base` s'il ne le contient pas
+(`litellm/llms/openai/chat/gpt_transformation.py` l. 749-760 ; paquet lu le
+2026-10-26) : la requête atteint la route `/v1/chat/completions` de la
+passerelle (format `openai-chat`).
+
+```python
+import litellm
+
+reponse = litellm.completion(
+    model="openai/modele-chat",
+    api_base="http://127.0.0.1:8400/v1",
+    api_key="jeton-statique-passerelle",
+    messages=[{"role": "user", "content": "Traite le sinistre 2026-77812."}],
+)
+```
+
+L'URL qu'émet LiteLLM pour un modèle `anthropic/…` ou `gemini/…` muni
+d'`api_base` n'est pas vérifiée ici : à tester en phase 2, ou employer le SDK
+du fournisseur (19.5.4, 19.5.7). Un rappel `CustomLogger` (R12-F37) est le
+point d'accroche de l'adaptateur LiteLLM de 6.6 pour un échange qui
+**ne passe pas** par la passerelle (modèle local, fournisseur sans route) ;
+une exception levée dans `log_pre_api_call` n'arrête pas l'appel (R12-F38) :
+ce rappel ne peut qu'observer. Un échange qui passe par la passerelle n'est
+pas déclaré aussi (EX-19.5).
+
+**En mandataire, deux topologies (EX-6.22).** Le mandataire LiteLLM sert `POST
+/v1/chat/completions` (`litellm/proxy/proxy_server.py` l. 12281-12290) et
+`POST /v1/messages` (`litellm/proxy/anthropic_endpoints/endpoints.py`
+l. 127), et prend l'URL amont de chaque modèle dans `litellm_params.api_base`
+de sa configuration (R12-F40).
+
+1. **Passerelle devant LiteLLM (recommandée).** Agent → passerelle →
+   mandataire LiteLLM → fournisseurs. La route de la passerelle a pour
+   `upstream` l'URL du mandataire (format `openai-chat` sur
+   `/v1/chat/completions`, ou `anthropic-messages` sur `/v1/messages`).
+   L'enregistreur voit **la requête de l'agent**, sous la délégation de
+   l'agent (sa connexion d'hôte), et la réponse que LiteLLM rend ; que cette
+   réponse ait exactement la forme du format (pour la forme consolidée de
+   5.4) n'est pas vérifié. Les relances que LiteLLM ferait vers les
+   fournisseurs ne sont pas visibles (une seule requête, un seul échange).
+2. **LiteLLM devant la passerelle.** Agents → mandataire LiteLLM →
+   passerelle → fournisseurs, avec dans la configuration du mandataire :
+
+   ```yaml
+   model_list:
+     - model_name: modele-chat
+       litellm_params:
+         model: openai/modele-chat
+         api_base: http://127.0.0.1:8400/v1
+         api_key: jeton-statique-passerelle
+   ```
+
+   L'enregistreur voit **ce que LiteLLM émet** (format exact des requêtes du
+   mandataire non lu, NV-R12-5), sous une seule connexion d'hôte, celle du
+   mandataire : la délégation (`launched_by`, `run_id`) est celle du
+   mandataire, pas celle de chaque agent (que LiteLLM relaie les en-têtes
+   `X-Noortrace-*` n'est pas vérifié), et la corrélation de 5.6 par groupe
+   d'hôte ne distingue pas les agents qui partagent le mandataire. Le jeton
+   statique de la passerelle est alors un secret de la configuration de
+   LiteLLM, dont la protection relève de LiteLLM (non lue). À n'employer que
+   pour un seul agent par mandataire, ou si l'attribution par agent n'est
+   pas demandée.
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Bibliothèque, `api_base` vers la passerelle | échanges `openai/…` | interposé | autres préfixes de fournisseur (non vérifiés) |
+| Mandataire derrière la passerelle (topologie 1) | requête de l'agent, réponse du mandataire | interposé, délégation de l'agent | ce que LiteLLM fait vers les fournisseurs (choix du modèle, relances) |
+| Mandataire devant la passerelle (topologie 2) | requête du mandataire | interposé pour ce que LiteLLM émet ; délégation du mandataire | la requête de l'agent avant LiteLLM ; l'attribution par agent |
+| Rappel `CustomLogger` (échange hors passerelle) | ce que l'adaptateur déclare | déclaratif | ce que LiteLLM ne rapporte pas |
+
+#### 19.5.11 Agent instrumenté OpenTelemetry (exportateur OTLP vers le démon)
+
+Paquets (registres lus le 2026-10-26, L5-20, L5-21) : Python `opentelemetry-sdk`
+1.45.1 et `opentelemetry-exporter-otlp-proto-http` 1.45.1 (Python 3.10 ou
+plus, publiés le 2026-10-06) ; Node.js `@opentelemetry/sdk-node` 0.300.0 et
+`@opentelemetry/exporter-trace-otlp-proto` 0.300.0 (`engines.node`
+`>=22.15.0`, publiés le 2026-10-20). Le démon porte la configuration de
+6.8.15 ; l'agent garde son instrumentation GenAI et dirige son exportateur
+vers le démon.
+
+Python (noms lus dans les roues publiées, L5-8, L5-19) :
+
+```python
+import os
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import ALWAYS_ON
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+fournisseur = TracerProvider(sampler=ALWAYS_ON)
+fournisseur.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(
+    endpoint="http://127.0.0.1:4318/v1/traces",
+    headers={"x-noortrace-token": os.environ["NOORTRACE_OTEL_TOKEN"]},
+    timeout=30,
+)))
+trace.set_tracer_provider(fournisseur)
+# puis l'instrumentation GenAI de l'agent (google-genai, openai, …), avec
+# l'enregistrement du contenu activé si le client veut des pièces complètes.
+```
+
+`OTLPSpanExporter(endpoint=…)` prend l'adresse complète du signal, chemin
+`/v1/traces` compris ; `timeout` est en secondes, prime sur
+`OTEL_EXPORTER_OTLP_TRACES_TIMEOUT` (que cet exportateur lit aussi en
+secondes, contrairement à la spécification, EX-6.39), et ses 30 s sont une
+valeur d'exemple : la règle est un délai supérieur à la durée de bascule
+mesurée (13.4) ; `compression` admet
+`gzip` et `deflate`, et seul `gzip` (ou aucune) est accepté par le démon
+(EX-6.28) ; la taille d'une requête est bornée par défaut à 64 MiB avant
+compression (`max_request_size`, L5-8), la borne du démon. TypeScript et
+autres langages : la configuration par l'environnement de 6.8.15, que la
+spécification d'OpenTelemetry fait lire par les SDK (L5-7, L5-10) ; la
+lecture effective de ces variables par `@opentelemetry/sdk-node` 0.300.0
+n'a pas été vérifiée dans son code : à tester en phase 2.
+
+| Chemin | Capturé | Nature | Pas capturé |
+|---|---|---|---|
+| Ingestion OpenTelemetry | spans d'inférence et d'exécution d'outil, contenu seulement s'il est enregistré | déclaratif, après coup, jamais bloquant (6.7) | spans non échantillonnés ; lots abandonnés par l'exportateur ; signaux métriques et journaux ; ce que l'agent ne trace pas |
+| Frontal MCP et passerelle, s'ils sont aussi employés | appels et échanges | interposé | — ; avec `overlap = "ignorer"`, un span apparié à un acte du même `host_group` inscrit dans la fenêtre `otel.overlap_window_ms` n'est pas scellé (EX-6.34) ; il l'est quand aucun appariement n'a lieu (pour un outil, nom N du span différent du nom vu par le modèle ; pour une inférence, modèle M du span différent de la partie de `code.model` qui suit le premier `/`, soit pour Gemini `modelVersion` ou, à défaut, le segment de modèle du chemin, EX-5.36 ; acte hors de la fenêtre ; registre vide après un redémarrage du démon, EX-6.39), et toujours sous `overlap = "conserver"` : l'acte a alors deux événements, celui du chemin interposé fait foi (6.7), et celui du span porte en `context[0]` la pièce de déclaration de source, de `channel` `otel` (EX-6.35) |
+
+À tester en phase 2.
 
 ### 19.6 Mode ICAP : raccord à un mandataire existant
 
@@ -7692,33 +12051,38 @@ auront besoin de relier des événements, et dit avec son risque parce que le
 CEPD le dit. Ce qui n'est pas réglé : la détection des identifiants hors
 table, les homoglyphes, les données encodées, les nombres JSON (10.8).
 
-**Changement apporté à l'architecture — la passerelle devient le mode
-nominal du frontal modèle.** L'architecture cible (« Capture : où
-l'enregistreur se place », « Déploiement ») ne décrit que l'interception TLS
-par le mandataire de sortie du client. CT-2 fait de la **passerelle par
-URL de base** le mode nominal (5.1, EX-5.1) et de l'interception TLS (mode
-`icap`) l'alternative, pour les quatre raisons de la section 5.1 :
-reconfigurer un SDK coûte une variable d'environnement (`ANTHROPIC_BASE_URL`,
-`OPENAI_BASE_URL`, lues dans le code des quatre SDK, R2) alors que
-l'interception coûte trois injections de confiance et un piège Node ; un
-flux SSE se relaie sans tampon par une passerelle, pas par ICAP ; la
-passerelle est sur le chemin et peut bloquer ; les en-têtes et le corps la
-traversent intacts. Le mode miroir est ajouté comme preuve passive. Ce que la
-passerelle ne résout pas (hôtes sans URL de base) est dit, et le frontal
-MCP capture les appels d'outils dans tous les cas. ARCHITECTURE.md est aligné
-en conséquence (section 22).
+**Changement apporté à l'architecture — la passerelle devient le mode nominal
+du frontal modèle.** L'architecture cible (« Capture : où l'enregistreur se
+place », « Déploiement ») ne décrit que l'interception TLS par le mandataire de
+sortie du client. CT-2 fait de la **passerelle par URL de base** le mode
+nominal (5.1, EX-5.1) et de l'interception TLS (mode `icap`) l'alternative,
+pour les quatre raisons de la section 5.1 : reconfigurer un SDK coûte une
+variable d'environnement (`ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL`, lues dans le
+code des quatre SDK, R2 ; `GOOGLE_GEMINI_BASE_URL` et `HttpOptions.base_url`
+pour Gemini depuis la révision 0.5, R11-F8) alors que l'interception coûte
+trois injections de confiance et un piège Node ; un flux SSE se relaie sans
+tampon par une passerelle, pas par ICAP ; la passerelle est sur le chemin et
+peut bloquer ; les en-têtes et le corps la traversent intacts. Le mode miroir
+est ajouté comme preuve passive. Ce que la passerelle ne résout pas (hôtes sans
+URL de base) est dit, et le frontal MCP capture les appels d'outils dans tous
+les cas. ARCHITECTURE.md est aligné en conséquence (section 22).
 
 ## 21. Ce que cette version ne couvre pas
 
 - **Ce qui contourne la capture** : un acte de l'agent par un canal qui n'est
-  ni MCP ni une API de modèle configurée n'est pas journalisé, et aucun
-  dossier ne peut prouver ni cet acte ni son absence. La mise en application
-  par le réseau (4.9) réduit cette surface, elle ne la supprime pas.
+  ni MCP ni une API de modèle configurée n'est pas journalisé, et aucun dossier
+  ne peut prouver ni cet acte ni son absence. La mise en application par le
+  réseau (4.9) réduit cette surface, elle ne la supprime pas. Pour Gemini, s'y
+  ajoutent les outils que Google exécute lui-même et les serveurs MCP déclarés
+  au fournisseur (refusés par défaut, EX-5.32), ainsi que les fonctions
+  exécutées par l'appel automatique de google-genai (EX-19.6).
 - **Les formats de modèle de la version 1** : Anthropic sur Google Cloud
   (`rawPredict`, `streamRawPredict`), Amazon Bedrock `InvokeModel`,
-  `InvokeModelWithResponseStream` et `Converse`, Gemini, Azure OpenAI API
-  datée (5.2) ; les transports non HTTP (WebSocket, temps réel) ; HTTP/2 en
-  mode miroir.
+  `InvokeModelWithResponseStream` et `Converse`, Vertex AI (arguments
+  d'appel de fonction en flux, `partialArgs`) et la surface
+  « Interactions » de Gemini, Azure OpenAI API datée (5.2) ; les transports
+  non HTTP (WebSocket, temps réel) ; HTTP/2 en mode miroir ; le flux Gemini
+  sans `alt=sse` (refusé, EX-5.29).
 - **Les méthodes MCP hors `tools/call`** : relayées hors chaîne (4.5), aucune
   preuve de leur contenu ; la réponse de l'hôte à une elicitation et les
   `inputResponses` MRTR ; les extensions (`tasks`, `ui`).
@@ -7754,6 +12118,83 @@ en conséquence (section 22).
 - **La corrélation REQMOD/RESPMOD en mode ICAP** sur un mandataire réel
   (EX-5.4) et la **clôture par le stockage** d'un écrivain périmé selon le
   type de volume (EX-13.10) : à vérifier en phase 2.
+- **Un événement de chaîne pour un gel** : la pose et la levée d'un gel ne
+  sont pas dans la chaîne, aucune sorte de CT-1 v0 ne les portant (CT-1
+  E-3) ; leur trace est le registre des gels du support et le journal
+  d'exploitation (12.11). Une levée prouvée par les signatures d'un seuil
+  d'approbateurs n'est pas dans la version 0.
+- **La rétention variable** (*event hold* d'Amazon S3, R13-F7),
+  l'`eventBasedHold` de Google Cloud Storage, le gel de niveau conteneur
+  d'Azure (12.6), la **levée partielle** d'un gel, et le gel des fichiers
+  locaux.
+- **Les requêtes de liste des versions et les en-têtes de réponse à
+  l'écriture d'Azure et de Google Cloud Storage**, non relus pour la
+  révision 0.5 ; la prise en charge du gel par l'API d'Exoscale SOS (R13
+  NV-5) ; la signature des requêtes (SigV4, clé partagée, OAuth),
+  laissée aux bibliothèques des supports.
+- **Une attestation signée de l'état WORM** : aucune n'a été trouvée chez
+  les fournisseurs lus (R13 NV-9) ; l'état WORM reste un constat
+  déclaratif (EX-12.41).
+- **Les prix** : la formule de 16.4 les prend en paramètre ; aucun n'est
+  dans le dépôt.
+- **Le coût d'un journal d'agents hétérogènes** (révision 0.5) : la formule
+  de 16.4 suppose des agents semblables, de mêmes `e` et `b_e`, actifs aux
+  mêmes heures (EX-16.4) ; pour des agents qui diffèrent, elle ne donne pas
+  de valeur exacte.
+- **OpenTelemetry au-delà des traces OTLP/HTTP** (révision 0.5) : OTLP/gRPC,
+  les signaux métriques et journaux (dont l'événement
+  `gen_ai.client.inference.operation.details`, porté par un journal,
+  R11-F34), la reconstruction de la table des doublons et du registre de
+  recouvrement au redémarrage, l'authentification mTLS ou OAuth d'une
+  source, la corrélation d'un appel d'outil issu d'un span avec un échange
+  de modèle, les conventions GenAI au-delà de la v1.41.1 (6.8) ; le délai
+  maximal entre la réception d'un lot et son `200`, et l'issue d'une
+  fermeture de connexion par l'exportateur pendant le traitement d'un lot,
+  points ouverts à écrire (6.8.11).
+- **Une clé d'idempotence** dans `debutAppel` (révision 0.5) : sans elle,
+  le SDK ne renvoie jamais une requête écrite (EX-6.13) ; l'ajouter
+  changerait l'interface de 6.2.
+- **Les adaptateurs non lus** (révision 0.5) : LlamaIndex et CrewAI en
+  JavaScript, le chemin « ReAct » de CrewAI, le reste de l'interface
+  `wrapToolCall` de LangChain JavaScript (6.6).
+- **La forme observée d'un flux Gemini réussi** (fins de ligne, ligne vide
+  finale, morceaux incrémentaux, `usageMetadata` et `finishReason` au dernier
+  morceau, R11-NV1, R11-NV4) et d'une erreur au milieu d'un flux (R11-NV7) :
+  la forme consolidée de 5.4.5 ne dépend que des membres documentés ; à
+  confirmer en phase 2 sur un flux réel (révision 0.5).
+- **La copie WORM vers Google Cloud Storage en production** (révision 0.5) :
+  la rétention s'y pose objet par objet à l'écriture (EX-12.30) ; la copie,
+  la pose de la rétention, son contrôle et le droit exigé de l'écrivain
+  passent en version 1 ; `gcs-object-retention` n'est admis qu'hors
+  production (EX-15.4).
+- **Une valeur de CT-1 pour un acte constaté après coup** : un appel d'outil
+  issu d'un span porte `policy.decision: "autorise"` et `policy.rule:
+  null`, CT-1 v0 n'ayant pas de valeur pour un acte constaté après coup
+  (`sans_objet` est refusé par E-3) ; le rang déclaratif se lit dans
+  `context[0]` (EX-6.23, 6.7). Une valeur dédiée relève d'une révision de
+  CT-1.
+- **CT-8** n'est pas écrite : la création du support (rétention par défaut,
+  rôles d'EX-18.9, politiques d'organisation), la procédure de levée à deux
+  personnes et la fin de rétention restent des exigences portées par le
+  client, proposées à CT-8 (section 22).
+- **Le contenu des pièces locales sous un gel** : le gel ne porte que sur les
+  copies WORM ; sans `copy_pieces`, seule la suspension de la purge
+  (EX-12.20) garde les pièces référencées, et une pièce purgée avant la pose
+  ne se reconstitue pas.
+- **La restriction de l'écriture du registre des gels par suffixe de clé**
+  (`-demande_levee.json` au rôle de pose, `-levee.json` au rôle de levée,
+  EX-12.38) : non vérifiée sur les supports lus.
+- **La référence `limits.piece_max_bytes`** n'est pas appliquée par la
+  référence JavaScript (aucun chemin de capture ne la contrôle encore) : la
+  règle d'EX-6.35 est écrite, son vecteur viendra avec le code de
+  l'enregistreur (phase 2).
+- **Les voies d'intégration non vérifiées** (révision 0.5) : la voie LiteLLM
+  d'un modèle que CrewAI ne reconnaît pas comme natif (19.5.8) ; l'URL émise
+  par LiteLLM pour les préfixes `anthropic/` et `gemini/` avec `api_base`,
+  le format exact des requêtes et des réponses du mandataire LiteLLM
+  (NV-R12-5) et le relais des en-têtes `X-Noortrace-*` par lui (19.5.10) ;
+  la lecture des variables d'environnement d'OpenTelemetry par
+  `@opentelemetry/sdk-node` (19.5.11) : à tester en phase 2.
 
 ## 22. Alignement avec le dépôt
 
@@ -7796,6 +12237,26 @@ Révision 0.3 :
 | `CHANGELOG.md` | entrée CT-2 version 0.2 ; entrée CT-3 : « an error carrying the ticket » | entrée CT-2 version 0.3 (alignement sur CT-3, codes hors de la plage héritée et signal d'approbation, `-32015` retiré sans successeur, contrôle des motifs et budget de rédaction, vérificateurs Go) ; entrée CT-3 : « the proxy answers at once with a tool error result (`isError`) carrying the ticket and its state (`erreur` mode) by default » et le décompte du vérificateur Go de `ct-3` | fait |
 | `ARCHITECTURE.md`, « Approbation : avant l'action, pas après », dernier paragraphe ; `README.md`, ligne CT-3 | « répond aussitôt par une erreur qui porte le numéro de ticket » ; « an immediate error carrying the ticket » | « répond aussitôt par un résultat d'erreur d'outil (`isError`) qui porte le numéro de ticket et son état (mode `erreur`, par défaut, CT-3 §11) » ; « an immediate tool error result (`isError`) carrying the ticket and its state by default » | fait |
 
+Révision 0.5 :
+
+| Emplacement | Avant la révision 0.5 | Attendu par la révision 0.5 | État |
+|---|---|---|---|
+| `spec/README.md`, table des spécifications, ligne CT-2 ; table des schémas ; section « Vecteurs de test » | « version 0.4, en revue » ; trois schémas de CT-2 | « version 0.5, en revue » ; lignes `worm-v0` (CT-2 §12.11) et `cout-agent-v0` (CT-2 §16.4) ; familles `pieces-modele/gemini-*`, `otel/`, `worm/`, `cout-agent/` et confrontation `ct-2/confrontation/` | fait |
+| `spec/schemas/configuration-enregistreur-v0.schema.json` | `format` à trois valeurs, routes décrites en ligne dans `policy_set` ; sans `otel`, `policy.otel`, `policy.sdk` ; `storage.seal.worm` sans adresse de service, sans gel ni relevé | ajout compatible, même `$id` : `$defs/model_route` (`format` `gemini`, `auth_header` `x-goog-api-key`, `provider_mcp` facultatif, `allOf` qui impose l'en-tête aux routes `gemini` et interdit `provider_mcp` aux autres formats) ; membres facultatifs `otel` (`$defs/otel`), `policy.otel` (`$defs/otel_policy`, `$defs/otel_source`, `$defs/otel_tool_settings`), `policy.sdk` (`$defs/sdk_policy`) ; `$defs/worm` (membres facultatifs `endpoint`, `region`, `legal_hold_on_write`, `lock_audit_interval_days` ; `allOf` : adresse obligatoire pour Azure, nulle pour GCS, gel à l'écriture pour S3 seulement) | fait (les trois extensions fusionnées ; l'exemple de 15.3 et les blocs annotés de CT-2 valident) |
+| `spec/schemas/worm-v0.schema.json`, `spec/schemas/cout-agent-v0.schema.json` | — | nouveaux (12.6, 12.11, 16.4, annexe B.9 et B.10) | fait |
+| `scripts/lib/capture.mjs` | formats `anthropic-messages`, `openai-chat`, `openai-responses` | format `gemini` : correspondance de route et cible amont (EX-5.28), chaîne de requête (EX-5.29), corps AIP-193 (EX-5.30), erreur amont lue comme JSON (EX-5.31), `mcpServers` (EX-5.32), bornes de taille de tous les formats (EX-5.33), `data` final (EX-5.34), forme consolidée (EX-5.35), extraction (5.5), `code.model` (EX-5.36) ; `echangeModele` du SDK au format `gemini` (EX-6.8) | fait |
+| `scripts/lib/otel.mjs` | absent | décodage OTLP JSON et protobuf, normalisation, classification, doublons, recouvrement, pièces et événements partiels par les fonctions de `capture.mjs` (6.8) | fait |
+| `scripts/lib/worm.mjs`, `scripts/lib/cout-agent.mjs` | absents | requêtes exactes (EX-12.39), verdict du verrou (EX-12.33), périmètre d'un gel (EX-12.35), règle de garde (EX-12.38), sans réseau ; `coutAgent` (EX-16.4, EX-16.5) | fait (avec `versionsALever`, EX-12.40) |
+| `scripts/vecteurs/generer-ct2.mjs`, `spec/vecteurs/ct-2/`, `INDEX.md` | familles de la version 0.4 ; quinze cas `pieces-modele` | cas `pieces-modele/gemini-*` (B.5), familles `otel/` (B.8), `worm/` (B.9), `cout-agent/` (B.10) ; deux générations identiques ; fichiers existants inchangés | fait : 30 cas `gemini-*`, 48 cas `otel/`, 5 fichiers `worm/`, 9 cas `cout-agent/` ; deux générations identiques ; seul `INDEX.md` change parmi les fichiers existants |
+| `test/enregistreur.test.js` (ou fichiers de test nouveaux) | familles de la version 0.4 ; empreinte de l'ensemble de politique de 15.3 en version 0.4 (6126 octets) | rejeu des cas et familles nouveaux ; blocs annotés `configuration-enregistreur/…`, `worm/…` et `evenement` de 6.8.16 validés (registre des schémas complété de `worm-v0` et `cout-agent-v0`) ; valeurs de 10.6 de la version 0.5 | fait (`test/enregistreur.test.js` et `test/enregistreur-r05.test.js`) |
+| `spec/vecteurs/ct-2/verificateur-independant/` | familles de la version 0.4 ; `specification_test.go` vérifie les valeurs de 10.6 de la version 0.4 | Gemini (consolidation, extraction, refus, `code.model`), `otel/` (décodage JSON et protobuf, forme normalisée, pièces, événements, réponses), `worm/` et `cout-agent/` recalculés depuis le seul texte de CT-2 0.5 ; valeurs de 10.6 de la version 0.5 ; les copies `ct1_*.go` restent identiques à l'original de `ct-1`, en-tête excepté | fait : tout concorde |
+| `spec/vecteurs/ct-2/confrontation/` (nouveau), `.github/workflows/ci.yml`, `test/confrontation.test.js` | aucune confrontation des vecteurs de CT-2 | `gemini/` : requêtes et réponses Gemini des vecteurs analysées par les types de `google-genai` 2.33.0 (Python, `model_validate_json`) ; `otel/` : requêtes OTLP JSON et protobuf analysées par `opentelemetry-proto` 1.45.1 et `protobuf` 7.36.2 (`json_format.Parse`, `FromString`) ; versions épinglées (`exigences.txt`), `LISEZMOI.md`, sorties publiées dans `confrontation/sorties/` ; deux étapes du job de confrontation | fait (B.5, B.8 : sorties égales octet pour octet, divergences voulues et limites publiées) |
+| SDK de langage (`noortrace-sdk`, Python et npm) et adaptateurs | absents | interface de 6.5, adaptateurs de 6.6 et leurs tests d'EX-6.20 | phase 2 |
+| Enregistreur (code), outil `noortrace-ctl worm gel` | — | point d'entrée OTLP, quotas, `503` et `Retry-After`, supervision (6.8) ; copie WORM avec `Content-MD5`, registre des copies, contrôle du verrou, relevé, lecture du registre des gels (12.6, 17.5) ; outil de gel (12.11) | phase 2 |
+| CT-6 §7 (7.1 ou 7.8) et §3.2 | — | proposition, sans changement normatif dans cette révision : une phrase non normative, avec un renvoi depuis §3.2 vers CT-2 6.7 : un événement dont `context[0]` est la pièce `{"noortrace_capture":{"channel":"otel","source":"<alias>"}}` (EX-6.35) est une déclaration OpenTelemetry constatée après coup, dont `policy.decision: "autorise"` et `policy.rule: null` ne signifient pas qu'une politique a été évaluée (EX-6.23) ; un échange de modèle dont `context[0]` est la pièce de canal `sdk` (EX-7.7) est une déclaration du SDK ; un appel d'outil de préfixe `<alias>__` est une déclaration du SDK quand l'alias figure dans `policy.sdk.aliases`, s'il est présent (EX-6.24) ; l'état WORM et le registre des gels restent hors du dossier et déclaratifs (EX-12.41) | proposition |
+| CT-8 | — | création du support (rétention par défaut, rôles d'EX-18.9, restriction de l'écrivain hors de `<prefix>gels/`, politiques d'organisation), procédure de levée à deux personnes (activation approuvée du rôle de levée), relecture par le rôle Lecteur, fin de rétention | proposition (CT-8 à écrire) |
+| `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | capture par MCP, passerelle (Anthropic, OpenAI) et SDK ; copies WORM sans gel | formats capturés (API Gemini à la passerelle) ; SDK Python et TypeScript, adaptateurs de cadres et ingestion OpenTelemetry, tous déclaratifs, avec ce qu'ils ne prouvent pas ; intégrations (google-genai, CrewAI, LlamaIndex, LiteLLM, OpenTelemetry) ; gel juridique levé par deux personnes ; formule de coût par agent à prix paramétrés, sans prix ; entrée CT-2 0.5 | à faire (même livraison) |
+
 ## Annexe B — Disposition des vecteurs `spec/vecteurs/ct-2`
 
 Les vecteurs sont publiés avec CT-2, comme ceux de CT-1 l'ont été avec CT-1 :
@@ -7803,13 +12264,18 @@ produits par `scripts/vecteurs/generer-ct2.mjs` (`npm run vecteurs:ct2`),
 rejoués par `test/enregistreur.test.js`, et confrontés par le vérificateur Go
 indépendant du module séparé `spec/vecteurs/ct-2/verificateur-independant`
 (`noortrace-ct2`) ; le module de `ct-1` reste inchangé. Leur index,
-`spec/vecteurs/ct-2/INDEX.md`, est généré.
-Tout est **déterministe** : clés de test de CT-1 §13 (`rec-test-01`,
-`rec-test-02`, comptes Hardhat 1 à 3), horodatages fixes, identifiants fixes,
-clé de pseudonymisation de test publique. Les vecteurs CT-1 (`ct-1/`) ne
-changent pas. Les clés JSON sont en anglais, les descriptions en français.
-Chaque répertoire porte un `attendu.json` qui dit ce qu'un lecteur conforme
-doit obtenir ; un `INDEX.md` à la racine décrit les cas.
+`spec/vecteurs/ct-2/INDEX.md`, est généré. Depuis la révision 0.5, s'y ajoutent
+les cas `pieces-modele/gemini-*` (B.5) et trois familles, `otel/` (B.8),
+`worm/` (B.9) et `cout-agent/` (B.10), ces deux dernières validées par les
+schémas `worm-v0` et `cout-agent-v0`, ainsi que les scripts de confrontation
+tierce de `confrontation/` (B.5, B.8) ; aucun fichier de vecteurs existant
+ne change, hors `INDEX.md`, complété (B.7). Tout
+est **déterministe** : clés de test de CT-1 §13 (`rec-test-01`, `rec-test-02`,
+comptes Hardhat 1 à 3), horodatages fixes, identifiants fixes, clé de
+pseudonymisation de test publique. Les vecteurs CT-1 (`ct-1/`) ne changent pas.
+Les clés JSON sont en anglais, les descriptions en français. Chaque répertoire
+porte un `attendu.json` qui dit ce qu'un lecteur conforme doit obtenir ; un
+`INDEX.md` à la racine décrit les cas.
 
 Constantes propres aux vecteurs CT-2 :
 
@@ -7849,9 +12315,17 @@ spec/vecteurs/ct-2/
   pieces-modele/
     <fournisseur>-<cas>/
       requete.json           ou  requete.brut  (requête non analysable)
+      requete-ligne.json     (cas gemini-* seulement : méthode et cible reçues)
       requete-entetes.json
+      reponse-morceaux.json  (cas gemini-sdk-* seulement, à la place de reponse.sse)
       reponse.json (hors flux)  ou  reponse.sse  (flux)   — absents pour un refus
       reponse-entetes.json                                 — absent pour un refus
+      attendu.json
+  otel/
+    <nom-du-cas>/
+      source.json
+      requete.json  ou  requete.pb  ou  requete.brut
+      requete-entetes.json
       attendu.json
   evenements/
     journal-demo/
@@ -7864,11 +12338,24 @@ spec/vecteurs/ct-2/
       politique.json
       entrees.json
       dossier-seq-7/          (dossier CT-1 v0 de seq 7 et son attendu.json)
+  worm/                       (révision 0.5)
+    requetes.json
+    etats.json
+    perimetres.json
+    gardes.json
+  cout-agent/                 (révision 0.5)
+    cas.json
+  confrontation/              (révision 0.5 ; hors générateur)
+    gemini/                   (confronter_gemini.py, LISEZMOI.md, exigences.txt)
+    otel/                     (confronter_otel.py, LISEZMOI.md, exigences.txt)
+    sorties/                  (gemini.txt, otel.txt : sorties publiées)
   verificateur-independant/   (module Go propre ; hors générateur)
 ```
 
-Le générateur n'écrit que les entrées listées (il les efface et les réécrit)
-et laisse le reste du répertoire tel quel, comme `generer-ct1.mjs`.
+Le générateur n'écrit que les entrées listées (il les efface et les réécrit) et
+laisse le reste du répertoire tel quel, comme `generer-ct1.mjs`. La révision
+0.5 ajoute `otel`, `worm` et `cout-agent` aux entrées générées
+(`ENTREES_GENEREES`) ; `confrontation/` n'est pas générée.
 
 ### B.2 `jcs-integral/cas.json`
 
@@ -8085,15 +12572,77 @@ Un répertoire par cas, nommé `<fournisseur>-<cas>` :
 `openai-responses-flux`, `openai-responses-flux-incomplet`,
 `bedrock-mantle-non-flux` (même corps qu'Anthropic, libellé `bedrock-mantle`).
 
+Révision 0.5, Gemini (route `/v1beta/models`, libellé `gemini`, sauf
+mention) :
+
+| Cas | Ce qu'il fixe |
+|---|---|
+| `gemini-non-flux` | `generateContent`, réponse `application/json` ; requête avec `systemInstruction`, historique `contents` qui porte un `functionCall` (rôle `model`) et sa `functionResponse` (rôle `user`), `tools[].functionDeclarations` ; `code.model` = `gemini/` + `modelVersion` ; `intent` sans séparateur |
+| `gemini-v1-non-flux` | même échange sur la route `/v1/models` |
+| `gemini-flux` | `streamGenerateContent?alt=sse`, trois morceaux de texte, `finishReason` et `usageMetadata` sur le dernier |
+| `gemini-flux-outils` | texte puis deux `functionCall`, l'un avec `id`, l'autre sans : `tool_calls` avec `id` puis `null` |
+| `gemini-flux-incomplet` | corps terminé sans `finishReason` : `noortrace_flux_incomplet`, `is_error: true` |
+| `gemini-flux-crlf-data-final` | fins de ligne CRLF et dernier `data` sans ligne vide finale, distribué (EX-5.34) |
+| `gemini-flux-erreur-morceau` | un morceau valide puis `data: {"error": {…}}` : `noortrace_erreur_flux`, `is_error: true` |
+| `gemini-flux-pensee` | parts `thought: true` et `thoughtSignature` : gardées dans la pièce, exclues d'`intent` |
+| `gemini-flux-outils-serveur` | parts `toolCall` et `toolResponse` : gardées dans la pièce, `tool_calls: []` |
+| `gemini-flux-index` | deux candidats (`index` absent → 0, puis 1) et un fragment d'`index` `"0"` ignoré : `intent` du premier candidat créé |
+| `gemini-erreur-http-sse` | statut `400`, `Content-Type: text/event-stream`, corps JSON sans `data:` (forme observée, R11-F19) : `body` analysé (EX-5.31) |
+| `gemini-erreur-http` | `generateContent`, statut `400`, `application/json; charset=UTF-8` |
+| `gemini-sans-modelversion` | réponse sans `modelVersion` : `code.model` = `gemini/` + segment de modèle (EX-5.36) |
+| `gemini-prompt-inline` | `prompt_in_request: "inline"` : `systemInstruction.parts[].text` rédigés en place (EX-8.5) |
+| `gemini-forme-inattendue` | corps sans `contents` : relayé, pas de pièce « prompt système » (EX-5.7 point 3) |
+| `gemini-refus-flux-sans-sse` | `streamGenerateContent` sans `alt` : refus `400`, raison `flux_sans_sse` |
+| `gemini-refus-cle-url` | `?key=cle-fictive-de-test` : refus `400`, raison `cle_dans_url` |
+| `gemini-refus-parametre` | `generateContent?alt=proto` : refus `400`, raison `parametre_non_admis` |
+| `gemini-refus-mcp-fournisseur` | `tools[].mcpServers` non vide, `provider_mcp` absent : refus `400`, raison `serveurs_mcp_fournisseur` |
+| `gemini-requete-non-analysable` | clé en double : refus `400`, raison `corps_non_analysable` |
+| `gemini-route-inconnue` | `POST /v1beta/tunedModels/m:generateContent` : `404`, aucune pièce |
+| `gemini-sdk-morceaux` | `echangeModele` au format `gemini`, `response` en tableau de deux morceaux dont l'un porte `sdkHttpResponse` (retiré, EX-6.8) |
+| `gemini-flux-data-final-sans-fin-de-ligne` | dernier `data` sans fin de ligne ni ligne vide : la ligne est lue, puis le `data` distribué (EX-5.34) |
+| `gemini-flux-vide` | statut `200` en `text/event-stream`, corps vide : pas de forme, pièce = flux brut, `is_error: true` (EX-5.35 pas 7) |
+| `gemini-flux-erreur-seule` | morceau d'erreur avant tout morceau valide : forme réduite exactement `{"noortrace_erreur_flux": …}` (EX-5.35 pas 2) |
+| `gemini-flux-index-desordre` | premier fragment d'index 1 : candidats dans l'ordre de première apparition, `intent` de l'index 1 (EX-5.35 pas 4) |
+| `gemini-flux-index-limites` | index `1.0`, `9007199254740993` (admis, 2^53) et `9007199254740994` (refusé) (EX-5.27 (1)) |
+| `gemini-refus-cache` | `cachedContent` non nul, `provider_cache` absent : refus `400`, raison `cache_fournisseur` (EX-5.32) |
+| `gemini-hote-inconnu` | route trouvée, hôte inconnu (`host_known: false`) : `401`, corps `hote_inconnu` (EX-5.30) |
+| `gemini-sdk-erreur-declaree` | `echangeModele`, statut `200` et `is_error` déclaré vrai : `is_error` vrai (déclaré ou calculé, EX-6.8) |
+
+Les réponses en flux des cas `gemini-*` emploient la forme d'un `data` par
+objet JSON sur une ligne, séparés par une ligne vide, fins de ligne LF
+(sauf `-crlf-`) : c'est une forme admise par les deux SDK officiels
+(R11-F16, F17), pas une forme observée sur un flux réussi (R11-NV1). Les
+valeurs (`modelVersion` `gemini-exemple-001`, segment `gemini-exemple`,
+`responseId` `rep-exemple-NNNN`) sont fictives. Chaque requête et chaque
+réponse s'analysent dans les types de `google-genai` 2.33.0 (B.5,
+confrontation) : les vecteurs n'emploient que des membres présents dans les
+deux, le document de découverte et le SDK (`groundingAttributions`, par
+exemple, du document de découverte, R11-F12, est refusé par le type
+`Candidate` du SDK, dont les modèles refusent les membres inconnus).
+
 | Fichier | Contenu |
 |---|---|
 | `requete.json` | le corps JSON de la requête **telle que reçue** (mise en forme libre : les octets exacts n'importent pas pour la pièce, qui est en JCS intégral après rédaction) |
 | `requete.brut` | à la place de `requete.json`, pour une requête non analysable : les octets reçus |
+| `requete-ligne.json` | cas `gemini-*` : `{ "method": "POST", "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse" }`, la cible **telle que reçue** (chemin et chaîne de requête), d'où le vérificateur tire la route, le segment, la méthode et le refus éventuel ; membre facultatif `"host_known": false` quand aucune entrée de `model.hosts` ne reconnaît l'hôte (pas 3 de 5.3.3), absent sinon |
+| `reponse-morceaux.json` | cas `gemini-sdk-*` : le tableau `response` de `echangeModele` (EX-6.8), à la place de `reponse.sse` |
+| `echange-sdk.json` | cas `gemini-sdk-*` : `{ "format", "provider_label", "status", "duration_ms", "is_error" }`, les paramètres déclarés de `echangeModele` autres que `request` et `response` ; le vérificateur y lit le statut et le `is_error` déclarés (`is_error` de l'événement = déclaré ou calculé, EX-6.8), jamais dans `attendu.json` ; `duration_ms` n'entre dans aucune pièce |
 | `requete-entetes.json` | les en-têtes de la requête `{ "anthropic-version": "…", … }`, sans aucun en-tête d'authentification |
 | `reponse.json` | hors flux : le corps reçu (octets exacts ; pas forcément du JSON) |
-| `reponse.sse` | en flux : la **transcription SSE**, fichier texte brut, **octets exacts** du corps de la réponse amont tel que l'analyseur de 5.4.1 le lit : UTF-8 (une marque d'ordre d'octets initiale seulement dans le cas `-flux-bom`), fins de ligne `\n` (LF seul, le format d'Anthropic et d'OpenAI dans leurs exemples documentés, R2 F-A27, F-O13), événements séparés par une ligne vide, lignes `event:` et `data:` telles quelles, commentaires `: …` et événements `ping` inclus là où le cas les prévoit, aucune modification, aucun saut de ligne ajouté en fin de fichier au-delà de celui de la dernière ligne vide. Le générateur écrit ce fichier avec `writeFileSync(buffer)` et le vérificateur le lit en octets. |
+| `reponse.sse` | en flux : la **transcription SSE**, fichier texte brut, **octets exacts** du corps de la réponse amont tel que l'analyseur de 5.4.1 le lit : UTF-8 (une marque d'ordre d'octets initiale seulement dans le cas `-flux-bom`), fins de ligne `\n` (LF seul, le format d'Anthropic et d'OpenAI dans leurs exemples documentés, R2 F-A27, F-O13 ; CRLF dans le seul cas `gemini-flux-crlf-data-final`), événements séparés par une ligne vide, lignes `event:` et `data:` telles quelles, commentaires `: …` et événements `ping` inclus là où le cas les prévoit, aucune modification, aucun saut de ligne ajouté en fin de fichier au-delà de celui de la dernière ligne vide. Le générateur écrit ce fichier avec `writeFileSync(buffer)` et le vérificateur le lit en octets. |
 | `reponse-entetes.json` | `{ "status", "content-type", … }` : le statut HTTP et le `Content-Type` reçus (avec ses paramètres éventuels), qui décident du traitement (5.3.1 pas 5), et l'identifiant de requête du fournisseur |
 | `attendu.json` | `{ "format", "provider_label", "route", "status", "options": { "prompt_in_request", "prompt_system" }, "refused": null ou { "status", "reason", "body" }, "consolidated": <forme consolidée, valeur JSON, ou null hors flux>, "pieces": { "request": réf+bytes, "response": réf+bytes, "system_prompt": réf+bytes ou null, "intent": réf+bytes ou null } ou null, "code_model": "…", "prompt_version": "0x…" ou null, "intent": "…" ou référence ou null, "tool_calls": [ { "id", "name", "arguments" } ], "is_error": false, "incomplete": false, "note" }` |
+
+Pour les cas `gemini-*`, `attendu.json` porte en plus : `"request_line"`
+(la valeur de `requete-ligne.json`, ou `null` pour `gemini-sdk-*`),
+`"model_segment"` (le segment admis, ou `null` si la route n'est pas
+trouvée), `"upstream_target"` (la cible envoyée à l'amont, par exemple
+`"/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"`, ou `null`
+pour un refus et pour le SDK), `"via"` (`"passerelle"` ou `"sdk"`),
+`"removed_members"` (noms retirés par EX-6.8 pas 3, `[]` sinon) ; et
+`refused` porte en plus `"content_type"` (celui de la réponse de refus,
+EX-5.30). Pour `gemini-route-inconnue`, `refused` vaut `{ "status": 404,
+"reason": "route_inconnue", "content_type": null, "body": null }`.
 
 Les réponses des cas `anthropic-*` reproduisent la séquence documentée
 (message_start, blocs, deltas avec premier `partial_json` vide, `message_delta`
@@ -8108,6 +12657,46 @@ d'erreur au format du fournisseur>}`, `pieces: null`, ni réponse ni
 événement. Le cas `-reponse-non-json` a un statut 200 et un `Content-Type`
 qui n'est pas JSON : pièce non JSON (EX-8.7), `is_error: true`.
 `openai-chat-prompt-inline` emploie `prompt_in_request: "inline"` (EX-8.5).
+
+**Confrontation tierce (révision 0.5).** Le répertoire
+`spec/vecteurs/ct-2/confrontation/gemini/` porte un script Python
+(`confronter_gemini.py`), son `LISEZMOI.md` et la liste épinglée de ses
+dépendances (`exigences.txt`, installées par `pip install --only-binary
+:all: --no-deps`, puis `pip check`) ; sa sortie est publiée dans
+`confrontation/sorties/gemini.txt`, et le job de confrontation exige une
+sortie égale octet pour octet. Dans un environnement virtuel où sont
+installés `google-genai==2.33.0` et les versions exactes de ses
+dépendances (dont `pydantic`), le script : analyse chaque élément de
+`contents`, le `systemInstruction` et chaque élément de `tools` de chaque
+`requete.json` Gemini dans `types.Content` et `types.Tool`, et
+`toolConfig`, `generationConfig` et `safetySettings` dans leurs types, relus
+à l'identique ; analyse `requete.brut` par l'analyseur JSON de `pydantic` ;
+reconstruit chaque requête par `genai.Client` sur un transport simulé
+(`httpx.MockTransport`, sans réseau) et compare la cible et le corps
+envoyés à `upstream_target` et à `requete.json` ; relit chaque flux comme le
+SDK (`HttpResponse.segments`) et compare ses objets aux valeurs `data`
+d'EX-5.14 et EX-5.34 ; analyse chaque objet `data` `2xx`, chaque
+`reponse.json` `2xx`, chaque élément de `reponse-morceaux.json` (sans les
+membres que EX-6.8 retire) et chaque `consolidated` privé de ses clés
+`noortrace_*` dans `types.GenerateContentResponse` (`model_validate_json`) ;
+compare `intent` et `tool_calls` à `GenerateContentResponse.text` et
+`.function_calls` ; lit chaque corps de refus d'EX-5.30 par
+`errors.APIError` (`code`, `status`, `message`, classe d'erreur du SDK).
+Toute discordance non publiée comme divergence voulue ou limite est un échec.
+Divergences voulues, chacune avec sa règle : la clé en double de
+`gemini-requete-non-analysable`, admise par `pydantic` (EX-5.7 point 2) ;
+l'index `"0"` de `gemini-flux-index`, relu `0` par le SDK, dans l'objet
+`data`, dans l'objet relu par le client et dans `intent` (EX-5.35 pas 4,
+EX-5.27 (1)) ; l'ordre des candidats de `gemini-flux-index-desordre` et les
+index de `gemini-flux-index-limites` (EX-5.35 pas 4, EX-5.27 (1), EX-8.1),
+le SDK prenant `candidates[0]` de chaque morceau. Limite de l'outil : le SDK
+émet `McpServer.streamable_http_transport` en snake_case, sans alias ; le
+refus d'EX-5.32 n'en dépend pas, puisqu'il repose sur `mcpServers`. Sans
+objet : les cibles que la passerelle refuse (`?key=`, `alt` absent ou
+`proto`, `tunedModels`), que le SDK ne sait pas émettre (leur corps de refus
+est confronté). Le script emploie `google.genai._api_client.HttpResponse`,
+membre interne du SDK, d'où l'épinglage. Il ne lit que les vecteurs ; il ne
+contacte aucun réseau.
 
 ### B.6 `evenements/journal-demo/`
 
@@ -8164,27 +12753,247 @@ la forme de `ct-1/INDEX.md`, et imprime les constantes de l'en-tête de cette
 annexe (`journal_id`, nonces, clé de pseudonymisation de test) calculées par
 le générateur.
 
+Depuis la révision 0.5, `INDEX.md` liste aussi la famille `otel/`, un cas par
+ligne : nom, encodage, statut, nombre de spans par issue. Depuis la révision
+0.5, `INDEX.md` décrit aussi `worm/` et `cout-agent/` et imprime le bucket, le
+préfixe et la période de démonstration de `worm/`, ainsi que la mention que les
+prix de `cout-agent/` sont des unités symboliques.
+
+### B.8 `otel/` (révision 0.5)
+
+Un répertoire par cas : une requête OTLP reçue d'une source OpenTelemetry,
+et ce qu'un enregistreur conforme à 6.8 en fait. Tout est déterministe :
+horodatages, identifiants, clé de test `rec-test-01`, chaîne de départ fixée
+par cas.
+
+| Fichier | Contenu |
+|---|---|
+| `source.json` | `{ "alias", "host": { "id", "launched_by", "on_behalf_of", "scope", "host_group", "accept_declared_delegation", "prompt_version_name" }, "policy_source": <entrée de policy.otel.sources>, "policy_version", "redaction": "pii-v1", "options": { "prompt_in_request", "prompt_system", "encodings", "max_body_bytes", "json_max_depth", "json_max_members", "dedup_window_ms", "overlap_window_ms", "retry_after_s" }, "t_reception": <horodatage>, "chain": { "seq_start", "prev_hash", "ts": [<horodatage de scellement de chaque événement, dans l'ordre>] }, "seen": [ { "trace_id", "span_id", "at" } ], "recorded": [ { "kind": "appel_outil" ou "echange_modele", "channel": "mcp" ou "passerelle" ou "sdk", "host_group", "seen_name" ou "model", "t", "seq" } ] }` ; `seen` est la table des doublons et `recorded` le registre de recouvrement avant la requête ; aucun secret (le jeton est désigné par son `id`) |
+| `requete.json` | le corps JSON tel que reçu (octets exacts) |
+| `requete.pb` | à la place, le corps protobuf, octets exacts, écrit par l'encodeur du générateur (champs dans l'ordre croissant de leur numéro, chacun une fois) |
+| `requete.brut` | à la place, un corps qui n'est ni l'un ni l'autre, ou comprimé (`gzip`), octets exacts |
+| `requete-entetes.json` | `{ "method": "POST", "path", "content-type", "content-encoding" (facultatif), "token_id": <id d'un jeton de la source, ou null> }` |
+| `attendu.json` | `{ "status", "response": { "content_type", "body_json" ou "body_hex", "retry_after" }, "rejected_spans", "counts": { "scelle", "ignore", "doublon", "recouvrement", "rejete" }, "spans": [ { "path": [r, s, p], "trace_id", "span_id", "issue": "scelle" ou "ignore" ou "doublon" ou "recouvrement" ou "rejete", "reason": null ou "hors_genai" ou "operation_non_retenue" ou "sorte_desactivee" ou "identifiants_invalides", "overlap_seq": null ou entier, "normalized": <forme normalisée, EX-6.31> ou null pour un span ignoré, "pieces": { "source", "envelope", "request" ou "arguments", "response" ou "result", "system_prompt", "intent" } (chacune référence et `bytes`, ou null) ou null, "event": <événement scellé> ou null, "lag_ms": entier ou null } ], "note" }` |
+
+`path` désigne le span par ses indices dans `resourceSpans`, `scopeSpans` et
+`spans`. Les événements de `event` forment une chaîne propre au cas, de
+`seq_start` et `prev_hash` de `source.json`, avec les `ts` de
+`chain.ts` ; ils valident contre `evenement-v0` et passent E-1 à E-7 et C-1
+à C-3 (CT-1). Chaque cas est un **fragment** de chaîne qui ne commence
+jamais à `seq` 1, que C-2 réserve au `prev_hash` nul : l'exemple de 6.8.16
+(`json-exemple-6-8-16`, `pb-exemple-6-8-16`) porte la chaîne du texte
+(`seq_start` 21) ; les autres cas ont `seq_start` 2 et `prev_hash` =
+SHA-256(UTF-8 `noortrace/vecteurs/v0/otel/<cas>/precedent`), sauf
+`pb-identifiants-invalides`, qui reprend la chaîne de son jumeau
+`json-identifiants-invalides` (mêmes événements). `lag_ms` est `null` quand
+la fin déclarée du span vaut 0. Dans chaque pièce d'enveloppe, les
+horodatages restent lisibles (membres structurels, EX-6.35) ; les cas en
+portent qui passent le contrôle de Luhn (`1794307799250500000`). Cas, avec ce
+que chacun établit :
+
+| Cas | Établit |
+|---|---|
+| `json-exemple-6-8-16` | L'exemple calculé de 6.8.16 : deux spans scellés, pièces et événements identiques au texte |
+| `pb-exemple-6-8-16` | Le même lot en protobuf : mêmes formes normalisées, pièces et événements ; réponse protobuf vide |
+| `json-inference-sans-contenu` | Span d'inférence sans attribut de contenu : requête sans messages, pas de prompt système, `intent: null`, réponse réduite à l'usage |
+| `json-inference-gemini` | `generate_content`, `gcp.gemini`, modèle de la réponse : `code.model` de la forme `gcp.gemini/<modèle>` |
+| `json-inference-fournisseur` | Deux spans : `gen_ai.system` seul (déprécié) donne le fournisseur ; un fournisseur hors motif donne `inconnu/<modèle>` |
+| `json-inference-erreur` | `status.code` 2 et `error.type` : `is_error: true`, sans `gen_ai.output.messages` |
+| `json-inference-prompt-inline` | `model.prompt_in_request: "inline"` : le prompt reste dans la requête, rédigé |
+| `json-outil-sans-contenu` | Pièces « arguments » et « résultat » réduites à la marque `noortrace_otel_absent` |
+| `json-outil-erreur` | Outil en erreur (`error.type`) |
+| `json-outil-mcp-tools-call` | Span MCP `tools/call <outil>` sans `gen_ai.operation.name` : appel d'outil |
+| `json-outil-nom-invalide` | `gen_ai.tool.name` qui contient `__` : `<alias>__nom-invalide`, nom reçu dans l'enveloppe |
+| `json-outil-gabarit-effets` | Gabarit d'effets de `policy.otel.sources.<alias>.tools.<N>.effects` évalué sur les valeurs rédigées |
+| `json-spans-ignores` | Span HTTP sans attribut GenAI, `embeddings`, `invoke_agent` : tous ignorés, réponse `{}`, aucune pièce |
+| `json-sorte-desactivee` | `ingest: ["outil"]` : le span d'inférence est ignoré (`sorte_desactivee`) |
+| `json-identifiants-invalides` | `traceId` tout à zéro, `spanId` de 12 chiffres : deux rejets, `partialSuccess` avec `rejectedSpans: "2"`, le troisième span scellé |
+| `pb-identifiants-invalides` | Le même en protobuf : corps de réponse protobuf du succès partiel, octet pour octet |
+| `json-doublon-meme-requete` | Le même span deux fois dans la requête : le second est un doublon |
+| `json-doublon-deja-vu` | Clé déjà dans `seen` : doublon, rien de scellé |
+| `json-recouvrement-mcp` | Span d'outil apparié à un appel MCP de `recorded` : recouvrement, `overlap_seq` |
+| `json-recouvrement-passerelle` | Span d'inférence apparié à un échange de la passerelle |
+| `json-recouvrement-conserve` | `overlap: "conserver"` : le span apparié est scellé |
+| `json-entiers-64-bits` | Horodatages en nombres JSON au-delà de 2^53, lus exactement ; `intValue` 9007199254740993 rendu en chaîne, `-5` en nombre |
+| `json-valeurs-diverses` | `bytesValue`, `doubleValue` `"NaN"` et `1.5`, tableaux et listes imbriqués, `AnyValue` vide, `stringValueStrindex`, `keyStrindex` sans `key` |
+| `json-cle-double` | Attribut en double : la première occurrence est gardée |
+| `json-contenu-chaine-non-json` | `gen_ai.tool.call.arguments` en chaîne qui n'est pas du JSON : gardée telle quelle |
+| `json-champ-inconnu` | Champs inconnus à plusieurs niveaux : ignorés ; noms en snake_case ignorés |
+| `json-run-id-refuse` | `gen_ai.conversation.id` qui contient une adresse électronique : `run_id: null` |
+| `json-retard` | Span terminé deux heures avant la réception : `ts` de réception, `lag_ms` |
+| `json-lot-vide` | `{"resourceSpans":[]}` : `200`, `{}` |
+| `pb-champ-inconnu` | Numéros de champ inconnus de chaque type de fil : sautés |
+| `json-enum-en-chaine` | `"kind": "SPAN_KIND_CLIENT"` : `400` |
+| `json-identifiant-non-hexadecimal` | `traceId` non hexadécimal : `400` |
+| `json-non-analysable` | Corps qui n'est pas du JSON : `400` |
+| `pb-champ-double` | Champ non répété présent deux fois : `400` |
+| `pb-tronque` | Corps tronqué : `400` |
+| `gzip-json` | `Content-Encoding: gzip` : même résultat que le corps décomprimé |
+| `deflate-refuse` | `Content-Encoding: deflate` : `415` |
+| `type-de-contenu-inconnu` | `text/plain` : `415` |
+| `trop-grand` | Corps au-delà de `max_body_bytes` (borne réduite dans `source.json`) : `413` |
+| `trop-grand-apres-decompression` | Corps comprimé sous la borne, décomprimé au-delà : `413` |
+| `non-authentifie` | `token_id: null` : `401`, corps `Status` |
+| `non-authentifie-type-texte` | jeton absent et `text/plain` : `401` (ordre des décisions d'EX-6.27) |
+| `deflate-trop-grand` | `deflate` et corps au-delà de la borne : `415`, le codage est jugé avant la taille |
+| `non-chemin-normalisable` | chemin refusé par la normalisation d'EX-5.2 : `404` |
+| `json-entier-fractionnaire` | `"flags": 1.0` : `400` (EX-6.29) |
+| `json-fin-nulle` | `endTimeUnixNano` 0 : scellé, `duration_ms` 0, `lag_ms` null |
+| `json-contenu-hors-span` | attributs de contenu en chaîne JSON dans un événement, la ressource et une `kvlistValue` : gardés en chaîne (EX-6.31) |
+| `json-operation-renommee` | `gen_ai.operation` au lieu de `gen_ai.operation.name` : ignoré, `hors_genai` (EX-6.25) |
+
+Le vérificateur Go recalcule, depuis le seul texte de 6.8 : le décodage JSON
+et protobuf (statut, refus), la forme normalisée de chaque span, la
+classification, les doublons et recouvrements à partir de `seen` et
+`recorded`, chaque pièce (octets, `sha256`, `length`, `redacted`) par
+réapplication de `pii-v1`, chaque événement (`hash`, `sig`, chaîne), le
+corps de la réponse (JSON et protobuf) et `lag_ms`. La confrontation tierce
+(`spec/vecteurs/ct-2/confrontation/otel/`, sortie publiée dans
+`confrontation/sorties/otel.txt`) analyse chaque `requete.json`
+accepté par `opentelemetry-proto` 1.45.1 (`json_format.Parse` après
+conversion des identifiants hexadécimaux en base64, sans laquelle la
+bibliothèque lit l'hexadécimal comme du base64, R11-F44) et chaque
+`requete.pb` par `ExportTraceServiceRequest.FromString`, et compare
+identifiants, noms, sortes, horodatages, statuts et attributs à `normalized`
+d'`attendu.json` ; elle compare aussi le corps de chaque réponse `200` à
+`ExportTraceServiceResponse` (`MessageToDict`, `SerializeToString(
+deterministic=True)`) et les paires JSON et protobuf. Les cas où NOORTRACE
+refuse ce que la bibliothèque accepte sont publiés comme divergences
+voulues, avec la règle de 6.8 qui les fonde : `json-enum-en-chaine`
+(EX-6.29), `json-identifiant-non-hexadecimal` (EX-6.29, R11-F44),
+`json-entier-fractionnaire` (EX-6.29), `pb-champ-double` (EX-6.30). Limite
+de l'outil, montrée par une sonde en mémoire sur `json-champ-inconnu` (le
+vecteur n'emploie que des valeurs par défaut) : `json_format.Parse` lit les
+noms d'origine en snake_case, qu'OTLP/JSON tient pour inconnus et que
+NOORTRACE ignore. Ne sont pas confrontés : le statut des cas décidés avant
+tout décodage (`401`, `404`, `405`, `413`, `415`), hors de portée d'une
+bibliothèque protobuf, et le corps `google.rpc.Status` des refus, absent
+d'`opentelemetry-proto` et de `protobuf`. Installation par `pip install
+--only-binary :all: --no-deps` et `pip check` ; le job de confrontation
+exige une sortie égale octet pour octet à la sortie publiée.
+
+### B.9 `worm/` (révision 0.5)
+
+Cinq fichiers, chacun `{ "version": 0, "family", "description", "cases": [ …
+] }` validé par le schéma `worm-v0` (`family` = `worm/requetes`, `worm/etats`,
+`worm/perimetres`, `worm/gardes`, `worm/levees`). Constantes : bucket
+`noortrace-demo-worm`, préfixe `journal-demo/`, `org_id` et `journal_id` de
+`journal-demo`, période de démonstration `1794304800` ; les identifiants de
+version sont fictifs (`3/L4kqtJl40Nr8X8gdRQBpUMLUo` est repris de l'exemple de
+la page `ListObjectVersions`, L-C1, pour exercer l'encodage de `/`).
+
+**`requetes.json`** : cas `$defs/cas_requete` ; `input.operation` et ses
+entrées, `expected` la requête exacte (`method`, `target`, `headers`
+triés, `body_utf8`, `body_length`, `body_sha256`). Cas obligatoires :
+`s3-gel-pose` et `s3-gel-levee` (le segment de l'exemple
+d'EX-12.39 : `Content-Length` 128 et 129, `Content-MD5` calculés) ;
+`s3-lire-gel` ; `s3-etat-version` ; `s3-liste-premiere-page` et
+`s3-liste-page-suivante` (`key-marker`, `version-id-marker`) ;
+`s3-configuration-verrou-4018` et `s3-lire-configuration` ;
+`s3-copie` et `s3-copie-gel-a-l-ecriture` (corps court, `If-None-Match`,
+`x-amz-object-lock-legal-hold`) ; `s3-cle-a-encoder` (clé et version avec
+espace, lettres accentuées, `+`, `/` et `=` :
+`/journal%20d%C3%A9mo/pi%C3%A8ce.json?legal-hold&versionId=a%2Bb%2Fc%3D`) ;
+`azure-gel-pose`, `azure-gel-levee`, `azure-etat-version` (`versionid` avec `:`
+encodé) ; `gcs-gel-pose`, `gcs-gel-levee` (nom avec `/` encodé `%2F`,
+`generation`), `gcs-etat-version`.
+
+**`etats.json`** : cas `$defs/cas_etat` ; la réponse d'une lecture de
+version (`headers` en minuscules pour S3 et Azure, `json` pour GCS),
+l'état attendu (`retain_until_min`, `hold`), et le verdict
+d'EX-12.33. Cas obligatoires : S3 conforme sans gel (`jamais_gele`) ;
+S3 conforme et gelé ; S3 gel attendu absent (`gel_absent`) ; S3 gel
+`OFF` attendu absent ; S3 mode `GOVERNANCE` (`mode_non_conforme`) ; S3
+sans en-tête de mode (`mode_absent`) ; S3 échéance trop courte
+(`echeance_courte`) ; S3 échéance à la forme `IMF-fixdate` ; S3 échéance
+illisible (`date_illisible`) ; S3 gel inattendu (conforme, note
+`gel_inattendu`) ; Azure conforme (`locked`, `x-ms-legal-hold: true`) ;
+Azure `unlocked` ; GCS conforme (`retention.mode` `Locked`,
+`temporaryHold` `true`) ; GCS sans `retention` (`mode_absent`,
+`echeance_absente`) ; S3 valeur de gel hors table (`gel_illisible`).
+
+**`perimetres.json`** : cas `$defs/cas_perimetre` ; préfixe, plage,
+manifestes lus, versions listées, pièces éventuelles ; attendus : liste
+des objets, son empreinte, son nombre, anomalies. Cas obligatoires :
+l'exemple d'EX-12.35 (six objets, empreinte
+`0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c`) ;
+deux périodes dont une vide (`last_seq = first_seq − 1`, aucun segment
+attendu) ; segment d'un écrivain périmé (deux époques pour un même
+`first_seq`, toutes deux retenues) ; versions multiples ; marqueur de
+suppression ; manifeste absent (`manifeste_absent`,
+`segments_indetermines`) ; segment absent ; pièces copiées
+(`<prefix>pieces/<xx>/…`) ; clés hors plage ignorées ; deux périodes portant
+chacune des anomalies (ordre des anomalies d'EX-12.35) ; signature réduite
+à un marqueur de suppression ; manifeste illisible (`manifeste_illisible`) ;
+pièce absente (`piece_absente`) ; pièces non copiées et purgeables
+(`pieces_non_copiees`, entrée `pieces_purgeable`).
+
+**`gardes.json`** : cas `$defs/cas_garde` ; une suite d'enregistrements,
+leurs empreintes attendues (`record_sha256`, dans l'ordre), le verdict
+et les erreurs `{ "n", "code" }` d'EX-12.38. Cas obligatoires : la
+suite valide de l'exemple d'EX-12.37 (cinq enregistrements, empreintes
+de 12.11) ; une suite par code d'erreur (`chaine_rompue`,
+`premier_non_pose`, `ordre_invalide`, `meme_identite`,
+`demande_inconnue`, `demande_expiree` à sept jours et une milliseconde,
+`levee_en_double`, `objets_differents`, `periode_differente`) ; une
+demande remplacée par une seconde demande, la levée approuvant la
+seconde (valide) ; une reprise (`pose_resultat` deux fois, valide) ; deux
+levées dont l'empreinte ne désigne aucune demande (`demande_inconnue`
+seulement, jamais `levee_en_double`) ; une suite vide (`premier_non_pose`
+au rang 1).
+
+**`levees.json`** : cas `$defs/cas_levee` ; la liste des objets d'un gel
+levé et celles des autres gels actifs du préfixe (`other_holds`) ;
+attendus : les versions à lever (`lift`) et celles laissées gelées
+(`keep`, avec le `gel_id` du premier gel qui les couvre) (EX-12.40). Cas :
+aucun autre gel ; chevauchement partiel ; deux gels couvrant la même
+version ; autre version d'une même clé (levée).
+
+### B.10 `cout-agent/` (révision 0.5)
+
+`cas.json` : `{ "version": 0, "family": "cout-agent", "description",
+"cases": [ … ] }`, validé par le schéma `cout-agent-v0` ; chaque cas
+porte `input` (`$defs/entrees`) et `expected` (`$defs/sorties`), sorties
+arrondies selon EX-16.5. Cas obligatoires : les neuf cas de la table de
+16.4 (`reference`, `sans-worm`, `pieces-dans-le-worm`,
+`taille-minimale-facturable`, `gel-juridique`, `segments-scindes`,
+`agent-inactif`, `un-agent-par-journal`, `pieces-purgees`). Le
+`anchoring_cost_per_journal` du cas `reference` est le `cost_per_journal`
+du cas `defaut-second-rang-a1` de `spec/vecteurs/ct-5/cout/cout.json` :
+le générateur le relit dans ce fichier, sans le recalculer. Tous les prix
+sont des unités symboliques ; `INDEX.md` le dit, comme CT-5 AN-60.
+
+Le vérificateur Go recalcule, pour ces deux familles, depuis le seul texte
+de la révision 0.5 : la cible encodée, les en-têtes triés, les corps,
+leur longueur, leur SHA-256 et leur `Content-MD5` ; le verdict, les
+raisons et les notes de chaque état ; le périmètre, sa liste d'objets,
+son empreinte et ses anomalies ; les empreintes des enregistrements et le
+verdict de la règle de garde ; les sorties de la formule de coût.
+
 ## Annexe C — Sources des faits externes
 
 Les renvois R1 à R9 du texte désignent les notes de recherche internes du lot
-CT-2 (les « digests »), et R10 celle de la révision 0.3 (0.1), qui ne sont
-pas publiées. Cette annexe donne, pour
-chaque renvoi de la présente spécification, l'objet du fait en quelques mots
-et la ou les sources primaires publiques consultées, à la date indiquée ; elle
-ne remplace pas la lecture de ces sources. Un fait marqué « non vérifié » dans
-le texte le reste : pour un point non vérifié (NV-…, N2.…), la source indiquée
-est la page lue, qui ne tranche pas le point. Formes des renvois : Qn
-(question), F-… ou F1.x.y (fait), NV-… ou N2.x (point non vérifié), C… ou
-« conséquence n » (point de conception de la note, résolu par les sources des
-faits qui le fondent), § x.y (section de la note). Un renvoi à la note entière
-(« R5 », « digest R6 », ou « le digest » quand le contexte nomme la note)
-figure sous la forme « R5 (section 12.3) », où 12.3 est la section de CT-2 qui
-le porte, avec les sources de la note qui concernent ce passage. Une plage
-(« R2 F-A21 à F-A29 ») est résolue identifiant par identifiant ; les
-identifiants NV-… sans préfixe de la table des backends (section 11.2)
-relèvent de R3. La mention « aucune source primaire publique dans la note ;
-fait non recoupable » signale un point que la note n'appuie sur aucune page
-publique.
+CT-2 (les « digests »), R10 celle de la révision 0.3 et R11 à R13 celles de la
+révision 0.5 (0.1), qui ne sont pas publiées. Cette annexe donne, pour chaque
+renvoi de la présente spécification, l'objet du fait en quelques mots et la ou
+les sources primaires publiques consultées, à la date indiquée ; elle ne
+remplace pas la lecture de ces sources. Un fait marqué « non vérifié » dans le
+texte le reste : pour un point non vérifié (NV-…, N2.…), la source indiquée est
+la page lue, qui ne tranche pas le point. Formes des renvois : Qn (question),
+F-… ou F1.x.y (fait), NV-… ou N2.x (point non vérifié), C… ou « conséquence n »
+(point de conception de la note, résolu par les sources des faits qui le
+fondent), § x.y (section de la note). Un renvoi à la note entière (« R5 », «
+digest R6 », ou « le digest » quand le contexte nomme la note) figure sous la
+forme « R5 (section 12.3) », où 12.3 est la section de CT-2 qui le porte, avec
+les sources de la note qui concernent ce passage. Une plage (« R2 F-A21 à F-A29
+») est résolue identifiant par identifiant ; les identifiants NV-… sans préfixe
+de la table des backends (section 11.2) relèvent de R3. La mention « aucune
+source primaire publique dans la note ; fait non recoupable » signale un point
+que la note n'appuie sur aucune page publique. Les renvois de la révision 0.5
+suivent les formes de leurs notes : « R11-F5 », « R11-NV2 », « R11-C4 », «
+R12-F10 », « NV-R12-5 », « R12, conséquence 7 », « R13-F4 », « R13 NV-1 », «
+R13 conséquence 3 » ; les lectures directes de la révision 0.5 portent « L5-… »
+(C.13) et « L-C… » (C.14).
 
 ### C.1 R1 — Model Context Protocol
 
@@ -8562,3 +13371,237 @@ et les longueurs cités, et n'a pas d'autre source primaire.
 | R10 NV-3 | Aucun registre des codes d'application JSON-RPC : l'absence de collision de `-31010` à `-31017` n'est pas vérifiée | https://www.jsonrpc.org/specification (ne tranche pas) | 2026-10-23 |
 | R10 NV-4 (levé) | Interruption par `vm` de `replace`, `replaceAll`, `split`, `matchAll`, `match`, `search` et `test` : levée ; avec une borne de 50 ms, arrêt entre 49,5 et 50,8 ms sur `[0-9]+$` et 80 000 chiffres suivis de `x`, contre 4 365 ms (`exec`) et 4 888 ms (`replace`) sans borne | mesure sous Node.js v22.22.0 avec `scripts/lib/capture.mjs` ; test/enregistreur.test.js (EX-10.23, « R10 NV-4 levé ») | 2026-10-23 |
 | R10 NV-5 | Coût d'un moteur à automate écrit en JavaScript : non mesuré | https://v8.dev/blog/non-backtracking-regexp (ne tranche pas) | 2026-10-23 |
+
+### C.10 R11 — Gemini et OpenTelemetry (révision 0.5)
+
+`PY@cb1408b` désigne `googleapis/python-genai` au commit
+`cb1408b06c573060f1593023ca320fde9a4fb5f6` (2026-10-24), dont les fichiers
+cités sont identiques à l'étiquette `v2.33.0` sauf `_api_client.py` après la
+ligne 1590 et `types.py` ; `JS@0dd787c` désigne `googleapis/js-genai` au
+commit `0dd787c23d76139982d7acb01e3c99978f563007` (2026-10-23), identique à
+l'étiquette `v2.31.0` pour les fichiers cités. Les URL suivent la forme
+`https://github.com/<dépôt>/blob/<commit>/<fichier>#L<n>`. Une « observation »
+est une requête faite avec une clé volontairement invalide (aucune clé
+réelle).
+
+`SC@v1.41.1` désigne `open-telemetry/semantic-conventions` à l'étiquette
+`v1.41.1`, commit `ead83b9b0fa36540c1642fce46e874f002ac23f1` ; `GENAI@2025935`
+désigne `open-telemetry/semantic-conventions-genai` au commit
+`20259355b9631e3f032dcc099d1b5a2666818c42` ; `PROTO@v1.11.1` désigne
+`open-telemetry/opentelemetry-proto` à l'étiquette `v1.11.1`, avec la même
+forme d'URL.
+
+| Renvoi | Objet | Source(s) primaire(s) | Consultée le |
+|---|---|---|---|
+| R11-F1 | `generateContent` et `streamGenerateContent`, deux `POST` sur `v1beta/models/{modelsId}` | https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta (révision `20261024`) | 2026-10-26 |
+| R11-F2 | Même forme en `v1` ; différences de schéma entre `v1` et `v1beta` | https://generativelanguage.googleapis.com/$discovery/rest?version=v1 (révision `20261024`) | 2026-10-26 |
+| R11-F3 | Paramètre `alt` (`json`, `media`, `proto`, sans `sse`) et paramètre `key` | documents de découverte v1 et v1beta | 2026-10-26 |
+| R11-F4 | Exemples à `alt=sse` ; « a stream of GenerateContentResponse instances » | https://ai.google.dev/api/generate-content (mise à jour du 2026-10-22) | 2026-10-26 |
+| R11-F5 | Les deux SDK envoient toujours `?alt=sse` pour le flux | `PY@cb1408b`, `google/genai/models.py` L4662, L4758-L4773 ; `JS@0dd787c`, `src/models.ts` L902, L944 | 2026-10-26 |
+| R11-F6 | URL de base, version `v1beta`, en-tête `x-goog-api-key`, variables `GOOGLE_API_KEY` et `GEMINI_API_KEY` | `PY@cb1408b`, `google/genai/_api_client.py` L170-L175, L1046, L1054-L1061 ; `JS@0dd787c`, `src/_api_client.ts` L22-L23, `src/node/_node_auth.ts` L11, `src/node/node_client.ts` L382-L383 | 2026-10-26 |
+| R11-F7 | Construction du chemin `models/{model}` (Gemini) et `publishers/…/models/…` (Vertex) | `PY@cb1408b`, `google/genai/_transformers.py` L164-L187, `_api_client.py` L246-L254, L1707-L1712 | 2026-10-26 |
+| R11-F8 | `HttpOptions.base_url` / `baseUrl`, `GOOGLE_GEMINI_BASE_URL`, `GOOGLE_VERTEX_BASE_URL`, ordre de priorité | `PY@cb1408b`, `google/genai/types.py` L2722-L2725, `_base_url.py` L34-L50 ; `JS@0dd787c`, `src/types.ts` L2363-L2365, `src/node/node_client.ts` L328-L329 | 2026-10-26 |
+| R11-F9 | URL envoyée avec une URL de base changée ; mode Vertex sans projet ni clé : URL de base sans chemin | `PY@cb1408b`, `google/genai/_api_client.py` L1031-L1041, L1729-L1744 ; `JS@0dd787c`, `src/_api_client.ts` L328-L332, L440-L455 | 2026-10-26 |
+| R11-F10 | Authentification Vertex (`Authorization: Bearer`, `x-goog-user-project`) ; en-têtes `user-agent` et `x-goog-api-client` | `PY@cb1408b`, `google/genai/_api_client.py` L178-L207, L1777-L1782 | 2026-10-26 |
+| R11-F11 | `GenerateContentRequest`, `Content`, `systemInstruction`, `Tool`, `FunctionDeclaration`, `ToolConfig`, `FunctionCallingConfig` ; rôle `function` | document de découverte v1beta | 2026-10-26 |
+| R11-F12 | `GenerateContentResponse`, `Candidate`, `UsageMetadata`, `finishReason` et son énumération | document de découverte v1beta | 2026-10-26 |
+| R11-F13 | `Part`, `FunctionCall` (`id` facultatif), `FunctionResponse` | document de découverte v1beta ; `PY@cb1408b`, `google/genai/types.py` L1840-L1843, L2059-L2070 | 2026-10-26 |
+| R11-F14 | Outils exécutés par Google (`toolCall`, `toolResponse`, `includeServerSideToolInvocations`) ; `Tool.mcpServers` | document de découverte v1beta | 2026-10-26 |
+| R11-F15 | `continuationToken` ; continuation automatique active par défaut dans le SDK Python | document de découverte v1beta ; `PY@cb1408b`, `google/genai/_extra_utils.py` L790-L804, `models.py` L6133-L6180 | 2026-10-26 |
+| R11-F16 | Lecture du flux par le SDK Python (`data: `, accolades équilibrées, `data` final rendu) | `PY@cb1408b`, `google/genai/_api_client.py` L491-L522 (numéros identiques dans la roue 2.33.0) | 2026-10-26 |
+| R11-F17 | Lecture du flux par le SDK JavaScript (`data:`, délimiteurs, erreur en fin de segment incomplet, `throwIfStreamErrorChunk`) | `JS@0dd787c`, `src/_api_client.ts` L740-L815, L1107-L1127 | 2026-10-26 |
+| R11-F18 | Aucune fusion des morceaux ; historique d'un `Content` par morceau | `PY@cb1408b`, `google/genai/models.py` L4798-L4830, `chats.py` L140-L167, L472-L476 | 2026-10-26 |
+| R11-F19 | Erreur sans `alt=sse` (tableau JSON) et avec `alt=sse` (`text/event-stream` sans `data:`) | observation de `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent` avec et sans `?alt=sse` | 2026-10-26 |
+| R11-F20 | Forme AIP-193 des erreurs (`code` = statut HTTP, `message`, `status`, `details`) ; lecture par le SDK Python | observation de `…:generateContent` ; https://google.aip.dev/193 ; `PY@cb1408b`, `google/genai/errors.py` L110-L147 | 2026-10-26 |
+| R11-F21 | Erreur Vertex `401` en `text/event-stream` sans `data:` | observation de `https://aiplatform.googleapis.com/v1/projects/projet-exemple/locations/global/publishers/google/models/gemini-2.0-flash:streamGenerateContent?alt=sse` | 2026-10-26 |
+| R11-F22 | Aucune relance par défaut dans les deux SDK ; codes relancés si l'utilisateur en configure | `PY@cb1408b`, `google/genai/_api_client.py` L652-L677 ; `JS@0dd787c`, `src/_api_client.ts` L170-L177, L871-L873 | 2026-10-26 |
+| R11-F23 | Document de découverte Vertex : chemins par projet et région, portées OAuth, différences de schéma | https://aiplatform.googleapis.com/$discovery/rest?version=v1 (révision `20261012`) | 2026-10-26 |
+| R11-F24 | `partialArgs`, `jsonPath` (RFC 9535), `streamFunctionCallArguments` (Vertex seulement) | document de découverte Vertex v1 ; `PY@cb1408b`, `google/genai/types.py` L1852-L1859 | 2026-10-26 |
+| R11-F25 | Les conventions GenAI quittent le dépôt principal en v1.42.0 ; v1.42.0 à v1.44.0 ne les contiennent plus | https://github.com/open-telemetry/semantic-conventions/blob/main/CHANGELOG.md (L114-L122) ; étiquettes `v1.42.0`, `v1.43.0`, `v1.44.0`, `docs/gen-ai/gen-ai-spans.md` | 2026-10-26 |
+| R11-F26 | v1.41.1, dernière version publiée qui les contient, statut Development | `SC@v1.41.1`, `docs/gen-ai/gen-ai-spans.md` L7 | 2026-10-26 |
+| R11-F27 | Le dépôt `semantic-conventions-genai` n'a aucune étiquette ; `schema_url` `gen-ai-dev/1.42.0-dev` ; statut Development | `git ls-remote --tags https://github.com/open-telemetry/semantic-conventions-genai.git` ; `GENAI@2025935`, `CHANGELOG.md`, `model/manifest.yaml` L7, `RELEASING.md` L4-L6, `docs/gen-ai/README.md` L7 | 2026-10-26 |
+| R11-F28 | Span d'inférence : nom, sorte, attributs requis, conditionnels et recommandés | `GENAI@2025935`, `docs/gen-ai/client-inference.md` L42-L60 ; `SC@v1.41.1`, `docs/gen-ai/gen-ai-spans.md` L58 | 2026-10-26 |
+| R11-F29 | Valeurs `generate_content`, `execute_tool`, `gcp.gemini`, `gcp.vertex_ai`, `gcp.gen_ai` | `GENAI@2025935`, `docs/registry/attributes/gen-ai.md` L438-L490 | 2026-10-26 |
+| R11-F30 | Attributs de contenu Opt-In ; chaîne JSON admise sur un span ; un message par génération | `GENAI@2025935`, `docs/gen-ai/client-inference.md` (table L68 et suivantes, notes [35], [36]), `model/gen-ai/gen-ai-input-messages.json`, `gen-ai-output-messages.json` | 2026-10-26 |
+| R11-F31 | Pas de capture du contenu par défaut (« SHOULD NOT capture them by default ») | `GENAI@2025935`, `docs/gen-ai/gen-ai-spans.md` L755-L787 ; `SC@v1.41.1`, `docs/gen-ai/gen-ai-spans.md` L697 | 2026-10-26 |
+| R11-F32 | Span d'exécution d'outil : nom, sorte `INTERNAL`, `gen_ai.tool.call.id` conditionnel, arguments et résultat Opt-In, pas deux spans pour un appel | `GENAI@2025935`, `docs/gen-ai/gen-ai-spans.md` L580-L640 ; `SC@v1.41.1`, même fichier L583-L606 | 2026-10-26 |
+| R11-F34 | Événement `gen_ai.client.inference.operation.details`, hors des traces | `GENAI@2025935`, `docs/gen-ai/client-inference.md` L835-L848 ; `SC@v1.41.1`, `docs/gen-ai/gen-ai-events.md` L51 | 2026-10-26 |
+| R11-F36 | Instrumentation Python de google-genai : nom de fonction seul pour le span d'outil, mode de capture du contenu `NO_CONTENT` par défaut, variable `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` | https://github.com/open-telemetry/opentelemetry-python-contrib (commit `21ea6c47…`), `instrumentation-genai/README.md` L1-L6 ; https://github.com/open-telemetry/opentelemetry-python-genai (commit `9a6fb577…`), `instrumentation/opentelemetry-instrumentation-google-genai/…/tool_call_wrapper.py` L53-L55, `util/opentelemetry-util-genai/…/_tool_invocation.py` L112-L113, `environment_variables.py` L4-L15, `types.py` L26-L34 | 2026-10-26 |
+| R11-F37 | OTLP v1.11.1, Stable pour les traces | `PROTO@v1.11.1`, `docs/specification.md` L20-L22 | 2026-10-26 |
+| R11-F38 | OTLP/HTTP : `POST`, `/v1/traces`, `application/x-protobuf` et `application/json`, même `Content-Type` en réponse, port 4318 | `PROTO@v1.11.1`, `docs/specification.md` L433-L444, L488-L502, L559-L563, L716 | 2026-10-26 |
+| R11-F39 | Encodage JSON : identifiants en hexadécimal, énumérations en entiers, champs inconnus ignorés, lowerCamelCase, entiers 64 bits en chaînes ou nombres | `PROTO@v1.11.1`, `docs/specification.md` L452-L486 | 2026-10-26 |
+| R11-F40 | `gzip` obligatoire côté serveur ; borne de 64 MiB recommandée, `413` au-delà | `PROTO@v1.11.1`, `docs/specification.md` L92-L95, L514-L526 | 2026-10-26 |
+| R11-F41 | Succès complet et partiel, échecs, codes relancés (`429`, `502`, `503`, `504`), `400`, `Retry-After`, doublons voulus | `PROTO@v1.11.1`, `docs/specification.md` L569-L681, L783-L789 ; `opentelemetry/proto/collector/trace/v1/trace_service.proto` | 2026-10-26 |
+| R11-F42 | Champs du span : identifiants de 16 et 8 octets, parent vide pour une racine, horodatages de l'horloge locale, `SpanKind`, `StatusCode` | `PROTO@v1.11.1`, `opentelemetry/proto/trace/v1/trace.proto` L90-L113, L188-L202, L305-L330 | 2026-10-26 |
+| R11-F43 | `opentelemetry-proto` 1.45.1 (PyPI, 2026-10-06), généré depuis v1.10.0 ; `protobuf` 7.36.2 | https://pypi.org/pypi/opentelemetry-proto/json ; https://raw.githubusercontent.com/open-telemetry/opentelemetry-python/v1.45.1/scripts/proto_codegen.sh L15 ; https://pypi.org/pypi/protobuf/json | 2026-10-26 |
+| R11-F44 | `json_format.Parse` lit un `traceId` hexadécimal comme du base64 sans erreur ; accepte `"SPAN_KIND_INTERNAL"` | essai de la note (`opentelemetry-proto` 1.45.1, `protobuf` 7.36.2, Python 3.13), script non publié, reproductible avec l'exemple d'OTLP `5B8EFFF798038103D269B633813FC60C` | 2026-10-26 |
+| R11-NV1 | Forme exacte d'un flux `alt=sse` réussi : non vérifiée | https://ai.google.dev/api/generate-content (ne tranche pas) | 2026-10-26 |
+| R11-NV2 | Flux réussi sans `alt=sse` : non vérifié | observation de R11-F19 (cas d'erreur seulement) | 2026-10-26 |
+| R11-NV3 | Remplissage effectif de `functionCall.id` : non observé | document de découverte v1beta (ne tranche pas) | 2026-10-26 |
+| R11-NV4 | Sémantique des morceaux (incréments, `usageMetadata` et `finishReason` au dernier) : non documentée | https://ai.google.dev/api/generate-content (ne tranche pas) | 2026-10-26 |
+| R11-NV5 | Flux réussi de Vertex et réassemblage de `partialArgs` : non vérifiés | document de découverte Vertex v1 (ne tranche pas) | 2026-10-26 |
+| R11-NV6 | URL envoyée par le SDK JavaScript en mode Vertex avec URL de base, sans projet ni clé : non suivie jusqu'au bout | `JS@0dd787c`, `src/_api_client.ts` L328-L332, L440-L455 (ne tranche pas) | 2026-10-26 |
+| R11-NV7 | Erreur au milieu d'un flux `alt=sse` : forme et statut non observés | — (aucune observation possible sans clé valide) | 2026-10-26 |
+| R11-NV8 | Surface « Interactions » : non lue | — | 2026-10-26 |
+| R11-C4 | Réassemblage Gemini par candidat, concaténation des parts (sources des faits qui fondent ce point) | sources de R11-F12, F13, F18 | 2026-10-26 |
+| R11-C8 | Configuration des hôtes : URL de base, `v1beta/` ajouté par le SDK (sources des faits qui fondent ce point) | sources de R11-F8, F9 | 2026-10-26 |
+| R11-C11 | Correspondance span → événement : identité, parent, horodatages de l'agent, statut d'erreur (sources des faits qui fondent ce point) | sources de R11-F28, R11-F32, R11-F42 | 2026-10-26 |
+
+### C.11 R12 — Cadres d'agents et SDK (révision 0.5)
+
+Chaque source est le paquet publié à la version dite, lu sans exécution :
+https://pypi.org/project/<paquet>/<version>/ ou
+https://www.npmjs.com/package/<paquet>/v/<version>.
+
+| Renvoi | Objet | Source(s) primaire(s) | Consultée le |
+|---|---|---|---|
+| R12-F1 | Versions les plus récentes sur PyPI et `requires_python` (dont `langgraph` 1.2.17, `crewai` 1.15.30, `llama-index-core` 0.14.25, `openai-agents` 0.24.0, `litellm` 1.106.4, `google-genai` 2.33.0) | https://pypi.org/pypi/<paquet>/json pour chaque paquet | 2026-10-26 |
+| R12-F2 | `langgraph` 1.2.17 remplace 1.2.16 ; dépendances | https://pypi.org/pypi/langgraph/json ; `langgraph` 1.2.17, `METADATA` | 2026-10-26 |
+| R12-F3 | Versions les plus récentes sur npm et `engines.node` (dont `@google/genai` 2.31.0, `@openai/agents` 0.21.0, `llamaindex` 0.12.1) | https://registry.npmjs.org/<paquet> pour chaque paquet | 2026-10-26 |
+| R12-F6 | Rappels de modèle de LangChain (`on_llm_start`, `on_chat_model_start`, `on_llm_end`) et versions asynchrones | `langchain-core` 1.7.0, `langchain_core/callbacks/base.py` L90-L97, L282-L321, L548-L807 | 2026-10-26 |
+| R12-F8 | `on_tool_start` appelé avant l'outil avec les arguments analysés, sans les arguments injectés | `langchain-core` 1.7.0, `langchain_core/tools/base.py` L934-L945, L1058-L1134 | 2026-10-26 |
+| R12-F9 | Exception d'un gestionnaire synchrone propagée avec `raise_error`, toujours avalée pour un gestionnaire asynchrone | `langchain-core` 1.7.0, `langchain_core/callbacks/manager.py` L351-L386 | 2026-10-26 |
+| R12-F10 | Intergiciel de `langchain` : `wrap_tool_call`, `awrap_tool_call`, `HumanInTheLoopMiddleware` | `langchain` 1.4.7, `langchain/agents/middleware/types.py` L385-L756, `human_in_the_loop.py` L396, L815 | 2026-10-26 |
+| R12-F11 | `interrupt` de LangGraph ; `ToolNode` et ses paramètres `wrap_tool_call` | `langgraph` 1.2.17, `langgraph/types.py` L903-L906 ; `langgraph-prebuilt` 1.1.1, `langgraph/prebuilt/tool_node.py` L763-L764, L966 | 2026-10-26 |
+| R12-F12 | Un outil MCP de `langchain.mcp` est un `StructuredTool` qui passe par les rappels | `langchain` 1.4.7, `langchain/mcp/tools.py` L293-L303 | 2026-10-26 |
+| R12-F13 | Rappels JavaScript (`handleToolStart`, `handleToolEnd`, `handleLLMEnd`) ; `raiseError`, `_awaitHandler` | `@langchain/core` 1.3.0, `dist/callbacks/base.d.ts` L16-L126 | 2026-10-26 |
+| R12-F14 | `handleToolStart` avant `_call` ; gestionnaires en tâche de fond sans `awaitHandlers` | `@langchain/core` 1.3.0, `dist/tools/index.js` L132-L161, `dist/callbacks/manager.js` L407-L408, `dist/callbacks/base.js` L65-L76 | 2026-10-26 |
+| R12-F15 | Intergiciel `wrapToolCall` de LangChain JavaScript | `langchain` (npm) 1.5.19, `dist/agents/middleware/types.d.ts` L352 | 2026-10-26 |
+| R12-F17 | Événements de modèle de CrewAI (`LLMCallStartedEvent`, `LLMCallCompletedEvent`, …) | `crewai` 1.15.30, `crewai/events/types/llm_events.py` L9-L194 | 2026-10-26 |
+| R12-F18 | Écouteurs d'événements CrewAI, groupe de fils `CrewAISyncHandler` | `crewai` 1.15.30, `crewai/events/base_event_listener.py` L8-L20, `crewai/events/event_bus.py` L179-L182, L572 ; https://docs.crewai.com/en/concepts/event-listener | 2026-10-26 |
+| R12-F19 | Crochets `before_tool_call` (blocage, `HookAborted`) et `after_tool_call` | `crewai` 1.15.30, `crewai/hooks/tool_hooks.py` L31-L50, L142-L188, `crewai/hooks/decorators.py` L89-L253 ; https://docs.crewai.com/en/learn/tool-hooks | 2026-10-26 |
+| R12-F20 | Exceptions des crochets avalées sauf `HookAborted` ; crochets synchrones | `crewai` 1.15.30, `crewai/hooks/dispatch.py` L19-L23 | 2026-10-26 |
+| R12-F21 | Ordre : événement de début, crochet, exécution ou cache ; outils MCP résolus en `BaseTool` | `crewai` 1.15.30, `crewai/utilities/agent_utils.py` L1544-L1578, `crewai/mcp/tool_resolver.py` L59, L81 | 2026-10-26 |
+| R12-F22 | Instrumentation de LlamaIndex : `get_dispatcher`, gestionnaires d'événements et de spans | `llama-index-core` 0.14.25, `llama_index/core/instrumentation/__init__.py` L1-L11 ; `llama-index-instrumentation` 0.6.0, `dispatcher.py` L129-L342, `__init__.py` L23 ; https://developers.llamaindex.ai/python/framework/module_guides/observability/instrumentation/ | 2026-10-26 |
+| R12-F23 | `new_span`, `prepare_to_exit_span`, `handle` | `llama-index-instrumentation` 0.6.0, `span_handlers/base.py` L169-L196, `event_handlers/base.py` L20 | 2026-10-26 |
+| R12-F24 | Exceptions des gestionnaires LlamaIndex avalées | `llama-index-instrumentation` 0.6.0, `dispatcher.py` L144-L149, L204-L215 | 2026-10-26 |
+| R12-F25 | `BaseTool` de LlamaIndex instrumenté par `DispatcherSpanMixin` | `llama-index-core` 0.14.25, `llama_index/core/tools/types.py` L168 ; `llama-index-instrumentation` 0.6.0, `__init__.py` L44-L56 | 2026-10-26 |
+| R12-F26 | Agents par flux de LlamaIndex : étape `call_tool`, `tool.acall`, `LLMChatStartEvent`, `LLMChatEndEvent` | `llama-index-core` 0.14.25, `llama_index/core/agent/workflow/base_agent.py` L372-L374, L634-L669, `workflow_events.py` L98-L112, `instrumentation/events/llm.py` L187, L239 | 2026-10-26 |
+| R12-F27 | `AgentToolCallEvent` défini mais jamais émis dans `llama-index-core` 0.14.25 | `llama-index-core` 0.14.25, `llama_index/core/instrumentation/events/agent.py` L115-L131 (recherche dans tout le paquet) | 2026-10-26 |
+| R12-F28 | `add_trace_processor`, `TracingProcessor.on_span_start` et `on_span_end` du SDK Agents | `openai-agents` 0.24.0, `agents/tracing/__init__.py` L94-L101, `agents/tracing/processor_interface.py` L9-L106 ; https://openai.github.io/openai-agents-python/tracing/ | 2026-10-26 |
+| R12-F29 | `FunctionSpanData`, `GenerationSpanData`, `ResponseSpanData` | `openai-agents` 0.24.0, `agents/tracing/span_data.py` L135-L223 | 2026-10-26 |
+| R12-F30 | Entrée d'un outil posée après `on_span_start` | `openai-agents` 0.24.0, `agents/run_internal/tool_execution.py` L1812-L1826, `agents/tracing/spans.py` L256-L258, L348, `agents/models/openai_responses.py` L640-L641 | 2026-10-26 |
+| R12-F31 | `OPENAI_AGENTS_TRACE_INCLUDE_SENSITIVE_DATA` vrai par défaut ; erreurs des processeurs journalisées | `openai-agents` 0.24.0, `agents/run_config.py` L53-L55, `agents/tracing/provider.py` L147-L159 | 2026-10-26 |
+| R12-F32 | `needs_approval`, garde-fous d'outil, `ToolContext.tool_arguments`, `on_tool_start` | `openai-agents` 0.24.0, `agents/tool.py` L494-L512, `agents/tool_guardrails.py` L80-L108, `agents/tool_context.py` L46-L53, `agents/lifecycle.py` L83-L98 | 2026-10-26 |
+| R12-F33 | `mcp_data` d'un span d'outil MCP | `openai-agents` 0.24.0, `agents/mcp/util.py` L842-L844 | 2026-10-26 |
+| R12-F34 | `BatchTraceProcessor` : file de 8 192, fil de fond, abandon quand la file est pleine | `openai-agents` 0.24.0, `agents/tracing/processors.py` L698-L778 | 2026-10-26 |
+| R12-F35 | Processeur de traces du SDK Agents en JavaScript | `@openai/agents-core` 0.21.0, `dist/tracing/index.d.ts` L22-L28, `dist/tracing/processor.d.ts` L7-L29, `dist/tracing/spans.d.ts` L33-L51 | 2026-10-26 |
+| R12-F36 | Span `function` créé sans l'entrée, posée ensuite ; `needsApproval` | `@openai/agents-core` 0.21.0, `dist/tracing/createSpans.mjs` L155-L169, `dist/runner/toolExecution.mjs` L510, L780, L1168-L1191, `dist/tool.d.ts` L247 | 2026-10-26 |
+| R12-F37 | `CustomLogger` de LiteLLM et son enregistrement | `litellm` 1.106.4, `litellm/integrations/custom_logger.py` L65-L192, `litellm/__init__.py` L181 ; https://docs.litellm.ai/docs/observability/custom_callback | 2026-10-26 |
+| R12-F38 | Une exception de `log_pre_api_call` n'arrête pas l'appel | `litellm` 1.106.4, `litellm/litellm_core_utils/litellm_logging.py` L1500-L1514 | 2026-10-26 |
+| R12-F39 | Crochets d'appel du mandataire LiteLLM seulement (`async_pre_call_hook`, …) | `litellm` 1.106.4, `litellm/integrations/custom_logger.py` L410-L587 | 2026-10-26 |
+| R12-F40 | `api_base` en bibliothèque et dans la configuration du mandataire | `litellm` 1.106.4, `litellm/main.py` L5174-L5353 ; https://docs.litellm.ai/docs/proxy/configs | 2026-10-26 |
+| R12-F41 | `HttpOptions.base_url` / `baseUrl` et variables d'URL de base de google-genai | `google-genai` 2.33.0, `google/genai/types.py` L2712-L2718, `_base_url.py` L34-L50 ; `@google/genai` 2.31.0, `dist/genai.d.ts` L8481-L8484, `dist/node/index.mjs` L28493 | 2026-10-26 |
+| R12-F42 | Appel automatique de fonctions actif par défaut, dix appels au plus | `google-genai` 2.33.0, `google/genai/types.py` L5732-L5743, `_extra_utils.py` L327-L333 | 2026-10-26 |
+| R12-F43 | Calendrier de Node.js : v20 en fin de vie le 2026-04-30, v22 jusqu'au 2027-04-30 | https://raw.githubusercontent.com/nodejs/Release/main/schedule.json (L110-L116) | 2026-10-26 |
+| R12-F44 | Calendrier de Python : 3.10 en fin de vie le 2026-10-01 | https://peps.python.org/api/release-cycle.json (L50-L55) | 2026-10-26 |
+| R12-F45 | Node.js 22 minimum pour `openai` 7.43.0 et `@openai/agents` 0.21.0 ; versions non en fin de vie pour `@anthropic-ai/sdk` 1.3.0 | `openai` 7.43.0, `README.md` L866, L896 et manifeste ; `@openai/agents` 0.21.0, `README.md` L27-L29 ; `@anthropic-ai/sdk` 1.3.0, `README.md` L41-L43 | 2026-10-26 |
+| R12-F46 | Python 3.10 ou plus pour les SDK lus ; `crewai` exclut 3.14, `litellm` exclut 3.15 | `openai` 3.37.0, `anthropic` 2.3.0, `mcp` 2.3.0, `openai-agents` 0.24.0, `crewai` 1.15.30, `litellm` 1.106.4 : `METADATA` | 2026-10-26 |
+| R12-F47 | Clients synchrone et asynchrone distincts des SDK d'OpenAI et d'Anthropic | `openai` 3.37.0, `openai/_client.py` L130, L914 ; `anthropic` 2.3.0, `anthropic/_client.py` L153, L607 | 2026-10-26 |
+| R12-F48 | Reprise bornée, attente exponentielle avec gigue, clé d'idempotence réutilisée | `openai` 3.37.0, `openai/_constants.py` L7-L14, `openai/_base_client.py` L548-L549, L912-L916, L1148-L1150 ; `anthropic` 2.3.0, `anthropic/_constants.py` L10-L15 | 2026-10-26 |
+| R12-F50 | Chemin de prise Unix tronqué à 107 octets sous Linux, 103 sous macOS | https://raw.githubusercontent.com/nodejs/node/v22.22.0/doc/api/net.md (L38-L50) ; https://raw.githubusercontent.com/nodejs/node/v22.22.0/doc/api/http.md (L3941-L3942) | 2026-10-26 |
+| R12-F51 | `asyncio.open_unix_connection` | https://raw.githubusercontent.com/python/cpython/3.12/Doc/library/asyncio-stream.rst (L136-L142) | 2026-10-26 |
+| NV-R12-2 | Rappels LangChain pour un outil exécuté par le fournisseur : non lus | `langchain-core` 1.7.0 (ne tranche pas) | 2026-10-26 |
+| NV-R12-4 | Points d'accroche de LlamaIndex en JavaScript et de CrewAI hors Python : non lus | https://registry.npmjs.org/llamaindex (ne tranche pas) | 2026-10-26 |
+| NV-R12-5 | Format exact des requêtes du mandataire LiteLLM vers un `api_base` : non lu | https://docs.litellm.ai/docs/proxy/configs (ne tranche pas) | 2026-10-26 |
+| NV-R12-6 | Rappel officiel autour de l'appel automatique de fonctions de google-genai : aucun trouvé, absence non prouvée | `google-genai` 2.33.0, `google/genai/types.py`, `_extra_utils.py` (ne tranche pas) | 2026-10-26 |
+| R12, conséquence 1 | Deux familles de points d'accroche, observation et interception (sources des faits qui fondent ce point) | sources de R12-F9, F10, F11, F14, F18, F19, F20, F24, F31, F32, F38 | 2026-10-26 |
+| R12, conséquence 2 | Tests des adaptateurs : démon arrêté, approbation, ordre, outil MCP (sources des faits qui fondent ce point) | sources de R12-F9, F14, F20, F24, F31, F38 | 2026-10-26 |
+| R12, conséquence 4 | Résultat déclaré : la valeur rendue au modèle (sources des faits qui fondent ce point) | sources de R12-F8, F19, F32 | 2026-10-26 |
+| R12, conséquence 5 | Double capture des outils MCP par les points d'accroche des cadres (sources des faits qui fondent ce point) | sources de R12-F12, F21, F33 | 2026-10-26 |
+| R12, conséquence 7 | LiteLLM n'exécute pas d'outil ; topologies de mandataire (sources des faits qui fondent ce point) | sources de R12-F37 à F40 | 2026-10-26 |
+| R12, conséquence 9 | Pratiques des bibliothèques clientes, identifiant d'appel hors interface (sources des faits qui fondent ce point) | sources de R12-F34, F47 à F51 | 2026-10-26 |
+
+### C.12 R13 — Supports WORM : gel juridique, double contrôle de la levée, postes de coût (révision 0.5)
+
+Pages téléchargées le 2026-10-26 et converties en texte sans exécution ;
+« L » désigne une ligne du texte converti. Les pages de prix n'ont été
+lues que pour le nom des postes.
+
+| Renvoi | Objet | Source(s) primaire(s) | Consultée le |
+|---|---|---|---|
+| R13-F1 | S3 : requête `PUT /{Key+}?legal-hold&versionId=…`, corps `<LegalHold><Status>`, valeurs `ON` et `OFF`, réponse `200` | https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObjectLegalHold.html (L15-L24, L38-L39, L66-L71) ; https://docs.aws.amazon.com/AmazonS3/latest/API/API_ObjectLockLegalHold.html (L9-L13) | 2026-10-26 |
+| R13-F2 | S3 : lecture du gel `GET ?legal-hold` ; gel posé à l'écriture par l'en-tête `x-amz-object-lock-legal-hold` de `PutObject` | https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObjectLegalHold.html (L17-L20, L45-L51) ; https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html (L322-L323) | 2026-10-26 |
+| R13-F3 | S3 : gel sans durée, posé et levé par quiconque détient `s3:PutObjectLegalHold` ; permissions par opération | https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html (L172-L177) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-policy-actions.html (L640-L642, L752-L756, L848-L852) | 2026-10-26 |
+| R13-F4 | S3 : indépendance du gel et de la rétention ; le contournement du mode Governance ne lève pas le gel | https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html (L178-L185) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html (L59-L61) | 2026-10-26 |
+| R13-F5 | S3 : le gel et la rétention ne protègent que la version visée, ni les nouvelles versions ni les marqueurs de suppression | https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html (L36-L40, L190-L193) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html (L128-L129) | 2026-10-26 |
+| R13-F6 | S3, mode Compliance : personne, racine comprise, ne supprime avant l'échéance ; seule la suppression du compte le fait | https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html (L118-L126) | 2026-10-26 |
+| R13-F7 | S3 : rétention variable par *event hold*, durée de 1 à 36 500 jours | https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html (L70-L78) ; https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObjectRetention.html (L22-L31) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html (L200-L203, L265-L266, L284-L285) | 2026-10-26 |
+| R13-F8 | S3 : en-têtes `x-amz-object-lock-*` de `HEAD`, rendus selon les droits de lecture, gel absent si jamais posé ; inventaire jusqu'à 48 h de retard | https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadObject.html (L263-L268, L390-L393, L399-L401, L406-L408) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html (L32-L41, L110-L111) | 2026-10-26 |
+| R13-F9 | CloudTrail : événements de données désactivés par défaut et payants ; `PutObjectLegalHold` journalisable | https://docs.aws.amazon.com/AmazonS3/latest/userguide/cloudtrail-logging-s3-info.html (L15-L18, L38-L62) | 2026-10-26 |
+| R13-F10 | S3 : `Content-MD5` ou somme de contrôle exigé pour écrire un objet dans un bucket à rétention | https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html (L137-L140) | 2026-10-26 |
+| R13-F11 | MFA delete ne couvre que le versioning et la suppression définitive d'une version | https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html (L9-L16, L31-L32, L40) | 2026-10-26 |
+| R13-F12 | Clés `aws:MultiFactorAuthPresent` et `aws:MultiFactorAuthAge`, présentes seulement avec des identifiants temporaires | https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html (L647-L667) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-bucket-policies.html (L837-L931) | 2026-10-26 |
+| R13-F13 | Clés de condition `s3:object-lock-*`, dont `s3:object-lock-legal-hold`, dans le jeu de données de l'éditeur de politiques | https://awspolicygen.s3.amazonaws.com/js/policies.js | 2026-10-26 |
+| R13-F14 | Racine du compte : tâches réservées ; une SCP ou une RCP lie la racine d'un compte membre | https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html (L118-L121) ; https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html (L74-L75, L94-L95) ; https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_rcps.html (L152) | 2026-10-26 |
+| R13-F15 | Approbation à plusieurs d'AWS Organizations : opérations couvertes, aucune de S3 | https://docs.aws.amazon.com/mpa/latest/userguide/what-is.html (L8-L9, L46-L47, L60-L78) | 2026-10-26 |
+| R13-F16 | Azure : `Set Blob Legal Hold` (`PUT ?comp=legalhold`, `versionid`, `x-ms-legal-hold`, sans corps, `200`, action RBAC) | https://learn.microsoft.com/en-us/rest/api/storageservices/set-blob-legal-hold (L24-L38, L52-L56, L80-L81, L93-L94, L102, L106) | 2026-10-26 |
+| R13-F18 | Azure : effet du gel, gel de conteneur et étiquettes, audit du conteneur seulement, incompatibilité avec la politique de niveau version | https://learn.microsoft.com/en-us/azure/storage/blobs/immutable-storage-overview (L48, L65, L71, L73, L75) | 2026-10-26 |
+| R13-F19 | Azure : en-têtes `x-ms-immutability-policy-until-date`, `x-ms-immutability-policy-mode`, `x-ms-legal-hold` de `Get Blob Properties` | https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob-properties (L200-L205) | 2026-10-26 |
+| R13-F21 | Entra PIM : approbation de l'activation d'un rôle, deux approbateurs recommandés, authentification multifacteur | https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-resource-roles-configure-role-settings (L45, L72-L73) ; https://learn.microsoft.com/en-us/entra/id-governance/privileged-identity-management/pim-resource-roles-approval-workflow (L29) | 2026-10-26 |
+| R13-F22 | GCS : *temporary hold* et *event-based hold*, effet de leur levée sur la rétention | https://docs.cloud.google.com/storage/docs/object-holds (L421-L433, L442-L448, L464-L465, L481-L484) | 2026-10-26 |
+| R13-F23 | GCS : pose et levée par `PATCH` de l'API JSON, corps `{"temporaryHold": …}`, nom d'objet encodé ; API XML exclue ; espace de noms hiérarchique exclu | https://docs.cloud.google.com/storage/docs/holding-objects (L2022-L2038, L2048) ; https://docs.cloud.google.com/storage/docs/object-holds (L485-L487, L493) | 2026-10-26 |
+| R13-F24 | GCS : membres `temporaryHold`, `eventBasedHold`, `retentionExpirationTime`, `retention` de la ressource objet | https://docs.cloud.google.com/storage/docs/json_api/v1/objects (L468-L474, L600-L602, L678-L680, L702-L704) | 2026-10-26 |
+| R13-F25 | GCS : permissions `storage.objects.update`, `storage.objects.setRetention`, `storage.objects.overrideUnlockedRetention` | https://docs.cloud.google.com/storage/docs/holding-objects (L433-L435) ; https://docs.cloud.google.com/storage/docs/access-control/iam-permissions (L510-L519) | 2026-10-26 |
+| R13-F26 | Google Privileged Access Manager : approbations à plusieurs, en Preview | https://docs.cloud.google.com/iam/docs/pam-overview (L348-L349, L399-L402, L445-L466) | 2026-10-26 |
+| R13-F27 | Exoscale SOS : verrouillage par legal hold, activation à la création, aucune requête de pose montrée | https://community.exoscale.com/product/storage/object-storage/how-to/versioning/index.md (L32-L46, L76-L79, L146, L150) | 2026-10-26 |
+| R13-F28 | Exoscale : règles CEL des politiques, noms d'opérations SOS, aucune opération de legal hold nommée | https://community.exoscale.com/product/security/iam/how-to/policy-guide/index.md (L57-L73, L621-L640) ; https://community.exoscale.com/product/storage/object-storage/how-to/bucketpolicy/index.md (L78) | 2026-10-26 |
+| R13-F29 | MinIO (documentation AIStor) : gel indéfini, levé par qui détient `s3:PutObjectLegalHold` | https://docs.min.io/aistor/administration/object-locking-and-immutability/ (L873-L875, L920-L928) ; https://docs.min.io/aistor/reference/cli/mc-legalhold/mc-legalhold-set/ (L662-L667, L722) | 2026-10-26 |
+| R13-F30 | MinIO : clé `s3:object-lock-legal-hold` applicable à `PutObjectLegalHold` | https://docs.min.io/aistor/administration/iam/access/ (L1040-L1050) | 2026-10-26 |
+| R13-F31 | Amazon S3 : postes de coût (stockage, requêtes, transfert, taille et durée minimales) | https://aws.amazon.com/s3/pricing/ (L168, L180-L187, L358) | 2026-10-26 |
+| R13-F32 | Azure Blob : postes de coût ; gel facturé comme une écriture | https://azure.microsoft.com/en-us/pricing/details/storage/blobs/ (L821-L824, L1500-L1596) ; https://learn.microsoft.com/en-us/azure/storage/blobs/immutable-storage-overview (L136) | 2026-10-26 |
+| R13-F33 | Google Cloud Storage : postes de coût ; `PATCH` en classe A | https://docs.cloud.google.com/storage/pricing (L7-L10, L160-L188, L211-L217, L320-L333, L542-L545) | 2026-10-26 |
+| R13-F34 | Exoscale : stockage au Gio·heure, sortie et entrée, taille minimale de 128 Kio, aucune ligne de requêtes | https://www.exoscale.com/pricing/ (L2958-L2967, L3018-L3043) ; https://community.exoscale.com/product/storage/object-storage/how-to/versioning/index.md (L40-L43) | 2026-10-26 |
+| R13 NV-1 | Applicabilité de `s3:object-lock-legal-hold` à `PutObjectLegalHold` chez AWS (page lue, qui ne tranche pas ; tableau de la Service Authorization Reference non lisible) | https://awspolicygen.s3.amazonaws.com/js/policies.js ; https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazons3.html (non obtenue) | 2026-10-26 |
+| R13 NV-2 | Caractère obligatoire de `Content-MD5` pour `PutObjectLegalHold` | https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObjectLegalHold.html (ne tranche pas) | 2026-10-26 |
+| R13 NV-3 | Catégorie de facturation des requêtes de gel chez AWS | https://aws.amazon.com/s3/pricing/ (ne tranche pas) | 2026-10-26 |
+| R13 NV-4 | Absence d'approbation à plusieurs native pour S3 au-delà de la liste lue | https://docs.aws.amazon.com/mpa/latest/userguide/what-is.html (ne tranche pas) | 2026-10-26 |
+| R13 NV-5 | Exoscale : prise en charge de `PutObjectLegalHold`, `GetObjectLegalHold`, des en-têtes de `HEAD`, du mode Compliance, et restriction de la levée | https://community.exoscale.com/product/storage/object-storage/how-to/versioning/index.md ; https://community.exoscale.com/product/security/iam/how-to/policy-guide/index.md (ne tranchent pas) | 2026-10-26 |
+| R13 NV-7 | Azure : action RBAC distincte pour lever un gel de niveau version ; double contrôle propre au stockage | https://learn.microsoft.com/en-us/rest/api/storageservices/set-blob-legal-hold ; https://learn.microsoft.com/en-us/azure/role-based-access-control/permissions/storage (ne tranchent pas) | 2026-10-26 |
+| R13 NV-8 | Google Cloud : condition IAM sur la valeur d'un hold | https://docs.cloud.google.com/storage/docs/holding-objects ; https://docs.cloud.google.com/storage/docs/access-control/iam-permissions (ne tranchent pas) | 2026-10-26 |
+| R13 NV-9 | Aucune réponse signée ni attestation vérifiable hors ligne de l'état de gel ou de rétention | pages des fournisseurs de cette table (absence constatée, non preuve d'inexistence) | 2026-10-26 |
+| R13 conséquences 2, 3, 4, 6, 7 | Gel à l'écriture et levée par le même droit ; ce que la politique permet ; ce qui reste procédural ; rétention variable non retenue ; postes de la formule de coût (sources des faits qui les fondent) | sources de R13-F3, F4, F6, F7, F11 à F15, F21, F26, F27, F29, F30 à F34 ci-dessus | 2026-10-26 |
+
+### C.13 Lectures directes de la révision 0.5 (SDK, adaptateurs, OpenTelemetry)
+
+Sources primaires lues pour cette révision en dehors des notes R11 à R13,
+pour la partie concernée. Un paquet est lu dans son archive
+publiée (roue PyPI), sans exécution ; un numéro de ligne renvoie au fichier
+du paquet à la version dite.
+
+| Renvoi | Objet | Source(s) primaire(s) | Consultée le |
+|---|---|---|---|
+| L5-1 | OTLP/HTTP : HTTP/1.1 ou HTTP/2, lot vide en succès, `Status` des réponses d'échec (`code` facultatif, `message`), `error_message` en anglais recommandé, les deux encodages sur le même port (SHOULD), gRPC sur le même port (MAY) | `PROTO@v1.11.1`, `docs/specification.md` L433-L436, L574-L575, L598-L606, L622-L633, L699-L706 | 2026-10-26 |
+| L5-2 | `AnyValue` (membres 1 à 8), `KeyValueList` et clés uniques, `KeyValue`, champs `*_strindex` du signal des profils | `PROTO@v1.11.1`, `opentelemetry/proto/common/v1/common.proto` L28-L52, L62-L75, L79-L100 | 2026-10-26 |
+| L5-3 | Champs du `Span` et numéros, clés d'attributs uniques, `Event`, `Link`, `Status` | `PROTO@v1.11.1`, `opentelemetry/proto/trace/v1/trace.proto` L96-L330 | 2026-10-26 |
+| L5-4 | `ExportTraceServiceRequest`, `ExportTraceServiceResponse`, `ExportTracePartialSuccess` | `PROTO@v1.11.1`, `opentelemetry/proto/collector/trace/v1/trace_service.proto` | 2026-10-26 |
+| L5-5 | `Resource` | `PROTO@v1.11.1`, `opentelemetry/proto/resource/v1/resource.proto` | 2026-10-26 |
+| L5-6 | Registre des attributs GenAI (types, statut Development, valeurs de `gen_ai.operation.name` et de `gen_ai.provider.name`, notes sur les chaînes JSON, `gen_ai.system` déprécié) ; nom et sorte des spans d'inférence et d'outil ; schémas des messages et des instructions système | `SC@v1.41.1`, `docs/registry/attributes/gen-ai.md` L18-L67, L73-L76, L90-L93, L148-L185, L218-L230, L245-L269, L290 ; `docs/gen-ai/gen-ai-spans.md` L58-L62, L594-L606 ; `docs/gen-ai/gen-ai-input-messages.json`, `gen-ai-output-messages.json`, `gen-ai-system-instructions.json` (`$defs` `TextPart`, `ToolCallRequestPart`, `OutputMessage`) | 2026-10-26 |
+| L5-7 | Spécification de l'exportateur OTLP (statut Stable) : adresse par signal employée telle quelle, `v1/traces` ajouté à l'adresse de base, protocoles `grpc`, `http/protobuf`, `http/json`, défaut `http/protobuf`, en-têtes au format W3C Baggage, délai de dix secondes attentes comprises, relances | https://github.com/open-telemetry/opentelemetry-specification/blob/v1.62.0/specification/protocol/exporter.md (L7, L24-L73, L110-L190, L192-L225) | 2026-10-26 |
+| L5-8 | Exportateur OTLP/HTTP Python 1.45.1 : `OTLPSpanExporter(endpoint, headers, timeout, compression, max_request_size)`, adresse complète du signal, `timeout` en secondes, compression `gzip` ou `deflate`, borne de 64 MiB par défaut | `opentelemetry-exporter-otlp-proto-http` 1.45.1, `opentelemetry/exporter/otlp/proto/http/trace_exporter/__init__.py` L61-L62, L100-L139 | 2026-10-26 |
+| L5-9 | Spans MCP : nom `{mcp.method.name} {target}`, `mcp.method.name` requis, `tools/call`, `gen_ai.operation.name` sur un appel d'outil MCP | `SC@v1.41.1`, `docs/gen-ai/mcp.md` L130-L160, L201, L286 | 2026-10-26 |
+| L5-10 | Variables du SDK : `OTEL_SDK_DISABLED`, `OTEL_TRACES_SAMPLER` (défaut `parentbased_always_on`, valeurs), processeur par lots (délai de 5 000 ms, file de 2 048, lot de 512) | https://github.com/open-telemetry/opentelemetry-specification/blob/v1.62.0/specification/configuration/sdk-environment-variables.md (L115, L120, L134-L142, L159-L162) | 2026-10-26 |
+| L5-11 | Métadonnées `mcp` d'un outil converti par `langchain.mcp`, absentes sans annotations, `_meta` ni serveur connecté | `langchain` 1.4.7, `langchain/mcp/tools.py` L183-L209, L302 | 2026-10-26 |
+| L5-12 | `create_agent(model, tools, middleware=…)` ; composition des intergiciels (« first defined = outermost ») ; `awrap_tool_call` | `langchain` 1.4.7, `langchain/agents/factory.py` L824-L829 ; `langchain/agents/middleware/types.py` L674-L685, L756 ; `langchain/agents/middleware/__init__.py` L32, L40 | 2026-10-26 |
+| L5-13 | `ToolMessage.tool_call_id`, `ToolMessage.status` (`success`, `error`) | `langchain-core` 1.7.0, `langchain_core/messages/tool.py` L67, L81 | 2026-10-26 |
+| L5-14 | `FunctionTool.on_invoke_tool` : contexte et arguments en chaîne JSON, sortie structurée ou chaîne | `openai-agents` 0.24.0, `agents/tool.py` L455-L476 | 2026-10-26 |
+| L5-15 | `Agent.tools` et `Agent.mcp_servers` distincts, réunis à l'exécution par `get_all_tools` | `openai-agents` 0.24.0, `agents/agent.py` L198, L201, L262, L286-L312 | 2026-10-26 |
+| L5-16 | CrewAI : contexte des crochets (`tool_input` modifiable en place, `tool_result`), réducteurs `before` et `after`, enregistrement des crochets globaux, contextes distincts avant et après, texte de blocage, texte d'erreur, cache, outil d'origine, classes d'outils MCP | `crewai` 1.15.30, `crewai/hooks/tool_hooks.py` L31-L51, L142-L161, L173-L245 ; `crewai/utilities/agent_utils.py` L1559-L1567, L1576, L1585, L1592, L1609, L1637-L1647 ; `crewai/crew.py` L234-L238 ; `crewai/agents/agent_builder/base_agent.py` L261-L266 ; `crewai/tools/structured_tool.py` L217 ; `crewai/tools/base_tool.py` L420 ; `crewai/tools/mcp_native_tool.py` L18 ; `crewai/tools/mcp_tool_wrapper.py` L17 | 2026-10-26 |
+| L5-17 | LlamaIndex : `ToolOutput` (`blocks`, `tool_name`, `raw_input`, `raw_output`, `is_error`), `AsyncBaseTool.call` et `acall` | `llama-index-core` 0.14.25, `llama_index/core/tools/types.py` L106-L113, L229-L250 | 2026-10-26 |
+| L5-18 | `ToolCallRequest` (`tool_call` : `name`, `args`, `id` ; `tool` ; `state` ; `runtime`) ; appel de l'enveloppe par `ToolNode` | `langgraph-prebuilt` 1.1.1, `langgraph/prebuilt/tool_node.py` L141-L156, L1030-L1075 | 2026-10-26 |
+| L5-19 | SDK OpenTelemetry Python 1.45.1 : `TracerProvider(sampler=…)`, `add_span_processor`, `BatchSpanProcessor(span_exporter, max_queue_size, schedule_delay_millis, …)`, `ALWAYS_ON` ; `set_tracer_provider` | `opentelemetry-sdk` 1.45.1, `opentelemetry/sdk/trace/__init__.py` L1250-L1277, L1390 ; `opentelemetry/sdk/trace/export/__init__.py` L143, L160-L164 ; `opentelemetry/sdk/trace/sampling.py` L59-L62, L242 ; `opentelemetry-api` 1.45.1, `opentelemetry/trace/__init__.py` L555 | 2026-10-26 |
+| L5-20 | Versions npm : `@opentelemetry/sdk-node` 0.300.0 et `@opentelemetry/exporter-trace-otlp-proto` 0.300.0 (2026-10-20, `engines.node` `>=22.15.0`) | https://registry.npmjs.org/@opentelemetry/sdk-node ; https://registry.npmjs.org/@opentelemetry/exporter-trace-otlp-proto | 2026-10-26 |
+| L5-21 | Versions PyPI : `opentelemetry-sdk`, `opentelemetry-api` et `opentelemetry-exporter-otlp-proto-http` 1.45.1 (2026-10-06, Python 3.10 ou plus) | https://pypi.org/pypi/opentelemetry-sdk/json ; https://pypi.org/pypi/opentelemetry-api/json ; https://pypi.org/pypi/opentelemetry-exporter-otlp-proto-http/json | 2026-10-26 |
+
+### C.14 Lectures directes de la révision 0.5 (supports WORM)
+
+| Renvoi | Objet | Source primaire | Consultée le |
+|---|---|---|---|
+| L-C1 | S3 `ListObjectVersions` : syntaxe `GET /?versions&…&key-marker=…&max-keys=…&prefix=…&version-id-marker=…`, 1 000 clés par réponse au plus, `IsTruncated`, `NextKeyMarker`, `NextVersionIdMarker`, versions et marqueurs de suppression, exemple de version `3/L4kqtJl40Nr8X8gdRQBpUMLUo` ; permission `s3:ListBucketVersions` | https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjectVersions.html (L26, L55-L62, L93-L127, L176-L199, L213-L233) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-policy-actions.html (L410-L413) | 2026-10-26 |
+| L-C2 | S3 `PutObjectLockConfiguration` : `PUT /?object-lock`, `Content-MD5`, corps `ObjectLockConfiguration` (`ObjectLockEnabled`, `Rule`, `DefaultRetention` : `Days`, `DefaultEventHold`, `Mode`, `Years`), `Days` et `Years` exclusifs ; `DefaultRetention` | https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObjectLockConfiguration.html (L8-L19, L22-L43, L89-L90) ; https://docs.aws.amazon.com/AmazonS3/latest/API/API_DefaultRetention.html | 2026-10-26 |
+| L-C3 | S3 `GetObjectLockConfiguration` : `GET /?object-lock`, réponse `ObjectLockConfiguration` | https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObjectLockConfiguration.html (L17-L19, L31-L42) | 2026-10-26 |
+| L-C4 | RFC 3986 : caractères non réservés (§2.3) ; chiffres hexadécimaux majuscules recommandés pour l'encodage pour cent (§2.1) | https://www.rfc-editor.org/rfc/rfc3986.txt (L634-L655, L718-L724) | 2026-10-26 |
+| L-C5 | RFC 1864 : `Content-MD5` = base64 des 16 octets du condensé MD5 | https://www.rfc-editor.org/rfc/rfc1864.txt (L85-L100) | 2026-10-26 |
+| L-C6 | Fichiers de R13 relus pour des lignes que la note ne cite pas : en-têtes `x-amz-object-lock-mode`, `x-amz-object-lock-retain-until-date`, `x-amz-object-lock-legal-hold` de `PutObject` et `x-amz-version-id` de sa réponse ; rétention par défaut du bucket calculée depuis la date de création de la version et écrasée par une rétention explicite ; restriction des durées par `s3:object-lock-remaining-retention-days` ; exemple `put-object-lock-configuration` ; permissions de `GetObject`, `DeleteObject`, `GetObjectLegalHold`, `GetObjectRetention`, `HeadObject`, `PutObject` | https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html (L320-L337, L700-L712) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html (L20-L29, L80-L91) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-configure.html (L94, L201-L228) ; https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-policy-actions.html (L524-L526, L599-L602, L630-L637, L675-L695, L720-L760, L777-L790) | 2026-10-26 |
+| L-C7 | GCS `objects.patch` : `PATCH https://storage.googleapis.com/storage/v1/b/bucket/o/object`, paramètre `generation` qui vise une révision | https://docs.cloud.google.com/storage/docs/json_api/v1/objects/patch (L447-L470) | 2026-10-26 |
+| L-C8 | Azure `Get Blob Properties` : `HEAD …/mycontainer/myblob?versionid=<DateTime>` | https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob-properties (L31-L51) | 2026-10-26 |

@@ -1,0 +1,40 @@
+[
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Je consulte "
+            }
+          ],
+          "role": "model"
+        }
+      }
+    ],
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0013",
+    "sdkHttpResponse": {
+      "headers": {
+        "content-type": "text/event-stream"
+      }
+    }
+  },
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "le sinistre."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0013"
+  }
+]

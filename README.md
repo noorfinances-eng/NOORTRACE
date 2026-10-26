@@ -58,6 +58,14 @@ implementations written separately from the reference.
   payloads, stream reassembly, event construction) are implemented and checked.
   Revision 0.4 adds the production of checkpoints and their hand-over to the
   anchoring component.
+  Revision 0.5 adds Gemini (`generateContent`, `streamGenerateContent`) to the
+  model gateway; Python and TypeScript SDKs with adapters for LangChain and
+  LangGraph, CrewAI, LlamaIndex, the OpenAI Agents SDK and LiteLLM; ingestion
+  of OpenTelemetry GenAI traces over OTLP, recorded as declarative like the SDK;
+  a legal hold on the WORM copies, released by two people, with the writer
+  unable to delete or release; and a per-agent cost formula whose unit prices
+  are parameters. Gemini payloads and OTLP requests in the vectors are
+  confronted with the official google-genai and opentelemetry-proto libraries.
 - **CT-3, approvals**: a JSON rule language over a tool and its arguments, three
   levels (automatic, time-boxed window, per-call review), the ticket lifecycle, the
   approver set pinned by the policy and read from the client's CuratorSet, what an

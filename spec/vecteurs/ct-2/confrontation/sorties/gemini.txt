@@ -1,0 +1,581 @@
+Confrontation des vecteurs CT-2 pieces-modele/gemini-* par google-genai 2.33.0 (pydantic 2.14.1, pydantic-core 2.50.1, httpx 0.28.1)
+Entrées : pieces-modele/gemini-*/{requete.json, requete.brut, requete-ligne.json, reponse.json, reponse.sse, reponse-morceaux.json, reponse-entetes.json, attendu.json}
+Types : modèles pydantic du SDK (alias camelCase, membres inconnus refusés : extra='forbid', google/genai/_common.py) ; client : genai.Client sur un transport httpx simulé, sans réseau
+
+== 1. Corps des requêtes : clés de premier niveau (document de découverte, R11-F11, R11-F2) et membres analysés par les types du SDK
+-- gemini-erreur-http (requete.json, SHA-256 0x577469fa963661a8e07edcd7e4d9e02e71841c41efc557d0d5d3ff4abfae082e, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-erreur-http-sse (requete.json, SHA-256 0x577469fa963661a8e07edcd7e4d9e02e71841c41efc557d0d5d3ff4abfae082e, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux (requete.json, SHA-256 0x4716444d72df2304f1364b125341c96d31528a1707a72e56c60663aad4f9d035, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-crlf-data-final (requete.json, SHA-256 0x577469fa963661a8e07edcd7e4d9e02e71841c41efc557d0d5d3ff4abfae082e, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-data-final-sans-fin-de-ligne (requete.json, SHA-256 0x577469fa963661a8e07edcd7e4d9e02e71841c41efc557d0d5d3ff4abfae082e, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-erreur-morceau (requete.json, SHA-256 0x28f3140a7da0ea5da62ad4be0c7610e89093e6151e2ee2d274b30ecd8afedc08, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-erreur-seule (requete.json, SHA-256 0x34099efc8094e86da2a7e355f0d0e4e39ce5030d58a92ba3df16a1c85bd77958, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-incomplet (requete.json, SHA-256 0x77348502348dda5e1619cad2bdb5a3a30edc0808ca8c670cecee9e8136efdaa1, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-index (requete.json, SHA-256 0x3276a7294fc91346b11ae294b448b8f4ac758264e32caa0c831d9a4cb7bd3a09, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  generationConfig : types.GenerationConfig.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-index-desordre (requete.json, SHA-256 0x3276a7294fc91346b11ae294b448b8f4ac758264e32caa0c831d9a4cb7bd3a09, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  generationConfig : types.GenerationConfig.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-index-limites (requete.json, SHA-256 0x34099efc8094e86da2a7e355f0d0e4e39ce5030d58a92ba3df16a1c85bd77958, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-outils (requete.json, SHA-256 0x4d81e8c46a776a368b520921c5903b90ab12fed76b568f30f1d5331528605faf, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  tools[0] : types.Tool.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-outils-serveur (requete.json, SHA-256 0xf092e5d80a67987cceefb94fd5ac23400d326d3044e5a176be4ca77f1f6fe89e, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  toolConfig : types.ToolConfig.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  tools[0] : types.Tool.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-pensee (requete.json, SHA-256 0xf7fb4787a991900214158ca8b7efbd1b705c32fc5db2574e1b0aab19544d7076, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-vide (requete.json, SHA-256 0x34099efc8094e86da2a7e355f0d0e4e39ce5030d58a92ba3df16a1c85bd77958, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-forme-inattendue (requete.json, SHA-256 0x29808ce42129015df171d9fc52710aa783f23aecc2182ae62fef12f2f3574b91, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  generationConfig : types.GenerationConfig.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-hote-inconnu (requete.json, SHA-256 0x34099efc8094e86da2a7e355f0d0e4e39ce5030d58a92ba3df16a1c85bd77958, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-non-flux (requete.json, SHA-256 0xf6ae36568aa8f9c4628613daac6a24c43a101f4a289cc2056a00bb851935c22d, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  contents[1] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  contents[2] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  contents[3] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  generationConfig : types.GenerationConfig.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  tools[0] : types.Tool.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-prompt-inline (requete.json, SHA-256 0x5884ba4d52f237f4accf5975d6aca82dd2cf5eeed293ff8ecfd4cdb643385ee6, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-refus-cache (requete.json, SHA-256 0xa34d6b134231cce57f6f37f94bbfba702d27388d3e7c052f717fbb994be22868, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  cachedContent : sans type du SDK pour ce membre (valeur "cachedContents/contenu-fictif")
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-refus-cle-url (requete.json, SHA-256 0x34099efc8094e86da2a7e355f0d0e4e39ce5030d58a92ba3df16a1c85bd77958, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-refus-flux-sans-sse (requete.json, SHA-256 0x34099efc8094e86da2a7e355f0d0e4e39ce5030d58a92ba3df16a1c85bd77958, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-refus-mcp-fournisseur (requete.json, SHA-256 0x28ffe08f6c415b868e8153b2a5be6830065f50bc97e8815adbde2833a3709cbd, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  tools[0] : types.Tool.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-refus-parametre (requete.json, SHA-256 0x34099efc8094e86da2a7e355f0d0e4e39ce5030d58a92ba3df16a1c85bd77958, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-requete-non-analysable (requete.brut, SHA-256 0x0063e6bdadddd36e241061aeef1605286d5ea2f383736f8b636ffebfb9239f90)
+  vecteur : refus corps_non_analysable (statut 400)
+  analyseur JSON de pydantic (TypeAdapter(dict).validate_json) : divergence voulue (EX-5.7 point 2) : clé en double admise, la dernière occurrence l'emporte : analysable, clés ['contents'], contents de 0 élément(s)
+-- gemini-route-inconnue (requete.json, SHA-256 0x34099efc8094e86da2a7e355f0d0e4e39ce5030d58a92ba3df16a1c85bd77958, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-sans-modelversion (requete.json, SHA-256 0x577469fa963661a8e07edcd7e4d9e02e71841c41efc557d0d5d3ff4abfae082e, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-sdk-erreur-declaree (requete.json, SHA-256 0x208add0360cdba2809d43923a090bba78985dbc22c7aa75d4d0f2df82f1f5206, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  model : sans type du SDK pour ce membre (valeur "models/gemini-exemple")
+-- gemini-sdk-morceaux (requete.json, SHA-256 0xe5c8483e0fc61b1efce6802762d52c497e9c302153e6e24aaa3f5aefeacf812c, route v1beta)
+  clés de premier niveau hors de GenerateContentRequest (v1beta) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  model : sans type du SDK pour ce membre (valeur "models/gemini-exemple")
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-v1-non-flux (requete.json, SHA-256 0xed914e247e0f00b17c1b989b1b564d651e3583dec09073406cce3e0d7a09476a, route v1)
+  clés de premier niveau hors de GenerateContentRequest (v1) : vecteur [] ; outil [] : concorde
+  contents[0] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  contents[1] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  contents[2] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  contents[3] : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  systemInstruction : types.Content.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  tools[0] : types.Tool.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+
+== 2. Requêtes reconstruites par le client du SDK (generate_content et generate_content_stream, transport simulé) : cible et corps envoyés
+-- gemini-erreur-http (cible reçue /v1beta/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:generateContent ; outil /v1beta/models/gemini-exemple:generateContent : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-erreur-http-sse (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-crlf-data-final (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-data-final-sans-fin-de-ligne (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-erreur-morceau (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-erreur-seule (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-incomplet (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-index (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-index-desordre (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-index-limites (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-outils (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-outils-serveur (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-pensee (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-flux-vide (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; outil /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-forme-inattendue (cible reçue /v1beta/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur refusee ; outil refusee : concorde
+    raison du SDK : ValueError : contents are required.
+-- gemini-hote-inconnu (cible reçue /v1beta/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK : /v1beta/models/gemini-exemple:generateContent ; vecteur : refus hote_inconnu de la cible reçue /v1beta/models/gemini-exemple:generateContent (le SDK n'émet pas cette cible : sans objet)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-non-flux (cible reçue /v1beta/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:generateContent ; outil /v1beta/models/gemini-exemple:generateContent : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-prompt-inline (cible reçue /v1beta/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:generateContent ; outil /v1beta/models/gemini-exemple:generateContent : concorde
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-refus-cache (cible reçue /v1beta/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK : /v1beta/models/gemini-exemple:generateContent ; vecteur : refus cache_fournisseur de la cible reçue /v1beta/models/gemini-exemple:generateContent (le SDK n'émet pas cette cible : sans objet)
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-refus-cle-url (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse&key=cle-fictive-de-test)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK : /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; vecteur : refus cle_dans_url de la cible reçue /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse&key=cle-fictive-de-test (le SDK n'émet pas cette cible : sans objet)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-refus-flux-sans-sse (cible reçue /v1beta/models/gemini-exemple:streamGenerateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK : /v1beta/models/gemini-exemple:streamGenerateContent?alt=sse ; vecteur : refus flux_sans_sse de la cible reçue /v1beta/models/gemini-exemple:streamGenerateContent (le SDK n'émet pas cette cible : sans objet)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-refus-mcp-fournisseur (cible reçue /v1beta/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK : /v1beta/models/gemini-exemple:generateContent ; vecteur : refus serveurs_mcp_fournisseur de la cible reçue /v1beta/models/gemini-exemple:generateContent (le SDK n'émet pas cette cible : sans objet)
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json, aux noms de membres près : vecteur [] ; outil [] : concorde
+  corps envoyé par le SDK : LIMITE DE L'OUTIL : membre(s) émis en snake_case au lieu du nom de l'API en lowerCamelCase : $.tools[0].mcpServers[0].streamableHttpTransport émis en snake_case ({"url":"https://mcp.exemple.invalid/mcp"})
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-refus-parametre (cible reçue /v1beta/models/gemini-exemple:generateContent?alt=proto)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK : /v1beta/models/gemini-exemple:generateContent ; vecteur : refus parametre_non_admis de la cible reçue /v1beta/models/gemini-exemple:generateContent?alt=proto (le SDK n'émet pas cette cible : sans objet)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-route-inconnue (cible reçue /v1beta/tunedModels/m:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK : /v1beta/models/gemini-exemple:generateContent ; vecteur : refus route_inconnue de la cible reçue /v1beta/tunedModels/m:generateContent (le SDK n'émet pas cette cible : sans objet)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-sans-modelversion (cible reçue /v1beta/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1beta/models/gemini-exemple:generateContent ; outil /v1beta/models/gemini-exemple:generateContent : concorde
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+-- gemini-v1-non-flux (cible reçue /v1/models/gemini-exemple:generateContent)
+  construction de la requête par le SDK : vecteur construite ; outil construite : concorde
+  cible envoyée par le SDK = upstream_target : vecteur /v1/models/gemini-exemple:generateContent ; outil /v1/models/gemini-exemple:generateContent : concorde
+  ajout du SDK sans valeur : generationConfig {} (retiré avant comparaison)
+  corps envoyé par le SDK = requete.json (même valeur JSON) : vecteur [] ; outil [] : concorde
+  en-tête x-goog-api-key envoyé (clé dans l'en-tête, jamais dans l'URL, EX-5.29) : vecteur True ; outil True : concorde
+
+== 3. Réponses : lecture du flux par le SDK (HttpResponse.segments) et par EX-5.14 / EX-5.34 ; chaque objet par types.GenerateContentResponse
+-- gemini-erreur-http (reponse.json, SHA-256 0xac6ff62d20f7b06a41fa2130ed5a635a610296054c42b0cb864cfc0d4f75e1de, statut 400, application/json; charset=UTF-8)
+  corps d'erreur (statut 400) : types.GenerateContentResponse.model_validate_json : vecteur refuse ; outil refuse : concorde
+    raisons du SDK : extra_forbidden à error
+-- gemini-erreur-http-sse (reponse.sse, SHA-256 0xd4075c5e958d5c70001fba0907281e1fe122e748b57a3c7225e813752b86c8e1, statut 400, text/event-stream)
+  objets lus par le SDK (corps d'erreur JSON sans data:) : vecteur [{"error":{"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"}],"message":"API key not valid (message fictif de test).","status":"INVALID_ARGUMENT"}}] ; outil [{"error":{"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"}],"message":"API key not valid (message fictif de test).","status":"INVALID_ARGUMENT"}}] : concorde
+  corps analysé par l'enregistreur (EX-5.31) = objet lu par le SDK : vecteur {"error":{"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"}],"message":"API key not valid (message fictif de test).","status":"INVALID_ARGUMENT"}} ; outil {"error":{"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"}],"message":"API key not valid (message fictif de test).","status":"INVALID_ARGUMENT"}} : concorde
+-- gemini-flux (reponse.sse, SHA-256 0xc8811a843bf55deb86070ad105187deed462d9539fbae0584271cffb3cc6a895, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 3 ; outil 3 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[2] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-crlf-data-final (reponse.sse, SHA-256 0x0b87239f11072fed0241806d459db7e17115fe3f16a2c4b4ada013d8852e66a8, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 2 ; outil 2 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-data-final-sans-fin-de-ligne (reponse.sse, SHA-256 0x1247e29b6bde821de34c46805570b84b5f287875e94c381eb763ad3a8b44b24e, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 2 ; outil 2 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-erreur-morceau (reponse.sse, SHA-256 0x01d5f976b732002262bb74fd3d724b358a8d111e6b64507e33fb192ae27075a3, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 3 ; outil 3 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] (morceau d'erreur, EX-5.35 pas 2) : types.GenerateContentResponse.model_validate_json : vecteur refuse ; outil refuse : concorde
+    raisons du SDK : extra_forbidden à error
+  data[2] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-erreur-seule (reponse.sse, SHA-256 0x3832f2ef522c195d819bc8c48e668c9f87e3d600d77e0a0d65faa23a9b27ae4b, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 2 ; outil 2 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] (morceau d'erreur, EX-5.35 pas 2) : types.GenerateContentResponse.model_validate_json : vecteur refuse ; outil refuse : concorde
+    raisons du SDK : extra_forbidden à error
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-incomplet (reponse.sse, SHA-256 0xfa49e263d3acd2969e03b95d0f9f90a8d1be4aa1bcda844e89ce5497ef868922, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 2 ; outil 2 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-index (reponse.sse, SHA-256 0xd195145c4da6eb89d09a6fed52be357ab376c29a01efce1928edc1631f52a470, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 3 ; outil 3 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json : vecteur accepte ; outil accepte : concorde
+  data[1] : divergence voulue (EX-5.35 pas 4, EX-5.27 (1) : un index "0" n'est pas un index, le fragment est ignoré) : relu avec écart : $.candidates[0].index : "0" relu 0
+  data[2] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-index-desordre (reponse.sse, SHA-256 0xfdca2a5a38b878c63bc9e6141e2b442260222fff3e6d6812b5142fedc1f92d26, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 3 ; outil 3 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[2] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-index-limites (reponse.sse, SHA-256 0xa3a4d379a16fb9def693489380fadbd1775010e582547e25139c89130a3d5a4a, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 4 ; outil 4 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json : vecteur accepte ; outil accepte : concorde
+  data[0] : divergence voulue (EX-5.27 (1), EX-8.1 : index lu en double précision ; 1.0 vaut 1, 9007199254740993 vaut 2^53, 9007199254740994 est refusé) : relu avec écart : $.candidates[0].index : 1.0 relu 1
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[2] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[3] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-outils (reponse.sse, SHA-256 0xc978c11809d9d50dc73929e1b3d165e36ac856263ec6cc15bbaab0e9a6abd1e8, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 3 ; outil 3 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[2] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-outils-serveur (reponse.sse, SHA-256 0xa6ddb2849eb0e17b0688852ec0b1164fc3fe34dfe8ff3a3aa1ed2d0bedebaa76, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 3 ; outil 3 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[2] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-pensee (reponse.sse, SHA-256 0x4918b2ed95be6851b3e7306752e7e415043c5152e949115efad81c555965dd04, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 2 ; outil 2 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+  data[0] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  data[1] : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-vide (reponse.sse, SHA-256 0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, statut 200, text/event-stream)
+  nombre de data distribués (EX-5.14, EX-5.34) et d'objets lus par le SDK : vecteur 0 ; outil 0 : concorde
+  objets data = objets lus par le SDK, dans l'ordre : vecteur True ; outil True : concorde
+-- gemini-forme-inattendue (reponse.json, SHA-256 0xe57a3e34a3b3a6a38ea6b7650c253defd9c68cedbd90cd309b896185fb696416, statut 400, application/json; charset=UTF-8)
+  corps d'erreur (statut 400) : types.GenerateContentResponse.model_validate_json : vecteur refuse ; outil refuse : concorde
+    raisons du SDK : extra_forbidden à error
+-- gemini-hote-inconnu : aucune réponse (refus de la passerelle, section 6)
+-- gemini-non-flux (reponse.json, SHA-256 0xb1baec75d6e5cc8c4b35882b8cac3a9fbb91901f141cc85c2c6f5aff2cd32e86, statut 200, application/json; charset=UTF-8)
+  corps : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-prompt-inline (reponse.json, SHA-256 0x7520c6fb8d3f3c099d5213e9352d4377471c857aa8bf03a9a05581d03d5b4114, statut 200, application/json; charset=UTF-8)
+  corps : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-refus-cache : aucune réponse (refus de la passerelle, section 6)
+-- gemini-refus-cle-url : aucune réponse (refus de la passerelle, section 6)
+-- gemini-refus-flux-sans-sse : aucune réponse (refus de la passerelle, section 6)
+-- gemini-refus-mcp-fournisseur : aucune réponse (refus de la passerelle, section 6)
+-- gemini-refus-parametre : aucune réponse (refus de la passerelle, section 6)
+-- gemini-requete-non-analysable : aucune réponse (refus de la passerelle, section 6)
+-- gemini-route-inconnue : aucune réponse (refus de la passerelle, section 6)
+-- gemini-sans-modelversion (reponse.json, SHA-256 0xd6cb746a813f17d938a3f50dbb183dd9f947e0a8d05c3e349e491722bf137e35, statut 200, application/json; charset=UTF-8)
+  corps : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-sdk-erreur-declaree (reponse-morceaux.json, SHA-256 0xb99f697a93b98ac5478fd465dcbcdc2eb6f014b26bc9044bcaf119cd341a7817, 1 morceaux, membres retirés par EX-6.8 : [])
+  morceau[0] sans  : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-sdk-morceaux (reponse-morceaux.json, SHA-256 0x912d7cc509daddd397005bd9e0b68bbd6eb6d8723aa657df38e030762053ee9c, 2 morceaux, membres retirés par EX-6.8 : ['sdkHttpResponse'])
+  morceau[0] sans sdkHttpResponse : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  morceau[0] tel que déclaré (objet du SDK sérialisé) : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  morceau[1] sans sdkHttpResponse : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-v1-non-flux (reponse.json, SHA-256 0xf6ee3945763b32ccb09732d89920b949cd8b48cf33cbe9c1a5cd6563ca5dae35, statut 200, application/json; charset=UTF-8)
+  corps : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+
+== 4. Réponses lues par le client complet du SDK (transport simulé) : objets, erreurs, texte (intent) et appels de fonction (tool_calls)
+-- gemini-erreur-http (reponse.json, statut 400)
+  errors.APIError levée (code, status, message) = corps analysé par l'enregistreur (EX-5.31) : vecteur [400,"INVALID_ARGUMENT","Requête invalide (message fictif de test)."] ; outil [400,"INVALID_ARGUMENT","Requête invalide (message fictif de test)."] : concorde
+  is_error : vecteur True ; outil True : concorde
+-- gemini-erreur-http-sse (reponse.sse, statut 400)
+  errors.APIError levée (code, status, message) = corps analysé par l'enregistreur (EX-5.31) : vecteur [400,"INVALID_ARGUMENT","API key not valid (message fictif de test)."] ; outil [400,"INVALID_ARGUMENT","API key not valid (message fictif de test)."] : concorde
+  is_error : vecteur True ; outil True : concorde
+-- gemini-flux (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 3 ; outil 3 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[2] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent : référence à une pièce (texte rédigé ou long) : sans objet ; texte du SDK "Le dossier 2026-81044 est presque complet ; l'assuré est joignable à j.dupont@example.ch pour la facture manquante."
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-crlf-data-final (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 2 ; outil 2 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Le sinistre est ouvert. ; outil Le sinistre est ouvert. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-data-final-sans-fin-de-ligne (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 2 ; outil 2 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Le sinistre est ouvert. ; outil Le sinistre est ouvert. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-erreur-morceau (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 1 ; outil 1 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  errors.APIError levée sur le morceau d'erreur (code, status, message) = noortrace_erreur_flux : vecteur [500,"INTERNAL","Erreur interne fictive du fournisseur."] ; outil [500,"INTERNAL","Erreur interne fictive du fournisseur."] : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Collision du 2026-11-02,  ; outil Collision du 2026-11-02,  : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-erreur-seule (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 0 ; outil 0 : concorde
+  errors.APIError levée sur le morceau d'erreur (code, status, message) = noortrace_erreur_flux : vecteur [503,"UNAVAILABLE","Service indisponible (message fictif de test)."] ; outil [503,"UNAVAILABLE","Service indisponible (message fictif de test)."] : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur None ; outil None : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-incomplet (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 2 ; outil 2 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Collision du 2026-11-02, dommages estimés à  ; outil Collision du 2026-11-02, dommages estimés à  : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-index (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 3 ; outil 3 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client : divergence voulue (EX-5.35 pas 4, EX-5.27 (1) : un index "0" n'est pas un index, le fragment est ignoré) : $.candidates[0].index : "0" relu 0
+  réponse[2] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text : divergence voulue (EX-5.35 pas 4, EX-5.27 (1) : un index "0" n'est pas un index, le fragment est ignoré) : vecteur "Première formulation.", SDK "Première ignoréeformulation." (le SDK prend candidates[0] de chaque morceau, sans réassembler par index)
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-index-desordre (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 3 ; outil 3 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[2] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text : divergence voulue (EX-5.35 pas 4, 5.5 : candidats créés dans l'ordre de première apparition, intent tiré de candidates[0] de la forme) : vecteur "Seconde version.", SDK "Seconde Première formulation." (le SDK prend candidates[0] de chaque morceau, sans réassembler par index)
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-index-limites (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 4 ; outil 4 : concorde
+  réponse[0] relue par le client : divergence voulue (EX-5.27 (1), EX-8.1 : index lu en double précision ; 1.0 vaut 1, 9007199254740993 vaut 2^53, 9007199254740994 est refusé) : $.candidates[0].index : 1.0 relu 1
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[2] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[3] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text : divergence voulue (EX-5.27 (1), EX-8.1 : index lu en double précision ; 1.0 vaut 1, 9007199254740993 vaut 2^53, 9007199254740994 est refusé) : vecteur "Un atteinte.", SDK "Un limite refuséatteinte." (le SDK prend candidates[0] de chaque morceau, sans réassembler par index)
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-outils (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 3 ; outil 3 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[2] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Je vérifie le dossier puis je crée le paiement de 7400.00 CHF. ; outil Je vérifie le dossier puis je crée le paiement de 7400.00 CHF. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [{"arguments":{"claim_id":"2026-81044"},"id":"appel-exemple-0001","name":"demo__claims_get"},{"arguments":{"amount":"7400.00","beneficiary_iban":"CH93 0076 2011 6238 5295 7","claim_id":"2026-81044","currency":"CHF"},"id":null,"name":"demo__payments_create"}] ; outil [{"arguments":{"claim_id":"2026-81044"},"id":"appel-exemple-0001","name":"demo__claims_get"},{"arguments":{"amount":"7400.00","beneficiary_iban":"CH93 0076 2011 6238 5295 7","claim_id":"2026-81044","currency":"CHF"},"id":null,"name":"demo__payments_create"}] : concorde
+-- gemini-flux-outils-serveur (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 3 ; outil 3 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[2] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur La franchise varie selon le contrat. ; outil La franchise varie selon le contrat. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-pensee (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 2 ; outil 2 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  réponse[1] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Oui, une expertise est nécessaire. ; outil Oui, une expertise est nécessaire. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-flux-vide (reponse.sse, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 0 ; outil 0 : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur None ; outil None : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-forme-inattendue (reponse.json, statut 400)
+  sans objet : le SDK ne construit pas de requête sans contents (section 2) ; la réponse est lue en section 3
+-- gemini-non-flux (reponse.json, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 1 ; outil 1 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Le sinistre 2026-81044 est ouvert, montant estimé 7400.00 CHF. ; outil Le sinistre 2026-81044 est ouvert, montant estimé 7400.00 CHF. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-prompt-inline (reponse.json, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 1 ; outil 1 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Sinistre ouvert. ; outil Sinistre ouvert. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-sans-modelversion (reponse.json, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 1 ; outil 1 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Ouvert. ; outil Ouvert. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-sdk-erreur-declaree (reponse-morceaux.json, 1 morceaux, objets du SDK reconstruits)
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Sinistre ouvert. ; outil Sinistre ouvert. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-sdk-morceaux (reponse-morceaux.json, 2 morceaux, objets du SDK reconstruits)
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Je consulte le sinistre. ; outil Je consulte le sinistre. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+-- gemini-v1-non-flux (reponse.json, statut 200)
+  objets GenerateContentResponse rendus avant toute erreur : vecteur 1 ; outil 1 : concorde
+  réponse[0] relue par le client (sans les membres propres au SDK) = objet reçu : vecteur [] ; outil [] : concorde
+  aucune erreur levée par le client : vecteur None ; outil None : concorde
+  intent = concaténation des GenerateContentResponse.text (candidat 0, sans thought) : vecteur Le sinistre 2026-81044 est ouvert, montant estimé 7400.00 CHF. ; outil Le sinistre 2026-81044 est ouvert, montant estimé 7400.00 CHF. : concorde
+  tool_calls = GenerateContentResponse.function_calls (id, name, args) : vecteur [] ; outil [] : concorde
+
+== 5. Formes consolidées (EX-5.35) par types.GenerateContentResponse, sans puis avec les clés noortrace_* (EX-5.18)
+-- gemini-flux (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-crlf-data-final (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-data-final-sans-fin-de-ligne (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-erreur-morceau (consolidated, clés ajoutées par l'enregistreur : ['noortrace_erreur_flux', 'noortrace_flux_incomplet'])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  forme consolidée avec noortrace_erreur_flux/noortrace_flux_incomplet (refus attendu : membre inconnu du type) : types.GenerateContentResponse.model_validate_json : vecteur refuse ; outil refuse : concorde
+    raisons du SDK : extra_forbidden à noortrace_erreur_flux ; extra_forbidden à noortrace_flux_incomplet
+-- gemini-flux-erreur-seule (consolidated, clés ajoutées par l'enregistreur : ['noortrace_erreur_flux'])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  forme consolidée avec noortrace_erreur_flux (refus attendu : membre inconnu du type) : types.GenerateContentResponse.model_validate_json : vecteur refuse ; outil refuse : concorde
+    raisons du SDK : extra_forbidden à noortrace_erreur_flux
+-- gemini-flux-incomplet (consolidated, clés ajoutées par l'enregistreur : ['noortrace_flux_incomplet'])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+  forme consolidée avec noortrace_flux_incomplet (refus attendu : membre inconnu du type) : types.GenerateContentResponse.model_validate_json : vecteur refuse ; outil refuse : concorde
+    raisons du SDK : extra_forbidden à noortrace_flux_incomplet
+-- gemini-flux-index (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-index-desordre (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-index-limites (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-outils (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-outils-serveur (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-flux-pensee (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-sdk-erreur-declaree (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+-- gemini-sdk-morceaux (consolidated, clés ajoutées par l'enregistreur : [])
+  forme consolidée sans les clés noortrace_* : types.GenerateContentResponse.model_validate_json, relecture identique : vecteur accepte ; outil accepte : concorde
+
+== 6. Refus de la passerelle (EX-5.30, AIP-193) lus par le client du SDK (errors.APIError)
+-- gemini-hote-inconnu (statut 401, raison hote_inconnu, Content-Type application/json; charset=UTF-8)
+  errors.APIError levée (code, status, message) = corps de refus : vecteur [401,"UNAUTHENTICATED","noortrace: hote non authentifie"] ; outil [401,"UNAUTHENTICATED","noortrace: hote non authentifie"] : concorde
+  classe d'erreur du SDK pour le statut 401 : vecteur ClientError ; outil ClientError : concorde
+-- gemini-refus-cache (statut 400, raison cache_fournisseur, Content-Type application/json; charset=UTF-8)
+  errors.APIError levée (code, status, message) = corps de refus : vecteur [400,"INVALID_ARGUMENT","noortrace: contenu en cache du fournisseur refuse"] ; outil [400,"INVALID_ARGUMENT","noortrace: contenu en cache du fournisseur refuse"] : concorde
+  classe d'erreur du SDK pour le statut 400 : vecteur ClientError ; outil ClientError : concorde
+-- gemini-refus-cle-url (statut 400, raison cle_dans_url, Content-Type text/event-stream)
+  errors.APIError levée (code, status, message) = corps de refus : vecteur [400,"INVALID_ARGUMENT","noortrace: cle d'API dans l'URL refusee"] ; outil [400,"INVALID_ARGUMENT","noortrace: cle d'API dans l'URL refusee"] : concorde
+  classe d'erreur du SDK pour le statut 400 : vecteur ClientError ; outil ClientError : concorde
+-- gemini-refus-flux-sans-sse (statut 400, raison flux_sans_sse, Content-Type application/json; charset=UTF-8)
+  errors.APIError levée (code, status, message) = corps de refus : vecteur [400,"INVALID_ARGUMENT","noortrace: streamGenerateContent exige alt=sse"] ; outil [400,"INVALID_ARGUMENT","noortrace: streamGenerateContent exige alt=sse"] : concorde
+  classe d'erreur du SDK pour le statut 400 : vecteur ClientError ; outil ClientError : concorde
+-- gemini-refus-mcp-fournisseur (statut 400, raison serveurs_mcp_fournisseur, Content-Type application/json; charset=UTF-8)
+  errors.APIError levée (code, status, message) = corps de refus : vecteur [400,"INVALID_ARGUMENT","noortrace: serveurs MCP declares au fournisseur refuses"] ; outil [400,"INVALID_ARGUMENT","noortrace: serveurs MCP declares au fournisseur refuses"] : concorde
+  classe d'erreur du SDK pour le statut 400 : vecteur ClientError ; outil ClientError : concorde
+-- gemini-refus-parametre (statut 400, raison parametre_non_admis, Content-Type application/json; charset=UTF-8)
+  errors.APIError levée (code, status, message) = corps de refus : vecteur [400,"INVALID_ARGUMENT","noortrace: parametre de requete non admis"] ; outil [400,"INVALID_ARGUMENT","noortrace: parametre de requete non admis"] : concorde
+  classe d'erreur du SDK pour le statut 400 : vecteur ClientError ; outil ClientError : concorde
+-- gemini-requete-non-analysable (statut 400, raison corps_non_analysable, Content-Type application/json; charset=UTF-8)
+  errors.APIError levée (code, status, message) = corps de refus : vecteur [400,"INVALID_ARGUMENT","noortrace: corps de requete non analysable"] ; outil [400,"INVALID_ARGUMENT","noortrace: corps de requete non analysable"] : concorde
+  classe d'erreur du SDK pour le statut 400 : vecteur ClientError ; outil ClientError : concorde
+-- gemini-route-inconnue (statut 404, raison route_inconnue, Content-Type None)
+  errors.APIError levée (code ; corps vide) : vecteur 404 ; outil 404 : concorde
+
+Cas gemini-* : 30 ; discordances : 0 ; limites de l'outil : 1 ; divergences voulues : 8
+  divergence voulue : analyseur JSON de pydantic (TypeAdapter(dict).validate_json) (EX-5.7 point 2) : clé en double admise, la dernière occurrence l'emporte : analysable, clés ['contents'], contents de 0 élément(s)
+  divergence voulue : data[1] (EX-5.35 pas 4, EX-5.27 (1) : un index "0" n'est pas un index, le fragment est ignoré) : relu avec écart : $.candidates[0].index : "0" relu 0
+  divergence voulue : data[0] (EX-5.27 (1), EX-8.1 : index lu en double précision ; 1.0 vaut 1, 9007199254740993 vaut 2^53, 9007199254740994 est refusé) : relu avec écart : $.candidates[0].index : 1.0 relu 1
+  divergence voulue : réponse[1] relue par le client (EX-5.35 pas 4, EX-5.27 (1) : un index "0" n'est pas un index, le fragment est ignoré) : $.candidates[0].index : "0" relu 0
+  divergence voulue : intent = concaténation des GenerateContentResponse.text (EX-5.35 pas 4, EX-5.27 (1) : un index "0" n'est pas un index, le fragment est ignoré) : vecteur "Première formulation.", SDK "Première ignoréeformulation." (le SDK prend candidates[0] de chaque morceau, sans réassembler par index)
+  divergence voulue : intent = concaténation des GenerateContentResponse.text (EX-5.35 pas 4, 5.5 : candidats créés dans l'ordre de première apparition, intent tiré de candidates[0] de la forme) : vecteur "Seconde version.", SDK "Seconde Première formulation." (le SDK prend candidates[0] de chaque morceau, sans réassembler par index)
+  divergence voulue : réponse[0] relue par le client (EX-5.27 (1), EX-8.1 : index lu en double précision ; 1.0 vaut 1, 9007199254740993 vaut 2^53, 9007199254740994 est refusé) : $.candidates[0].index : 1.0 relu 1
+  divergence voulue : intent = concaténation des GenerateContentResponse.text (EX-5.27 (1), EX-8.1 : index lu en double précision ; 1.0 vaut 1, 9007199254740993 vaut 2^53, 9007199254740994 est refusé) : vecteur "Un atteinte.", SDK "Un limite refuséatteinte." (le SDK prend candidates[0] de chaque morceau, sans réassembler par index)
+  limite : corps envoyé par le SDK : membre(s) émis en snake_case au lieu du nom de l'API en lowerCamelCase : $.tools[0].mcpServers[0].streamableHttpTransport émis en snake_case ({"url":"https://mcp.exemple.invalid/mcp"})
+Discordances au total : 0

@@ -1,0 +1,6 @@
+data: {"candidates":[{"content":{"parts":[{"toolCall":{"id":"outil-serveur-0001","toolType":"GOOGLE_SEARCH_WEB","args":{"queries":["franchise assurance auto"]}}}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0009"}
+
+data: {"candidates":[{"content":{"parts":[{"toolResponse":{"id":"outil-serveur-0001","toolType":"GOOGLE_SEARCH_WEB","response":{"output":"résultats fictifs"}}}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0009"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"La franchise varie selon le contrat."}],"role":"model"},"finishReason":"STOP"}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0009"}
+

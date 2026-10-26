@@ -1,0 +1,78 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0010",
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Première "
+            },
+            {
+              "text": "formulation."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      },
+      {
+        "index": 1,
+        "content": {
+          "parts": [
+            {
+              "text": "Seconde "
+            },
+            {
+              "text": "version."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0xca1d93b98efc93b824871399ef1b08bf661b08f0ffa40d01ff3a1853d019c351",
+      "length": 126,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Deux formulations, s'il te plaît.\"}],\"role\":\"user\"}],\"generationConfig\":{\"candidateCount\":2}}"
+    },
+    "response": {
+      "sha256": "0x26619083c3e78f39e304bb6bdb3bcadbe909a480e01c7c42a8fc73c902fab740",
+      "length": 312,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Première \"},{\"text\":\"formulation.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0},{\"content\":{\"parts\":[{\"text\":\"Seconde \"},{\"text\":\"version.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":1}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0010\"}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": null,
+  "intent": "Première formulation.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Deux candidats (index absent → 0, puis 1), créés dans l'ordre de première apparition ; un fragment d'index \"0\" (chaîne) est ignoré et compté (EX-5.27 (1), EX-5.35 pas 4) ; intent vient du premier candidat créé."
+}

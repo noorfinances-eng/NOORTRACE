@@ -1,0 +1,43 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 400,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x9461986df75ed4b92e3a5073183fc4aa62987506103eee5f1f394ea8742219d4",
+      "length": 83,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Statut du sinistre 2026-81044 ?\"}],\"role\":\"user\"}]}"
+    },
+    "response": {
+      "sha256": "0xc43b65bbc764d08a7363b5b3686320ca2ed341040635c06dcaa32fce2a4506f9",
+      "length": 202,
+      "redacted": false,
+      "bytes": "{\"noortrace_http_error\":{\"body\":{\"error\":{\"code\":400,\"message\":\"Requête invalide (message fictif de test).\",\"status\":\"INVALID_ARGUMENT\"}},\"content_type\":\"application/json; charset=UTF-8\",\"status\":400}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple",
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:generateContent"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:generateContent",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "generateContent, statut 400, application/json; charset=UTF-8 : pièce noortrace_http_error avec le corps AIP-193 analysé (EX-5.23, EX-5.31), is_error vrai, code.model tiré du segment (EX-5.36)."
+}

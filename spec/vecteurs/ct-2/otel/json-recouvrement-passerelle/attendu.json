@@ -1,0 +1,99 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 1,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "2965d2181eddc8095a27094e50ffa162",
+      "span_id": "402cc2824eed7b0f",
+      "issue": "recouvrement",
+      "reason": null,
+      "overlap_seq": 6,
+      "normalized": {
+        "trace_id": "2965d2181eddc8095a27094e50ffa162",
+        "span_id": "402cc2824eed7b0f",
+        "parent_span_id": "d800d4cb4d2ba87a",
+        "trace_state": "",
+        "name": "chat modele-demo-1",
+        "flags": 0,
+        "kind": 3,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "1794307799250500000",
+        "attributes": {
+          "gen_ai.operation.name": "chat",
+          "gen_ai.provider.name": "openai",
+          "gen_ai.request.model": "modele-demo-1",
+          "gen_ai.conversation.id": "conv-2026-11-10-0011",
+          "gen_ai.input.messages": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "type": "text",
+                  "content": "Où en est le sinistre 2026-81044 ?"
+                }
+              ]
+            }
+          ],
+          "gen_ai.output.messages": [
+            {
+              "role": "assistant",
+              "parts": [
+                {
+                  "type": "text",
+                  "content": "Le sinistre 2026-81044 est ouvert."
+                }
+              ],
+              "finish_reason": "stop"
+            }
+          ],
+          "gen_ai.response.model": "modele-demo-1-2026-09",
+          "gen_ai.usage.input_tokens": 120,
+          "gen_ai.usage.output_tokens": 18
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    }
+  ],
+  "note": "Span d'inférence apparié à un échange de la passerelle du même groupe dont code.model a pour modèle M ; l'échange d'un autre groupe n'est pas candidat (EX-6.34)."
+}

@@ -1,0 +1,173 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 1,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "fc120f5a86acac2ab8d93355bd9edd41",
+      "span_id": "04d5248f912cc0c6",
+      "issue": "scelle",
+      "reason": null,
+      "overlap_seq": null,
+      "normalized": {
+        "trace_id": "fc120f5a86acac2ab8d93355bd9edd41",
+        "span_id": "04d5248f912cc0c6",
+        "parent_span_id": "4cfb8a71406d95fc",
+        "trace_state": "",
+        "name": "execute_tool claims.get",
+        "flags": 0,
+        "kind": 1,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "1794307799250500000",
+        "attributes": {
+          "gen_ai.operation.name": "execute_tool",
+          "gen_ai.tool.name": "claims.get",
+          "gen_ai.tool.call.id": "call_11",
+          "gen_ai.tool.type": "function"
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": {
+        "source": {
+          "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+          "length": 66,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"noortrace_capture\":{\"channel\":\"otel\",\"source\":\"otel-sinistres\"}}"
+        },
+        "envelope": {
+          "sha256": "0x69ae74c21110c205680e7fbc45cd3eabc905350910724db3493e5af986524907",
+          "length": 775,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"attributes\":{\"gen_ai.operation.name\":\"execute_tool\",\"gen_ai.tool.call.id\":\"call_11\",\"gen_ai.tool.name\":\"claims.get\",\"gen_ai.tool.type\":\"function\"},\"dropped_attributes_count\":0,\"dropped_events_count\":0,\"dropped_links_count\":0,\"end_time_unix_nano\":\"1794307799250500000\",\"events\":[],\"flags\":0,\"kind\":1,\"links_count\":0,\"name\":\"execute_tool claims.get\",\"parent_span_id\":\"4cfb8a71406d95fc\",\"resource\":{\"attributes\":{\"service.name\":\"agent-sinistres\",\"service.version\":\"3.2.0\"},\"dropped_attributes_count\":0},\"schema_url\":null,\"scope\":{\"attributes\":{},\"name\":\"agent-sinistres.instrumentation\",\"version\":\"1.0.0\"},\"span_id\":\"04d5248f912cc0c6\",\"start_time_unix_nano\":\"1794307798000000000\",\"status\":{\"code\":1,\"message\":\"\"},\"trace_id\":\"fc120f5a86acac2ab8d93355bd9edd41\",\"trace_state\":\"\"}"
+        },
+        "arguments": {
+          "sha256": "0x3f318083fb1b74cfab9d9d5aa36b644389df039754d3f1e5c8eecf94749e5d42",
+          "length": 54,
+          "redacted": false,
+          "bytes": "{\"noortrace_otel_absent\":\"gen_ai.tool.call.arguments\"}"
+        },
+        "result": {
+          "sha256": "0xb07ab5e49d117f612df9d3da4dd2a01fd80b7cb0da1cc6d504e23d27d92f8dd7",
+          "length": 51,
+          "redacted": false,
+          "bytes": "{\"noortrace_otel_absent\":\"gen_ai.tool.call.result\"}"
+        },
+        "system_prompt": null,
+        "intent": null
+      },
+      "event": {
+        "version": 0,
+        "seq": 2,
+        "ts": "2026-11-10T10:50:00.010Z",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+        "recorder_key_id": "rec-test-01",
+        "prev_hash": "0xe02fd378f16f865f49f616f2a68016aeb8c662372b5db08a43f010c12cbe6587",
+        "delegation": {
+          "launched_by": "svc-agent-sinistres@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": null
+        },
+        "code": {
+          "model": null,
+          "prompt_version": null,
+          "policy_version": "2026-11-10-otel",
+          "recorder": "0.1.0"
+        },
+        "intent": null,
+        "policy": {
+          "rule": null,
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "approval": null,
+        "execution": {
+          "tool": "otel-sinistres__claims.get",
+          "arguments": {
+            "sha256": "0x3f318083fb1b74cfab9d9d5aa36b644389df039754d3f1e5c8eecf94749e5d42",
+            "length": 54,
+            "redacted": false
+          },
+          "status": "executee",
+          "result": {
+            "sha256": "0xb07ab5e49d117f612df9d3da4dd2a01fd80b7cb0da1cc6d504e23d27d92f8dd7",
+            "length": 51,
+            "redacted": false
+          },
+          "duration_ms": 1250,
+          "is_error": false
+        },
+        "effects": [
+          {
+            "system": "otel-sinistres",
+            "action": "ecriture",
+            "object": "claims.get",
+            "amount": null,
+            "currency": null
+          }
+        ],
+        "context": [
+          {
+            "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+            "length": 66,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          },
+          {
+            "sha256": "0x69ae74c21110c205680e7fbc45cd3eabc905350910724db3493e5af986524907",
+            "length": 775,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          }
+        ],
+        "hash": "0x0d93c63d55e195c0f6b23b9b67f26a19e6facc6b7e426ee08d4129a807fa5e3a",
+        "sig": "0xf04e1ec5b7bfe4d0cc1a9e86b0b0f133ee2e15d1f06cb1fb9d1bad32ef6252b6f6e6a5f4bd08fc19d1b984a1e7914dba6c5c44dac6f498bdd5abe8bd52ba2e0f"
+      },
+      "lag_ms": 759
+    }
+  ],
+  "note": "Span d'outil sans gen_ai.tool.call.arguments ni gen_ai.tool.call.result : pièces réduites à la marque {\"noortrace_otel_absent\": <attribut>} ; un attribut absent ne veut pas dire un appel sans argument (EX-6.35)."
+}

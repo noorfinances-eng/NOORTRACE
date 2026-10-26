@@ -1,0 +1,94 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "agent-sinistres"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "3.2.0"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "agent-sinistres.instrumentation",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "94389D2F8B18E707D613589A8F160E9D",
+              "spanId": "C351F4EF4770B57D",
+              "parentSpanId": "4B871FA58C4E49F9",
+              "name": "execute_tool claims.get",
+              "kind": 1,
+              "startTimeUnixNano": "1794307798000000000",
+              "endTimeUnixNano": "1794307799250500000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "claims.get"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.id",
+                  "value": {
+                    "stringValue": "call_11"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.type",
+                  "value": {
+                    "stringValue": "function"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.arguments",
+                  "value": {
+                    "stringValue": "{\"claim_id\":\"2026-81044\"}"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.result",
+                  "value": {
+                    "stringValue": "{\"statut\":\"ouvert\"}"
+                  }
+                },
+                {
+                  "key": "doublon.cle",
+                  "value": {
+                    "stringValue": "première"
+                  }
+                },
+                {
+                  "key": "doublon.cle",
+                  "value": {
+                    "stringValue": "seconde"
+                  }
+                }
+              ],
+              "status": {
+                "code": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

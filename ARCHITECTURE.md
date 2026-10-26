@@ -1,6 +1,6 @@
 # NOORTRACE — architecture cible
 
-Version 0.7, 26 octobre 2026. Document de conception, pas d'implémentation. Les
+Version 0.8, 26 octobre 2026. Document de conception, pas d'implémentation. Les
 spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
 l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-5 pour
 l'ancrage, CT-6 pour le vérificateur.
@@ -112,11 +112,19 @@ par octet dans `spec/CT-2-enregistreur.md`.
   d'outil, le modèle et le prompt système, après rédaction. L'intention de
   l'événement est le texte de l'assistant qui précède l'appel d'outil, quand il
   existe. Formats de la version 0 : API Messages d'Anthropic, Chat Completions et
-  Responses d'OpenAI (CT-2 §5).
+  Responses d'OpenAI, `generateContent` et `streamGenerateContent` de Gemini
+  (CT-2 §5, révision 0.5).
 - **Cas restant : un SDK.** Pour un agent sans MCP et avec modèle local, une
   bibliothèque enveloppe l'exécution des outils. Elle tourne dans le processus de
   l'agent, donc elle est plus faible ; elle n'est acceptée que combinée à un
-  pare-feu de sortie (CT-2 §6).
+  pare-feu de sortie (CT-2 §6). Elle existe en Python et en TypeScript, avec des
+  adaptateurs pour LangChain et LangGraph, CrewAI, LlamaIndex, le SDK Agents
+  d'OpenAI et LiteLLM ; une règle écrite évite de capturer deux fois ce que la
+  passerelle ou le mandataire voient déjà.
+- **Traces OpenTelemetry.** Un agent déjà instrumenté selon les conventions
+  GenAI d'OpenTelemetry peut envoyer ses traces OTLP à l'enregistreur, qui en
+  tire des événements après rédaction. Comme le SDK, ce chemin est déclaratif :
+  l'agent dit ce qu'il a fait, et l'événement le marque (CT-2, révision 0.5).
 
 ### Journal : comment un événement est écrit
 
@@ -400,7 +408,7 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | L'agent efface ou falsifie ses traces | Journal en ajout seul, hors de son contexte d'exécution, chaîné et signé |
 | L'agent contourne l'enregistreur | Pare-feu : seuls le mandataire MCP et la passerelle, ou le mandataire ICAP, joignent les outils et l'API du modèle ; ce qui ne traverse pas l'enregistreur n'est pas journalisé, et le dossier ne prétend pas le contraire |
 | L'opérateur réécrit l'historique après coup | Racines horodatées par un tiers qualifié : toute réécriture casse les preuves d'inclusion |
-| L'enregistreur lui-même est compromis | Clé selon la classe de garde, vérification de chaque signature, copies WORM, rotation d'urgence ; les points de contrôle contresignés bornent la fenêtre de réécriture à 300 s plus le délai du jeton pour la date (CT-5 §3.3), les ancres horaires restant la borne quand ils manquent ; contrôle de complétude au registre hors dossier (CT-5 EX-10.7) |
+| L'enregistreur lui-même est compromis | Clé selon la classe de garde, vérification de chaque signature, copies WORM en mode conformité, l'écrivain sans droit de suppression ni de levée de gel, gel juridique levé à deux personnes (CT-2 §12.6), rotation d'urgence ; les points de contrôle contresignés bornent la fenêtre de réécriture à 300 s plus le délai du jeton pour la date (CT-5 §3.3), les ancres horaires restant la borne quand ils manquent ; contrôle de complétude au registre hors dossier (CT-5 EX-10.7) |
 | Le fournisseur NOORTRACE triche ou disparaît | Vérification hors ligne, sans son concours ; ce qu'il faut encore croire de lui est énoncé en CT-6 §3.4 et §7.8 ; registre substituable ; format ouvert |
 | Le fournisseur sert une histoire falsifiée par son RPC | Certificat de commit du bloc vérifié hors ligne contre le jeu de validateurs ; validateurs partenaires en production |
 | Manipulation de l'horloge | Temps issu du jeton d'horodatage qualifié, pas de l'hôte ; `ts` jamais décroissant, et un saut en avant mesuré contre l'horloge monotone bloque l'écrivain (CT-2 EX-7.13) |
@@ -444,6 +452,11 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
   vérificateur Go indépendant ; le parcours d'inscription rejoué sur le réseau de
   développement par un relecteur qui n'avait que la spécification.
 
+- la révision 0.5 de CT-2 : format Gemini à la passerelle, SDK Python et
+  TypeScript et adaptateurs de cadres, ingestion OpenTelemetry, gel juridique
+  des copies WORM, coût par agent par formule ; références JavaScript, vecteurs,
+  vérificateur Go indépendant, confrontation aux bibliothèques officielles
+  google-genai et opentelemetry-proto ;
 - la spécification CT-5 de l'ancrage et ses trois schémas, avec les révisions
   de CT-1 (point de contrôle, preuve de cohérence, treizième partie du dossier),
   de CT-2 (production des points) et de CT-6 (vérifications K-7 à K-9) ; le

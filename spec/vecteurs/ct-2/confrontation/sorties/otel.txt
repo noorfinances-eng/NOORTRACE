@@ -1,0 +1,942 @@
+Confrontation des vecteurs CT-2 otel/ par opentelemetry-proto 1.45.1 et protobuf 7.36.2
+Entrées : otel/*/{requete.json, requete.pb, requete.brut, requete-entetes.json, attendu.json}
+Analyse : json_format.Parse(…, ExportTraceServiceRequest(), ignore_unknown_fields=True) après conversion hexadécimal -> base64 de traceId, spanId, parentSpanId ; ExportTraceServiceRequest.FromString ; forme normalisée d'EX-6.31 recalculée depuis le message
+
+== 1. Requêtes analysées par la bibliothèque, span par span, contre normalized d'attendu.json
+-- deflate-refuse (requete.brut, SHA-256 0xaca503def43dc086a5aaa5c3d6f86bcbbc2aa6a80007ddea4a81bce2b376fceb, application/json, deflate, statut attendu 415)
+  corps décomprimé (zlib de la bibliothèque standard) : 0 octets
+  statut 415 décidé avant le décodage (en-têtes, taille ou authentification) : sans objet pour la bibliothèque ; corps : non analysable (ParseError : Failed to load JSON: Expecting value: line 1 column 1 (char 0).)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- deflate-trop-grand (requete.brut, SHA-256 0x4daeb9ac8be203281aceb5f4511220333686abfde4d2ccd50a49cd156a2e8cf5, application/json, deflate, statut attendu 415)
+  corps non décomprimable par zlib : Error -3 while decompressing data: incorrect header check
+  statut 415 décidé avant le décodage (en-têtes, taille ou authentification) : sans objet pour la bibliothèque ; corps : non analysable (ParseError : Failed to load JSON: Expecting value: line 1 column 1 (char 0).)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- gzip-json (requete.brut, SHA-256 0x8073bb6658fc7d869d260baefe246d62df61c95a55717e2309ca153dd2410113, application/json, gzip, statut attendu 200)
+  corps décomprimé (gzip de la bibliothèque standard) : 2200 octets
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur e1715bad2c36940848098c59613353ff ; outil e1715bad2c36940848098c59613353ff : concorde
+      span_id : vecteur 0465d7bc4467383d ; outil 0465d7bc4467383d : concorde
+      parent_span_id : vecteur f153820cdeefd34c ; outil f153820cdeefd34c : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-champ-inconnu (requete.json, SHA-256 0xfbcdaac1b84bcf025cadd9a6687758687b39398bc3caf124011fd61704cf149d, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur e171dcfdf0a7adf5e5d434660e9e374e ; outil e171dcfdf0a7adf5e5d434660e9e374e : concorde
+      span_id : vecteur 5783ee9f13b21514 ; outil 5783ee9f13b21514 : concorde
+      parent_span_id : vecteur c31c3ab749122f04 ; outil c31c3ab749122f04 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"avec.inconnu":"x","gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"avec.inconnu":"x","gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-cle-double (requete.json, SHA-256 0x458bdb93a937bbcf56a36d15ce8db070c6c892edf720d97ce23cdbf8e46fd76b, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 94389d2f8b18e707d613589a8f160e9d ; outil 94389d2f8b18e707d613589a8f160e9d : concorde
+      span_id : vecteur c351f4ef4770b57d ; outil c351f4ef4770b57d : concorde
+      parent_span_id : vecteur 4b871fa58c4e49f9 ; outil 4b871fa58c4e49f9 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"doublon.cle":"première","gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"doublon.cle":"première","gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-contenu-chaine-non-json (requete.json, SHA-256 0xa575339459f3d000b2f8db9a0f1f88a64ac0c0dae3884b7e49a7ca593ba25d93, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur f38b3fa7012e3ab45bd7c50fb1367594 ; outil f38b3fa7012e3ab45bd7c50fb1367594 : concorde
+      span_id : vecteur 6029badbcc4e4f10 ; outil 6029badbcc4e4f10 : concorde
+      parent_span_id : vecteur 9011d680e62e9137 ; outil 9011d680e62e9137 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":"claim_id=2026-81044 (pas du JSON","gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":"claim_id=2026-81044 (pas du JSON","gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-contenu-hors-span (requete.json, SHA-256 0x99ddea6ffac3c09c58c7317a40d6c8c95aec20cef79d01e8656288e4d611d5c5, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur fa34fe58d7f00120ae87dcd5b446a813 ; outil fa34fe58d7f00120ae87dcd5b446a813 : concorde
+      span_id : vecteur b19f97b59e9f5ef7 ; outil b19f97b59e9f5ef7 : concorde
+      parent_span_id : vecteur f3c03230713a4ae3 ; outil f3c03230713a4ae3 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"detail":{"gen_ai.tool.call.arguments":"{\"claim_id\":\"2026-81044\"}"},"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"detail":{"gen_ai.tool.call.arguments":"{\"claim_id\":\"2026-81044\"}"},"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"gen_ai.system_instructions":"[\"x\"]","service.name":"agent-sinistres"},"dropped_attributes_count":0} ; outil {"attributes":{"gen_ai.system_instructions":"[\"x\"]","service.name":"agent-sinistres"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [{"attributes":{"gen_ai.tool.call.result":"{\"claim_id\":\"2026-81044\"}"},"dropped_attributes_count":0,"name":"gen_ai.evenement","time_unix_nano":"1794307798000000000"}] ; outil [{"attributes":{"gen_ai.tool.call.result":"{\"claim_id\":\"2026-81044\"}"},"dropped_attributes_count":0,"name":"gen_ai.evenement","time_unix_nano":"1794307798000000000"}] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-doublon-deja-vu (requete.json, SHA-256 0xabd695316be9b84dd7a04794f6830df836ccfb13dcc0fd5e0513da215b88ee1e, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue doublon)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur eb82aa2b5b0c239dd940ed0833340cab ; outil eb82aa2b5b0c239dd940ed0833340cab : concorde
+      span_id : vecteur 9c821775ecfc8467 ; outil 9c821775ecfc8467 : concorde
+      parent_span_id : vecteur fe152dc36e322942 ; outil fe152dc36e322942 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-doublon-meme-requete (requete.json, SHA-256 0xaf79c12b14d49720260ffa7c9b48328705360f35aa8006d15e4dd5ee22800cd4, application/json, statut attendu 200)
+  json_format.Parse (6 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 2 ; outil 2 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur fef38c1f55f83d81880f5547ed831422 ; outil fef38c1f55f83d81880f5547ed831422 : concorde
+      span_id : vecteur b4a5343fffe2417f ; outil b4a5343fffe2417f : concorde
+      parent_span_id : vecteur e10bc97c517c4703 ; outil e10bc97c517c4703 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 1] (issue doublon)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur fef38c1f55f83d81880f5547ed831422 ; outil fef38c1f55f83d81880f5547ed831422 : concorde
+      span_id : vecteur b4a5343fffe2417f ; outil b4a5343fffe2417f : concorde
+      parent_span_id : vecteur e10bc97c517c4703 ; outil e10bc97c517c4703 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-entier-fractionnaire (requete.json, SHA-256 0x9cbba1a21e500b7c491db5de971e6b6e465199e01476bbae25533ba2d880d6c5, application/json, statut attendu 400)
+  vecteur : statut 400, {'message': 'noortrace: corps OTLP non decodable'}
+  json-entier-fractionnaire : divergence voulue (EX-6.29 : un entier 32 bits a un texte sans fraction ni exposant ; json_format.Parse lit 1.0 comme 1) : la bibliothèque accepte le corps (1 span(s), kind 1)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- json-entiers-64-bits (requete.json, SHA-256 0x800d4f98b34b772248721317a638c7e38eb404d92f629ea7c2168b7ece8be24d, application/json, statut attendu 200)
+  json_format.Parse (2 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur cfeb5612cbd0d2c8fb14c9e11037418a ; outil cfeb5612cbd0d2c8fb14c9e11037418a : concorde
+      span_id : vecteur 8fbf8fbae55cc32a ; outil 8fbf8fbae55cc32a : concorde
+      parent_span_id : vecteur None ; outil None : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":0,"message":""} ; outil {"code":0,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"compteur.chaine":"-9223372036854775808","compteur.grand":"9007199254740993","compteur.negatif":-5,"gen_ai.operation.name":"execute_tool","gen_ai.tool.name":"claims.get"} ; outil {"compteur.chaine":"-9223372036854775808","compteur.grand":"9007199254740993","compteur.negatif":-5,"gen_ai.operation.name":"execute_tool","gen_ai.tool.name":"claims.get"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{},"dropped_attributes_count":0} ; outil {"attributes":{},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":""} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":""} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,257,0,null,""] ; outil [0,0,0,257,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-enum-en-chaine (requete.json, SHA-256 0x72dccca131367362118a6e0c41393ea419374e5a967f7436079c3ace5c6ae517, application/json, statut attendu 400)
+  vecteur : statut 400, {'message': 'noortrace: corps OTLP non decodable'}
+  json-enum-en-chaine : divergence voulue (EX-6.29 : une énumération en chaîne ("SPAN_KIND_CLIENT") est refusée, « the enum name strings MUST NOT be used » (R11-F39)) : la bibliothèque accepte le corps (1 span(s), kind 3)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- json-exemple-6-8-16 (requete.json, SHA-256 0xb67019b3155173f25e1beae4bec018f74788bdefa5fbe6009561dd9e47372c5f, application/json, statut attendu 200)
+  json_format.Parse (6 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 2 ; outil 2 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 5b8efff798038103d269b633813fc60c ; outil 5b8efff798038103d269b633813fc60c : concorde
+      span_id : vecteur eee19b7ec3c1b174 ; outil eee19b7ec3c1b174 : concorde
+      parent_span_id : vecteur eee19b7ec3c1b173 ; outil eee19b7ec3c1b173 : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307263100250000 ; outil 1794307263100250000 : concorde
+      end_time_unix_nano : vecteur 1794307264312750000 ; outil 1794307264312750000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-2026-11-10-0007","gen_ai.input.messages":[{"parts":[{"content":"Prépare le règlement du sinistre 2026-77812 ; l’assuré écrit depuis jean.exemple@assureur-demo.example.","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"tool_call","parts":[{"content":"Je prépare le paiement de 7400.00 CHF au bénéficiaire du sinistre.","type":"text"},{"arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00"},"id":"call_01","name":"paiement.creer","type":"tool_call"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.finish_reasons":["tool_call"],"gen_ai.response.id":"resp-0007","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.system_instructions":[{"content":"Tu traites les sinistres de l’assureur. Ne paie jamais sans pièces justificatives.","type":"text"}],"gen_ai.usage.input_tokens":412,"gen_ai.usage.output_tokens":38,"server.address":"passerelle-fournisseur.example"} ; outil {"gen_ai.conversation.id":"conv-2026-11-10-0007","gen_ai.input.messages":[{"parts":[{"content":"Prépare le règlement du sinistre 2026-77812 ; l’assuré écrit depuis jean.exemple@assureur-demo.example.","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"tool_call","parts":[{"content":"Je prépare le paiement de 7400.00 CHF au bénéficiaire du sinistre.","type":"text"},{"arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00"},"id":"call_01","name":"paiement.creer","type":"tool_call"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.finish_reasons":["tool_call"],"gen_ai.response.id":"resp-0007","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.system_instructions":[{"content":"Tu traites les sinistres de l’assureur. Ne paie jamais sans pièces justificatives.","type":"text"}],"gen_ai.usage.input_tokens":412,"gen_ai.usage.output_tokens":38,"server.address":"passerelle-fournisseur.example"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 1] (issue scelle)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur 5b8efff798038103d269b633813fc60c ; outil 5b8efff798038103d269b633813fc60c : concorde
+      span_id : vecteur eee19b7ec3c1b175 ; outil eee19b7ec3c1b175 : concorde
+      parent_span_id : vecteur eee19b7ec3c1b173 ; outil eee19b7ec3c1b173 : concorde
+      name : vecteur execute_tool paiement.creer ; outil execute_tool paiement.creer : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307264320000000 ; outil 1794307264320000000 : concorde
+      end_time_unix_nano : vecteur 1794307264733500000 ; outil 1794307264733500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00"},"gen_ai.tool.call.id":"call_01","gen_ai.tool.call.result":{"reference":"PAY-2026-55120","statut":"cree"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00"},"gen_ai.tool.call.id":"call_01","gen_ai.tool.call.result":{"reference":"PAY-2026-55120","statut":"cree"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-fin-nulle (requete.json, SHA-256 0x9dc4524f36c443e11144795f72b10b77d5e90534b531227c1a59bdeb034da5b7, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur f4a1a5d53c693e539168d8a061eea455 ; outil f4a1a5d53c693e539168d8a061eea455 : concorde
+      span_id : vecteur c94fa9fabcbae36a ; outil c94fa9fabcbae36a : concorde
+      parent_span_id : vecteur a8b6dd9e7ca52907 ; outil a8b6dd9e7ca52907 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 0 ; outil 0 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-identifiant-non-hexadecimal (requete.json, SHA-256 0x361a69f35c2d2275a361aa40832c49f64c5c1dccd62713cfcf503aa9512060a8, application/json, statut attendu 400)
+  vecteur : statut 400, {'message': 'noortrace: corps OTLP non decodable'}
+  json-identifiant-non-hexadecimal : divergence voulue (EX-6.29 : un identifiant est une chaîne hexadécimale, jamais du base64 ; json_format.Parse lit le base64 (R11-F44)) : la bibliothèque accepte le corps (1 span(s), kind 1)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- json-identifiants-invalides (requete.json, SHA-256 0x12c1622cbb32d7a4df97776f9e1da3f21fc57ab3d4bd998b1dd18c583a82c7c2, application/json, statut attendu 200)
+  json_format.Parse (9 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 3 ; outil 3 : concorde
+  span [0, 0, 0] (issue rejete, raison identifiants_invalides)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 00000000000000000000000000000000 ; outil 00000000000000000000000000000000 : concorde
+      span_id : vecteur 4a795792135779fe ; outil 4a795792135779fe : concorde
+      parent_span_id : vecteur 99bc39b7243159ac ; outil 99bc39b7243159ac : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 1] (issue rejete, raison identifiants_invalides)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur 53d71f02a7b7972bcd381431fd8a3533 ; outil 53d71f02a7b7972bcd381431fd8a3533 : concorde
+      span_id : vecteur abcdef012345 ; outil abcdef012345 : concorde
+      parent_span_id : vecteur 99bc39b7243159ac ; outil 99bc39b7243159ac : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_12","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_12","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 2] (issue scelle)
+      path : vecteur [0,0,2] ; outil [0,0,2] : concorde
+      trace_id : vecteur 53d71f02a7b7972bcd381431fd8a3533 ; outil 53d71f02a7b7972bcd381431fd8a3533 : concorde
+      span_id : vecteur c0877cf2507d9702 ; outil c0877cf2507d9702 : concorde
+      parent_span_id : vecteur 99bc39b7243159ac ; outil 99bc39b7243159ac : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_13","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_13","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 2 ; outil 2 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {"partialSuccess":{"errorMessage":"noortrace: 2 span(s) rejete(s), identifiants invalides","rejectedSpans":"2"}} ; outil {"partialSuccess":{"errorMessage":"noortrace: 2 span(s) rejete(s), identifiants invalides","rejectedSpans":"2"}} : concorde
+-- json-inference-erreur (requete.json, SHA-256 0x9ec9e3d989120c4bc79a3bebd46ab5a9c92d3dbf941003098f572c913e735eeb, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur d891361f758cdc40ca1625be39273def ; outil d891361f758cdc40ca1625be39273def : concorde
+      span_id : vecteur 7c2d9fd6b94659aa ; outil 7c2d9fd6b94659aa : concorde
+      parent_span_id : vecteur a6e13edccfcb95fa ; outil a6e13edccfcb95fa : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":2,"message":"délai dépassé"} ; outil {"code":2,"message":"délai dépassé"} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"error.type":"timeout","gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"error.type":"timeout","gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-inference-fournisseur (requete.json, SHA-256 0x09006d6b631db54ef549bfbd956c2f38910d4dd5d774e71d60a54315dd365c9c, application/json, statut attendu 200)
+  json_format.Parse (6 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 2 ; outil 2 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur b54071473c2b28116e84b10e24a4fe94 ; outil b54071473c2b28116e84b10e24a4fe94 : concorde
+      span_id : vecteur a55f5d8f960faf2d ; outil a55f5d8f960faf2d : concorde
+      parent_span_id : vecteur 1177a521dd910235 ; outil 1177a521dd910235 : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.system":"openai","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.system":"openai","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 1] (issue scelle)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur b54071473c2b28116e84b10e24a4fe94 ; outil b54071473c2b28116e84b10e24a4fe94 : concorde
+      span_id : vecteur 3ba938cc21742182 ; outil 3ba938cc21742182 : concorde
+      parent_span_id : vecteur 1177a521dd910235 ; outil 1177a521dd910235 : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"Fournisseur Hors Motif","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"Fournisseur Hors Motif","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-inference-gemini (requete.json, SHA-256 0x65078d01fc48eb05274455e43d4d0b354e5bfaac1d12fb7bb3720ceb86cf17ca, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 2686773b7382da6d422d2761bf3c5be1 ; outil 2686773b7382da6d422d2761bf3c5be1 : concorde
+      span_id : vecteur 27b84b2c71f9fc07 ; outil 27b84b2c71f9fc07 : concorde
+      parent_span_id : vecteur ff92823083e4a099 ; outil ff92823083e4a099 : concorde
+      name : vecteur generate_content gemini-exemple ; outil generate_content gemini-exemple : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"generate_content","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"gcp.gemini","gen_ai.request.model":"gemini-exemple","gen_ai.response.model":"gemini-exemple-001","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"generate_content","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"gcp.gemini","gen_ai.request.model":"gemini-exemple","gen_ai.response.model":"gemini-exemple-001","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-inference-prompt-inline (requete.json, SHA-256 0xd93996b9fb623e9670799360c018685ce2f8e09b409de819441c3e31877f1341, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 5802fc0eb97ea4e519e23b9da5d330c2 ; outil 5802fc0eb97ea4e519e23b9da5d330c2 : concorde
+      span_id : vecteur 46f823fc6c752632 ; outil 46f823fc6c752632 : concorde
+      parent_span_id : vecteur c28b21a99fbebfa4 ; outil c28b21a99fbebfa4 : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.system_instructions":[{"content":"Contact interne : support@assureur-demo.example (jamais communiqué).","type":"text"}],"gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.system_instructions":[{"content":"Contact interne : support@assureur-demo.example (jamais communiqué).","type":"text"}],"gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-inference-sans-contenu (requete.json, SHA-256 0x9ca80e895e958774923077ef8ec345e3f36a43a29c92ec056ffc89165f26328f, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur f0ebbd6549603b40267b242e43608480 ; outil f0ebbd6549603b40267b242e43608480 : concorde
+      span_id : vecteur 83d0fab3ee6b11c2 ; outil 83d0fab3ee6b11c2 : concorde
+      parent_span_id : vecteur a128c0202278b50a ; outil a128c0202278b50a : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"chat","gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.operation.name":"chat","gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-lot-vide (requete.json, SHA-256 0x57bc3a530fb2531e27616aa44e504e044b9d41aea1c0f16b843d1fddb58a1cb9, application/json, statut attendu 200)
+  json_format.Parse (0 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-non-analysable (requete.json, SHA-256 0x5a4ca8dec353a39c744d7a9c63625630cf2a93b5137e8f258aeddd5ab6ed57e1, application/json, statut attendu 400)
+  json_format.Parse (0 identifiant(s) converti(s)) : vecteur refuse ; outil refuse : concorde
+    raison de la bibliothèque : ParseError : Failed to load JSON: Expecting value: line 1 column 34 (char 33).
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- json-operation-renommee (requete.json, SHA-256 0x98f1fd37e3116e99d36634851fa904328877a77b0c2e6863469018519b84276f, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue ignore, raison hors_genai)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur acd7d9ee17a9f0868723db281240028d ; outil acd7d9ee17a9f0868723db281240028d : concorde
+      span_id : vecteur dc29fbefec578157 ; outil dc29fbefec578157 : concorde
+    forme normalisée : aucune dans le vecteur (span ignoré, EX-6.32)
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-outil-erreur (requete.json, SHA-256 0x12a6d80f8ae1731a66941088c580b15a8d802805db968780b2fddb6c00138020, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur fced0a81bbee739e0aaa694908f0a3df ; outil fced0a81bbee739e0aaa694908f0a3df : concorde
+      span_id : vecteur 10e1ebfd9882f362 ; outil 10e1ebfd9882f362 : concorde
+      parent_span_id : vecteur eafa943e9797c52e ; outil eafa943e9797c52e : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":2,"message":"serveur injoignable"} ; outil {"code":2,"message":"serveur injoignable"} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"error.type":"ConnectionError","gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"error.type":"ConnectionError","gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-outil-gabarit-effets (requete.json, SHA-256 0x602521ba320dc434959745005fddbe2447b7f9f64e31746a08c690c15d4696ac, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur f01a60e0391ff83f003e1bb5c5c2c588 ; outil f01a60e0391ff83f003e1bb5c5c2c588 : concorde
+      span_id : vecteur 0f217ae123387dc2 ; outil 0f217ae123387dc2 : concorde
+      parent_span_id : vecteur 89587002184b73ee ; outil 89587002184b73ee : concorde
+      name : vecteur execute_tool paiement.creer ; outil execute_tool paiement.creer : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00","reference_sinistre":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"reference":"PAY-2026-55121","statut":"cree"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00","reference_sinistre":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"reference":"PAY-2026-55121","statut":"cree"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-outil-mcp-tools-call (requete.json, SHA-256 0x35ffc0711683ed021707a61200bb5364f4eaa20985533781f4fa59b9fa309733, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur a7ff9a4426f9cb90ea02b10bbfe601d9 ; outil a7ff9a4426f9cb90ea02b10bbfe601d9 : concorde
+      span_id : vecteur 040da741d95f6aa9 ; outil 040da741d95f6aa9 : concorde
+      parent_span_id : vecteur 17133c64befa2e2f ; outil 17133c64befa2e2f : concorde
+      name : vecteur tools/call claims.get ; outil tools/call claims.get : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"mcp.method.name":"tools/call","mcp.session.id":"session-exemple"} ; outil {"mcp.method.name":"tools/call","mcp.session.id":"session-exemple"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-outil-nom-invalide (requete.json, SHA-256 0x921413ebc597768f505d28edcc4d0f9f40bd4c7d20c5a7330bb6d12c84620987, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur b67a7c332f1efef31360c8caf0e5d1de ; outil b67a7c332f1efef31360c8caf0e5d1de : concorde
+      span_id : vecteur 2aae5dc7ad2b8626 ; outil 2aae5dc7ad2b8626 : concorde
+      parent_span_id : vecteur 04e8c0403b993d12 ; outil 04e8c0403b993d12 : concorde
+      name : vecteur execute_tool paiement__creer ; outil execute_tool paiement__creer : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"paiement__creer","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"paiement__creer","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-outil-sans-contenu (requete.json, SHA-256 0x2ea071cfae51f1cc52c49aa754801a5b2a72e9da8733784e636d559637691ff5, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur fc120f5a86acac2ab8d93355bd9edd41 ; outil fc120f5a86acac2ab8d93355bd9edd41 : concorde
+      span_id : vecteur 04d5248f912cc0c6 ; outil 04d5248f912cc0c6 : concorde
+      parent_span_id : vecteur 4cfb8a71406d95fc ; outil 4cfb8a71406d95fc : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.id":"call_11","gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.id":"call_11","gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-recouvrement-conserve (requete.json, SHA-256 0x5dcfc93221a89f22384e0fd5c01a2be31468a1178bed956126c5b81aebc5b50c, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur fe9d15fe7a16f1185ede01573ccd84f3 ; outil fe9d15fe7a16f1185ede01573ccd84f3 : concorde
+      span_id : vecteur 132952ebe2b5e090 ; outil 132952ebe2b5e090 : concorde
+      parent_span_id : vecteur 63c6a44d301fc46e ; outil 63c6a44d301fc46e : concorde
+      name : vecteur execute_tool paiement.creer ; outil execute_tool paiement.creer : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"montant":"7400.00"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"montant":"7400.00"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-recouvrement-mcp (requete.json, SHA-256 0xd19f6b1facf542dcc3ce53d01962f705778e8eccc971ecbc1e126ddf654a6126, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue recouvrement)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 9336ed9a120515df18cf5f133571ddab ; outil 9336ed9a120515df18cf5f133571ddab : concorde
+      span_id : vecteur 0908e66802da165e ; outil 0908e66802da165e : concorde
+      parent_span_id : vecteur d024a0c372ebdbd6 ; outil d024a0c372ebdbd6 : concorde
+      name : vecteur execute_tool paiement.creer ; outil execute_tool paiement.creer : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"montant":"7400.00"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"montant":"7400.00"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-recouvrement-passerelle (requete.json, SHA-256 0x50fd8a47ad3e358e4025189477a9b91a3c61022ca3c87e389cc8447b7217fc8a, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue recouvrement)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 2965d2181eddc8095a27094e50ffa162 ; outil 2965d2181eddc8095a27094e50ffa162 : concorde
+      span_id : vecteur 402cc2824eed7b0f ; outil 402cc2824eed7b0f : concorde
+      parent_span_id : vecteur d800d4cb4d2ba87a ; outil d800d4cb4d2ba87a : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.conversation.id":"conv-2026-11-10-0011","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-retard (requete.json, SHA-256 0x677e139b7cc054a3c8539add8b696125800013a9e15a753268abba2589a6294b, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur e115361fb578d61f3adfb18956c65ebd ; outil e115361fb578d61f3adfb18956c65ebd : concorde
+      span_id : vecteur 9af94b8ba6985b8d ; outil 9af94b8ba6985b8d : concorde
+      parent_span_id : vecteur 8e008fc1aef0b7a7 ; outil 8e008fc1aef0b7a7 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794300598000000000 ; outil 1794300598000000000 : concorde
+      end_time_unix_nano : vecteur 1794300598413500000 ; outil 1794300598413500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-run-id-refuse (requete.json, SHA-256 0x1dd8851ba58fee7c570b51638404a906d8de5f2385c7b8c3420d7e3eed54b636, application/json, statut attendu 200)
+  json_format.Parse (9 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 3 ; outil 3 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 14855a77cfe24726ff0c5b0182e3034d ; outil 14855a77cfe24726ff0c5b0182e3034d : concorde
+      span_id : vecteur 2fd5bab4440bedce ; outil 2fd5bab4440bedce : concorde
+      parent_span_id : vecteur 0763bfb82dbb4cad ; outil 0763bfb82dbb4cad : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-jean.exemple@assureur-demo.example","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.conversation.id":"conv-jean.exemple@assureur-demo.example","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 1] (issue scelle)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur 14855a77cfe24726ff0c5b0182e3034d ; outil 14855a77cfe24726ff0c5b0182e3034d : concorde
+      span_id : vecteur 6125a25a4128e489 ; outil 6125a25a4128e489 : concorde
+      parent_span_id : vecteur 0763bfb82dbb4cad ; outil 0763bfb82dbb4cad : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-CH9300762011623852957","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.conversation.id":"conv-CH9300762011623852957","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 2] (issue scelle)
+      path : vecteur [0,0,2] ; outil [0,0,2] : concorde
+      trace_id : vecteur 14855a77cfe24726ff0c5b0182e3034d ; outil 14855a77cfe24726ff0c5b0182e3034d : concorde
+      span_id : vecteur aeb5fa87171b7979 ; outil aeb5fa87171b7979 : concorde
+      parent_span_id : vecteur 0763bfb82dbb4cad ; outil 0763bfb82dbb4cad : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-2026-11-10-0012","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} ; outil {"gen_ai.conversation.id":"conv-2026-11-10-0012","gen_ai.input.messages":[{"parts":[{"content":"Où en est le sinistre 2026-81044 ?","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"stop","parts":[{"content":"Le sinistre 2026-81044 est ouvert.","type":"text"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.usage.input_tokens":120,"gen_ai.usage.output_tokens":18} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-sorte-desactivee (requete.json, SHA-256 0xd3e10cc7bd12ad780d3924f1864a2bb85ac34b261417a941b8a7570702ab9b27, application/json, statut attendu 200)
+  json_format.Parse (6 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 2 ; outil 2 : concorde
+  span [0, 0, 0] (issue ignore, raison sorte_desactivee)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur b7e0bfe41bcc53875b928238bc750225 ; outil b7e0bfe41bcc53875b928238bc750225 : concorde
+      span_id : vecteur 8c5f00dea81742aa ; outil 8c5f00dea81742aa : concorde
+    forme normalisée : aucune dans le vecteur (span ignoré, EX-6.32)
+  span [0, 0, 1] (issue scelle)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur b7e0bfe41bcc53875b928238bc750225 ; outil b7e0bfe41bcc53875b928238bc750225 : concorde
+      span_id : vecteur 84581ce55306c2a5 ; outil 84581ce55306c2a5 : concorde
+      parent_span_id : vecteur b2be3c81e942107c ; outil b2be3c81e942107c : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-spans-ignores (requete.json, SHA-256 0x9b9d313a5c9402bcdac343f1ddc0b5a9a11b47cb95afc312d5dd54922bc7df0c, application/json, statut attendu 200)
+  json_format.Parse (9 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 3 ; outil 3 : concorde
+  span [0, 0, 0] (issue ignore, raison hors_genai)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur b6ea20ce505ba33390d93f57fae3d1c6 ; outil b6ea20ce505ba33390d93f57fae3d1c6 : concorde
+      span_id : vecteur cf839dbdc526945d ; outil cf839dbdc526945d : concorde
+    forme normalisée : aucune dans le vecteur (span ignoré, EX-6.32)
+  span [0, 0, 1] (issue ignore, raison operation_non_retenue)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur b6ea20ce505ba33390d93f57fae3d1c6 ; outil b6ea20ce505ba33390d93f57fae3d1c6 : concorde
+      span_id : vecteur fa3f346d412a324b ; outil fa3f346d412a324b : concorde
+    forme normalisée : aucune dans le vecteur (span ignoré, EX-6.32)
+  span [0, 0, 2] (issue ignore, raison operation_non_retenue)
+      path : vecteur [0,0,2] ; outil [0,0,2] : concorde
+      trace_id : vecteur b6ea20ce505ba33390d93f57fae3d1c6 ; outil b6ea20ce505ba33390d93f57fae3d1c6 : concorde
+      span_id : vecteur 792d023b4286f576 ; outil 792d023b4286f576 : concorde
+    forme normalisée : aucune dans le vecteur (span ignoré, EX-6.32)
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- json-valeurs-diverses (requete.json, SHA-256 0xc9749b9517d9ea8084af6f8d3ff3b29b6fef6693231c67923af42aff888abe94, application/json, statut attendu 200)
+  json_format.Parse (3 identifiant(s) converti(s)) : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur e4b794502e5297d24d06502d1a0a2d9e ; outil e4b794502e5297d24d06502d1a0a2d9e : concorde
+      span_id : vecteur 77f8ee23db1fd037 ; outil 77f8ee23db1fd037 : concorde
+      parent_span_id : vecteur 0711bc9aec0d3468 ; outil 0711bc9aec0d3468 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.name":"claims.get","valeur.decimale":1.5,"valeur.infini":"-Infinity","valeur.nan":"NaN","valeur.octets":"AAECAwQFBgcICQ==","valeur.strindex":null,"valeur.tableau":["a",2,[true],{"interne":"x"}],"valeur.vide":null,"valeur.vrai":false} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.name":"claims.get","valeur.decimale":1.5,"valeur.infini":"-Infinity","valeur.nan":"NaN","valeur.octets":"AAECAwQFBgcICQ==","valeur.strindex":null,"valeur.tableau":["a",2,[true],{"interne":"x"}],"valeur.vide":null,"valeur.vrai":false} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse JSON : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse JSON réécrite par la bibliothèque (MessageToDict) = body_json : vecteur {} ; outil {} : concorde
+-- non-authentifie (requete.json, SHA-256 0xb8c7b84c8f290221bbedf06d7e51da4be1e942edc4be7dc1be8b2e6d010d190c, application/json, statut attendu 401)
+  statut 401 décidé avant le décodage (en-têtes, taille ou authentification) : sans objet pour la bibliothèque ; corps : analysable, 1 span(s)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- non-authentifie-type-texte (requete.brut, SHA-256 0x2940584497d6c8c97865ebd6258520e80aec03c3d3925ac56e2fa52b291cf5d4, text/plain, statut attendu 401)
+  statut 401 décidé avant le décodage (en-têtes, taille ou authentification) : sans objet pour la bibliothèque ; corps : non analysable (ParseError : Failed to load JSON: Expecting value: line 1 column 1 (char 0).)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- non-chemin-normalisable (requete.json, SHA-256 0x54c47bca9400470f2994e987be48719e26d63ec842ae30c2a5c7bb430f90075d, application/json, statut attendu 404)
+  statut 404 décidé avant le décodage (en-têtes, taille ou authentification) : sans objet pour la bibliothèque ; corps : analysable, 1 span(s)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- pb-champ-double (requete.pb, SHA-256 0xb9295420277aadb5db7e37aa644ef895324010d3cbb75c76bbe4121abbaabfc7, application/x-protobuf, statut attendu 400)
+  vecteur : statut 400, 12236e6f6f7274726163653a20636f727073204f544c50206e6f6e206465636f6461626c65
+  pb-champ-double : divergence voulue (EX-6.30 : un champ non répété présent deux fois est refusé, là où une bibliothèque garde le dernier ou fusionne) : la bibliothèque accepte le corps (1 span(s), kind 1)
+    valeur retenue par la bibliothèque : name ["execute_tool autre"]
+  corps de réponse protobuf du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- pb-champ-inconnu (requete.pb, SHA-256 0x7d321db733473a622d39d8c8b07e6805319ea85e07a36c5459da42f5221a99eb, application/x-protobuf, statut attendu 200)
+  ExportTraceServiceRequest.FromString : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 1 ; outil 1 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 0922c15b40a0d2bbc061c45b7302e4c3 ; outil 0922c15b40a0d2bbc061c45b7302e4c3 : concorde
+      span_id : vecteur a2ae3aa9ee17fdf8 ; outil a2ae3aa9ee17fdf8 : concorde
+      parent_span_id : vecteur 9cbeddd37d4eda68 ; outil 9cbeddd37d4eda68 : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse protobuf : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse protobuf = SerializeToString(deterministic=True) de la bibliothèque : vecteur  ; outil  : concorde
+-- pb-exemple-6-8-16 (requete.pb, SHA-256 0x43ee59e43418211566ec87d6ad783dd8d0583670e0f7d3041f720123aeaa5182, application/x-protobuf, statut attendu 200)
+  ExportTraceServiceRequest.FromString : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 2 ; outil 2 : concorde
+  span [0, 0, 0] (issue scelle)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 5b8efff798038103d269b633813fc60c ; outil 5b8efff798038103d269b633813fc60c : concorde
+      span_id : vecteur eee19b7ec3c1b174 ; outil eee19b7ec3c1b174 : concorde
+      parent_span_id : vecteur eee19b7ec3c1b173 ; outil eee19b7ec3c1b173 : concorde
+      name : vecteur chat modele-demo-1 ; outil chat modele-demo-1 : concorde
+      kind : vecteur 3 ; outil 3 : concorde
+      start_time_unix_nano : vecteur 1794307263100250000 ; outil 1794307263100250000 : concorde
+      end_time_unix_nano : vecteur 1794307264312750000 ; outil 1794307264312750000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.conversation.id":"conv-2026-11-10-0007","gen_ai.input.messages":[{"parts":[{"content":"Prépare le règlement du sinistre 2026-77812 ; l’assuré écrit depuis jean.exemple@assureur-demo.example.","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"tool_call","parts":[{"content":"Je prépare le paiement de 7400.00 CHF au bénéficiaire du sinistre.","type":"text"},{"arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00"},"id":"call_01","name":"paiement.creer","type":"tool_call"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.finish_reasons":["tool_call"],"gen_ai.response.id":"resp-0007","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.system_instructions":[{"content":"Tu traites les sinistres de l’assureur. Ne paie jamais sans pièces justificatives.","type":"text"}],"gen_ai.usage.input_tokens":412,"gen_ai.usage.output_tokens":38,"server.address":"passerelle-fournisseur.example"} ; outil {"gen_ai.conversation.id":"conv-2026-11-10-0007","gen_ai.input.messages":[{"parts":[{"content":"Prépare le règlement du sinistre 2026-77812 ; l’assuré écrit depuis jean.exemple@assureur-demo.example.","type":"text"}],"role":"user"}],"gen_ai.operation.name":"chat","gen_ai.output.messages":[{"finish_reason":"tool_call","parts":[{"content":"Je prépare le paiement de 7400.00 CHF au bénéficiaire du sinistre.","type":"text"},{"arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00"},"id":"call_01","name":"paiement.creer","type":"tool_call"}],"role":"assistant"}],"gen_ai.provider.name":"openai","gen_ai.request.model":"modele-demo-1","gen_ai.response.finish_reasons":["tool_call"],"gen_ai.response.id":"resp-0007","gen_ai.response.model":"modele-demo-1-2026-09","gen_ai.system_instructions":[{"content":"Tu traites les sinistres de l’assureur. Ne paie jamais sans pièces justificatives.","type":"text"}],"gen_ai.usage.input_tokens":412,"gen_ai.usage.output_tokens":38,"server.address":"passerelle-fournisseur.example"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 1] (issue scelle)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur 5b8efff798038103d269b633813fc60c ; outil 5b8efff798038103d269b633813fc60c : concorde
+      span_id : vecteur eee19b7ec3c1b175 ; outil eee19b7ec3c1b175 : concorde
+      parent_span_id : vecteur eee19b7ec3c1b173 ; outil eee19b7ec3c1b173 : concorde
+      name : vecteur execute_tool paiement.creer ; outil execute_tool paiement.creer : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307264320000000 ; outil 1794307264320000000 : concorde
+      end_time_unix_nano : vecteur 1794307264733500000 ; outil 1794307264733500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00"},"gen_ai.tool.call.id":"call_01","gen_ai.tool.call.result":{"reference":"PAY-2026-55120","statut":"cree"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"devise":"CHF","iban_beneficiaire":"CH93 0076 2011 6238 5295 7","montant":"7400.00"},"gen_ai.tool.call.id":"call_01","gen_ai.tool.call.result":{"reference":"PAY-2026-55120","statut":"cree"},"gen_ai.tool.name":"paiement.creer","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse protobuf : partial_success.rejected_spans lu par la bibliothèque : vecteur 0 ; outil 0 : concorde
+  réponse protobuf = SerializeToString(deterministic=True) de la bibliothèque : vecteur  ; outil  : concorde
+-- pb-identifiants-invalides (requete.pb, SHA-256 0xc4e15f290bcacaeedf6fdf7dd5f9936cbc28a9a705fd4c1b1c3384c9e3b037fd, application/x-protobuf, statut attendu 200)
+  ExportTraceServiceRequest.FromString : vecteur accepte ; outil accepte : concorde
+  nombre de spans lus par la bibliothèque : vecteur 3 ; outil 3 : concorde
+  span [0, 0, 0] (issue rejete, raison identifiants_invalides)
+      path : vecteur [0,0,0] ; outil [0,0,0] : concorde
+      trace_id : vecteur 00000000000000000000000000000000 ; outil 00000000000000000000000000000000 : concorde
+      span_id : vecteur 4a795792135779fe ; outil 4a795792135779fe : concorde
+      parent_span_id : vecteur 99bc39b7243159ac ; outil 99bc39b7243159ac : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_11","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 1] (issue rejete, raison identifiants_invalides)
+      path : vecteur [0,0,1] ; outil [0,0,1] : concorde
+      trace_id : vecteur 53d71f02a7b7972bcd381431fd8a3533 ; outil 53d71f02a7b7972bcd381431fd8a3533 : concorde
+      span_id : vecteur abcdef012345 ; outil abcdef012345 : concorde
+      parent_span_id : vecteur 99bc39b7243159ac ; outil 99bc39b7243159ac : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_12","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_12","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  span [0, 0, 2] (issue scelle)
+      path : vecteur [0,0,2] ; outil [0,0,2] : concorde
+      trace_id : vecteur 53d71f02a7b7972bcd381431fd8a3533 ; outil 53d71f02a7b7972bcd381431fd8a3533 : concorde
+      span_id : vecteur c0877cf2507d9702 ; outil c0877cf2507d9702 : concorde
+      parent_span_id : vecteur 99bc39b7243159ac ; outil 99bc39b7243159ac : concorde
+      name : vecteur execute_tool claims.get ; outil execute_tool claims.get : concorde
+      kind : vecteur 1 ; outil 1 : concorde
+      start_time_unix_nano : vecteur 1794307798000000000 ; outil 1794307798000000000 : concorde
+      end_time_unix_nano : vecteur 1794307799250500000 ; outil 1794307799250500000 : concorde
+      status : vecteur {"code":1,"message":""} ; outil {"code":1,"message":""} : concorde
+      attributes (valeurs V d'EX-6.31, attributs de contenu analysés) : vecteur {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_13","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} ; outil {"gen_ai.operation.name":"execute_tool","gen_ai.tool.call.arguments":{"claim_id":"2026-81044"},"gen_ai.tool.call.id":"call_13","gen_ai.tool.call.result":{"statut":"ouvert"},"gen_ai.tool.name":"claims.get","gen_ai.tool.type":"function"} : concorde
+      resource (valeurs V d'EX-6.31) : vecteur {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} ; outil {"attributes":{"service.name":"agent-sinistres","service.version":"3.2.0"},"dropped_attributes_count":0} : concorde
+      scope (valeurs V d'EX-6.31) : vecteur {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} ; outil {"attributes":{},"name":"agent-sinistres.instrumentation","version":"1.0.0"} : concorde
+      events (valeurs V d'EX-6.31) : vecteur [] ; outil [] : concorde
+      autres membres (dropped_attributes_count, dropped_events_count, dropped_links_count, flags, links_count, schema_url, trace_state) : vecteur [0,0,0,0,0,null,""] ; outil [0,0,0,0,0,null,""] : concorde
+      forme normalisée complète = normalized : vecteur True ; outil True : concorde
+  réponse protobuf : partial_success.rejected_spans lu par la bibliothèque : vecteur 2 ; outil 2 : concorde
+  réponse protobuf = SerializeToString(deterministic=True) de la bibliothèque : vecteur 0a3a080212366e6f6f7274726163653a2032207370616e2873292072656a6574652873292c206964656e74696669616e747320696e76616c69646573 ; outil 0a3a080212366e6f6f7274726163653a2032207370616e2873292072656a6574652873292c206964656e74696669616e747320696e76616c69646573 : concorde
+-- pb-tronque (requete.pb, SHA-256 0x22852531f49271cd358d94e08ac10698ca2991c83fce17009e91648a934badc4, application/x-protobuf, statut attendu 400)
+  ExportTraceServiceRequest.FromString : vecteur refuse ; outil refuse : concorde
+    raison de la bibliothèque : DecodeError : Error parsing message with type 'opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest': Wire format was corrupt
+  corps de réponse protobuf du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- trop-grand (requete.json, SHA-256 0xe57b2898f730990ee653a1e67eb72e21f5f2f7b15df32cc9c95ef2bada90515e, application/json, statut attendu 413)
+  statut 413 décidé avant le décodage (en-têtes, taille ou authentification) : sans objet pour la bibliothèque ; corps : analysable, 1 span(s)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- trop-grand-apres-decompression (requete.brut, SHA-256 0x5d060eec3abadeb02c03b36dcc8ba6e05eeb2aa2598b0e2f252a279796a2a3a5, application/json, gzip, statut attendu 413)
+  corps décomprimé (gzip de la bibliothèque standard) : 65538 octets
+  statut 413 décidé avant le décodage (en-têtes, taille ou authentification) : sans objet pour la bibliothèque ; corps : analysable, 0 span(s)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+-- type-de-contenu-inconnu (requete.brut, SHA-256 0x2940584497d6c8c97865ebd6258520e80aec03c3d3925ac56e2fa52b291cf5d4, text/plain, statut attendu 415)
+  statut 415 décidé avant le décodage (en-têtes, taille ou authentification) : sans objet pour la bibliothèque ; corps : non analysable (ParseError : Failed to load JSON: Expecting value: line 1 column 1 (char 0).)
+  corps de réponse JSON du refus (message Status de google.rpc, absent d'opentelemetry-proto) : non confronté
+
+== 2. Requêtes protobuf : octets du générateur = SerializeToString(deterministic=True) ; paires JSON et protobuf (B.8) : même message
+-- pb-champ-inconnu
+  champs de numéro inconnu sautés à l'analyse (EX-6.30) et gardés par la bibliothèque comme champs inconnus : 531 octets dans requete.pb, 453 après DiscardUnknownFields
+-- pb-exemple-6-8-16
+  SerializeToString(deterministic=True) du message lu = octets de requete.pb (champs dans l'ordre de leur numéro, chacun une fois) : vecteur True ; outil True : concorde
+-- pb-identifiants-invalides
+  SerializeToString(deterministic=True) du message lu = octets de requete.pb (champs dans l'ordre de leur numéro, chacun une fois) : vecteur True ; outil True : concorde
+-- paire json-exemple-6-8-16 / pb-exemple-6-8-16
+  Parse(json-exemple-6-8-16) == FromString(pb-exemple-6-8-16) : vecteur True ; outil True : concorde
+  SerializeToString(deterministic=True) de Parse(json-exemple-6-8-16) = octets de pb-exemple-6-8-16/requete.pb : vecteur True ; outil True : concorde
+-- paire json-identifiants-invalides / pb-identifiants-invalides
+  Parse(json-identifiants-invalides) == FromString(pb-identifiants-invalides) : vecteur True ; outil True : concorde
+  SerializeToString(deterministic=True) de Parse(json-identifiants-invalides) = octets de pb-identifiants-invalides/requete.pb : vecteur True ; outil True : concorde
+
+== 3. Piège de R11-F44 : json_format.Parse sans conversion des identifiants
+-- json-exemple-6-8-16, premier span : traceId 5B8EFFF798038103D269B633813FC60C
+  Parse sans conversion : longueur de trace_id en octets (R11-F44 : 24, au lieu des 16 de l'identifiant) : vecteur 24 ; outil 24 : concorde
+  Parse sans conversion : trace_id différent de l'identifiant attendu : vecteur True ; outil True : concorde
+  trace_id lu sans conversion : e41f0414517bf7cd37f35d370f6ebd07adf7f35dc50bad02
+
+== 4. Sonde : noms de champs d'origine (snake_case) dans le JSON
+-- json-champ-inconnu, span [0, 0, 0] : "trace_state": "" remplacé en mémoire par "trace_state": "sonde"
+  le corps du vecteur porte "trace_state": "" : vecteur 1 ; outil 1 : concorde
+  LIMITE DE L'OUTIL : json_format.Parse lit le nom d'origine trace_state (valeur "sonde"), qu'OTLP/JSON tient pour inconnu et que NOORTRACE ignore (EX-6.29)
+
+Cas otel/ : 48 ; requêtes analysées par la bibliothèque : 40 ; statut décidé avant le décodage (sans objet) : 8 ; corps de réponse confrontés : 34 ; corps Status des refus non confrontés : 14 ; divergences voulues : 4 ; limites de l'outil : 1 ; discordances : 0
+  divergence voulue : json-entier-fractionnaire : la bibliothèque accepte le corps (1 span(s), kind 1)
+  divergence voulue : json-enum-en-chaine : la bibliothèque accepte le corps (1 span(s), kind 3)
+  divergence voulue : json-identifiant-non-hexadecimal : la bibliothèque accepte le corps (1 span(s), kind 1)
+  divergence voulue : pb-champ-double : la bibliothèque accepte le corps (1 span(s), kind 1)
+  limite : json_format.Parse lit le nom d'origine trace_state (valeur "sonde"), qu'OTLP/JSON tient pour inconnu et que NOORTRACE ignore (EX-6.29)
+Discordances au total : 0

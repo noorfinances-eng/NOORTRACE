@@ -1,0 +1,43 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x9461986df75ed4b92e3a5073183fc4aa62987506103eee5f1f394ea8742219d4",
+      "length": 83,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Statut du sinistre 2026-81044 ?\"}],\"role\":\"user\"}]}"
+    },
+    "response": {
+      "sha256": "0xbad07280aaeb92e48891e4c226255993b2f6f633a8df07c6ba530ca0b79dd8d3",
+      "length": 224,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Ouvert.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"responseId\":\"rep-exemple-0011\",\"usageMetadata\":{\"candidatesTokenCount\":2,\"promptTokenCount\":12,\"totalTokenCount\":14}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple",
+  "prompt_version": null,
+  "intent": "Ouvert.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:generateContent"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:generateContent",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Réponse sans modelVersion : code.model = gemini/ + segment de modèle du chemin, qui passe le motif d'EX-5.28 et qu'aucun détecteur de pii-v1 ne vise (EX-5.36) ; le membre model du corps n'est jamais lu."
+}

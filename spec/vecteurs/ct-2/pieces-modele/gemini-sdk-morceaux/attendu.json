@@ -1,0 +1,68 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": null,
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0013",
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Je consulte "
+            },
+            {
+              "text": "le sinistre."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x3af12acda42f846ecb213d095e91afcef03b21219128649525cc11c2dc84c72c",
+      "length": 180,
+      "redacted": true,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Ouvre le sinistre 2026-81044.\"}],\"role\":\"user\"}],\"model\":\"models/gemini-exemple\",\"systemInstruction\":{\"parts\":[{\"text\":\"[REDIGE:prompt-systeme]\"}]}}"
+    },
+    "response": {
+      "sha256": "0x07a42d8ce7098fabba1681828b04215c8596e0086b519654649e9ef1de4d539c",
+      "length": 203,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Je consulte \"},{\"text\":\"le sinistre.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0013\"}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": "Je consulte le sinistre.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": null,
+  "model_segment": null,
+  "upstream_target": null,
+  "via": "sdk",
+  "removed_members": [
+    "sdkHttpResponse"
+  ],
+  "note": "noortrace/sdk/echangeModele au format gemini (EX-6.8) : response en tableau de deux morceaux consolidé par EX-5.35 (fin du tableau = fin normale) ; sdkHttpResponse, ajouté par le SDK Python, est retiré avant tout traitement (sdk_member_removed) ; l'échange est déclaratif."
+}

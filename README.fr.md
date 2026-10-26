@@ -42,6 +42,10 @@ dans la spécification du vérificateur (CT-6 §7).
 4. **Un dossier de preuve exportable et un vérificateur ouvert**, que le réviseur
    exécute lui-même, hors ligne, sans accès à nos systèmes ; CT-6 §7 dit ce
    qu'il prouve et ce qu'il faut encore croire.
+5. **Des intégrations larges** : passerelle pour Anthropic, OpenAI et Gemini,
+   SDK Python et TypeScript pour LangChain, LangGraph, CrewAI, LlamaIndex, le
+   SDK Agents d'OpenAI et LiteLLM, ingestion des traces OpenTelemetry, et un gel
+   juridique des copies non modifiables levé à deux personnes (CT-2).
 
 ## Ce que NOORTRACE n'est pas
 
@@ -89,7 +93,9 @@ construction.
   à CT-5 sont recalculés par des vérificateurs Go écrits depuis la seule
   spécification ; ceux de CT-5 et de CT-6 aussi par OpenSSL et la bibliothèque
   officielle d'OpenTimestamps, ceux de CT-6 par go-ethereum, les preuves de
-  cohérence par une implémentation publique de la RFC 9162 ; voir
+  cohérence par une implémentation publique de la RFC 9162, les échanges
+  Gemini et les traces OpenTelemetry de CT-2 par les bibliothèques officielles
+  google-genai et opentelemetry-proto ; voir
   [spec/README.md](spec/README.md).
 - `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
   noorchain-core sans modification ; PeriodRegistry, dérivé de PoSSRegistry de
@@ -98,7 +104,8 @@ construction.
 - `test/` et `scripts/` : tests Hardhat, déploiement, amorçage d'une organisation,
   parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
 - `scripts/lib/` : implémentation de référence de CT-1, de la partie calculable de
-  CT-2, de CT-3, des conventions de CT-4, du planificateur d'ancrage de CT-5 et
+  CT-2 (dont, depuis sa révision 0.5, Gemini à la passerelle, l'ingestion
+  OpenTelemetry, le gel juridique des copies WORM et le coût par agent), de CT-3, des conventions de CT-4, du planificateur d'ancrage de CT-5 et
   des contrôles 4, 5 et 8 de CT-6, avec les vérifications K- des points de
   contrôle.
 - `scripts/registre/` : outil de référence de CT-4 (`npm run registre`) :

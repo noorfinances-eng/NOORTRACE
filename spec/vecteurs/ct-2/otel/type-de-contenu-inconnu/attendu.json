@@ -1,0 +1,20 @@
+{
+  "status": 415,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {
+      "message": "noortrace: type de contenu ou codage non admis"
+    }
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [],
+  "note": "Content-Type text/plain : 415 ; la réponse est en application/json, la requête n'ayant pas de type admis (EX-6.27)."
+}

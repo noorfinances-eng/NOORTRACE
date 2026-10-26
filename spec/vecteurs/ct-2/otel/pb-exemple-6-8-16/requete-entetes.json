@@ -1,0 +1,6 @@
+{
+  "method": "POST",
+  "path": "/v1/traces",
+  "content-type": "application/x-protobuf",
+  "token_id": "otel-agent-sinistres"
+}

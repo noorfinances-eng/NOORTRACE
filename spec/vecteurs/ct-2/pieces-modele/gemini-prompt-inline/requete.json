@@ -1,0 +1,23 @@
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Résume le sinistre 2026-81044."
+        }
+      ]
+    }
+  ],
+  "systemInstruction": {
+    "role": "system",
+    "parts": [
+      {
+        "text": "Tu es l'agent sinistres de l'assureur de démonstration."
+      },
+      {
+        "text": "Contact interne : support@assureur-demo.example (jamais communiqué)."
+      }
+    ]
+  }
+}

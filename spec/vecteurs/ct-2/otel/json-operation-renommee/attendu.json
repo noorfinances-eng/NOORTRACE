@@ -1,0 +1,35 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 1,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "acd7d9ee17a9f0868723db281240028d",
+      "span_id": "dc29fbefec578157",
+      "issue": "ignore",
+      "reason": "hors_genai",
+      "overlap_seq": null,
+      "normalized": null,
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    }
+  ],
+  "note": "gen_ai.operation.name renommé (gen_ai.operation) : le span n'a pas d'opération, il est ignoré (hors_genai) sans événement invalide ; la supervision le signale (EX-6.25, EX-6.41)."
+}

@@ -1,0 +1,39 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": null,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": {
+    "status": 400,
+    "reason": "cle_dans_url",
+    "body": {
+      "error": {
+        "code": 400,
+        "message": "noortrace: cle d'API dans l'URL refusee",
+        "status": "INVALID_ARGUMENT"
+      }
+    },
+    "content_type": "text/event-stream"
+  },
+  "consolidated": null,
+  "pieces": null,
+  "code_model": null,
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": null,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse&key=cle-fictive-de-test"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": null,
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Paramètre key dans l'URL : refus 400 cle_dans_url, examiné en premier (EX-5.29) ; streamGenerateContent avec alt=sse : corps AIP-193 en text/event-stream (EX-5.30). Seuls les noms des paramètres sont consignés, jamais leur valeur."
+}

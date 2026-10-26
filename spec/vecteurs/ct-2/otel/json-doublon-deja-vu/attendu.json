@@ -1,0 +1,79 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 0,
+    "doublon": 1,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "eb82aa2b5b0c239dd940ed0833340cab",
+      "span_id": "9c821775ecfc8467",
+      "issue": "doublon",
+      "reason": null,
+      "overlap_seq": null,
+      "normalized": {
+        "trace_id": "eb82aa2b5b0c239dd940ed0833340cab",
+        "span_id": "9c821775ecfc8467",
+        "parent_span_id": "fe152dc36e322942",
+        "trace_state": "",
+        "name": "execute_tool claims.get",
+        "flags": 0,
+        "kind": 1,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "1794307799250500000",
+        "attributes": {
+          "gen_ai.operation.name": "execute_tool",
+          "gen_ai.tool.name": "claims.get",
+          "gen_ai.tool.call.id": "call_11",
+          "gen_ai.tool.type": "function",
+          "gen_ai.tool.call.arguments": {
+            "claim_id": "2026-81044"
+          },
+          "gen_ai.tool.call.result": {
+            "statut": "ouvert"
+          }
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    }
+  ],
+  "note": "Clé (alias, trace_id, span_id) déjà dans la table des doublons (seen, dans la fenêtre dedup_window_ms) : un lot renvoyé par l'exportateur ne donne rien de scellé (EX-6.33)."
+}

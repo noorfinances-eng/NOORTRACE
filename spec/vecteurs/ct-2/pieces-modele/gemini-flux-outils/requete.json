@@ -1,0 +1,67 @@
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Règle le sinistre 2026-81044."
+        }
+      ]
+    }
+  ],
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "Tu es l'agent sinistres de l'assureur de démonstration."
+      }
+    ]
+  },
+  "tools": [
+    {
+      "functionDeclarations": [
+        {
+          "name": "demo__claims_get",
+          "description": "Rend le dossier d'un sinistre de démonstration",
+          "parameters": {
+            "type": "OBJECT",
+            "properties": {
+              "claim_id": {
+                "type": "STRING"
+              }
+            },
+            "required": [
+              "claim_id"
+            ]
+          }
+        },
+        {
+          "name": "demo__payments_create",
+          "description": "Crée un paiement de sinistre (écriture)",
+          "parameters": {
+            "type": "OBJECT",
+            "properties": {
+              "claim_id": {
+                "type": "STRING"
+              },
+              "amount": {
+                "type": "STRING"
+              },
+              "currency": {
+                "type": "STRING"
+              },
+              "beneficiary_iban": {
+                "type": "STRING"
+              }
+            },
+            "required": [
+              "claim_id",
+              "amount",
+              "currency",
+              "beneficiary_iban"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

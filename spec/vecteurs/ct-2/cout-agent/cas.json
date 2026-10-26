@@ -1,0 +1,504 @@
+{
+  "version": 0,
+  "family": "cout-agent",
+  "description": "Coût annuel par agent et par journal (CT-2 §16.4, EX-16.4 à EX-16.6) : formule à prix paramétrés ; tous les prix sont des unités symboliques p, jamais un prix réel ; sorties arrondies à trois décimales (EX-16.5).",
+  "cases": [
+    {
+      "id": "reference",
+      "description": "Cas de référence de CT-2 §16.4 : agent actif 2 920 h par an, 120 événements par heure, 10 agents par journal, rétention 4 018 jours, pièces non copiées, relevé mensuel, aucun gel ; C_anc = cost_per_journal du cas defaut-second-rang-a1 de spec/vecteurs/ct-5/cout/cout.json.",
+      "input": {
+        "active_hours_per_year": 2920,
+        "events_per_hour": 120,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 10,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 268435456,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 4018,
+        "worm": {
+          "retain_days": 4018,
+          "pieces_in_worm": false,
+          "min_billable_object_bytes": 0,
+          "lock_audits_per_year": 12,
+          "legal_hold_fraction": 0,
+          "legal_hold_extra_days": 0
+        },
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0.0001,
+          "read_request": 0.00001,
+          "legal_hold_request": 0.0001,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 350400,
+        "event_bytes_per_year": 897024000,
+        "piece_bytes_per_year": 2152857600,
+        "segments_per_year": 292,
+        "journal_objects_per_year": 35040,
+        "worm_objects_per_year": 35332,
+        "worm_billable_bytes_per_year": 1011843072,
+        "cost": {
+          "local_storage": 16.223,
+          "worm_storage": 10.374,
+          "legal_hold": 0,
+          "write_requests": 4,
+          "read_requests": 47.38,
+          "network": 0.094,
+          "anchoring": 2803.2,
+          "total": 2881.27
+        },
+        "cost_journal_total": 28812.701
+      }
+    },
+    {
+      "id": "sans-worm",
+      "description": "Aucun support WORM : tous les termes WORM valent 0.",
+      "input": {
+        "active_hours_per_year": 2920,
+        "events_per_hour": 120,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 10,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 268435456,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 4018,
+        "worm": null,
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0.0001,
+          "read_request": 0.00001,
+          "legal_hold_request": 0.0001,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 350400,
+        "event_bytes_per_year": 897024000,
+        "piece_bytes_per_year": 2152857600,
+        "segments_per_year": 292,
+        "journal_objects_per_year": 35040,
+        "worm_objects_per_year": 0,
+        "worm_billable_bytes_per_year": 0,
+        "cost": {
+          "local_storage": 16.223,
+          "worm_storage": 0,
+          "legal_hold": 0,
+          "write_requests": 0,
+          "read_requests": 0,
+          "network": 0,
+          "anchoring": 2803.2,
+          "total": 2819.423
+        },
+        "cost_journal_total": 28194.226
+      }
+    },
+    {
+      "id": "pieces-dans-le-worm",
+      "description": "Pièces copiées sur le support WORM (pieces_in_worm).",
+      "input": {
+        "active_hours_per_year": 2920,
+        "events_per_hour": 120,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 10,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 268435456,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 4018,
+        "worm": {
+          "retain_days": 4018,
+          "pieces_in_worm": true,
+          "min_billable_object_bytes": 0,
+          "lock_audits_per_year": 12,
+          "legal_hold_fraction": 0,
+          "legal_hold_extra_days": 0
+        },
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0.0001,
+          "read_request": 0.00001,
+          "legal_hold_request": 0.0001,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 350400,
+        "event_bytes_per_year": 897024000,
+        "piece_bytes_per_year": 2152857600,
+        "segments_per_year": 292,
+        "journal_objects_per_year": 35040,
+        "worm_objects_per_year": 736132,
+        "worm_billable_bytes_per_year": 3164700672,
+        "cost": {
+          "local_storage": 16.223,
+          "worm_storage": 32.445,
+          "legal_hold": 0,
+          "write_requests": 83.337,
+          "read_requests": 987.143,
+          "network": 0.295,
+          "anchoring": 2803.2,
+          "total": 3922.643
+        },
+        "cost_journal_total": 39226.428
+      }
+    },
+    {
+      "id": "taille-minimale-facturable",
+      "description": "Taille minimale facturable de 131 072 octets par objet, requêtes gratuites.",
+      "input": {
+        "active_hours_per_year": 2920,
+        "events_per_hour": 120,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 10,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 268435456,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 4018,
+        "worm": {
+          "retain_days": 4018,
+          "pieces_in_worm": false,
+          "min_billable_object_bytes": 131072,
+          "lock_audits_per_year": 12,
+          "legal_hold_fraction": 0,
+          "legal_hold_extra_days": 0
+        },
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0,
+          "read_request": 0,
+          "legal_hold_request": 0,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 350400,
+        "event_bytes_per_year": 897024000,
+        "piece_bytes_per_year": 2152857600,
+        "segments_per_year": 292,
+        "journal_objects_per_year": 35040,
+        "worm_objects_per_year": 35332,
+        "worm_billable_bytes_per_year": 5489786880,
+        "cost": {
+          "local_storage": 16.223,
+          "worm_storage": 56.282,
+          "legal_hold": 0,
+          "write_requests": 0,
+          "read_requests": 0,
+          "network": 0.094,
+          "anchoring": 2803.2,
+          "total": 2875.799
+        },
+        "cost_journal_total": 28757.992
+      }
+    },
+    {
+      "id": "gel-juridique",
+      "description": "Un dixième des objets d'une année sous gel, 1 826 jours au-delà de l'échéance.",
+      "input": {
+        "active_hours_per_year": 2920,
+        "events_per_hour": 120,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 10,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 268435456,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 4018,
+        "worm": {
+          "retain_days": 4018,
+          "pieces_in_worm": false,
+          "min_billable_object_bytes": 0,
+          "lock_audits_per_year": 12,
+          "legal_hold_fraction": 0.1,
+          "legal_hold_extra_days": 1826
+        },
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0.0001,
+          "read_request": 0.00001,
+          "legal_hold_request": 0.0001,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 350400,
+        "event_bytes_per_year": 897024000,
+        "piece_bytes_per_year": 2152857600,
+        "segments_per_year": 292,
+        "journal_objects_per_year": 35040,
+        "worm_objects_per_year": 35332,
+        "worm_billable_bytes_per_year": 1011843072,
+        "cost": {
+          "local_storage": 16.223,
+          "worm_storage": 10.374,
+          "legal_hold": 1.178,
+          "write_requests": 4,
+          "read_requests": 47.38,
+          "network": 0.094,
+          "anchoring": 2803.2,
+          "total": 2882.448
+        },
+        "cost_journal_total": 28824.482
+      }
+    },
+    {
+      "id": "segments-scindes",
+      "description": "Agent actif toute l'année, 1 200 événements par heure, segments de 16 Mio : deux segments par heure.",
+      "input": {
+        "active_hours_per_year": 8760,
+        "events_per_hour": 1200,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 10,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 16777216,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 4018,
+        "worm": {
+          "retain_days": 4018,
+          "pieces_in_worm": false,
+          "min_billable_object_bytes": 0,
+          "lock_audits_per_year": 12,
+          "legal_hold_fraction": 0,
+          "legal_hold_extra_days": 0
+        },
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0.0001,
+          "read_request": 0.00001,
+          "legal_hold_request": 0.0001,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 10512000,
+        "event_bytes_per_year": 26910720000,
+        "piece_bytes_per_year": 64585728000,
+        "segments_per_year": 1752,
+        "journal_objects_per_year": 35040,
+        "worm_objects_per_year": 36792,
+        "worm_billable_bytes_per_year": 27025539072,
+        "cost": {
+          "local_storage": 469.609,
+          "worm_storage": 277.071,
+          "legal_hold": 0,
+          "write_requests": 4.165,
+          "read_requests": 49.338,
+          "network": 2.517,
+          "anchoring": 2803.2,
+          "total": 3605.9
+        },
+        "cost_journal_total": 36058.997
+      }
+    },
+    {
+      "id": "agent-inactif",
+      "description": "Aucun événement : la part des objets de journal et de l'ancrage seule.",
+      "input": {
+        "active_hours_per_year": 2920,
+        "events_per_hour": 0,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 10,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 268435456,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 4018,
+        "worm": {
+          "retain_days": 4018,
+          "pieces_in_worm": false,
+          "min_billable_object_bytes": 0,
+          "lock_audits_per_year": 12,
+          "legal_hold_fraction": 0,
+          "legal_hold_extra_days": 0
+        },
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0.0001,
+          "read_request": 0.00001,
+          "legal_hold_request": 0.0001,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 0,
+        "event_bytes_per_year": 0,
+        "piece_bytes_per_year": 0,
+        "segments_per_year": 0,
+        "journal_objects_per_year": 35040,
+        "worm_objects_per_year": 35040,
+        "worm_billable_bytes_per_year": 114819072,
+        "cost": {
+          "local_storage": 0.589,
+          "worm_storage": 1.177,
+          "legal_hold": 0,
+          "write_requests": 3.967,
+          "read_requests": 46.988,
+          "network": 0.011,
+          "anchoring": 2803.2,
+          "total": 2855.931
+        },
+        "cost_journal_total": 28559.314
+      }
+    },
+    {
+      "id": "un-agent-par-journal",
+      "description": "Un seul agent par journal : il porte seul les objets de journal et l'ancrage.",
+      "input": {
+        "active_hours_per_year": 2920,
+        "events_per_hour": 120,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 1,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 268435456,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 4018,
+        "worm": {
+          "retain_days": 4018,
+          "pieces_in_worm": false,
+          "min_billable_object_bytes": 0,
+          "lock_audits_per_year": 12,
+          "legal_hold_fraction": 0,
+          "legal_hold_extra_days": 0
+        },
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0.0001,
+          "read_request": 0.00001,
+          "legal_hold_request": 0.0001,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 350400,
+        "event_bytes_per_year": 897024000,
+        "piece_bytes_per_year": 2152857600,
+        "segments_per_year": 2920,
+        "journal_objects_per_year": 350400,
+        "worm_objects_per_year": 353320,
+        "worm_billable_bytes_per_year": 2045214720,
+        "cost": {
+          "local_storage": 21.52,
+          "worm_storage": 20.968,
+          "legal_hold": 0,
+          "write_requests": 39.999,
+          "read_requests": 473.797,
+          "network": 0.19,
+          "anchoring": 28032,
+          "total": 28588.475
+        },
+        "cost_journal_total": 28588.475
+      }
+    },
+    {
+      "id": "pieces-purgees",
+      "description": "Pièces conservées localement 365 jours seulement.",
+      "input": {
+        "active_hours_per_year": 2920,
+        "events_per_hour": 120,
+        "event_bytes": 2560,
+        "piece_bytes_per_event": 6144,
+        "pieces_per_event": 2,
+        "agents_per_journal": 10,
+        "hours_per_year": 8760,
+        "journal_objects_per_hour": 40,
+        "journal_bytes_per_hour": 131072,
+        "segment_max_bytes": 268435456,
+        "anchoring_cost_per_journal": 28032,
+        "local_retention_days": 4018,
+        "local_pieces_retention_days": 365,
+        "worm": {
+          "retain_days": 4018,
+          "pieces_in_worm": false,
+          "min_billable_object_bytes": 0,
+          "lock_audits_per_year": 12,
+          "legal_hold_fraction": 0,
+          "legal_hold_extra_days": 0
+        },
+        "prices": {
+          "local_gib_year": 0.5,
+          "worm_gib_year": 1,
+          "write_request": 0.0001,
+          "read_request": 0.00001,
+          "legal_hold_request": 0.0001,
+          "egress_gib": 0.1,
+          "ingress_gib": 0
+        }
+      },
+      "expected": {
+        "events_per_year": 350400,
+        "event_bytes_per_year": 897024000,
+        "piece_bytes_per_year": 2152857600,
+        "segments_per_year": 292,
+        "journal_objects_per_year": 35040,
+        "worm_objects_per_year": 35332,
+        "worm_billable_bytes_per_year": 1011843072,
+        "cost": {
+          "local_storage": 6.189,
+          "worm_storage": 10.374,
+          "legal_hold": 0,
+          "write_requests": 4,
+          "read_requests": 47.38,
+          "network": 0.094,
+          "anchoring": 2803.2,
+          "total": 2871.237
+        },
+        "cost_journal_total": 28712.368
+      }
+    }
+  ]
+}

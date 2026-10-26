@@ -139,18 +139,22 @@ jobs:
           node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7 --exiger 4,5,8 > /dev/null
           test $? -eq 3
 
-  # Confrontation des vecteurs CT-6 par des implémentations tierces
-  # (spec/CT-6-verificateur.md, annexe A.8 ; spec/vecteurs/ct-6/confrontation/).
-  # Les sorties publiées (confrontation/sorties/) viennent d'OpenSSL 3.0.13,
-  # de python-opentimestamps 0.4.5 et de transparency-dev/merkle v0.0.2 ; ici,
-  # chaque programme est rejoué avec l'OpenSSL de l'exécuteur, la même version
-  # d'opentimestamps et la même version du module Go, et doit rendre le code 0
-  # (aucune discordance). La confrontation du registre
+  # Confrontation des vecteurs CT-2, CT-5 et CT-6 par des implémentations
+  # tierces (spec/CT-6-verificateur.md, annexe A.8 ; spec/CT-5-ancrage.md,
+  # annexe A.6 ; spec/CT-2-enregistreur.md, annexes B.5 et B.8 ;
+  # spec/vecteurs/ct-*/confrontation/). Les sorties publiées
+  # (confrontation/sorties/) viennent d'OpenSSL 3.0.13, de
+  # python-opentimestamps 0.4.5, de transparency-dev/merkle v0.0.2, de
+  # google-genai 2.33.0 et d'opentelemetry-proto 1.45.1 avec protobuf 7.36.2 ;
+  # ici, chaque programme est rejoué avec l'OpenSSL de l'exécuteur, les mêmes
+  # versions des paquets Python et la même version du module Go, et doit rendre
+  # le code 0 (aucune discordance) ; les sorties de CT-2 doivent en outre être
+  # égales, octet pour octet, aux sorties publiées. La confrontation du registre
   # (go-ethereum et noorcore) exige une copie de noorchain-core : elle n'est
   # pas rejouée ici, et test/confrontation.test.js vérifie que sa sortie
   # publiée porte sur les vecteurs du dépôt.
   confrontation:
-    name: vecteurs CT-5 et CT-6 confrontés à openssl, à python-opentimestamps et à transparency-dev/merkle
+    name: vecteurs CT-2, CT-5 et CT-6 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai et à opentelemetry-proto
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -175,6 +179,30 @@ jobs:
           set -o pipefail
           "$RUNNER_TEMP/venv/bin/python" -I spec/vecteurs/ct-6/confrontation/ots/confronter_ots.py spec/vecteurs/ct-6 | tail -6
           "$RUNNER_TEMP/venv/bin/python" -I spec/vecteurs/ct-5/confrontation/ots/confronter_ots.py spec/vecteurs/ct-5 | tail -4
+      # CT-2 (annexe B.5) : requêtes, réponses, morceaux de flux, formes
+      # consolidées et refus des cas pieces-modele/gemini-* analysés par les
+      # types et le client du SDK officiel (transport simulé, sans réseau) ;
+      # versions exactes de toutes les dépendances (exigences.txt, --no-deps).
+      - name: CT-2 Gemini par google-genai 2.33.0 (environnement virtuel, hors ligne après installation)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv-genai"
+          "$RUNNER_TEMP/venv-genai/bin/pip" install --only-binary :all: --no-deps -r spec/vecteurs/ct-2/confrontation/gemini/exigences.txt
+          "$RUNNER_TEMP/venv-genai/bin/pip" check
+          set -o pipefail
+          "$RUNNER_TEMP/venv-genai/bin/python" -I spec/vecteurs/ct-2/confrontation/gemini/confronter_gemini.py spec/vecteurs/ct-2 | tee "$RUNNER_TEMP/gemini.txt" | tail -3
+          diff spec/vecteurs/ct-2/confrontation/sorties/gemini.txt "$RUNNER_TEMP/gemini.txt"
+      # CT-2 (section 6.8, annexe B.8) : requêtes OTLP JSON et protobuf de la
+      # famille otel/ analysées en ExportTraceServiceRequest (json_format.Parse
+      # après conversion des identifiants, FromString), forme normalisée de
+      # chaque span recalculée et comparée, réponses, paires JSON / protobuf.
+      - name: CT-2 otel par opentelemetry-proto 1.45.1 et protobuf 7.36.2 (environnement virtuel)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv-otel"
+          "$RUNNER_TEMP/venv-otel/bin/pip" install --only-binary :all: --no-deps -r spec/vecteurs/ct-2/confrontation/otel/exigences.txt
+          "$RUNNER_TEMP/venv-otel/bin/pip" check
+          set -o pipefail
+          "$RUNNER_TEMP/venv-otel/bin/python" -I spec/vecteurs/ct-2/confrontation/otel/confronter_otel.py spec/vecteurs/ct-2 | tee "$RUNNER_TEMP/otel.txt" | tail -6
+          diff spec/vecteurs/ct-2/confrontation/sorties/otel.txt "$RUNNER_TEMP/otel.txt"
       # Version de Go épinglée à celle des sorties publiées (en-tête de
       # sorties/coherence.txt : go1.24.7) ; ce job, seul de la CI, accède au
       # réseau (pip et mandataire de modules Go), CT-5 EX-A.7.

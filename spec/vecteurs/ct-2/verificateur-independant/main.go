@@ -3,9 +3,10 @@
 // Usage : noortrace-ct2 [-strict] [-json] [-v] <répertoire spec/vecteurs/ct-2>
 //
 // Recalcule, famille par famille selon l'annexe B de CT-2 (jcs-integral,
-// redaction, pieces-mcp, pieces-modele, evenements, INDEX.md), tout ce que
-// les vecteurs déclarent, depuis la seule spécification (CT-2, et CT-1 pour
-// les événements), et confronte à chaque valeur attendue. Code de retour 0
+// redaction, pieces-mcp, pieces-modele, evenements, otel, worm, cout-agent,
+// INDEX.md), tout ce que les vecteurs déclarent, depuis la seule
+// spécification (CT-2, et CT-1 pour les événements), et confronte à chaque
+// valeur attendue. Code de retour 0
 // si et seulement si tout concorde ; 1 en cas de discordance ou d'erreur ;
 // 2 si l'usage est incorrect ou la racine introuvable.
 

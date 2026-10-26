@@ -1,0 +1,68 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0014",
+    "usageMetadata": {
+      "promptTokenCount": 12,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 17
+    },
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Le sinistre est "
+            },
+            {
+              "text": "ouvert."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x9461986df75ed4b92e3a5073183fc4aa62987506103eee5f1f394ea8742219d4",
+      "length": 83,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Statut du sinistre 2026-81044 ?\"}],\"role\":\"user\"}]}"
+    },
+    "response": {
+      "sha256": "0x4b45332b5e0367b374a7d876bc4d9e71c5c03fab2efd9c339070f68e53edc4ec",
+      "length": 288,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Le sinistre est \"},{\"text\":\"ouvert.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0014\",\"usageMetadata\":{\"candidatesTokenCount\":5,\"promptTokenCount\":12,\"totalTokenCount\":17}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": null,
+  "intent": "Le sinistre est ouvert.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Le dernier data n'a ni fin de ligne ni ligne vide : la dernière ligne non terminée est lue comme une ligne, puis le tampon data est distribué (EX-5.34), comme le fait le SDK Python (iter_lines de httpx) ; sse_data_final_sans_ligne_vide consigné."
+}

@@ -1,0 +1,6 @@
+{
+  "method": "POST",
+  "path": "/v1/traces",
+  "content-type": "text/plain",
+  "token_id": "otel-agent-sinistres"
+}

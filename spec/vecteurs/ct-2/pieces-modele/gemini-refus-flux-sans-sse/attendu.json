@@ -1,0 +1,39 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": null,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": {
+    "status": 400,
+    "reason": "flux_sans_sse",
+    "body": {
+      "error": {
+        "code": 400,
+        "message": "noortrace: streamGenerateContent exige alt=sse",
+        "status": "INVALID_ARGUMENT"
+      }
+    },
+    "content_type": "application/json; charset=UTF-8"
+  },
+  "consolidated": null,
+  "pieces": null,
+  "code_model": null,
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": null,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": null,
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "streamGenerateContent sans alt=sse : refus 400 flux_sans_sse, corps AIP-193 d'EX-5.30 en application/json; charset=UTF-8, sans relais ni événement (EX-5.29)."
+}

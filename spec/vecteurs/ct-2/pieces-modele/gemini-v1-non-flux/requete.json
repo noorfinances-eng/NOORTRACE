@@ -1,0 +1,78 @@
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Où en est le sinistre 2026-81044 ?"
+        }
+      ]
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "demo__claims_get",
+            "args": {
+              "claim_id": "2026-81044"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "name": "demo__claims_get",
+            "response": {
+              "output": {
+                "statut": "ouvert",
+                "montant": "7400.00",
+                "devise": "CHF"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Résume le dossier en une phrase."
+        }
+      ]
+    }
+  ],
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "Tu es l'agent sinistres de l'assureur de démonstration."
+      }
+    ]
+  },
+  "tools": [
+    {
+      "functionDeclarations": [
+        {
+          "name": "demo__claims_get",
+          "description": "Rend le dossier d'un sinistre de démonstration",
+          "parameters": {
+            "type": "OBJECT",
+            "properties": {
+              "claim_id": {
+                "type": "STRING"
+              }
+            },
+            "required": [
+              "claim_id"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "alias": "otel-sinistres",
+  "host": {
+    "id": "otel-agent-sinistres",
+    "launched_by": "svc-agent-sinistres@assureur-demo.example",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement",
+    "host_group": "agent-sinistres",
+    "accept_declared_delegation": true,
+    "prompt_version_name": null
+  },
+  "policy_source": {
+    "ingest": [
+      "inference",
+      "outil"
+    ],
+    "overlap": "ignorer",
+    "class_default": null,
+    "tools": {}
+  },
+  "policy_version": "2026-11-10-otel",
+  "redaction": "pii-v1",
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige",
+    "encodings": [
+      "protobuf",
+      "json"
+    ],
+    "max_body_bytes": 4096,
+    "json_max_depth": 128,
+    "json_max_members": 100000,
+    "dedup_window_ms": 3600000,
+    "overlap_window_ms": 600000,
+    "retry_after_s": 5
+  },
+  "t_reception": "2026-11-10T10:50:00.000Z",
+  "chain": {
+    "seq_start": 2,
+    "prev_hash": "0x5195655183486d1d226c02000067843cddba45d0b6f944a0b86963271d12e240",
+    "ts": []
+  },
+  "seen": [],
+  "recorded": []
+}

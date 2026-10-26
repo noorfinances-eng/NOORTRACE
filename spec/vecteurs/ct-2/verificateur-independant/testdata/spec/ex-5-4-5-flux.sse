@@ -1,0 +1,4 @@
+data: {"candidates": [{"content": {"parts": [{"text": "Je consulte "}],"role": "model"},"index": 0}],"usageMetadata": {"promptTokenCount": 58,"totalTokenCount": 58},"modelVersion": "gemini-exemple-001","responseId": "rep-exemple-0001"}
+
+data: {"candidates": [{"content": {"parts": [{"text": "le sinistre 2026-81044."},{"functionCall": {"name": "demo__claims_get","args": {"claim_id": "2026-81044"}}}],"role": "model"},"finishReason": "STOP","index": 0}],"usageMetadata": {"promptTokenCount": 58,"candidatesTokenCount": 21,"totalTokenCount": 79},"modelVersion": "gemini-exemple-001","responseId": "rep-exemple-0001"}
+

@@ -2376,6 +2376,8 @@ export function fichierMacEchu(lignes, { requestTs, maintenantMs, expireAfterMs 
  *     et /policy/approval/expire_after_ms) ; avertissements de CT-3 EX-4.14
  *     (avec les outils `outils` s'ils sont donnés et les launched_by fixes),
  *     du mode retenir (EX-11.1, EX-11.2 avec `delaisHotesMs`) ;
+ *     règles de la révision 0.5 de CT-2 (otel, policy.sdk, routes gemini,
+ *     support WORM : C.controlesConfigurationRevision05) ;
  *   - pas 4 (si `secrets` est donné : { relay_mac_key, pseudonym_key, autres :
  *     [clés] }, octets décodés) : relay_mac_key et pseudonym_key d'au moins 32
  *     octets, relay_mac_key distincte de toute autre clé.
@@ -2405,6 +2407,10 @@ export function controlesConfiguration(config, { schemas, outils = null, delaisH
     }
   }
   for (const a of avertissementsModeAttente({ mode: approval.mode, hold_timeout_ms: approval.hold_timeout_ms }, { delaisHotesMs })) avertissements.push(`/policy/approval/mode : ${a}`);
+  // Révision 0.5 de CT-2 : otel, policy.sdk, routes gemini, support WORM (EX-15.4 pas 3).
+  const r05 = C.controlesConfigurationRevision05(config);
+  erreurs.push(...r05.erreurs);
+  avertissements.push(...r05.avertissements);
   if (secrets) {
     const mac = secrets.relay_mac_key ? Buffer.from(secrets.relay_mac_key) : null;
     if (!mac || mac.length < LONGUEUR_CLE_MIN) erreurs.push(`/storage/relay_mac_key : au moins ${LONGUEUR_CLE_MIN} octets après décodage (CT-2 EX-7.22)`);
