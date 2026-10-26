@@ -1,0 +1,19 @@
+{
+  "usageMetadata": { "promptTokenCount": 58, "candidatesTokenCount": 21, "totalTokenCount": 79 },
+  "modelVersion": "gemini-exemple-001",
+  "responseId": "rep-exemple-0001",
+  "candidates": [
+    {
+      "index": 0,
+      "content": {
+        "parts": [
+          { "text": "Je consulte " },
+          { "text": "le sinistre 2026-81044." },
+          { "functionCall": { "name": "demo__claims_get", "args": { "claim_id": "2026-81044" } } }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP"
+    }
+  ]
+}

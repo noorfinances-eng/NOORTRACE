@@ -6,6 +6,30 @@ is tagged.
 
 ## Unreleased
 
+- CT-2, the recorder, revision 0.5: Gemini `generateContent` and
+  `streamGenerateContent` move to version 0 at the model gateway (routes,
+  `x-goog-api-key`, `alt=sse` streams, consolidation, extraction, errors in the
+  provider's format), and the SDK accepts the `gemini` format; Python and
+  TypeScript SDKs with adapters for LangChain and LangGraph, CrewAI,
+  LlamaIndex, the OpenAI Agents SDK and LiteLLM, with a rule against double
+  capture; ingestion of OpenTelemetry GenAI traces over OTLP/HTTP (JSON and
+  protobuf), recorded as declarative; a legal hold on the WORM copies, placed
+  and released outside the daemon, released by two people, the writer never
+  allowed to delete or release; a per-agent cost formula whose unit prices are
+  parameters; integration files for Gemini, CrewAI, LlamaIndex and LiteLLM.
+  Changes of behaviour in production: WORM copies in `governance` mode and of
+  type `gcs-object-retention`, accepted in revision 0.4, are refused, and so is
+  the new `legal_hold_on_write` member.
+  Schemas `worm-v0` and `cout-agent-v0`; `configuration-enregistreur-v0`
+  extended compatibly.
+- CT-2 reference code (`scripts/lib/capture.mjs`, `otel.mjs`, `worm.mjs`,
+  `cout-agent.mjs`) and new vector families (`pieces-modele/gemini-*`, `otel/`,
+  `worm/`, `cout-agent/`); existing CT-2 vectors unchanged except `INDEX.md`.
+  The CT-2 Go verifier recomputes 6,036 values, 6,030 matching, none
+  discordant, 6 outside its scope. Gemini payloads are confronted with the
+  official google-genai 2.33.0 library and OTLP requests with
+  opentelemetry-proto 1.45.1, in continuous integration as well.
+
 - CT-5, anchoring, version 0.2: signed checkpoints every 60 seconds aligned on
   the period start, each one that commits to a new event anchored in the
   registry (at most 62 anchors per hour and journal, the manifest included),

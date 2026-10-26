@@ -1,0 +1,6 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Collision du 2026-11-02, "}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0007"}
+
+data: {"error":{"code":500,"message":"Erreur interne fictive du fournisseur.","status":"INTERNAL"}}
+
+data: {"candidates":[{"content":{"parts":[{"text":"ignoré"}],"role":"model"},"finishReason":"STOP"}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0007"}
+

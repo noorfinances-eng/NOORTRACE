@@ -1,0 +1,3 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Le sinistre est "}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0014"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"ouvert."}],"role":"model"},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":5,"totalTokenCount":17},"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0014"}

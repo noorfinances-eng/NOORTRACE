@@ -1,0 +1,43 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 400,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x9461986df75ed4b92e3a5073183fc4aa62987506103eee5f1f394ea8742219d4",
+      "length": 83,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Statut du sinistre 2026-81044 ?\"}],\"role\":\"user\"}]}"
+    },
+    "response": {
+      "sha256": "0x6d699954c875d6d171d75f43d95de6871fcc358abd212621f8ad8a01b4b9b9f5",
+      "length": 365,
+      "redacted": false,
+      "bytes": "{\"noortrace_http_error\":{\"body\":{\"error\":{\"code\":400,\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.ErrorInfo\",\"domain\":\"googleapis.com\",\"metadata\":{\"service\":\"generativelanguage.googleapis.com\"},\"reason\":\"API_KEY_INVALID\"}],\"message\":\"API key not valid (message fictif de test).\",\"status\":\"INVALID_ARGUMENT\"}},\"content_type\":\"text/event-stream\",\"status\":400}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple",
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Statut 400 en text/event-stream, objet JSON indenté sans ligne data: (forme observée, R11-F19) : le corps est analysé en JSON quel que soit le Content-Type, jamais par l'analyseur SSE (EX-5.31) ; body de noortrace_http_error = la valeur analysée ; code.model = gemini/ + segment (EX-5.36)."
+}

@@ -1,0 +1,68 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0006",
+    "usageMetadata": {
+      "promptTokenCount": 12,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 17
+    },
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Le sinistre est "
+            },
+            {
+              "text": "ouvert."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x9461986df75ed4b92e3a5073183fc4aa62987506103eee5f1f394ea8742219d4",
+      "length": 83,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Statut du sinistre 2026-81044 ?\"}],\"role\":\"user\"}]}"
+    },
+    "response": {
+      "sha256": "0x6a85f8cad0b4f605ecb58a225d3a30283ac51c1dfd333b1974e672e8f2418be7",
+      "length": 288,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Le sinistre est \"},{\"text\":\"ouvert.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0006\",\"usageMetadata\":{\"candidatesTokenCount\":5,\"promptTokenCount\":12,\"totalTokenCount\":17}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": null,
+  "intent": "Le sinistre est ouvert.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Fins de ligne CRLF ; le dernier data, terminé par CRLF, n'est suivi d'aucune ligne vide : il est distribué à la fin du corps (EX-5.34) et compté (sse_data_final_sans_ligne_vide). Sans systemInstruction : pas de pièce « prompt système », prompt_version null."
+}

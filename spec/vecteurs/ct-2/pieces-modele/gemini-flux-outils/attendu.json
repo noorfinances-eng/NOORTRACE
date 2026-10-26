@@ -1,0 +1,109 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0004",
+    "usageMetadata": {
+      "promptTokenCount": 120,
+      "candidatesTokenCount": 64,
+      "totalTokenCount": 184
+    },
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Je vérifie le dossier puis je crée le paiement de 7400.00 CHF."
+            },
+            {
+              "functionCall": {
+                "id": "appel-exemple-0001",
+                "name": "demo__claims_get",
+                "args": {
+                  "claim_id": "2026-81044"
+                }
+              }
+            },
+            {
+              "functionCall": {
+                "name": "demo__payments_create",
+                "args": {
+                  "claim_id": "2026-81044",
+                  "amount": "7400.00",
+                  "currency": "CHF",
+                  "beneficiary_iban": "CH93 0076 2011 6238 5295 7"
+                }
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0xdbbab1928071082d7b388c17cfd75f6f6facadadb18b0b742f007f520b5aa4cf",
+      "length": 699,
+      "redacted": true,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Règle le sinistre 2026-81044.\"}],\"role\":\"user\"}],\"systemInstruction\":{\"parts\":[{\"text\":\"[REDIGE:prompt-systeme]\"}]},\"tools\":[{\"functionDeclarations\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"name\":\"demo__claims_get\",\"parameters\":{\"properties\":{\"claim_id\":{\"type\":\"STRING\"}},\"required\":[\"claim_id\"],\"type\":\"OBJECT\"}},{\"description\":\"Crée un paiement de sinistre (écriture)\",\"name\":\"demo__payments_create\",\"parameters\":{\"properties\":{\"amount\":{\"type\":\"STRING\"},\"beneficiary_iban\":{\"type\":\"STRING\"},\"claim_id\":{\"type\":\"STRING\"},\"currency\":{\"type\":\"STRING\"}},\"required\":[\"claim_id\",\"amount\",\"currency\",\"beneficiary_iban\"],\"type\":\"OBJECT\"}}]}]}"
+    },
+    "response": {
+      "sha256": "0x59141ccbcba35b531110f4a47e390bb12655187db0d21b4ca31edae389e9b91a",
+      "length": 578,
+      "redacted": true,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Je vérifie le dossier puis je crée le paiement de 7400.00 CHF.\"},{\"functionCall\":{\"args\":{\"claim_id\":\"2026-81044\"},\"id\":\"appel-exemple-0001\",\"name\":\"demo__claims_get\"}},{\"functionCall\":{\"args\":{\"amount\":\"7400.00\",\"beneficiary_iban\":\"[REDIGE:iban]\",\"claim_id\":\"2026-81044\",\"currency\":\"CHF\"},\"name\":\"demo__payments_create\"}}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0004\",\"usageMetadata\":{\"candidatesTokenCount\":64,\"promptTokenCount\":120,\"totalTokenCount\":184}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": "Je vérifie le dossier puis je crée le paiement de 7400.00 CHF.",
+  "tool_calls": [
+    {
+      "id": "appel-exemple-0001",
+      "name": "demo__claims_get",
+      "arguments": {
+        "claim_id": "2026-81044"
+      }
+    },
+    {
+      "id": null,
+      "name": "demo__payments_create",
+      "arguments": {
+        "claim_id": "2026-81044",
+        "amount": "7400.00",
+        "currency": "CHF",
+        "beneficiary_iban": "CH93 0076 2011 6238 5295 7"
+      }
+    }
+  ],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Texte puis deux functionCall : tool_calls dans l'ordre des parts, id \"appel-exemple-0001\" puis null (membre facultatif, 5.5), arguments = args en clair (ils servent à la corrélation, EX-5.22) ; l'IBAN est rédigé dans la pièce « réponse »."
+}

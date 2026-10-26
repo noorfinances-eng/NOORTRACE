@@ -1,0 +1,77 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0008",
+    "usageMetadata": {
+      "promptTokenCount": 30,
+      "candidatesTokenCount": 9,
+      "thoughtsTokenCount": 14,
+      "totalTokenCount": 53
+    },
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Le montant dépasse le seuil d'expertise ; vérifier la police.",
+              "thought": true
+            },
+            {
+              "text": "Oui, une expertise est nécessaire.",
+              "thoughtSignature": "c2lnbmF0dXJlLWZpY3RpdmUtZGUtdGVzdA=="
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x4bf95018e9a3059220d7bccac68b5bf1c09de34e0025417254a7e3152486ebad",
+      "length": 170,
+      "redacted": true,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Faut-il une expertise pour le sinistre 2026-81044 ?\"}],\"role\":\"user\"}],\"systemInstruction\":{\"parts\":[{\"text\":\"[REDIGE:prompt-systeme]\"}]}}"
+    },
+    "response": {
+      "sha256": "0x59cc4f7dd4665986953dc51782a993d83e04f2f4181700d447dbba4b5a90541f",
+      "length": 460,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Le montant dépasse le seuil d'expertise ; vérifier la police.\",\"thought\":true},{\"text\":\"Oui, une expertise est nécessaire.\",\"thoughtSignature\":\"c2lnbmF0dXJlLWZpY3RpdmUtZGUtdGVzdA==\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0008\",\"usageMetadata\":{\"candidatesTokenCount\":9,\"promptTokenCount\":30,\"thoughtsTokenCount\":14,\"totalTokenCount\":53}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": "Oui, une expertise est nécessaire.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Part thought: true et part portant thoughtSignature (base64) : toutes deux gardées dans la pièce « réponse » ; intent exclut la part thought: true (5.5)."
+}

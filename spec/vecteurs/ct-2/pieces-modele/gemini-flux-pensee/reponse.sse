@@ -1,0 +1,4 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Le montant dépasse le seuil d'expertise ; vérifier la police.","thought":true}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0008"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"Oui, une expertise est nécessaire.","thoughtSignature":"c2lnbmF0dXJlLWZpY3RpdmUtZGUtdGVzdA=="}],"role":"model"},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":30,"candidatesTokenCount":9,"thoughtsTokenCount":14,"totalTokenCount":53},"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0008"}
+

@@ -1,0 +1,6 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Le dossier 2026-81044 est presque complet ; "}],"role":"model"}}],"usageMetadata":{"promptTokenCount":41,"totalTokenCount":41},"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0003"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"l'assuré est joignable à j.dupont@example.ch "}],"role":"model"}}],"usageMetadata":{"promptTokenCount":41,"totalTokenCount":41},"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0003"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"pour la facture manquante."}],"role":"model"},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":41,"candidatesTokenCount":27,"totalTokenCount":68},"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0003"}
+

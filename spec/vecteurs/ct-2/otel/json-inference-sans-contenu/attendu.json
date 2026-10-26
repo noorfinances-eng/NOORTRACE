@@ -1,0 +1,167 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 1,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "f0ebbd6549603b40267b242e43608480",
+      "span_id": "83d0fab3ee6b11c2",
+      "issue": "scelle",
+      "reason": null,
+      "overlap_seq": null,
+      "normalized": {
+        "trace_id": "f0ebbd6549603b40267b242e43608480",
+        "span_id": "83d0fab3ee6b11c2",
+        "parent_span_id": "a128c0202278b50a",
+        "trace_state": "",
+        "name": "chat modele-demo-1",
+        "flags": 0,
+        "kind": 3,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "1794307799250500000",
+        "attributes": {
+          "gen_ai.operation.name": "chat",
+          "gen_ai.provider.name": "openai",
+          "gen_ai.request.model": "modele-demo-1",
+          "gen_ai.response.model": "modele-demo-1-2026-09",
+          "gen_ai.usage.input_tokens": 120,
+          "gen_ai.usage.output_tokens": 18
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": {
+        "source": {
+          "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+          "length": 66,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"noortrace_capture\":{\"channel\":\"otel\",\"source\":\"otel-sinistres\"}}"
+        },
+        "envelope": {
+          "sha256": "0x958d1558958ae654f89489fc51d6b2b0f6c26d0be8b38c74c1ee2da9cb7ed4e5",
+          "length": 638,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"attributes\":{},\"dropped_attributes_count\":0,\"dropped_events_count\":0,\"dropped_links_count\":0,\"end_time_unix_nano\":\"1794307799250500000\",\"events\":[],\"flags\":0,\"kind\":3,\"links_count\":0,\"name\":\"chat modele-demo-1\",\"parent_span_id\":\"a128c0202278b50a\",\"resource\":{\"attributes\":{\"service.name\":\"agent-sinistres\",\"service.version\":\"3.2.0\"},\"dropped_attributes_count\":0},\"schema_url\":null,\"scope\":{\"attributes\":{},\"name\":\"agent-sinistres.instrumentation\",\"version\":\"1.0.0\"},\"span_id\":\"83d0fab3ee6b11c2\",\"start_time_unix_nano\":\"1794307798000000000\",\"status\":{\"code\":1,\"message\":\"\"},\"trace_id\":\"f0ebbd6549603b40267b242e43608480\",\"trace_state\":\"\"}"
+        },
+        "request": {
+          "sha256": "0x48c5ecc001d2e2c18dc1e47409d5e107922b552847e6dbfa69dd750655909944",
+          "length": 103,
+          "redacted": false,
+          "bytes": "{\"gen_ai.operation.name\":\"chat\",\"gen_ai.provider.name\":\"openai\",\"gen_ai.request.model\":\"modele-demo-1\"}"
+        },
+        "response": {
+          "sha256": "0x437ae84974e4f91c18ba1004b77f4b2a924b89036f5655cff68634a8b4dad573",
+          "length": 113,
+          "redacted": false,
+          "bytes": "{\"gen_ai.response.model\":\"modele-demo-1-2026-09\",\"gen_ai.usage.input_tokens\":120,\"gen_ai.usage.output_tokens\":18}"
+        },
+        "system_prompt": null,
+        "intent": null
+      },
+      "event": {
+        "version": 0,
+        "seq": 2,
+        "ts": "2026-11-10T10:50:00.010Z",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+        "recorder_key_id": "rec-test-01",
+        "prev_hash": "0xc5776d187274c2dacd766f6a41a4fa4f70b373ff8231837f7efdd7dc0831a20c",
+        "delegation": {
+          "launched_by": "svc-agent-sinistres@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": null
+        },
+        "code": {
+          "model": "openai/modele-demo-1-2026-09",
+          "prompt_version": null,
+          "policy_version": "2026-11-10-otel",
+          "recorder": "0.1.0"
+        },
+        "intent": null,
+        "policy": {
+          "rule": null,
+          "decision": "sans_objet",
+          "ticket": null,
+          "redaction": null
+        },
+        "approval": null,
+        "execution": {
+          "tool": "noortrace.modele.echange",
+          "arguments": {
+            "sha256": "0x48c5ecc001d2e2c18dc1e47409d5e107922b552847e6dbfa69dd750655909944",
+            "length": 103,
+            "redacted": false
+          },
+          "status": "executee",
+          "result": {
+            "sha256": "0x437ae84974e4f91c18ba1004b77f4b2a924b89036f5655cff68634a8b4dad573",
+            "length": 113,
+            "redacted": false
+          },
+          "duration_ms": 1250,
+          "is_error": false
+        },
+        "effects": [],
+        "context": [
+          {
+            "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+            "length": 66,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          },
+          {
+            "sha256": "0x958d1558958ae654f89489fc51d6b2b0f6c26d0be8b38c74c1ee2da9cb7ed4e5",
+            "length": 638,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          }
+        ],
+        "hash": "0x25443676d7b9c969c334772bc7409951c56803d1de0b5a163a7a3a428b94cbf4",
+        "sig": "0xa8a106a62960d4aed6d776bb49ecec3b2f20adcfafbb7ca8d8ccd04c79deb2b348fdd9afe7fd31099a1330e86b6073f750785d575e81ef795aa9548d8d9d5e06"
+      },
+      "lag_ms": 759
+    }
+  ],
+  "note": "Span d'inférence sans attribut de contenu (l'instrumentation ne les enregistre pas par défaut) : requête sans messages, pas de prompt système (prompt_version null), intent null, réponse réduite au modèle et à l'usage."
+}

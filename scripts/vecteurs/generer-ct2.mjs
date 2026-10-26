@@ -6,7 +6,11 @@
 // consolidées des flux SSE), et la courte exécution de la démonstration de
 // référence chaînée avec les clés de test de CT-1, avec son segment, son
 // journal d'intention, son ensemble de politique et le dossier CT-1 de
-// l'appel d'écriture ; enfin l'index INDEX.md.
+// l'appel d'écriture ; depuis la révision 0.5, les cas pieces-modele/gemini-*
+// (passerelle Gemini et format gemini du SDK), la famille otel/ (ingestion
+// OpenTelemetry), les familles worm/ (requêtes, états, périmètres et gardes du
+// gel juridique) et cout-agent/ (coût annuel par agent) ; enfin l'index
+// INDEX.md.
 //
 //   node scripts/vecteurs/generer-ct2.mjs [--sortie <répertoire>]
 //
@@ -26,6 +30,10 @@ import { HDNodeWallet, keccak256, toUtf8Bytes } from "ethers";
 import * as J from "../lib/journal.mjs";
 import * as C from "../lib/capture.mjs";
 import * as AP from "../lib/approbation.mjs";
+import * as W from "../lib/worm.mjs";
+import * as OT from "../lib/otel.mjs";
+import zlib from "node:zlib";
+import { coutAgent } from "../lib/cout-agent.mjs";
 import { parseArgs } from "../lib/noortrace.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -72,7 +80,7 @@ const ms = (ts) => J.msHorodatage(ts);
 // Écriture
 // ---------------------------------------------------------------------------
 
-export const ENTREES_GENEREES = ["INDEX.md", "jcs-integral", "redaction", "pieces-mcp", "pieces-modele", "evenements"];
+export const ENTREES_GENEREES = ["INDEX.md", "jcs-integral", "redaction", "pieces-mcp", "pieces-modele", "evenements", "otel", "worm", "cout-agent"];
 const ecrits = [];
 function ecrire(relatif, contenu) {
   const fichier = path.join(SORTIE, relatif);
@@ -85,7 +93,7 @@ for (const entree of ENTREES_GENEREES) fs.rmSync(path.join(SORTIE, entree), { re
 fs.mkdirSync(SORTIE, { recursive: true });
 
 const lireSchema = (n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"));
-const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "politique-redaction", "politique-approbation", "ticket", "configuration-enregistreur"].map(lireSchema));
+const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "politique-redaction", "politique-approbation", "ticket", "configuration-enregistreur", "worm", "cout-agent"].map(lireSchema));
 
 /** Les blocs JSON annotés `<!-- schema: … -->` de CT-2, texte exact. */
 function blocsSpec(marque) {
@@ -1356,6 +1364,1037 @@ function casModele(nom, { format, provider_label, route, requete = null, requete
 }
 
 // ---------------------------------------------------------------------------
+// 4 bis. pieces-modele/gemini-* (annexe B.5, révision 0.5 : EX-5.28 à EX-5.36, EX-6.8)
+// ---------------------------------------------------------------------------
+
+/** Routes Gemini de la passerelle des vecteurs : collection v1beta (défaut des SDK) et v1, libellé `gemini`, `provider_mcp` absent (refuser). */
+const ROUTES_GEMINI = [
+  { path: "/v1beta/models", format: "gemini", provider_label: "gemini" },
+  { path: "/v1/models", format: "gemini", provider_label: "gemini" },
+];
+const SEGMENT_GEMINI = "gemini-exemple";
+const VERSION_GEMINI = "gemini-exemple-001";
+const ENTETES_GEMINI = { "content-type": "application/json" };
+const CT_GEMINI_JSON = "application/json; charset=UTF-8";
+/** Transcription SSE Gemini : une ligne `data:` par objet JSON compact, séparées par une ligne vide (forme admise par les deux SDK, R11-F16, F17). */
+const sseGemini = (morceaux, fin = "\n") => morceaux.map((m) => `data: ${typeof m === "string" ? m : JSON.stringify(m)}${fin}${fin}`).join("");
+const cibleGemini = (methode, chaine = null, collection = "/v1beta/models", segment = SEGMENT_GEMINI) => `${collection}/${segment}:${methode}${chaine === null ? "" : "?" + chaine}`;
+const PROMPT_GEMINI = { parts: [{ text: PROMPT_SINISTRES }] };
+const OUTILS_GEMINI = [{ functionDeclarations: [{ name: "demo__claims_get", description: "Rend le dossier d'un sinistre de démonstration", parameters: { type: "OBJECT", properties: { claim_id: { type: "STRING" } }, required: ["claim_id"] } }] }];
+const OUTILS_GEMINI_PAIEMENT = [{ functionDeclarations: [
+  { name: "demo__claims_get", description: "Rend le dossier d'un sinistre de démonstration", parameters: { type: "OBJECT", properties: { claim_id: { type: "STRING" } }, required: ["claim_id"] } },
+  { name: "demo__payments_create", description: "Crée un paiement de sinistre (écriture)", parameters: { type: "OBJECT", properties: { claim_id: { type: "STRING" }, amount: { type: "STRING" }, currency: { type: "STRING" }, beneficiary_iban: { type: "STRING" } }, required: ["claim_id", "amount", "currency", "beneficiary_iban"] } },
+] }];
+const contenuUtilisateur = (texte) => ({ role: "user", parts: [{ text: texte }] });
+const morceauGemini = (parts, { finishReason = null, usage = null, index = undefined, responseId, modelVersion = VERSION_GEMINI, role = "model" } = {}) => {
+  const cand = { content: { parts, role } };
+  if (finishReason !== null) cand.finishReason = finishReason;
+  if (index !== undefined) cand.index = index;
+  const m = { candidates: [cand] };
+  if (usage) m.usageMetadata = usage;
+  if (modelVersion !== null) m.modelVersion = modelVersion;
+  m.responseId = responseId;
+  return m;
+};
+
+const CAS_GEMINI = [];
+
+/**
+ * Un cas `pieces-modele/gemini-*` (annexe B.5) : passerelle (`via:
+ * "passerelle"`, requete-ligne.json) ou SDK (`via: "sdk"`,
+ * reponse-morceaux.json). L'attendu est calculé par capture.mjs
+ * (`echangeGemini`, `echangeModeleSDKGemini`) et confronté aux valeurs
+ * `attente` que le cas fixe.
+ */
+function casGemini(nom, { via = "passerelle", method = "POST", target = null, hoteConnu = true, requete = null, requeteBrute = null, status = 200, contentType = null, corps = "", morceaux = null, isErrorDeclare = false, prompt_in_request = "reference", attente = {}, note }) {
+  exiger(nom.startsWith("gemini-") && !CAS_GEMINI.includes(nom), `nom de cas ${nom}`);
+  CAS_GEMINI.push(nom);
+  const options = { prompt_in_request, prompt_system: "redige" };
+  const dir = `pieces-modele/${nom}`;
+  let r;
+  if (via === "sdk") {
+    r = C.echangeModeleSDKGemini({ provider_label: "gemini", request: requete, response: morceaux, status, is_error: isErrorDeclare, politique: PII, prompt_in_request });
+    ecrireJSON(`${dir}/requete.json`, requete);
+    ecrireJSON(`${dir}/reponse-morceaux.json`, morceaux);
+    // Paramètres déclarés de echangeModele autres que request et response (EX-6.8, B.5) : entrée du cas.
+    ecrireJSON(`${dir}/echange-sdk.json`, { format: "gemini", provider_label: "gemini", status, duration_ms: 850, is_error: isErrorDeclare });
+  } else {
+    r = C.echangeGemini({
+      method, target, routes: ROUTES_GEMINI, hote_connu: hoteConnu,
+      requete: { corps: requeteBrute ?? Buffer.from(J.texteJSON(requete), "utf8"), content_type: "application/json" },
+      reponse: { status, content_type: contentType, corps: Buffer.from(corps, "utf8") },
+      politique: PII, prompt_in_request,
+    });
+    ecrireJSON(`${dir}/requete-ligne.json`, hoteConnu ? { method, target } : { method, target, host_known: false });
+    if (requeteBrute !== null) ecrire(`${dir}/requete.brut`, requeteBrute);
+    else ecrireJSON(`${dir}/requete.json`, requete);
+    ecrireJSON(`${dir}/requete-entetes.json`, ENTETES_GEMINI);
+  }
+  const verifier = (obtenu, cle, val) => exiger(JSON.stringify(obtenu) === JSON.stringify(val), `${nom} : ${cle} = ${JSON.stringify(obtenu)}, attendu ${JSON.stringify(val)}`);
+  const commun = {
+    request_line: via === "sdk" ? null : hoteConnu ? { method, target } : { method, target, host_known: false },
+    model_segment: via === "sdk" ? null : r.model_segment,
+    upstream_target: via === "sdk" || r.refus ? null : r.upstream_target,
+    via,
+    removed_members: via === "sdk" ? r.removed_members : [],
+  };
+  if (r.refus) {
+    for (const [cle, val] of Object.entries(attente)) verifier(cle === "content_type" ? r.refus.content_type : r.refus[cle], cle, val);
+    if (r.refus.corps !== null) exiger(JSON.stringify(r.refus.corps) === J.canonicaliserJCSIntegral(r.refus.corps), `${nom} : corps de refus dans l'ordre code, message, status`);
+    ecrireJSON(`${dir}/attendu.json`, {
+      format: "gemini", provider_label: "gemini", route: r.route ? r.route.path : null, status: null, options,
+      refused: { status: r.refus.status, reason: r.refus.raison, body: r.refus.corps, content_type: r.refus.content_type },
+      consolidated: null, pieces: null, code_model: null, prompt_version: null, intent: null, tool_calls: [], is_error: null, incomplete: false,
+      ...commun, note,
+    });
+    return r;
+  }
+  for (const [cle, val] of Object.entries(attente)) verifier(r[cle], cle, val);
+  if (via !== "sdk") {
+    ecrire(`${dir}/${C.typeDeMedia(contentType) === "text/event-stream" ? "reponse.sse" : "reponse.json"}`, Buffer.from(corps, "utf8"));
+    ecrireJSON(`${dir}/reponse-entetes.json`, { status, "content-type": contentType });
+  }
+  ecrireJSON(`${dir}/attendu.json`, {
+    format: "gemini", provider_label: "gemini", route: via === "sdk" ? null : r.route.path, status, options, refused: null,
+    consolidated: r.consolidated,
+    pieces: { request: avecOctets(r.pieces.requete), response: avecOctets(r.pieces.reponse), system_prompt: avecOctets(r.pieces.prompt_systeme), intent: avecOctets(r.pieces.intention) },
+    code_model: r.code_model, prompt_version: r.prompt_version, intent: r.intent, tool_calls: r.tool_calls, is_error: r.is_error, incomplete: r.incomplete,
+    ...commun, note,
+  });
+  return r;
+}
+
+{
+  const historique = [
+    contenuUtilisateur("Où en est le sinistre 2026-81044 ?"),
+    { role: "model", parts: [{ functionCall: { name: "demo__claims_get", args: { claim_id: "2026-81044" } } }] },
+    { role: "user", parts: [{ functionResponse: { name: "demo__claims_get", response: { output: { statut: "ouvert", montant: "7400.00", devise: "CHF" } } } }] },
+    contenuUtilisateur("Résume le dossier en une phrase."),
+  ];
+  const repNonFlux = (id) => JSON.stringify({ candidates: [{ content: { parts: [{ text: "Le sinistre 2026-81044 est ouvert, " }, { text: "montant estimé 7400.00 CHF." }], role: "model" }, finishReason: "STOP", index: 0 }], usageMetadata: { promptTokenCount: 96, candidatesTokenCount: 18, totalTokenCount: 114 }, modelVersion: VERSION_GEMINI, responseId: id });
+  const intentNonFlux = "Le sinistre 2026-81044 est ouvert, montant estimé 7400.00 CHF.";
+  casGemini("gemini-non-flux", {
+    target: cibleGemini("generateContent"),
+    requete: { contents: historique, systemInstruction: PROMPT_GEMINI, tools: OUTILS_GEMINI, generationConfig: { temperature: 0.2 } },
+    contentType: CT_GEMINI_JSON, corps: repNonFlux("rep-exemple-0001"),
+    attente: { code_model: `gemini/${VERSION_GEMINI}`, intent: intentNonFlux, is_error: false, upstream_target: "/v1beta/models/gemini-exemple:generateContent", model_segment: SEGMENT_GEMINI },
+    note: "generateContent hors flux (EX-5.28) : historique contents avec un functionCall (rôle model) et sa functionResponse (rôle user), systemInstruction (pièce « prompt système », remplacé dans la requête par [{\"text\":\"[REDIGE:prompt-systeme]\"}], EX-8.5), tools[].functionDeclarations ; code.model = gemini/ + modelVersion (EX-5.36) ; intent = textes des parts concaténés sans séparateur (5.5) ; aucune chaîne de requête vers l'amont (EX-5.29).",
+  });
+  casGemini("gemini-v1-non-flux", {
+    target: cibleGemini("generateContent", null, "/v1/models"),
+    requete: { contents: historique, systemInstruction: PROMPT_GEMINI, tools: OUTILS_GEMINI },
+    contentType: CT_GEMINI_JSON, corps: repNonFlux("rep-exemple-0002"),
+    attente: { code_model: `gemini/${VERSION_GEMINI}`, intent: intentNonFlux, upstream_target: "/v1/models/gemini-exemple:generateContent" },
+    note: "Le même échange sur la route de collection /v1/models, route distincte (EX-5.28) : la cible amont est reconstruite depuis cette route.",
+  });
+  casGemini("gemini-flux", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Le dossier 2026-81044 est-il complet ?")], systemInstruction: PROMPT_GEMINI },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      morceauGemini([{ text: "Le dossier 2026-81044 est presque complet ; " }], { usage: { promptTokenCount: 41, totalTokenCount: 41 }, responseId: "rep-exemple-0003" }),
+      morceauGemini([{ text: "l'assuré est joignable à j.dupont@example.ch " }], { usage: { promptTokenCount: 41, totalTokenCount: 41 }, responseId: "rep-exemple-0003" }),
+      morceauGemini([{ text: "pour la facture manquante." }], { finishReason: "STOP", usage: { promptTokenCount: 41, candidatesTokenCount: 27, totalTokenCount: 68 }, responseId: "rep-exemple-0003" }),
+    ]),
+    attente: { is_error: false, incomplete: false, upstream_target: "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse" },
+    note: "streamGenerateContent?alt=sse, trois morceaux de texte, finishReason et usageMetadata complet sur le dernier : les parts sont ajoutées sans fusion (EX-5.35), usageMetadata du dernier morceau ; l'intention contient une adresse : rédigée, elle devient une référence text/plain (EX-5.21).",
+  });
+  casGemini("gemini-flux-outils", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Règle le sinistre 2026-81044.")], systemInstruction: PROMPT_GEMINI, tools: OUTILS_GEMINI_PAIEMENT },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      morceauGemini([{ text: "Je vérifie le dossier puis je crée le paiement de 7400.00 CHF." }], { responseId: "rep-exemple-0004" }),
+      morceauGemini([{ functionCall: { id: "appel-exemple-0001", name: "demo__claims_get", args: { claim_id: "2026-81044" } } }], { responseId: "rep-exemple-0004" }),
+      morceauGemini([{ functionCall: { name: "demo__payments_create", args: { claim_id: "2026-81044", amount: "7400.00", currency: "CHF", beneficiary_iban: "CH93 0076 2011 6238 5295 7" } } }], { finishReason: "STOP", usage: { promptTokenCount: 120, candidatesTokenCount: 64, totalTokenCount: 184 }, responseId: "rep-exemple-0004" }),
+    ]),
+    attente: { is_error: false, intent: "Je vérifie le dossier puis je crée le paiement de 7400.00 CHF." },
+    note: "Texte puis deux functionCall : tool_calls dans l'ordre des parts, id \"appel-exemple-0001\" puis null (membre facultatif, 5.5), arguments = args en clair (ils servent à la corrélation, EX-5.22) ; l'IBAN est rédigé dans la pièce « réponse ».",
+  });
+  casGemini("gemini-flux-incomplet", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Résume le sinistre 2026-81044.")], systemInstruction: PROMPT_GEMINI },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      morceauGemini([{ text: "Collision du 2026-11-02, " }], { responseId: "rep-exemple-0005" }),
+      morceauGemini([{ text: "dommages estimés à " }], { responseId: "rep-exemple-0005" }),
+    ]),
+    attente: { is_error: true, incomplete: true },
+    note: "Corps terminé sans finishReason : la fin n'est pas normale (EX-5.35 pas 6), la forme porte noortrace_flux_incomplet: true, is_error vrai (EX-5.13).",
+  });
+  casGemini("gemini-flux-crlf-data-final", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Statut du sinistre 2026-81044 ?")] },
+    contentType: "text/event-stream",
+    corps: sseGemini([morceauGemini([{ text: "Le sinistre est " }], { responseId: "rep-exemple-0006" })], "\r\n") + `data: ${JSON.stringify(morceauGemini([{ text: "ouvert." }], { finishReason: "STOP", usage: { promptTokenCount: 12, candidatesTokenCount: 5, totalTokenCount: 17 }, responseId: "rep-exemple-0006" }))}\r\n`,
+    attente: { is_error: false, incomplete: false, intent: "Le sinistre est ouvert.", prompt_version: null },
+    note: "Fins de ligne CRLF ; le dernier data, terminé par CRLF, n'est suivi d'aucune ligne vide : il est distribué à la fin du corps (EX-5.34) et compté (sse_data_final_sans_ligne_vide). Sans systemInstruction : pas de pièce « prompt système », prompt_version null.",
+  });
+  casGemini("gemini-flux-erreur-morceau", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Résume le sinistre 2026-81044.")] },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      morceauGemini([{ text: "Collision du 2026-11-02, " }], { responseId: "rep-exemple-0007" }),
+      { error: { code: 500, message: "Erreur interne fictive du fournisseur.", status: "INTERNAL" } },
+      morceauGemini([{ text: "ignoré" }], { finishReason: "STOP", responseId: "rep-exemple-0007" }),
+    ]),
+    attente: { is_error: true, incomplete: true },
+    note: "Un morceau valide puis data: {\"error\": {…}} après le 200 (forme non observée, R11-NV7) : la forme reçoit noortrace_erreur_flux (l'objet error), tout ce qui suit est ignoré (EX-5.35 pas 2), et faute de finishReason elle est aussi incomplète ; is_error vrai.",
+  });
+  casGemini("gemini-flux-pensee", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Faut-il une expertise pour le sinistre 2026-81044 ?")], systemInstruction: PROMPT_GEMINI },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      morceauGemini([{ text: "Le montant dépasse le seuil d'expertise ; vérifier la police.", thought: true }], { responseId: "rep-exemple-0008" }),
+      morceauGemini([{ text: "Oui, une expertise est nécessaire.", thoughtSignature: "c2lnbmF0dXJlLWZpY3RpdmUtZGUtdGVzdA==" }], { finishReason: "STOP", usage: { promptTokenCount: 30, candidatesTokenCount: 9, thoughtsTokenCount: 14, totalTokenCount: 53 }, responseId: "rep-exemple-0008" }),
+    ]),
+    attente: { is_error: false, intent: "Oui, une expertise est nécessaire." },
+    note: "Part thought: true et part portant thoughtSignature (base64) : toutes deux gardées dans la pièce « réponse » ; intent exclut la part thought: true (5.5).",
+  });
+  casGemini("gemini-flux-outils-serveur", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Quelle est la franchise usuelle d'une assurance auto ?")], tools: [{ googleSearch: {} }], toolConfig: { includeServerSideToolInvocations: true } },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      morceauGemini([{ toolCall: { id: "outil-serveur-0001", toolType: "GOOGLE_SEARCH_WEB", args: { queries: ["franchise assurance auto"] } } }], { responseId: "rep-exemple-0009" }),
+      morceauGemini([{ toolResponse: { id: "outil-serveur-0001", toolType: "GOOGLE_SEARCH_WEB", response: { output: "résultats fictifs" } } }], { responseId: "rep-exemple-0009" }),
+      morceauGemini([{ text: "La franchise varie selon le contrat." }], { finishReason: "STOP", responseId: "rep-exemple-0009" }),
+    ]),
+    attente: { is_error: false, tool_calls: [], intent: "La franchise varie selon le contrat." },
+    note: "toolConfig.includeServerSideToolInvocations : parts toolCall et toolResponse (outil exécuté par Google, R11-F14) gardées dans la pièce ; elles ne sont jamais des appels pour 5.6 : tool_calls vide (5.5, 5.8).",
+  });
+  casGemini("gemini-flux-index", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Deux formulations, s'il te plaît.")], generationConfig: { candidateCount: 2 } },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      { candidates: [{ content: { parts: [{ text: "Première " }], role: "model" } }, { content: { parts: [{ text: "Seconde " }], role: "model" }, index: 1 }], modelVersion: VERSION_GEMINI, responseId: "rep-exemple-0010" },
+      { candidates: [{ content: { parts: [{ text: "ignorée" }], role: "model" }, index: "0" }], modelVersion: VERSION_GEMINI, responseId: "rep-exemple-0010" },
+      { candidates: [{ content: { parts: [{ text: "formulation." }], role: "model" }, finishReason: "STOP", index: 0 }, { content: { parts: [{ text: "version." }], role: "model" }, finishReason: "STOP", index: 1 }], modelVersion: VERSION_GEMINI, responseId: "rep-exemple-0010" },
+    ]),
+    attente: { is_error: false, intent: "Première formulation." },
+    note: "Deux candidats (index absent → 0, puis 1), créés dans l'ordre de première apparition ; un fragment d'index \"0\" (chaîne) est ignoré et compté (EX-5.27 (1), EX-5.35 pas 4) ; intent vient du premier candidat créé.",
+  });
+  const corpsErreurSSE = '{\n  "error": {\n    "code": 400,\n    "message": "API key not valid (message fictif de test).",\n    "status": "INVALID_ARGUMENT",\n    "details": [\n      {\n        "@type": "type.googleapis.com/google.rpc.ErrorInfo",\n        "reason": "API_KEY_INVALID",\n        "domain": "googleapis.com",\n        "metadata": {\n          "service": "generativelanguage.googleapis.com"\n        }\n      }\n    ]\n  }\n}\n';
+  casGemini("gemini-erreur-http-sse", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Statut du sinistre 2026-81044 ?")] },
+    status: 400, contentType: "text/event-stream", corps: corpsErreurSSE,
+    attente: { is_error: true, code_model: `gemini/${SEGMENT_GEMINI}`, intent: null, tool_calls: [] },
+    note: "Statut 400 en text/event-stream, objet JSON indenté sans ligne data: (forme observée, R11-F19) : le corps est analysé en JSON quel que soit le Content-Type, jamais par l'analyseur SSE (EX-5.31) ; body de noortrace_http_error = la valeur analysée ; code.model = gemini/ + segment (EX-5.36).",
+  });
+  casGemini("gemini-erreur-http", {
+    target: cibleGemini("generateContent"),
+    requete: { contents: [contenuUtilisateur("Statut du sinistre 2026-81044 ?")] },
+    status: 400, contentType: CT_GEMINI_JSON,
+    corps: JSON.stringify({ error: { code: 400, message: "Requête invalide (message fictif de test).", status: "INVALID_ARGUMENT" } }),
+    attente: { is_error: true, code_model: `gemini/${SEGMENT_GEMINI}` },
+    note: "generateContent, statut 400, application/json; charset=UTF-8 : pièce noortrace_http_error avec le corps AIP-193 analysé (EX-5.23, EX-5.31), is_error vrai, code.model tiré du segment (EX-5.36).",
+  });
+  casGemini("gemini-sans-modelversion", {
+    target: cibleGemini("generateContent"),
+    requete: { contents: [contenuUtilisateur("Statut du sinistre 2026-81044 ?")] },
+    contentType: CT_GEMINI_JSON,
+    corps: JSON.stringify({ candidates: [{ content: { parts: [{ text: "Ouvert." }], role: "model" }, finishReason: "STOP", index: 0 }], usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 2, totalTokenCount: 14 }, responseId: "rep-exemple-0011" }),
+    attente: { code_model: `gemini/${SEGMENT_GEMINI}`, intent: "Ouvert.", is_error: false },
+    note: "Réponse sans modelVersion : code.model = gemini/ + segment de modèle du chemin, qui passe le motif d'EX-5.28 et qu'aucun détecteur de pii-v1 ne vise (EX-5.36) ; le membre model du corps n'est jamais lu.",
+  });
+  casGemini("gemini-prompt-inline", {
+    target: cibleGemini("generateContent"),
+    requete: { contents: [contenuUtilisateur("Résume le sinistre 2026-81044.")], systemInstruction: { role: "system", parts: [{ text: PROMPT_SINISTRES }, { text: PROMPT_CONTACT }] } },
+    contentType: CT_GEMINI_JSON,
+    corps: JSON.stringify({ candidates: [{ content: { parts: [{ text: "Sinistre ouvert." }], role: "model" }, finishReason: "STOP", index: 0 }], modelVersion: VERSION_GEMINI, responseId: "rep-exemple-0012" }),
+    prompt_in_request: "inline",
+    attente: { is_error: false, intent: "Sinistre ouvert." },
+    note: "prompt_in_request: inline : chaque text de systemInstruction.parts reste dans la pièce « requête », rédigé par les règles de portée prompt_systeme (l'adresse devient [REDIGE:email]) ; role reste en place ; la pièce « prompt système » (parts jointes par \\n, rédigée) donne code.prompt_version (EX-8.5).",
+  });
+  casGemini("gemini-forme-inattendue", {
+    target: cibleGemini("generateContent"),
+    requete: { systemInstruction: PROMPT_GEMINI, generationConfig: { temperature: 0.2 } },
+    status: 400, contentType: CT_GEMINI_JSON,
+    corps: JSON.stringify({ error: { code: 400, message: "Champ inconnu (message fictif de test).", status: "INVALID_ARGUMENT" } }),
+    attente: { prompt_version: null, is_error: true, code_model: `gemini/${SEGMENT_GEMINI}` },
+    note: "Corps JSON strict sans contents (seulement systemInstruction et generationConfig) : relayé tel quel (EX-5.7 point 3), pièce « requête » = JCS intégral du corps rédigé par les règles de portée requete, sans pièce « prompt système » (systemInstruction n'est pas extrait, prompt_version null) ; le fournisseur refuse : noortrace_http_error.",
+  });
+  casGemini("gemini-refus-flux-sans-sse", {
+    target: cibleGemini("streamGenerateContent"),
+    requete: { contents: [contenuUtilisateur("Statut ?")] },
+    attente: { status: 400, raison: "flux_sans_sse", content_type: CT_GEMINI_JSON },
+    note: "streamGenerateContent sans alt=sse : refus 400 flux_sans_sse, corps AIP-193 d'EX-5.30 en application/json; charset=UTF-8, sans relais ni événement (EX-5.29).",
+  });
+  casGemini("gemini-refus-cle-url", {
+    target: cibleGemini("streamGenerateContent", "alt=sse&key=cle-fictive-de-test"),
+    requete: { contents: [contenuUtilisateur("Statut ?")] },
+    attente: { status: 400, raison: "cle_dans_url", content_type: "text/event-stream" },
+    note: "Paramètre key dans l'URL : refus 400 cle_dans_url, examiné en premier (EX-5.29) ; streamGenerateContent avec alt=sse : corps AIP-193 en text/event-stream (EX-5.30). Seuls les noms des paramètres sont consignés, jamais leur valeur.",
+  });
+  casGemini("gemini-refus-parametre", {
+    target: cibleGemini("generateContent", "alt=proto"),
+    requete: { contents: [contenuUtilisateur("Statut ?")] },
+    attente: { status: 400, raison: "parametre_non_admis", content_type: CT_GEMINI_JSON },
+    note: "generateContent?alt=proto : valeur d'alt hors de la table (proto changerait le format de la réponse), refus 400 parametre_non_admis (EX-5.29).",
+  });
+  casGemini("gemini-refus-mcp-fournisseur", {
+    target: cibleGemini("generateContent"),
+    requete: { contents: [contenuUtilisateur("Statut ?")], tools: [{ mcpServers: [{ name: "serveur-fictif", streamableHttpTransport: { url: "https://mcp.exemple.invalid/mcp" } }] }] },
+    attente: { status: 400, raison: "serveurs_mcp_fournisseur", content_type: CT_GEMINI_JSON },
+    note: "tools[].mcpServers non vide, provider_mcp absent (refuser) : refus 400 serveurs_mcp_fournisseur, sans relais ni événement (EX-5.32) ; le nombre d'entrées est consigné, jamais leur URL.",
+  });
+  casGemini("gemini-requete-non-analysable", {
+    target: cibleGemini("generateContent"),
+    requeteBrute: Buffer.from('{"contents":[{"role":"user","parts":[{"text":"Statut ?"}]}],"contents":[]}', "utf8"),
+    attente: { status: 400, raison: "corps_non_analysable", content_type: CT_GEMINI_JSON },
+    note: "Clé contents en double : JSON non strict, refus 400 corps_non_analysable avec le corps AIP-193 d'EX-5.30 (EX-5.7 point 2) ; requete.brut porte les octets reçus.",
+  });
+  casGemini("gemini-route-inconnue", {
+    target: "/v1beta/tunedModels/m:generateContent",
+    requete: { contents: [contenuUtilisateur("Statut ?")] },
+    attente: { status: 404, raison: "route_inconnue", content_type: null, corps: null },
+    note: "POST /v1beta/tunedModels/m:generateContent : aucune route gemini ne correspond (préfixe tunedModels/, EX-5.28) : 404 sans relais, sans corps propre au format, aucune pièce ; model_route_not_found consigné.",
+  });
+  casGemini("gemini-sdk-morceaux", {
+    via: "sdk",
+    requete: { contents: [contenuUtilisateur("Ouvre le sinistre 2026-81044.")], systemInstruction: PROMPT_GEMINI, model: "models/gemini-exemple" },
+    morceaux: [
+      { ...morceauGemini([{ text: "Je consulte " }], { responseId: "rep-exemple-0013" }), sdkHttpResponse: { headers: { "content-type": "text/event-stream" } } },
+      morceauGemini([{ text: "le sinistre." }], { finishReason: "STOP", responseId: "rep-exemple-0013" }),
+    ],
+    attente: { removed_members: ["sdkHttpResponse"], is_error: false, intent: "Je consulte le sinistre.", code_model: `gemini/${VERSION_GEMINI}` },
+    note: "noortrace/sdk/echangeModele au format gemini (EX-6.8) : response en tableau de deux morceaux consolidé par EX-5.35 (fin du tableau = fin normale) ; sdkHttpResponse, ajouté par le SDK Python, est retiré avant tout traitement (sdk_member_removed) ; l'échange est déclaratif.",
+  });
+  // Révision 0.5, corrections : data final sans fin de ligne (EX-5.34), flux vide, erreur seule, ordre des
+  // index et index limites (EX-5.27 (1), EX-5.35), cache du fournisseur (EX-5.32), hôte inconnu (EX-5.30),
+  // erreur déclarée par le SDK (EX-6.8).
+  const fin = morceauGemini([{ text: "ouvert." }], { finishReason: "STOP", usage: { promptTokenCount: 12, candidatesTokenCount: 5, totalTokenCount: 17 }, responseId: "rep-exemple-0014" });
+  casGemini("gemini-flux-data-final-sans-fin-de-ligne", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Statut du sinistre 2026-81044 ?")] },
+    contentType: "text/event-stream",
+    corps: sseGemini([morceauGemini([{ text: "Le sinistre est " }], { responseId: "rep-exemple-0014" })]) + `data: ${JSON.stringify(fin)}`,
+    attente: { is_error: false, incomplete: false, intent: "Le sinistre est ouvert." },
+    note: "Le dernier data n'a ni fin de ligne ni ligne vide : la dernière ligne non terminée est lue comme une ligne, puis le tampon data est distribué (EX-5.34), comme le fait le SDK Python (iter_lines de httpx) ; sse_data_final_sans_ligne_vide consigné.",
+  });
+  casGemini("gemini-flux-vide", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Statut ?")] },
+    contentType: "text/event-stream",
+    corps: "",
+    attente: { is_error: true, incomplete: true, consolidated: null, intent: null },
+    note: "Statut 200 en text/event-stream sans aucun morceau : pas de forme consolidée, la pièce « réponse » est le flux brut (zéro octet), is_error vrai et l'échange incomplet (EX-5.35 pas 7).",
+  });
+  casGemini("gemini-flux-erreur-seule", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Statut ?")] },
+    contentType: "text/event-stream",
+    corps: sseGemini([{ error: { code: 503, message: "Service indisponible (message fictif de test).", status: "UNAVAILABLE" } }, morceauGemini([{ text: "ignoré" }], { finishReason: "STOP", responseId: "rep-exemple-0015" })]),
+    attente: { is_error: true, incomplete: true, consolidated: { noortrace_erreur_flux: { code: 503, message: "Service indisponible (message fictif de test).", status: "UNAVAILABLE" } } },
+    note: "Un morceau d'erreur reçu avant tout morceau valide : la forme réduite est exactement {\"noortrace_erreur_flux\": …}, sans noortrace_flux_incomplet ; la suite est ignorée ; is_error vrai (EX-5.35 pas 2).",
+  });
+  casGemini("gemini-flux-index-desordre", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Deux formulations, s'il te plaît.")], generationConfig: { candidateCount: 2 } },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      { candidates: [{ content: { parts: [{ text: "Seconde " }], role: "model" }, index: 1 }], modelVersion: VERSION_GEMINI, responseId: "rep-exemple-0016" },
+      { candidates: [{ content: { parts: [{ text: "Première " }], role: "model" }, index: 0 }, { content: { parts: [{ text: "version." }], role: "model" }, finishReason: "STOP", index: 1 }], modelVersion: VERSION_GEMINI, responseId: "rep-exemple-0016" },
+      { candidates: [{ content: { parts: [{ text: "formulation." }], role: "model" }, finishReason: "STOP", index: 0 }], modelVersion: VERSION_GEMINI, responseId: "rep-exemple-0016" },
+    ]),
+    attente: { is_error: false, intent: "Seconde version." },
+    note: "Le premier fragment reçu porte l'index 1 : les candidats sont créés dans l'ordre de première apparition (index 1, puis 0), et intent vient de candidates[0] de la forme, soit l'index 1 (EX-5.35 pas 4, 5.5).",
+  });
+  casGemini("gemini-flux-index-limites", {
+    target: cibleGemini("streamGenerateContent", "alt=sse"),
+    requete: { contents: [contenuUtilisateur("Statut ?")] },
+    contentType: "text/event-stream",
+    corps: sseGemini([
+      '{"candidates":[{"content":{"parts":[{"text":"Un "}],"role":"model"},"index":1.0}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0017"}',
+      '{"candidates":[{"content":{"parts":[{"text":"limite "}],"role":"model"},"index":9007199254740993}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0017"}',
+      '{"candidates":[{"content":{"parts":[{"text":"refusé"}],"role":"model"},"index":9007199254740994}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0017"}',
+      '{"candidates":[{"content":{"parts":[{"text":"atteinte."}],"role":"model"},"finishReason":"STOP","index":1}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0017"}',
+    ]),
+    attente: { is_error: false, intent: "Un atteinte." },
+    note: "La valeur d'un index est le double IEEE 754 le plus proche du texte reçu (EX-5.27 (1), EX-8.1) : 1.0 vaut 1 ; 9007199254740993 vaut 2^53, admis ; 9007199254740994 dépasse 2^53, le fragment est ignoré et compté.",
+  });
+  casGemini("gemini-refus-cache", {
+    target: cibleGemini("generateContent"),
+    requete: { contents: [contenuUtilisateur("Statut ?")], cachedContent: "cachedContents/contenu-fictif" },
+    attente: { status: 400, raison: "cache_fournisseur", content_type: CT_GEMINI_JSON },
+    note: "cachedContent non nul, provider_cache absent (refuser) : refus 400 cache_fournisseur, sans relais ni événement : le contenu mis en cache (prompt système, outils, serveurs MCP) ne serait vu ni par la pièce « requête » ni par EX-5.32 (EX-5.32, 5.8).",
+  });
+  casGemini("gemini-hote-inconnu", {
+    target: cibleGemini("generateContent"),
+    hoteConnu: false,
+    requete: { contents: [contenuUtilisateur("Statut ?")] },
+    attente: { status: 401, raison: "hote_inconnu", content_type: CT_GEMINI_JSON },
+    note: "Route gemini trouvée, mais aucune entrée de model.hosts ne reconnaît l'hôte (host_known: false dans requete-ligne.json) : 401 sans relais, corps AIP-193 d'EX-5.30 de status UNAUTHENTICATED (5.3.3 pas 3, EX-5.8).",
+  });
+  casGemini("gemini-sdk-erreur-declaree", {
+    via: "sdk",
+    requete: { contents: [contenuUtilisateur("Ouvre le sinistre 2026-81044.")], model: "models/gemini-exemple" },
+    morceaux: [morceauGemini([{ text: "Sinistre ouvert." }], { finishReason: "STOP", responseId: "rep-exemple-0018" })],
+    isErrorDeclare: true,
+    attente: { is_error: true, intent: "Sinistre ouvert." },
+    note: "Statut déclaré 200 et is_error déclaré vrai (echange-sdk.json) : is_error = déclaré OU calculé (EX-6.8), vrai même si la forme est complète.",
+  });
+  exiger(CAS_GEMINI.length === 30, `30 cas gemini-* (annexe B.5), ${CAS_GEMINI.length} obtenus`);
+}
+
+// ---------------------------------------------------------------------------
+// 4 ter. worm/ et cout-agent/ (annexes B.9 et B.10, révision 0.5 : 12.6, 12.11, 16.4)
+// ---------------------------------------------------------------------------
+
+const WORM_BUCKET = "noortrace-demo-worm";
+const WORM_PREFIXE = "journal-demo/";
+const WORM_SEGMENT = `${WORM_PREFIXE}segments/seg-0000000000000001-00000000000000000001.ndjson`;
+const WORM_VERSION = "3/L4kqtJl40Nr8X8gdRQBpUMLUo";
+const WORM_VERSION_AZURE = "2026-11-10T11:00:05.1234567Z";
+const WORM_GENERATION = "1794308405123456";
+const WORM_COPIE = "2026-11-10T11:00:05.412Z";
+const WORM_RETAIN_DAYS = 4018;
+const SCHEMA_WORM = lireSchema("worm");
+const SCHEMA_COUT = lireSchema("cout-agent");
+const CAS_WORM = {};
+
+/** Écrit un fichier de famille WORM après l'avoir validé contre `worm-v0`. */
+function ecrireFamilleWorm(fichier, family, description, cases) {
+  const doc = { version: 0, family, description, cases };
+  const erreurs = J.validerSchema(doc, SCHEMA_WORM, { registre: SCHEMAS });
+  exiger(erreurs.length === 0, `${family} : schéma worm-v0 : ${JSON.stringify(erreurs.slice(0, 3))}`);
+  for (const c of cases) exiger(/^[a-z0-9][a-z0-9-]{0,79}$/.test(c.id), `${family} : identifiant ${c.id}`);
+  exiger(new Set(cases.map((c) => c.id)).size === cases.length, `${family} : identifiants uniques`);
+  ecrireJSON(`worm/${fichier}`, doc);
+  CAS_WORM[family] = cases;
+}
+
+{
+  // requetes.json (EX-12.39).
+  const entree = (operation, champs = {}) => ({ operation, bucket: null, key: null, version_id: null, hold: null, prefix: null, key_marker: null, version_id_marker: null, retain_days: null, body_utf8: null, legal_hold_on_write: null, ...champs });
+  const cas = [
+    ["s3-gel-pose", "S3 PutObjectLegalHold, statut ON, sur la version du segment de l'exemple d'EX-12.39 : corps XML de 128 octets, Content-MD5 en base64 (RFC 1864) ; « / » de l'identifiant de version encodé %2F.", entree("s3_gel", { key: WORM_SEGMENT, version_id: WORM_VERSION, hold: true })],
+    ["s3-gel-levee", "S3 PutObjectLegalHold, statut OFF : corps de 129 octets.", entree("s3_gel", { key: WORM_SEGMENT, version_id: WORM_VERSION, hold: false })],
+    ["s3-lire-gel", "S3 GetObjectLegalHold : GET avec legal-hold et versionId, sans en-tête ni corps.", entree("s3_lire_gel", { key: WORM_SEGMENT, version_id: WORM_VERSION })],
+    ["s3-etat-version", "S3 HEAD d'une version (EX-12.33) : mode, échéance et gel se lisent dans les en-têtes de la réponse.", entree("s3_etat", { key: WORM_SEGMENT, version_id: WORM_VERSION })],
+    ["s3-liste-premiere-page", "S3 ListObjectVersions, première page : versions, max-keys=1000, prefix encodé (le « / » final devient %2F).", entree("s3_liste", { prefix: WORM_PREFIXE })],
+    ["s3-liste-page-suivante", "S3 ListObjectVersions, page suivante : key-marker et version-id-marker de la réponse précédente, dans l'ordre de la syntaxe de la page (L-C1).", entree("s3_liste", { prefix: WORM_PREFIXE, key_marker: `${WORM_PREFIXE}manifestes/periode-1794304800.json`, version_id_marker: WORM_VERSION })],
+    ["s3-configuration-verrou-4018", "S3 PutObjectLockConfiguration posée par l'exploitant (EX-12.30) : mode COMPLIANCE, 4 018 jours ; corps de 273 octets.", entree("s3_configuration_verrou", { retain_days: WORM_RETAIN_DAYS })],
+    ["s3-lire-configuration", "S3 GetObjectLockConfiguration, lue chaque jour par la supervision (EX-17.5).", entree("s3_lire_configuration")],
+    ["s3-copie", "Copie S3 conditionnelle à l'absence (EX-12.16) : Content-Length, Content-MD5 et If-None-Match: *, corps court.", entree("s3_copie", { key: `${WORM_PREFIXE}manifestes/periode-1794304800.sig`, body_utf8: "0x00", legal_hold_on_write: false })],
+    ["s3-copie-gel-a-l-ecriture", "Copie S3 avec legal_hold_on_write (EX-12.31) : en-tête x-amz-object-lock-legal-hold: ON en plus.", entree("s3_copie", { key: `${WORM_PREFIXE}manifestes/periode-1794304800.sig`, body_utf8: "0x00", legal_hold_on_write: true })],
+    ["s3-cle-a-encoder", "Clé et version avec espace, lettres accentuées, « + », « / » et « = » : chaque octet UTF-8 hors des non réservés de la RFC 3986 en %XX majuscules ; « / » gardé dans la clé, encodé dans la version.", entree("s3_gel", { key: "journal démo/pièce.json", version_id: "a+b/c=", hold: true })],
+    ["azure-gel-pose", "Azure Set Blob Legal Hold de niveau version : comp=legalhold, versionid encodé (« : » en %3A), x-ms-legal-hold: true, x-ms-version 2020-06-12, sans corps.", entree("azure_gel", { bucket: WORM_BUCKET, key: WORM_SEGMENT, version_id: WORM_VERSION_AZURE, hold: true })],
+    ["azure-gel-levee", "Azure, levée : x-ms-legal-hold: false.", entree("azure_gel", { bucket: WORM_BUCKET, key: WORM_SEGMENT, version_id: WORM_VERSION_AZURE, hold: false })],
+    ["azure-etat-version", "Azure Get Blob Properties d'une version (HEAD avec versionid).", entree("azure_etat", { bucket: WORM_BUCKET, key: WORM_SEGMENT, version_id: WORM_VERSION_AZURE })],
+    ["gcs-gel-pose", "GCS PATCH de la ressource objet par l'API JSON : nom d'objet encodé (« / » en %2F), generation, corps JCS intégral {\"temporaryHold\":true} de 22 octets.", entree("gcs_gel", { bucket: WORM_BUCKET, key: WORM_SEGMENT, version_id: WORM_GENERATION, hold: true })],
+    ["gcs-gel-levee", "GCS, levée : {\"temporaryHold\":false}, 23 octets.", entree("gcs_gel", { bucket: WORM_BUCKET, key: WORM_SEGMENT, version_id: WORM_GENERATION, hold: false })],
+    ["gcs-etat-version", "GCS lecture de la ressource objet d'une génération par l'API JSON.", entree("gcs_etat", { bucket: WORM_BUCKET, key: WORM_SEGMENT, version_id: WORM_GENERATION })],
+  ].map(([id, description, input]) => ({ id, description, input, expected: W.requeteDeCas(input) }));
+  const parId = Object.fromEntries(cas.map((c) => [c.id, c.expected]));
+  exiger(parId["s3-gel-pose"].target === "/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?legal-hold&versionId=3%2FL4kqtJl40Nr8X8gdRQBpUMLUo", "cible de l'exemple d'EX-12.39");
+  exiger(JSON.stringify(parId["s3-gel-pose"].headers) === JSON.stringify([["Content-Length", "128"], ["Content-MD5", "PabGSMHFuZL/pMW6ZUAWbQ=="]]), "en-têtes de l'exemple d'EX-12.39 (pose)");
+  exiger(JSON.stringify(parId["s3-gel-levee"].headers) === JSON.stringify([["Content-Length", "129"], ["Content-MD5", "dUbasAU9gptvOryKx8wHGQ=="]]), "en-têtes de l'exemple d'EX-12.39 (levée)");
+  exiger(parId["s3-configuration-verrou-4018"].body_length === 273 && parId["s3-configuration-verrou-4018"].headers[1][1] === "MrEn2+g7Ii+EumTicoW97w==", "rétention par défaut de 4 018 jours d'EX-12.39");
+  exiger(parId["s3-cle-a-encoder"].target === "/journal%20d%C3%A9mo/pi%C3%A8ce.json?legal-hold&versionId=a%2Bb%2Fc%3D", "encodage de la clé (B.9)");
+  exiger(parId["azure-gel-pose"].target === "/noortrace-demo-worm/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?comp=legalhold&versionid=2026-11-10T11%3A00%3A05.1234567Z", "cible Azure d'EX-12.39");
+  exiger(parId["gcs-gel-pose"].body_length === 22 && parId["gcs-gel-levee"].body_length === 23, "corps GCS de 22 et 23 octets");
+  ecrireFamilleWorm("requetes.json", "worm/requetes", "Requêtes exactes de l'enregistreur et de l'outil de gel (CT-2 EX-12.39), sans hôte, date ni signature : cible encodée, en-têtes triés par nom en minuscules, corps, longueur, SHA-256 ; Content-MD5 = base64 du MD5 du corps (RFC 1864).", cas);
+}
+
+{
+  // etats.json (EX-12.33).
+  const min = W.echeanceMinimale(WORM_COPIE, WORM_RETAIN_DAYS);
+  exiger(min === "2037-11-10T10:00:05.412Z", `échéance minimale ${min}`);
+  const s3 = (h) => ({ "x-amz-object-lock-mode": "COMPLIANCE", "x-amz-object-lock-retain-until-date": "2037-11-10T11:00:05.000Z", ...h });
+  const sans = (o, k) => Object.fromEntries(Object.entries(o).filter(([c]) => c !== k));
+  const cas = [
+    ["s3-conforme-sans-gel", "S3 conforme sans gel attendu : en-tête de gel absent, legal_hold « jamais » et note jamais_gele (« not returned if […] never had a legal hold applied »).", "s3-object-lock", s3({}), null, null],
+    ["s3-conforme-gele", "S3 conforme, gel attendu et posé (ON).", "s3-object-lock", s3({ "x-amz-object-lock-legal-hold": "ON" }), null, true],
+    ["s3-gel-attendu-absent", "Gel attendu (registre des gels) mais en-tête absent : raison gel_absent, note jamais_gele.", "s3-object-lock", s3({}), null, true],
+    ["s3-gel-off-attendu", "Gel attendu mais statut OFF : raison gel_absent.", "s3-object-lock", s3({ "x-amz-object-lock-legal-hold": "OFF" }), null, true],
+    ["s3-mode-governance", "Mode GOVERNANCE lu alors que compliance est attendu : mode_non_conforme.", "s3-object-lock", s3({ "x-amz-object-lock-mode": "GOVERNANCE" }), null, null],
+    ["s3-sans-mode", "En-tête de mode absent (verrou absent ou droit s3:GetObjectRetention manquant) : mode_absent.", "s3-object-lock", sans(s3({}), "x-amz-object-lock-mode"), null, null],
+    ["s3-echeance-courte", "Échéance antérieure à copied_at + retain_days − 1 h : echeance_courte.", "s3-object-lock", s3({ "x-amz-object-lock-retain-until-date": "2037-11-09T11:00:05.000Z" }), null, null],
+    ["s3-echeance-imf-fixdate", "Échéance à la forme IMF-fixdate de HTTP : lue et ramenée à la forme de CT-1 §3.", "s3-object-lock", s3({ "x-amz-object-lock-retain-until-date": "Tue, 10 Nov 2037 11:00:05 GMT" }), null, null],
+    ["s3-echeance-decalage", "Échéance RFC 3339 avec décalage horaire et fraction de sept chiffres : convertie en UTC, fraction tronquée à la milliseconde.", "s3-object-lock", s3({ "x-amz-object-lock-retain-until-date": "2037-11-10T12:00:05.1239999+01:00" }), null, null],
+    ["s3-echeance-illisible", "Échéance qui n'est ni RFC 3339 ni IMF-fixdate : date_illisible.", "s3-object-lock", s3({ "x-amz-object-lock-retain-until-date": "10/11/2037" }), null, null],
+    ["s3-gel-inattendu", "Gel présent sans être attendu : conforme, note gel_inattendu (le gel ne fait qu'ajouter une protection).", "s3-object-lock", s3({ "x-amz-object-lock-legal-hold": "ON" }), null, null],
+    ["azure-conforme", "Azure : politique de niveau version verrouillée (locked), gel attendu et posé (x-ms-legal-hold: true).", "azure-immutable-blob", { "x-ms-immutability-policy-mode": "locked", "x-ms-immutability-policy-until-date": "2037-11-10T11:00:05.0000000Z", "x-ms-legal-hold": "true" }, null, true],
+    ["azure-unlocked", "Azure : politique unlocked (Governance) alors que compliance est attendu : mode_non_conforme.", "azure-immutable-blob", { "x-ms-immutability-policy-mode": "unlocked", "x-ms-immutability-policy-until-date": "2037-11-10T11:00:05.0000000Z" }, null, null],
+    ["gcs-conforme", "GCS : retention.mode Locked, retainUntilTime suffisant, temporaryHold vrai attendu.", "gcs-object-retention", null, { name: "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson", generation: WORM_GENERATION, retention: { mode: "Locked", retainUntilTime: "2037-11-10T11:00:05.123Z" }, temporaryHold: true }, true],
+    ["gcs-sans-retention", "GCS sans membre retention : mode_absent et echeance_absente ; temporaryHold faux.", "gcs-object-retention", null, { name: "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson", generation: WORM_GENERATION, temporaryHold: false }, null],
+    ["s3-gel-illisible", "Valeur de gel hors de la table (« on » en minuscules) : jamais lue comme OFF ; legal_hold « illisible », raison gel_illisible.", "s3-object-lock", s3({ "x-amz-object-lock-legal-hold": "on" }), null, true],
+  ].map(([id, description, type, headers, json, hold]) => {
+    const input = { type, headers, json, expected_lock: { retain_until_min: min, hold } };
+    return { id, description, input, expected: W.etatVerrou(input) };
+  });
+  const v = Object.fromEntries(cas.map((c) => [c.id, c.expected]));
+  exiger(v["s3-conforme-sans-gel"].verdict === "conforme" && v["s3-conforme-sans-gel"].notes[0] === "jamais_gele", "s3-conforme-sans-gel");
+  exiger(v["s3-gel-attendu-absent"].reasons.includes("gel_absent") && v["s3-gel-off-attendu"].reasons.includes("gel_absent"), "gel_absent");
+  exiger(v["s3-mode-governance"].reasons[0] === "mode_non_conforme" && v["s3-sans-mode"].reasons[0] === "mode_absent", "mode");
+  exiger(v["s3-echeance-courte"].reasons[0] === "echeance_courte" && v["s3-echeance-illisible"].reasons[0] === "date_illisible", "échéance");
+  exiger(v["s3-echeance-imf-fixdate"].retain_until === "2037-11-10T11:00:05.000Z" && v["s3-echeance-decalage"].retain_until === "2037-11-10T11:00:05.123Z", "dates");
+  exiger(v["s3-gel-inattendu"].verdict === "conforme" && v["s3-gel-inattendu"].notes.includes("gel_inattendu"), "gel_inattendu");
+  exiger(v["gcs-sans-retention"].reasons.join() === "mode_absent,echeance_absente" && v["azure-conforme"].verdict === "conforme" && v["gcs-conforme"].verdict === "conforme", "Azure et GCS");
+  ecrireFamilleWorm("etats.json", "worm/etats", `Contrôle du verrou d'une version lue (CT-2 EX-12.33) : mode, échéance, gel, dans cet ordre ; copie du ${WORM_COPIE}, retain_days ${WORM_RETAIN_DAYS}, d'où retain_until_min = copied_at + retain_days × 86 400 s − 3 600 s ; mode attendu compliance.`, cas);
+}
+
+{
+  // perimetres.json (EX-12.35).
+  const P = PERIODE_DEBUT;
+  const v = (k, id, { latest = true, marqueur = false } = {}) => ({ key: WORM_PREFIXE + k, version_id: id, is_latest: latest, delete_marker: marqueur });
+  const base = [
+    v("ancres/periode-1794304800/acquisitions.ndjson", "Wq1Vn0aCqe2Hc5UHmKDa8sbJ0Jx5Lt3m"),
+    v("ancres/periode-1794304800/ots/manifeste-1.ots", "Kd8Fh2Lr6Vq0Zs4Xn9Pc1Tb7Mw3Jy5Ge"),
+    v("manifestes/periode-1794304800.json", "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"),
+    v("manifestes/periode-1794304800.sig", "Ub3Kp8Wn1Rd6Ys0Hm5Qc2Lf9Tv4Xj7Ga"),
+    v("points/periode-1794304800.ndjson", "Ze6Qt1Mb8Ks3Wd0Ln5Rh2Vc9Pf4Yj7Xa"),
+    v("segments/seg-0000000000000001-00000000000000000001.ndjson", WORM_VERSION),
+  ];
+  const m1 = { period_start: P, first_seq: 1, last_seq: 8 };
+  const entree = (champs) => ({ prefix: WORM_PREFIXE, from: P, to: P, manifests: [m1], versions: base, pieces: null, ...champs });
+  const P2 = P + 3600;
+  const pieces = ["0x8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1", "0x2f2d9c5e977bede0ecd28d814bc7effec1844ed52e149d9a4f71dab1c228195a"];
+  const cas = [
+    ["exemple-ex-12-35", "L'exemple d'EX-12.35 : période de démonstration de journal-demo, un segment (first_seq 1, last_seq 8), deux fichiers d'ancres ; six objets, 673 octets. Les versions sont listées dans un ordre quelconque : la liste est triée par clé.", entree({ versions: [...base].reverse() })],
+    ["deux-periodes-dont-une-vide", "Deux périodes, la seconde vide (last_seq = first_seq − 1) : aucun segment attendu pour elle, ses manifeste, signature et série de points sont gelés.", entree({ to: P2, manifests: [m1, { period_start: P2, first_seq: 9, last_seq: 8 }], versions: [...base, v("manifestes/periode-1794308400.json", "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"), v("manifestes/periode-1794308400.sig", "Sg4Ha9Lk2Pq7Rt0Vw5Xy8Zb1Cd6Ef3Gi"), v("points/periode-1794308400.ndjson", "Pt6Jb1Mc4Nd7Qe0Rf3Sg8Th5Ui2Vj9Wk")] })],
+    ["segment-ecrivain-perime", "Deux époques pour un même first_seq (copie d'un écrivain périmé, section 13) : toutes deux retenues et gelées, rien n'est jugé.", entree({ versions: [...base, v("segments/seg-0000000000000001-00000000000000000002.ndjson", "Ep2Xk7Ln4Qw1Rz8Sd5Tf0Vg3Yh6Bj9Cm")] })],
+    ["versions-multiples", "Deux versions de la série de points : anomalie versions_multiples, toutes deux gelées.", entree({ versions: [...base, v("points/periode-1794304800.ndjson", "Vm0Ab3Cd6Ef9Gh2Ij5Kl8Mn1Op4Qr7St", { latest: false })] })],
+    ["marqueur-de-suppression", "Un marqueur de suppression en version courante de la signature : anomalie marqueur_de_suppression ; la version recouverte est gelée, le marqueur ne peut pas l'être.", entree({ versions: [...base.map((x) => (x.key.endsWith(".sig") ? { ...x, is_latest: false } : x)), v("manifestes/periode-1794304800.sig", "Dm7Zy4Xw1Vu8Ts5Rq2Po9Nm6Lk3Ji0Hg", { marqueur: true })] })],
+    ["manifeste-absent", "Manifeste de la période sans version : manifeste_absent puis segments_indetermines sur <prefix>segments/ ; aucun segment n'est pris.", entree({ manifests: [], versions: base.filter((x) => !x.key.endsWith(".json")) })],
+    ["segment-absent", "Manifeste présent mais aucun segment de f = first_seq : segment_absent sur la clé attendue d'époque inconnue (vingt 0).", entree({ versions: base.filter((x) => !x.key.includes("/segments/")) })],
+    ["pieces-copiees", "Pièces copiées (EX-12.16) : les clés <prefix>pieces/<xx>/<sha256 sans 0x> des empreintes référencées par les segments retenus sont gelées.", entree({ pieces, versions: [...base, ...pieces.map((h, i) => v(`pieces/${h.slice(2, 4)}/${h.slice(2)}`, `Pc${i}Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0`))] })],
+    ["deux-periodes-anomalies", "Deux périodes portant chacune des anomalies : période par période, celles du pas 2 puis du pas 3 ; ensuite celles du pas 5 (EX-12.35, ordre des anomalies).", entree({ to: P2, manifests: [], versions: [...base.filter((x) => !x.key.endsWith(".json") && !x.key.endsWith(".sig")), v("points/periode-1794304800.ndjson", "Vm1Ab3Cd6Ef9Gh2Ij5Kl8Mn1Op4Qr7St", { latest: false })] })],
+    ["signature-marqueur-seul", "La signature n'a qu'un marqueur de suppression : il compte comme une version pour le pas 3 (pas d'objet_absent), la clé est retenue sans objet et le pas 5 rend marqueur_de_suppression.", entree({ versions: [...base.filter((x) => !x.key.endsWith(".sig")), v("manifestes/periode-1794304800.sig", "Dm8Zy4Xw1Vu8Ts5Rq2Po9Nm6Lk3Ji0Hg", { marqueur: true })] })],
+    ["manifeste-illisible", "Le manifeste a une version que l'outil n'a pas pu lire : la clé est gelée quand même ; anomalies manifeste_illisible puis segments_indetermines, aucun segment n'est pris.", entree({ manifests: [] })],
+    ["piece-absente", "Pièces copiées, mais une empreinte référencée n'a aucune version sur le support : anomalie piece_absente (EX-12.35 pas 4).", entree({ pieces, versions: [...base, v(`pieces/${pieces[0].slice(2, 4)}/${pieces[0].slice(2)}`, "Pc0Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0")] })],
+    ["pieces-non-copiees", "Pièces non copiées (copy_pieces faux) et purgeables localement (pieces_days non nul) : anomalie pieces_non_copiees sur <prefix>pieces/ ; la purge locale est suspendue pendant le gel (EX-12.20).", entree({ pieces_purgeable: true })],
+    ["cles-hors-plage-ignorees", "Segments hors de [first_seq, last_seq], ancres et manifestes d'autres périodes, clé d'un autre préfixe : ignorés.", entree({ versions: [...base, v("segments/seg-0000000000000009-00000000000000000001.ndjson", "Hp1Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj"), v("ancres/periode-1794308400/acquisitions.ndjson", "Hp2Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj"), v("manifestes/periode-1794301200.json", "Hp3Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj"), { key: "autre-journal/segments/seg-0000000000000001-00000000000000000001.ndjson", version_id: "Hp4Aa2Bb3Cc4Dd5Ee6Ff7Gg8Hh9Ii0Jj", is_latest: true, delete_marker: false }] })],
+  ].map(([id, description, input]) => {
+    const { objects, objects_sha256, count, anomalies } = W.perimetreGel(input);
+    return { id, description, input, expected: { objects, objects_sha256, count, anomalies } };
+  });
+  const ex = cas[0].expected;
+  exiger(ex.count === 6 && ex.objects_sha256 === "0x0a24b97a14bf984ea5e8864e940ef45a5aad5eb8a1be9ec176affbe37a41083c" && ex.anomalies.length === 0, "périmètre de l'exemple d'EX-12.35");
+  exiger(W.perimetreGel(cas[0].input).texte.length === 673, "liste de l'exemple d'EX-12.35 : 673 octets");
+  exiger(cas.find((c) => c.id === "manifeste-absent").expected.anomalies.map((a) => a.kind).join() === "manifeste_absent,segments_indetermines", "manifeste_absent");
+  exiger(cas.find((c) => c.id === "deux-periodes-anomalies").expected.anomalies.map((a) => a.kind).join() === "manifeste_absent,segments_indetermines,objet_absent,manifeste_absent,segments_indetermines,objet_absent,objet_absent,versions_multiples", "ordre des anomalies sur deux périodes");
+  exiger(cas.find((c) => c.id === "signature-marqueur-seul").expected.anomalies.map((a) => a.kind).join() === "marqueur_de_suppression", "marqueur seul");
+  ecrireFamilleWorm("perimetres.json", "worm/perimetres", `Périmètre d'un gel (CT-2 EX-12.35, pas 2 à 6) à partir de la liste des versions déjà lue : bucket ${WORM_BUCKET}, préfixe ${WORM_PREFIXE}, période de démonstration ${P} ; liste des objets triée par clé (octets UTF-8) puis dans l'ordre de la liste des versions, empreinte SHA-256 du fichier objets-0001.ndjson (lignes JCS intégral suivies de \\n). Identifiants de version fictifs.`, cas);
+}
+
+{
+  // gardes.json (EX-12.37, EX-12.38).
+  const GEL = "gel-20261201T090000Z-5f0c2a1e";
+  const exemple = W.perimetreGel({ prefix: WORM_PREFIXE, from: PERIODE_DEBUT, to: PERIODE_DEBUT, manifests: [{ period_start: PERIODE_DEBUT, first_seq: 1, last_seq: 8 }], versions: CAS_WORM["worm/perimetres"][0].input.versions, pieces: null });
+  const commun = { version: 0, gel_id: GEL, org_id: ORG_ID, journal_id: JOURNAL_ID, periods: { from: PERIODE_DEBUT, to: PERIODE_DEBUT }, support: { type: "s3-object-lock", bucket: WORM_BUCKET, prefix: WORM_PREFIXE }, objects: { key: W.cleListeObjets(WORM_PREFIXE, GEL), sha256: exemple.objects_sha256, count: exemple.count } };
+  const A = "j.dupont@assureur-demo.example";
+  const B = "m.keller@assureur-demo.example";
+  const REF = "dossier juridique LT-0042";
+  const rec = (kind, actor, at, champs = {}) => ({ kind, actor, at, reason: null, reference: REF, request_sha256: null, results: null, anomalies: [], ...champs });
+  /** Chaîne une suite (n, prev_sha256, request_sha256 des levées : la dernière demande, sauf valeur fixée). */
+  const chainer = (suite, { garderRequete = false } = {}) => {
+    const out = [];
+    let derniereDemande = null;
+    suite.forEach((r, i) => {
+      const o = { version: 0, gel_id: commun.gel_id, n: i + 1, kind: r.kind, org_id: commun.org_id, journal_id: commun.journal_id, periods: commun.periods, support: commun.support, objects: commun.objects, actor: r.actor, at: r.at, reason: r.reason, reference: r.reference, request_sha256: r.request_sha256, results: r.results, anomalies: r.anomalies, prev_sha256: i === 0 ? null : W.empreinteEnregistrement(out[i - 1]), ...(r.surcharge ?? {}) };
+      if (o.kind === "levee" && !garderRequete && r.request_sha256 === null) o.request_sha256 = derniereDemande;
+      out.push(o);
+      if (o.kind === "demande_levee") derniereDemande = W.empreinteEnregistrement(o);
+    });
+    return out;
+  };
+  const pose = rec("pose", A, "2026-12-01T09:00:00.000Z", { reason: "Litige LT-0042 : conservation au-delà de l'échéance de rétention" });
+  const poseResultat = rec("pose_resultat", A, "2026-12-01T09:00:02.341Z", { results: { ok: 6, failed: [] } });
+  const demande = rec("demande_levee", A, "2037-03-15T08:00:00.000Z", { reason: "Litige LT-0042 clos par jugement définitif" });
+  const levee = rec("levee", B, "2037-03-16T14:30:00.000Z");
+  const leveeResultat = rec("levee_resultat", B, "2037-03-16T14:30:01.120Z", { results: { ok: 6, failed: [] } });
+  const valide = chainer([pose, poseResultat, demande, levee, leveeResultat]);
+  const empreintes = valide.map(W.empreinteEnregistrement);
+  exiger(JSON.stringify(empreintes) === JSON.stringify(["0x4b88f9b3b618a27835988b98bb3e146e99177e370eb6cd3af219a7ba4634eb1a", "0xb7d1457d111588b55d7d235d313a6d6aabb32ff6c82e75c82c351beed67cc744", "0xe9d87eb97309d57d4d2241d12b8d3debe220a9d782fd541b92299eecc30c3af7", "0x3543164e9f59156aeff461bcaf1334a5a678a98fa239f1162f6df970bf0e8482", "0x1fa25acb0f9f78211f2abdbbd2217233f4b134a69534e2975fc3828dfe892c05"]), `empreintes des enregistrements de 12.11 : ${empreintes.join(", ")}`);
+  exiger(W.octetsEnregistrement(valide[0]).length === 811, "0001-pose de 12.11 : 811 octets");
+  const chaineRompue = valide.map((r) => ({ ...r }));
+  chaineRompue[4] = { ...chaineRompue[4], prev_sha256: empreintes[2] };
+  const cas = [
+    ["suite-valide", "La suite valide de l'exemple d'EX-12.37 : pose, pose_resultat, demande_levee par j.dupont, levee par m.keller le lendemain, levee_resultat ; empreintes imprimées en 12.11.", valide],
+    ["chaine-rompue", "prev_sha256 du cinquième enregistrement égal à l'empreinte du troisième : chaine_rompue.", chaineRompue],
+    ["premier-non-pose", "Suite sans son enregistrement pose (rangs décalés) : le premier n'est pas une pose ; la chaîne est aussi rompue (n ≠ rang, prev_sha256 non nul).", valide.slice(1)],
+    ["ordre-invalide", "pose suivie directement d'une demande_levee, sans pose_resultat : ordre_invalide.", chainer([pose, demande, levee, leveeResultat])],
+    ["meme-identite", "La levée est exécutée par la personne qui a demandé : meme_identite.", chainer([pose, poseResultat, demande, { ...levee, actor: A }, { ...leveeResultat, actor: A }])],
+    ["demande-inconnue", "request_sha256 de la levée = empreinte de la pose, pas de la dernière demande : demande_inconnue.", chainer([pose, poseResultat, demande, { ...levee, request_sha256: empreintes[0] }, leveeResultat])],
+    ["demande-expiree", "Levée sept jours et une milliseconde après la demande (604 800 001 ms) : demande_expiree.", chainer([pose, poseResultat, demande, { ...levee, at: "2037-03-22T08:00:00.001Z" }, { ...leveeResultat, at: "2037-03-22T08:00:01.000Z" }])],
+    ["levee-en-double", "Deux levées approuvent la même demande : levee_en_double (la seconde suit un levee_resultat : ordre_invalide aussi).", chainer([pose, poseResultat, demande, levee, leveeResultat, { ...levee, at: "2037-03-16T15:00:00.000Z" }])],
+    ["objets-differents", "La demande de levée porte un autre nombre d'objets : objets_differents.", chainer([pose, poseResultat, { ...demande, surcharge: { objects: { ...commun.objects, count: 5 } } }, levee, leveeResultat])],
+    ["periode-differente", "La demande de levée porte une autre plage de périodes : periode_differente.", chainer([pose, poseResultat, { ...demande, surcharge: { periods: { from: PERIODE_DEBUT, to: PERIODE_DEBUT + 3600 } } }, levee, leveeResultat])],
+    ["demande-remplacee", "Une seconde demande remplace la première ; la levée approuve la seconde, la dernière : valide.", chainer([pose, poseResultat, demande, { ...demande, at: "2037-03-15T09:00:00.000Z", reason: "Litige LT-0042 clos ; demande précisée" }, levee, leveeResultat])],
+    ["levee-double-demande-inconnue", "Deux levées portent la même empreinte, qui ne désigne aucune demande : demande_inconnue pour chacune, jamais levee_en_double (la demande désignée n'existe pas, EX-12.38).", chainer([pose, poseResultat, demande, { ...levee, request_sha256: empreintes[1] }, { ...levee, request_sha256: empreintes[1], at: "2037-03-16T15:00:00.000Z" }])],
+    ["suite-vide", "Suite vide : aucune pose, premier_non_pose au rang 1 (EX-12.38).", []],
+    ["reprise", "Reprise après un échec partiel : pose_resultat avec un objet en échec, puis un second pose_resultat complet (reprendre) : valide.", chainer([pose, rec("pose_resultat", A, "2026-12-01T09:00:02.341Z", { results: { ok: 5, failed: [{ key: WORM_SEGMENT, version_id: WORM_VERSION, status: "echec", http_status: 503 }] } }), rec("pose_resultat", A, "2026-12-01T09:05:00.000Z", { results: { ok: 6, failed: [] } })])],
+  ].map(([id, description, records]) => ({ id, description, input: { records }, expected: W.verifierGarde(records) }));
+  const g = Object.fromEntries(cas.map((c) => [c.id, c.expected]));
+  exiger(g["suite-valide"].valid && g["demande-remplacee"].valid && g["reprise"].valid, "suites valides");
+  for (const [id, code] of [["chaine-rompue", "chaine_rompue"], ["premier-non-pose", "premier_non_pose"], ["ordre-invalide", "ordre_invalide"], ["meme-identite", "meme_identite"], ["demande-inconnue", "demande_inconnue"], ["demande-expiree", "demande_expiree"], ["levee-en-double", "levee_en_double"], ["objets-differents", "objets_differents"], ["periode-differente", "periode_differente"]]) {
+    exiger(!g[id].valid && g[id].errors.some((e) => e.code === code), `${id} : ${code} attendu`);
+  }
+  exiger(g["levee-double-demande-inconnue"].errors.every((e) => e.code !== "levee_en_double") && g["suite-vide"].errors[0].code === "premier_non_pose", "gardes suite-vide et levee-double-demande-inconnue (EX-12.38)");
+  ecrireFamilleWorm("gardes.json", "worm/gardes", "Règle de garde de la levée par deux personnes (CT-2 EX-12.38) sur une suite d'enregistrements du registre des gels (EX-12.37) : empreintes (SHA-256 du JCS intégral, dans l'ordre), verdict, erreurs { n, code } (n = rang de l'enregistrement fautif), une par enregistrement et par règle, dans l'ordre des rangs puis de la table.", cas);
+}
+
+{
+  // levees.json (EX-12.40) : gels qui se chevauchent.
+  const o = (k, id) => ({ key: WORM_PREFIXE + k, version_id: id });
+  const P1 = [o("manifestes/periode-1794304800.json", "Ry7Lm2Qs9Vd4Hk1Np6Tc3Wb8Xf5Jz0Ae"), o("segments/seg-0000000000000001-00000000000000000001.ndjson", WORM_VERSION)];
+  const P2 = [o("manifestes/periode-1794308400.json", "Mf2Qa8Lp3Rs6Tv9Wx1Yz4Bc7De0Fg5Hj"), o("segments/seg-0000000000000009-00000000000000000001.ndjson", "Sg9Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj")];
+  const B = "gel-20270115T100000Z-a1b2c3d4";
+  const C2 = "gel-20270301T080000Z-0e1f2a3b";
+  const cas = [
+    ["sans-autre-gel", "Aucun autre gel actif : toutes les versions du gel sont levées.", { objects: [...P1, ...P2], other_holds: [] }],
+    ["chevauchement-partiel", "Le gel A couvre P1 et P2 ; le gel B, actif, couvre P2 : les versions de P2 restent gelées et sont inscrites dans levee_resultat (kept), seules celles de P1 sont levées (EX-12.40).", { objects: [...P1, ...P2], other_holds: [{ gel_id: B, objects: P2 }] }],
+    ["deux-gels-couvrants", "Deux autres gels couvrent la même version : elle est conservée sous le premier gel reçu ; les autres gels ne changent rien aux versions qu'ils ne couvrent pas.", { objects: [...P1, ...P2], other_holds: [{ gel_id: B, objects: [P2[1]] }, { gel_id: C2, objects: [P2[1], o("points/periode-1794312000.ndjson", "Zz0Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj")] }] }],
+    ["meme-cle-autre-version", "Un autre gel couvre une autre version de la même clé : la version du gel levé n'est pas couverte, elle est levée (le gel est un drapeau par version).", { objects: P1, other_holds: [{ gel_id: B, objects: [o("segments/seg-0000000000000001-00000000000000000001.ndjson", "Autre0Version1Aa2Bb3Cc4Dd5Ee6Ff7")] }] }],
+  ].map(([id, description, input]) => {
+    const r = W.versionsALever(input.objects, input.other_holds);
+    return { id, description, input, expected: { lift: r.lever, keep: r.conserver } };
+  });
+  exiger(cas[1].expected.keep.length === 2 && cas[1].expected.lift.length === 2 && cas[3].expected.keep.length === 0, "gels chevauchants");
+  ecrireFamilleWorm("levees.json", "worm/levees", "Versions à lever quand un gel est levé alors que d'autres gels actifs du même préfixe couvrent certaines de ses versions (CT-2 EX-12.40) : le gel étant un drapeau unique par version sur S3, Azure et GCS, une version couverte par un autre gel actif n'est pas levée ; elle est inscrite dans levee_resultat (results.kept) avec le gel_id qui la couvre (premier gel reçu).", cas);
+}
+
+{
+  // cout-agent/cas.json (EX-16.4, EX-16.5).
+  const cout5 = JSON.parse(fs.readFileSync(path.join(SPEC, "vecteurs", "ct-5", "cout", "cout.json"), "utf8"));
+  const cAnc = cout5.cases.find((c) => c.id === "defaut-second-rang-a1").expected.cost_per_journal;
+  exiger(cAnc === 28032, `C_anc de CT-5 (defaut-second-rang-a1) : ${cAnc}`);
+  const base = {
+    active_hours_per_year: 2920, events_per_hour: 120, event_bytes: 2560, piece_bytes_per_event: 6144, pieces_per_event: 2,
+    agents_per_journal: 10, hours_per_year: 8760, journal_objects_per_hour: 40, journal_bytes_per_hour: 131072, segment_max_bytes: 268435456,
+    anchoring_cost_per_journal: cAnc, local_retention_days: 4018, local_pieces_retention_days: 4018,
+    worm: { retain_days: 4018, pieces_in_worm: false, min_billable_object_bytes: 0, lock_audits_per_year: 12, legal_hold_fraction: 0, legal_hold_extra_days: 0 },
+    prices: { local_gib_year: 0.5, worm_gib_year: 1, write_request: 0.0001, read_request: 0.00001, legal_hold_request: 0.0001, egress_gib: 0.1, ingress_gib: 0 },
+  };
+  const cas = [
+    ["reference", "Cas de référence de CT-2 §16.4 : agent actif 2 920 h par an, 120 événements par heure, 10 agents par journal, rétention 4 018 jours, pièces non copiées, relevé mensuel, aucun gel ; C_anc = cost_per_journal du cas defaut-second-rang-a1 de spec/vecteurs/ct-5/cout/cout.json.", base, 2881.27],
+    ["sans-worm", "Aucun support WORM : tous les termes WORM valent 0.", { ...base, worm: null }, 2819.423],
+    ["pieces-dans-le-worm", "Pièces copiées sur le support WORM (pieces_in_worm).", { ...base, worm: { ...base.worm, pieces_in_worm: true } }, 3922.643],
+    ["taille-minimale-facturable", "Taille minimale facturable de 131 072 octets par objet, requêtes gratuites.", { ...base, worm: { ...base.worm, min_billable_object_bytes: 131072 }, prices: { ...base.prices, write_request: 0, read_request: 0, legal_hold_request: 0 } }, 2875.799],
+    ["gel-juridique", "Un dixième des objets d'une année sous gel, 1 826 jours au-delà de l'échéance.", { ...base, worm: { ...base.worm, legal_hold_fraction: 0.1, legal_hold_extra_days: 1826 } }, 2882.448],
+    ["segments-scindes", "Agent actif toute l'année, 1 200 événements par heure, segments de 16 Mio : deux segments par heure.", { ...base, active_hours_per_year: 8760, events_per_hour: 1200, segment_max_bytes: 16777216 }, 3605.9],
+    ["agent-inactif", "Aucun événement : la part des objets de journal et de l'ancrage seule.", { ...base, events_per_hour: 0 }, 2855.931],
+    ["un-agent-par-journal", "Un seul agent par journal : il porte seul les objets de journal et l'ancrage.", { ...base, agents_per_journal: 1 }, 28588.475],
+    ["pieces-purgees", "Pièces conservées localement 365 jours seulement.", { ...base, local_pieces_retention_days: 365 }, 2871.237],
+  ].map(([id, description, input, total]) => {
+    const expected = coutAgent(input);
+    exiger(expected.cost.total === total, `cout-agent ${id} : total ${expected.cost.total}, attendu ${total} (table de 16.4)`);
+    return { id, description, input, expected };
+  });
+  exiger(cas[0].expected.cost_journal_total === 28812.701, "C_J du cas de référence de 16.4");
+  const doc = { version: 0, family: "cout-agent", description: "Coût annuel par agent et par journal (CT-2 §16.4, EX-16.4 à EX-16.6) : formule à prix paramétrés ; tous les prix sont des unités symboliques p, jamais un prix réel ; sorties arrondies à trois décimales (EX-16.5).", cases: cas };
+  const erreurs = J.validerSchema(doc, SCHEMA_COUT, { registre: SCHEMAS });
+  exiger(erreurs.length === 0, `cout-agent : schéma cout-agent-v0 : ${JSON.stringify(erreurs.slice(0, 3))}`);
+  ecrireJSON("cout-agent/cas.json", doc);
+  CAS_WORM["cout-agent"] = cas;
+}
+
+// ---------------------------------------------------------------------------
+// 4 quater. otel/ (annexe B.8, révision 0.5 : §6.8, EX-6.25 à EX-6.41)
+// ---------------------------------------------------------------------------
+
+const OTEL_ALIAS = "otel-sinistres";
+const OTEL_JETON = "otel-agent-sinistres";
+const OTEL_HOTE = { id: OTEL_JETON, launched_by: "svc-agent-sinistres@assureur-demo.example", on_behalf_of: "service-sinistres", scope: "sinistres:lecture,paiement", host_group: "agent-sinistres", accept_declared_delegation: true, prompt_version_name: null };
+const OTEL_POLITIQUE = { ingest: ["inference", "outil"], overlap: "ignorer", class_default: null, tools: {} };
+const OTEL_OPTIONS = { prompt_in_request: "reference", prompt_system: "redige", encodings: ["protobuf", "json"], max_body_bytes: 67108864, json_max_depth: C.PROFONDEUR_JSON_MAX, json_max_members: C.MEMBRES_JSON_MAX, dedup_window_ms: 3600000, overlap_window_ms: 600000, retry_after_s: 5 };
+const OTEL_VERSION_POLITIQUE = "2026-11-10-otel";
+const CAS_OTEL = [];
+
+/** CRC-32 (ISO 3309, celui de gzip), sans dépendre de la version de zlib. */
+function crc32(octets) {
+  let c = 0xffffffff;
+  for (const o of octets) {
+    c ^= o;
+    for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1;
+  }
+  return (c ^ 0xffffffff) >>> 0;
+}
+/** gzip (RFC 1952) à blocs DEFLATE stockés (RFC 1951 §3.2.4), octets constants quelle que soit la version de zlib. */
+function gzipStocke(octets) {
+  const morceaux = [Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff])];
+  for (let i = 0; i === 0 || i < octets.length; i += 65535) {
+    const bloc = octets.subarray(i, i + 65535);
+    const dernier = i + 65535 >= octets.length;
+    const t = Buffer.alloc(5);
+    t[0] = dernier ? 1 : 0;
+    t.writeUInt16LE(bloc.length, 1);
+    t.writeUInt16LE(~bloc.length & 0xffff, 3);
+    morceaux.push(t, bloc);
+  }
+  const fin = Buffer.alloc(8);
+  fin.writeUInt32LE(crc32(octets), 0);
+  fin.writeUInt32LE(octets.length >>> 0, 4);
+  morceaux.push(fin);
+  return Buffer.concat(morceaux);
+}
+/**
+ * Corps gzip vraiment comprimé de `trop-grand-apres-decompression` : 65 536
+ * espaces suivis de `{}` (65 538 octets), comprimés une fois par zlib
+ * (niveau 9) et gardés ici en base64 : la sortie de zlib peut changer d'une
+ * version à l'autre, ces octets non.
+ */
+const GZIP_BOMBE = "H4sIAAAAAAACA+3BAQ0AAAzDICv1+dz7jAAFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdT+x7ODSAgABAA==";
+
+const otelHex = (cas, k, n) => J.sha256(Buffer.from(`noortrace/vecteurs/v0/otel/${cas}/id/${k}`, "utf8")).slice(2, 2 + n).toUpperCase();
+const sv = (s) => ({ stringValue: s });
+const iv = (n) => ({ intValue: String(n) });
+const kv = (key, value) => ({ key, value });
+const ns = (ts) => (BigInt(J.msHorodatage(ts)) * 1000000n).toString();
+const OTEL_T = "2026-11-10T10:50:00.000Z";
+const OTEL_DEBUT = ns("2026-11-10T10:49:58.000Z");
+const OTEL_FIN = (BigInt(OTEL_DEBUT) + 1250500000n).toString();
+
+/** Un span JSON d'OTLP, champs dans l'ordre de l'encodage JSON. */
+function spanOtel(cas, k, { name, kind = 1, attributes, status = { code: 1 }, parent = true, start = OTEL_DEBUT, end = OTEL_FIN, traceId = null, spanId = null, extra = {} }) {
+  const s = { traceId: traceId ?? otelHex(cas, "trace", 32), spanId: spanId ?? otelHex(cas, `span-${k}`, 16) };
+  if (parent) s.parentSpanId = otelHex(cas, "parent", 16);
+  Object.assign(s, { name, kind, startTimeUnixNano: start, endTimeUnixNano: end, attributes });
+  if (status) s.status = status;
+  return { ...s, ...extra };
+}
+const lotOtel = (spans, { ressource = [kv("service.name", sv("agent-sinistres")), kv("service.version", sv("3.2.0"))], portee = { name: "agent-sinistres.instrumentation", version: "1.0.0" } } = {}) => ({ resourceSpans: [{ resource: { attributes: ressource }, scopeSpans: [{ scope: portee, spans }] }] });
+const contenuJSON = (v) => sv(JSON.stringify(v));
+const attrsInference = ({ op = "chat", fournisseur = "openai", modele = "modele-demo-1", reponse = "modele-demo-1-2026-09", conversation = "conv-2026-11-10-0011", entree = "Où en est le sinistre 2026-81044 ?", sortie = "Le sinistre 2026-81044 est ouvert.", systeme = null } = {}) => {
+  const a = [kv("gen_ai.operation.name", sv(op))];
+  if (fournisseur !== null) a.push(kv("gen_ai.provider.name", sv(fournisseur)));
+  if (modele !== null) a.push(kv("gen_ai.request.model", sv(modele)));
+  if (conversation !== null) a.push(kv("gen_ai.conversation.id", sv(conversation)));
+  if (systeme !== null) a.push(kv("gen_ai.system_instructions", contenuJSON([{ type: "text", content: systeme }])));
+  if (entree !== null) a.push(kv("gen_ai.input.messages", contenuJSON([{ role: "user", parts: [{ type: "text", content: entree }] }])));
+  if (sortie !== null) a.push(kv("gen_ai.output.messages", contenuJSON([{ role: "assistant", parts: [{ type: "text", content: sortie }], finish_reason: "stop" }])));
+  if (reponse !== null) a.push(kv("gen_ai.response.model", sv(reponse)));
+  a.push(kv("gen_ai.usage.input_tokens", iv(120)), kv("gen_ai.usage.output_tokens", iv(18)));
+  return a;
+};
+const attrsOutil = ({ nom = "claims.get", args = { claim_id: "2026-81044" }, resultat = { statut: "ouvert" }, appel = "call_11" } = {}) => {
+  const a = [kv("gen_ai.operation.name", sv("execute_tool")), kv("gen_ai.tool.name", sv(nom)), kv("gen_ai.tool.call.id", sv(appel)), kv("gen_ai.tool.type", sv("function"))];
+  if (args !== null) a.push(kv("gen_ai.tool.call.arguments", typeof args === "string" ? sv(args) : contenuJSON(args)));
+  if (resultat !== null) a.push(kv("gen_ai.tool.call.result", contenuJSON(resultat)));
+  return a;
+};
+
+/**
+ * Un cas `otel/<nom>/` (annexe B.8) : écrit source.json, le corps, ses
+ * en-têtes et l'attendu calculé par otel.mjs, et confronte les valeurs que
+ * le cas fixe (`attente`).
+ */
+function casOtel(nom, { corps, fichier = "requete.json", methode = "POST", chemin = "/v1/traces", contentType = "application/json", contentEncoding, token = OTEL_JETON, politiqueSource = OTEL_POLITIQUE, options = {}, t_reception = OTEL_T, chain = null, seen = [], recorded = [], attente = {}, note }) {
+  exiger(/^(json|pb)-|^(gzip|deflate|type|trop|non)-/.test(nom) && !CAS_OTEL.includes(nom), `nom de cas otel ${nom}`);
+  CAS_OTEL.push(nom);
+  const dir = `otel/${nom}`;
+  const opts = { ...OTEL_OPTIONS, ...options };
+  const octets = Buffer.isBuffer(corps) ? corps : Buffer.from(typeof corps === "string" ? corps : J.texteJSON(corps), "utf8");
+  const tR = J.msHorodatage(t_reception);
+  const doublons = new OT.TableDoublons({ fenetreMs: opts.dedup_window_ms });
+  for (const s of [...seen].sort((a, b) => J.msHorodatage(a.at) - J.msHorodatage(b.at))) doublons.ajouter(OT.TableDoublons.cle(OTEL_ALIAS, s.trace_id, s.span_id), J.msHorodatage(s.at));
+  const recouvrement = new OT.RegistreRecouvrement(recorded.map((e) => ({ ...e, t: J.msHorodatage(e.t) })), { fenetreMs: opts.overlap_window_ms });
+  const source = { alias: OTEL_ALIAS, host: OTEL_HOTE, policy_source: politiqueSource, policy_version: OTEL_VERSION_POLITIQUE };
+  const entetes = { method: methode, path: chemin, "content-type": contentType };
+  if (contentEncoding !== undefined) entetes["content-encoding"] = contentEncoding;
+  entetes.token_id = token;
+  const r = OT.traiterRequete({ methode, chemin, entetes, corps: octets }, { source, jeton: OTEL_JETON, options: opts, politique: PII, t_reception: tR, doublons, recouvrement });
+  const ch = chain ?? { seq_start: 2, prev_hash: J.sha256(Buffer.from(`noortrace/vecteurs/v0/otel/${nom}/precedent`, "utf8")), ts: r.partiels.map((_, i) => J.horodatage(tR + 10 + 2 * i)) };
+  exiger(ch.ts.length === r.partiels.length, `${nom} : un ts par événement`);
+  const evenements = OT.scellerPartiels(r.partiels, { ...ch, org_id: ORG_ID, journal_id: JOURNAL_ID, recorder_key_id: CLE_ID, cle: CLE.clePrivee });
+  let e = 0;
+  const spans = r.spans.map((s) => {
+    const ev = s.issue === "scelle" ? evenements[e++] : null;
+    if (ev) {
+      const err = J.validerSchema(ev, SCHEMAS[J.ID_SCHEMA_EVENEMENT], { registre: SCHEMAS });
+      exiger(err.length === 0, `${nom} : événement hors schéma ${JSON.stringify(err.slice(0, 2))}`);
+    }
+    const p = s.pieces;
+    return {
+      path: s.path, trace_id: s.trace_id, span_id: s.span_id, issue: s.issue, reason: s.issue === "ignore" || s.issue === "rejete" ? s.reason : null, overlap_seq: s.overlap_seq,
+      normalized: s.normalized,
+      pieces: p === null ? null : s.sorte === "outil"
+        ? { source: avecOctets(p.source), envelope: avecOctets(p.envelope), arguments: avecOctets(p.arguments), result: avecOctets(p.result), system_prompt: null, intent: null }
+        : { source: avecOctets(p.source), envelope: avecOctets(p.envelope), request: avecOctets(p.request), response: avecOctets(p.response), system_prompt: avecOctets(p.system_prompt), intent: avecOctets(p.intent) },
+      event: ev,
+      lag_ms: ev ? OT.retardReception(ev.ts, s.normalized) : null,
+    };
+  });
+  const response = { content_type: r.contentType, retry_after: r.retryAfter };
+  if (r.contentType === OT.TYPE_PROTOBUF) response.body_hex = r.corps.toString("hex");
+  else response.body_json = JSON.parse(r.corps.toString("utf8"));
+  const attendu = { status: r.status, response, rejected_spans: r.rejetes, counts: r.compteurs, spans, note };
+  for (const [cle, val] of Object.entries(attente)) {
+    const obtenu = cle === "issues" ? spans.map((s) => s.issue) : cle === "reasons" ? spans.map((s) => s.reason) : cle === "tools" ? evenements.map((x) => x.execution.tool) : cle === "models" ? evenements.map((x) => x.code.model) : attendu[cle];
+    exiger(JSON.stringify(obtenu) === JSON.stringify(val), `${nom} : ${cle} = ${JSON.stringify(obtenu)}, attendu ${JSON.stringify(val)}`);
+  }
+  ecrireJSON(`${dir}/source.json`, {
+    alias: OTEL_ALIAS, host: OTEL_HOTE, policy_source: politiqueSource, policy_version: OTEL_VERSION_POLITIQUE, redaction: PII.name,
+    options: { prompt_in_request: opts.prompt_in_request, prompt_system: opts.prompt_system, encodings: opts.encodings, max_body_bytes: opts.max_body_bytes, json_max_depth: opts.json_max_depth, json_max_members: opts.json_max_members, dedup_window_ms: opts.dedup_window_ms, overlap_window_ms: opts.overlap_window_ms, retry_after_s: opts.retry_after_s },
+    t_reception, chain: ch, seen, recorded,
+  });
+  ecrire(`${dir}/${fichier}`, octets);
+  ecrireJSON(`${dir}/requete-entetes.json`, entetes);
+  ecrireJSON(`${dir}/attendu.json`, attendu);
+  return { r, evenements, attendu };
+}
+
+{
+  // L'exemple calculé de 6.8.16, relu dans le texte de CT-2 avec ses pièces et ses deux événements.
+  const md = fs.readFileSync(path.join(SPEC, "CT-2-enregistreur.md"), "utf8");
+  const sec = md.slice(md.indexOf("#### 6.8.16 Exemple calculé"), md.indexOf("## 7. Construction de l'événement"));
+  exiger(sec.length > 1000, "section 6.8.16 de CT-2");
+  const LOT_6816 = /```json\n([\s\S]*?)\n```/.exec(sec)[1] + "\n";
+  const EVENEMENTS_6816 = [...sec.matchAll(/<!-- schema: evenement -->\n```json\n([\s\S]*?)\n```/g)].map((m) => JSON.parse(m[1]));
+  const PIECES_6816 = [...sec.matchAll(/^\| [^|]+ \| `(0x[0-9a-f]{64})` \| ([0-9]+) \| `(true|false)` \| (?:`([^`]+)`|—) \| `(.*)` \|$/gm)].map((m) => ({ sha256: m[1], length: Number(m[2]), redacted: m[3] === "true", media_type: m[4] ?? null, bytes: m[5] }));
+  exiger(EVENEMENTS_6816.length === 2 && PIECES_6816.length === 8, `6.8.16 : ${EVENEMENTS_6816.length} événements, ${PIECES_6816.length} pièces`);
+  const chaine6816 = { seq_start: 21, prev_hash: J.sha256(Buffer.from("noortrace/exemple/ct-2/6.8/evenement-precedent", "utf8")), ts: ["2026-11-10T10:41:07.512Z", "2026-11-10T10:41:07.514Z"] };
+  exiger(chaine6816.prev_hash === "0x51fd37e0be1bd585252709bf83e7d51e317b51e0c5ff2142bfe5f4667be99aa8", "prev_hash de 6.8.16");
+  const verifier6816 = (nom, res) => {
+    exiger(J.canonicaliserJCS(res.evenements) === J.canonicaliserJCS(EVENEMENTS_6816), `${nom} : les deux événements de 6.8.16`);
+    const obtenues = [];
+    for (const s of res.attendu.spans) for (const p of Object.values(s.pieces ?? {})) if (p && !obtenues.some((o) => o.sha256 === p.sha256)) obtenues.push(p);
+    for (const t of PIECES_6816) {
+      const o = obtenues.find((x) => x.sha256 === t.sha256);
+      exiger(o && o.length === t.length && o.redacted === t.redacted && (o.media_type ?? null) === t.media_type && o.bytes === t.bytes, `${nom} : pièce ${t.sha256} de 6.8.16`);
+    }
+  };
+  const ex = casOtel("json-exemple-6-8-16", { corps: LOT_6816, t_reception: "2026-11-10T10:41:07.500Z", chain: chaine6816, attente: { status: 200, counts: { scelle: 2, ignore: 0, doublon: 0, recouvrement: 0, rejete: 0 } }, note: "L'exemple calculé de CT-2 6.8.16, lot JSON relu dans le texte : un span d'inférence et un span d'outil retenus et scellés ; pièces et événements identiques au texte (seq 21 et 22, ts de l'écrivain .512 et .514, jamais les horodatages des spans)." });
+  verifier6816("json-exemple-6-8-16", ex);
+  const logique = OT.decoderJSON(Buffer.from(LOT_6816, "utf8"));
+  const pb = casOtel("pb-exemple-6-8-16", { corps: OT.encoderProtobuf(logique), fichier: "requete.pb", contentType: "application/x-protobuf", t_reception: "2026-11-10T10:41:07.500Z", chain: chaine6816, attente: { status: 200 }, note: "Le même lot en protobuf (encodeur du générateur : champs dans l'ordre de leur numéro, chacun une fois) : mêmes formes normalisées, pièces et événements ; réponse protobuf vide (zéro octet)." });
+  verifier6816("pb-exemple-6-8-16", pb);
+  exiger(pb.attendu.response.body_hex === "", "réponse protobuf vide");
+  exiger(J.canonicaliserJCSIntegral(pb.attendu.spans.map((s) => s.normalized)) === J.canonicaliserJCSIntegral(ex.attendu.spans.map((s) => s.normalized)), "paire JSON/protobuf de 6.8.16 : mêmes formes normalisées");
+}
+{
+  const c = "json-inference-sans-contenu";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference({ conversation: null, entree: null, sortie: null }) })]), attente: { models: ["openai/modele-demo-1-2026-09"] }, note: "Span d'inférence sans attribut de contenu (l'instrumentation ne les enregistre pas par défaut) : requête sans messages, pas de prompt système (prompt_version null), intent null, réponse réduite au modèle et à l'usage." });
+}
+{
+  const c = "json-inference-gemini";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "generate_content gemini-exemple", kind: 3, attributes: attrsInference({ op: "generate_content", fournisseur: "gcp.gemini", modele: "gemini-exemple", reponse: "gemini-exemple-001" }) })]), attente: { models: ["gcp.gemini/gemini-exemple-001"] }, note: "Opération generate_content, fournisseur gcp.gemini (valeur du registre) : code.model = gcp.gemini/ + modèle de la réponse (EX-6.36)." });
+}
+{
+  const c = "json-inference-fournisseur";
+  const sansFournisseur = attrsInference({ fournisseur: null });
+  sansFournisseur.splice(1, 0, kv("gen_ai.system", sv("openai")));
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "chat modele-demo-1", kind: 3, attributes: sansFournisseur }), spanOtel(c, 1, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference({ fournisseur: "Fournisseur Hors Motif" }) })]), attente: { models: ["openai/modele-demo-1-2026-09", "inconnu/modele-demo-1-2026-09"] }, note: "Deux spans : gen_ai.system seul (déprécié, remplacé par gen_ai.provider.name) donne le fournisseur ; un fournisseur hors du motif ^[a-z0-9][a-z0-9._-]{0,31}$ donne inconnu/<modèle> (EX-6.36)." });
+}
+{
+  const c = "json-inference-erreur";
+  const a = attrsInference({ sortie: null, reponse: null });
+  a.push(kv("error.type", sv("timeout")));
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "chat modele-demo-1", kind: 3, attributes: a, status: { code: 2, message: "délai dépassé" } })]), note: "status.code 2 (STATUS_CODE_ERROR) et error.type : is_error vrai ; sans gen_ai.output.messages ni modèle de réponse, code.model vient du modèle demandé." });
+}
+{
+  const c = "json-inference-prompt-inline";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference({ systeme: "Contact interne : support@assureur-demo.example (jamais communiqué)." }) })]), options: { prompt_in_request: "inline" }, note: "model.prompt_in_request: inline : gen_ai.system_instructions reste dans la pièce « requête », chaque content rédigé par les seules règles de portée prompt_systeme (l'adresse devient [REDIGE:email]) ; la pièce « prompt système » est produite en plus (EX-6.35)." });
+}
+{
+  const c = "json-outil-sans-contenu";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil({ args: null, resultat: null }) })]), attente: { tools: [`${OTEL_ALIAS}__claims.get`] }, note: "Span d'outil sans gen_ai.tool.call.arguments ni gen_ai.tool.call.result : pièces réduites à la marque {\"noortrace_otel_absent\": <attribut>} ; un attribut absent ne veut pas dire un appel sans argument (EX-6.35)." });
+}
+{
+  const c = "json-outil-erreur";
+  const a = attrsOutil({ resultat: null });
+  a.push(kv("error.type", sv("ConnectionError")));
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: a, status: { code: 2, message: "serveur injoignable" } })]), note: "Outil en erreur (error.type, status.code 2) : is_error vrai ; résultat absent marqué noortrace_otel_absent." });
+}
+{
+  const c = "json-outil-mcp-tools-call";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "tools/call claims.get", kind: 3, attributes: [kv("mcp.method.name", sv("tools/call")), kv("mcp.session.id", sv("session-exemple"))] })]), attente: { tools: [`${OTEL_ALIAS}__claims.get`] }, note: "Span d'une instrumentation MCP, nom « tools/call claims.get », mcp.method.name = tools/call, sans gen_ai.operation.name : opération execute_tool, nom déclaré pris après le préfixe tools/call (EX-6.32, EX-6.35)." });
+}
+{
+  const c = "json-outil-nom-invalide";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool paiement__creer", attributes: attrsOutil({ nom: "paiement__creer" }) })]), attente: { tools: [`${OTEL_ALIAS}__nom-invalide`] }, note: "gen_ai.tool.name qui contient « __ » : l'outil est <alias>__nom-invalide, le nom reçu reste dans la pièce d'enveloppe (EX-6.35)." });
+}
+{
+  const c = "json-outil-gabarit-effets";
+  const politique = { ...OTEL_POLITIQUE, tools: { "paiement.creer": { class: "ecriture", effects: [{ system: "paiements", action: "ecriture", object: "/arguments/reference_sinistre", extract: null, amount: "/arguments/montant", currency: "/arguments/devise" }] } } };
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool paiement.creer", attributes: attrsOutil({ nom: "paiement.creer", args: { reference_sinistre: "2026-81044", montant: "7400.00", devise: "CHF", iban_beneficiaire: "CH93 0076 2011 6238 5295 7" }, resultat: { statut: "cree", reference: "PAY-2026-55121" } }) })]), politiqueSource: politique, note: "Gabarit d'effets de policy.otel.sources.<alias>.tools.paiement.creer évalué sur les valeurs rédigées de la pièce « arguments » (EX-7.6, EX-6.36) : objet, montant et devise tirés des arguments ; l'IBAN est rédigé." });
+}
+{
+  const c = "json-spans-ignores";
+  casOtel(c, { corps: lotOtel([
+    spanOtel(c, 0, { name: "GET /sinistres/2026-81044", kind: 3, attributes: [kv("http.request.method", sv("GET")), kv("url.full", sv("https://sinistres.exemple.invalid/sinistres/2026-81044"))] }),
+    spanOtel(c, 1, { name: "embeddings modele-plongement", kind: 3, attributes: [kv("gen_ai.operation.name", sv("embeddings")), kv("gen_ai.provider.name", sv("openai"))] }),
+    spanOtel(c, 2, { name: "invoke_agent agent-sinistres", kind: 1, attributes: [kv("gen_ai.operation.name", sv("invoke_agent"))] }),
+  ]), attente: { reasons: ["hors_genai", "operation_non_retenue", "operation_non_retenue"], response: { content_type: "application/json", retry_after: null, body_json: {} } }, note: "Span HTTP sans attribut GenAI (hors_genai), embeddings et invoke_agent (operation_non_retenue) : tous ignorés, acceptés au sens d'OTLP, réponse {}, aucune pièce, rien n'est stocké ni haché (EX-6.32)." });
+}
+{
+  const c = "json-sorte-desactivee";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference() }), spanOtel(c, 1, { name: "execute_tool claims.get", attributes: attrsOutil() })]), politiqueSource: { ...OTEL_POLITIQUE, ingest: ["outil"] }, attente: { issues: ["ignore", "scelle"], reasons: ["sorte_desactivee", null] }, note: "ingest: [\"outil\"] : le span d'inférence est ignoré (sorte_desactivee), le span d'outil scellé." });
+}
+{
+  const c = "json-identifiants-invalides";
+  const lot = lotOtel([
+    spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil(), traceId: "0".repeat(32) }),
+    spanOtel(c, 1, { name: "execute_tool claims.get", attributes: attrsOutil({ appel: "call_12" }), spanId: "ABCDEF012345" }),
+    spanOtel(c, 2, { name: "execute_tool claims.get", attributes: attrsOutil({ appel: "call_13" }) }),
+  ]);
+  casOtel(c, { corps: lot, attente: { issues: ["rejete", "rejete", "scelle"], rejected_spans: 2, response: { content_type: "application/json", retry_after: null, body_json: { partialSuccess: { rejectedSpans: "2", errorMessage: "noortrace: 2 span(s) rejete(s), identifiants invalides" } } } }, note: "traceId tout à zéro, spanId de 12 chiffres : deux rejets (identifiants_invalides), succès partiel rejectedSpans \"2\" (entier 64 bits en chaîne) ; le troisième span est scellé (EX-6.32, EX-6.27)." });
+  const pb = casOtel("pb-identifiants-invalides", { corps: OT.encoderProtobuf(OT.decoderJSON(Buffer.from(J.texteJSON(lot), "utf8"))), fichier: "requete.pb", contentType: "application/x-protobuf", chain: { seq_start: 2, prev_hash: J.sha256(Buffer.from(`noortrace/vecteurs/v0/otel/${c}/precedent`, "utf8")), ts: [J.horodatage(J.msHorodatage(OTEL_T) + 10)] }, attente: { issues: ["rejete", "rejete", "scelle"], rejected_spans: 2 }, note: "Le même lot en protobuf : corps de réponse protobuf du succès partiel, octet pour octet (champ 1 partial_success ; champ 1 rejected_spans, champ 2 error_message), même événement que le cas JSON." });
+  exiger(pb.attendu.response.body_hex.startsWith("0a") && pb.attendu.response.body_hex.includes("0802"), "succès partiel protobuf");
+}
+{
+  const c = "json-doublon-meme-requete";
+  const s = spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil() });
+  casOtel(c, { corps: lotOtel([s, s]), attente: { issues: ["scelle", "doublon"] }, note: "Le même span deux fois dans la requête : le second est un doublon, compté et accepté, non scellé (EX-6.33)." });
+}
+{
+  const c = "json-doublon-deja-vu";
+  const s = spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil() });
+  casOtel(c, { corps: lotOtel([s]), seen: [{ trace_id: s.traceId.toLowerCase(), span_id: s.spanId.toLowerCase(), at: "2026-11-10T10:20:00.000Z" }], attente: { issues: ["doublon"], counts: { scelle: 0, ignore: 0, doublon: 1, recouvrement: 0, rejete: 0 } }, note: "Clé (alias, trace_id, span_id) déjà dans la table des doublons (seen, dans la fenêtre dedup_window_ms) : un lot renvoyé par l'exportateur ne donne rien de scellé (EX-6.33)." });
+}
+{
+  const c = "json-recouvrement-mcp";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool paiement.creer", attributes: attrsOutil({ nom: "paiement.creer", args: { montant: "7400.00" } }) })]), recorded: [{ kind: "appel_outil", channel: "mcp", host_group: "agent-sinistres", seen_name: "paiement.creer", t: "2026-11-10T10:49:59.000Z", seq: 7 }], attente: { issues: ["recouvrement"], counts: { scelle: 0, ignore: 0, doublon: 0, recouvrement: 1, rejete: 0 } }, note: "Span d'outil apparié à un appel du frontal MCP du même groupe d'hôte, de même nom vu par le modèle, inscrit dans la fenêtre overlap_window_ms : recouvrement non scellé, overlap_seq 7, consigné otel_span_overlap (EX-6.34)." });
+}
+{
+  const c = "json-recouvrement-passerelle";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference() })]), recorded: [{ kind: "echange_modele", channel: "passerelle", host_group: "agent-sinistres", model: "modele-demo-1-2026-09", t: "2026-11-10T10:49:59.500Z", seq: 6 }, { kind: "echange_modele", channel: "passerelle", host_group: "autre-groupe", model: "modele-demo-1-2026-09", t: "2026-11-10T10:49:59.000Z", seq: 5 }], attente: { issues: ["recouvrement"] }, note: "Span d'inférence apparié à un échange de la passerelle du même groupe dont code.model a pour modèle M ; l'échange d'un autre groupe n'est pas candidat (EX-6.34)." });
+}
+{
+  const c = "json-recouvrement-conserve";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool paiement.creer", attributes: attrsOutil({ nom: "paiement.creer", args: { montant: "7400.00" } }) })]), politiqueSource: { ...OTEL_POLITIQUE, overlap: "conserver" }, recorded: [{ kind: "appel_outil", channel: "mcp", host_group: "agent-sinistres", seen_name: "paiement.creer", t: "2026-11-10T10:49:59.000Z", seq: 7 }], attente: { issues: ["scelle"] }, note: "overlap: conserver : le span apparié est scellé aussi ; deux événements pour un acte, que leurs marques distinguent (EX-6.34, 6.7)." });
+}
+{
+  const c = "json-entiers-64-bits";
+  const t = otelHex(c, "trace", 32);
+  const corps = `{"resourceSpans":[{"scopeSpans":[{"scope":{"name":"agent-sinistres.instrumentation"},"spans":[{"traceId":"${t}","spanId":"${otelHex(c, "span-0", 16)}","name":"execute_tool claims.get","kind":1,"startTimeUnixNano":${OTEL_DEBUT},"endTimeUnixNano":${OTEL_FIN},"attributes":[{"key":"gen_ai.operation.name","value":{"stringValue":"execute_tool"}},{"key":"gen_ai.tool.name","value":{"stringValue":"claims.get"}},{"key":"compteur.grand","value":{"intValue":9007199254740993}},{"key":"compteur.negatif","value":{"intValue":-5}},{"key":"compteur.chaine","value":{"intValue":"-9223372036854775808"}}],"droppedAttributesCount":0,"flags":257}]}]}]}\n`;
+  const r = casOtel(c, { corps, attente: { issues: ["scelle"] }, note: "Horodatages en nombres JSON au-delà de 2^53, lus exactement sur leur texte ; intValue 9007199254740993 (nombre) rendu en chaîne, -5 en nombre, -2^63 (chaîne) en chaîne ; flags 257 (EX-6.29, EX-6.31)." });
+  const N = r.attendu.spans[0].normalized;
+  exiger(N.start_time_unix_nano === OTEL_DEBUT && N.attributes["compteur.grand"] === "9007199254740993" && N.attributes["compteur.negatif"] === -5, "entiers 64 bits exacts");
+}
+{
+  const c = "json-valeurs-diverses";
+  const a = [
+    kv("gen_ai.operation.name", sv("execute_tool")), kv("gen_ai.tool.name", sv("claims.get")),
+    kv("valeur.octets", { bytesValue: "AAECAwQFBgcICQ==" }),
+    kv("valeur.nan", { doubleValue: "NaN" }),
+    kv("valeur.infini", { doubleValue: "-Infinity" }),
+    kv("valeur.decimale", { doubleValue: 1.5 }),
+    kv("valeur.vrai", { boolValue: false }),
+    kv("valeur.tableau", { arrayValue: { values: [sv("a"), iv(2), { arrayValue: { values: [{ boolValue: true }] } }, { kvlistValue: { values: [kv("interne", sv("x"))] } }] } }),
+    kv("valeur.vide", {}),
+    kv("valeur.strindex", { stringValueStrindex: 3 }),
+    { keyStrindex: 4, value: sv("attribut sans clé, ignoré") },
+  ];
+  const r = casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: a })]), note: "bytesValue (base64 avec remplissage), doubleValue \"NaN\", \"-Infinity\" et 1.5, boolValue faux, tableaux et listes imbriqués, AnyValue vide (null), stringValueStrindex (valeur absente, null), keyStrindex sans key (attribut ignoré) (EX-6.29, EX-6.31)." });
+  const at = r.attendu.spans[0].normalized.attributes;
+  exiger(at["valeur.nan"] === "NaN" && at["valeur.vide"] === null && at["valeur.strindex"] === null && at["valeur.octets"] === "AAECAwQFBgcICQ==" && !Object.values(at).includes("attribut sans clé, ignoré"), "valeurs diverses");
+}
+{
+  const c = "json-cle-double";
+  const a = [...attrsOutil(), kv("doublon.cle", sv("première")), kv("doublon.cle", sv("seconde"))];
+  const r = casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: a })]), note: "Attribut présent deux fois (clés d'attributs uniques exigées par OTLP, comportement non défini) : la première occurrence est gardée, la suivante ignorée et comptée (otel_cle_double, EX-6.31)." });
+  exiger(r.attendu.spans[0].normalized.attributes["doublon.cle"] === "première", "première occurrence gardée");
+}
+{
+  const c = "json-contenu-chaine-non-json";
+  const r = casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil({ args: "claim_id=2026-81044 (pas du JSON" }) })]), note: "gen_ai.tool.call.arguments en chaîne qui n'est pas du JSON strict : gardée telle quelle ; la pièce « arguments » est le JCS intégral de cette chaîne (EX-6.31, EX-6.35)." });
+  exiger(r.attendu.spans[0].pieces.arguments.bytes === JSON.stringify("claim_id=2026-81044 (pas du JSON"), "chaîne gardée");
+}
+{
+  const c = "json-champ-inconnu";
+  const s = spanOtel(c, 0, { name: "execute_tool claims.get", attributes: [...attrsOutil(), { key: "avec.inconnu", value: { stringValue: "x" }, inconnu: true }], extra: { champInconnu: { a: 1 }, dropped_attributes_count: 0, trace_state: "" } });
+  const lot = lotOtel([s]);
+  lot.resourceSpans[0].champInconnu = [1, 2];
+  lot.resourceSpans[0].scopeSpans[0].schema_url = "";
+  lot.resourceSpans[0].resource.inconnu = "x";
+  lot.inconnuRacine = null;
+  casOtel(c, { corps: lot, attente: { issues: ["scelle"] }, note: "Champs inconnus à plusieurs niveaux (racine, ResourceSpans, Resource, Span, KeyValue) : ignorés ; noms de champs en snake_case (dropped_attributes_count, trace_state, schema_url) : champs inconnus, ignorés (EX-6.29) ; leurs valeurs sont celles par défaut, de sorte qu'une bibliothèque qui les lirait donnerait la même forme." });
+}
+{
+  const c = "json-run-id-refuse";
+  casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference({ conversation: "conv-jean.exemple@assureur-demo.example" }) }), spanOtel(c, 1, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference({ conversation: "conv-CH9300762011623852957" }) }), spanOtel(c, 2, { name: "chat modele-demo-1", kind: 3, attributes: attrsInference({ conversation: "conv-2026-11-10-0012" }) })]), note: "gen_ai.conversation.id qui contient une adresse électronique (hors du motif d'EX-7.2), puis un IBAN (dans le motif, mais un détecteur de pii-v1 y correspond) : run_id null ; le troisième passe EX-7.2 et devient run_id (EX-6.36)." });
+}
+{
+  const c = "json-retard";
+  const debut = ns("2026-11-10T08:49:58.000Z");
+  const fin = (BigInt(debut) + 413500000n).toString();
+  const r = casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil(), start: debut, end: fin })]), note: "Span terminé deux heures avant la réception (lot gardé par l'exportateur) : ts est celui de l'écrivain à la réception, jamais l'horodatage du span ; lag_ms ≈ 2 h (EX-6.36, EX-6.41)." });
+  exiger(r.attendu.spans[0].lag_ms > 7200000, "retard de réception");
+}
+casOtel("json-lot-vide", { corps: '{"resourceSpans":[]}', attente: { status: 200, response: { content_type: "application/json", retry_after: null, body_json: {} } }, note: "Lot vide : 200 et {} (OTLP : un lot vide est un succès), aucun span." });
+{
+  const c = "pb-champ-inconnu";
+  const lg = OT.decoderJSON(Buffer.from(J.texteJSON(lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil() })])), "utf8"));
+  const pb = OT.encoderProtobuf(lg);
+  // Champs inconnus de chaque type de fil ajoutés au span, au ResourceSpans et à la racine : 100 (varint), 101 (I64), 102 (LEN), 103 (I32).
+  const inconnus = Buffer.from("a0068001" + "a906" + "0102030405060708" + "b20603616263" + "bd060a0b0c0d", "hex");
+  exiger(OT.encoderProtobuf({ resourceSpans: [] }).length === 0, "encodage vide");
+  const racine = lg.resourceSpans[0];
+  const span = Buffer.concat([OT.PB.span(racine.scopeSpans[0].spans[0]), inconnus]);
+  const scopeSpans = Buffer.concat([OT.PB.champLen(1, OT.PB.scope(racine.scopeSpans[0].scope)), OT.PB.champLen(2, span)]);
+  const resourceSpans = Buffer.concat([OT.PB.champLen(1, OT.PB.resource(racine.resource)), OT.PB.champLen(2, scopeSpans), inconnus]);
+  const corps = Buffer.concat([inconnus, OT.PB.champLen(1, resourceSpans)]);
+  const r = casOtel(c, { corps, fichier: "requete.pb", contentType: "application/x-protobuf", attente: { issues: ["scelle"] }, note: "Numéros de champ inconnus de chaque type de fil (0 varint, 1 I64, 2 LEN, 5 I32), dans la requête, le ResourceSpans et le Span : sautés (EX-6.30) ; le span est scellé comme sans eux." });
+  exiger(pb.length > 0 && r.attendu.spans[0].normalized.name === "execute_tool claims.get", "champs inconnus sautés");
+}
+casOtel("json-enum-en-chaine", { corps: lotOtel([spanOtel("json-enum-en-chaine", 0, { name: "chat modele-demo-1", kind: "SPAN_KIND_CLIENT", attributes: attrsInference() })]), attente: { status: 400 }, note: "\"kind\": \"SPAN_KIND_CLIENT\" : le nom d'énumération ne doit pas être employé en JSON OTLP (« MUST NOT be used ») : 400, rien n'est scellé (EX-6.29). Divergence voulue avec json_format de Python, qui l'accepte." });
+casOtel("json-identifiant-non-hexadecimal", { corps: lotOtel([spanOtel("json-identifiant-non-hexadecimal", 0, { name: "execute_tool claims.get", attributes: attrsOutil(), traceId: "W47/95gDgQPSabYzgT/GDA==" })]), attente: { status: 400 }, note: "traceId en base64 (non hexadécimal) : 400 ; un identifiant OTLP/JSON est hexadécimal, jamais base64 (EX-6.29)." });
+casOtel("json-non-analysable", { corps: '{"resourceSpans":[{"scopeSpans":[', attente: { status: 400, response: { content_type: "application/json", retry_after: null, body_json: { message: "noortrace: corps OTLP non decodable" } } }, note: "Corps qui n'est pas du JSON : 400, corps {\"message\": …} (EX-6.27, EX-6.29)." });
+{
+  const c = "pb-champ-double";
+  const lg = OT.decoderJSON(Buffer.from(J.texteJSON(lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil() })])), "utf8"));
+  const span = Buffer.concat([OT.PB.span(lg.resourceSpans[0].scopeSpans[0].spans[0]), OT.PB.champLen(5, Buffer.from("execute_tool autre", "utf8"))]);
+  const corps = OT.PB.champLen(1, OT.PB.champLen(2, OT.PB.champLen(2, span)));
+  casOtel(c, { corps, fichier: "requete.pb", contentType: "application/x-protobuf", attente: { status: 400 }, note: "Champ non répété (Span.name, 5) présent deux fois : 400 (EX-6.30). Divergence voulue : une bibliothèque protobuf garde le dernier." });
+}
+{
+  const c = "pb-tronque";
+  const lg = OT.decoderJSON(Buffer.from(J.texteJSON(lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil() })])), "utf8"));
+  const pb = OT.encoderProtobuf(lg);
+  casOtel(c, { corps: pb.subarray(0, pb.length - 7), fichier: "requete.pb", contentType: "application/x-protobuf", attente: { status: 400, response: { content_type: "application/x-protobuf", retry_after: null, body_hex: Buffer.concat([Buffer.from([0x12, Buffer.byteLength(OT.TEXTES_REFUS[400])]), Buffer.from(OT.TEXTES_REFUS[400])]).toString("hex") } }, note: "Corps protobuf tronqué : 400, corps protobuf Status (champ 2 message, code omis) (EX-6.27, EX-6.30)." });
+}
+{
+  const c = "gzip-json";
+  const lot = Buffer.from(J.texteJSON(lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil() })])), "utf8");
+  const gz = gzipStocke(lot);
+  exiger(zlib.gunzipSync(gz).equals(lot), "gzip à blocs stockés relu par zlib");
+  casOtel(c, { corps: gz, fichier: "requete.brut", contentEncoding: "gzip", attente: { issues: ["scelle"] }, note: "Content-Encoding: gzip (tout serveur OTLP doit l'accepter) : même résultat que le corps décomprimé ; le corps est un gzip à blocs DEFLATE stockés, octets constants (EX-6.28)." });
+}
+casOtel("deflate-refuse", { corps: Buffer.from("789c030000000001", "hex"), fichier: "requete.brut", contentEncoding: "deflate", attente: { status: 415 }, note: "Content-Encoding: deflate (proposé par l'exportateur Python) : 415, seuls identity et gzip sont admis (EX-6.28)." });
+casOtel("type-de-contenu-inconnu", { corps: "resourceSpans", fichier: "requete.brut", contentType: "text/plain", attente: { status: 415, response: { content_type: "application/json", retry_after: null, body_json: { message: "noortrace: type de contenu ou codage non admis" } } }, note: "Content-Type text/plain : 415 ; la réponse est en application/json, la requête n'ayant pas de type admis (EX-6.27)." });
+casOtel("trop-grand", { corps: lotOtel([spanOtel("trop-grand", 0, { name: "execute_tool claims.get", attributes: attrsOutil() })]), options: { max_body_bytes: 256 }, attente: { status: 413 }, note: "Corps au-delà de max_body_bytes (borne réduite à 256 octets dans source.json) : 413 (EX-6.28)." });
+{
+  const bombe = Buffer.from(GZIP_BOMBE, "base64");
+  const clair = zlib.gunzipSync(bombe);
+  exiger(clair.length === 65538 && clair.subarray(0, 65536).every((o) => o === 0x20) && clair.subarray(65536).toString() === "{}", "corps comprimé de trop-grand-apres-decompression");
+  casOtel("trop-grand-apres-decompression", { corps: bombe, fichier: "requete.brut", contentEncoding: "gzip", options: { max_body_bytes: 4096 }, attente: { status: 413 }, note: "Corps comprimé de 100 octets, sous la borne de 4 096 octets, qui en fait 65 538 décomprimé : la décompression s'arrête à la borne, avant toute allocation au-delà, 413 (EX-6.28)." });
+}
+casOtel("non-authentifie", { corps: lotOtel([spanOtel("non-authentifie", 0, { name: "execute_tool claims.get", attributes: attrsOutil() })]), token: null, attente: { status: 401, response: { content_type: "application/json", retry_after: null, body_json: { message: "noortrace: source OpenTelemetry non authentifiee" } } }, note: "token_id null (aucun jeton valide) : 401, qu'un client OTLP ne relance pas ; corps {\"message\": …} (EX-6.37)." });
+// Révision 0.5, corrections : ordre des refus à causes multiples (EX-6.27), entiers 32 bits, attributs de
+// contenu hors des attributs du span (EX-6.31), fin déclarée nulle (lag_ms null, EX-6.41), opération renommée.
+casOtel("non-authentifie-type-texte", { corps: "resourceSpans", fichier: "requete.brut", contentType: "text/plain", token: null, attente: { status: 401 }, note: "Deux causes de refus à la fois, jeton absent et Content-Type text/plain : l'authentification est jugée avant le type de contenu, 401 (ordre des décisions d'EX-6.27)." });
+casOtel("deflate-trop-grand", { corps: Buffer.alloc(300, 0x41), fichier: "requete.brut", contentEncoding: "deflate", options: { max_body_bytes: 256 }, attente: { status: 415 }, note: "Content-Encoding: deflate et corps au-delà de max_body_bytes (256 octets) : le codage de contenu est jugé avant la taille, 415 (ordre des décisions d'EX-6.27)." });
+casOtel("non-chemin-normalisable", { corps: lotOtel([spanOtel("non-chemin-normalisable", 0, { name: "execute_tool claims.get", attributes: attrsOutil() })]), chemin: "/v1/%2e%2e/traces", attente: { status: 404 }, note: "Chemin que la normalisation d'EX-5.2 refuse (segment point encodé) : il ne peut pas égaler otel.path, 404 (EX-6.26, EX-6.27)." });
+{
+  const c = "json-entier-fractionnaire";
+  const t = otelHex(c, "trace", 32);
+  const corps = `{"resourceSpans":[{"scopeSpans":[{"spans":[{"traceId":"${t}","spanId":"${otelHex(c, "span-0", 16)}","name":"execute_tool claims.get","kind":1,"startTimeUnixNano":"${OTEL_DEBUT}","endTimeUnixNano":"${OTEL_FIN}","attributes":[{"key":"gen_ai.operation.name","value":{"stringValue":"execute_tool"}}],"flags":1.0}]}]}]}\n`;
+  casOtel(c, { corps, attente: { status: 400 }, note: "flags écrit 1.0 : un entier 32 bits doit avoir un texte sans fraction ni exposant, 400 (EX-6.29). Divergence voulue avec json_format de Python, qui lit 1.0 comme 1." });
+}
+{
+  const c = "json-fin-nulle";
+  const r = casOtel(c, { corps: lotOtel([spanOtel(c, 0, { name: "execute_tool claims.get", attributes: attrsOutil(), end: "0" })]), attente: { issues: ["scelle"] }, note: "endTimeUnixNano 0 (fin non déclarée) : le span est scellé, duration_ms vaut 0 et lag_ms est null (EX-6.36, EX-6.41)." });
+  exiger(r.attendu.spans[0].lag_ms === null && r.evenements[0].execution.duration_ms === 0, "fin nulle");
+}
+{
+  const c = "json-contenu-hors-span";
+  const args = JSON.stringify({ claim_id: "2026-81044" });
+  const s = spanOtel(c, 0, { name: "execute_tool claims.get", attributes: [...attrsOutil(), kv("detail", { kvlistValue: { values: [kv("gen_ai.tool.call.arguments", sv(args))] } })], extra: { events: [{ timeUnixNano: OTEL_DEBUT, name: "gen_ai.evenement", attributes: [kv("gen_ai.tool.call.result", sv(args))] }] } });
+  const r = casOtel(c, { corps: lotOtel([s], { ressource: [kv("service.name", sv("agent-sinistres")), kv("gen_ai.system_instructions", sv('["x"]'))] }), attente: { issues: ["scelle"] }, note: "Attributs de contenu en chaîne JSON hors des attributs du span (événement, ressource, kvlistValue imbriquée) : gardés en chaîne, seuls ceux des attributs du span sont analysés (EX-6.31)." });
+  const N = r.attendu.spans[0].normalized;
+  exiger(N.events[0].attributes["gen_ai.tool.call.result"] === args && N.resource.attributes["gen_ai.system_instructions"] === '["x"]' && N.attributes.detail["gen_ai.tool.call.arguments"] === args, "contenu hors span gardé en chaîne");
+}
+casOtel("json-operation-renommee", { corps: lotOtel([spanOtel("json-operation-renommee", 0, { name: "execute_tool claims.get", attributes: [kv("gen_ai.operation", sv("execute_tool")), kv("gen_ai.tool.name", sv("claims.get"))] })]), attente: { issues: ["ignore"], reasons: ["hors_genai"] }, note: "gen_ai.operation.name renommé (gen_ai.operation) : le span n'a pas d'opération, il est ignoré (hors_genai) sans événement invalide ; la supervision le signale (EX-6.25, EX-6.41)." });
+exiger(CAS_OTEL.length === 48, `48 cas otel/ (annexe B.8), ${CAS_OTEL.length} obtenus`);
+
+// ---------------------------------------------------------------------------
 // 5. evenements/journal-demo/ (annexe B.6, scénario de CT-2 §19.2)
 // ---------------------------------------------------------------------------
 
@@ -1725,9 +2764,23 @@ const DOSSIER = J.assemblerDossier({
   const lignesModeles = modeles.map((m) => {
     const at = JSON.parse(fs.readFileSync(path.join(SORTIE, "pieces-modele", m, "attendu.json"), "utf8"));
     const intent = at.intent === null ? "null" : typeof at.intent === "string" ? "chaîne" : "référence";
+    if (at.format === "gemini") {
+      const ou = at.via === "sdk" ? "gemini, SDK \`echangeModele\`" : `gemini, \`${at.request_line.method} ${at.request_line.target}\``;
+      if (at.refused) return `| \`${m}/\` | ${ou} | — | — | refus ${at.refused.status} (${at.refused.reason}${at.refused.content_type ? ", " + at.refused.content_type : ""}) | ${at.note} |`;
+      return `| \`${m}/\` | ${ou} | \`${at.code_model}\` | ${intent} | ${at.is_error ? "vrai" : "faux"}${at.incomplete ? ", incomplet" : ""} | ${at.note} |`;
+    }
     if (at.refused) return `| \`${m}/\` | ${at.format}, \`${at.route}\` | — | — | refus ${at.refused.status} (${at.refused.reason}) | ${at.note} |`;
     return `| \`${m}/\` | ${at.format}, \`${at.route}\` | \`${at.code_model}\` | ${intent} | ${at.is_error ? "vrai" : "faux"}${at.incomplete ? ", incomplet" : ""} | ${at.note} |`;
   });
+  const lignesOtel = CAS_OTEL.map((c) => {
+    const at = JSON.parse(fs.readFileSync(path.join(SORTIE, "otel", c, "attendu.json"), "utf8"));
+    const ent = JSON.parse(fs.readFileSync(path.join(SORTIE, "otel", c, "requete-entetes.json"), "utf8"));
+    const enc = `${ent["content-type"]}${ent["content-encoding"] ? ", " + ent["content-encoding"] : ""}`;
+    const issues = Object.entries(at.counts).filter(([, n]) => n > 0).map(([k, n]) => `${k} ${n}`).join(", ") || "—";
+    return `| \`${c}/\` | ${enc} | ${at.status} | ${issues} | ${at.note} |`;
+  });
+  const lignesWorm = ["worm/requetes", "worm/etats", "worm/perimetres", "worm/gardes", "worm/levees"].map((f) => `| \`${f.slice(5)}.json\` | ${CAS_WORM[f].map((c) => `\`${c.id}\``).join(", ")} |`);
+  const lignesCout = CAS_WORM["cout-agent"].map((c) => `| \`${c.id}\` | ${c.expected.cost.total} | ${c.expected.cost_journal_total} |`);
   const outils = (e) => (e.execution.tool.startsWith("noortrace.") ? e.execution.tool : `${e.execution.tool} (${e.execution.status})`);
   const lignesEvenements = EVENEMENTS_DEMO.map((e) => `| ${e.seq} | \`${e.ts}\` | \`${outils(e)}\` | \`${e.hash}\` |`);
   ecrire(
@@ -1743,7 +2796,8 @@ descriptions en français ; chaque famille porte ses attendus.
 
 Le générateur n'écrit que les entrées décrites ici (\`${ENTREES_GENEREES.join("`, `")}\`),
 qu'il efface et réécrit à chaque exécution ; toute autre entrée du répertoire
-(le vérificateur Go de \`verificateur-independant/\`) est laissée telle quelle.
+(le vérificateur Go de \`verificateur-independant/\`, les scripts de confrontation
+tierce de \`confrontation/\`) est laissée telle quelle.
 Les vecteurs de CT-1 (\`../ct-1/\`) ne changent pas.
 
 ## Constantes
@@ -1864,6 +2918,23 @@ Les transcriptions sont écrites à la main d'après les formes documentées
 vus par le modèle n'ont pas de point (l'API Messages et Chat Completions le
 refusent) : \`demo__claims_get\` pour l'outil annoncé \`demo__claims.get\`.
 
+Révision 0.5, cas \`gemini-*\` (annexe B.5) : routes de collection \`/v1beta/models\` et
+\`/v1/models\`, libellé \`gemini\`, \`provider_mcp\` absent (refuser).
+\`requete-ligne.json\` porte la méthode et la cible reçues (chemin et chaîne de
+requête), d'où se tirent la route, le segment de modèle, la méthode et le refus
+(EX-5.28, EX-5.29) ; \`attendu.json\` porte en plus \`request_line\`,
+\`model_segment\`, \`upstream_target\` (cible reconstruite envoyée à l'amont),
+\`via\` (\`passerelle\` ou \`sdk\`), \`removed_members\` (EX-6.8) et, pour un refus,
+\`refused.content_type\` (EX-5.30 ; corps AIP-193 dont les octets compacts sont
+\`{"error":{"code","message","status"}}\` dans cet ordre). Les réponses en flux ont un
+\`data\` par objet JSON sur une ligne, séparés par une ligne vide, fins de ligne LF,
+sauf \`gemini-flux-crlf-data-final\` (CRLF, dernier \`data\` sans ligne vide finale,
+distribué, EX-5.34). \`gemini-sdk-morceaux/\` (\`noortrace/sdk/echangeModele\` au
+format \`gemini\`) porte \`requete.json\`, \`reponse-morceaux.json\` (le tableau
+\`response\`) et \`attendu.json\`, sans ligne de requête ni en-têtes. Valeurs
+fictives : segment \`gemini-exemple\`, \`modelVersion\` \`gemini-exemple-001\`,
+\`responseId\` \`rep-exemple-NNNN\`.
+
 | Cas | Format, route | code.model | intent | is_error | Note |
 |---|---|---|---|---|---|
 ${lignesModeles.join("\n")}
@@ -1896,6 +2967,75 @@ tirent \`intent\` de la réponse rédigée ; seq 7, ré-émission après approba
 pas par la corrélation : elle reprend de seq 5 \`policy\`, \`intent\` et \`code\` (4.4 pas 3,
 EX-7.12). Les effets sont évalués sur les valeurs rédigées des pièces (EX-7.6). Vérification du dossier :
 \`node scripts/verify/dossier.mjs spec/vecteurs/ct-2/evenements/journal-demo/dossier-seq-7\` (code 0).
+
+## \`otel/\` (révision 0.5)
+
+Un répertoire par cas (annexe B.8) : une requête OTLP/HTTP reçue de la source
+\`${OTEL_ALIAS}\` (entrée \`${OTEL_HOTE.id}\`, groupe d'hôte \`${OTEL_HOTE.host_group}\`) et ce qu'un
+enregistreur conforme à CT-2 6.8 en fait. \`source.json\` : alias, entrée de
+\`otel.hosts\` (sans secret : le jeton est désigné par son \`id\`), entrée de
+\`policy.otel.sources\`, version de politique \`${OTEL_VERSION_POLITIQUE}\`, politique de rédaction
+\`pii-v1\`, options, instant de réception, chaîne de départ (\`seq_start\`,
+\`prev_hash\`, \`ts\` de l'écrivain pour chaque événement scellé), table des doublons
+(\`seen\`) et registre de recouvrement (\`recorded\`) avant la requête.
+\`requete.json\`, \`requete.pb\` ou \`requete.brut\` : le corps reçu, octets exacts (le
+protobuf est écrit par l'encodeur du générateur, champs dans l'ordre de leur numéro,
+chacun une fois ; le gzip de \`gzip-json\` est à blocs stockés, celui de
+\`trop-grand-apres-decompression\` est une constante). \`requete-entetes.json\` :
+méthode, chemin, \`content-type\`, \`content-encoding\` éventuel et \`token_id\`.
+\`attendu.json\` : statut, réponse (\`content_type\`, \`body_json\` ou \`body_hex\`,
+\`retry_after\`), \`rejected_spans\`, comptes par issue, et pour chaque span, dans
+l'ordre du document : \`path\` [r, s, p], identifiants, issue, raison,
+\`overlap_seq\`, forme normalisée (EX-6.31 ; null pour un span ignoré), pièces
+(référence et octets), événement scellé par \`rec-test-01\` et \`lag_ms\` (null quand
+la fin déclarée du span vaut 0). Chaque cas est un fragment de chaîne qui ne
+commence jamais à \`seq\` 1 : CT-1 (§5, contrôle C-2) réserve à \`seq\` 1 le
+\`prev_hash\` nul, et les événements scellés passent E-1 à E-7 et C-1 à C-3.
+L'exemple de 6.8.16, sous ses deux encodages (\`json-exemple-6-8-16\`,
+\`pb-exemple-6-8-16\`), porte la chaîne du texte (\`seq_start\` 21). Les autres cas
+ont \`seq_start\` 2 et \`prev_hash\` = SHA-256(UTF-8
+\`noortrace/vecteurs/v0/otel/<cas>/precedent\`), à une exception près :
+\`pb-identifiants-invalides\` reprend la chaîne de son jumeau
+\`json-identifiants-invalides\` (même événement), soit \`prev_hash\` =
+SHA-256(UTF-8 \`noortrace/vecteurs/v0/otel/json-identifiants-invalides/precedent\`).
+
+| Cas | Encodage | Statut | Spans par issue | Note |
+|---|---|---|---|---|
+${lignesOtel.join("\n")}
+
+## \`worm/\` (révision 0.5)
+
+Cinq fichiers \`{ version: 0, family, description, cases }\` validés par le schéma
+\`worm-v0\` (annexe B.9), attendus calculés par \`scripts/lib/worm.mjs\`, sans réseau.
+Constantes : bucket \`${WORM_BUCKET}\`, préfixe \`${WORM_PREFIXE}\`, période de démonstration
+\`${PERIODE_DEBUT}\`, copie du \`${WORM_COPIE}\`, \`retain_days\` ${WORM_RETAIN_DAYS} ; identifiants de version
+fictifs (\`${WORM_VERSION}\` est repris de l'exemple de la page
+\`ListObjectVersions\`, pour exercer l'encodage de \`/\`). Ordre des anomalies d'un
+périmètre (EX-12.35) : période par période dans l'ordre croissant,
+celles du pas 2 (\`manifeste_absent\` puis \`segments_indetermines\`) et du pas 3
+(\`objet_absent\` de la signature, puis de la série des points, puis
+\`segment_absent\`) ; ensuite celles du pas 5, clé par clé dans l'ordre des clés
+(octets UTF-8), \`versions_multiples\` avant \`marqueur_de_suppression\` ; les anomalies
+du pas 4 (\`pieces_non_copiees\` ou \`piece_absente\`) viennent avant celles du pas 5. Un
+marqueur de suppression compte comme une version pour les pas 2 et 3. Les erreurs
+d'une suite de garde portent le rang de l'enregistrement fautif (EX-12.38).
+
+| Fichier | Cas |
+|---|---|
+${lignesWorm.join("\n")}
+
+## \`cout-agent/\` (révision 0.5)
+
+\`cas.json\` : les neuf cas de CT-2 §16.4 (\`{ id, description, input, expected }\`,
+schéma \`cout-agent-v0\`), sorties de \`coutAgent\` (\`scripts/lib/cout-agent.mjs\`)
+arrondies à trois décimales (EX-16.5). **Les prix sont en unités symboliques \`p\`,
+jamais un prix réel.** Le \`anchoring_cost_per_journal\` (\`C_anc\`) est le
+\`cost_per_journal\` du cas \`defaut-second-rang-a1\` de \`../ct-5/cout/cout.json\`,
+relu par le générateur sans être recalculé.
+
+| Cas | \`C\` par agent (p) | \`C_J\` du journal (p) |
+|---|---|---|
+${lignesCout.join("\n")}
 `,
   );
 }

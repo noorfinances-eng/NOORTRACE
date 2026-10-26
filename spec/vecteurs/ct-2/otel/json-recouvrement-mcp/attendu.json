@@ -1,0 +1,79 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 1,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "9336ed9a120515df18cf5f133571ddab",
+      "span_id": "0908e66802da165e",
+      "issue": "recouvrement",
+      "reason": null,
+      "overlap_seq": 7,
+      "normalized": {
+        "trace_id": "9336ed9a120515df18cf5f133571ddab",
+        "span_id": "0908e66802da165e",
+        "parent_span_id": "d024a0c372ebdbd6",
+        "trace_state": "",
+        "name": "execute_tool paiement.creer",
+        "flags": 0,
+        "kind": 1,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "1794307799250500000",
+        "attributes": {
+          "gen_ai.operation.name": "execute_tool",
+          "gen_ai.tool.name": "paiement.creer",
+          "gen_ai.tool.call.id": "call_11",
+          "gen_ai.tool.type": "function",
+          "gen_ai.tool.call.arguments": {
+            "montant": "7400.00"
+          },
+          "gen_ai.tool.call.result": {
+            "statut": "ouvert"
+          }
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    }
+  ],
+  "note": "Span d'outil apparié à un appel du frontal MCP du même groupe d'hôte, de même nom vu par le modèle, inscrit dans la fenêtre overlap_window_ms : recouvrement non scellé, overlap_seq 7, consigné otel_span_overlap (EX-6.34)."
+}

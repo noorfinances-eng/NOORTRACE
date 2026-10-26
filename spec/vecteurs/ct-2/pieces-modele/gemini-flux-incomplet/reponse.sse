@@ -1,0 +1,4 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Collision du 2026-11-02, "}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0005"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"dommages estimés à "}],"role":"model"}}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0005"}
+

@@ -1,0 +1,4 @@
+data: {"error":{"code":503,"message":"Service indisponible (message fictif de test).","status":"UNAVAILABLE"}}
+
+data: {"candidates":[{"content":{"parts":[{"text":"ignoré"}],"role":"model"},"finishReason":"STOP"}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0015"}
+

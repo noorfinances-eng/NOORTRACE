@@ -1,0 +1,20 @@
+{
+  "status": 400,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {
+      "message": "noortrace: corps OTLP non decodable"
+    }
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [],
+  "note": "\"kind\": \"SPAN_KIND_CLIENT\" : le nom d'énumération ne doit pas être employé en JSON OTLP (« MUST NOT be used ») : 400, rien n'est scellé (EX-6.29). Divergence voulue avec json_format de Python, qui l'accepte."
+}

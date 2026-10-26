@@ -24,7 +24,7 @@ import * as AP from "../scripts/lib/approbation.mjs";
 
 const SPEC = path.join(PROJECT_ROOT, "spec");
 const VECTEURS = path.join(SPEC, "vecteurs", "ct-2");
-const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "politique-redaction", "politique-approbation", "ticket", "configuration-enregistreur"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
+const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "politique-redaction", "politique-approbation", "ticket", "configuration-enregistreur", "worm", "cout-agent"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
 const lireJSON = (...p) => C.analyserJSONIntegral(fs.readFileSync(path.join(VECTEURS, ...p)));
 const lireTexte = (...p) => fs.readFileSync(path.join(VECTEURS, ...p), "utf8");
 const graine = (id) => J.sha256(Buffer.from(`noortrace/vecteurs/v0/cle-enregistreur/${id}`, "utf8"));
@@ -252,9 +252,10 @@ describe("CT-2 : politique de rédaction (§10)", function () {
     const e1 = C.empreinteEnsemblePolitique(PII_DOC);
     expect([e1.octets.length, e1.policy_sha256]).to.deep.equal([1462, "0x9116aac6ee1d124d155ffb22acd39b1cf2270cac07b30b239e9996012d787f4e"]);
     const e2 = C.empreinteEnsemblePolitique(CONFIG.policy);
-    expect([e2.octets.length, e2.policy_sha256, e2.policy_version]).to.deep.equal([6126, "0xa75af9f5870779f14be7fc8f285a62287660097d6b6377153181a352d69f8912", "2026-11-01"]);
+    // Révision 0.5 : l'exemple de 15.3 porte la route Gemini, otel, policy.otel et les membres facultatifs du support WORM (EX-10.21, valeurs de 10.6).
+    expect([e2.octets.length, e2.policy_sha256, e2.policy_version]).to.deep.equal([6533, "0xd68bb713d14538549a347529a1f927a13ceffd444b351fe1b644242b2574e75c", "2026-11-01"]);
     const enLigne = J.referenceEnLigne({ policy_version: e2.policy_version, policy_sha256: e2.policy_sha256 });
-    expect([enLigne.length, enLigne.sha256]).to.deep.equal([116, "0x77d3368adad6a5a62421901ee91ec7c500950a2c8038a7d58d0450b3665c253e"]);
+    expect([enLigne.length, enLigne.sha256]).to.deep.equal([116, "0xad8d1179be58a4670d01873b45479c8269b1f18c77cfb0e515ad86ef81aa246d"]);
     // Les valeurs imprimées en EX-10.21 sont celles-ci.
     const md = fs.readFileSync(path.join(SPEC, "CT-2-enregistreur.md"), "utf8");
     for (const v of [e2.policy_sha256, enLigne.sha256]) expect(md, v).to.include(v);
@@ -1135,7 +1136,7 @@ describe("CT-2 révision 0.3 : configuration (15.3, EX-15.4 pas 2 à 4, EX-7.15)
   it("chaque bloc annoté <!-- schema: X --> ou <!-- schema: X/defs --> de CT-2 est conforme ($ref de policy.approval.rules résolu)", function () {
     const exemples = [...MD2.matchAll(/<!-- schema: ([a-z-]+)(?:\/([a-z_]+))? -->\n```json\n([\s\S]*?)\n```/g)];
     expect(exemples.length).to.be.at.least(5);
-    const ids = { evenement: "evenement", "politique-redaction": "politique-redaction", "configuration-enregistreur": "configuration-enregistreur", ticket: "ticket" };
+    const ids = { evenement: "evenement", "politique-redaction": "politique-redaction", "configuration-enregistreur": "configuration-enregistreur", ticket: "ticket", worm: "worm", "cout-agent": "cout-agent" };
     for (const [, nom, def, texte] of exemples) {
       const id = `https://noortrace.example/schemas/v0/${ids[nom]}.schema.json`;
       expect(SCHEMAS[id], nom).to.not.equal(undefined);
@@ -1391,7 +1392,8 @@ describe("CT-2 : vecteurs spec/vecteurs/ct-2, rejoués", function () {
   });
 
   it("pieces-modele : formes consolidées, pièces, code.model, prompt_version, intention, appels d'outils, refus", function () {
-    const cas = fs.readdirSync(path.join(VECTEURS, "pieces-modele")).sort();
+    // Les cas gemini-* (révision 0.5) sont rejoués par test/enregistreur-r05.test.js (échange de la passerelle, EX-5.28 à EX-5.36).
+    const cas = fs.readdirSync(path.join(VECTEURS, "pieces-modele")).filter((n) => !n.startsWith("gemini-")).sort();
     expect(cas).to.have.length(15);
     for (const nom of cas) {
       const at = lireJSON("pieces-modele", nom, "attendu.json");

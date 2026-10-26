@@ -1,0 +1,367 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/cout-agent.schema.json",
+  "title": "Coût annuel par agent, version 0 (CT-2 révision 0.5, §16.4)",
+  "description": "Entrées et sorties de la formule du coût annuel par agent et par journal (CT-2 §16.4) et fichier de cas de la famille spec/vecteurs/ct-2/cout-agent/. Tous les prix sont des paramètres en unités symboliques p, jamais un prix réel.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "family",
+    "description",
+    "cases"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "family": {
+      "const": "cout-agent"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/cas"
+      }
+    }
+  },
+  "$defs": {
+    "entrees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "active_hours_per_year",
+        "events_per_hour",
+        "event_bytes",
+        "piece_bytes_per_event",
+        "pieces_per_event",
+        "agents_per_journal",
+        "hours_per_year",
+        "journal_objects_per_hour",
+        "journal_bytes_per_hour",
+        "segment_max_bytes",
+        "anchoring_cost_per_journal",
+        "local_retention_days",
+        "local_pieces_retention_days",
+        "worm",
+        "prices"
+      ],
+      "properties": {
+        "active_hours_per_year": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8784,
+          "description": "H : heures d'activité de l'agent par an."
+        },
+        "events_per_hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000,
+          "description": "e : événements de la chaîne par heure d'activité (appels d'outils, échanges de modèle, décisions)."
+        },
+        "event_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 67108864,
+          "description": "b_e : octets d'une ligne de segment, saut de ligne compris (moyenne mesurée, 16.1)."
+        },
+        "piece_bytes_per_event": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1099511627776,
+          "description": "b_p : octets de pièces nouvelles par événement, après rédaction et déduplication par sha256."
+        },
+        "pieces_per_event": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "n_p : pièces nouvelles (fichiers) par événement."
+        },
+        "agents_per_journal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "description": "A : agents qui partagent le journal."
+        },
+        "hours_per_year": {
+          "type": "integer",
+          "minimum": 8760,
+          "maximum": 8784,
+          "description": "N_h : 8 760, ou 8 784 pour une année bissextile."
+        },
+        "journal_objects_per_hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000,
+          "description": "o_j : objets de journal copiés par heure hors segments (manifeste, signature, série de points, fichiers d'ancres)."
+        },
+        "journal_bytes_per_hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1099511627776,
+          "description": "b_j : octets de ces objets par heure."
+        },
+        "segment_max_bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 1099511627776,
+          "description": "S : storage.segment_max_bytes."
+        },
+        "anchoring_cost_per_journal": {
+          "type": "number",
+          "minimum": 0,
+          "description": "C_anc : coût annuel d'ancrage du journal, C_j de CT-5 EX-12.2, en unités p."
+        },
+        "local_retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 36600,
+          "description": "D_l : conservation locale des segments et objets de journal, en jours."
+        },
+        "local_pieces_retention_days": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 36600,
+          "description": "D_lp : conservation locale des pièces (storage.retention.pieces_days, ou D_l s'il est null)."
+        },
+        "worm": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "retain_days",
+                "pieces_in_worm",
+                "min_billable_object_bytes",
+                "lock_audits_per_year",
+                "legal_hold_fraction",
+                "legal_hold_extra_days"
+              ],
+              "properties": {
+                "retain_days": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 36500,
+                  "description": "D_w : storage.seal.worm.retain_days."
+                },
+                "pieces_in_worm": {
+                  "type": "boolean"
+                },
+                "min_billable_object_bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1073741824,
+                  "description": "m : taille minimale facturée par objet ; 0 si le support n'en a pas."
+                },
+                "lock_audits_per_year": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 366,
+                  "description": "k : relevés complets de verrouillage par an, paramètre d'entrée voisin de 365 / lock_audit_interval_days (le défaut de 30 jours donne 12,167), augmenté de 365 × g quand des gels sont actifs (relecture quotidienne de l'état de gel, EX-17.7)."
+                },
+                "legal_hold_fraction": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "g : part des objets d'une année placés sous gel."
+                },
+                "legal_hold_extra_days": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 36500,
+                  "description": "D_g : moyenne, sur tous les objets comptés dans g, de max(0, date de levée − échéance) en jours, arrondie au jour entier supérieur ; un gel levé avant l'échéance compte pour 0 jour, ses requêtes de pose et de levée restant comptées dans g × O_w × 2 × p_lh."
+                }
+              }
+            }
+          ]
+        },
+        "prices": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "local_gib_year",
+            "worm_gib_year",
+            "write_request",
+            "read_request",
+            "legal_hold_request",
+            "egress_gib",
+            "ingress_gib"
+          ],
+          "properties": {
+            "local_gib_year": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_l : stockage local, par Gio et par an."
+            },
+            "worm_gib_year": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_w : stockage WORM, par Gio et par an, versions comprises."
+            },
+            "write_request": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_put : requête d'écriture ou de liste."
+            },
+            "read_request": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_get : requête de lecture (GET, HEAD)."
+            },
+            "legal_hold_request": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_lh : requête de pose ou de levée de gel."
+            },
+            "egress_gib": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_out : sortie réseau, par Gio."
+            },
+            "ingress_gib": {
+              "type": "number",
+              "minimum": 0,
+              "description": "p_in : entrée réseau, par Gio."
+            }
+          },
+          "description": "Prix unitaires en unités symboliques p."
+        }
+      },
+      "description": "Entrées de la formule d'EX-16.4."
+    },
+    "sorties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "events_per_year",
+        "event_bytes_per_year",
+        "piece_bytes_per_year",
+        "segments_per_year",
+        "journal_objects_per_year",
+        "worm_objects_per_year",
+        "worm_billable_bytes_per_year",
+        "cost",
+        "cost_journal_total"
+      ],
+      "properties": {
+        "events_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "event_bytes_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "piece_bytes_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "segments_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "journal_objects_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "worm_objects_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "worm_billable_bytes_per_year": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "local_storage",
+            "worm_storage",
+            "legal_hold",
+            "write_requests",
+            "read_requests",
+            "network",
+            "anchoring",
+            "total"
+          ],
+          "properties": {
+            "local_storage": {
+              "type": "number",
+              "minimum": 0
+            },
+            "worm_storage": {
+              "type": "number",
+              "minimum": 0
+            },
+            "legal_hold": {
+              "type": "number",
+              "minimum": 0
+            },
+            "write_requests": {
+              "type": "number",
+              "minimum": 0
+            },
+            "read_requests": {
+              "type": "number",
+              "minimum": 0
+            },
+            "network": {
+              "type": "number",
+              "minimum": 0
+            },
+            "anchoring": {
+              "type": "number",
+              "minimum": 0
+            },
+            "total": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "cost_journal_total": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "description": "Sorties de la formule, arrondies à trois décimales (EX-16.5) ; volumes et objets par agent et par an, coûts en unités p par agent et par an en régime établi."
+    },
+    "cas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "input": {
+          "$ref": "#/$defs/entrees"
+        },
+        "expected": {
+          "$ref": "#/$defs/sorties"
+        }
+      }
+    }
+  }
+}

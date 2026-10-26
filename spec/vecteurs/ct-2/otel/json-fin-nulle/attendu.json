@@ -1,0 +1,179 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 1,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "f4a1a5d53c693e539168d8a061eea455",
+      "span_id": "c94fa9fabcbae36a",
+      "issue": "scelle",
+      "reason": null,
+      "overlap_seq": null,
+      "normalized": {
+        "trace_id": "f4a1a5d53c693e539168d8a061eea455",
+        "span_id": "c94fa9fabcbae36a",
+        "parent_span_id": "a8b6dd9e7ca52907",
+        "trace_state": "",
+        "name": "execute_tool claims.get",
+        "flags": 0,
+        "kind": 1,
+        "start_time_unix_nano": "1794307798000000000",
+        "end_time_unix_nano": "0",
+        "attributes": {
+          "gen_ai.operation.name": "execute_tool",
+          "gen_ai.tool.name": "claims.get",
+          "gen_ai.tool.call.id": "call_11",
+          "gen_ai.tool.type": "function",
+          "gen_ai.tool.call.arguments": {
+            "claim_id": "2026-81044"
+          },
+          "gen_ai.tool.call.result": {
+            "statut": "ouvert"
+          }
+        },
+        "dropped_attributes_count": 0,
+        "dropped_events_count": 0,
+        "dropped_links_count": 0,
+        "events": [],
+        "links_count": 0,
+        "status": {
+          "code": 1,
+          "message": ""
+        },
+        "resource": {
+          "attributes": {
+            "service.name": "agent-sinistres",
+            "service.version": "3.2.0"
+          },
+          "dropped_attributes_count": 0
+        },
+        "scope": {
+          "name": "agent-sinistres.instrumentation",
+          "version": "1.0.0",
+          "attributes": {}
+        },
+        "schema_url": null
+      },
+      "pieces": {
+        "source": {
+          "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+          "length": 66,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"noortrace_capture\":{\"channel\":\"otel\",\"source\":\"otel-sinistres\"}}"
+        },
+        "envelope": {
+          "sha256": "0x81d58947e8e15533a1be09e946e76e6df96146f54264b3634de47e6ee4497a3f",
+          "length": 757,
+          "redacted": false,
+          "media_type": "application/json",
+          "bytes": "{\"attributes\":{\"gen_ai.operation.name\":\"execute_tool\",\"gen_ai.tool.call.id\":\"call_11\",\"gen_ai.tool.name\":\"claims.get\",\"gen_ai.tool.type\":\"function\"},\"dropped_attributes_count\":0,\"dropped_events_count\":0,\"dropped_links_count\":0,\"end_time_unix_nano\":\"0\",\"events\":[],\"flags\":0,\"kind\":1,\"links_count\":0,\"name\":\"execute_tool claims.get\",\"parent_span_id\":\"a8b6dd9e7ca52907\",\"resource\":{\"attributes\":{\"service.name\":\"agent-sinistres\",\"service.version\":\"3.2.0\"},\"dropped_attributes_count\":0},\"schema_url\":null,\"scope\":{\"attributes\":{},\"name\":\"agent-sinistres.instrumentation\",\"version\":\"1.0.0\"},\"span_id\":\"c94fa9fabcbae36a\",\"start_time_unix_nano\":\"1794307798000000000\",\"status\":{\"code\":1,\"message\":\"\"},\"trace_id\":\"f4a1a5d53c693e539168d8a061eea455\",\"trace_state\":\"\"}"
+        },
+        "arguments": {
+          "sha256": "0x077618bb81bb1a116ed7f22967b7979021dc667b045ad5472fbdbfc959efd22b",
+          "length": 25,
+          "redacted": false,
+          "bytes": "{\"claim_id\":\"2026-81044\"}"
+        },
+        "result": {
+          "sha256": "0x4b764f255f4ed4fd2f5f03e223487af47c7d3a7df26c1cbc7c81a1bf9e061bb1",
+          "length": 19,
+          "redacted": false,
+          "bytes": "{\"statut\":\"ouvert\"}"
+        },
+        "system_prompt": null,
+        "intent": null
+      },
+      "event": {
+        "version": 0,
+        "seq": 2,
+        "ts": "2026-11-10T10:50:00.010Z",
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "journal_id": "0x1c085ec2ae5b20dfef4c1b84694fb81a8c553e0a6e7a4fed3e5a6ada4bb9bd0e",
+        "recorder_key_id": "rec-test-01",
+        "prev_hash": "0x0c472652907238237acc9dbab1c2551da2e33f53db37c7313adf545c550ee5e5",
+        "delegation": {
+          "launched_by": "svc-agent-sinistres@assureur-demo.example",
+          "on_behalf_of": "service-sinistres",
+          "scope": "sinistres:lecture,paiement",
+          "run_id": null
+        },
+        "code": {
+          "model": null,
+          "prompt_version": null,
+          "policy_version": "2026-11-10-otel",
+          "recorder": "0.1.0"
+        },
+        "intent": null,
+        "policy": {
+          "rule": null,
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "approval": null,
+        "execution": {
+          "tool": "otel-sinistres__claims.get",
+          "arguments": {
+            "sha256": "0x077618bb81bb1a116ed7f22967b7979021dc667b045ad5472fbdbfc959efd22b",
+            "length": 25,
+            "redacted": false
+          },
+          "status": "executee",
+          "result": {
+            "sha256": "0x4b764f255f4ed4fd2f5f03e223487af47c7d3a7df26c1cbc7c81a1bf9e061bb1",
+            "length": 19,
+            "redacted": false
+          },
+          "duration_ms": 0,
+          "is_error": false
+        },
+        "effects": [
+          {
+            "system": "otel-sinistres",
+            "action": "ecriture",
+            "object": "claims.get",
+            "amount": null,
+            "currency": null
+          }
+        ],
+        "context": [
+          {
+            "sha256": "0xda9c76bef505dd669a602c015f8c8f6d4ef13339aeeb6357edbf5a7ecbf87922",
+            "length": 66,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          },
+          {
+            "sha256": "0x81d58947e8e15533a1be09e946e76e6df96146f54264b3634de47e6ee4497a3f",
+            "length": 757,
+            "redacted": false,
+            "media_type": "application/json",
+            "kind": "autre"
+          }
+        ],
+        "hash": "0x70ebce52462ecc51b9162902651422e0556632fe5d95e6824a18accbbb9aaffc",
+        "sig": "0x660c86e18f782d1cd1c7be2195f0b8281a5ee4a1df2c0823a5fe2ab546fa58bef808b1ff0ccbdde4a6484a3f2ed1cdc861c1e43daa7410da1bb2daec3bcfff05"
+      },
+      "lag_ms": null
+    }
+  ],
+  "note": "endTimeUnixNano 0 (fin non déclarée) : le span est scellé, duration_ms vaut 0 et lag_ms est null (EX-6.36, EX-6.41)."
+}

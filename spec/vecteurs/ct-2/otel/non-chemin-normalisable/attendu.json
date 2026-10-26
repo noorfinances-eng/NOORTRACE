@@ -1,0 +1,20 @@
+{
+  "status": 404,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {
+      "message": "noortrace: chemin inconnu"
+    }
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [],
+  "note": "Chemin que la normalisation d'EX-5.2 refuse (segment point encodé) : il ne peut pas égaler otel.path, 404 (EX-6.26, EX-6.27)."
+}

@@ -1,0 +1,39 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": null,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": {
+    "status": 400,
+    "reason": "cache_fournisseur",
+    "body": {
+      "error": {
+        "code": 400,
+        "message": "noortrace: contenu en cache du fournisseur refuse",
+        "status": "INVALID_ARGUMENT"
+      }
+    },
+    "content_type": "application/json; charset=UTF-8"
+  },
+  "consolidated": null,
+  "pieces": null,
+  "code_model": null,
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": null,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:generateContent"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": null,
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "cachedContent non nul, provider_cache absent (refuser) : refus 400 cache_fournisseur, sans relais ni événement : le contenu mis en cache (prompt système, outils, serveurs MCP) ne serait vu ni par la pièce « requête » ni par EX-5.32 (EX-5.32, 5.8)."
+}

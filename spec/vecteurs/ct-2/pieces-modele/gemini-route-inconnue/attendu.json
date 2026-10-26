@@ -1,0 +1,33 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": null,
+  "status": null,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": {
+    "status": 404,
+    "reason": "route_inconnue",
+    "body": null,
+    "content_type": null
+  },
+  "consolidated": null,
+  "pieces": null,
+  "code_model": null,
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": null,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/tunedModels/m:generateContent"
+  },
+  "model_segment": null,
+  "upstream_target": null,
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "POST /v1beta/tunedModels/m:generateContent : aucune route gemini ne correspond (préfixe tunedModels/, EX-5.28) : 404 sans relais, sans corps propre au format, aucune pièce ; model_route_not_found consigné."
+}

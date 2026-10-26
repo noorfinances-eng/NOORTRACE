@@ -1,0 +1,39 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": null,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": {
+    "status": 400,
+    "reason": "parametre_non_admis",
+    "body": {
+      "error": {
+        "code": 400,
+        "message": "noortrace: parametre de requete non admis",
+        "status": "INVALID_ARGUMENT"
+      }
+    },
+    "content_type": "application/json; charset=UTF-8"
+  },
+  "consolidated": null,
+  "pieces": null,
+  "code_model": null,
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": null,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:generateContent?alt=proto"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": null,
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "generateContent?alt=proto : valeur d'alt hors de la table (proto changerait le format de la réponse), refus 400 parametre_non_admis (EX-5.29)."
+}

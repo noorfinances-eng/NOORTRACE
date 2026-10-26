@@ -127,6 +127,37 @@
     "mirror": null
   },
   "sdk": { "enabled": false, "socket": null, "tcp_listen": null, "hosts": [] },
+  "otel": {
+    "enabled": true,
+    "listen": "127.0.0.1:4318",
+    "tls": null,
+    "path": "/v1/traces",
+    "encodings": ["protobuf", "json"],
+    "max_body_bytes": 67108864,
+    "static_tokens": [
+      { "id": "otel-agent-sinistres", "token": { "file": "/run/secrets/noortrace-otel-agent-sinistres" } }
+    ],
+    "hosts": [
+      {
+        "id": "otel-agent-sinistres",
+        "match": { "static_token": "otel-agent-sinistres" },
+        "launched_by": "svc-agent-sinistres@assureur-demo.example",
+        "scope": "sinistres:lecture,paiement",
+        "on_behalf_of": "service-sinistres",
+        "accept_declared_delegation": true,
+        "tool_name_template": "{tool_announced}",
+        "tool_name_sanitize": false,
+        "prompt_version_name": null,
+        "host_group": "agent-sinistres",
+        "allowed_on_behalf_of": [],
+        "quota": { "max_concurrent": 8, "piece_bytes_per_minute": 268435456, "received_bytes_per_minute": 268435456, "redaction_ms_per_minute": 30000 },
+        "alias": "otel-sinistres"
+      }
+    ],
+    "dedup_window_ms": 3600000,
+    "overlap_window_ms": 600000,
+    "retry_after_s": 5
+  },
   "signer": {
     "class": "A",
     "key_id": "rec-sinistres-2026-01",
@@ -157,10 +188,14 @@
         "prefix": "journal-sinistres/",
         "mode": "compliance",
         "retain_days": 4018,
-        "credentials": { "file": "/run/secrets/sos-worm" }
+        "credentials": { "file": "/run/secrets/worm-ecrivain" },
+        "endpoint": null,
+        "region": null,
+        "legal_hold_on_write": false,
+        "lock_audit_interval_days": 30
       }
     },
-    "retention": { "events_years": 11, "pieces_days": null },
+    "retention": { "events_years": 10, "pieces_days": null },
     "vault": { "enabled": false, "path": null, "key": null },
     "relay_mac_key": { "file": "/run/secrets/cle-mac-relais", "encoding": "hex" }
   },
@@ -479,8 +514,25 @@
           "secret": { "file": "/run/secrets/cle-openai" },
           "auth_header": "authorization-bearer",
           "passthrough": []
+        },
+        {
+          "path": "/v1beta/models",
+          "format": "gemini",
+          "upstream": "https://generativelanguage.googleapis.com",
+          "provider_label": "gemini",
+          "credentials": "propre",
+          "secret": { "file": "/run/secrets/cle-gemini" },
+          "auth_header": "x-goog-api-key",
+          "passthrough": [],
+          "provider_mcp": "refuser"
         }
       ]
+    },
+    "otel": {
+      "semconv": "1.41.1",
+      "sources": {
+        "otel-sinistres": { "ingest": ["inference", "outil"], "overlap": "ignorer", "class_default": null, "tools": {} }
+      }
     },
     "failure": {
       "ecriture": "bloquant",

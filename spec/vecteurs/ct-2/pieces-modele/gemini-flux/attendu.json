@@ -1,0 +1,88 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "usageMetadata": {
+      "promptTokenCount": 41,
+      "candidatesTokenCount": 27,
+      "totalTokenCount": 68
+    },
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0003",
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Le dossier 2026-81044 est presque complet ; "
+            },
+            {
+              "text": "l'assuré est joignable à j.dupont@example.ch "
+            },
+            {
+              "text": "pour la facture manquante."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x32af21f14a95f6e3d5e466279ce74429f3fadb438452b50df00aa2f7fb7903e3",
+      "length": 157,
+      "redacted": true,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Le dossier 2026-81044 est-il complet ?\"}],\"role\":\"user\"}],\"systemInstruction\":{\"parts\":[{\"text\":\"[REDIGE:prompt-systeme]\"}]}}"
+    },
+    "response": {
+      "sha256": "0xc61f695faab241de135dd383e4281d02188077ed394fc280829aa71f468486f2",
+      "length": 390,
+      "redacted": true,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Le dossier 2026-81044 est presque complet ; \"},{\"text\":\"l'assuré est joignable à [REDIGE:email] \"},{\"text\":\"pour la facture manquante.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0003\",\"usageMetadata\":{\"candidatesTokenCount\":27,\"promptTokenCount\":41,\"totalTokenCount\":68}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": {
+      "sha256": "0xa7a741e167b0708157e5429f2eba118756fbaa94d018db1f379544ebe05c1334",
+      "length": 112,
+      "redacted": true,
+      "media_type": "text/plain",
+      "bytes": "Le dossier 2026-81044 est presque complet ; l'assuré est joignable à [REDIGE:email] pour la facture manquante."
+    }
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": {
+    "sha256": "0xa7a741e167b0708157e5429f2eba118756fbaa94d018db1f379544ebe05c1334",
+    "length": 112,
+    "redacted": true,
+    "media_type": "text/plain"
+  },
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "streamGenerateContent?alt=sse, trois morceaux de texte, finishReason et usageMetadata complet sur le dernier : les parts sont ajoutées sans fusion (EX-5.35), usageMetadata du dernier morceau ; l'intention contient une adresse : rédigée, elle devient une référence text/plain (EX-5.21)."
+}

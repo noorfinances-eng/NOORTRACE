@@ -1,0 +1,20 @@
+{
+  "status": 413,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {
+      "message": "noortrace: corps OTLP trop grand"
+    }
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 0,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [],
+  "note": "Corps comprimé de 100 octets, sous la borne de 4 096 octets, qui en fait 65 538 décomprimé : la décompression s'arrête à la borne, avant toute allocation au-delà, 413 (EX-6.28)."
+}

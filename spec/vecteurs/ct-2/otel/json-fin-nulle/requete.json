@@ -1,0 +1,82 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "agent-sinistres"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "3.2.0"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "agent-sinistres.instrumentation",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "F4A1A5D53C693E539168D8A061EEA455",
+              "spanId": "C94FA9FABCBAE36A",
+              "parentSpanId": "A8B6DD9E7CA52907",
+              "name": "execute_tool claims.get",
+              "kind": 1,
+              "startTimeUnixNano": "1794307798000000000",
+              "endTimeUnixNano": "0",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "claims.get"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.id",
+                  "value": {
+                    "stringValue": "call_11"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.type",
+                  "value": {
+                    "stringValue": "function"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.arguments",
+                  "value": {
+                    "stringValue": "{\"claim_id\":\"2026-81044\"}"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.call.result",
+                  "value": {
+                    "stringValue": "{\"statut\":\"ouvert\"}"
+                  }
+                }
+              ],
+              "status": {
+                "code": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0017",
+    "candidates": [
+      {
+        "index": 1,
+        "content": {
+          "parts": [
+            {
+              "text": "Un "
+            },
+            {
+              "text": "atteinte."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      },
+      {
+        "index": 9007199254740992,
+        "content": {
+          "parts": [
+            {
+              "text": "limite "
+            }
+          ],
+          "role": "model"
+        }
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x9a311413eeed1c2dd53d6c81f6a9b2877b7b59de25f25dd8801393a6e477511a",
+      "length": 60,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Statut ?\"}],\"role\":\"user\"}]}"
+    },
+    "response": {
+      "sha256": "0xc8838f6ca6801c512f61dd4b32df31150b77f517c7d1ff1897a12411cb9f4814",
+      "length": 274,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Un \"},{\"text\":\"atteinte.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":1},{\"content\":{\"parts\":[{\"text\":\"limite \"}],\"role\":\"model\"},\"index\":9007199254740992}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0017\"}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": null,
+  "intent": "Un atteinte.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "La valeur d'un index est le double IEEE 754 le plus proche du texte reçu (EX-5.27 (1), EX-8.1) : 1.0 vaut 1 ; 9007199254740993 vaut 2^53, admis ; 9007199254740994 dépasse 2^53, le fragment est ignoré et compté."
+}

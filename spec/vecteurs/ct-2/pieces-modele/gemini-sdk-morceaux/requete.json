@@ -1,0 +1,20 @@
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Ouvre le sinistre 2026-81044."
+        }
+      ]
+    }
+  ],
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "Tu es l'agent sinistres de l'assureur de démonstration."
+      }
+    ]
+  },
+  "model": "models/gemini-exemple"
+}

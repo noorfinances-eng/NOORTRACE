@@ -1,0 +1,6 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Seconde "}],"role":"model"},"index":1}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0016"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"Première "}],"role":"model"},"index":0},{"content":{"parts":[{"text":"version."}],"role":"model"},"finishReason":"STOP","index":1}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0016"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"formulation."}],"role":"model"},"finishReason":"STOP","index":0}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0016"}
+

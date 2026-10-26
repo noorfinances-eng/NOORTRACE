@@ -1,0 +1,4 @@
+# Versions exactes d'opentelemetry-proto 1.45.1 et de protobuf 7.36.2 (CT-2 R11-F43), relevées le 2026-10-26
+# installation : pip install --only-binary :all: --no-deps -r exigences.txt
+opentelemetry-proto==1.45.1
+protobuf==7.36.2

@@ -1,0 +1,49 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x7b6defdbb77d829449f25c141d0b79c0798ad9ec45ca4d9b8d84a05b26e82c4a",
+      "length": 749,
+      "redacted": true,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Où en est le sinistre 2026-81044 ?\"}],\"role\":\"user\"},{\"parts\":[{\"functionCall\":{\"args\":{\"claim_id\":\"2026-81044\"},\"name\":\"demo__claims_get\"}}],\"role\":\"model\"},{\"parts\":[{\"functionResponse\":{\"name\":\"demo__claims_get\",\"response\":{\"output\":{\"devise\":\"CHF\",\"montant\":\"7400.00\",\"statut\":\"ouvert\"}}}}],\"role\":\"user\"},{\"parts\":[{\"text\":\"Résume le dossier en une phrase.\"}],\"role\":\"user\"}],\"generationConfig\":{\"temperature\":0.2},\"systemInstruction\":{\"parts\":[{\"text\":\"[REDIGE:prompt-systeme]\"}]},\"tools\":[{\"functionDeclarations\":[{\"description\":\"Rend le dossier d'un sinistre de démonstration\",\"name\":\"demo__claims_get\",\"parameters\":{\"properties\":{\"claim_id\":{\"type\":\"STRING\"}},\"required\":[\"claim_id\"],\"type\":\"OBJECT\"}}]}]}"
+    },
+    "response": {
+      "sha256": "0x5e5ec2c625e78e0868be7243960a190ffa2179ad6e2dec283ab69e0f0bbefdb4",
+      "length": 330,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Le sinistre 2026-81044 est ouvert, \"},{\"text\":\"montant estimé 7400.00 CHF.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0001\",\"usageMetadata\":{\"candidatesTokenCount\":18,\"promptTokenCount\":96,\"totalTokenCount\":114}}"
+    },
+    "system_prompt": {
+      "sha256": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+      "length": 56,
+      "redacted": false,
+      "media_type": "text/plain",
+      "bytes": "Tu es l'agent sinistres de l'assureur de démonstration."
+    },
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": "0x8bc7d20592995f826c74bf3aaf7ad682ed20b6faf0f86f8e6dacfc8134dae9e6",
+  "intent": "Le sinistre 2026-81044 est ouvert, montant estimé 7400.00 CHF.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:generateContent"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:generateContent",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "generateContent hors flux (EX-5.28) : historique contents avec un functionCall (rôle model) et sa functionResponse (rôle user), systemInstruction (pièce « prompt système », remplacé dans la requête par [{\"text\":\"[REDIGE:prompt-systeme]\"}], EX-8.5), tools[].functionDeclarations ; code.model = gemini/ + modelVersion (EX-5.36) ; intent = textes des parts concaténés sans séparateur (5.5) ; aucune chaîne de requête vers l'amont (EX-5.29)."
+}

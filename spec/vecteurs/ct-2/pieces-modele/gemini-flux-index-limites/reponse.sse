@@ -1,0 +1,8 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Un "}],"role":"model"},"index":1.0}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0017"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"limite "}],"role":"model"},"index":9007199254740993}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0017"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"refusé"}],"role":"model"},"index":9007199254740994}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0017"}
+
+data: {"candidates":[{"content":{"parts":[{"text":"atteinte."}],"role":"model"},"finishReason":"STOP","index":1}],"modelVersion":"gemini-exemple-001","responseId":"rep-exemple-0017"}
+

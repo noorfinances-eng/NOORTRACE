@@ -2,9 +2,10 @@
 // spec/CT-2-enregistreur.md) et confrontation aux valeurs attendues.
 //
 // Familles : constantes (en-tête de l'annexe B), jcs-integral (B.2),
-// redaction (B.3), pieces-mcp (B.4), pieces-modele (B.5), evenements (B.6),
-// INDEX.md (B.7). Une famille absente est une erreur : l'annexe B fixe la
-// disposition.
+// redaction (B.3), pieces-mcp (B.4), pieces-modele (B.5, cas gemini-* de la
+// révision 0.5 compris), evenements (B.6), otel (B.8), worm (B.9),
+// cout-agent (B.10), INDEX.md (B.7). Une famille absente est une erreur :
+// l'annexe B fixe la disposition.
 
 package main
 
@@ -82,6 +83,9 @@ func VerifierVecteursCT2(racine string, strict bool) *Rapport {
 	famillePiecesMCP(rap, ctx)
 	famillePiecesModele(rap, ctx)
 	familleEvenements(rap, ctx)
+	familleOTel(rap, ctx)
+	familleWorm(rap, ctx)
+	familleCoutAgent(rap, ctx)
 	familleIndex(rap, ctx)
 	return rap
 }
@@ -304,6 +308,7 @@ func familleIndex(rap *Rapport, ctx *contexteCT2) {
 	for _, c := range sousRepertoires(filepath.Join(ctx.racine, "pieces-mcp", "appels")) {
 		rap.Comparer(f, "INDEX.md", "cas pieces-mcp/appels/"+c+" listé (B.7)", "présent", present("`"+c+"/`"))
 	}
+	familleIndexRevision05(rap, ctx, string(octets), present)
 }
 
 // ---------------------------------------------------------------- utilitaires

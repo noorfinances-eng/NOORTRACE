@@ -1,0 +1,43 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 400,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": null,
+  "pieces": {
+    "request": {
+      "sha256": "0x493998d7ea9c9ad476feafa987b5d5e5172c68357a19ffa09f6a9d52b8ea3b8c",
+      "length": 140,
+      "redacted": false,
+      "bytes": "{\"generationConfig\":{\"temperature\":0.2},\"systemInstruction\":{\"parts\":[{\"text\":\"Tu es l'agent sinistres de l'assureur de démonstration.\"}]}}"
+    },
+    "response": {
+      "sha256": "0xa93bac49789aa1597f5bd8ee9fad2bd71c9a772938a1a59e99482e33400afdcc",
+      "length": 198,
+      "redacted": false,
+      "bytes": "{\"noortrace_http_error\":{\"body\":{\"error\":{\"code\":400,\"message\":\"Champ inconnu (message fictif de test).\",\"status\":\"INVALID_ARGUMENT\"}},\"content_type\":\"application/json; charset=UTF-8\",\"status\":400}}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple",
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:generateContent"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:generateContent",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Corps JSON strict sans contents (seulement systemInstruction et generationConfig) : relayé tel quel (EX-5.7 point 3), pièce « requête » = JCS intégral du corps rédigé par les règles de portée requete, sans pièce « prompt système » (systemInstruction n'est pas extrait, prompt_version null) ; le fournisseur refuse : noortrace_http_error."
+}

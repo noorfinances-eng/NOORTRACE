@@ -1,0 +1,67 @@
+{
+  "status": 200,
+  "response": {
+    "content_type": "application/json",
+    "retry_after": null,
+    "body_json": {}
+  },
+  "rejected_spans": 0,
+  "counts": {
+    "scelle": 0,
+    "ignore": 3,
+    "doublon": 0,
+    "recouvrement": 0,
+    "rejete": 0
+  },
+  "spans": [
+    {
+      "path": [
+        0,
+        0,
+        0
+      ],
+      "trace_id": "b6ea20ce505ba33390d93f57fae3d1c6",
+      "span_id": "cf839dbdc526945d",
+      "issue": "ignore",
+      "reason": "hors_genai",
+      "overlap_seq": null,
+      "normalized": null,
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    },
+    {
+      "path": [
+        0,
+        0,
+        1
+      ],
+      "trace_id": "b6ea20ce505ba33390d93f57fae3d1c6",
+      "span_id": "fa3f346d412a324b",
+      "issue": "ignore",
+      "reason": "operation_non_retenue",
+      "overlap_seq": null,
+      "normalized": null,
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    },
+    {
+      "path": [
+        0,
+        0,
+        2
+      ],
+      "trace_id": "b6ea20ce505ba33390d93f57fae3d1c6",
+      "span_id": "792d023b4286f576",
+      "issue": "ignore",
+      "reason": "operation_non_retenue",
+      "overlap_seq": null,
+      "normalized": null,
+      "pieces": null,
+      "event": null,
+      "lag_ms": null
+    }
+  ],
+  "note": "Span HTTP sans attribut GenAI (hors_genai), embeddings et invoke_agent (operation_non_retenue) : tous ignorés, acceptés au sens d'OTLP, réponse {}, aucune pièce, rien n'est stocké ni haché (EX-6.32)."
+}

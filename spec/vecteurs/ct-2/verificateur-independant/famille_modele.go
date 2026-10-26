@@ -121,6 +121,10 @@ func statutReponse(dir string) (int64, *Value, bool) {
 }
 
 func verifierCasModele(rap *Rapport, ctx *contexteCT2, dir, nom string) {
+	if strings.HasPrefix(nom, "gemini-") {
+		verifierCasGemini(rap, ctx, dir, nom) // révision 0.5 (B.5)
+		return
+	}
 	f := FamillePiecesModele
 	att := lireFichierJSON(rap, filepath.Join(dir, "attendu.json"))
 	if att == nil {

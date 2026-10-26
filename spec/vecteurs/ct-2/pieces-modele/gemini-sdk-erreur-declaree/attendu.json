@@ -1,0 +1,57 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": null,
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0018",
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "text": "Sinistre ouvert."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x02d688f97c2c853fd5afa88d3ee95d4ceb2909d77e23ae0e86133fbe3c11ca54",
+      "length": 113,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Ouvre le sinistre 2026-81044.\"}],\"role\":\"user\"}],\"model\":\"models/gemini-exemple\"}"
+    },
+    "response": {
+      "sha256": "0xf8ef04ccc9c6917d07444cd041bd903f9193ae58a97bce32e48b951b4d246592",
+      "length": 183,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Sinistre ouvert.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0018\"}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": null,
+  "intent": "Sinistre ouvert.",
+  "tool_calls": [],
+  "is_error": true,
+  "incomplete": false,
+  "request_line": null,
+  "model_segment": null,
+  "upstream_target": null,
+  "via": "sdk",
+  "removed_members": [],
+  "note": "Statut déclaré 200 et is_error déclaré vrai (echange-sdk.json) : is_error = déclaré OU calculé (EX-6.8), vrai même si la forme est complète."
+}

@@ -1,0 +1,12 @@
+{
+  "systemInstruction": {
+    "parts": [
+      {
+        "text": "Tu es l'agent sinistres de l'assureur de démonstration."
+      }
+    ]
+  },
+  "generationConfig": {
+    "temperature": 0.2
+  }
+}

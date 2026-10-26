@@ -13,7 +13,7 @@ les décisions ouvertes qu'elle nomme.
 | Réf. | Document | État | Clôt |
 |---|---|---|---|
 | CT-1 | [Modèle d'événement et formats](CT-1-evenements-et-formats.md) | version 0.3 (révision 0.3 : point de contrôle, preuve de cohérence, partie facultative `points-de-controle.json`), en revue pour la porte 1 | décisions ouvertes 1 et 5 |
-| CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.4 (révision 0.4 : production des points de contrôle, `checkpoint_interval_s`, `anchoring.ancrage`), en revue pour la porte 1 | décisions 2 et 3 |
+| CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.5 (révision 0.5 : API Gemini à la passerelle, SDK Python et TypeScript, adaptateurs de cadres, ingestion OpenTelemetry, gel juridique des copies WORM, coût par agent ; révision 0.4 : production des points de contrôle), en revue pour la porte 1 | décisions 2 et 3 |
 | CT-3 | [Approbations](CT-3-approbations.md) | version 0.2, en revue pour la porte 1 | décision 4 |
 | CT-4 | [Registre](CT-4-registre.md) | version 0.3 (révision 0.3 minimale : libellé de `docType` du point de contrôle, §6.4 ; corrections de la revue appliquées en 0.2), en revue pour la porte 1 | — (touche les décisions 6 et 7 sans les clore, CT-4 §13) |
 | CT-5 | [Ancrage](CT-5-ancrage.md) | version 0.2 (révision 0.2 : corrections de la revue de la version 0.1), en revue pour la porte 1 | — (met en œuvre les points 2 et 3 de la section « Ancrage » de l'architecture et fixe la cadence des ancres des points de contrôle) |
@@ -38,7 +38,9 @@ schémas ; ils ne sont pas résolus en ligne.
 | [`dossier-v0.schema.json`](schemas/dossier-v0.schema.json) | L'index `dossier.json` d'un dossier de preuve (CT-1 §11 ; douze parties, ou treize avec `points_de_controle` depuis CT-1 révision 0.3), et dans ses `$defs` les fichiers compagnons `voisins`, `chemin`, `manifeste_sig`, `cles`, `approbations` et la partie facultative `points_de_controle` (`preuve_coherence`, ancres embarquées) ; il référence le schéma du point par son `$id` | — |
 | [`point-de-controle-v0.schema.json`](schemas/point-de-controle-v0.schema.json) | Un point de contrôle de la période en cours (CT-1 §10.5, révision 0.3) ; l'exemple complet est imprimé en CT-1 §10.5 | `checkpoint` de `$defs/points_de_controle` du schéma de dossier |
 | [`politique-redaction-v0.schema.json`](schemas/politique-redaction-v0.schema.json) | Une politique de rédaction avant hachage (CT-2 §10) ; l'exemple complet `pii-v1` est imprimé en CT-2 §10.9 | `policy.redaction` du schéma de configuration |
-| [`configuration-enregistreur-v0.schema.json`](schemas/configuration-enregistreur-v0.schema.json) | Le document unique de configuration de l'enregistreur (CT-2 §15), dont l'ensemble de politique `policy` ; l'exemple complet est imprimé en CT-2 §15.3 ; il référence les schémas de politique de rédaction et de politique d'approbation | — |
+| [`configuration-enregistreur-v0.schema.json`](schemas/configuration-enregistreur-v0.schema.json) | Le document unique de configuration de l'enregistreur (CT-2 §15), dont l'ensemble de politique `policy` ; l'exemple complet est imprimé en CT-2 §15.3 ; il référence les schémas de politique de rédaction et de politique d'approbation ; depuis CT-2 révision 0.5, ajouts compatibles : `$defs/model_route` (route `gemini`), `otel`, `policy.otel`, `policy.sdk` et `$defs/worm` | — |
+| [`worm-v0.schema.json`](schemas/worm-v0.schema.json) | Gel juridique et contrôle des copies WORM (CT-2 §12.6 et §12.11, révision 0.5) : ligne du registre des copies, ligne de la liste des objets d'un gel, enregistrement du registre des gels, et dans ses `$defs` les fichiers de cas de la famille `ct-2/worm/` | — |
+| [`cout-agent-v0.schema.json`](schemas/cout-agent-v0.schema.json) | Entrées et sorties de la formule du coût annuel par agent (CT-2 §16.4, révision 0.5), prix en unités symboliques, et le fichier de cas de la famille `ct-2/cout-agent/` | — |
 | [`rapport-verification-v0.schema.json`](schemas/rapport-verification-v0.schema.json) | La sortie JSON du vérificateur (`--json`) : rapport (codes 0, 1, 3) ou rapport d'erreur (code 2) (CT-6 §8.6) | — |
 | [`ancres-confiance-v0.schema.json`](schemas/ancres-confiance-v0.schema.json) | Le fichier d'ancres de confiance écrit par le réviseur (CT-6 §12) ; l'exemple complet est imprimé en CT-6 §12.3 | — |
 | [`entetes-bitcoin-v0.schema.json`](schemas/entetes-bitcoin-v0.schema.json) | La chaîne d'en-têtes Bitcoin fournie à part (`--entetes-bitcoin`, CT-6 §10.3) | — |
@@ -73,6 +75,17 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --all-errors \
   -r spec/schemas/politique-redaction-v0.schema.json \
   -r spec/schemas/politique-approbation-v0.schema.json \
   -d ma-configuration.json
+```
+
+Les schémas `worm-v0` et `cout-agent-v0` de CT-2 (révision 0.5) n'ont aucune
+référence croisée ; une définition de leurs `$defs` se valide par un schéma
+d'appel, comme ci-dessous pour un enregistrement du registre des gels :
+
+```bash
+echo '{"$schema":"https://json-schema.org/draft/2020-12/schema","$ref":"https://noortrace.example/schemas/v0/worm.schema.json#/$defs/enregistrement_gel"}' > enregistrement-gel.schema.json
+npx --yes ajv-cli@5 validate --spec=draft2020 \
+  -s enregistrement-gel.schema.json -r spec/schemas/worm-v0.schema.json \
+  -d 0001-pose.json
 ```
 
 Les cinq schémas de CT-6 n'ont aucune référence croisée et se compilent en
@@ -179,22 +192,27 @@ vérificateur de dossier : `node scripts/verify/dossier.mjs <répertoire>`.
 
 Publiés avec CT-2 sous [`vecteurs/ct-2/`](vecteurs/ct-2/INDEX.md), produits par
 `scripts/vecteurs/generer-ct2.mjs` (`npm run vecteurs:ct2`), rejoués par
-`test/enregistreur.test.js` et confrontés par le vérificateur Go indépendant du
-module séparé `vecteurs/ct-2/verificateur-independant/` (`noortrace-ct2`) ; tout
-est déterministe (clés de test de CT-1, horodatages et identifiants fixes, clé
-de pseudonymisation de test publique). Disposition fixée par l'annexe B de
-[CT-2](CT-2-enregistreur.md) ; l'index généré `vecteurs/ct-2/INDEX.md` liste
-chaque cas et son attendu. Les vecteurs CT-1 et le module Go de `ct-1` ne
-changent pas.
+`test/enregistreur.test.js` (et, pour la révision 0.5, par
+`test/enregistreur-r05.test.js`) et confrontés par le vérificateur Go
+indépendant du module séparé `vecteurs/ct-2/verificateur-independant/`
+(`noortrace-ct2`) ; tout est déterministe (clés de test de CT-1, horodatages et
+identifiants fixes, clé de pseudonymisation de test publique). Disposition fixée
+par l'annexe B de [CT-2](CT-2-enregistreur.md) ; l'index généré
+`vecteurs/ct-2/INDEX.md` liste chaque cas et son attendu. Les vecteurs CT-1 et
+le module Go de `ct-1` ne changent pas.
 
 | Répertoire | Contenu (CT-2, annexe B) | Résultat attendu |
 |---|---|---|
 | `ct-2/jcs-integral/` | Forme canonique **JCS intégral** des pièces (RFC 8785 tel quel, nombres compris) : table de la RFC, cas limites, pertes au-delà de 2^53 | égalité octet par octet, ou refus |
 | `ct-2/redaction/` | Politique `pii-v1`, politique de pseudonymisation de test et politique de règles de test (pointeurs, `champ`, `supprimer`, motif nommé, passages successifs), motifs admis et refusés du sous-ensemble commun ECMAScript/RE2 et de ses règles de structure et de taille (formes à retour arrière exponentiel et quantificateurs à zéro non significatif refusés ; motifs à « (?P< » avec leur première correspondance), entrées et pièces rédigées attendues (`sha256`, `length`, `redacted`, correspondances comptées) | égalité |
 | `ct-2/pieces-mcp/` | Requêtes `tools/call` reçues après la liste servie (`tools/list`), relayées ou refusées au pas 1 → pièces « arguments », « résultat », « définition d'outil », « liste annoncée », `context` ; erreurs JSON-RPC et de l'enregistreur (codes `-31010` à `-31017`) ; refus par la politique et signal d'approbation, résultats `isError` rendus par l'enregistreur ; blancs, CR, nombres non représentables ; agrégation et nommage `alias__nom` | égalité, erreurs et résultats rendus attendus |
-| `ct-2/pieces-modele/` | API Messages d'Anthropic (hors flux, flux SSE), OpenAI Chat Completions (hors flux, flux), OpenAI Responses (flux) → forme consolidée → pièce ; réponse non JSON, requête non analysable refusée, prompt laissé en place ; `code.model`, `intent`, `prompt_version` attendus | égalité |
+| `ct-2/pieces-modele/` | API Messages d'Anthropic (hors flux, flux SSE), OpenAI Chat Completions (hors flux, flux), OpenAI Responses (flux) → forme consolidée → pièce ; réponse non JSON, requête non analysable refusée, prompt laissé en place ; `code.model`, `intent`, `prompt_version` attendus ; depuis la révision 0.5, cas `gemini-*` (`generateContent`, `streamGenerateContent`, refus de la passerelle, `echangeModele` du SDK au format `gemini`) | égalité ; requêtes et réponses Gemini confrontées aux types de `google-genai` 2.33.0 (`vecteurs/ct-2/confrontation/gemini/`) |
+| `ct-2/otel/` (révision 0.5) | Requêtes OTLP/HTTP en JSON et en protobuf reçues d'une source OpenTelemetry → forme normalisée des spans, classement, doublons et recouvrements, pièces, événements et réponses OTLP ; refus (`400`, `401`, `404`, `413`, `415`) | égalité ; requêtes confrontées à `opentelemetry-proto` 1.45.1 (`vecteurs/ct-2/confrontation/otel/`), divergences voulues publiées |
+| `ct-2/worm/` (révision 0.5) | Requêtes exactes de gel, de lecture et de rétention par support (S3, Azure, GCS), verdict du verrou d'une version, périmètre d'un gel, règle de garde de la levée par deux personnes, versions à lever quand d'autres gels actifs les couvrent | égalité |
+| `ct-2/cout-agent/` (révision 0.5) | Formule du coût annuel par agent : neuf cas, prix en unités symboliques, jamais un prix réel | égalité |
 | `ct-2/evenements/journal-demo/` | La courte exécution de la démonstration de référence (politique, échanges de modèle, lecture, écriture approuvée), chaînée avec les clés de test de CT-1, avec son segment, son journal d'intention, son ensemble de politique, ses entrées brutes (`entrees.json` : échanges, appels, liste servie, connexion d'hôte) et le dossier CT-1 de l'appel d'écriture (`dossier-seq-7/`) | chaîne valide par les outils de CT-1, égalité ; dossier valide (`node scripts/verify/dossier.mjs`, code 0) |
 | `ct-2/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification, module séparé de celui de `ct-1`, qui recalcule et confronte toutes ces valeurs | zéro discordance (`go run . ..`) |
+| `ct-2/confrontation/` (révision 0.5) | Programmes et sorties publiées (`sorties/`) des implémentations tierces : `google-genai` 2.33.0 (`gemini/`) et `opentelemetry-proto` 1.45.1 avec `protobuf` 7.36.2 (`otel/`), versions épinglées dans leurs `exigences.txt` ; divergences voulues déclarées (annexes B.5 et B.8) | concordance ; `test/confrontation.test.js` relie les sorties publiées aux vecteurs |
 
 ### CT-3 (`vecteurs/ct-3/`)
 

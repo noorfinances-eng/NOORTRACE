@@ -1,0 +1,40 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": null,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": {
+    "status": 401,
+    "reason": "hote_inconnu",
+    "body": {
+      "error": {
+        "code": 401,
+        "message": "noortrace: hote non authentifie",
+        "status": "UNAUTHENTICATED"
+      }
+    },
+    "content_type": "application/json; charset=UTF-8"
+  },
+  "consolidated": null,
+  "pieces": null,
+  "code_model": null,
+  "prompt_version": null,
+  "intent": null,
+  "tool_calls": [],
+  "is_error": null,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:generateContent",
+    "host_known": false
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": null,
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "Route gemini trouvée, mais aucune entrée de model.hosts ne reconnaît l'hôte (host_known: false dans requete-ligne.json) : 401 sans relais, corps AIP-193 d'EX-5.30 de status UNAUTHENTICATED (5.3.3 pas 3, EX-5.8)."
+}

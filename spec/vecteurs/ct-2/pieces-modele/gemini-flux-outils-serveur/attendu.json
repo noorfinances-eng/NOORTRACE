@@ -1,0 +1,80 @@
+{
+  "format": "gemini",
+  "provider_label": "gemini",
+  "route": "/v1beta/models",
+  "status": 200,
+  "options": {
+    "prompt_in_request": "reference",
+    "prompt_system": "redige"
+  },
+  "refused": null,
+  "consolidated": {
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0009",
+    "candidates": [
+      {
+        "index": 0,
+        "content": {
+          "parts": [
+            {
+              "toolCall": {
+                "id": "outil-serveur-0001",
+                "toolType": "GOOGLE_SEARCH_WEB",
+                "args": {
+                  "queries": [
+                    "franchise assurance auto"
+                  ]
+                }
+              }
+            },
+            {
+              "toolResponse": {
+                "id": "outil-serveur-0001",
+                "toolType": "GOOGLE_SEARCH_WEB",
+                "response": {
+                  "output": "résultats fictifs"
+                }
+              }
+            },
+            {
+              "text": "La franchise varie selon le contrat."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ]
+  },
+  "pieces": {
+    "request": {
+      "sha256": "0x3b4ed9be37021791488b114ff051d55cbe57bce02590d4c4a3abda1b1e2a6dfd",
+      "length": 191,
+      "redacted": false,
+      "bytes": "{\"contents\":[{\"parts\":[{\"text\":\"Quelle est la franchise usuelle d'une assurance auto ?\"}],\"role\":\"user\"}],\"toolConfig\":{\"includeServerSideToolInvocations\":true},\"tools\":[{\"googleSearch\":{}}]}"
+    },
+    "response": {
+      "sha256": "0x10073d1e13e08af0a64399dbab7c7e7f9bf7dc34c36dbaac7ad47c9ec081b2eb",
+      "length": 442,
+      "redacted": false,
+      "bytes": "{\"candidates\":[{\"content\":{\"parts\":[{\"toolCall\":{\"args\":{\"queries\":[\"franchise assurance auto\"]},\"id\":\"outil-serveur-0001\",\"toolType\":\"GOOGLE_SEARCH_WEB\"}},{\"toolResponse\":{\"id\":\"outil-serveur-0001\",\"response\":{\"output\":\"résultats fictifs\"},\"toolType\":\"GOOGLE_SEARCH_WEB\"}},{\"text\":\"La franchise varie selon le contrat.\"}],\"role\":\"model\"},\"finishReason\":\"STOP\",\"index\":0}],\"modelVersion\":\"gemini-exemple-001\",\"responseId\":\"rep-exemple-0009\"}"
+    },
+    "system_prompt": null,
+    "intent": null
+  },
+  "code_model": "gemini/gemini-exemple-001",
+  "prompt_version": null,
+  "intent": "La franchise varie selon le contrat.",
+  "tool_calls": [],
+  "is_error": false,
+  "incomplete": false,
+  "request_line": {
+    "method": "POST",
+    "target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse"
+  },
+  "model_segment": "gemini-exemple",
+  "upstream_target": "/v1beta/models/gemini-exemple:streamGenerateContent?alt=sse",
+  "via": "passerelle",
+  "removed_members": [],
+  "note": "toolConfig.includeServerSideToolInvocations : parts toolCall et toolResponse (outil exécuté par Google, R11-F14) gardées dans la pièce ; elles ne sont jamais des appels pour 5.6 : tool_calls vide (5.5, 5.8)."
+}

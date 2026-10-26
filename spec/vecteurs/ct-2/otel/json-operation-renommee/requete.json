@@ -1,0 +1,58 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "agent-sinistres"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "3.2.0"
+            }
+          }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "agent-sinistres.instrumentation",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "ACD7D9EE17A9F0868723DB281240028D",
+              "spanId": "DC29FBEFEC578157",
+              "parentSpanId": "9121B600569D3363",
+              "name": "execute_tool claims.get",
+              "kind": 1,
+              "startTimeUnixNano": "1794307798000000000",
+              "endTimeUnixNano": "1794307799250500000",
+              "attributes": [
+                {
+                  "key": "gen_ai.operation",
+                  "value": {
+                    "stringValue": "execute_tool"
+                  }
+                },
+                {
+                  "key": "gen_ai.tool.name",
+                  "value": {
+                    "stringValue": "claims.get"
+                  }
+                }
+              ],
+              "status": {
+                "code": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

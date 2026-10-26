@@ -1,0 +1,19 @@
+[
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Sinistre ouvert."
+            }
+          ],
+          "role": "model"
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "modelVersion": "gemini-exemple-001",
+    "responseId": "rep-exemple-0018"
+  }
+]

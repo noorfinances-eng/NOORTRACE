@@ -1,0 +1,547 @@
+{
+  "version": 0,
+  "family": "worm/requetes",
+  "description": "Requêtes exactes de l'enregistreur et de l'outil de gel (CT-2 EX-12.39), sans hôte, date ni signature : cible encodée, en-têtes triés par nom en minuscules, corps, longueur, SHA-256 ; Content-MD5 = base64 du MD5 du corps (RFC 1864).",
+  "cases": [
+    {
+      "id": "s3-gel-pose",
+      "description": "S3 PutObjectLegalHold, statut ON, sur la version du segment de l'exemple d'EX-12.39 : corps XML de 128 octets, Content-MD5 en base64 (RFC 1864) ; « / » de l'identifiant de version encodé %2F.",
+      "input": {
+        "operation": "s3_gel",
+        "bucket": null,
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+        "hold": true,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "PUT",
+        "target": "/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?legal-hold&versionId=3%2FL4kqtJl40Nr8X8gdRQBpUMLUo",
+        "headers": [
+          [
+            "Content-Length",
+            "128"
+          ],
+          [
+            "Content-MD5",
+            "PabGSMHFuZL/pMW6ZUAWbQ=="
+          ]
+        ],
+        "body_utf8": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><LegalHold xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Status>ON</Status></LegalHold>",
+        "body_length": 128,
+        "body_sha256": "0x297c7f3759c59e7467315024ebd80ad83fe8499b24889bf500a536fb2f433046"
+      }
+    },
+    {
+      "id": "s3-gel-levee",
+      "description": "S3 PutObjectLegalHold, statut OFF : corps de 129 octets.",
+      "input": {
+        "operation": "s3_gel",
+        "bucket": null,
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+        "hold": false,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "PUT",
+        "target": "/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?legal-hold&versionId=3%2FL4kqtJl40Nr8X8gdRQBpUMLUo",
+        "headers": [
+          [
+            "Content-Length",
+            "129"
+          ],
+          [
+            "Content-MD5",
+            "dUbasAU9gptvOryKx8wHGQ=="
+          ]
+        ],
+        "body_utf8": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><LegalHold xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Status>OFF</Status></LegalHold>",
+        "body_length": 129,
+        "body_sha256": "0x3826f0ff696284cccb3920beeaea458432dacd0187a7f3d9ca9e1e477579d0f1"
+      }
+    },
+    {
+      "id": "s3-lire-gel",
+      "description": "S3 GetObjectLegalHold : GET avec legal-hold et versionId, sans en-tête ni corps.",
+      "input": {
+        "operation": "s3_lire_gel",
+        "bucket": null,
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+        "hold": null,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "GET",
+        "target": "/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?legal-hold&versionId=3%2FL4kqtJl40Nr8X8gdRQBpUMLUo",
+        "headers": [],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    },
+    {
+      "id": "s3-etat-version",
+      "description": "S3 HEAD d'une version (EX-12.33) : mode, échéance et gel se lisent dans les en-têtes de la réponse.",
+      "input": {
+        "operation": "s3_etat",
+        "bucket": null,
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+        "hold": null,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "HEAD",
+        "target": "/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?versionId=3%2FL4kqtJl40Nr8X8gdRQBpUMLUo",
+        "headers": [],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    },
+    {
+      "id": "s3-liste-premiere-page",
+      "description": "S3 ListObjectVersions, première page : versions, max-keys=1000, prefix encodé (le « / » final devient %2F).",
+      "input": {
+        "operation": "s3_liste",
+        "bucket": null,
+        "key": null,
+        "version_id": null,
+        "hold": null,
+        "prefix": "journal-demo/",
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "GET",
+        "target": "/?versions&max-keys=1000&prefix=journal-demo%2F",
+        "headers": [],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    },
+    {
+      "id": "s3-liste-page-suivante",
+      "description": "S3 ListObjectVersions, page suivante : key-marker et version-id-marker de la réponse précédente, dans l'ordre de la syntaxe de la page (L-C1).",
+      "input": {
+        "operation": "s3_liste",
+        "bucket": null,
+        "key": null,
+        "version_id": null,
+        "hold": null,
+        "prefix": "journal-demo/",
+        "key_marker": "journal-demo/manifestes/periode-1794304800.json",
+        "version_id_marker": "3/L4kqtJl40Nr8X8gdRQBpUMLUo",
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "GET",
+        "target": "/?versions&key-marker=journal-demo%2Fmanifestes%2Fperiode-1794304800.json&max-keys=1000&prefix=journal-demo%2F&version-id-marker=3%2FL4kqtJl40Nr8X8gdRQBpUMLUo",
+        "headers": [],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    },
+    {
+      "id": "s3-configuration-verrou-4018",
+      "description": "S3 PutObjectLockConfiguration posée par l'exploitant (EX-12.30) : mode COMPLIANCE, 4 018 jours ; corps de 273 octets.",
+      "input": {
+        "operation": "s3_configuration_verrou",
+        "bucket": null,
+        "key": null,
+        "version_id": null,
+        "hold": null,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": 4018,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "PUT",
+        "target": "/?object-lock",
+        "headers": [
+          [
+            "Content-Length",
+            "273"
+          ],
+          [
+            "Content-MD5",
+            "MrEn2+g7Ii+EumTicoW97w=="
+          ]
+        ],
+        "body_utf8": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><ObjectLockConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><ObjectLockEnabled>Enabled</ObjectLockEnabled><Rule><DefaultRetention><Days>4018</Days><Mode>COMPLIANCE</Mode></DefaultRetention></Rule></ObjectLockConfiguration>",
+        "body_length": 273,
+        "body_sha256": "0x7f32511655d4f68050ab8f2275e056f3c59cd7e1868448aa139fbdbd7a4118db"
+      }
+    },
+    {
+      "id": "s3-lire-configuration",
+      "description": "S3 GetObjectLockConfiguration, lue chaque jour par la supervision (EX-17.5).",
+      "input": {
+        "operation": "s3_lire_configuration",
+        "bucket": null,
+        "key": null,
+        "version_id": null,
+        "hold": null,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "GET",
+        "target": "/?object-lock",
+        "headers": [],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    },
+    {
+      "id": "s3-copie",
+      "description": "Copie S3 conditionnelle à l'absence (EX-12.16) : Content-Length, Content-MD5 et If-None-Match: *, corps court.",
+      "input": {
+        "operation": "s3_copie",
+        "bucket": null,
+        "key": "journal-demo/manifestes/periode-1794304800.sig",
+        "version_id": null,
+        "hold": null,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": "0x00",
+        "legal_hold_on_write": false
+      },
+      "expected": {
+        "method": "PUT",
+        "target": "/journal-demo/manifestes/periode-1794304800.sig",
+        "headers": [
+          [
+            "Content-Length",
+            "4"
+          ],
+          [
+            "Content-MD5",
+            "g9atfxxQRauBEqhBHICR8g=="
+          ],
+          [
+            "If-None-Match",
+            "*"
+          ]
+        ],
+        "body_utf8": "0x00",
+        "body_length": 4,
+        "body_sha256": "0xc4dd67368286d02d62bdaa7a775b7594765d5210c9ad20cc3c24148d493353d7"
+      }
+    },
+    {
+      "id": "s3-copie-gel-a-l-ecriture",
+      "description": "Copie S3 avec legal_hold_on_write (EX-12.31) : en-tête x-amz-object-lock-legal-hold: ON en plus.",
+      "input": {
+        "operation": "s3_copie",
+        "bucket": null,
+        "key": "journal-demo/manifestes/periode-1794304800.sig",
+        "version_id": null,
+        "hold": null,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": "0x00",
+        "legal_hold_on_write": true
+      },
+      "expected": {
+        "method": "PUT",
+        "target": "/journal-demo/manifestes/periode-1794304800.sig",
+        "headers": [
+          [
+            "Content-Length",
+            "4"
+          ],
+          [
+            "Content-MD5",
+            "g9atfxxQRauBEqhBHICR8g=="
+          ],
+          [
+            "If-None-Match",
+            "*"
+          ],
+          [
+            "x-amz-object-lock-legal-hold",
+            "ON"
+          ]
+        ],
+        "body_utf8": "0x00",
+        "body_length": 4,
+        "body_sha256": "0xc4dd67368286d02d62bdaa7a775b7594765d5210c9ad20cc3c24148d493353d7"
+      }
+    },
+    {
+      "id": "s3-cle-a-encoder",
+      "description": "Clé et version avec espace, lettres accentuées, « + », « / » et « = » : chaque octet UTF-8 hors des non réservés de la RFC 3986 en %XX majuscules ; « / » gardé dans la clé, encodé dans la version.",
+      "input": {
+        "operation": "s3_gel",
+        "bucket": null,
+        "key": "journal démo/pièce.json",
+        "version_id": "a+b/c=",
+        "hold": true,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "PUT",
+        "target": "/journal%20d%C3%A9mo/pi%C3%A8ce.json?legal-hold&versionId=a%2Bb%2Fc%3D",
+        "headers": [
+          [
+            "Content-Length",
+            "128"
+          ],
+          [
+            "Content-MD5",
+            "PabGSMHFuZL/pMW6ZUAWbQ=="
+          ]
+        ],
+        "body_utf8": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><LegalHold xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Status>ON</Status></LegalHold>",
+        "body_length": 128,
+        "body_sha256": "0x297c7f3759c59e7467315024ebd80ad83fe8499b24889bf500a536fb2f433046"
+      }
+    },
+    {
+      "id": "azure-gel-pose",
+      "description": "Azure Set Blob Legal Hold de niveau version : comp=legalhold, versionid encodé (« : » en %3A), x-ms-legal-hold: true, x-ms-version 2020-06-12, sans corps.",
+      "input": {
+        "operation": "azure_gel",
+        "bucket": "noortrace-demo-worm",
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "2026-11-10T11:00:05.1234567Z",
+        "hold": true,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "PUT",
+        "target": "/noortrace-demo-worm/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?comp=legalhold&versionid=2026-11-10T11%3A00%3A05.1234567Z",
+        "headers": [
+          [
+            "Content-Length",
+            "0"
+          ],
+          [
+            "x-ms-legal-hold",
+            "true"
+          ],
+          [
+            "x-ms-version",
+            "2020-06-12"
+          ]
+        ],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    },
+    {
+      "id": "azure-gel-levee",
+      "description": "Azure, levée : x-ms-legal-hold: false.",
+      "input": {
+        "operation": "azure_gel",
+        "bucket": "noortrace-demo-worm",
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "2026-11-10T11:00:05.1234567Z",
+        "hold": false,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "PUT",
+        "target": "/noortrace-demo-worm/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?comp=legalhold&versionid=2026-11-10T11%3A00%3A05.1234567Z",
+        "headers": [
+          [
+            "Content-Length",
+            "0"
+          ],
+          [
+            "x-ms-legal-hold",
+            "false"
+          ],
+          [
+            "x-ms-version",
+            "2020-06-12"
+          ]
+        ],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    },
+    {
+      "id": "azure-etat-version",
+      "description": "Azure Get Blob Properties d'une version (HEAD avec versionid).",
+      "input": {
+        "operation": "azure_etat",
+        "bucket": "noortrace-demo-worm",
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "2026-11-10T11:00:05.1234567Z",
+        "hold": null,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "HEAD",
+        "target": "/noortrace-demo-worm/journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson?versionid=2026-11-10T11%3A00%3A05.1234567Z",
+        "headers": [
+          [
+            "x-ms-version",
+            "2020-06-12"
+          ]
+        ],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    },
+    {
+      "id": "gcs-gel-pose",
+      "description": "GCS PATCH de la ressource objet par l'API JSON : nom d'objet encodé (« / » en %2F), generation, corps JCS intégral {\"temporaryHold\":true} de 22 octets.",
+      "input": {
+        "operation": "gcs_gel",
+        "bucket": "noortrace-demo-worm",
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "1794308405123456",
+        "hold": true,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "PATCH",
+        "target": "/storage/v1/b/noortrace-demo-worm/o/journal-demo%2Fsegments%2Fseg-0000000000000001-00000000000000000001.ndjson?generation=1794308405123456",
+        "headers": [
+          [
+            "Content-Length",
+            "22"
+          ],
+          [
+            "Content-Type",
+            "application/json"
+          ]
+        ],
+        "body_utf8": "{\"temporaryHold\":true}",
+        "body_length": 22,
+        "body_sha256": "0x8b33a10f5f900c9602c7f6088259e39dd1bf97f2fd84d07300857fe1bb464afb"
+      }
+    },
+    {
+      "id": "gcs-gel-levee",
+      "description": "GCS, levée : {\"temporaryHold\":false}, 23 octets.",
+      "input": {
+        "operation": "gcs_gel",
+        "bucket": "noortrace-demo-worm",
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "1794308405123456",
+        "hold": false,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "PATCH",
+        "target": "/storage/v1/b/noortrace-demo-worm/o/journal-demo%2Fsegments%2Fseg-0000000000000001-00000000000000000001.ndjson?generation=1794308405123456",
+        "headers": [
+          [
+            "Content-Length",
+            "23"
+          ],
+          [
+            "Content-Type",
+            "application/json"
+          ]
+        ],
+        "body_utf8": "{\"temporaryHold\":false}",
+        "body_length": 23,
+        "body_sha256": "0x4150f566cbbc45ab07fbbd3143e6dd0924308930a6ebf72f440a7b126b62fc54"
+      }
+    },
+    {
+      "id": "gcs-etat-version",
+      "description": "GCS lecture de la ressource objet d'une génération par l'API JSON.",
+      "input": {
+        "operation": "gcs_etat",
+        "bucket": "noortrace-demo-worm",
+        "key": "journal-demo/segments/seg-0000000000000001-00000000000000000001.ndjson",
+        "version_id": "1794308405123456",
+        "hold": null,
+        "prefix": null,
+        "key_marker": null,
+        "version_id_marker": null,
+        "retain_days": null,
+        "body_utf8": null,
+        "legal_hold_on_write": null
+      },
+      "expected": {
+        "method": "GET",
+        "target": "/storage/v1/b/noortrace-demo-worm/o/journal-demo%2Fsegments%2Fseg-0000000000000001-00000000000000000001.ndjson?generation=1794308405123456",
+        "headers": [],
+        "body_utf8": null,
+        "body_length": 0,
+        "body_sha256": null
+      }
+    }
+  ]
+}
