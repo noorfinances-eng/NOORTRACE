@@ -1,0 +1,48 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": "AT-6",
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "echoue",
+      "reason": null
+    },
+    {
+      "id": "AT-7",
+      "status": "non_execute",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "perimeter_retained": false,
+  "warnings": [
+    "AV-AT-1"
+  ],
+  "description": "Dossier de seq 11 du journal rejoué, dont la partie joint l'inscription seq 12 : l'inscription suit l'événement prouvé (seq et ts), AT-6 échoue, AT-7 n'est pas exécutée (prérequis en échec), AV-AT-1 ; le dossier reste valide."
+}

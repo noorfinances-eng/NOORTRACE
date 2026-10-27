@@ -1,0 +1,263 @@
+{
+  "version": 0,
+  "test": "acceptation-conformite",
+  "rule": "CT-7 EX-9.2, EX-9.3",
+  "source": "spec/vecteurs/ct-7/matrice-conformite.json",
+  "success": "Chaque réponse contient tous ses éléments ; une réponse qui dit qu'une ligne couvert rend le client conforme, ou qui présente l'un des art. 12, 14, 19 ou 26 du règlement (UE) 2024/1689 comme applicable au 2026-10-26 (T-8), échoue quels que soient ses autres éléments.",
+  "questions": [
+    {
+      "id": "P1",
+      "passage": "OPDo art. 4 al. 5",
+      "row": "MC-17",
+      "expected": {
+        "a_pieces": [
+          {
+            "relation": "repond_a",
+            "element": "Conservation : au moins dix ans pour les événements, manifestes et signatures",
+            "condition": null,
+            "pieces": [
+              "CT-2 EX-12.19",
+              "CT-2 EX-15.4",
+              "CT-7 EX-8.12"
+            ]
+          },
+          {
+            "relation": "repond_a",
+            "element": "Stockage séparé : copie WORM de chaque segment, manifeste et signature, hors du système de l'agent et des systèmes du client qu'il touche",
+            "condition": "si `storage.seal.worm` est configuré",
+            "pieces": [
+              "CT-2 EX-12.16",
+              "CT-2 EX-12.30"
+            ]
+          }
+        ],
+        "b_not_covered": [],
+        "b_client": [
+          "Restriction de l'accès aux journaux et limitation de leur usage ; l'enregistreur ne s'en charge que pour ses propres fichiers (utilisateur dédié, droits restreints)"
+        ],
+        "c_status": "partiel",
+        "c_applicability": "en_vigueur",
+        "c_from": [
+          {
+            "date": "2025-12-01",
+            "scope": "art. 4, nouvelle teneur du 29 octobre 2025 (RO 2025 694)"
+          }
+        ]
+      },
+      "table_elements": [
+        "(a) conservation au moins dix ans, CT-2 EX-12.19",
+        "stockage séparé par la copie WORM, si elle est configurée, CT-2 EX-12.16",
+        "(b) restriction de l'accès et de l'usage : client",
+        "(c) `partiel` (la réponse sur le stockage séparé est sous condition, EX-8.3), en vigueur, sous la condition de l'al. 1"
+      ]
+    },
+    {
+      "id": "P2",
+      "passage": "Règlement délégué (UE) 2024/1774, art. 12 § 2 d)",
+      "row": "MC-38",
+      "expected": {
+        "a_pieces": [
+          {
+            "relation": "repond_a",
+            "element": "Manipulation : détectée par hachage, chaînage, signatures et ancres",
+            "condition": null,
+            "pieces": [
+              "CT-1 E-7",
+              "CT-1 C-2",
+              "CT-6 contrôle 6",
+              "CT-6 contrôle 4"
+            ]
+          },
+          {
+            "relation": "repond_a",
+            "element": "Suppression : copies WORM non supprimables avant l'échéance, levée de gel à deux personnes",
+            "condition": "si `storage.seal.worm` est configuré",
+            "pieces": [
+              "CT-2 EX-12.30",
+              "CT-2 EX-12.38"
+            ]
+          },
+          {
+            "relation": "contribue_a",
+            "element": "Accès non autorisé : moindre privilège de l'enregistreur, rédaction avant hachage",
+            "condition": null,
+            "pieces": [
+              "CT-2 EX-18.4",
+              "CT-2 EX-10.2"
+            ]
+          }
+        ],
+        "b_not_covered": [],
+        "b_client": [
+          "Contrôle d'accès aux journaux et à leurs copies"
+        ],
+        "c_status": "partiel",
+        "c_applicability": "en_vigueur",
+        "c_from": []
+      },
+      "table_elements": [
+        "(a) manipulation détectée (hachage, chaînage, signatures, ancres)",
+        "suppression empêchée par les copies WORM si configurées",
+        "contribution du moindre privilège",
+        "(b) contrôle d'accès aux journaux : client",
+        "(c) `partiel`, en vigueur"
+      ]
+    },
+    {
+      "id": "P3",
+      "passage": "Règlement (UE) 2024/1689, art. 26 § 6",
+      "row": "MC-50",
+      "expected": {
+        "a_pieces": [
+          {
+            "relation": "repond_a",
+            "element": "Durée : au moins dix ans pour les événements",
+            "condition": null,
+            "pieces": [
+              "CT-2 EX-12.19",
+              "CT-7 EX-8.12"
+            ]
+          },
+          {
+            "relation": "contribue_a",
+            "element": "Journaux sous le contrôle du déployeur : journal, pièces et clés sur son infrastructure ; clause de conservation",
+            "condition": null,
+            "pieces": [
+              "CT-7 EX-8.10",
+              "CT-7 CL-3"
+            ]
+          }
+        ],
+        "b_not_covered": [
+          "Plancher de dix ans non réductible face à la réserve du droit de la protection des données (lacune L-5)"
+        ],
+        "b_client": [
+          "Période adaptée à la destination, lien avec la documentation du droit des services financiers"
+        ],
+        "c_status": "partiel",
+        "c_applicability": "pas_encore_applicable",
+        "c_from": [
+          {
+            "date": "2027-12-02",
+            "scope": "systèmes à haut risque de l'annexe III"
+          },
+          {
+            "date": "2028-08-02",
+            "scope": "systèmes à haut risque de l'annexe I"
+          }
+        ]
+      },
+      "table_elements": [
+        "(a) durée de dix ans au moins",
+        "journaux sur l'infrastructure du client, clause CL-3",
+        "(b) plancher de dix ans non réductible face à la réserve du droit de la protection des données (L-5)",
+        "période adaptée à la destination, qualité de déployeur : client",
+        "(c) `partiel`, pas encore applicable : 2 décembre 2027 (annexe III), 2 août 2028 (annexe I)"
+      ]
+    },
+    {
+      "id": "P4",
+      "passage": "Olico art. 9 al. 1 let. b",
+      "row": "MC-54",
+      "expected": {
+        "a_pieces": [
+          {
+            "relation": "repond_a",
+            "element": "Ch. 1 : signature électronique de chaque événement et de chaque manifeste",
+            "condition": null,
+            "pieces": [
+              "CT-6 contrôle 6",
+              "CT-2 EX-12.21"
+            ]
+          },
+          {
+            "relation": "repond_a",
+            "element": "Ch. 2 : moment d'enregistrement prouvé par horodatage RFC 3161 et OpenTimestamps : une date au plus tard, celle de la période ou du point de contrôle qui engage l'événement (CT-1 §10.9) ; le `ts` de l'événement reste déclaratif ; le jeton RFC 3161 vaut sous l'hypothèse H4 de CT-6 (prestataire honnête, RA-54, PA-19), et la preuve OpenTimestamps donne une borne indépendante (contrôle 5)",
+            "condition": null,
+            "pieces": [
+              "CT-6 contrôle 4",
+              "CT-6 contrôle 5",
+              "CT-5 EX-5.15"
+            ]
+          },
+          {
+            "relation": "contribue_a",
+            "element": "Ch. 4 : journal d'exploitation, qui porte l'identité de connexion d'hôte et les refus d'authentification, conservé avec le journal dans la limite de `logging.keep_files` ; purges consignées",
+            "condition": null,
+            "pieces": [
+              "CT-2 EX-9.6",
+              "CT-2 EX-12.20"
+            ]
+          }
+        ],
+        "b_not_covered": [
+          "Archivage des fichiers tournés du journal d'exploitation au-delà de `logging.keep_files` : renvoyé à CT-8 (lacune L-9)"
+        ],
+        "b_client": [
+          "Ch. 3 : autres prescriptions du procédé ; qualification du journal"
+        ],
+        "c_status": "partiel",
+        "c_applicability": "en_vigueur",
+        "c_from": []
+      },
+      "table_elements": [
+        "(a) signature de chaque événement et manifeste, horodatage RFC 3161 et OpenTimestamps",
+        "journal d'exploitation : contribue à",
+        "(b) archivage du journal d'exploitation au-delà de `keep_files` : CT-8 (L-9)",
+        "autres prescriptions du procédé et qualification du journal comme livre : client",
+        "(c) `partiel`, en vigueur"
+      ]
+    },
+    {
+      "id": "P5",
+      "passage": "DORA art. 30 § 3 e)",
+      "row": "MC-33",
+      "expected": {
+        "a_pieces": [
+          {
+            "relation": "contribue_a",
+            "element": "Clause de droit d'audit et de coopération",
+            "condition": null,
+            "pieces": [
+              "CT-7 CL-1"
+            ]
+          },
+          {
+            "relation": "contribue_a",
+            "element": "Accès au vérificateur et aux formats sans restriction d'usage",
+            "condition": null,
+            "pieces": [
+              "CT-7 CL-2",
+              "CT-6 §14.4"
+            ]
+          }
+        ],
+        "b_not_covered": [],
+        "b_client": [
+          "Qualification de la fonction comme critique ou importante, exercice des droits"
+        ],
+        "c_status": "partiel",
+        "c_applicability": "en_vigueur",
+        "c_from": [
+          {
+            "date": "2025-01-17",
+            "scope": "tout le règlement (art. 64)"
+          }
+        ]
+      },
+      "table_elements": [
+        "(a) clauses CL-1 et CL-2, vérificateur publié",
+        "(b) qualification de la fonction comme critique ou importante, exercice des droits : client",
+        "(c) `partiel`, applicable depuis le 17 janvier 2025"
+      ]
+    }
+  ],
+  "sixth_question": {
+    "question": "La matrice dit-elle que votre organisation est conforme ?",
+    "expected_answer": "non",
+    "expected": [
+      "non : correspondance technique, pas un avis juridique",
+      "la qualification et la conformité relèvent du client"
+    ]
+  }
+}

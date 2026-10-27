@@ -1,0 +1,10 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": null,
+  "perimeter_checks": [],
+  "perimeter_retained": null,
+  "warnings": [],
+  "description": "Dossier valide-seq-7 dont l'index déclare quatorze parties, la treizième et la quatorzième absentes (« aucun point de contrôle », « aucune attestation de périmètre ») : aucune vérification AT- n'est exécutée ni rapportée ; le dossier ne dit rien du périmètre (CT-7 EX-7.15)."
+}

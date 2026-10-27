@@ -18,12 +18,19 @@ dans la spécification du vérificateur (CT-6 §7).
 - **Les journaux actuels ne valent pas comme preuve.** Ils sont produits et consommés
   par la même partie, modifiables par l'opérateur, conservés 14 à 30 jours par les
   outils d'observabilité. Un journal modifiable est une affirmation, pas une preuve.
-- **Les obligations existent déjà.** DORA exige des logs protégés contre l'altération
-  depuis le 17 janvier 2025 (RTS 2024/1774, art. 12). La FINMA évalue la traçabilité
-  et l'analyse des corrections humaines depuis la Communication 08/2024. L'art. 4 OPDo
-  révisé impose la journalisation des accès machine et un examen écrit d'ici le
-  31 décembre 2026. Le Règlement IA rend la journalisation automatique obligatoire le
-  2 décembre 2027 pour les systèmes de l'annexe III.
+- **Les obligations existent déjà.** Pour les entités financières, DORA s'applique
+  depuis le 17 janvier 2025, et son règlement délégué 2024/1774 (art. 12) exige de
+  protéger les journaux contre la manipulation et la suppression. Dans sa
+  communication 08/2024, la FINMA évalue notamment l'analyse des cas où un résultat
+  de l'IA a été ignoré ou modifié par les utilisateurs. Depuis le 1er décembre 2025,
+  l'art. 4 al. 1 OPDo impose aux responsables privés de journaliser certains
+  traitements automatisés (données sensibles à grande échelle, profilage à risque
+  élevé) quand les mesures préventives ne suffisent pas, et l'al. 5 de conserver
+  ces journaux au moins un an. Le Règlement IA exige que les systèmes à haut risque
+  permettent l'enregistrement automatique des événements, à partir du 2 décembre
+  2027 (annexe III) et du 2 août 2028 (annexe I). CT-7 §8 dit, texte
+  par texte, ce qu'une pièce de NOORTRACE couvre et ce qui reste au client ; ce
+  n'est pas un avis juridique.
 - **Personne ne vend la preuve vérifiable par un tiers.** L'observabilité débogue, la
   gouvernance documente, la sécurité prévient, les plateformes journalisent dans leurs
   murs.
@@ -43,7 +50,10 @@ dans la spécification du vérificateur (CT-6 §7).
    du jeton (CT-5).
 4. **Un dossier de preuve exportable et un vérificateur ouvert**, que le réviseur
    exécute lui-même, hors ligne, sans accès à nos systèmes ; CT-6 §7 dit ce
-   qu'il prouve et ce qu'il faut encore croire.
+   qu'il prouve et ce qu'il faut encore croire. Le dossier peut porter une
+   attestation de périmètre signée par le client (agents, canaux de capture,
+   exceptions connues), que le vérificateur présente comme déclarée, jamais
+   comme prouvée (CT-7 §7).
 5. **Des intégrations larges** : passerelle pour Anthropic, OpenAI et Gemini,
    SDK Python et TypeScript pour LangChain, LangGraph, CrewAI, LlamaIndex, le
    SDK Agents d'OpenAI et LiteLLM, ingestion des traces OpenTelemetry, et un gel
@@ -91,14 +101,15 @@ construction.
   boucle locale, sans émission ni jeton ; voir [chain/README.md](chain/README.md).
 - `spec/` : spécifications normatives, schémas JSON et vecteurs de test ; CT-1 pour
   les formats, CT-2 pour l'enregistreur, CT-3 pour les approbations, CT-4 pour le
-  registre, CT-5 pour l'ancrage, CT-6 pour le vérificateur. Les vecteurs de CT-1
-  à CT-5 sont recalculés par des vérificateurs Go écrits depuis la seule
+  registre, CT-5 pour l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité
+  et la conformité. Les vecteurs de CT-1 à CT-5 et de CT-7 sont recalculés par des vérificateurs Go écrits depuis la seule
   spécification ; ceux de CT-5 et de CT-6 aussi par OpenSSL et la bibliothèque
   officielle d'OpenTimestamps, ceux de CT-6 par go-ethereum, les preuves de
   cohérence par une implémentation publique de la RFC 9162, les échanges
   Gemini et les traces OpenTelemetry de CT-2 par les bibliothèques officielles
   google-genai et opentelemetry-proto, les signatures de CT-3 par ethers et
-  eth-account ; voir
+  eth-account, les signatures d'attestation et de procès-verbal de CT-7 aussi ;
+  voir
   [spec/README.md](spec/README.md).
 - `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
   noorchain-core sans modification ; PeriodRegistry, dérivé de PoSSRegistry de
@@ -108,10 +119,13 @@ construction.
   parcours complet sur le réseau de développement. `npm install`, puis `npm test`.
 - `scripts/lib/` : implémentation de référence de CT-1, de la partie calculable de
   CT-2 (dont, depuis sa révision 0.5, Gemini à la passerelle, l'ingestion
-  OpenTelemetry, le gel juridique des copies WORM et le coût par agent), de CT-3 (dont, depuis sa révision 0.3, la
-  bibliothèque de la console), des conventions de CT-4, du planificateur d'ancrage de CT-5 et
-  des contrôles 4, 5 et 8 de CT-6, avec les vérifications K- des points de
-  contrôle.
+  OpenTelemetry, le gel juridique des copies WORM et le coût par agent), de CT-3
+  (dont, depuis sa révision 0.3, la bibliothèque de la console), des conventions
+  de CT-4, du planificateur d'ancrage de CT-5, des contrôles 4, 5 et 8 de CT-6,
+  avec les vérifications K- des points de contrôle et AT- de l'attestation de
+  périmètre, et de CT-7 (attestation, procès-verbal de cérémonie des clés).
+- `scripts/conformite/` : vérificateur des renvois de CT-7 (chaque exigence citée
+  par le modèle de menace et la matrice de conformité existe).
 - `console/` : console d'approbation de référence de CT-3, page statique sous
   une politique de sécurité du contenu stricte, testée de bout en bout dans
   Chromium ; voir [console/LISEZMOI.md](console/LISEZMOI.md).
@@ -127,9 +141,9 @@ construction.
 
 ## Statut
 
-26 octobre 2026 : conception technique en cours. Écrits : les spécifications CT-1
+27 octobre 2026 : conception technique en cours. Écrits : les spécifications CT-1
 des formats, CT-2 de l'enregistreur, CT-3 des approbations, CT-4 du registre, CT-5
-de l'ancrage et CT-6 du vérificateur, avec leurs vecteurs, leur implémentation de
+de l'ancrage, CT-6 du vérificateur et CT-7 de la sécurité et de la conformité, avec leurs vecteurs, leur implémentation de
 référence et leur confrontation indépendante ; le vérificateur de dossier, avec les huit contrôles ;
 l'instance de développement, les contrats du registre avec leurs tests, le
 parcours complet exécuté sur le réseau de développement ; la méthode RPC du

@@ -1,0 +1,126 @@
+{
+  "version": 0,
+  "family": "croises",
+  "account": 1,
+  "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+  "attestation_digest": "0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd",
+  "cases": [
+    {
+      "name": "decision-comme-attestation",
+      "description": "Signature par le compte 1 du D_A de la décision apr-1192 de CT-1 §6.4, présentée comme signature de l'attestation de l'exemple.",
+      "message": {
+        "kind": "approbation",
+        "digest": "0x59b49949b9e97d7e3fd9d46a3992476dd2cc27c48e25ef77b467816d144f37a7"
+      },
+      "signature": "0x9b56cadb515c1fc18cc37f5b85bc78be8c916daef1ef9017fb3067f19dbcc8585ae2b338117e554f3ec7faa77bc615c82a17a695a4f76295383d9c931d2648a01b",
+      "presented_as": "attestation",
+      "expected": {
+        "check": "CT-1 AT-3",
+        "status": "echoue",
+        "recovered": "0x336f257de6e68d90d80737d289fd251d328280b6"
+      }
+    },
+    {
+      "name": "inscription-comme-attestation",
+      "description": "Signature par le compte 1 du texte d'inscription de CT-3 §13.5 (défi du cas cree-entree, adresse du compte 1), présentée comme signature de l'attestation.",
+      "message": {
+        "kind": "inscription",
+        "text": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example u.martin\nAdresse: 0x70997970c51812dc3a010c7d01b50e0d17dc79c8\nEmis le: 2026-11-10T11:00:00.000Z\nExpire le: 2026-11-10T11:10:00.000Z\nNonce: fe6f4b6a3d986dd1352416a769721bfc"
+      },
+      "signature": "0xbb335d84d8d6b7435ef9599d9e6c1eae4d91c2feb701a03f0921611164529b5a2d55554320edb1cbd9684d4de2ea0d9cba12937f6686123653af185ff806ec241c",
+      "presented_as": "attestation",
+      "expected": {
+        "check": "CT-1 AT-3",
+        "status": "echoue",
+        "recovered": "0xb0fa917dfa1f2cc55b0a33c3ee3bdd1a8d9f825c"
+      }
+    },
+    {
+      "name": "ceremonie-comme-attestation",
+      "description": "Signature par le compte 1 (participant p1) du D_C du procès-verbal valide-creation-enregistreur, présentée comme signature de l'attestation.",
+      "message": {
+        "kind": "ceremonie",
+        "digest": "0x737c29754b0f9259cbb51db37fa76114ff723442eabaa77afbe70b7caecd9478",
+        "case": "ceremonies/valide-creation-enregistreur"
+      },
+      "signature": "0x930dde84b7d248f54a1f98f79974fa2d011864be260bfe04f84d1ae77eb478930d205ed3b10a07f7cd46294f17e902ef7bbf0408c952974bec7159d6014646a21c",
+      "presented_as": "attestation",
+      "expected": {
+        "check": "CT-1 AT-3",
+        "status": "echoue",
+        "recovered": "0x5b5b18920c156ab2540d3f16ed0ee4e14b310e8f"
+      }
+    },
+    {
+      "name": "registre-comme-attestation",
+      "description": "Signature par le compte 1 du periodDigest de la clôture de la période 1 (ct-4/condenses.json, cas period-digest-periode-1), présentée comme signature de l'attestation.",
+      "message": {
+        "kind": "registre",
+        "digest": "0x21c3fd75e15d573638a5c3ec46e986cffec31b2c7b359e1f586da03022491674",
+        "case": "ct-4/condenses.json period-digest-periode-1"
+      },
+      "signature": "0x4937ed029f4003dbe1e83311b9a9c3f98eb28ed6d1bfe01d425d8b618c60bcd2342d5e58a71eaec4a6ed532d450a1f7c215ca4ea9b18a3e009394b53c5ea1fe81c",
+      "presented_as": "attestation",
+      "expected": {
+        "check": "CT-1 AT-3",
+        "status": "echoue",
+        "recovered": "0x07c41948eabd009e759ffba4bfa228f50ba78380"
+      }
+    },
+    {
+      "name": "attestation-comme-decision",
+      "description": "Signature par le compte 1 du D_P de l'attestation de l'exemple, présentée comme signature du D_A de la décision apr-1192 : CT-1 E-9 la refuse.",
+      "message": {
+        "kind": "attestation",
+        "digest": "0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd"
+      },
+      "signature": "0x77cd5463cb88d5e9327bc0f31aecde620267a3a2267efd3cbf18839a57955af1793571375853490a4d494f5eaf28a90812ac70c8fae00d18a7d1edb372ee44f11c",
+      "presented_as": "approbation",
+      "target": {
+        "digest": "0x59b49949b9e97d7e3fd9d46a3992476dd2cc27c48e25ef77b467816d144f37a7"
+      },
+      "expected": {
+        "check": "CT-1 E-9",
+        "status": "echoue",
+        "recovered": "0xa2da564c46829d0255d403a8ae54d4f3d9a2bf9f"
+      }
+    },
+    {
+      "name": "attestation-comme-inscription",
+      "description": "Signature par le compte 1 du D_P, présentée comme signature du texte d'inscription : CT-3 AN-4 la refuse.",
+      "message": {
+        "kind": "attestation",
+        "digest": "0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd"
+      },
+      "signature": "0x77cd5463cb88d5e9327bc0f31aecde620267a3a2267efd3cbf18839a57955af1793571375853490a4d494f5eaf28a90812ac70c8fae00d18a7d1edb372ee44f11c",
+      "presented_as": "inscription",
+      "target": {
+        "text": "noortrace/inscription/v0\nJe lie cette adresse a mon identite pour approuver dans NOORTRACE. Ce message n'est pas un vote.\nOrigine: https://console.assureur-demo.example\nOrganisation: assureur-demo\nIdentifiant d'organisation: 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab\nIdentite: oidc https://idp.assureur-demo.example u.martin\nAdresse: 0x70997970c51812dc3a010c7d01b50e0d17dc79c8\nEmis le: 2026-11-10T11:00:00.000Z\nExpire le: 2026-11-10T11:10:00.000Z\nNonce: fe6f4b6a3d986dd1352416a769721bfc"
+      },
+      "expected": {
+        "check": "CT-3 AN-4",
+        "status": "echoue",
+        "recovered": "0x747b5bb33ee6e79f12101802c6381bfd60e877c0"
+      }
+    },
+    {
+      "name": "attestation-comme-ceremonie",
+      "description": "Signature par le compte 1 du D_P, présentée comme signature de p1 sur le procès-verbal valide-creation-enregistreur : CT-7 CR-11 la refuse.",
+      "message": {
+        "kind": "attestation",
+        "digest": "0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd"
+      },
+      "signature": "0x77cd5463cb88d5e9327bc0f31aecde620267a3a2267efd3cbf18839a57955af1793571375853490a4d494f5eaf28a90812ac70c8fae00d18a7d1edb372ee44f11c",
+      "presented_as": "ceremonie",
+      "target": {
+        "digest": "0x737c29754b0f9259cbb51db37fa76114ff723442eabaa77afbe70b7caecd9478",
+        "case": "ceremonies/valide-creation-enregistreur"
+      },
+      "expected": {
+        "check": "CT-7 CR-11",
+        "status": "echoue",
+        "recovered": "0x76a0a3c16dde1cd40d0cbd289ebcc1bd7f15ed8d"
+      }
+    }
+  ]
+}

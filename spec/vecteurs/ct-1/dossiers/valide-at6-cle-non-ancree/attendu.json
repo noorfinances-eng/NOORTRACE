@@ -1,0 +1,46 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": "AT-6",
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "non_execute",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "AT-7",
+      "status": "non_execute",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "perimeter_retained": true,
+  "warnings": [],
+  "description": "Dossier valide-seq-7-attestation-sans-inscription où l'exportateur ajoute à cles.json une clé rec-forge-01 (graine = SHA-256 de « noortrace/vecteurs/ct7/rec-forge-01 ») et joint une inscription forgée : seq 2, 09:10:00.000Z, signée par rec-forge-01, document de politique portant D_P sous la version de l'événement prouvé. L'événement prouvé (seq 7) est signé par rec-test-01 : la clé de l'inscription n'est pas la sienne, rien ne la relie au journal, AT-6 n'est pas exécutée (ancre_absente) et AT-7 non plus (prérequis) ; l'attestation est retenue sans clause d'inscription (CT-6 EX-6.19), le dossier reste valide (CT-7 MN-84, MN-90)."
+}

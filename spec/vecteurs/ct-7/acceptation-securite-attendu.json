@@ -1,0 +1,68 @@
+{
+  "version": 0,
+  "test": "acceptation-securite",
+  "rule": "CT-7 EX-9.1",
+  "success": "Chacune des six réponses contient la menace, une réponse, une détection et le risque résiduel de la grille.",
+  "scenarios": [
+    {
+      "id": "S1",
+      "scenario": "La graine de la clé de l'enregistreur, gardée en classe C, a pu être lue sur l'hôte",
+      "threat": "MN-30",
+      "expected": [
+        "rotation d'urgence (CT-2 EX-11.16)",
+        "ancres extérieures",
+        "rapprochement impossible en classe C",
+        "RA-26"
+      ]
+    },
+    {
+      "id": "S2",
+      "scenario": "Un agent joint directement un serveur d'outils HTTP sans passer par le mandataire",
+      "threat": "MN-1",
+      "expected": [
+        "CT-2 EX-4.1, pare-feu",
+        "journal du pare-feu, essai de sortie (CT-7 EX-3.13)",
+        "RA-1"
+      ]
+    },
+    {
+      "id": "S3",
+      "scenario": "La console fait signer à un approbateur le condensé d'une autre demande retenue",
+      "threat": "MN-45",
+      "expected": [
+        "recalcul et affichage de `D_A`, notification indépendante (CT-3 EX-13.3)",
+        "empreintes de la page (CT-7 EX-3.9)",
+        "RA-41"
+      ]
+    },
+    {
+      "id": "S4",
+      "scenario": "La clé de gouvernance d'une organisation est volée",
+      "threat": "MN-37",
+      "expected": [
+        "classe A à C, cérémonie, sondage des événements du jeu (CT-4 EX-8.12)",
+        "RA-33"
+      ]
+    },
+    {
+      "id": "S5",
+      "scenario": "Le service d'approbation rend `autorise` pour un appel que la politique soumet à approbation",
+      "threat": "MN-44",
+      "expected": [
+        "canal authentifié, intégrité du service (CT-7 EX-3.10)",
+        "réévaluation (CT-3 §6.8)",
+        "RA-40"
+      ]
+    },
+    {
+      "id": "S6",
+      "scenario": "Un gel juridique est levé par une seule personne",
+      "threat": "MN-28",
+      "expected": [
+        "règle de garde (CT-2 EX-12.38), Lecteur hors du démon (CT-2 EX-17.7)",
+        "alerte « Gel non posé sur une version d'un gel actif »",
+        "RA-24"
+      ]
+    }
+  ]
+}

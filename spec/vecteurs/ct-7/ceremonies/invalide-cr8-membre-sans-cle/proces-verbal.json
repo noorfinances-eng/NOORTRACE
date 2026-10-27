@@ -1,0 +1,177 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-03-membres-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "inscription_membres",
+  "purpose_details": null,
+  "environment": "production",
+  "place": "Salle de réunion, site principal (exemple)",
+  "started_at": "2026-11-03T14:00:00.000Z",
+  "ended_at": "2026-11-03T14:40:00.000Z",
+  "script": {
+    "title": "Inscription des membres du jeu d'approbateurs",
+    "version": "1",
+    "sha256": "0x44b022351f4b39ee5e5f2377b138f295af35162586378c6abae083f5004d3c6f"
+  },
+  "workstation": {
+    "description": "Aucune clé générée en cérémonie : chaque clé naît dans le portefeuille de son membre",
+    "offline": false,
+    "image_sha256": null
+  },
+  "entropy": {
+    "source": "detenteur",
+    "description": "Chaque membre a généré sa clé dans son portefeuille, avant la cérémonie"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant (compte de test 1)",
+      "role": "officiant",
+      "affiliation": "assureur-demo, exploitation",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 2)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, sécurité",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    },
+    {
+      "id": "p3",
+      "name": "Membre (compte de test 5)",
+      "role": "membre",
+      "affiliation": "assureur-demo, sinistres",
+      "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc"
+    },
+    {
+      "id": "p4",
+      "name": "Membre (compte de test 6)",
+      "role": "membre",
+      "affiliation": "assureur-demo, conformité",
+      "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9"
+    },
+    {
+      "id": "p5",
+      "name": "Membre (compte de test 7)",
+      "role": "membre",
+      "affiliation": "assureur-demo, finances",
+      "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-03T14:02:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Le témoin constate l'identité du membre p3 sur une pièce d'identité ; le membre lit son adresse dans son portefeuille ; l'officiant l'inscrit",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-03T14:10:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Le témoin constate l'identité du membre p4 sur une pièce d'identité ; le membre lit son adresse dans son portefeuille ; l'officiant l'inscrit",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-03T14:18:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 4,
+      "action": "Écrire le procès-verbal ; chaque participant recalcule D_C sur son poste et signe",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-03T14:35:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "approbateur-compte-5",
+      "usage": "approbateur",
+      "algorithm": "secp256k1",
+      "generated_in": "detenteur",
+      "custody_class": "sans_objet",
+      "backend": "portefeuille du membre",
+      "public_key": null,
+      "fingerprint": null,
+      "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    },
+    {
+      "key_id": "approbateur-compte-6",
+      "usage": "approbateur",
+      "algorithm": "secp256k1",
+      "generated_in": "detenteur",
+      "custody_class": "sans_objet",
+      "backend": "portefeuille du membre",
+      "public_key": null,
+      "fingerprint": null,
+      "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    }
+  ],
+  "records": [
+    {
+      "kind": "video",
+      "name": "camera-1.mp4",
+      "sha256": "0xf525025121dbfe1ccc3f09d8c76dd2d10559896dc887c0aad26b6d3d59649237"
+    }
+  ],
+  "findings": [],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0x7be728aa27da5d189e16ae489d47e1a8a0567d79f55fac85db8a632e11cf86aa5e1e079e79f8bc8aadc790d16c653fdb1878c54997dbd86d28a2a1c52ebd8a181c"
+    },
+    {
+      "participant": "p2",
+      "signature": "0x37552e49030a79b60b36f083d7933e21937361d7715a4191a9fed0733ead6ca4093b0834038e2d7fab4c636675ab42cd008a2b0f68d1b6369e9466c3623667ce1b"
+    },
+    {
+      "participant": "p3",
+      "signature": "0x9bd8e2877b5c02a6c257c8930be43001baec5a5a54ec09ea6e8634a447f557531838da6f0bb4a611b81c4449be0422e738dd0ab54fc2156438e7f7f50ea61b821b"
+    },
+    {
+      "participant": "p4",
+      "signature": "0x6b4cb3d0ab1ca4d3786f97136d848a424ec5b0b4536cee83fd79742df542cbc36372df36a4cb523c5163f8a7ea1ee06be44eb018f185ae15fa62a0a521d420da1c"
+    },
+    {
+      "participant": "p5",
+      "signature": "0x158fde3fa19e249e917f9d14644af625b6a2aed2b837068ba8b494837e1da7bc5ae97a2c89becd5f91ee984ea47efac92f2e710f64c5a9f6bec2e5e7a44793e01b"
+    }
+  ]
+}

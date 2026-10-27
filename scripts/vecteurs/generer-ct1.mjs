@@ -4,8 +4,9 @@
 // journal fictif d'un assureur (douze événements), journaux altérés avec leur
 // diagnostic, arbres de Merkle, manifestes de période, dossiers de preuve
 // valides et invalides (au moins un par contrôle de CT-1 §11.4), séries de
-// points de contrôle et preuves de cohérence (révision 0.3), et l'index
-// INDEX.md qui les décrit.
+// points de contrôle et preuves de cohérence (révision 0.3), dossiers qui
+// portent la partie attestation-perimetre.json (révision 0.4, CT-7 annexe A.7),
+// et l'index INDEX.md qui les décrit.
 //
 //   node scripts/vecteurs/generer-ct1.mjs [--sortie <répertoire>]
 //
@@ -21,6 +22,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { HDNodeWallet, keccak256, toUtf8Bytes } from "ethers";
 import * as J from "../lib/journal.mjs";
+import * as S from "../lib/securite.mjs";
+import * as A from "./ct7/attestation.mjs";
 import { anchorFingerprint, parseArgs } from "../lib/noortrace.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -106,7 +109,10 @@ const REDACTION = "pii-v1";
 // echangeSansReponse (seq 1 sans result, duration_ms, is_error),
 // longueurReferenceDecision (écart ajouté à la length de la référence A),
 // signatureNonCanonique (indice de la signature mise en forme haute),
-// demandeRefusee (seq 5 refusé par la politique au lieu d'être retenu).
+// demandeRefusee (seq 5 refusé par la politique au lieu d'être retenu) ;
+// révision 0.4 (journal rejoué de CT-7 §7.5) : politique12 (valeur en ligne
+// { policy_version, policy_sha256 } de l'événement de politique seq 12) et
+// politique13 ({ ts, policy_version, policy_sha256 } : un seq 13 de politique).
 // ---------------------------------------------------------------------------
 
 const DELEGATION = { launched_by: "u.martin@assureur-demo.example", on_behalf_of: "service-sinistres", scope: "sinistres:lecture,paiement,courriel", run_id: "run-2026-11-05-0007" };
@@ -227,10 +233,20 @@ function construireJournal(variante = {}) {
       ts: ts(12, T(10, 5, 0, 0)), recorder_key_id: k2,
       delegation: { launched_by: "noortrace-enregistreur", on_behalf_of: null, scope: "journal:administration", run_id: null },
       code: CODE_JOURNAL("2026-11-05"), intent: null, policy: POLICY("sans_objet"), approval: null,
-      execution: EXEC(J.OUTIL_POLITIQUE, { args: J.referenceEnLigne({ policy_version: "2026-11-05", policy_sha256: J.sha256(Buffer.from(PIECES.politique, "utf8")) }) }),
+      execution: EXEC(J.OUTIL_POLITIQUE, { args: J.referenceEnLigne(variante.politique12 ?? { policy_version: "2026-11-05", policy_sha256: J.sha256(Buffer.from(PIECES.politique, "utf8")) }) }),
       effects: [], context: [],
     },
   ];
+  if (variante.politique13) {
+    const { ts: ts13, policy_version, policy_sha256 } = variante.politique13;
+    suivants.push({
+      ts: ts13, recorder_key_id: k2,
+      delegation: { launched_by: "noortrace-enregistreur", on_behalf_of: null, scope: "journal:administration", run_id: null },
+      code: CODE_JOURNAL(policy_version), intent: null, policy: POLICY("sans_objet"), approval: null,
+      execution: EXEC(J.OUTIL_POLITIQUE, { args: J.referenceEnLigne({ policy_version, policy_sha256 }) }),
+      effects: [], context: [],
+    });
+  }
   evenements.push(...J.chainer(suivants, { ...commun, premierSeq: 6, prevHash: demande.hash }));
 
   // Manifestes des trois périodes, signés par la clé en vigueur à la clôture (rec-test-02 dès la rotation).
@@ -259,8 +275,12 @@ function construireJournal(variante = {}) {
   return { evenements, periodes, cles, A };
 }
 
-/** Le dossier de l'événement `seq` d'un journal construit ; `point` (facultatif) : un point signé qui le couvre, pour la treizième partie (CT-1 révision 0.3). */
-function dossierPour(jeu, seq, { point = null, anchors = {}, raisons = {} } = {}) {
+/**
+ * Le dossier de l'événement `seq` d'un journal construit ; `point` (facultatif) :
+ * un point signé qui le couvre, pour la treizième partie (CT-1 révision 0.3) ;
+ * `attestation` (facultatif) : la quatorzième partie (révision 0.4), objet ou texte.
+ */
+function dossierPour(jeu, seq, { point = null, anchors = {}, raisons = {}, attestation = null } = {}) {
   const ev = jeu.evenements.find((e) => e.seq === seq);
   const periode = jeu.periodes.find((p) => p.manifeste.first_seq <= seq && seq <= p.manifeste.last_seq);
   const approbations =
@@ -280,6 +300,7 @@ function dossierPour(jeu, seq, { point = null, anchors = {}, raisons = {} } = {}
     cles: jeu.cles,
     approbations,
     pointsDeControle: point ? J.construirePartiePointsDeControle({ point, feuillesPeriode: periode.hashes, anchors }) : null,
+    attestationPerimetre: attestation,
     generated_at: GENERATED_AT_DOSSIER,
     raisons,
   });
@@ -298,7 +319,7 @@ function ecrire(relatif, contenu) {
 }
 const ecrireJSON = (relatif, valeur) => ecrire(relatif, J.texteJSON(valeur));
 
-const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle"].map((n) => JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "spec", "schemas", `${n}-v0.schema.json`), "utf8"))));
+const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle", "attestation-perimetre"].map((n) => JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "spec", "schemas", `${n}-v0.schema.json`), "utf8"))));
 
 function exiger(condition, message) {
   if (!condition) throw new Error(`génération interrompue : ${message}`);
@@ -1004,11 +1025,202 @@ const invalide = (controle, controles_en_echec, description) => ({ valide: false
   }
 }
 
+// 6 ter. Dossiers avec la partie attestation-perimetre.json (CT-1 révision 0.4,
+// §11.2, AT-1 à AT-7 ; CT-7 §7 et annexe A.7). Les cinquante dossiers ci-dessus
+// ne changent pas ; ceux-ci s'y ajoutent. AT-1 à AT-7 ne changent jamais la
+// validité du dossier : leur attendu est donné à part (perimeter_checks).
+{
+  /** Écrit un dossier qui porte (ou déclare) la quatorzième partie, après avoir vérifié verdict, contrôles en échec, AT- et avertissements. */
+  const ecrireDossierAT = (nom, fichiers, attendu) => {
+    const rapport = J.verifierDossier(fichiers, { schemas: SCHEMAS });
+    const at = rapport.attestation;
+    const obtenu = {
+      perimeter_checks: at ? at.checks.map((c) => ({ id: c.id, status: c.status, reason: c.reason })) : [],
+      perimeter_retained: at ? at.retenue : null,
+      warnings: at ? at.avertissements.map((w) => w.id) : [],
+    };
+    const attenduAT = { perimeter_checks: attendu.perimeter_checks, perimeter_retained: attendu.perimeter_retained, warnings: attendu.warnings };
+    exiger(JSON.stringify(obtenu) === JSON.stringify(attenduAT), `${nom} : vérifications AT- ${JSON.stringify(obtenu)}, attendues ${JSON.stringify(attenduAT)} ; détails : ${JSON.stringify(at?.checks.map((c) => [c.id, c.detail?.fr]))}`);
+    ecrireDossier(nom, fichiers, attendu);
+  };
+  // Statuts attendus de AT-1 à AT-7 : « r » réussi, « e » en échec, sinon la raison de non-exécution.
+  const statuts = (...codes) => codes.map((c, i) => ({ id: `AT-${i + 1}`, status: c === "r" ? "reussi" : c === "e" ? "echoue" : "non_execute", reason: c === "r" || c === "e" ? null : c }));
+  const PA = "partie_absente";
+  const PR = "prerequis_en_echec";
+  const HD = "piece_hors_dossier";
+  const attenduAT = ({ valide = true, controle = null, controles_en_echec = [], cible = null, checks, retenue, warnings = [], description }) => ({ valide, controle, controles_en_echec, perimeter_target: cible, perimeter_checks: checks, perimeter_retained: retenue, warnings, description });
+  const SANS_POINT = { points_de_controle: J.RAISON_AUCUN_POINT };
+  const reindexer = (fichiers) => J.reindexerDossier(fichiers).fichiers;
+  const FICHIER = J.PARTIE_ATTESTATION_PERIMETRE.file;
+
+  const P = A.attestationExemple();
+  const signee = A.signer(P);
+  exiger(signee.digest === "0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd", `D_P de l'exemple de CT-7 §7.2 inattendu : ${signee.digest}`);
+  const JEU = A.jeuExemple();
+  exiger(JSON.stringify(JEU.members) === JSON.stringify(ADRESSES_HARDHAT) && JEU.source === SOURCE_APPROBATEURS, "jeu de l'attestation différent de celui des approbations des vecteurs");
+  const partie = (sig = signee, jeuDeclare = JEU, inscription = null) => S.construirePartieAttestation({ signee: sig, approver_set: jeuDeclare, inscription });
+
+  // Journal rejoué de CT-7 §7.5 : seq 12 annonce l'ensemble de politique réduit qui porte D_P.
+  const doc = A.documentPolitique(signee.digest);
+  const politique12 = { policy_version: "2026-11-05", policy_sha256: J.sha256(doc) };
+  exiger(politique12.policy_sha256 === "0x5016ffc47d07a5ec0dae8c464a0a5cf466cd4f425fadbf293dafbd36617f63d9", "policy_sha256 du journal rejoué inattendu");
+  const rejoue = construireJournal({ politique12 });
+  const seq12 = rejoue.evenements.find((e) => e.seq === 12);
+  exiger(seq12.hash === "0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90", `hash du seq 12 rejoué inattendu : ${seq12.hash}`);
+  exiger(J.verifierChaine(rejoue.evenements, { clesPubliques: rejoue.cles }).valide, "journal rejoué refusé");
+  const partie12 = partie(signee, JEU, { event: seq12, policy_document: doc });
+  exiger(J.sha256(Buffer.from(J.texteJSON(partie12), "utf8")) === "0x4e3f9bd1cbf51471154dab29848742103c619518fb962fc93869c26304c8a120", "partie du dossier valide-seq-12-attestation-inscrite différente de celle de CT-1 §11.2");
+
+  const d12 = dossierPour(rejoue, 12, { raisons: SANS_POINT, attestation: partie12 });
+  ecrireDossierAT("valide-seq-12-attestation-inscrite", d12.fichiers, attenduAT({ checks: statuts("r", "r", "r", "r", "r", "r", "r"), retenue: true, description: "Journal rejoué de CT-7 §7.5 : seq 12 (rec-test-02) annonce la politique 2026-11-05 dont le document réduit porte perimeter.attestation_digest = D_P de l'attestation de CT-7 §7.1. Dossier de seq 12, quatorze parties (la treizième absente, « aucun point de contrôle ») ; la partie porte l'attestation signée par les comptes Hardhat 1 et 2, le jeu des comptes 1 à 3 au seuil de 2, et l'inscription (seq 12 et le document en base64). AT-1 à AT-7 réussissent : attestation retenue et inscrite (clé rec-test-02, celle de l'événement prouvé) ; AT-7 ne compare que le nom de la version de politique, et l'énoncé dit « sous une version de politique de même nom que celle de cet événement » (CT-6 EX-6.19)." }));
+
+  const F7 = dossierPour(jeu, 7, { raisons: SANS_POINT, attestation: partie() }).fichiers;
+  ecrireDossierAT("valide-seq-7-attestation-sans-inscription", F7, attenduAT({ checks: statuts("r", "r", "r", "r", "r", PA, PA), retenue: true, description: "Dossier valide-seq-7 avec la quatorzième partie sans inscription (inscription vaut null) et la treizième absente : AT-1 à AT-5 réussissent, AT-6 et AT-7 ne sont pas exécutées (partie absente) ; l'attestation est retenue sans place dans le journal (CT-7 EX-7.12). Le jeu déclaré est celui de approbations.json : aucun avertissement." }));
+
+  ecrireDossierAT("valide-seq-7-attestation-declaree-absente", dossierPour(jeu, 7, { raisons: { ...SANS_POINT, attestation_perimetre: J.RAISON_AUCUNE_ATTESTATION } }).fichiers, attenduAT({ checks: [], retenue: null, description: `Dossier valide-seq-7 dont l'index déclare quatorze parties, la treizième et la quatorzième absentes (« ${J.RAISON_AUCUN_POINT} », « ${J.RAISON_AUCUNE_ATTESTATION} ») : aucune vérification AT- n'est exécutée ni rapportée ; le dossier ne dit rien du périmètre (CT-7 EX-7.15).` }));
+
+  // AT-7 : seq 13 annonce une autre politique, sans perimeter ; l'événement prouvé (seq 13) porte cette autre version.
+  {
+    const doc13 = Buffer.from(J.canonicaliserJCSIntegral({ version: "2026-11-06" }), "utf8");
+    const prolonge = construireJournal({ politique12, politique13: { ts: T(10, 20, 0, 0), policy_version: "2026-11-06", policy_sha256: J.sha256(doc13) } });
+    const ins = prolonge.evenements.find((e) => e.seq === 12);
+    exiger(ins.hash === seq12.hash, "seq 12 du journal prolongé différent du journal rejoué");
+    ecrireDossierAT("valide-seq-13-at7-autre-version", dossierPour(prolonge, 13, { raisons: SANS_POINT, attestation: partie12 }).fichiers, attenduAT({ cible: "AT-7", checks: statuts("r", "r", "r", "r", "r", "r", HD), retenue: true, warnings: ["AV-AT-3"], description: "Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui annonce la politique 2026-11-06, sans membre perimeter ; dossier de seq 13 dont la partie joint l'inscription seq 12. AT-6 réussit (seq 12 précède seq 13) ; AT-7 n'est pas exécutée (pièce hors dossier : l'ensemble de politique en vigueur pour l'événement n'est pas celui de l'inscription), avertissement AV-AT-3 ; l'attestation reste retenue, et l'énoncé dit « sans preuve qu'elle était en vigueur pour cet événement (version de politique différente) » (CT-6 EX-6.19)." }));
+  }
+
+  // AT-1 : la partie réduite au littéral null.
+  ecrireDossierAT("valide-at1-partie-nulle", reindexer({ ...F7, [FICHIER]: J.texteJSON(null) }), attenduAT({ cible: "AT-1", checks: statuts("e", PR, PR, PR, PR, PR, PR), retenue: false, warnings: ["AV-AT-1"], description: "La partie attestation-perimetre.json est le littéral null (index recalculé) : AT-1 échoue, AT-2 à AT-7 ne sont pas exécutées (prérequis en échec), AV-AT-1 ; le dossier reste valide (CT-1 §11.4, CT-6 EX-5.11)." }));
+
+  // AT-1 : la partie dépasse 4 Mio d'un octet (espaces de mise en forme), conforme à son schéma.
+  {
+    const texte = J.texteJSON(partie());
+    const grand = texte.slice(0, -1) + " ".repeat(S.LIMITE_PARTIE_ATTESTATION + 1 - Buffer.byteLength(texte, "utf8")) + "\n";
+    exiger(Buffer.byteLength(grand, "utf8") === S.LIMITE_PARTIE_ATTESTATION + 1, "taille de la partie de valide-at1-taille");
+    ecrireDossierAT("valide-at1-taille", reindexer({ ...F7, [FICHIER]: grand }), attenduAT({ cible: "AT-1", checks: statuts("e", PR, PR, PR, PR, PR, PR), retenue: false, warnings: ["AV-AT-1"], description: `La partie fait ${S.LIMITE_PARTIE_ATTESTATION + 1} octets (4 Mio plus un octet) : la même partie que valide-seq-7-attestation-sans-inscription, complétée par des espaces de mise en forme avant le saut de ligne final, donc conforme à son schéma. Au-delà de la limite de CT-6 EX-4.15 : AT-1 échoue, AT-2 à AT-7 ne sont pas exécutées, AV-AT-1 ; D-2 réussit (SHA-256 de l'index exact), le dossier reste valide.` }));
+  }
+
+  // AT-3 : la signature du compte 3 déclarée pour le compte 2 (CT-7 §7.2).
+  {
+    const sub = structuredClone(signee);
+    sub.signatures[1].signature = A.signature(P, 3).signature;
+    exiger(sub.signatures[1].signature === "0x3daebe7960d9870ebf2d5a03492283474286dbf28f7e53f20b51ba60f6e01cd603332971435717c899b12c9dd0a37aa7704e9500645a67732f7821eaf034648b1c", "signature du compte 3 de CT-7 §7.2 inattendue");
+    ecrireDossierAT("valide-at3-signature-substituee", reindexer({ ...F7, [FICHIER]: J.texteJSON(partie(sub)) }), attenduAT({ cible: "AT-3", checks: statuts("r", "r", "e", PR, "r", PA, PA), retenue: false, warnings: ["AV-AT-1"], description: "La signature du compte Hardhat 3 sur D_P est déclarée pour le compte 2 (cas invalide-at3-signature-substituee de CT-7 annexe A.6) : l'adresse recouvrée est 0x90f79bf6eb2c4f870365e785982e1f101e93b906, AT-3 échoue, AT-4 n'est pas exécutée, AV-AT-1 ; le dossier reste valide." }));
+  }
+
+  // AT-4 réussie avec un jeu déclaré différent de celui de approbations.json : AV-AT-2.
+  {
+    const jeu124 = { threshold: { required: 2, size: 3 }, members: [A.adresse(1), A.adresse(2), A.adresse(4)], source: "comptes Hardhat 1, 2 et 4 (vecteurs CT-7)" };
+    ecrireDossierAT("valide-at4-jeu-different", reindexer({ ...F7, [FICHIER]: J.texteJSON(partie(signee, jeu124)) }), attenduAT({ cible: "AT-4", checks: statuts("r", "r", "r", "r", "r", PA, PA), retenue: true, warnings: ["AV-AT-2"], description: "Le jeu déclaré par la partie est celui des comptes Hardhat 1, 2 et 4 (seuil de 2 sur 3), approbations.json déclare les comptes 1 à 3 : AT-4 réussit (les comptes 1 et 2 sont membres des deux jeux), l'attestation est retenue, et AV-AT-2 signale les deux jeux différents." }));
+  }
+
+  // AT-5 : l'attestation ne couvre pas le journal de l'événement.
+  {
+    const P5 = A.attestationExemple();
+    P5.journals = P5.journals.filter((j) => j.name === "journal-principal");
+    P5.agents = P5.agents.filter((a) => a.journal_id === A.JOURNAL_PRINCIPAL);
+    ecrireDossierAT("valide-at5-autre-journal", reindexer({ ...F7, [FICHIER]: J.texteJSON(partie(A.signer(P5))) }), attenduAT({ cible: "AT-5", checks: statuts("r", "r", "r", "r", "e", PA, PA), retenue: false, warnings: ["AV-AT-1"], description: "Attestation (signée par les comptes 1 et 2) qui ne couvre que journal-principal et son agent : l'événement prouvé est de journal-sinistres, AT-5 échoue, AV-AT-1 ; le dossier reste valide." }));
+  }
+  {
+    const P5 = A.attestationExemple();
+    P5.validity = { from: "2026-11-01T00:00:00.000Z", until: "2026-11-04T23:59:59.999Z" };
+    ecrireDossierAT("valide-at5-hors-validite", reindexer({ ...F7, [FICHIER]: J.texteJSON(partie(A.signer(P5))) }), attenduAT({ cible: "AT-5", checks: statuts("r", "r", "r", "r", "e", PA, PA), retenue: false, warnings: ["AV-AT-1"], description: "Attestation valable du 1er au 4 novembre 2026 (signée par les comptes 1 et 2), événement prouvé du 5 novembre : ts hors de la validité, AT-5 échoue, AV-AT-1 ; le dossier reste valide." }));
+  }
+
+  // AT-6 : inscription postérieure à l'événement prouvé (dossier de seq 11 du journal rejoué).
+  ecrireDossierAT("valide-at6-inscription-posterieure", dossierPour(rejoue, 11, { raisons: SANS_POINT, attestation: partie12 }).fichiers, attenduAT({ cible: "AT-6", checks: statuts("r", "r", "r", "r", "r", "e", PR), retenue: false, warnings: ["AV-AT-1"], description: "Dossier de seq 11 du journal rejoué, dont la partie joint l'inscription seq 12 : l'inscription suit l'événement prouvé (seq et ts), AT-6 échoue, AT-7 n'est pas exécutée (prérequis en échec), AV-AT-1 ; le dossier reste valide." }));
+
+  // AT-6 : document de politique qui porte un autre condensé (journal rejoué en conséquence).
+  {
+    const autre = J.sha256(Buffer.from("noortrace/vecteurs/ct7/autre-attestation", "utf8"));
+    const docAutre = A.documentPolitique(autre);
+    const jeuAutre = construireJournal({ politique12: { policy_version: "2026-11-05", policy_sha256: J.sha256(docAutre) } });
+    const insAutre = jeuAutre.evenements.find((e) => e.seq === 12);
+    ecrireDossierAT("valide-at6-document-autre-condense", dossierPour(jeuAutre, 12, { raisons: SANS_POINT, attestation: partie(signee, JEU, { event: insAutre, policy_document: docAutre }) }).fichiers, attenduAT({ cible: "AT-6", checks: statuts("r", "r", "r", "r", "r", "e", PR), retenue: false, warnings: ["AV-AT-1"], description: "Journal rejoué dont seq 12 annonce un document de politique dont perimeter.attestation_digest est SHA-256(« noortrace/vecteurs/ct7/autre-attestation ») et non D_P (événement rescellé, dossier de seq 12) : AT-6 échoue, AV-AT-1 ; le dossier reste valide." }));
+  }
+
+  // AT-6 : événement d'inscription signé par rec-test-01 alors qu'il nomme rec-test-02 (seule la partie change).
+  {
+    const pk = J.analyserJSONStrict(d12.fichiers[FICHIER]);
+    pk.inscription.event.sig = J.signerEvenement(pk.inscription.event, CLES_PRIVEES["rec-test-01"]);
+    ecrireDossierAT("valide-at6-inscription-signature-fausse", reindexer({ ...d12.fichiers, [FICHIER]: J.texteJSON(pk) }), attenduAT({ cible: "AT-6", checks: statuts("r", "r", "r", "r", "r", "e", PR), retenue: false, warnings: ["AV-AT-1"], description: "Dossier valide-seq-12-attestation-inscrite dont l'événement d'inscription joint à la partie est signé par rec-test-01 alors qu'il nomme rec-test-02 (hash inchangé, evenement.json intact) : la signature est invalide sous la clé nommée, AT-6 échoue, AV-AT-1 ; le dossier reste valide." }));
+  }
+
+  // AT-6 : inscription forgée sous une clé que le dossier déclare lui-même (CT-7 MN-84, MN-90) :
+  // une clé rec-forge-01, dérivée d'une étiquette publique, ajoutée à cles.json, signe un
+  // événement noortrace.journal.politique seq 2 qui porte D_P. La clé n'est pas celle de
+  // l'événement prouvé : rien ne la relie au journal, AT-6 n'est pas exécutée (ancre_absente).
+  {
+    const ev7 = lireF(F7, "evenement.json");
+    const forge = J.cleEd25519DepuisGraine(J.sha256(Buffer.from("noortrace/vecteurs/ct7/rec-forge-01", "utf8")));
+    const cles7 = lireF(F7, "cles.json");
+    cles7.keys.push({ key_id: "rec-forge-01", algorithm: "ed25519", public_key: forge.clePublique, valid_from: "2026-11-01T00:00:00.000Z", valid_to: null, source: SOURCE_CLES });
+    const docForge = A.documentPolitique(signee.digest, ev7.code.policy_version);
+    const insForge = J.scellerEvenement({
+      version: 0, seq: 2, ts: "2026-11-05T09:10:00.000Z", org_id: ev7.org_id, journal_id: ev7.journal_id,
+      prev_hash: J.sha256(Buffer.from("noortrace/vecteurs/ct7/prev-hash-forge", "utf8")), recorder_key_id: "rec-forge-01",
+      delegation: { launched_by: "noortrace-enregistreur", on_behalf_of: null, scope: "journal:administration", run_id: null },
+      code: CODE_JOURNAL(ev7.code.policy_version), intent: null, policy: POLICY("sans_objet"), approval: null,
+      execution: EXEC(J.OUTIL_POLITIQUE, { args: J.referenceEnLigne({ policy_version: ev7.code.policy_version, policy_sha256: J.sha256(docForge) }) }),
+      effects: [], context: [],
+    }, forge.clePrivee);
+    const fichiersForge = { ...remplacer(F7, "cles.json", cles7), [FICHIER]: J.texteJSON(partie(signee, JEU, { event: insForge, policy_document: docForge })) };
+    ecrireDossierAT("valide-at6-cle-non-ancree", reindexer(fichiersForge), attenduAT({ cible: "AT-6", checks: statuts("r", "r", "r", "r", "r", "ancre_absente", PR), retenue: true, description: "Dossier valide-seq-7-attestation-sans-inscription où l'exportateur ajoute à cles.json une clé rec-forge-01 (graine = SHA-256 de « noortrace/vecteurs/ct7/rec-forge-01 ») et joint une inscription forgée : seq 2, 09:10:00.000Z, signée par rec-forge-01, document de politique portant D_P sous la version de l'événement prouvé. L'événement prouvé (seq 7) est signé par rec-test-01 : la clé de l'inscription n'est pas la sienne, rien ne la relie au journal, AT-6 n'est pas exécutée (ancre_absente) et AT-7 non plus (prérequis) ; l'attestation est retenue sans clause d'inscription (CT-6 EX-6.19), le dossier reste valide (CT-7 MN-84, MN-90)." }));
+  }
+
+  // AT-2 : condensé d'une autre attestation (issued_at différent), sans inscription : AT-6 et AT-7 non exécutées, partie absente (priorité, CT-6 EX-5.12).
+  {
+    const autre = A.attestationExemple();
+    autre.issued_at = "2026-10-31T16:00:00.000Z";
+    const faux = { ...signee, digest: S.condenseAttestation(autre) };
+    ecrireDossierAT("valide-at2-condense-faux", reindexer({ ...F7, [FICHIER]: J.texteJSON(partie(faux)) }), attenduAT({ cible: "AT-2", checks: statuts("r", "e", "r", "r", "r", PA, PA), retenue: false, warnings: ["AV-AT-1"], description: "signed.digest est le D_P d'une autre attestation (issued_at du 31 octobre) : AT-2 échoue ; AT-3 et AT-4 réussissent, les signatures portant sur le D_P recalculé ; inscription nulle, AT-6 et AT-7 ne sont pas exécutées, partie absente (la raison partie_absente l'emporte sur l'échec d'AT-2, CT-6 EX-5.12) ; AV-AT-1 ; le dossier reste valide (CT-6 EX-5.11, V-10)." }));
+  }
+
+  // AT-4 : une seule signature (compte 1) pour un seuil de 2.
+  ecrireDossierAT("valide-at4-seuil-non-atteint", reindexer({ ...F7, [FICHIER]: J.texteJSON(partie(A.signer(P, [1]))) }), attenduAT({ cible: "AT-4", checks: statuts("r", "r", "r", "e", "r", PA, PA), retenue: false, warnings: ["AV-AT-1"], description: "L'attestation n'est signée que par le compte Hardhat 1, pour un jeu déclaré au seuil de 2 sur 3 : AT-3 réussit, AT-4 échoue, AV-AT-1 ; le dossier reste valide (CT-6 EX-5.11, V-10)." }));
+
+  // AT-5 non exécutée faute d'evenement.json exploitable : attestation non retenue sans AT- en échec (CT-6 EX-6.19, 5.5).
+  {
+    const ev7 = lireF(F7, "evenement.json");
+    ecrireDossierAT("invalide-e1-attestation-non-executee", reindexer(remplacer(F7, "evenement.json", { ...ev7, extra: true })), attenduAT({ valide: false, controle: "E-1", controles_en_echec: ["E-1", "E-7", "E-8", "C-2", "M-1"], cible: "AT-5", checks: statuts("r", "r", "r", "r", PR, PA, PA), retenue: false, warnings: ["AV-AT-1"], description: "evenement.json de valide-seq-7-attestation-sans-inscription porte un membre hors schéma (extra) : E-1 échoue, avec E-7, E-8, C-2 et M-1 que le hash recalculé met en échec, et le dossier est invalide. AT-1 à AT-4 réussissent ; AT-5 n'est pas exécutée (evenement.json inexploitable) ; inscription nulle, AT-6 et AT-7 non exécutées (partie absente). Aucune AT- n'est en échec, et l'attestation n'est pas retenue : AV-AT-1 nomme AT-5, non exécutée (CT-6 5.5)." }));
+  }
+
+  // AT-7, nom de version réannoncé (CT-7 MN-91, PA-9) : seq 13 annonce, sous le même nom 2026-11-05,
+  // un document sans perimeter ; l'événement prouvé (seq 13) porte ce nom. AT-7 réussit sur le nom.
+  {
+    const doc13 = Buffer.from(J.canonicaliserJCSIntegral({ version: "2026-11-05" }), "utf8");
+    const reannonce = construireJournal({ politique12, politique13: { ts: T(10, 20, 0, 0), policy_version: "2026-11-05", policy_sha256: J.sha256(doc13) } });
+    exiger(reannonce.evenements.find((e) => e.seq === 12).hash === seq12.hash, "seq 12 du journal réannoncé différent du journal rejoué");
+    ecrireDossierAT("valide-at7-nom-reannonce", dossierPour(reannonce, 13, { raisons: SANS_POINT, attestation: partie12 }).fichiers, attenduAT({ cible: "AT-7", checks: statuts("r", "r", "r", "r", "r", "r", "r"), retenue: true, description: "Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui annonce, sous le même nom de version 2026-11-05, un autre document de politique, sans membre perimeter (ce que CT-2 0.5 n'interdit pas au démarrage tant que PA-9 n'est pas adoptée) ; dossier de seq 13 dont la partie joint l'inscription seq 12. AT-6 et AT-7 réussissent : AT-7 ne compare que des noms. L'énoncé dit seulement « sous une version de politique de même nom que celle de cet événement », jamais que l'attestation était en vigueur (CT-7 MN-91, RA-75)." }));
+  }
+
+  // AT-7, attestation remplacée : seq 13 inscrit une attestation B (une exception de plus) sous la version 2026-11-06 ;
+  // l'exportateur joint l'attestation A et son inscription seq 12 au dossier de seq 13.
+  {
+    const PB = A.attestationExemple();
+    PB.issued_at = "2026-11-05T10:15:00.000Z";
+    PB.not_captured.push({ channel: "agent-principal, appels directs", description: "Un agent découvert après l'attestation précédente appelle un service sans passer par le mandataire.", compensating_control: null });
+    const docB = A.documentPolitique(S.condenseAttestation(PB), "2026-11-06");
+    const remplace = construireJournal({ politique12, politique13: { ts: T(10, 20, 0, 0), policy_version: "2026-11-06", policy_sha256: J.sha256(docB) } });
+    exiger(remplace.evenements.find((e) => e.seq === 12).hash === seq12.hash, "seq 12 du journal remplacé différent du journal rejoué");
+    ecrireDossierAT("valide-at7-attestation-remplacee", dossierPour(remplace, 13, { raisons: SANS_POINT, attestation: partie12 }).fichiers, attenduAT({ cible: "AT-7", checks: statuts("r", "r", "r", "r", "r", "r", HD), retenue: true, warnings: ["AV-AT-3"], description: "Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui inscrit une attestation B (issued_at 10:15, une exception de capture de plus) sous la version 2026-11-06 ; l'exportateur joint au dossier de seq 13 l'attestation A et son inscription seq 12. AT-6 réussit ; AT-7 n'est pas exécutée (pièce hors dossier), AV-AT-3 ; l'attestation A est retenue, et l'énoncé dit « sans preuve qu'elle était en vigueur pour cet événement » (CT-6 EX-6.19, CT-7 EX-7.11)." }));
+  }
+
+  // D-2 : SHA-256 de la partie remplacé dans l'index ; l'attestation elle-même est intacte.
+  {
+    const idx = lireF(F7, "dossier.json");
+    idx.parts.find((p) => p.name === J.PARTIE_ATTESTATION_PERIMETRE.name).sha256 = J.sha256(Buffer.from("noortrace/vecteurs/ct7/autre-partie", "utf8"));
+    ecrireDossierAT("invalide-d2-attestation-sha256", remplacer(F7, "dossier.json", idx), attenduAT({ valide: false, controle: "D-2", controles_en_echec: ["D-2"], checks: statuts("r", "r", "r", "r", "r", PA, PA), retenue: true, description: "Dossier valide-seq-7-attestation-sans-inscription dont l'index déclare pour attestation-perimetre.json un autre SHA-256 : D-2 échoue et le dossier est invalide, parce que l'index n'est plus celui que l'exportateur a scellé (CT-1 §11.4) ; l'attestation elle-même est vérifiée et retenue, sans effet sur ce verdict." }));
+  }
+}
+
 // 7. INDEX.md ------------------------------------------------------------
 const dossiersEcrits = [...new Set(ecrits.filter((f) => f.startsWith("dossiers/")).map((f) => f.split("/")[1]))];
 const lignesDossiers = dossiersEcrits.map((d) => {
   const a = JSON.parse(fs.readFileSync(path.join(SORTIE, "dossiers", d, "attendu.json"), "utf8"));
-  return `| \`${d}/\` | ${a.valide ? "valide" : `**${a.controle}**${a.controles_en_echec.length > 1 ? ` (en échec : ${a.controles_en_echec.join(", ")})` : ""}`} | ${a.description} |`;
+  const verdict = a.valide ? "valide" : `**${a.controle}**${a.controles_en_echec.length > 1 ? ` (en échec : ${a.controles_en_echec.join(", ")})` : ""}`;
+  // Révision 0.4 : la vérification AT- visée (sans effet sur le verdict) et l'attestation retenue ou non.
+  const at = a.perimeter_checks === undefined ? "" : a.perimeter_checks.length === 0 ? " ; aucune AT-" : ` ; ${a.perimeter_target ? `${a.perimeter_target} visée, ` : ""}attestation ${a.perimeter_retained ? "retenue" : "non retenue"}${a.warnings.length ? ` (${a.warnings.join(", ")})` : ""}`;
+  return `| \`${d}/\` | ${verdict}${at} | ${a.description} |`;
 });
 ecrire(
   "INDEX.md",
@@ -1135,7 +1347,10 @@ déclarées dans \`dossier.json\`, les cinq parties réservées à CT-4 et CT-5
 absentes avec la raison « ${J.RAISON_HORS_PERIMETRE} » ; révision 0.3 : les
 dossiers \`*-point-de-controle\`, \`*-partie-declaree-absente\` et \`invalide-k*\`
 déclarent une treizième partie \`points-de-controle.json\`, vérifications K-1 à
-K-6, ancres à \`null\`) plus un fichier
+K-6, ancres à \`null\` ; révision 0.4 : les dossiers \`*attestation*\`,
+\`valide-at*\` et \`valide-seq-13-at7-autre-version\` déclarent quatorze
+parties, la quatorzième \`attestation-perimetre.json\`, vérifications AT-1 à
+AT-7, sans effet sur le verdict, CT-7 annexe A.7) plus un fichier
 \`attendu.json\`, étranger au dossier et ignoré par le vérificateur, qui donne le
 verdict attendu : \`valide\`, \`controle\` (le contrôle visé), \`controles_en_echec\`
 (la liste **exacte** des contrôles en échec, dans l'ordre de CT-1 §11.4) et une
@@ -1145,6 +1360,24 @@ de \`valide-seq-7\` et leur index est recalculé après l'altération, pour que 
 le contrôle visé échoue ; quand une cascade est inévitable, elle est listée.
 « Journal rejoué » : l'altération est faite à la source et la chaîne, les
 manifestes et le dossier sont recalculés.
+
+Révision 0.4 (CT-1 §11.5, CT-7 annexe A.7) : l'\`attendu.json\` d'un dossier
+qui déclare la quatorzième partie donne en plus \`perimeter_target\` (la
+vérification AT- que le dossier exerce : en échec, non exécutée avec sa raison,
+ou réussie quand le cas vise un avertissement, AV-AT-2 pour
+\`valide-at4-jeu-different\` ; \`null\` pour les dossiers de référence et
+pour \`invalide-d2-attestation-sha256\`), \`perimeter_checks\` (statut et raison de
+AT-1 à AT-7, dans l'ordre ; vide quand la partie est déclarée absente),
+\`perimeter_retained\` (attestation retenue, CT-6 EX-6.19 ; \`null\` sans la
+partie) et \`warnings\` (avertissements AV-AT-). L'attestation est celle de
+CT-7 §7.1, signée par les comptes Hardhat 1 et 2 (D_P
+\`0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd\`) ; le
+« journal rejoué de CT-7 §7.5 » est \`journal-valide\` dont seq 12 annonce le
+document de politique réduit
+\`{"perimeter":{"attestation_digest":D_P},"version":"2026-11-05"}\` (hash
+\`0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90\`). Une
+vérification AT- en échec ne rend jamais le dossier invalide ; seule D-2 porte
+sur le fichier de la partie.
 
 | Répertoire | Verdict attendu | Altération |
 |---|---|---|

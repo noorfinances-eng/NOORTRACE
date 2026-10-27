@@ -13,14 +13,18 @@
     "e2e:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/e2e/dev-roundtrip.mjs",
     "verify:certificat": "node scripts/verify/certificat-commit.mjs",
     "verify:dossier": "node scripts/verify/dossier.mjs",
+    "verify:ceremonie": "node scripts/verify/ceremonie.mjs",
     "vecteurs:ct1": "node scripts/vecteurs/generer-ct1.mjs",
     "vecteurs:ct2": "node scripts/vecteurs/generer-ct2.mjs",
     "vecteurs:ct3": "node scripts/vecteurs/generer-ct3.mjs",
     "vecteurs:ct4": "node scripts/vecteurs/generer-ct4.mjs",
     "vecteurs:ct5": "node scripts/vecteurs/generer-ct5.mjs",
     "vecteurs:ct6": "node scripts/vecteurs/generer-ct6.mjs",
+    "vecteurs:ct7": "node scripts/vecteurs/generer-ct7.mjs",
     "registre": "node scripts/registre/noortrace-registre.mjs",
-    "console:empreintes": "node scripts/console/empreintes.mjs"
+    "console:empreintes": "node scripts/console/empreintes.mjs",
+    "conformite:renvois": "node scripts/conformite/verifier-renvois.mjs",
+    "conformite:attestation": "node scripts/conformite/attestation.mjs"
   },
   "license": "Apache-2.0",
   "devDependencies": {

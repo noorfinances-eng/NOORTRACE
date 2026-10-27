@@ -16,13 +16,18 @@
 //                             K-1 à K-6 par journal.mjs, K-7 à K-9 ici, sur
 //                             checkpoint_hash, avec horodatage.mjs, registre.mjs
 //                             et ots.mjs (CT-6 §9.9, §10.9, §11.9) ;
+//   AT-1 à AT-7 (révision 0.3) : partie attestation-perimetre.json (CT-1 §11.4,
+//                             révision 0.4), par journal.mjs et securite.mjs ;
+//                             rangées sous les contrôles 7 et 6 sans effet sur
+//                             leur statut ni sur le verdict (CT-6 §5.5) ;
 //   N-3                     : clés de cles.json contre celles du fichier d'ancres ;
 //   N-1, N-2                : conformité du fichier d'ancres et du fichier
 //                             d'en-têtes (code 2 en cas de défaut).
 //
 // Puis : statut de chaque contrôle (EX-6.4, EX-6.5 et les règles propres
 // EX-9.18, EX-10.12, EX-11.20), verdict (EX-6.7), énoncé (EX-6.8, EX-6.9),
-// borne (EX-6.12), faits (EX-6.13), rapport JSON (section 8.6, schéma
+// borne (EX-6.12), faits (EX-6.13, EX-6.17, EX-6.20), fragments FK et FP de
+// l'énoncé (EX-6.16, EX-6.19), rapport JSON (section 8.6, schéma
 // rapport-verification-v0) et rapport lisible en français ou en anglais
 // (section 8.5).
 
@@ -30,6 +35,7 @@ import * as J from "./journal.mjs";
 import * as H from "./horodatage.mjs";
 import * as O from "./ots.mjs";
 import * as R from "./registre.mjs";
+import * as S from "./securite.mjs";
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -49,6 +55,7 @@ export const FICHIERS_SCHEMAS = [
   { fichier: "manifeste-v0.schema.json", id: J.ID_SCHEMA_MANIFESTE },
   { fichier: "dossier-v0.schema.json", id: J.ID_SCHEMA_DOSSIER },
   { fichier: "point-de-controle-v0.schema.json", id: J.ID_SCHEMA_POINT_DE_CONTROLE },
+  { fichier: "attestation-perimetre-v0.schema.json", id: J.ID_SCHEMA_ATTESTATION_PERIMETRE },
   { fichier: "registre-v0.schema.json", id: R.ID_SCHEMA_REGISTRE },
   { fichier: "validateurs-v0.schema.json", id: R.ID_SCHEMA_VALIDATEURS },
   { fichier: "ancres-confiance-v0.schema.json", id: ID_SCHEMA_ANCRES },
@@ -66,6 +73,7 @@ export const LIMITES = {
   index: 1 * MIO,
   partieCT1: 16 * MIO,
   pointsDeControle: 1 * MIO,
+  attestationPerimetre: 4 * MIO,
   jeton: 64 * KIO,
   ots: 256 * KIO,
   registre: 64 * MIO,
@@ -79,13 +87,15 @@ export const LIMITES = {
   profondeurJSON: 128,
 };
 
-/** Limite de lecture de chaque fichier du dossier (dossier.json, les douze parties et la treizième facultative). */
+/** Limite de lecture de chaque fichier du dossier (dossier.json, les douze parties, la treizième et la quatorzième facultatives). */
 export function limiteFichier(fichier) {
   switch (fichier) {
     case "dossier.json":
       return LIMITES.index;
     case J.PARTIE_POINTS_DE_CONTROLE.file:
       return LIMITES.pointsDeControle;
+    case J.PARTIE_ATTESTATION_PERIMETRE.file:
+      return LIMITES.attestationPerimetre;
     case "jeton-rfc3161.der":
       return LIMITES.jeton;
     case "preuve.ots":
@@ -101,10 +111,10 @@ export function limiteFichier(fichier) {
   }
 }
 
-/** Les fichiers qu'un dossier peut contenir : dossier.json, les douze parties et la treizième facultative (CT-1 §11.1, révision 0.3). Tout autre fichier est ignoré (EX-4.1). */
-export const FICHIERS_DOSSIER = ["dossier.json", ...J.PARTIES_DOSSIER.map((p) => p.file), J.PARTIE_POINTS_DE_CONTROLE.file];
+/** Les fichiers qu'un dossier peut contenir : dossier.json, les douze parties, la treizième et la quatorzième facultatives (CT-1 §11.1, révisions 0.3 et 0.4). Tout autre fichier est ignoré (EX-4.1). */
+export const FICHIERS_DOSSIER = ["dossier.json", ...J.PARTIES_DOSSIER.map((p) => p.file), J.PARTIE_POINTS_DE_CONTROLE.file, J.PARTIE_ATTESTATION_PERIMETRE.file];
 
-const FICHIERS_JSON_CT1 = ["evenement.json", "voisins.json", "chemin.json", "manifeste.json", "manifeste.sig", "cles.json", "approbations.json", J.PARTIE_POINTS_DE_CONTROLE.file];
+const FICHIERS_JSON_CT1 = ["evenement.json", "voisins.json", "chemin.json", "manifeste.json", "manifeste.sig", "cles.json", "approbations.json", J.PARTIE_POINTS_DE_CONTROLE.file, J.PARTIE_ATTESTATION_PERIMETRE.file];
 
 /** Motif du base64 canonique (schéma dossier-v0, $defs/base64 ; EX-4.14). */
 const RE_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
@@ -224,6 +234,7 @@ const LIBELLES_R_N = {
 
 /** Libellé d'une vérification dans une langue. */
 export function libelleVerification(id, langue = "fr") {
+  if (S.LIBELLES_AT[id]) return S.LIBELLES_AT[id][langue];
   const ct1 = J.CONTROLES_DOSSIER.find((c) => c.id === id);
   if (ct1) return langue === "en" ? LIBELLES_CT1_EN[id] : ct1.libelle;
   const t = H.LIBELLES[id] ?? O.LIBELLES[id] ?? LIBELLES_R_N[id];
@@ -497,9 +508,12 @@ export function traduireDetailCT1(detail) {
  * Paramètres :
  *   fichiers        : nom -> octets des fichiers du dossier lus dans leur limite
  *                     (dossier.json et les parties présentes dans le répertoire) ;
- *   nonLus          : Map nom -> { taille, limite, debut } des fichiers du
- *                     dossier au-delà de leur limite, non lus (debut : les
- *                     limite + 1 premiers octets) ;
+ *   nonLus          : Map nom -> { taille, limite, debut, sha256? } des
+ *                     fichiers du dossier au-delà de leur limite, non lus
+ *                     (debut : les limite + 1 premiers octets ; sha256 : SHA-256
+ *                     des octets complets, calculé en flux, que la ligne de
+ *                     commande donne pour attestation-perimetre.json, dont le
+ *                     dépassement n'invalide pas le dossier, EX-4.15) ;
  *   schemas         : registre des schémas ($id -> document) ;
  *   ancres          : fichier d'ancres déjà contrôlé par N-1, ou null ;
  *   entetes         : fichier d'en-têtes déjà contrôlé par N-2, ou null ;
@@ -522,8 +536,9 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
   for (const f of FICHIERS_JSON_CT1) if (fichiers[f] && profondeurOctets(fichiers[f]) > LIMITES.profondeurJSON) inexploitables.set(f, `imbrication JSON de plus de ${LIMITES.profondeurJSON} niveaux`);
   if (fichiers["dossier.json"] && profondeurOctets(fichiers["dossier.json"]) > LIMITES.profondeurJSON) throw new J.DossierInutilisable(`dossier.json illisible : imbrication JSON de plus de ${LIMITES.profondeurJSON} niveaux`);
 
-  // Contrôles 1, 2, 3, 6, 7 : vérifications de CT-1, sans changement.
-  const ct1 = J.verifierDossier(fichiers, { schemas, inexploitables });
+  // Contrôles 1, 2, 3, 6, 7 : vérifications de CT-1, sans changement ; révision 0.3 : AT-1 à AT-7.
+  const empreintes = new Map([...nonLus].filter(([, info]) => typeof info.sha256 === "string").map(([f, info]) => [f, info.sha256]));
+  const ct1 = J.verifierDossier(fichiers, { schemas, inexploitables, empreintes });
 
   const lireObjet = (f) => {
     if (!fichiers[f] || inexploitables.has(f)) return null;
@@ -542,7 +557,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     }
   })();
   const index = estObjet(indexBrut) ? indexBrut : {};
-  const parts = Array.isArray(index.parts) && (index.parts.length === J.PARTIES_DOSSIER.length || index.parts.length === J.PARTIES_DOSSIER.length + 1) ? index.parts : null;
+  const parts = Array.isArray(index.parts) && index.parts.length >= J.PARTIES_DOSSIER.length && index.parts.length <= J.PARTIES_DOSSIER.length + 2 ? index.parts : null;
   const partie = (name) => (parts ? parts.find((p) => estObjet(p) && p.name === name) ?? null : null);
   const ev = lireObjet("evenement.json");
   const voisins = lireObjet("voisins.json");
@@ -874,7 +889,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     }
   }
 
-  // Liste des vérifications, dans l'ordre de la section 5.2 : D, E, C, M, P, A, K (partie présente), T, O, R, N.
+  // Liste des vérifications, dans l'ordre de la section 5.2 : D, E, C, M, P, A, K (partie présente), AT (partie présente, révision 0.3), T, O, R, N.
   const liste = [];
   for (const c of J.CONTROLES_DOSSIER) {
     const x = checks.get(c.id);
@@ -882,6 +897,10 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     const detail = x.detailFr === null || x.detailFr === undefined ? null : langue === "en" && !x.dejaTraduit ? traduireDetailCT1(x.detailFr) : x.detailFr;
     liste.push({ id: x.id, controls: x.controls, status: x.status, reason: x.reason, admitted: x.status === "non_execute" ? x.reason !== "prerequis_en_echec" : null, detail: nonVide(detail) });
   }
+  // AT-1 à AT-7 (EX-5.10) : seulement quand l'index déclare la partie présente ; sans effet sur les statuts (EX-5.11).
+  const attestation = ct1.attestation;
+  if (attestation) for (const c of attestation.checks) liste.push({ id: c.id, controls: c.controls, status: c.status, reason: c.reason, admitted: c.admitted, detail: nonVide(lang(c.detail)) });
+  const estAT = (id) => id.startsWith("AT-");
   const normaliser = (c) => ({ id: c.id, controls: c.controls, status: c.status, reason: c.status === "non_execute" ? c.reason : null, admitted: c.status === "non_execute" ? c.reason !== "prerequis_en_echec" : null, detail: nonVide(c.detail) });
   for (const c of c4.checks) liste.push(normaliser(c));
   for (const c of c5.checks) liste.push(normaliser(c));
@@ -930,6 +949,8 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     7: statutCT1(idsControle[7]),
     8: { status: c8Final.status, reason: c8Final.reason },
   };
+  // Les AT- figurent dans la liste checks des contrôles 7 (AT-1 à AT-5) et 6 (AT-6, AT-7), après leurs vérifications ; elles n'entrent ni dans le statut ni dans le résumé (EX-5.10, EX-5.11).
+  const atDe = (n) => (attestation ? attestation.checks.filter((c) => c.controls.includes(n)).map((c) => c.id) : []);
   const reussi = (n) => statuts[n].status === "reussi";
 
   // Provenance des clés employées (EX-3.6, EX-6.8) : clé par clé, ancres
@@ -1001,14 +1022,14 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     number: n,
     status: statuts[n].status,
     reason: statuts[n].status === "non_execute" ? statuts[n].reason : null,
-    checks: idsControle[n],
+    checks: [...idsControle[n], ...atDe(n)],
     anchors_used: anchorsUsed[n],
     summary: nonVide(resumes[n]),
   }));
 
-  // Verdict (EX-6.7).
-  const failed_checks = liste.filter((c) => c.status === "echoue").map((c) => c.id);
-  const blocking_unexecuted = liste.filter((c) => c.status === "non_execute" && c.reason === "prerequis_en_echec").map((c) => c.id);
+  // Verdict (EX-6.7) ; les AT- n'y entrent pas (EX-5.11).
+  const failed_checks = liste.filter((c) => c.status === "echoue" && !estAT(c.id)).map((c) => c.id);
+  const blocking_unexecuted = liste.filter((c) => c.status === "non_execute" && c.reason === "prerequis_en_echec" && !estAT(c.id)).map((c) => c.id);
   const requis = [...new Set(exiger)].sort((a, b) => a - b);
   const nonReussisExiges = requis.filter((n) => !reussi(n));
   const verdict = failed_checks.length || blocking_unexecuted.length ? "invalide" : nonReussisExiges.length ? "incomplet" : "valide";
@@ -1054,6 +1075,8 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     bitcoin: reussi(5) ? c5.facts : null,
     registry: reussi(8) ? c8.faits : null,
     checkpoint: checkpointFacts,
+    // facts.perimeter (EX-6.20) : toujours écrit ; l'attestation retenue, déclarée, ou null.
+    perimeter: attestation && attestation.retenue ? attestation.faits : null,
   };
   // Fragment FK de l'énoncé (EX-6.16) : point établi et au moins une ancre réussie (K-7, K-9, ou K-8 avec inclusion prouvée).
   const inclusionProuvee = faitsPoint.registry?.inclusion === "prouvee";
@@ -1103,6 +1126,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       propositions: { 4: reussi(4) ? c4.proposition : null, 5: reussi(5) ? c5.proposition : null, 8: reussi(8) ? c8.enonce : null },
       statuts,
       pointDeControle: fk,
+      perimetre: attestation,
     });
   }
   const nonExecutes = controls.filter((c) => c.status === "non_execute");
@@ -1118,7 +1142,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     failed_checks,
     blocking_unexecuted,
     absent_parts: ct1.partiesAbsentes.map((p) => ({ name: p.name, file: p.file, reason: p.reason })),
-    warnings: ordonnerAvertissements([...avertissementsK, ...c4.warnings, ...c5.warnings, ...c8.avertissements], liste).map((w) => ({ id: w.id, check: w.check ?? null, detail: lang(w.detail) })),
+    warnings: ordonnerAvertissements([...avertissementsK, ...(attestation ? attestation.avertissements : []), ...c4.warnings, ...c5.warnings, ...c8.avertissements], liste).map((w) => ({ id: w.id, check: w.check ?? null, detail: lang(w.detail) })),
     facts,
     verdict,
     exit_code,
@@ -1136,9 +1160,9 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
  */
 export function ordonnerAvertissements(avertissements, liste) {
   const position = new Map(liste.map((c, i) => [c.id, i]));
-  const familles = ["T", "O", "R", "N", "K"];
+  const familles = ["T", "O", "R", "N", "K", "AT"];
   const cle = (w) => {
-    const m = /^AV-([A-Z])-([0-9]+)$/.exec(w.id) ?? [null, "Z", "0"];
+    const m = /^AV-([A-Z]+)-([0-9]+)$/.exec(w.id) ?? [null, "Z", "0"];
     return [position.get(w.check) ?? liste.length, familles.indexOf(m[1]) === -1 ? familles.length : familles.indexOf(m[1]), Number(m[2])];
   };
   return avertissements
@@ -1154,7 +1178,7 @@ export function ordonnerAvertissements(avertissements, liste) {
  * provenance_point, jeton (faits d'EX-9.19 ou null), bitcoin (faits d'EX-10.14
  * ou null), registre ({ chain_id, block_number, block_time, contract } ou null) }.
  */
-export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEvenement, cleManifeste, provenance, provenanceEvenement = provenance, provenanceManifeste = provenance, approbation, propositions, statuts, pointDeControle = null }) {
+export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEvenement, cleManifeste, provenance, provenanceEvenement = provenance, provenanceManifeste = provenance, approbation, propositions, statuts, pointDeControle = null, perimetre = null }) {
   const { p, n } = voisinsSeq;
   const voisinage =
     p !== null && n !== null ? T(`chaîné à ses voisins seq ${p} et ${n}`, `chained to its neighbours seq ${p} and ${n}`)
@@ -1254,6 +1278,12 @@ export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEve
       en.push("; a rewrite after that anchor was included would be detected");
     }
   }
+  // FP (révision 0.3, EX-6.19) : partie attestation-perimetre.json déclarée présente.
+  if (perimetre) {
+    const fp = fragmentPerimetre(perimetre, provenanceEvenement);
+    fr.push(fp.fr);
+    en.push(fp.en);
+  }
   // F7 (avec FK, les éléments des contrôles 4 et 5 se lisent sur le manifeste).
   const nonReussi = (k) => statuts[k].status !== "reussi";
   const auMoinsUnNonExecute = [1, 2, 3, 4, 5, 6, 7, 8].some((k) => statuts[k].status === "non_execute");
@@ -1275,6 +1305,63 @@ export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEve
   fr.push(".");
   en.push(".");
   return { fr: fr.join(""), en: en.join("") };
+}
+
+/** Instant de l'énoncé (EX-6.11) : RFC 3339 UTC, fraction de seconde seulement si elle est non nulle, sans zéro final. */
+export function instantEnonce(ts) {
+  return ts.replace(/\.000Z$/, "Z").replace(/(\.[0-9]*?)0+Z$/, "$1Z");
+}
+
+/** Provenance d'une clé dans l'énoncé (EX-6.8), au singulier, sans article. */
+const PROVENANCE_CLE = {
+  ancres: { fr: "fournie par le fichier d'ancres", en: "given by the anchors file" },
+  registre: { fr: "inscrite au registre", en: "registered in the registry" },
+  dossier: { fr: "déclarée par le dossier", en: "declared by the dossier" },
+};
+
+/**
+ * Fragment FP de l'énoncé (CT-6 EX-6.19), avec son « ␣;␣ » ou « ;␣ » de tête :
+ * attestation retenue (tête, clause d'inscription, clôture), ou non retenue
+ * (vérifications AT- en échec, ou non exécutées faute de prérequis).
+ * `perimetre` : le résultat de securite.verifierPartieAttestation ;
+ * `provenanceCle` : provenance de la clé de l'événement prouvé (`ancres`,
+ * `registre`, `dossier`), qui est aussi celle de l'inscription quand AT-6
+ * réussit (même clé). Aucun texte libre de l'attestation n'y entre.
+ */
+export function fragmentPerimetre(perimetre, provenanceCle = "dossier") {
+  if (!perimetre.retenue) {
+    const ids = (perimetre.nonRetenue ?? []).join(", ");
+    if (perimetre.motifNonRetenue === "non_execute") return { fr: ` ; l'attestation de périmètre jointe n'est pas retenue (vérification(s) non exécutée(s) : ${ids})`, en: `; the attached perimeter attestation is not retained (check(s) not run: ${ids})` };
+    return { fr: ` ; l'attestation de périmètre jointe n'est pas retenue (vérification(s) en échec : ${ids})`, en: `; the attached perimeter attestation is not retained (failed check(s): ${ids})` };
+  }
+  const f = perimetre.faits;
+  const nb = f.signers.length;
+  const sig = nb === 1 ? "1 signature" : `${nb} signatures`;
+  let fr = ` ; le périmètre de capture est déclaré, non prouvé, par l'attestation ${f.digest} valable du ${instantEnonce(f.valid_from)} au ${instantEnonce(f.valid_until)}, signée par ${joindreListe(f.signers, "fr")} (${sig}, seuil de ${f.required} sur ${f.size} du jeu déclaré par le dossier)`;
+  let en = `; the capture perimeter is declared, not proven, by attestation ${f.digest} valid from ${instantEnonce(f.valid_from)} to ${instantEnonce(f.valid_until)}, signed by ${joindreListe(f.signers, "en")} (${sig}, threshold ${f.required} of ${f.size} of the set declared by the dossier)`;
+  const at6 = (perimetre.checks ?? []).find((c) => c.id === "AT-6");
+  if (f.inscription) {
+    const p = PROVENANCE_CLE[provenanceCle] ?? PROVENANCE_CLE.dossier;
+    fr += `, inscrite au journal par l'événement seq ${f.inscription.seq} (clé ${f.inscription.key_id} ${p.fr})`;
+    en += `, recorded in the journal by event seq ${f.inscription.seq} (key ${f.inscription.key_id} ${p.en})`;
+    if (f.inscription.same_policy_version) {
+      fr += " sous une version de politique de même nom que celle de cet événement";
+      en += " under a policy version with the same name as this event's";
+    } else {
+      fr += ", sans preuve qu'elle était en vigueur pour cet événement (version de politique différente)";
+      en += ", with no proof that it was in force for this event (different policy version)";
+    }
+  } else if (at6?.status === "non_execute" && at6.reason === "ancre_absente") {
+    fr += ", dont l'inscription jointe n'est pas signée par la clé de l'événement prouvé (ni sa date ni son rang ne sont établis)";
+    en += ", whose attached inscription is not signed by the proven event's key (neither its date nor its rank is established)";
+  } else {
+    fr += ", non inscrite au journal (ni sa date ni son rang ne sont établis)";
+    en += ", not recorded in the journal (neither its date nor its rank is established)";
+  }
+  const k = f.exceptions;
+  fr += k === 0 ? ", et qui ne déclare aucune exception de capture" : k === 1 ? ", et qui déclare 1 exception de capture" : `, et qui déclare ${k} exceptions de capture`;
+  en += k === 0 ? ", and which declares no capture exception" : k === 1 ? ", and which declares 1 capture exception" : `, and which declares ${k} capture exceptions`;
+  return { fr, en };
 }
 
 // ---------------------------------------------------------------------------
@@ -1350,6 +1437,8 @@ const ETIQUETTES = {
     journal: "Journal",
     periode: "Période",
     point: "Pt de contrôle",
+    perimetre: "Périmètre",
+    sansEffet: "(sans effet sur le verdict)",
     pointTaille: "taille",
     pointEmpreinte: "empreinte",
     pointHorodate: "horodaté au plus tard",
@@ -1380,6 +1469,8 @@ const ETIQUETTES = {
     journal: "Journal",
     periode: "Period",
     point: "Checkpoint",
+    perimetre: "Perimeter",
+    sansEffet: "(no effect on the verdict)",
     pointTaille: "size",
     pointEmpreinte: "digest",
     pointHorodate: "time-stamped no later than",
@@ -1420,6 +1511,8 @@ export function rapportLisible(rapport, { detail = false } = {}) {
   if (rapport.period) out.push(ligne(E.periode, `${instantUnix(rapport.period.period_start)} ${E.a} ${instantUnix(rapport.period.period_end)}, periodHash ${rapport.period.period_hash}`));
   const pt = lignePointDeControle(rapport);
   if (pt) out.push(ligne(E.point, `${E.pointTaille} ${pt.tree_size}, last_seq ${pt.last_seq}, ${E.pointEmpreinte} ${pt.checkpoint_hash}${pt.upper_bound ? `${langue === "en" ? ";" : " ;"} ${E.pointHorodate} ${pt.upper_bound} (K-7)` : ""}`));
+  const perim = lignePerimetre(rapport);
+  if (perim) out.push(ligne(E.perimetre, perim));
   out.push(E.controles);
   for (const c of rapport.controls) {
     const etat = E.statut[c.status].padEnd(14);
@@ -1433,7 +1526,9 @@ export function rapportLisible(rapport, { detail = false } = {}) {
   if (listees.length) {
     out.push(detail ? E.toutes : E.nonReussies);
     for (const c of listees) {
-      out.push(`  ${E.statut[c.status].padEnd(14)}${c.id.padEnd(4)} [${c.controls.length ? c.controls.join(", ") : "—"}] ${libelleVerification(c.id, langue)}`);
+      // Une AT- en échec est sans effet sur le verdict (EX-5.11, EX-8.10).
+      const statutLu = c.id.startsWith("AT-") && c.status === "echoue" ? `${E.statut.echoue} ${E.sansEffet}` : E.statut[c.status];
+      out.push(`  ${statutLu.length >= 14 ? `${statutLu} ` : statutLu.padEnd(14)}${c.id.padEnd(4)} [${c.controls.length ? c.controls.join(", ") : "—"}] ${libelleVerification(c.id, langue)}`);
       const d = [c.detail, c.status === "non_execute" ? `(${c.reason})` : null].filter(Boolean).join(" ");
       if (d) out.push(`${" ".repeat(22)}${d}`);
     }
@@ -1467,6 +1562,31 @@ function lignePointDeControle(r) {
   const m2 = /checkpointHash (0x[0-9a-f]{64})/.exec(k("K-2").detail ?? "");
   if (!m1 || !m2) return null;
   return { tree_size: Number(m1[1]), last_seq: Number(m1[2]), checkpoint_hash: m2[1], upper_bound: upper };
+}
+
+/**
+ * Valeur de la ligne « Périmètre » (EX-8.10) : seulement quand la partie
+ * attestation-perimetre.json est déclarée présente (AT-1 au rapport).
+ */
+function lignePerimetre(r) {
+  if (!r.checks.some((c) => c.id === "AT-1")) return null;
+  const en = r.language === "en";
+  const f = r.facts?.perimeter;
+  const at = r.checks.filter((c) => c.id.startsWith("AT-"));
+  if (!f) {
+    const echecs = at.filter((c) => c.status === "echoue").map((c) => c.id);
+    const ids = (echecs.length ? echecs : at.filter((c) => c.status === "non_execute" && c.reason === "prerequis_en_echec" && c.id !== "AT-7").map((c) => c.id)).join(", ");
+    if (!echecs.length) return en ? `attestation not retained (${ids} not run)` : `attestation non retenue (${ids} non exécutée(s))`;
+    return en ? `attestation not retained (${ids} failed)` : `attestation non retenue (${ids} en échec)`;
+  }
+  const nb = f.signers.length;
+  const base = en
+    ? `declared, not proven: attestation ${f.digest}, from ${instantEnonce(f.valid_from)} to ${instantEnonce(f.valid_until)}, ${nb} signature${nb > 1 ? "s" : ""}, threshold ${f.required} of ${f.size}`
+    : `déclaré, non prouvé : attestation ${f.digest}, du ${instantEnonce(f.valid_from)} au ${instantEnonce(f.valid_until)}, ${nb} signature${nb > 1 ? "s" : ""}, seuil de ${f.required} sur ${f.size}`;
+  const at6 = at.find((c) => c.id === "AT-6");
+  if (f.inscription) return base + (en ? `; recorded at seq ${f.inscription.seq}` : ` ; inscrite au seq ${f.inscription.seq}`);
+  if (at6?.reason === "ancre_absente") return base + (en ? "; inscription not tied to the event's key" : " ; inscription non reliée à la clé de l'événement");
+  return base + (en ? "; not recorded" : " ; non inscrite");
 }
 
 /** Ligne « Résultat » (EX-8.6, point 11). */

@@ -1,0 +1,49 @@
+{
+  "version": 0,
+  "previous": {
+    "version": 0,
+    "seq": 11,
+    "ts": "2026-11-05T10:04:13.040Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-02",
+    "prev_hash": "0x873c1a9390f139e3737b51ecf489dff56264c3cdbfabd8a5316ce0bb0206ed49",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Verser un complément de 900.00 CHF",
+    "policy": {
+      "rule": "beneficiaire hors liste blanche",
+      "decision": "refuse",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "sap.payments.create",
+      "arguments": {
+        "sha256": "0x5a5d2357dc2c0b1767c73bffa08d75b2bdf116fc6982813e2524a268d76fb25d",
+        "length": 95,
+        "redacted": true
+      },
+      "status": "refusee",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0xf92b743f6e089038b2182131434071ef5d6fe5c4dbc55fd8c30a0e431725efdb",
+    "sig": "0x4dc81bd091f1bff2667c43c61a08a9c498527650c57e6def9c6dc605192f42640ed35b4fd3c3bfecaaa1f48ab0fc049c2d0e2d53264566481b551c72003fb608"
+  },
+  "next": null
+}

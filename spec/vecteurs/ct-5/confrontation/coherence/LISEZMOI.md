@@ -79,8 +79,11 @@ sinon, 2 si une entrée est illisible ou l'usage incorrect. La sortie de
 référence est `../sorties/coherence.txt` (transparency-dev/merkle v0.0.2,
 Go 1.24.7) : huit racines et cinq preuves publiques (43 sondes refusées),
 seize cas de `coherence.json`, trois périodes de 61 points, neuf dossiers de
-CT-1 et dix-sept de CT-6 à partie `points-de-controle.json` (un `null` ; deux
-points de clôture à preuve vide, `(9, 9)`), 0 discordance, 1 limite de l'outil.
+CT-1 et dix-huit de CT-6 à partie `points-de-controle.json` (un `null` ; deux
+points de clôture à preuve vide, `(9, 9)` ; le dix-huitième,
+`valide-point-de-controle-complet-attestation` de CT-6 révision 0.3, reprend
+tel quel le `points-de-controle.json` de `valide-point-de-controle-complet`),
+0 discordance, 1 limite de l'outil.
 
 Sources des vecteurs publics (lues le 2026-10-25) :
 `https://raw.githubusercontent.com/transparency-dev/merkle/v0.0.2/proof/verify_test.go`,

@@ -1,0 +1,217 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-02-sinistres-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "creation",
+  "purpose_details": null,
+  "environment": "production",
+  "place": "Salle de cérémonie, site principal (exemple)",
+  "started_at": "2026-11-02T08:00:00.000Z",
+  "ended_at": "2026-11-02T09:10:00.000Z",
+  "script": {
+    "title": "Création de la clé de l'enregistreur et de sa clé de chaîne",
+    "version": "1",
+    "sha256": "0xa3415496b2c101b78f6e4e8307705aac29139294aa0bf679f8b7e49e3fd00f08"
+  },
+  "workstation": {
+    "description": "Poste d'administration du module, démarré sur support en lecture seule, interfaces réseau désactivées",
+    "offline": false,
+    "image_sha256": "0x2408b216725cd9a613845dc2b9efa49582fd569b72e1a8979313683fd0562da5"
+  },
+  "entropy": {
+    "source": "module",
+    "description": "Générateur aléatoire du module ; aucune valeur saisie"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant (compte de test 1)",
+      "role": "officiant",
+      "affiliation": "assureur-demo, exploitation",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 2)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, sécurité",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    },
+    {
+      "id": "p3",
+      "name": "Auditeur (compte de test 4)",
+      "role": "auditeur",
+      "affiliation": "cabinet d'audit (exemple)",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-02T08:02:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Vérifier les scellés du module, démarrer le poste sur l'image dont le SHA-256 est inscrit, constater l'absence de réseau",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-02T08:10:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Générer dans le module la clé Ed25519 rec-test-01, non exportable",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-02T08:21:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 4,
+      "action": "Lire la clé publique Ed25519, calculer son SHA-256 et l'afficher à tous",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-02T08:24:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 5,
+      "action": "Générer dans le module la clé de chaîne secp256k1, signer un condensé d'essai et recouvrer l'adresse",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-02T08:35:00.000Z",
+      "outcome": "exception"
+    },
+    {
+      "n": 6,
+      "action": "Remettre au démon la seule identité d'usage : ni export, ni suppression, ni changement de politique",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-02T08:48:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 7,
+      "action": "Exporter l'attestation du module (preuve d'origine) et calculer son SHA-256",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-02T08:55:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 8,
+      "action": "Arrêter l'enregistrement vidéo, calculer les SHA-256 des enregistrements et des journaux",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-02T09:05:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "rec-test-01",
+      "usage": "enregistreur",
+      "algorithm": "ed25519",
+      "generated_in": "poste",
+      "custody_class": "A",
+      "backend": "pkcs11",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "fingerprint": "0x06fa51071909aab2e05b5a04643eca0f984a73824809f5ddeba5b63c8a7d5c88",
+      "address": null,
+      "origin_proof_sha256": "0x018ac515d811bcd8db6e592c2c1c73945774caadc69bab3f881a7459e4561b51",
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    },
+    {
+      "key_id": "chaine-test-03",
+      "usage": "chaine",
+      "algorithm": "secp256k1",
+      "generated_in": "module",
+      "custody_class": "A",
+      "backend": "pkcs11",
+      "public_key": "0x0420b871f3ced029e14472ec4ebc3c0448164942b123aa6af91a3386c1c403e0ebd3b4a5752a2b6c49e574619e6aa0549eb9ccd036b9bbc507e1f7f9712a236092",
+      "fingerprint": "0x40aeb6ea3c51d30271f5bc2801e6b95f31b02ae8e470a19ebeac967b60bd0478",
+      "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    }
+  ],
+  "records": [
+    {
+      "kind": "video",
+      "name": "camera-1.mp4",
+      "sha256": "0x6cfcb6099d7e00281179f5af504960bfdede22670a825c0bf1035b774a3237f2"
+    },
+    {
+      "kind": "journal_module",
+      "name": "journal-module.txt",
+      "sha256": "0x43e562f9f1ad1011f1b13981ba65e0e45b795f5837d0279011786ed6622477b3"
+    },
+    {
+      "kind": "preuve_origine",
+      "name": "attestation-rec-test-01.der",
+      "sha256": "0x018ac515d811bcd8db6e592c2c1c73945774caadc69bab3f881a7459e4561b51"
+    }
+  ],
+  "findings": [
+    {
+      "n": 1,
+      "step": 5,
+      "kind": "ecart",
+      "text": "Le premier condensé d'essai a été signé avec la mauvaise étiquette de clé ; signature écartée, étape refaite sur l'étiquette prévue.",
+      "resolution": "Étape 5 refaite à 08:41 ; adresse recouvrée égale à l'adresse déclarée."
+    }
+  ],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0x296ea284790d6410a8cb0147bd4167408e1973db49af236621a9cc070cc733942d07c6a84bff7a5db8c2b5e44929e9a8a36bad8f7a4a06931e598f337f8656861b"
+    },
+    {
+      "participant": "p2",
+      "signature": "0xc3871b64658c75175607e0e05d7d1c485a86e389296689ce0a5f9156ab178e05293af05d6b4e16701cc19e7d4054ac2a270367dddf89c079779391597f7e006c1c"
+    },
+    {
+      "participant": "p3",
+      "signature": "0xd67a6670e8e0dbcfe55941a48b001b1cb38ac64b0ee6738fa9956e0e46725ea46cc02cc0c70c4e4c020b2fb66b0e635aedb634ecb2efdcfc8989f0eb3ecc3ea91c"
+    }
+  ]
+}

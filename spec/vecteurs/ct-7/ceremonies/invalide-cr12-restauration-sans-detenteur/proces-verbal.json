@@ -1,0 +1,129 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-20-admin-registre-restauration-01",
+  "scope": "exploitant",
+  "organization": {
+    "name": "NOORTRACE, exploitant du registre (exemple)",
+    "org_id": null
+  },
+  "purpose": "restauration",
+  "purpose_details": {
+    "backup_ceremony_digest": "0x62a485a4eacf1d63bb66b5675efac6974cde9a8b1c5b6952bc0acdc7bdc466b2",
+    "k": 2,
+    "n": 3
+  },
+  "environment": "production",
+  "place": "Salle forte de l'exploitant (exemple)",
+  "started_at": "2026-11-20T09:00:00.000Z",
+  "ended_at": "2026-11-20T10:00:00.000Z",
+  "script": {
+    "title": "Restauration de la clé de l'administrateur du registre depuis sa sauvegarde partagée",
+    "version": "1",
+    "sha256": "0x511896a093725f2b853d0a56ecea59ba8e4233408e36a16dbae9ed4ce7e76e4f"
+  },
+  "workstation": {
+    "description": "Poste d'administration du module, démarré sur support en lecture seule, interfaces réseau désactivées ; support effacé à la fin de la cérémonie",
+    "offline": true,
+    "image_sha256": "0x2408b216725cd9a613845dc2b9efa49582fd569b72e1a8979313683fd0562da5"
+  },
+  "entropy": {
+    "source": "sans_objet",
+    "description": "Aucune clé générée : la clé est reconstituée depuis sa sauvegarde"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant de l'exploitant (compte de test 8)",
+      "role": "officiant",
+      "affiliation": "NOORTRACE, exploitation",
+      "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 1)",
+      "role": "temoin",
+      "affiliation": "NOORTRACE, sécurité",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-20T09:03:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Le témoin constate l'identité de chaque détenteur de part et l'intégrité de chaque sac à témoin d'effraction",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-20T09:12:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Reconstituer la clé d'enveloppe avec les parts de p3 et p4 dans le module",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-20T09:25:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 4,
+      "action": "Déchiffrer dans le module la clé de l'administrateur du registre et lire son adresse",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-20T09:36:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 5,
+      "action": "Remettre les parts sous sacs neufs ; effacer le support du poste",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-20T09:50:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [],
+  "records": [
+    {
+      "kind": "video",
+      "name": "camera-1.mp4",
+      "sha256": "0xa7ae79553c6357fcd41202b689fc165983323249c16d5a6fed700234fbd46b96"
+    }
+  ],
+  "findings": [
+    {
+      "n": 1,
+      "step": 5,
+      "kind": "observation",
+      "text": "Parts de p3 et p4 remises sous les sacs neufs numéros 0004 et 0005 ; adresse lue à l'étape 4 égale à celle de la sauvegarde (exemple).",
+      "resolution": null
+    }
+  ],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0xa7d0044bb47ae1227889db5f3383e52ae69aeba138f834771a92a336bed5c9e00616f602356cfae2f592aadd57aed99a934fc0e543be565e356ad5f7a75bb6051b"
+    },
+    {
+      "participant": "p2",
+      "signature": "0xf24ee91f054215db5dc4c4db5ba066d28768bfca59f7bd20eca01d544f92c68f3fda75121804ba1b8329542c1f539b4998ca0358340eed91d967947c571d59671c"
+    }
+  ]
+}

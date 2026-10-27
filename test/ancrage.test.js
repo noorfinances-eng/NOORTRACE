@@ -458,9 +458,13 @@ describe("CT-5 : les dossiers de CT-1 et de CT-6 gardent leur verdict ; aucun se
   const NOUVEAUX_CT1 = ["invalide-k1-double-defaut", "invalide-k1-point-autre-periode", "invalide-k2-checkpoint-hash", "invalide-k3-signature-point", "invalide-k4-point-trop-court", "invalide-k5-coherence-tronquee", "invalide-k6-last-hash", "valide-seq-7-partie-declaree-absente", "valide-seq-7-point-de-cloture", "valide-seq-7-point-de-controle"];
   const NOUVEAUX_CT6 = ["invalide-k1-double-defaut", "invalide-k1-partie-inexploitable", "invalide-k7-base64-non-canonique", "invalide-k7-jeton-autre-empreinte", "invalide-k7-jeton-signature", "invalide-k8-contrat", "invalide-k8-empreinte", "invalide-k9-preuve-autre-empreinte", "invalide-r11-ancre-de-periode", "valide-point-de-controle-complet", "valide-point-de-controle-declare-absent", "valide-point-de-controle-jeton-seul", "valide-point-de-controle-ots-en-attente", "valide-point-de-controle-point-contresigne", "valide-point-de-controle-point-de-cloture", "valide-point-de-controle-reference-declarative", "valide-point-de-controle-sans-ancre", "valide-point-de-controle-sans-ancres-reviseur"];
 
+  /** Vrai pour un dossier de la révision 0.4 de CT-1 : index à quatorze parties (partie attestation-perimetre.json déclarée). */
+  const QUATORZE_PARTIES = (racine, nom) => JSON.parse(fs.readFileSync(path.join(racine, nom, "dossier.json"), "utf8")).parts.length === 14;
+
   it("les quarante dossiers de CT-1 (version 0.2) : même verdict et mêmes contrôles en échec que leur attendu.json", function () {
     const racine = path.join(CT1, "dossiers");
-    const anciens = fs.readdirSync(racine).filter((n) => !NOUVEAUX_CT1.includes(n)).sort();
+    // Les dossiers de la révision 0.4 de CT-1 (partie attestation-perimetre.json déclarée, quatorze parties) s'ajoutent eux aussi (CT-7 annexe A.7).
+    const anciens = fs.readdirSync(racine).filter((n) => !NOUVEAUX_CT1.includes(n) && !QUATORZE_PARTIES(racine, n)).sort();
     expect(anciens).to.have.length(40);
     const schemas = J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
     for (const nom of anciens) {
@@ -474,7 +478,7 @@ describe("CT-5 : les dossiers de CT-1 et de CT-6 gardent leur verdict ; aucun se
 
   it("les cinquante dossiers de CT-6 (version 0.1) : même code de retour et mêmes vérifications en échec que leur attendu.json", function () {
     const racine = path.join(CT6, "dossiers");
-    const anciens = fs.readdirSync(racine).filter((n) => !NOUVEAUX_CT6.includes(n)).sort();
+    const anciens = fs.readdirSync(racine).filter((n) => !NOUVEAUX_CT6.includes(n) && !QUATORZE_PARTIES(racine, n)).sort();
     expect(anciens).to.have.length(50);
     for (const nom of anciens) expect(fs.existsSync(path.join(racine, nom, "points-de-controle.json")), nom).to.equal(false);
     for (const nom of anciens) {

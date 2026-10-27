@@ -48,12 +48,13 @@ verification proves and what the reviewer must still trust.
 
 ## Status
 
-Early. Six specifications are written, each with test vectors checked by
+Early. Seven specifications are written, each with test vectors checked by
 implementations written separately from the reference.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
   period manifests, signed checkpoints with RFC 9162 consistency proofs, and
-  evidence folders.
+  evidence folders. Revision 0.4 adds an optional part carrying the perimeter
+  attestation of CT-7.
 - **CT-2, the recorder**: MCP proxy, model API gateway, redaction before hashing,
   key custody classes, append-only storage, single-writer lease and behaviour under
   failure. The computable parts (full canonical form, redaction, MCP and model
@@ -104,9 +105,20 @@ implementations written separately from the reference.
   folder's checkpoint part (K-1 to K-9) and states the bound it proves. The RFC 3161,
   OpenTimestamps and registry checks are implemented in the JavaScript verifier;
   their vectors are recomputed without discrepancy by OpenSSL, the official
-  OpenTimestamps library and go-ethereum.
+  OpenTimestamps library and go-ethereum. Revision 0.3 checks the optional
+  perimeter attestation (AT-1 to AT-7) and reports it as declared, never as
+  proven, without changing any verdict.
+- **CT-7, security and compliance**: a threat model by component (98 threats, each
+  with its answer, its detection and its residual risk; 82 accepted risks, each
+  named, bounded and assigned), the inventory of keys and secrets, the key
+  ceremony with a minutes record signed by every participant and checked offline,
+  the recorder's journal on itself, the perimeter attestation signed by the
+  client's approvers, a compliance matrix that maps quoted passages of Swiss and
+  EU texts to evidence and says what remains with the client, and model audit
+  clauses. The matrix is a technical mapping, not legal advice. Signatures are
+  confronted with ethers and eth-account.
 
-CT-1, CT-2, CT-3, CT-4 and CT-5 vectors are also recomputed by Go verifiers
+CT-1, CT-2, CT-3, CT-4, CT-5 and CT-7 vectors are also recomputed by Go verifiers
 written from the specification alone, without reading the JavaScript.
 
 The registry contracts, the commit-certificate verifier and the reference approval

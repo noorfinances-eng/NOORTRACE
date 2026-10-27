@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { Wallet, keccak256, toUtf8Bytes } from "ethers";
 import { PROJECT_ROOT, anchorFingerprint, periodMetaDuManifeste } from "../scripts/lib/noortrace.mjs";
 import * as J from "../scripts/lib/journal.mjs";
+import * as S from "../scripts/lib/securite.mjs";
 
 // L'IMPLÉMENTATION DE RÉFÉRENCE DE CT-1 (scripts/lib/journal.mjs) : forme
 // canonique JCS v0 (RFC 8785 restreinte aux entiers), Ed25519 (RFC 8032),
@@ -20,7 +21,7 @@ import * as J from "../scripts/lib/journal.mjs";
 
 const SPEC = path.join(PROJECT_ROOT, "spec");
 const VECTEURS = path.join(SPEC, "vecteurs", "ct-1");
-const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
+const SCHEMAS = J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle", "attestation-perimetre"].map((n) => JSON.parse(fs.readFileSync(path.join(SPEC, "schemas", `${n}-v0.schema.json`), "utf8"))));
 const lireJSON = (fichier) => J.analyserJSONStrict(fs.readFileSync(fichier));
 const lireDossier = (repertoire) => Object.fromEntries(fs.readdirSync(repertoire).filter((f) => f !== "attendu.json").map((f) => [f, fs.readFileSync(path.join(repertoire, f))]));
 const graine = (id) => J.sha256(Buffer.from(`noortrace/vecteurs/v0/cle-enregistreur/${id}`, "utf8"));
@@ -1042,14 +1043,148 @@ describe("CT-1 : dossier de preuve", function () {
       expect(rapport.valide, nom).to.equal(attendu.valide);
       expect(J.controlesEnEchec(rapport), nom).to.deep.equal(attendu.controles_en_echec);
       if (attendu.controle) expect(attendu.controles_en_echec, nom).to.include(attendu.controle);
+      // Révision 0.4 : AT-1 à AT-7 (statut, raison), rétention et avertissements AV-AT- ; jamais dans les contrôles en échec.
+      const at = rapport.attestation;
+      if (attendu.perimeter_checks === undefined) expect(at, nom).to.equal(null);
+      else {
+        expect(at ? at.checks.map((c) => ({ id: c.id, status: c.status, reason: c.reason })) : [], nom).to.deep.equal(attendu.perimeter_checks);
+        expect(at ? at.retenue : null, nom).to.equal(attendu.perimeter_retained);
+        expect(at ? at.avertissements.map((w) => w.id) : [], nom).to.deep.equal(attendu.warnings);
+        // La vérification visée n'a pas réussi, ou (AT-4 avec un autre jeu) a levé son avertissement AV-AT-2, ou
+        // (AT-7 sur un nom de version réannoncé) réussit sur une limite qu'elle ne voit pas (CT-1 §11.5).
+        if (attendu.perimeter_target) expect(at.checks.find((c) => c.id === attendu.perimeter_target).status !== "reussi" || at.avertissements.some((w) => w.check === attendu.perimeter_target) || nom === "valide-at7-nom-reannonce", nom).to.equal(true);
+      }
+      expect(J.controlesEnEchec(rapport).some((id) => id.startsWith("AT-")), nom).to.equal(false);
     }
     const cibles = noms.map((n) => lireJSON(path.join(racine, n, "attendu.json")).controle).filter(Boolean);
     // K-7 à K-9 sont les vérifications des ancres du point (CT-6 révision 0.2) : aucun dossier de CT-1 ne les vise.
     for (const c of J.CONTROLES_DOSSIER.filter((x) => !["K-7", "K-8", "K-9"].includes(x.id))) expect(cibles, `au moins un dossier vise ${c.id} (section 11.5)`).to.include(c.id);
-    expect(noms.filter((n) => n.startsWith("valide-"))).to.deep.equal(["valide-seq-6", "valide-seq-7", "valide-seq-7-partie-declaree-absente", "valide-seq-7-point-de-cloture", "valide-seq-7-point-de-controle"]);
+    expect(noms.filter((n) => n.startsWith("valide-") && !/attestation|^valide-at|at7/.test(n))).to.deep.equal(["valide-seq-6", "valide-seq-7", "valide-seq-7-partie-declaree-absente", "valide-seq-7-point-de-cloture", "valide-seq-7-point-de-controle"]);
+    // Révision 0.4 (CT-1 §11.5, CT-7 annexe A.7) : chaque vérification AT- est visée par au moins un dossier.
+    const ciblesAT = noms.map((n) => lireJSON(path.join(racine, n, "attendu.json")).perimeter_target).filter(Boolean);
+    for (const id of ["AT-1", "AT-2", "AT-3", "AT-4", "AT-5", "AT-6", "AT-7"]) expect(ciblesAT, id).to.include(id);
+    for (const n of ["valide-seq-12-attestation-inscrite", "valide-seq-7-attestation-sans-inscription", "valide-seq-7-attestation-declaree-absente", "valide-seq-13-at7-autre-version", "valide-at1-partie-nulle", "valide-at1-taille", "valide-at3-signature-substituee", "valide-at4-jeu-different", "valide-at5-autre-journal", "valide-at5-hors-validite", "valide-at6-inscription-posterieure", "valide-at6-document-autre-condense", "valide-at6-inscription-signature-fausse", "invalide-d2-attestation-sha256", "valide-at2-condense-faux", "valide-at4-seuil-non-atteint", "valide-at6-cle-non-ancree", "valide-at7-nom-reannonce", "valide-at7-attestation-remplacee", "invalide-e1-attestation-non-executee"]) expect(noms, n).to.include(n);
     const valide = J.verifierDossier(lireDossier(path.join(racine, "valide-seq-7")), { schemas: SCHEMAS });
     expect(valide.evenement.seq).to.equal(7);
     expect(valide.controles.find((c) => c.id === "A-3").detail).to.match(/2 approbateur\(s\) distinct\(s\) sur un seuil de 2\/3/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Révision 0.4 : la partie facultative attestation-perimetre.json (CT-1 §11.1,
+// §11.2, §11.4 ; l'attestation est définie par CT-7 section 7).
+describe("CT-1 révision 0.4 : partie attestation-perimetre.json, AT-1 à AT-7", function () {
+  const CT7 = fs.readFileSync(path.join(SPEC, "CT-7-securite-et-conformite.md"), "utf8");
+  const CT1MD = fs.readFileSync(path.join(SPEC, "CT-1-evenements-et-formats.md"), "utf8");
+  const partieExemple = blocsSpec("attestation_perimetre");
+
+  it("P_P est la même chaîne hexadécimale dans CT-1 §11.2, CT-1 annexe B et CT-7 §7.2, et égale à PREFIXE_ATTESTATION", function () {
+    const hexDe = (texte) => [...texte.matchAll(/6e6f6f7274726163652f6174746573746174696f6e2d706572696d657472652f76300a/g)].length;
+    const attendu = Buffer.from(S.PREFIXE_ATTESTATION, "utf8").toString("hex");
+    expect(attendu).to.equal("6e6f6f7274726163652f6174746573746174696f6e2d706572696d657472652f76300a");
+    expect(S.PREFIXE_ATTESTATION_HEX).to.equal(attendu);
+    expect(Buffer.byteLength(S.PREFIXE_ATTESTATION, "utf8")).to.equal(35);
+    const section112 = CT1MD.split("### 11.2 Fichiers")[1].split("### 11.3")[0];
+    const annexeB = CT1MD.split("## Annexe B")[1];
+    expect(hexDe(section112), "CT-1 §11.2").to.be.at.least(1);
+    expect(hexDe(annexeB), "CT-1 annexe B").to.be.at.least(1);
+    expect(hexDe(CT7.split("### 7.2 Condensé et signature")[1].split("### 7.3")[0]), "CT-7 §7.2").to.equal(1);
+    // Aucun préfixe de domaine de CT-1 ne lui est égal ni n'en est préfixe (CT-7 EX-7.7).
+    for (const p of [J.PREFIXE_EVENEMENT, J.PREFIXE_SIGNATURE_EVENEMENT, J.PREFIXE_MANIFESTE, J.PREFIXE_SIGNATURE_MANIFESTE, J.PREFIXE_APPROBATION, J.PREFIXE_ROTATION, J.PREFIXE_POINT_DE_CONTROLE, J.PREFIXE_SIGNATURE_POINT_DE_CONTROLE]) {
+      expect(S.PREFIXE_ATTESTATION.startsWith(p) || p.startsWith(S.PREFIXE_ATTESTATION), p).to.equal(false);
+    }
+  });
+
+  it("l'exemple annoté attestation_perimetre de §11.2 : conforme à $defs/attestation_perimetre, 5 443 octets, SHA-256 déclaré par la ligne de §11.1, D_P de la section 13 ; AT-1 à AT-5 réussies sur le dossier de référence, AT-6 et AT-7 partie absente", function () {
+    expect(partieExemple).to.have.length(1);
+    const partie = partieExemple[0];
+    expect(J.validerSchema(partie, SCHEMAS[J.ID_SCHEMA_DOSSIER], { registre: SCHEMAS, fragment: "#/$defs/attestation_perimetre" })).to.deep.equal([]);
+    const texte = J.texteJSON(partie);
+    expect(Buffer.byteLength(texte, "utf8")).to.equal(5443);
+    expect(J.sha256(Buffer.from(texte, "utf8"))).to.equal("0x08c7b70e7b757bebc9137210446eabb60032c38f8d7bc2434da2df97cb423072");
+    expect(S.condenseAttestation(partie.signed.attestation)).to.equal("0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd");
+    expect(partie.signed.digest).to.equal("0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd");
+    // L'attestation de l'exemple est celle de CT-7 §7.1, et les signatures celles des comptes 1 et 2.
+    const P = J.analyserJSONStrict(/<!-- schema: attestation-perimetre -->\n```json\n([\s\S]*?)\n```/.exec(CT7)[1]);
+    expect(partie.signed.attestation).to.deep.equal(P);
+    expect(partie.signed.signatures).to.deep.equal([1, 2].map((i) => ({ address: HARDHAT[i].address.toLowerCase(), signature: S.signerAttestation(HARDHAT[i], P) })));
+    // La ligne de l'index (§11.1) et le dossier de référence (seq 4) avec les deux parties facultatives.
+    const ligne = J.analyserJSONStrict(/\n(\{"name": "attestation_perimetre", "file": "attestation-perimetre.json", "sha256": "0x[0-9a-f]{64}"[^\n]*\})\n/.exec(CT1MD)[1]);
+    const assembler = (attestationPerimetre) => J.assemblerDossier({
+      evenement: EXEMPLE.evenements[3],
+      previous: EXEMPLE.evenements[2],
+      next: EXEMPLE.evenements[4],
+      hashesPeriode: EXEMPLE.evenements.map((e) => e.hash),
+      manifeste: EXEMPLE.manifestes[0],
+      manifesteSig: EXEMPLE.manifesteSig,
+      cles: EXEMPLE.cles,
+      approbations: { approver_set: EXEMPLE.approbations.approver_set, events: EXEMPLE.approbations.events },
+      attestationPerimetre,
+      generated_at: EXEMPLE.dossier.generated_at,
+    });
+    const d = assembler(partie);
+    expect(d.index.parts).to.have.length(14);
+    expect(d.index.parts[12]).to.deep.equal({ name: "points_de_controle", file: "points-de-controle.json", sha256: null, present: false, reason_if_absent: J.RAISON_AUCUN_POINT });
+    expect(d.index.parts[13]).to.deep.equal(ligne);
+    expect(d.index.parts.slice(0, 12)).to.deep.equal(EXEMPLE.dossier.parts);
+    const r = J.verifierDossier(d.fichiers, { schemas: SCHEMAS });
+    expect(r.valide, JSON.stringify(J.controlesEnEchec(r))).to.equal(true);
+    expect(r.attestation.checks.map((c) => [c.id, c.status, c.reason])).to.deep.equal([["AT-1", "reussi", null], ["AT-2", "reussi", null], ["AT-3", "reussi", null], ["AT-4", "reussi", null], ["AT-5", "reussi", null], ["AT-6", "non_execute", "partie_absente"], ["AT-7", "non_execute", "partie_absente"]]);
+    expect(r.attestation.retenue).to.equal(true);
+    expect(r.attestation.avertissements).to.deep.equal([]);
+    // Les contrôles et le verdict sont ceux du dossier sans la partie (CT-1 §11.4, révision 0.4).
+    const sans = J.verifierDossier(assembler(null).fichiers, { schemas: SCHEMAS });
+    expect(assembler(null).index).to.deep.equal(EXEMPLE.dossier);
+    expect(r.controles).to.deep.equal(sans.controles);
+  });
+
+  it("l'événement d'inscription de CT-7 §7.5 (exemple annoté evenement) est le seq 12 du journal rejoué : même objet que la partie de valide-seq-12-attestation-inscrite, signature valide sous rec-test-02, document de politique de §11.2", function () {
+    const ev = J.analyserJSONStrict(/<!-- schema: evenement -->\n```json\n([\s\S]*?)\n```/.exec(CT7)[1]);
+    expect(J.validerSchema(ev, SCHEMAS[J.ID_SCHEMA_EVENEMENT], { registre: SCHEMAS })).to.deep.equal([]);
+    expect(J.hachageEvenement(ev)).to.equal("0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90");
+    expect(J.verifierSignatureEvenement(ev, PUBS["rec-test-02"])).to.equal(true);
+    const rep = path.join(VECTEURS, "dossiers", "valide-seq-12-attestation-inscrite");
+    const octets = fs.readFileSync(path.join(rep, "attestation-perimetre.json"));
+    expect(J.sha256(octets)).to.equal("0x4e3f9bd1cbf51471154dab29848742103c619518fb962fc93869c26304c8a120");
+    expect(octets.length).to.equal(7359);
+    const partie = J.analyserJSONStrict(octets);
+    expect(partie.inscription.event).to.deep.equal(ev);
+    expect(lireJSON(path.join(rep, "evenement.json"))).to.deep.equal(ev);
+    const b64 = /"policy_document": "([A-Za-z0-9+/=]+)"/.exec(CT1MD)[1];
+    expect(partie.inscription.policy_document).to.equal(b64);
+    const doc = Buffer.from(b64, "base64");
+    expect(doc.toString("utf8")).to.equal('{"perimeter":{"attestation_digest":"0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd"},"version":"2026-11-05"}');
+    expect(J.sha256(doc)).to.equal(ev.execution.arguments.value.policy_sha256);
+    // seq 1 à 11 du journal rejoué sont ceux de journal-valide : seq 12 s'y chaîne.
+    const journal = lireJSON(path.join(VECTEURS, "journal-valide", "evenements.json"));
+    expect(ev.prev_hash).to.equal(journal[10].hash);
+  });
+
+  it("AT- par la bibliothèque : partie inexploitable (motif de l'appelant, littéral null, plus de 4 Mio), document de politique avec doublon, ts hors validité ; jamais un contrôle en échec", function () {
+    const rep = path.join(VECTEURS, "dossiers", "valide-seq-7-attestation-sans-inscription");
+    const base = lireDossier(rep);
+    const ev = lireJSON(path.join(rep, "evenement.json"));
+    const cles = lireJSON(path.join(rep, "cles.json"));
+    const statuts = (r) => r.checks.map((c) => c.status === "non_execute" ? c.reason : c.status);
+    const r1 = S.verifierPartieAttestation({ octets: null, inexploitable: "imbrication JSON de plus de 128 niveaux", evenement: ev, cles, schemas: SCHEMAS });
+    expect(statuts(r1)).to.deep.equal(["echoue", "prerequis_en_echec", "prerequis_en_echec", "prerequis_en_echec", "prerequis_en_echec", "prerequis_en_echec", "prerequis_en_echec"]);
+    expect(r1.checks[0].detail.fr).to.match(/imbrication/);
+    expect(r1.avertissements.map((w) => [w.id, w.check])).to.deep.equal([["AV-AT-1", "AT-1"]]);
+    const r2 = S.verifierPartieAttestation({ octets: Buffer.alloc(S.LIMITE_PARTIE_ATTESTATION + 1, 0x20), evenement: ev, cles, schemas: SCHEMAS });
+    expect(r2.checks[0].detail.fr).to.match(/au-delà de la limite de 4194304 octets/);
+    // Clé en double dans la partie : AT-1 (analyse stricte).
+    const texte = base["attestation-perimetre.json"].toString("utf8").replace('"version": 0,', '"version": 0, "version": 0,');
+    expect(statuts(S.verifierPartieAttestation({ octets: Buffer.from(texte), evenement: ev, cles, schemas: SCHEMAS }))[0]).to.equal("echoue");
+    // Événement inexploitable : AT-5 et AT-6 non exécutées (prérequis), l'attestation n'est pas retenue.
+    const r3 = S.verifierPartieAttestation({ octets: base["attestation-perimetre.json"], evenement: null, cles, schemas: SCHEMAS });
+    expect(statuts(r3)).to.deep.equal(["reussi", "reussi", "reussi", "reussi", "prerequis_en_echec", "partie_absente", "partie_absente"]);
+    expect(r3.retenue).to.equal(false);
+    expect(r3.avertissements[0].id).to.equal("AV-AT-1");
+    // analyserJSONSansDoublon : doublon refusé, nombres non entiers admis (le reste du document n'est pas validé).
+    expect(() => S.analyserJSONSansDoublon('{"a":1,"a":2}')).to.throw(/en double/);
+    expect(() => S.analyserJSONSansDoublon('{"a":{"b":1,"\\u0062":2}}')).to.throw(/en double/);
+    expect(S.analyserJSONSansDoublon('{"a":1.5e3,"b":[{"a":1},{"a":2}]}')).to.deep.equal({ a: 1500, b: [{ a: 1 }, { a: 2 }] });
+    expect(() => S.analyserJSONSansDoublon('{"a":1}x')).to.throw();
   });
 });
 

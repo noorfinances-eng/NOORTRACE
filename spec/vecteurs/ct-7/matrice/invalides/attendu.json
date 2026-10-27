@@ -1,0 +1,94 @@
+{
+  "version": 0,
+  "family": "matrice-invalides",
+  "note": "MX-8 ne s'exécute pas sur ces cas (CT-7 EX-A.14).",
+  "cases": [
+    {
+      "name": "statut-force",
+      "alteration": "MC-57 passe de couvert à partiel",
+      "failed": [
+        "MX-1",
+        "MX-3"
+      ]
+    },
+    {
+      "name": "couvert-avec-contribution",
+      "alteration": "MC-1 passe à couvert",
+      "failed": [
+        "MX-1",
+        "MX-3"
+      ]
+    },
+    {
+      "name": "renvoi-inexistant",
+      "alteration": "une pièce de MC-17 devient CT-2 EX-12.999",
+      "failed": [
+        "MX-4"
+      ]
+    },
+    {
+      "name": "section-inexistante",
+      "alteration": "la pièce CT-2 §12.8 de MC-56 devient CT-2 §12.99",
+      "failed": [
+        "MX-4"
+      ]
+    },
+    {
+      "name": "clause-orpheline",
+      "alteration": "la clause CL-5 n'est plus citée par aucune ligne, serves inchangé",
+      "failed": [
+        "MX-5"
+      ]
+    },
+    {
+      "name": "lacune-ligne-inconnue",
+      "alteration": "L-1 nomme MC-99",
+      "failed": [
+        "MX-6"
+      ]
+    },
+    {
+      "name": "mot-interdit",
+      "alteration": "le requirement de MC-57 se termine par « : le client est conforme »",
+      "failed": [
+        "MX-7"
+      ]
+    },
+    {
+      "name": "ia-sans-date",
+      "alteration": "from de T-8 devient []",
+      "failed": [
+        "MX-1",
+        "MX-9"
+      ]
+    },
+    {
+      "name": "texte-inconnu",
+      "alteration": "MC-42 porte text T-11",
+      "failed": [
+        "MX-2"
+      ]
+    },
+    {
+      "name": "fait-hors-annexe",
+      "alteration": "MC-1 cite R6-F99",
+      "failed": [
+        "MX-9"
+      ]
+    },
+    {
+      "name": "lignes-permutees",
+      "alteration": "les lignes MC-25 et MC-26 échangent leur place",
+      "failed": [
+        "MX-2"
+      ]
+    },
+    {
+      "name": "ia-date-passee",
+      "alteration": "from de T-8 reçoit en tête une date passée, 2026-08-02",
+      "failed": [
+        "MX-9"
+      ]
+    }
+  ]
+}

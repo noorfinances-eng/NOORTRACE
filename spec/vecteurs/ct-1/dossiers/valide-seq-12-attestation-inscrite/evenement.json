@@ -1,0 +1,49 @@
+{
+  "version": 0,
+  "seq": 12,
+  "ts": "2026-11-05T10:05:00.000Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "recorder_key_id": "rec-test-02",
+  "prev_hash": "0xf92b743f6e089038b2182131434071ef5d6fe5c4dbc55fd8c30a0e431725efdb",
+  "delegation": {
+    "launched_by": "noortrace-enregistreur",
+    "on_behalf_of": null,
+    "scope": "journal:administration",
+    "run_id": null
+  },
+  "code": {
+    "model": null,
+    "prompt_version": null,
+    "policy_version": "2026-11-05",
+    "recorder": "0.1.0"
+  },
+  "intent": null,
+  "policy": {
+    "rule": null,
+    "decision": "sans_objet",
+    "ticket": null,
+    "redaction": null
+  },
+  "approval": null,
+  "execution": {
+    "tool": "noortrace.journal.politique",
+    "arguments": {
+      "sha256": "0xabf74619ab04a14027f13003aacba674f864cdebb83d611b001391543cc965aa",
+      "length": 116,
+      "redacted": false,
+      "value": {
+        "policy_version": "2026-11-05",
+        "policy_sha256": "0x5016ffc47d07a5ec0dae8c464a0a5cf466cd4f425fadbf293dafbd36617f63d9"
+      }
+    },
+    "status": "executee",
+    "result": null,
+    "duration_ms": null,
+    "is_error": null
+  },
+  "effects": [],
+  "context": [],
+  "hash": "0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90",
+  "sig": "0x7e757e190377226dac6baf2ba65db8d534565003e16603863a3bdc111c8cb00ff87ce43cfffa3e8f81f434c3de28b624d3480d64688bddd640355f3a2e718f04"
+}

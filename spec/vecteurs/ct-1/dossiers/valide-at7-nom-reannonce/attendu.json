@@ -1,0 +1,46 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": "AT-7",
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-7",
+      "status": "reussi",
+      "reason": null
+    }
+  ],
+  "perimeter_retained": true,
+  "warnings": [],
+  "description": "Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui annonce, sous le même nom de version 2026-11-05, un autre document de politique, sans membre perimeter (ce que CT-2 0.5 n'interdit pas au démarrage tant que PA-9 n'est pas adoptée) ; dossier de seq 13 dont la partie joint l'inscription seq 12. AT-6 et AT-7 réussissent : AT-7 ne compare que des noms. L'énoncé dit seulement « sous une version de politique de même nom que celle de cet événement », jamais que l'attestation était en vigueur (CT-7 MN-91, RA-75)."
+}

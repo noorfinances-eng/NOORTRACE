@@ -42,7 +42,7 @@
     },
     "id_verification": {
       "type": "string",
-      "pattern": "^(D|E|C|M|P|A|K|T|O|R|N)-[1-9][0-9]{0,2}$"
+      "pattern": "^(D|E|C|M|P|A|K|T|O|R|N|AT)-[1-9][0-9]{0,2}$"
     },
     "statut": {
       "enum": [
@@ -1011,8 +1011,154 @@
         }
       }
     },
+    "faits_perimetre": {
+      "description": "Attestation de périmètre retenue (CT-6 EX-6.20, révision 0.3) : AT-1 à AT-5 réussies, AT-6 réussie ou non exécutée faute d'inscription (partie_absente) ou faute de clé reliée à l'événement prouvé (ancre_absente). Valeurs recalculées (digest) ou déclarées par l'attestation et ses signataires ; provenance vaut toujours declaree : le vérificateur établit qui a signé, jamais que le périmètre est exact. inscription : l'événement qui inscrit l'attestation au journal (AT-6), null sans inscription vérifiée ; key_id est la clé de l'inscription, celle de l'événement prouvé ; same_policy_version vrai si AT-7 a réussi, c'est-à-dire si la version de politique de l'événement porte le même nom que celle de l'inscription (un nom, pas la preuve que l'attestation était en vigueur).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "digest",
+        "org_id",
+        "journal_ids",
+        "valid_from",
+        "valid_until",
+        "issued_at",
+        "signers",
+        "required",
+        "size",
+        "set_source",
+        "agents",
+        "capture_channels",
+        "exceptions",
+        "egress_default_policy",
+        "egress_rules_sha256",
+        "inscription"
+      ],
+      "properties": {
+        "provenance": {
+          "const": "declaree"
+        },
+        "digest": {
+          "$ref": "#/$defs/hex32"
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "journal_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/hex32"
+          }
+        },
+        "valid_from": {
+          "$ref": "#/$defs/horodatage_journal"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/horodatage_journal"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/horodatage_journal"
+        },
+        "signers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        },
+        "required": {
+          "$ref": "#/$defs/entier_sur"
+        },
+        "size": {
+          "$ref": "#/$defs/entier_sur"
+        },
+        "set_source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "agents": {
+          "$ref": "#/$defs/entier_sur"
+        },
+        "capture_channels": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "mandataire_mcp",
+              "passerelle",
+              "icap",
+              "miroir",
+              "sdk",
+              "opentelemetry"
+            ]
+          }
+        },
+        "exceptions": {
+          "$ref": "#/$defs/entier_sur"
+        },
+        "egress_default_policy": {
+          "enum": [
+            "refus_par_defaut",
+            "autorisation_par_defaut"
+          ]
+        },
+        "egress_rules_sha256": {
+          "$ref": "#/$defs/hex32"
+        },
+        "inscription": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "seq",
+                "hash",
+                "ts",
+                "key_id",
+                "policy_version",
+                "policy_sha256",
+                "same_policy_version"
+              ],
+              "properties": {
+                "seq": {
+                  "$ref": "#/$defs/entier_sur"
+                },
+                "hash": {
+                  "$ref": "#/$defs/hex32"
+                },
+                "ts": {
+                  "$ref": "#/$defs/horodatage_journal"
+                },
+                "key_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                },
+                "policy_version": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "policy_sha256": {
+                  "$ref": "#/$defs/hex32"
+                },
+                "same_policy_version": {
+                  "type": "boolean"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "faits": {
-      "description": "Valeurs établies par des contrôles réussis, et seulement elles : une clé vaut null quand son contrôle n'a pas réussi (CT-6 EX-6.13). Les champs de timestamp, bitcoin et registry sont ceux que les sections 9.7, 10.7 et 11.6 exigent (EX-9.19, EX-10.14, EX-11.21). checkpoint (révision 0.2, facultatif pour la compatibilité des rapports antérieurs, toujours écrit par un vérificateur de la révision 0.2) : le point de contrôle du journal qui couvre l'événement, établi par les vérifications K- (EX-6.17), null sans partie points-de-controle.json vérifiée.",
+      "description": "Valeurs établies par des contrôles réussis, et seulement elles : une clé vaut null quand son contrôle n'a pas réussi (CT-6 EX-6.13). Les champs de timestamp, bitcoin et registry sont ceux que les sections 9.7, 10.7 et 11.6 exigent (EX-9.19, EX-10.14, EX-11.21). checkpoint (révision 0.2, facultatif pour la compatibilité des rapports antérieurs, toujours écrit par un vérificateur de la révision 0.2) : le point de contrôle du journal qui couvre l'événement, établi par les vérifications K- (EX-6.17), null sans partie points-de-controle.json vérifiée. perimeter (révision 0.3 de CT-6, facultatif pour la compatibilité des rapports antérieurs, toujours écrit par un vérificateur de la révision 0.3) : l'attestation de périmètre retenue (EX-6.20), null sans partie attestation-perimetre.json ou quand elle n'est pas retenue ; valeurs déclarées, jamais prouvées.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1266,6 +1412,16 @@
           "oneOf": [
             {
               "$ref": "#/$defs/faits_point_de_controle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "perimeter": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/faits_perimetre"
             },
             {
               "type": "null"
@@ -1645,7 +1801,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^AV-[TORNK]-[1-9][0-9]{0,2}$"
+          "pattern": "^AV-(T|O|R|N|K|AT)-[1-9][0-9]{0,2}$"
         },
         "check": {
           "oneOf": [

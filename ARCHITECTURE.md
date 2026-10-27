@@ -1,9 +1,9 @@
 # NOORTRACE — architecture cible
 
-Version 0.9, 26 octobre 2026. Document de conception, pas d'implémentation. Les
+Version 0.10, 27 octobre 2026. Document de conception, pas d'implémentation. Les
 spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
 l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-5 pour
-l'ancrage, CT-6 pour le vérificateur.
+l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité et la conformité.
 
 ## Principe
 
@@ -371,8 +371,11 @@ par un quorum du jeu de validateurs que le réviseur déclare.
   intermédiaire mais ne porte pas de présomption légale.
 - NOORCHAIN, opérée par le fournisseur, ne peut pas servir d'ancre de confiance. Elle
   tient le registre des lots et des approbations, et doit rester substituable.
-- La procédure est documentée pour satisfaire l'art. 9 GeBüV : signatures, horodatage,
-  conservation des journaux et des logs du système.
+- La procédure est documentée en regard de l'art. 9 al. 1 let. b Olico (GeBüV) :
+  signature de chaque événement et manifeste, horodatage, conservation des journaux
+  du système. Savoir si un journal d'agent est un livre ou une pièce comptable
+  relève du client ; CT-7 §8 dit ce qui est couvert et ce qui ne l'est pas, sans
+  avis juridique.
 
 ## Instance dédiée
 
@@ -404,12 +407,18 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
   défaut, par le mandataire d'interception du client raccordé en ICAP.
 - Registre et console NOORTRACE : hébergés en Suisse. Rétention probatoire visée :
   10 ans, alignée sur l'art. 958f CO. Le Règlement IA demande au moins six mois
-  pour les journaux (art. 19 § 1 et 26 § 6) ; son art. 18 fixe dix ans pour la
-  documentation du fournisseur, pas pour les journaux.
+  pour les journaux (art. 19 § 1 et 26 § 6, applicables à partir du 2 décembre 2027
+  pour les systèmes à haut risque de l'annexe III et du 2 août 2028 pour ceux de
+  l'annexe I) ; son art. 18 fixe dix ans pour la documentation du fournisseur, pas
+  pour les journaux.
 - Vérificateur : binaire autonome, sans réseau, publié avec son code et ses vecteurs
   de test.
 
 ## Modèle de menace
+
+Le résumé ci-dessous est développé composant par composant dans CT-7 §3 : 98
+menaces, chacune avec sa réponse, sa détection et son risque résiduel ; 82 risques
+acceptés, nommés, bornés et attribués.
 
 | Menace | Réponse |
 |---|---|
@@ -433,7 +442,7 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
 | `docs/runbooks`, `ops/observability` | Exploitation du service |
 | `core/` | Nœud du registre d'exploitation, inchangé |
 
-Écrit au 26 octobre 2026 :
+Écrit au 27 octobre 2026 :
 
 - la spécification CT-1 avec ses schémas, ses vecteurs, son implémentation de
   référence et son vérificateur Go indépendant ; le vérificateur de dossier ;
@@ -476,7 +485,14 @@ curateur. Le mécanisme est repris, le mot et la fonction sociale ne le sont pas
   parcours de signature dans le portefeuille de l'approbateur, contrôle local de
   `D_A` ; la console de référence (bibliothèque `scripts/lib/console.mjs`, page
   `console/`, test de bout en bout dans Chromium), avec ses vecteurs, recalculés
-  par le vérificateur Go indépendant et confrontés à ethers et à eth-account.
+  par le vérificateur Go indépendant et confrontés à ethers et à eth-account ;
+- la spécification CT-7 de la sécurité et de la conformité et ses quatre schémas :
+  modèle de menace par composant, inventaire des clés, cérémonie des clés et
+  procès-verbal signé, journal de l'enregistreur sur lui-même, attestation de
+  périmètre (avec les révisions CT-1 0.4 et CT-6 0.3, qui l'ajoutent au dossier
+  comme partie facultative et déclarative), matrice de conformité, modèles de
+  clauses de droit d'audit ; références JavaScript, vecteurs, vérificateur Go
+  indépendant, confrontation à ethers et à eth-account.
 
 La conception se fait sur l'instance de développement locale ; un VPS de
 développement n'est requis qu'à la construction de l'enregistreur, quand il

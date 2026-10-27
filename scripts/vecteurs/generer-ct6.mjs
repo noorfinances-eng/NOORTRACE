@@ -19,6 +19,9 @@
 //              la treizième partie points-de-controle.json (EX-A.16), bâtis sur
 //              le point de contrôle couvrant seq 7 de la série de CT-1
 //              (spec/vecteurs/ct-1/points-de-controle/periode-1.json) ;
+//              révision 0.3 : les dossiers qui portent la quatorzième partie
+//              attestation-perimetre.json (EX-A.18 ; CT-7 annexe A.7),
+//              construite par scripts/lib/securite.mjs ;
 //   INDEX.md   chaque cas et son attendu.
 //
 // Entrées jamais réécrites (EX-A.1) : registre/capture/ (capture du réseau de
@@ -41,6 +44,8 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as J from "../lib/journal.mjs";
 import * as V from "../lib/verificateur.mjs";
+import * as S from "../lib/securite.mjs";
+import * as A from "./ct7/attestation.mjs";
 import { dossiersDecisions } from "./ct6/decisions.mjs";
 import crypto from "node:crypto";
 import { construireJeton, genererRfc3161 } from "./ct6/rfc3161.mjs";
@@ -126,12 +131,12 @@ const HORS_CT1 = { 4: "hors_perimetre_version", 5: "hors_perimetre_version", 8: 
  */
 export function conceptionDossiers() {
   const d = [];
-  const ajouter = (nom, { base = "complet", jeton = "periode-1", preuve = "periode-1", registre = null, partiesRegistre = null, manifeste = null, point = null, ancres = "ancres-test.json", entetes = "chaine.json", cible = null, echecs = null, statuts = {}, raisons = {}, avertissements = ["AV-O-3"], description }) => {
+  const ajouter = (nom, { base = "complet", jeton = "periode-1", preuve = "periode-1", registre = null, partiesRegistre = null, manifeste = null, point = null, attestation = null, ancres = "ancres-test.json", entetes = "chaine.json", cible = null, echecs = null, statuts = {}, raisons = {}, avertissements = ["AV-O-3"], description }) => {
     const control_statuses = { ...TOUS_REUSSIS, ...statuts };
     if (cible && !statuts[CONTROLE_DE(cible)]) control_statuses[CONTROLE_DE(cible)] = "echoue";
     for (const n of Object.keys(raisons)) if (control_statuses[n] !== "non_execute") throw new Error(`conception ${nom} : raison pour le contrôle ${n}, qui n'est pas non exécuté`);
     for (const [n, st] of Object.entries(control_statuses)) if (st === "non_execute" && !raisons[n]) throw new Error(`conception ${nom} : contrôle ${n} non exécuté sans raison posée`);
-    d.push({ nom, base, jeton, preuve, registre, partiesRegistre: partiesRegistre ?? (registre ? `variantes/${registre}` : "periode-1"), manifeste, point, ancres, entetes, cible, failed_checks: echecs ?? (cible ? [cible] : []), control_statuses, control_reasons: raisons, warnings: avertissements, description });
+    d.push({ nom, base, jeton, preuve, registre, partiesRegistre: partiesRegistre ?? (registre ? `variantes/${registre}` : "periode-1"), manifeste, point, attestation, ancres, entetes, cible, failed_checks: echecs ?? (cible ? [cible] : []), control_statuses, control_reasons: raisons, warnings: avertissements, description });
   };
   ajouter("valide-seq-7-complet", { description: "Dossier valide-seq-7 de CT-1, ses sept parties inchangées, complété du jeton de la période 1 (rfc3161/jetons/periode-1.der), de sa preuve OpenTimestamps (ots/preuves/periode-1.ots) et des trois parties du registre de la période 1 (registre/periode-1/ : inscriptions de rec-test-01 et rec-test-02, ancre et clôture). Les huit contrôles réussissent ; T-11 n'est pas exécutée (aucun statut qualifié déclaré), l'énoncé ne dit pas « qualifié »." });
   ajouter("valide-seq-7-complet-sans-ancres", { ancres: null, statuts: { 4: "non_execute", 5: "non_execute", 8: "non_execute" }, raisons: { 4: "ancre_absente", 5: "ancre_absente", 8: "ancre_absente" }, avertissements: [], description: "Le même dossier, vérifié sans fichier d'ancres (avec chaine.json) : les contrôles 4, 5 et 8 ne sont pas exécutés (ancre_absente) ; N-3 et N-4 ne figurent pas au rapport ; aucun avertissement (AV-O-3 exige O-5 exécutée)." });
@@ -224,6 +229,15 @@ export function conceptionDossiers() {
   avecPoint("invalide-k8-empreinte", { modif: "k8-empreinte" }, { cible: "K-8", avertissements: DEUX_AV_O3, description: "anchors.registry.fingerprint remplacée par 0x11…11 : K-8 échoue, contrôle 8 en échec ; R-11 réussie (l'entrée est authentique et son topics[1] égale le recalcul : seule la référence de la partie est fausse)." });
   avecPoint("invalide-k8-contrat", { modif: "k8-contrat" }, { cible: "K-8", avertissements: DEUX_AV_O3, description: "anchors.registry.contract = adresse de PeriodRegistry : K-8 échoue, contrôle 8 en échec ; R-11 réussie (l'entrée, elle, est émise par AttestationRegistry)." });
   avecPoint("invalide-k9-preuve-autre-empreinte", { preuve: "periode-1" }, { cible: "K-9", avertissements: DEUX_AV_O3, description: "La preuve de la clôture (ots/preuves/periode-1.ots) embarquée comme preuve du point : O-2 du point en échec, K-9 échoue, contrôle 5 en échec." });
+  // Révision 0.3 (EX-A.18, CT-7 annexe A.7) : dossiers avec la quatorzième partie attestation-perimetre.json,
+  // l'attestation de CT-7 §7.1 signée par les comptes Hardhat 1 et 2, le jeu des comptes 1 à 3, sans inscription.
+  // `attestation` : { mode (« exemple » ou « substituee »), checks (statuts attendus de AT-1 à AT-7), retenue }.
+  const AT_SANS_INSCRIPTION = ["reussi", "reussi", "reussi", "reussi", "reussi", "partie_absente", "partie_absente"];
+  ajouter("valide-seq-7-complet-attestation", { attestation: { mode: "exemple", checks: AT_SANS_INSCRIPTION, retenue: true }, description: "valide-seq-7-complet dont l'index passe à quatorze parties : la treizième déclarée absente (« aucun point de contrôle »), la quatorzième attestation-perimetre.json porte l'attestation de CT-7 §7.1 signée par les comptes Hardhat 1 et 2, le jeu des comptes 1 à 3 au seuil de 2, sans inscription. Les huit contrôles réussissent comme dans valide-seq-7-complet ; AT-1 à AT-5 réussies, AT-6 et AT-7 non exécutées (partie_absente) ; énoncé = celui de valide-seq-7-complet avec le fragment FP sans clause d'inscription inséré avant le point final ; facts.perimeter rempli, provenance declaree." });
+  ajouter("valide-seq-7-complet-attestation-non-retenue", { attestation: { mode: "substituee", checks: ["reussi", "reussi", "echoue", "prerequis_en_echec", "reussi", "partie_absente", "partie_absente"], retenue: false }, avertissements: ["AV-AT-1", "AV-O-3"], description: "Même dossier, la signature du compte 3 déclarée pour le compte 2 : AT-3 échoue, AT-4 non exécutée ; mêmes statuts des huit contrôles, même verdict valide et code 0 (EX-5.11) ; FP « l'attestation de périmètre jointe n'est pas retenue (vérification(s) en échec : AT-3) » ; AV-AT-1 ; facts.perimeter nul." });
+  avecPoint("valide-point-de-controle-complet-attestation", {}, { attestation: { mode: "exemple", checks: AT_SANS_INSCRIPTION, retenue: true }, avertissements: DEUX_AV_O3, description: "valide-point-de-controle-complet dont l'index passe à quatorze parties : la treizième (points-de-controle.json) inchangée, la quatorzième porte l'attestation de valide-seq-7-complet-attestation. K-1 à K-9 et R-11 réussies, AT-1 à AT-5 réussies, AT-6 et AT-7 non exécutées (partie_absente) ; l'énoncé porte FK puis FP, avant le point final." });
+  ajouter("valide-seq-7-complet-attestation-cle-non-ancree", { attestation: { mode: "cle-non-ancree", checks: ["reussi", "reussi", "reussi", "reussi", "reussi", "ancre_absente", "prerequis_en_echec"], retenue: true }, description: "valide-seq-7-complet-attestation où l'exportateur ajoute à cles.json une clé rec-forge-01 (graine = SHA-256 de « noortrace/vecteurs/ct7/rec-forge-01 ») et joint une inscription forgée (seq 2, 09:10:00.000Z, signée par rec-forge-01, document de politique portant D_P sous la version de l'événement prouvé). N-3 ne compare que les clés qui signent le dossier : il réussit comme dans valide-seq-7-complet. La clé de l'inscription n'est pas celle de l'événement prouvé (rec-test-01) : AT-6 n'est pas exécutée (ancre_absente), AT-7 non plus ; l'attestation est retenue et FP dit que l'inscription jointe n'est pas signée par la clé de l'événement prouvé, sans date ni rang (CT-6 EX-6.19 ; CT-7 MN-84, MN-90)." });
+  ajouter("invalide-t6-signature-attestation", { jeton: "t6-signature", cible: "T-6", attestation: { mode: "exemple", checks: AT_SANS_INSCRIPTION, retenue: true }, description: "invalide-t6-signature (jeton-rfc3161.der = rfc3161/jetons/t6-signature.der, dernier octet de la signature inversé) avec la partie de valide-seq-7-complet-attestation : T-6 échoue, verdict invalide ; l'énoncé est celui d'EX-6.9, sans FP ; l'attestation est retenue et facts.perimeter est gardé pour le diagnostic (EX-6.13, EX-6.20)." });
   avecPoint("invalide-r11-ancre-de-periode", { registre: "ancre-de-periode" }, { partiesRegistre: "variantes/invalide-r11-ancre-de-periode", cible: "R-11", avertissements: DEUX_AV_O3, description: "Parties du registre de registre/variantes/invalide-r11-ancre-de-periode/ (entrée ancre de la période 1, bloc 16660, dupliquée sous le rôle ancre_point_de_controle) ; anchors.registry de la partie porte l'empreinte et le docType du point mais désigne ce bloc et cette transaction : R-11 échoue (règle 1 : docType de période), R-6 et R-7 réussies (bloc authentique), K-8 réussie, contrôle 8 en échec." });
   return d;
 }
@@ -261,7 +275,7 @@ function base64NonCanonique(b64) {
  * { point, feuilles, referenceRegistre, referenceAncreDePeriode } pour la
  * treizième partie des dossiers qui la déclarent (EX-A.16).
  */
-function fichiersDossier(base, { base: origine, jeton, preuve, partiesRegistre, manifeste, point }, racine, decisions, contextePoint) {
+function fichiersDossier(base, { base: origine, jeton, preuve, partiesRegistre, manifeste, point, attestation }, racine, decisions, contextePoint) {
   if (origine !== "complet") return decisions[origine];
   const fichiers = { ...base };
   delete fichiers["dossier.json"];
@@ -297,9 +311,55 @@ function fichiersDossier(base, { base: origine, jeton, preuve, partiesRegistre, 
     if (point.modif === "k8-contrat") partie.anchors.registry = { ...partie.anchors.registry, contract: contextePoint.adressePeriodRegistry };
     fichiers[J.PARTIE_POINTS_DE_CONTROLE.file] = point.modif === "k1-null" ? Buffer.from("null\n") : Buffer.from(texteJSON(partie));
   }
+  // Révision 0.3 : la quatorzième partie ; sans point, la treizième est déclarée absente (« aucun point de contrôle »).
+  if (attestation && attestation.mode === "cle-non-ancree") {
+    const forge = inscriptionForgee(fichiers);
+    fichiers["cles.json"] = Buffer.from(texteJSON(forge.cles));
+    fichiers[J.PARTIE_ATTESTATION_PERIMETRE.file] = Buffer.from(texteJSON(forge.partie));
+  } else if (attestation) fichiers[J.PARTIE_ATTESTATION_PERIMETRE.file] = Buffer.from(texteJSON(partieAttestation(attestation.mode)));
   const avecIndex = { "dossier.json": base["dossier.json"], ...fichiers };
   const { fichiers: reindexes } = J.reindexerDossier(avecIndex);
   return reindexes;
+}
+
+/**
+ * La partie attestation-perimetre.json des dossiers de la révision 0.3 (CT-7
+ * annexe A.7) : l'attestation de CT-7 §7.1 signée par les comptes 1 et 2, ou,
+ * mode « substituee », avec la signature du compte 3 déclarée pour le compte 2 ;
+ * le jeu des comptes 1 à 3 ; sans inscription.
+ */
+function partieAttestation(mode) {
+  const P = A.attestationExemple();
+  const signee = A.signer(P);
+  if (mode === "substituee") signee.signatures[1].signature = A.signature(P, 3).signature;
+  return S.construirePartieAttestation({ signee, approver_set: A.jeuExemple(), inscription: null });
+}
+
+/**
+ * Inscription forgée sous une clé que le dossier déclare lui-même (CT-7
+ * MN-84, MN-90 ; même construction que valide-at6-cle-non-ancree de ct-1) :
+ * clé rec-forge-01 dérivée d'une étiquette publique, ajoutée à cles.json ;
+ * événement noortrace.journal.politique seq 2 signé par elle, dont le
+ * document porte D_P sous la version de politique de l'événement prouvé.
+ */
+function inscriptionForgee(fichiers) {
+  const ev = J.analyserJSONStrict(fichiers["evenement.json"]);
+  const cles = J.analyserJSONStrict(fichiers["cles.json"]);
+  const forge = J.cleEd25519DepuisGraine(J.sha256(Buffer.from("noortrace/vecteurs/ct7/rec-forge-01", "utf8")));
+  cles.keys.push({ key_id: "rec-forge-01", algorithm: "ed25519", public_key: forge.clePublique, valid_from: "2026-11-01T00:00:00.000Z", valid_to: null, source: cles.keys[0].source });
+  const P = A.attestationExemple();
+  const signee = A.signer(P);
+  const doc = A.documentPolitique(signee.digest, ev.code.policy_version);
+  const event = J.scellerEvenement({
+    version: 0, seq: 2, ts: "2026-11-05T09:10:00.000Z", org_id: ev.org_id, journal_id: ev.journal_id,
+    prev_hash: J.sha256(Buffer.from("noortrace/vecteurs/ct7/prev-hash-forge", "utf8")), recorder_key_id: "rec-forge-01",
+    delegation: { launched_by: "noortrace-enregistreur", on_behalf_of: null, scope: "journal:administration", run_id: null },
+    code: { model: null, prompt_version: null, policy_version: ev.code.policy_version, recorder: "0.1.0" },
+    intent: null, policy: { rule: null, decision: "sans_objet", ticket: null, redaction: null }, approval: null,
+    execution: { tool: J.OUTIL_POLITIQUE, arguments: J.referenceEnLigne({ policy_version: ev.code.policy_version, policy_sha256: J.sha256(doc) }), status: "executee", result: null, duration_ms: null, is_error: null },
+    effects: [], context: [],
+  }, forge.clePrivee);
+  return { cles, partie: S.construirePartieAttestation({ signee, approver_set: A.jeuExemple(), inscription: { event, policy_document: doc } }) };
 }
 
 /**
@@ -424,6 +484,8 @@ function index({ rfc, ots, attenduRegistre, ancres, dossiers }) {
   L.push("");
   L.push("Révision 0.2 : les dossiers `valide-point-de-controle-*`, `invalide-k*` et `invalide-r11-*` portent la treizième partie `points-de-controle.json` (CT-1 révision 0.3) bâtie sur le point de contrôle couvrant seq 7 de `spec/vecteurs/ct-1/points-de-controle/periode-1.json` (09:32:00.000Z, `tree_size` 8) ; ils se vérifient avec `ots/entetes/chaine-points.json` (EX-A.14) et, quand la référence au registre est non nulle, les parties de `registre/periode-1-point/` (EX-A.15). Exceptions : `valide-point-de-controle-point-contresigne` (point de 09:35:00.000Z, contresigné à D_7) et `valide-point-de-controle-point-de-cloture` (point de clôture, `tree_size` 9) portent un point plus tardif de la série avec un jeton construit par le générateur sur son `checkpoint_hash` (TSA de test, numéros de série 1002 et 1003, absent de `rfc3161/jetons`), `registry` et `ots` nuls : ils illustrent le choix du point couvrant d'EX-10.2 de CT-5 (AN-51), qui retient le point porteur d'un jeton plutôt que le point de 09:32, ancré au registre seul. Les cinquante dossiers antérieurs ne changent pas (EX-6.18).");
   L.push("");
+  L.push("Révision 0.3 : les dossiers `*-attestation`, `*-attestation-non-retenue` et `*-attestation-cle-non-ancree` portent la quatorzième partie `attestation-perimetre.json` (CT-1 révision 0.4, CT-7 annexe A.7), la treizième étant présente ou déclarée absente : l'attestation de CT-7 §7.1 signée par les comptes Hardhat 1 et 2, le jeu des comptes 1 à 3 au seuil de 2, sans inscription (pour `*-cle-non-ancree`, une inscription forgée sous une clé que le dossier déclare lui-même). Leur `attendu.json` donne en plus `perimeter_checks` (statut et raison de AT-1 à AT-7) et `perimeter_retained` (EX-A.19) ; les AT- ne changent ni les statuts des huit contrôles, ni le verdict, ni le code de retour (EX-5.11, V-10). Les soixante-huit dossiers antérieurs ne changent pas (EX-A.21).");
+  L.push("");
   L.push("## dossiers/");
   L.push("");
   L.push("| Dossier | Ancres | En-têtes | Visée | En échec | Contrôles non exécutés | Avertissements | Code |");
@@ -523,6 +585,13 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
     const attenduConstruction = { failed_checks: c.failed_checks, control_statuses: c.control_statuses, control_reasons: Object.fromEntries(Object.entries(c.control_reasons).map(([n, r]) => [String(n), r])), warnings: c.warnings, exit_code: invalide ? 1 : 0 };
     const corps = verifierRepertoire(rep, { ancres: cheminAncres, entetes: cheminEntetes, schemas });
     confronter(c.nom, attenduConstruction, corps);
+    // Révision 0.3 (EX-A.19) : statuts des AT- et rétention de l'attestation, posés par la conception.
+    const perimeter_checks = corps.checks.filter((x) => x.id.startsWith("AT-")).map((x) => ({ id: x.id, status: x.status, reason: x.reason }));
+    if (c.attestation) {
+      const attendus = c.attestation.checks.map((st, i) => ({ id: `AT-${i + 1}`, status: ["reussi", "echoue"].includes(st) ? st : "non_execute", reason: ["reussi", "echoue"].includes(st) ? null : st }));
+      exiger(JSON.stringify(perimeter_checks) === JSON.stringify(attendus), `dossier ${c.nom} : AT- ${JSON.stringify(perimeter_checks)}, attendues ${JSON.stringify(attendus)}`);
+      exiger((corps.facts.perimeter !== null) === c.attestation.retenue, `dossier ${c.nom} : facts.perimeter ${corps.facts.perimeter === null ? "nul" : "rempli"}, attestation ${c.attestation.retenue ? "retenue" : "non retenue"} attendue`);
+    } else exiger(perimeter_checks.length === 0 && corps.facts.perimeter === null, `dossier ${c.nom} : AT- ou facts.perimeter sans la partie`);
     const corpsEn = verifierRepertoire(rep, { ancres: cheminAncres, entetes: cheminEntetes, schemas, langue: "en" });
     exiger(JSON.stringify(corpsEn.statement) === JSON.stringify(corps.statement), `dossier ${c.nom} : l'énoncé dépend de --langue`);
     // La borne est posée par la conception (EX-6.12) et confrontée au vérificateur.
@@ -540,6 +609,7 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
       exit_code: attenduConstruction.exit_code,
       statement: corps.statement,
       bound: borne,
+      ...(c.attestation ? { perimeter_checks, perimeter_retained: c.attestation.retenue } : {}),
       description: c.description,
     };
     fs.writeFileSync(path.join(rep, "attendu.json"), texteJSON(attendu));

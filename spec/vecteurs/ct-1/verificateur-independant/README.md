@@ -2,7 +2,7 @@
 
 Un second vérificateur des formats de CT-1, écrit en Go depuis la seule
 spécification [`spec/CT-1-evenements-et-formats.md`](../../../CT-1-evenements-et-formats.md)
-et ses trois schémas, sans lire ni reprendre le code JavaScript de
+(révision 0.4) et ses schémas, sans lire ni reprendre le code JavaScript de
 `scripts/`. Il recalcule tout ce que la spécification définit et le confronte
 à chaque valeur attendue trouvée dans les vecteurs de `spec/vecteurs/ct-1`.
 Deux implémentations écrites séparément qui tombent sur les mêmes octets
@@ -10,8 +10,12 @@ rendent les vecteurs probants ; une discordance désigne une ambiguïté de la
 spécification ou une faute de l'une des deux.
 
 Bibliothèque standard uniquement (`crypto/ed25519`, `crypto/sha256`,
-`crypto/sha3` pour les tests, `encoding/hex`, `math/big`, `encoding/json` pour
-la seule sortie du rapport). Module `noortrace-ct1`, `go 1.24`.
+`crypto/sha3` pour les tests, `encoding/hex`, `encoding/base64`, `math/big`,
+`encoding/json` pour la seule sortie du rapport). Module `noortrace-ct1`,
+`go 1.24`. Depuis la révision 0.4, la courbe secp256k1 (recouvrement d'une
+adresse EIP-191, AT-3) est `secp256k1.go`, copié sans modification du
+vérificateur Go de `ct-3` (en-tête « Copié sans modification de … ») ; elle
+emploie le `Keccak256` de `keccak.go`.
 
 ## Usage
 
@@ -50,7 +54,7 @@ périmètre.
 | cohérence | `merkle/coherence.json` (révision 0.3) | preuve de cohérence RFC 9162 §2.1.4 régénérée nœud pour nœud (`PROOF(m, D[0..n-1])`, §10.7), racines des deux arbres, et exécution de l'algorithme de vérification de §10.7 : chaque cas valide accepté, chaque sonde (`m = 0`, `m > n`, chemin tronqué, nœud en trop, racines échangées, chemin vide, `m = n` avec chemin) refusée |
 | manifestes | `manifestes/*.json`, `*.sig`, `attendu.json` | P-1, P-4, P-5 ; forme canonique `C_M` ; `periodHash` ; signature ; racine recalculée depuis le journal valide (fenêtre `[period_start, period_end)` et liste `seq`) ; `count` ; `anchorFingerprint` = keccak256(org_id ‖ journal_id ‖ periodHash) ; correspondance `PeriodMeta` ; continuité P-5 entre périodes déclarées et discontinuité attendue |
 | points de contrôle | `points-de-controle/periode-N.json`, `invalides/*.json`, `attendu.json` (révision 0.3) | règles de série de §10.5 (chaînage par `prev_checkpoint_hash`, `tree_size` et `checkpoint_ts` non décroissants, `checkpoint_ts ≥ period_start`, racine et `last_hash` recalculés depuis le journal, période vide comprise, dernier point égal au manifeste, clé en vigueur d'après le journal, signature et validité annoncée) ; pour chaque point : forme canonique `C_K`, `checkpointHash = SHA-256(P_K ‖ C_K)`, `prev_checkpoint_hash`, signature Ed25519 sur `P_SK ‖ C_K`, preuve de cohérence `PROOF(tree_size, D[0..count-1])` vers la racine du manifeste et sa vérification ; pour chaque série invalide, les règles violées (`rules_failed`) |
-| dossiers | `dossiers/*/` | les contrôles D-1, D-2, E-1 à E-8, E-10, E-11, C-1 à C-3, M-1 à M-3, P-1 à P-5, A-1 à A-4 et, révision 0.3, K-1 à K-6 sur la treizième partie `points-de-controle.json` (index à douze ou treize parties ; index à douze parties ou partie déclarée absente : K-1 à K-9 non exécutées pour une raison admise ; partie présente mais inexploitable ou K-1 en échec : K-2 à K-9 non exécutées sans raison admise ; K-7 à K-9 non exécutées, raison admise, pour une ancre `null`, hors périmètre sinon) ; verdict confronté à `attendu.json` ; validité au sens de §11.4 (aucun échec et aucun contrôle non exécuté sans raison admise) ; une partie présente qui n'est pas un objet JSON met en échec le contrôle qui la porte ; borne du verdict énoncée (§11.3) |
+| dossiers | `dossiers/*/` | les contrôles D-1, D-2, E-1 à E-8, E-10, E-11, C-1 à C-3, M-1 à M-3, P-1 à P-5, A-1 à A-4 et, révision 0.3, K-1 à K-6 sur la treizième partie `points-de-controle.json` (index à douze, treize ou quatorze parties ; index à douze parties ou partie déclarée absente : K-1 à K-9 non exécutées pour une raison admise ; partie présente mais inexploitable ou K-1 en échec : K-2 à K-9 non exécutées sans raison admise ; K-7 à K-9 non exécutées, raison admise, pour une ancre `null`, hors périmètre sinon) ; verdict confronté à `attendu.json` ; validité au sens de §11.4 (aucun échec et aucun contrôle non exécuté sans raison admise) ; une partie présente qui n'est pas un objet JSON met en échec le contrôle qui la porte ; borne du verdict énoncée (§11.3) ; révision 0.4 : AT-1 à AT-7 sur la quatorzième partie `attestation-perimetre.json` (schéma de la partie et de l'attestation transcrits, relations d'AT-1, taille de 4 Mio, base64 canonique du document de politique d'au plus 2 097 152 octets ; `D_P = keccak256(P_P ‖ JCS(P))` ; signatures EIP-191 canoniques et adresses recouvrées ; seuil et jeu déclaré ; liaison à l'événement prouvé ; inscription : E-1 à E-8 et E-11 de l'événement, document de politique, `perimeter.attestation_digest`, rang et instant ; version de politique), statuts et raisons (`prerequis_en_echec`, `partie_absente`, `piece_hors_dossier`) confrontés à `perimeter_checks` de `attendu.json`, sans effet sur le verdict ; aucune AT- pour un index à douze ou treize parties ou une partie déclarée absente |
 | jcs | `jcs/cas-limites.json` (`{ cas: [{ name, input, canonical \| null }] }`) | forme canonique d'un texte JSON (§4) ou refus |
 
 Implémentation propre de chaque brique : analyseur JSON strict (clés en
@@ -78,7 +82,7 @@ merkle/arbres.json
 merkle/coherence.json
 manifestes/{periode-N.json, periode-N.sig, discontinu.json, discontinu.sig, attendu.json}
 points-de-controle/{periode-N.json, invalides/*.json, attendu.json}
-dossiers/<nom>/{dossier.json, …, points-de-controle.json, attendu.json}
+dossiers/<nom>/{dossier.json, …, points-de-controle.json, attestation-perimetre.json, attendu.json}
 ```
 
 et, en repli, une disposition documentée ici au cas où l'intégration la
@@ -146,6 +150,17 @@ l'égalité des ensembles, ce que les vecteurs publiés satisfont (leurs
   sans réponse (E-1, E-3), la validité annoncée d'une clé de rotation (E-10),
   l'unicité des clés de `cles.json` (E-8), la troncature d'une période (P-3)
   et l'ordre décision puis relais (A-2).
+- Révision 0.4 (`attestation_test.go`) : l'exemple de
+  `attestation-perimetre.json` imprimé en §11.2, réécrit comme les autres
+  parties (indentation de deux espaces, saut de ligne final), fait 5 443
+  octets et a le SHA-256 que §11.1 déclare ; `D_P` de §13 et de l'annexe B,
+  `P_P` ; joint au dossier de référence à quatorze parties, AT-1 à AT-5
+  réussissent, AT-6 et AT-7 ne sont pas exécutées (`partie_absente`) et le
+  dossier reste valide ; altérations (signature attribuée à un autre compte,
+  condensé déclaré faux, seuil de trois, validité terminée, date
+  inexistante, membre inconnu) : l'AT- visée échoue, les suivantes ne sont
+  pas exécutées selon les prérequis de §11.4, le dossier reste valide ;
+  quatorzième partie déclarée absente : aucune AT-.
 - Les vecteurs publiés dans le répertoire parent, s'ils sont présents : tout
   doit concorder.
 
@@ -153,9 +168,11 @@ l'égalité des ensembles, ce que les vecteurs publiés satisfont (leurs
 
 - **Contrôle 7 (E-9), signatures EIP-191 des approbateurs** : hors
   périmètre. Le recouvrement d'adresse secp256k1 n'est pas dans la
-  bibliothèque standard ; la structure est contrôlée (E-1, E-5, A-3 : formes,
-  longueurs égales, approbateurs distincts et membres du jeu, seuil atteint),
-  l'objet signé `A` et son condensé `D_A` sont recalculés, mais aucune
+  bibliothèque standard (la copie de `secp256k1.go`, faite pour AT-3 en
+  révision 0.4, ne change pas ce périmètre) ; la structure est contrôlée
+  (E-1, E-5, A-3 : formes, longueurs égales, approbateurs distincts et
+  membres du jeu, seuil atteint), l'objet signé `A` et son condensé `D_A`
+  sont recalculés, mais aucune
   signature d'approbateur n'est vérifiée. Un vecteur dont le seul contrôle
   attendu en échec est E-9 est rapporté « hors périmètre », ni concordant ni
   discordant. L'adresse des comptes Hardhat n'est pas dérivée non plus.
@@ -168,9 +185,21 @@ l'égalité des ensembles, ce que les vecteurs publiés satisfont (leurs
   hors périmètre quand une ancre est fournie (vecteurs de CT-6 révision 0.2).
 - Les schémas JSON sont transcrits à la main en Go (E-1, D-1, K-1 avec ses
   `$defs` `points_de_controle`, `preuve_coherence`, `ancre_rfc3161_point`,
-  `ancre_registre_point`, `ancre_ots_point` et `base64`), ce n'est pas un
-  validateur JSON Schema générique ; une divergence entre le schéma et sa
-  transcription serait une faute de ce vérificateur.
+  `ancre_registre_point`, `ancre_ots_point` et `base64` ; AT-1 avec
+  `attestation_perimetre`, `base64_document` et, du schéma
+  `attestation-perimetre-v0`, l'attestation, `attestation_signee`,
+  `jeu_approbateurs` et `reference_secret`), ce n'est pas un validateur JSON
+  Schema générique ; une divergence entre le schéma et sa transcription
+  serait une faute de ce vérificateur.
+- **Révision 0.4, notions de CT-6 et de CT-7** : `perimeter_target` (la
+  vérification qu'un dossier exerce), `perimeter_retained` (attestation
+  retenue) et `warnings` (avertissements AV-AT-) des `attendu.json` sont
+  nommés par CT-1 §11.5, mais leur valeur dépend de CT-6 (rétention
+  d'EX-6.19, avertissements d'EX-6.15) ; ils sont rapportés hors périmètre.
+  Les statuts et raisons de AT-1 à AT-7 sont, eux, confrontés : AT-1 refuse
+  une validité de plus de 366 jours, AT-6 n'est pas exécutée
+  (`ancre_absente`) quand l'inscription est signée par une autre clé que
+  celle de l'événement prouvé, et AT-7 ne l'est pas non plus dans ce cas.
 - Les pièces ne sont vérifiées que si elles sont fournies à part
   (`pieces.json`) ou en ligne (`value`).
 - Go 1.24 est utilisé (c'est la version installée) ; aucune dépendance.
@@ -186,3 +215,9 @@ vecteurs ; §7.2 fixe que tous les symptômes sont rapportés) et dans les
 vecteurs (`jcs/cas-limites.json`, `controles_en_echec` des journaux). Les seules
 valeurs non confrontées sont celles du contrôle E-9, hors périmètre de ce
 vérificateur (voir « Limites »), vérifiées par l'implémentation de référence.
+
+Révision 0.4 (2026-10-27) : les quatorze dossiers de l'attestation de
+périmètre concordent, statut et raison de chaque AT- compris ; total de 2 955
+valeurs confrontées, 2 911 concordantes, **0 discordante**, 44 hors
+périmètre (les 2 valeurs E-9, et `perimeter_target`, `perimeter_retained`
+et `warnings` des 14 dossiers, notions de CT-6 et de CT-7).

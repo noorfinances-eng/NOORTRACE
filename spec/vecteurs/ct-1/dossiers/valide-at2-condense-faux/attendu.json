@@ -1,0 +1,48 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": "AT-2",
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "echoue",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    },
+    {
+      "id": "AT-7",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    }
+  ],
+  "perimeter_retained": false,
+  "warnings": [
+    "AV-AT-1"
+  ],
+  "description": "signed.digest est le D_P d'une autre attestation (issued_at du 31 octobre) : AT-2 échoue ; AT-3 et AT-4 réussissent, les signatures portant sur le D_P recalculé ; inscription nulle, AT-6 et AT-7 ne sont pas exécutées, partie absente (la raison partie_absente l'emporte sur l'échec d'AT-2, CT-6 EX-5.12) ; AV-AT-1 ; le dossier reste valide (CT-6 EX-5.11, V-10)."
+}

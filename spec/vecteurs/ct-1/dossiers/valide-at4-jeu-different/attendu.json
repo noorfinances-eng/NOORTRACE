@@ -1,0 +1,48 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": "AT-4",
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    },
+    {
+      "id": "AT-7",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    }
+  ],
+  "perimeter_retained": true,
+  "warnings": [
+    "AV-AT-2"
+  ],
+  "description": "Le jeu déclaré par la partie est celui des comptes Hardhat 1, 2 et 4 (seuil de 2 sur 3), approbations.json déclare les comptes 1 à 3 : AT-4 réussit (les comptes 1 et 2 sont membres des deux jeux), l'attestation est retenue, et AV-AT-2 signale les deux jeux différents."
+}

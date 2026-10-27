@@ -1,0 +1,317 @@
+{
+  "version": 0,
+  "keys": [
+    {
+      "source": "ct-1",
+      "label": "noortrace/vecteurs/v0/cle-enregistreur/rec-test-01",
+      "algorithm": "ed25519",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "address": null,
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-1",
+      "label": "noortrace/vecteurs/v0/cle-enregistreur/rec-test-02",
+      "algorithm": "ed25519",
+      "public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+      "address": null,
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/0",
+      "algorithm": "secp256k1",
+      "public_key": "0x048318535b54105d4a7aae60c08fc45f9687181b4fdfc625bd1a753fa7397fed753547f11ca8696646f2f3acb08e31016afac23e630c5d11f59f61fef57b0d2aa5",
+      "address": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/1",
+      "algorithm": "secp256k1",
+      "public_key": "0x04ba5734d8f7091719471e7f7ed6b9df170dc70cc661ca05e688601ad984f068b0d67351e5f06073092499336ab0839ef8a521afd334e53807205fa2f08eec74f4",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/2",
+      "algorithm": "secp256k1",
+      "public_key": "0x049d9031e97dd78ff8c15aa86939de9b1e791066a0224e331bc962a2099a7b1f0464b8bbafe1535f2301c72c2cb3535b172da30b02686ab0393d348614f157fbdb",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/3",
+      "algorithm": "secp256k1",
+      "public_key": "0x0420b871f3ced029e14472ec4ebc3c0448164942b123aa6af91a3386c1c403e0ebd3b4a5752a2b6c49e574619e6aa0549eb9ccd036b9bbc507e1f7f9712a236092",
+      "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/4",
+      "algorithm": "secp256k1",
+      "public_key": "0x04bf6ee64a8d2fdc551ec8bb9ef862ef6b4bcb1805cdc520c3aa5866c0575fd3b514c5562c3caae7aec5cd6f144b57135c75b6f6cea059c3d08d1f39a9c227219d",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/5",
+      "algorithm": "secp256k1",
+      "public_key": "0x0437b84de6947b243626cc8b977bb1f1632610614842468dfa8f35dcbbc55a515e47f6fe259cffc671a719eaef444a0d689b16a90051985a13661840cf5e221503",
+      "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/6",
+      "algorithm": "secp256k1",
+      "public_key": "0x049a4ab212cb92775d227af4237c20b81f4221e9361d29007dfc16c79186b577cb6ba3f1b582ad0b5572c93f47e7506d66df7f2af05fa1828de0e511aac7b97828",
+      "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/7",
+      "algorithm": "secp256k1",
+      "public_key": "0x0401f2bf1fa920e77a43c7aec2587d0b3814093420cc59a9b3ad66dd5734dda7be6f8b7de790eac3a720fd8e4bcb9eae9434f843d3cec111d9e07adeddeae090f2",
+      "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/8",
+      "algorithm": "secp256k1",
+      "public_key": "0x04931e7fda8da226f799f791eefc9afebcd7ae2b1b19a03c5eaa8d72122d9fe74d887a3962ff861190b531ab31ee82f0d7f255dfe3ab73ca627bd70ab3d1cbb417",
+      "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-3",
+      "label": "m/44'/60'/0'/0/9",
+      "algorithm": "secp256k1",
+      "public_key": "0x043255458e24278e31d5940f304b16300fdff3f6efd3e2a030b5818310ac67af45e28d057e6a332d07e0c5ab09d6947fd4eed1a646edbf224e2d2fec6f49f90abc",
+      "address": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/exemple/ct4/admin-jeu",
+      "algorithm": "secp256k1",
+      "public_key": "0x04cf9c8faec265145c2e1cd94d98df49f47faff83d96754fd776d123a5b55d8fab4139c733ffec85396c39675639483760e228c585f666eb33bf4b05cf9140e4c0",
+      "address": "0x436b0cee00aef664dd71949195231b609dbe1314",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/exemple/ct4/approbateur/1",
+      "algorithm": "secp256k1",
+      "public_key": "0x04dee9471e62624508f3bfd8df37c196eaddddc15b25c577b962dc660aae6ac26e588109357dadb8a7222ccc8e5da71152a899a84efad934acce6ffd0c4fed44b9",
+      "address": "0x19d8bddeed23cb80dca47e16b74dd29bc020c138",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/exemple/ct4/approbateur/2",
+      "algorithm": "secp256k1",
+      "public_key": "0x04bbbee9f91968b8a44e194900328dc260c9dd5f8e3197b11f1fe9c94d2a5dbd31a5e547047c88db3c014888cd9024ba93acff9a52aa2b7034dfb18996d355d9e0",
+      "address": "0xdd2db1636768f86c546563f0368c5c8d5c777990",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/exemple/ct4/approbateur/3",
+      "algorithm": "secp256k1",
+      "public_key": "0x0410dc92cf8076003ba3bf8021aabfeab1069aa48c2b0b5f6f029f114a16cfc1d01fcfa45c9e5238aab6f737c475712646dad15a1425077259bf20f9343c39d247",
+      "address": "0x5747a77dda82031f8dd96a06a75c52a672a0a4c3",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/exemple/ct4/cle-chaine/rec-exemple-01",
+      "algorithm": "secp256k1",
+      "public_key": "0x04510db98964ececc864d316d63e083d1b6f3ab8a17346e56df17041ff118584a84e43c56ad569e98c297a65a4161e58cb6b44f5650e71783f38d5566f550e9241",
+      "address": "0xaf1056f6fd93594a0a71c87d3b18723232c61714",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/exemple/ct4/cle-enregistreur/rec-exemple-01",
+      "algorithm": "ed25519",
+      "public_key": "0xa34b5d38605d5b729c42eee01465e4e9f7a361c362561ebd8ec2f7c984463fbb",
+      "address": null,
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/ct4/compte/administrateur-registre",
+      "algorithm": "secp256k1",
+      "public_key": "0x04f3ef697627a2391646f3360cdff398e75c029eeb883ddbc8cea6d25db0568725c1fd5ee9255ef48769f5345547dce4d305dd81925a1edad71d92e01316909957",
+      "address": "0x71a272a1cf45cea193b923450a7af09a9f1586a5",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/ct4/compte/deployeur",
+      "algorithm": "secp256k1",
+      "public_key": "0x04a2de680f48c7a0af9e2a148371a38eef530a4b7140bdd5ee5ac4cdab3f8330c7ab201b94b8566c545f2d53fac9d1d67520b8beaa3d507b54f6f39097b96aa498",
+      "address": "0x3fe8b04d740f4830417565e9d6c0903620d36cbb",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/ct4/compte/relayeur",
+      "algorithm": "secp256k1",
+      "public_key": "0x04d817b4bfc010570db51b44f59e7c085c44f99bd75ef3467b08bba99394ec8e1f3335ce68a5111a8dc2a5fe2d8e5ff8e0ca1e71af07ca69a1e852328451d5c569",
+      "address": "0x526b68c91c74f6faa53d03d990fd97a79922d202",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/ct4/compte/tresorerie",
+      "algorithm": "secp256k1",
+      "public_key": "0x04d4b2aa542ecf88f025ff933463086c340d6eb6b35c2ea70f3ff575ea7b070660aa647985ae36ed651e937ed70760bcada5ac29504e80efdf903ab37682ac9b42",
+      "address": "0xa95a82cc265f0d72f40cb040dfd644e74873d383",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/ct4/validateur/v1",
+      "algorithm": "secp256k1",
+      "public_key": "0x0447c93e2d29e5f1e199d5e689ce145fd8e0b462e747821b68900fa7f2260df3aa27300fb4451dcafc458464cb033d003f43b320193d2ecab6b38df4b25f444088",
+      "address": "0xfa405776d8b12ba0de9ab211d1712bdca00291bb",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/ct4/validateur/v2",
+      "algorithm": "secp256k1",
+      "public_key": "0x0475c8e9ede700907a008af3162121666cd2d931d65ad496e3dc8efc9018f74d9bb4e2ea034869023daf545479c8bf3b0b0dac77b6476b2b1bc5ba8630ab50b7bf",
+      "address": "0x51a74df21f83ca01def00b5defaae3ce87d8dd83",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/ct4/validateur/v3",
+      "algorithm": "secp256k1",
+      "public_key": "0x04094055b88fab5e51eff0c1aefc1417d60551de9b59bb310e4fba965916a7cf3e9b0d8952e8711f0d50ed561d8c6189b5abb0930f635ab325dab05d41170ae66a",
+      "address": "0x9a6c8146a5ab723fcfdba8a4523605ae5f8addbb",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/ct4/validateur/v4",
+      "algorithm": "secp256k1",
+      "public_key": "0x0414aba427dd5ddda85f1753abda24483bd291e0bd11ad908cae3d19d9ecca062896c02b23154567d8edf9f8d520b2cf6cf6e2ef56ff5960e957366e285a05acc6",
+      "address": "0x6058c0c9cdbf4e959aa25e45a68ddc1132d85c88",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/v0/cle-chaine/rec-test-01",
+      "algorithm": "secp256k1",
+      "public_key": "0x04b201526112cb8fb6a55e604105ae07e8c064b8e75d47da17c4988a0ba3d193420b0f6cd86b9acae2918f99650f90469f21f6fa194ec2ecd81355d5b482652389",
+      "address": "0xaa2a59656361352e96ef2eed355316ef8b29dab7",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/v0/cle-chaine/rec-test-02",
+      "algorithm": "secp256k1",
+      "public_key": "0x04895033a9a9ad3adbe5e98ae9234c20ca40494bcab9ccf29c0731f19fc99bca04f873306496ac23aa23155d0fc2b37e537c673df9b728591e04db7f2dcda726a3",
+      "address": "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/v0/cle-chaine/rec-test-03",
+      "algorithm": "secp256k1",
+      "public_key": "0x04f0a6cd6a163f2abda37369caf29e2e7f5c41d025704b65911ce85b25d0879720831818d29e4c5e62a63afa29c4f9f5cb6c7877af870efecd35d537f74b69bec0",
+      "address": "0xe2bdcef6264103ab6c88fa3c1b5a2ceacd995b22",
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-4",
+      "label": "noortrace/vecteurs/v0/cle-enregistreur/rec-test-03",
+      "algorithm": "ed25519",
+      "public_key": "0x7fcebb9e8efd62d13a17c830ad33739c1de7fe9f1458701cb739ae15e9e62cd6",
+      "address": null,
+      "spki_sha256": null
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/ac-test.cle.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x2d99d20af7e36052eb9d1c7938c262d1015aa671de02ad0a1731b6ceb1c17d42"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/ac-test.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x2d99d20af7e36052eb9d1c7938c262d1015aa671de02ad0a1731b6ceb1c17d42"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-cn-utf8-invalide.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-critique-faux.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-eku-non-critique.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-expiree.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-sans-cn.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-test.cle.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-test.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    }
+  ]
+}

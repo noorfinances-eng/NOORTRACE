@@ -1,0 +1,54 @@
+{
+  "valide": false,
+  "controle": "E-1",
+  "controles_en_echec": [
+    "E-1",
+    "E-7",
+    "E-8",
+    "C-2",
+    "M-1"
+  ],
+  "perimeter_target": "AT-5",
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "non_execute",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "AT-6",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    },
+    {
+      "id": "AT-7",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    }
+  ],
+  "perimeter_retained": false,
+  "warnings": [
+    "AV-AT-1"
+  ],
+  "description": "evenement.json de valide-seq-7-attestation-sans-inscription porte un membre hors schéma (extra) : E-1 échoue, avec E-7, E-8, C-2 et M-1 que le hash recalculé met en échec, et le dossier est invalide. AT-1 à AT-4 réussissent ; AT-5 n'est pas exécutée (evenement.json inexploitable) ; inscription nulle, AT-6 et AT-7 non exécutées (partie absente). Aucune AT- n'est en échec, et l'attestation n'est pas retenue : AV-AT-1 nomme AT-5, non exécutée (CT-6 5.5)."
+}

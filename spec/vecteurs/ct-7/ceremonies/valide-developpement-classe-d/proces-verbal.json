@@ -1,0 +1,110 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-01-developpement-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "creation",
+  "purpose_details": null,
+  "environment": "developpement",
+  "place": "Poste de développement (exemple)",
+  "started_at": "2026-11-01T07:00:00.000Z",
+  "ended_at": "2026-11-01T07:20:00.000Z",
+  "script": {
+    "title": "Création d'une clé d'enregistreur de développement",
+    "version": "0",
+    "sha256": null
+  },
+  "workstation": {
+    "description": "Poste de développement, en ligne",
+    "offline": false,
+    "image_sha256": null
+  },
+  "entropy": {
+    "source": "systeme_du_poste",
+    "description": "Générateur aléatoire du système du poste"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant (compte de test 1)",
+      "role": "officiant",
+      "affiliation": "assureur-demo, développement",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 2)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, développement",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Générer sur le poste la graine Ed25519 de la clé de développement",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-01T07:05:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Écrire la graine dans un fichier de mode 0600 (classe D)",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-01T07:08:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Lire la clé publique, calculer son SHA-256 et l'afficher",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-01T07:12:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "rec-test-01",
+      "usage": "enregistreur",
+      "algorithm": "ed25519",
+      "generated_in": "poste",
+      "custody_class": "D",
+      "backend": "fichier",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "fingerprint": "0x06fa51071909aab2e05b5a04643eca0f984a73824809f5ddeba5b63c8a7d5c88",
+      "address": null,
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    }
+  ],
+  "records": [],
+  "findings": [],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0x77f9fc5844e8a71e0a25474edada18421f31525ef40dd3b66a93af7b4137a2ae7fe29cf243f83916ab466004f01994dad6e5a7ba3832293260874f528ce165ad1c"
+    },
+    {
+      "participant": "p2",
+      "signature": "0x558ddaa7eb543b92a6fbc7d28946b08ef904023ae619ed1c575f37a7af012a5e5d4b670ce8d55d54c4f860a6d920829e068a8d63731756fccc10f0274871765b1b"
+    }
+  ]
+}

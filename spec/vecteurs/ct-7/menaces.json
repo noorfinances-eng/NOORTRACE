@@ -1,0 +1,4542 @@
+{
+  "version": 0,
+  "kind": "modele-menace",
+  "spec": "CT-7",
+  "spec_version": "0.1",
+  "date": "2026-10-26",
+  "components": [
+    {
+      "id": "hote_agent",
+      "name": "Hôte de l'agent",
+      "holds": "Le processus de l'agent, l'hôte (application, cadre ou SDK) et leurs identifiants propres ; aucun accès au stockage ni au signataire (CT-2 EX-3.2).",
+      "trust": "Aucune : tout ce qu'il envoie est une donnée d'attaquant (CT-2 §3.3)."
+    },
+    {
+      "id": "mandataire_mcp",
+      "name": "Mandataire MCP",
+      "holds": "Le frontal MCP du démon : liste servie, définitions, identifiants propres vers les serveurs d'outils (CT-2 EX-4.40).",
+      "trust": "Partie de l'enregistreur ; les serveurs d'outils, eux, ne sont pas crus."
+    },
+    {
+      "id": "passerelle_modele",
+      "name": "Passerelle du modèle et raccord ICAP",
+      "holds": "Les routes, les clés des fournisseurs en mode « propre » (CT-2 EX-5.8), le service ICAP et ses sources admises (CT-2 EX-5.3).",
+      "trust": "Partie de l'enregistreur ; le fournisseur et le mandataire ICAP ne sont pas crus."
+    },
+    {
+      "id": "sdk_otel",
+      "name": "SDK et ingestion OpenTelemetry (chemin déclaratif)",
+      "holds": "Les prises du SDK et le point d'entrée OTLP, les jetons des sources (CT-2 EX-6.37).",
+      "trust": "Déclaratif : l'événement prouve une déclaration, pas l'acte (CT-2 §6.7)."
+    },
+    {
+      "id": "ecrivain_stockage",
+      "name": "Écrivain, stockage et bail",
+      "holds": "Les segments, le journal d'intention, les pièces, le journal d'exploitation, le bail et son époque (CT-2 §12, §13).",
+      "trust": "Pleine pour la chaîne qu'il écrit ; bornée par les ancres (CT-1 §10.9)."
+    },
+    {
+      "id": "worm_gel",
+      "name": "Copies WORM et gel juridique",
+      "holds": "Les copies verrouillées, le registre des copies, le registre des gels et les rôles du support (CT-2 EX-18.9).",
+      "trust": "Le support fait foi de la rétention qu'il rend ; les registres sont déclaratifs (CT-2 EX-12.41)."
+    },
+    {
+      "id": "cles",
+      "name": "Clés par classe de garde",
+      "holds": "Toutes les clés et tous les secrets de l'inventaire de 4.2, chacun dans sa classe A à D (CT-2 §11.2).",
+      "trust": "Celle de la classe : la plus forte en classe A, aucune garantie en classe D."
+    },
+    {
+      "id": "approbation_console",
+      "name": "Service d'approbation et console",
+      "holds": "La politique, les tickets, l'annuaire, les identifiants du canal ; aucune clé d'approbateur (CT-3 EX-3.3, CT-3 EX-3.4).",
+      "trust": "Canal authentifié ; réponses non signées ; console non fiable pour l'approbateur (CT-3 §3.1)."
+    },
+    {
+      "id": "registre",
+      "name": "Registre (validateurs, RPC, contrats, administrateur, gouvernance, trésorerie)",
+      "holds": "La chaîne de noorcore, les contrats, les clés de validateur, d'administrateur, de gouvernance et de trésorerie (CT-4 §3.1).",
+      "trust": "Rien n'est cru sans certificat de commit vérifié contre le jeu du réviseur (CT-6 §11)."
+    },
+    {
+      "id": "ancrage",
+      "name": "Composant d'ancrage, prestataires RFC 3161, calendriers OpenTimestamps",
+      "holds": "La file, les identifiants d'accès aux prestataires, les jetons et preuves acquis (CT-5 §1).",
+      "trust": "Aucune clé Ed25519 ni clé de chaîne ; les prestataires sont crus seulement sous H4 (CT-6 §3.5)."
+    },
+    {
+      "id": "verificateur",
+      "name": "Vérificateur et ancres de confiance du réviseur",
+      "holds": "Le code du vérificateur, le fichier d'ancres du réviseur, le fichier d'en-têtes Bitcoin (CT-6 §4).",
+      "trust": "Il ne croit que son code, les primitives et les ancres du réviseur (CT-6 §3.1)."
+    },
+    {
+      "id": "exploitant",
+      "name": "Exploitant NOORTRACE",
+      "holds": "L'instance du registre, ses clés d'exploitation, le manifeste d'instance, la publication du logiciel (CT-4 §3.1). Ne détient ni le journal, ni ses copies, ni les pièces, ni CLE-1 ou CLE-2, créées et gardées par le client (4.2) ; le registre ne reçoit que des identifiants, des clés publiques, des empreintes, des adresses d'approbateurs et leurs signatures, jamais d'événement ni de pièce (8.6, CT-7 EX-8.10).",
+      "trust": "Adversaire « fournisseur » de CT-6 §3.4 : rien de ce qu'il sert n'est cru sans recoupement."
+    },
+    {
+      "id": "administrateur_client",
+      "name": "Administrateur du client",
+      "holds": "La configuration, la politique, l'exploitation de l'enregistreur et du service, l'export des dossiers, l'attestation de périmètre.",
+      "trust": "Adversaire « opérateur » de CT-6 §3.4 ; ce qu'il déclare reste déclaré."
+    },
+    {
+      "id": "reseau",
+      "name": "Réseau",
+      "holds": "Les liens entre l'hôte, le démon, les serveurs d'outils, les fournisseurs, les prestataires, le registre et la console.",
+      "trust": "Aucune : TLS ou prise locale authentifiée partout où un secret ou une décision circule."
+    }
+  ],
+  "source_tables": [
+    {
+      "spec": "CT-2",
+      "section": "18.3",
+      "rows": 5
+    },
+    {
+      "spec": "CT-3",
+      "section": "3.5",
+      "rows": 10
+    },
+    {
+      "spec": "CT-3",
+      "section": "14.2",
+      "rows": 10
+    },
+    {
+      "spec": "CT-3",
+      "section": "14.4",
+      "rows": 5
+    },
+    {
+      "spec": "CT-3",
+      "section": "14.5",
+      "rows": 7
+    },
+    {
+      "spec": "CT-3",
+      "section": "14.7",
+      "rows": 10
+    },
+    {
+      "spec": "CT-3",
+      "section": "14.8",
+      "rows": 8
+    },
+    {
+      "spec": "CT-3",
+      "section": "14.9",
+      "rows": 15
+    },
+    {
+      "spec": "CT-4",
+      "section": "3.5",
+      "rows": 9
+    },
+    {
+      "spec": "CT-4",
+      "section": "12",
+      "rows": 18
+    },
+    {
+      "spec": "CT-5",
+      "section": "3.4",
+      "rows": 6
+    },
+    {
+      "spec": "CT-5",
+      "section": "13",
+      "rows": 13
+    },
+    {
+      "spec": "CT-6",
+      "section": "3.4",
+      "rows": 6
+    },
+    {
+      "spec": "CT-6",
+      "section": "15.5",
+      "rows": 23
+    },
+    {
+      "spec": "CT-2",
+      "section": "18.5",
+      "rows": 6
+    }
+  ],
+  "threats": [
+    {
+      "id": "MN-1",
+      "component": "hote_agent",
+      "stride": [
+        "repudiation",
+        "elevation_de_privilege"
+      ],
+      "actor": "L'agent ou tout code de l'hôte qui a un accès réseau propre.",
+      "asset": "Complétude du journal : tout appel d'outil d'un serveur configuré passe par le mandataire.",
+      "effect": "Un appel atteint le serveur d'outils sans l'enregistreur ; aucun événement n'existe et aucun dossier ne peut montrer cette absence.",
+      "response": {
+        "text": "Serveurs stdio lancés par le démon et serveurs HTTP filtrés pour que seul le démon les joigne (CT-2 EX-4.1, CT-2 EX-3.4, CT-2 §4.9) ; agent sans les identifiants de l'enregistreur (CT-2 EX-4.40, CT-2 EX-4.41) ; règles de sortie et exceptions déclarées par l'attestation de périmètre (CT-7 §7) ; essai de sortie annuel (CT-7 EX-3.13).",
+        "refs": [
+          "CT-2 EX-4.1",
+          "CT-2 EX-3.4",
+          "CT-2 §4.9",
+          "CT-2 EX-4.40",
+          "CT-2 EX-4.41",
+          "CT-7 §7",
+          "CT-7 EX-3.13"
+        ]
+      },
+      "detection": {
+        "text": "Journal du pare-feu des tentatives de connexion directe (CT-2 §4.9, point 5) ; essai de sortie (CT-7 EX-3.13) ; le rapport de CT-6 dit « déclaré par » pour le périmètre (CT-7 §7).",
+        "refs": [
+          "CT-2 §4.9",
+          "CT-7 EX-3.13",
+          "CT-7 §7"
+        ]
+      },
+      "residual": {
+        "text": "Un acte hors du périmètre déclaré n'est jamais prouvé absent : le journal prouve ce qui est passé, pas que rien ne l'a contourné (CT-1 §15).",
+        "accepted_risk": {
+          "id": "RA-1",
+          "name": "Complétude non prouvable par la chaîne",
+          "bound": "Bornée aux voies que le pare-feu déclaré laisse ouvertes et aux exceptions listées dans l'attestation de périmètre",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : dans la démonstration de référence, un conteneur d'agent tente de joindre directement le serveur d'outils HTTP ; la connexion doit échouer et figurer au journal du pare-feu ; sans la règle de sortie, la connexion aboutit et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Agent (et hôte)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Agent"
+        }
+      ]
+    },
+    {
+      "id": "MN-2",
+      "component": "hote_agent",
+      "stride": [
+        "usurpation",
+        "repudiation"
+      ],
+      "actor": "L'agent, qui écrit ce qu'il veut dans `_meta` et dans sa délégation déclarée.",
+      "asset": "`delegation` de l'événement et portée des règles d'approbation.",
+      "effect": "Un appel est attribué à une autre personne, ou profite de la fenêtre d'approbation d'un autre demandeur.",
+      "response": {
+        "text": "`launched_by` vient de la configuration de la connexion d'hôte, jamais de l'hôte (CT-2 EX-7.2, CT-2 EX-7.3) ; l'évaluation ne lit que `launched_by` configuré (CT-3 EX-3.5) ; portée des fenêtres par demandeur et par outil (CT-3 EX-5.2).",
+        "refs": [
+          "CT-2 EX-7.2",
+          "CT-2 EX-7.3",
+          "CT-3 EX-3.5",
+          "CT-3 EX-5.2"
+        ]
+      },
+      "detection": {
+        "text": "Ligne `delegation_refused` du journal d'exploitation (CT-2 EX-17.2).",
+        "refs": [
+          "CT-2 EX-17.2"
+        ]
+      },
+      "residual": {
+        "text": "`run_id` et `on_behalf_of` restent déclaratifs (CT-2 §7.2).",
+        "accepted_risk": {
+          "id": "RA-2",
+          "name": "Délégation déclarée par l'hôte",
+          "bound": "Limitée à `run_id` et `on_behalf_of`, que ni la politique ni le contrôle 7 ne lisent",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un appel dont `_meta` déclare un autre `launched_by` produit un événement qui porte celui de la configuration ; si l'enregistreur recopie la valeur de l'hôte, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-3",
+      "component": "hote_agent",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "L'agent qui connaît ou sonde les seuils de la politique.",
+      "asset": "Contrôle humain des montants soumis à approbation.",
+      "effect": "Un paiement est fractionné en appels sous le seuil d'une règle ; aucune approbation n'est demandée.",
+      "response": {
+        "text": "Aucune règle ne dit à l'agent ce qui l'a arrêté (CT-3 EX-11.8) ; règles par bénéficiaire et fenêtres à plafond `max_calls` (CT-3 EX-5.2, CT-3 EX-5.5, CT-3 §14.1).",
+        "refs": [
+          "CT-3 EX-11.8",
+          "CT-3 EX-5.2",
+          "CT-3 EX-5.5",
+          "CT-3 §14.1"
+        ]
+      },
+      "detection": {
+        "text": "Revue a posteriori des appels autorisés, que la chaîne rend complète pour le périmètre capturé (CT-3 §14.1).",
+        "refs": [
+          "CT-3 §14.1"
+        ]
+      },
+      "residual": {
+        "text": "La version 0 n'a pas de prédicat cumulatif ; un fractionnement n'est pas détecté au moment de l'appel (CT-3 §16).",
+        "accepted_risk": {
+          "id": "RA-3",
+          "name": "Fractionnement non détecté en ligne",
+          "bound": "Borné par les règles et les plafonds de fenêtre que le client écrit ; visible à la revue",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la politique de l'exemple de CT-3 §4.3 est évaluée sur deux appels de 3 000 CHF couverts par une fenêtre au plafond atteint ; le troisième appel doit être retenu ; sans le plafond `max_calls`, il est autorisé et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-4",
+      "component": "hote_agent",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "L'agent qui forge des arguments ambigus : clés en double, grands entiers, champ inconnu de la règle, autre écriture d'une valeur exclue.",
+      "asset": "Égalité entre ce que la politique évalue, ce que l'approbateur voit et ce que le serveur d'outils lit.",
+      "effect": "La politique ou l'approbateur lit une valeur, le serveur d'outils en exécute une autre.",
+      "response": {
+        "text": "Analyse stricte, retrait des blancs et refus des nombres non représentables (CT-2 EX-4.43, CT-2 EX-4.44) ; montants en chaînes décimales (CT-1 §3) ; affichage de tous les arguments (CT-3 EX-9.4) ; avertissement sur les listes d'exclusion (CT-3 §14.5).",
+        "refs": [
+          "CT-2 EX-4.43",
+          "CT-2 EX-4.44",
+          "CT-1 §3",
+          "CT-3 EX-9.4",
+          "CT-3 §14.5"
+        ]
+      },
+      "detection": {
+        "text": "Refus de l'appel au pas 1 du relais, consigné (CT-2 §4.4).",
+        "refs": [
+          "CT-2 §4.4"
+        ]
+      },
+      "residual": {
+        "text": "Une liste d'exclusion à égalité exacte reste contournable par une autre écriture de la valeur ; une liste blanche ne l'est pas (CT-3 §14.5).",
+        "accepted_risk": {
+          "id": "RA-4",
+          "name": "Liste d'exclusion contournable",
+          "bound": "Limitée aux règles `egal` ou `dans` sous un refus, que la validation signale",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : les vecteurs de `ct-2/` à clé en double et à nombre non représentable en double précision sont refusés avec le code attendu ; si l'analyse stricte est retirée, ils sont relayés et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "14.5",
+          "row": "La politique et le serveur d'outils lisent des valeurs différentes (grands entiers, décimaux)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.5",
+          "row": "Clés en double, JSON ambigu, second message caché dans les arguments"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.5",
+          "row": "L'approbateur voit un champ, le serveur en lit un autre (champ inconnu de la règle)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.5",
+          "row": "Liste d'exclusion à égalité exacte (`egal`, `dans` sous un refus) contournée par une autre écriture de la valeur"
+        }
+      ]
+    },
+    {
+      "id": "MN-5",
+      "component": "hote_agent",
+      "stride": [
+        "elevation_de_privilege",
+        "alteration"
+      ],
+      "actor": "L'agent qui rejoue, modifie ou ré-émet un appel après une approbation.",
+      "asset": "Lien entre une décision signée et l'appel exact qu'elle autorise.",
+      "effect": "Une approbation sert deux fois, pour d'autres arguments, pour un autre outil, ou des semaines plus tard.",
+      "response": {
+        "text": "Consommation unique et délai de reconnaissance (CT-3 EX-7.17, CT-3 EX-7.18) ; vérifications de relais et MAC à clé des arguments en clair (CT-2 EX-7.21, CT-2 EX-7.22) ; continuation MRTR liée au même MAC (CT-2 EX-4.21) ; `request_hash` dans l'objet signé (CT-1 §6.3).",
+        "refs": [
+          "CT-3 EX-7.17",
+          "CT-3 EX-7.18",
+          "CT-2 EX-7.21",
+          "CT-2 EX-7.22",
+          "CT-2 EX-4.21",
+          "CT-1 §6.3"
+        ]
+      },
+      "detection": {
+        "text": "Alerte « Relais refusé ou identifiant en collision » (CT-2 §17.4).",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Aucun au-delà des hypothèses H1 et H2 de CT-6 et de l'intégrité du noyau.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : les traces `ct-3/tickets/` `retenir-double-reemission` et `consommation-tardive` et les vérifications de relais RL-1 à RL-4 de l'enregistreur refusent un second relais et un relais d'arguments modifiés ; si la consommation unique ou RL-2 et RL-3 sont retirées, le second relais passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Approbation scellée relayée deux fois"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Approbation scellée relayée pour un autre appel que la demande retenue (« blanchiment »)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Approbation scellée réutilisée des semaines plus tard"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.5",
+          "row": "Arguments modifiés entre la demande et le relais"
+        }
+      ]
+    },
+    {
+      "id": "MN-6",
+      "component": "hote_agent",
+      "stride": [
+        "deni_de_service"
+      ],
+      "actor": "L'agent qui multiplie les demandes, ou les rouvre par variation cosmétique.",
+      "asset": "Disponibilité du service d'approbation et attention des approbateurs.",
+      "effect": "Les approbateurs, inondés, approuvent sans lire ; le service sature.",
+      "response": {
+        "text": "Plafond de tickets ouverts par demandeur (CT-3 EX-14.1), regroupement des notifications et historique du demandeur à la console (CT-3 EX-14.2), quotas par connexion d'hôte (CT-2 EX-4.47).",
+        "refs": [
+          "CT-3 EX-14.1",
+          "CT-3 EX-14.2",
+          "CT-2 EX-4.47"
+        ]
+      },
+      "detection": {
+        "text": "Alerte « Quota d'un hôte » (CT-2 §17.4) ; erreur `plafond_atteint` notifiée à l'administrateur (CT-3 EX-14.1).",
+        "refs": [
+          "CT-2 §17.4",
+          "CT-3 EX-14.1"
+        ]
+      },
+      "residual": {
+        "text": "Le harcèlement reste possible sous le plafond (CT-3 §14.7).",
+        "accepted_risk": {
+          "id": "RA-5",
+          "name": "Harcèlement des approbateurs sous le plafond",
+          "bound": "Au plus `max_open_tickets` tickets ouverts par demandeur (20 par défaut)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la vingt et unième demande retenue d'un même `launched_by` reçoit `plafond_atteint` ; sans le plafond, un ticket est créé et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-7",
+      "component": "mandataire_mcp",
+      "stride": [
+        "alteration",
+        "usurpation"
+      ],
+      "actor": "Un serveur d'outils malveillant ou compromis.",
+      "asset": "Définition d'outil que l'agent a lue et nom des événements réservés.",
+      "effect": "Le serveur change la description d'un outil après coup (« rug pull ») ou annonce un outil `noortrace.*` pour forger un événement réservé.",
+      "response": {
+        "text": "Empreinte de chaque définition et pièce de définition servie (CT-2 EX-4.16, CT-2 EX-4.45) ; aucun outil propre annoncé et espace `noortrace.` réservé (CT-2 EX-4.2, CT-1 E-3).",
+        "refs": [
+          "CT-2 EX-4.16",
+          "CT-2 EX-4.45",
+          "CT-2 EX-4.2",
+          "CT-1 E-3"
+        ]
+      },
+      "detection": {
+        "text": "Alerte « Définition d'outil changée » (CT-2 §17.4) ; E-3 au vérificateur (CT-1 E-3).",
+        "refs": [
+          "CT-2 §17.4",
+          "CT-1 E-3"
+        ]
+      },
+      "residual": {
+        "text": "Ce que le serveur fait réellement n'est pas prouvé : `effects` est déclaré (CT-1 §5.3).",
+        "accepted_risk": {
+          "id": "RA-6",
+          "name": "Effets déclarés, non constatés",
+          "bound": "Limité au comportement du serveur d'outils derrière un nom et une définition empreints",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un serveur de test change la description d'un outil entre deux `tools/list` ; la ligne `tool_definition_changed` et la nouvelle pièce de définition doivent exister ; sans l'empreinte, rien n'est consigné et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-8",
+      "component": "mandataire_mcp",
+      "stride": [
+        "usurpation"
+      ],
+      "actor": "Un processus local qui se présente comme un hôte autorisé, ou qui a volé un jeton statique.",
+      "asset": "Attribution des appels à une connexion d'hôte et à sa délégation.",
+      "effect": "Des appels sont journalisés sous l'identité d'un autre hôte.",
+      "response": {
+        "text": "Authentification de tout appelant, comparaison en temps constant, limitation par jeton et par connexion (CT-2 EX-18.3, CT-2 EX-4.39) ; prise locale en mode `0660` pour le seul groupe autorisé (CT-2 EX-18.1).",
+        "refs": [
+          "CT-2 EX-18.3",
+          "CT-2 EX-4.39",
+          "CT-2 EX-18.1"
+        ]
+      },
+      "detection": {
+        "text": "Ligne `auth_failed` du journal d'exploitation (CT-2 EX-18.3).",
+        "refs": [
+          "CT-2 EX-18.3"
+        ]
+      },
+      "residual": {
+        "text": "Un processus du groupe autorisé, ou qui détient un jeton valide, est indiscernable d'un hôte légitime.",
+        "accepted_risk": {
+          "id": "RA-7",
+          "name": "Hôte local de confiance",
+          "bound": "Limité aux membres du groupe de la prise et aux détenteurs d'un jeton statique en cours de validité",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une connexion HTTP sans jeton ou avec un jeton faux est refusée et consignée ; si l'authentification est retirée, l'appel est relayé et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-9",
+      "component": "mandataire_mcp",
+      "stride": [
+        "elevation_de_privilege",
+        "divulgation"
+      ],
+      "actor": "Un serveur d'outils stdio compromis, lancé par le démon.",
+      "asset": "Secrets, stockage et configuration du démon.",
+      "effect": "Le serveur lit les secrets du démon, écrit dans le stockage du journal ou réutilise un jeton d'hôte.",
+      "response": {
+        "text": "Utilisateur distinct, bac à sable, environnement réduit aux variables déclarées (CT-2 EX-3.4, CT-2 EX-3.5, CT-2 EX-18.4) ; aucun relais de jeton (CT-2 EX-4.41) ; secrets désignés par fichier `0400` (CT-2 EX-15.3).",
+        "refs": [
+          "CT-2 EX-3.4",
+          "CT-2 EX-3.5",
+          "CT-2 EX-18.4",
+          "CT-2 EX-4.41",
+          "CT-2 EX-15.3"
+        ]
+      },
+      "detection": {
+        "text": "Aucune dans la chaîne ; la sortie d'erreur du serveur est bornée et consignée (CT-2 EX-4.32).",
+        "refs": [
+          "CT-2 EX-4.32"
+        ]
+      },
+      "residual": {
+        "text": "Une évasion du bac à sable donne les droits de l'utilisateur du serveur d'outils sur l'hôte.",
+        "accepted_risk": {
+          "id": "RA-8",
+          "name": "Évasion du bac à sable d'un serveur stdio",
+          "bound": "Limitée aux droits de l'utilisateur distinct de `transport.user`, sans droit sur `storage.root` ni sur les secrets",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un serveur stdio de test tente de lire un fichier de secret du démon et d'écrire sous `storage.root` ; les deux accès doivent échouer ; si le serveur est lancé sous l'utilisateur du démon, ils réussissent et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-10",
+      "component": "mandataire_mcp",
+      "stride": [
+        "repudiation"
+      ],
+      "actor": "Une panne (stockage, processus) au milieu d'un appel d'écriture.",
+      "asset": "Règle « aucun effet d'écriture sans événement durable ».",
+      "effect": "Le serveur d'outils a exécuté l'écriture mais l'événement n'est pas durable.",
+      "response": {
+        "text": "Ordre des pas, intention durable avant relais et reprise des intentions (CT-2 EX-4.19, CT-2 EX-12.12, CT-2 EX-12.14) ; code `-31017` rendu à l'hôte (CT-2 EX-4.46).",
+        "refs": [
+          "CT-2 EX-4.19",
+          "CT-2 EX-12.12",
+          "CT-2 EX-12.14",
+          "CT-2 EX-4.46"
+        ]
+      },
+      "detection": {
+        "text": "Alerte « Panne après relais » (CT-2 §17.4) ; événement de reprise de l'intention (CT-2 EX-9.8).",
+        "refs": [
+          "CT-2 §17.4",
+          "CT-2 EX-9.8"
+        ]
+      },
+      "residual": {
+        "text": "Le résultat de l'écriture peut manquer : l'événement de reprise dit que l'issue est inconnue.",
+        "accepted_risk": {
+          "id": "RA-9",
+          "name": "Issue inconnue après panne",
+          "bound": "Une intention au plus par appel en vol au moment de la panne, signalée par l'événement de reprise",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une panne injectée après le pas 9 laisse une intention ouverte que la reprise scelle ; sans l'intention durable, aucun événement n'existe et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-11",
+      "component": "passerelle_modele",
+      "stride": [
+        "repudiation",
+        "elevation_de_privilege"
+      ],
+      "actor": "L'agent qui détient une clé de fournisseur ou une route de sortie directe.",
+      "asset": "Complétude des échanges avec le modèle.",
+      "effect": "L'agent interroge le fournisseur sans la passerelle ; aucun échange n'est journalisé.",
+      "response": {
+        "text": "Clé du fournisseur tenue par la passerelle seule (`credentials: \"propre\"`, CT-2 EX-5.8) et pare-feu de sortie (CT-2 §4.9, CT-2 EX-6.2) ; route `relayer` déclarée comme exception (CT-7 EX-3.6).",
+        "refs": [
+          "CT-2 EX-5.8",
+          "CT-2 §4.9",
+          "CT-2 EX-6.2",
+          "CT-7 EX-3.6"
+        ]
+      },
+      "detection": {
+        "text": "Rapprochement de l'usage déclaré par le fournisseur, clé par clé, avec les échanges journalisés (CT-7 EX-3.8).",
+        "refs": [
+          "CT-7 EX-3.8"
+        ]
+      },
+      "residual": {
+        "text": "Une clé personnelle de l'agent hors de la passerelle échappe au rapprochement.",
+        "accepted_risk": {
+          "id": "RA-10",
+          "name": "Clé de fournisseur hors de la passerelle",
+          "bound": "Limitée aux clés que le client n'a pas inventoriées dans l'attestation de périmètre",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : en mode `propre`, une requête de l'hôte qui porte sa propre clé voit cette clé retirée et la requête part avec celle de la passerelle ; si la clé de l'hôte traverse, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-12",
+      "component": "passerelle_modele",
+      "stride": [
+        "usurpation",
+        "divulgation"
+      ],
+      "actor": "Une machine du réseau du client qui atteint le port ICAP.",
+      "asset": "Authenticité des échanges reçus par ICAP et confidentialité du trafic déchiffré.",
+      "effect": "Des transactions fabriquées deviennent des échanges signés, ou le trafic déchiffré se lit sur le lien ICAP.",
+      "response": {
+        "text": "Clients ICAP authentifiés par mTLS ou liste de sources, l'un des deux exigé en production (CT-2 EX-5.3) ; ICAP en clair seulement sur la boucle locale ou un segment dédié déclaré (CT-7 EX-3.15).",
+        "refs": [
+          "CT-2 EX-5.3",
+          "CT-7 EX-3.15"
+        ]
+      },
+      "detection": {
+        "text": "Refus d'une transaction d'une source inconnue, consigné (CT-2 EX-5.3).",
+        "refs": [
+          "CT-2 EX-5.3"
+        ]
+      },
+      "residual": {
+        "text": "Sur un segment partagé, une liste de sources peut être usurpée ; CT-7 EX-3.15 l'exclut en production.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : une transaction REQMOD d'une adresse absente de `allowed_sources` est refusée ; si la vérification est retirée, elle devient un échange et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-13",
+      "component": "passerelle_modele",
+      "stride": [
+        "repudiation"
+      ],
+      "actor": "L'agent qui fait exécuter des outils par le fournisseur (serveurs MCP déclarés au fournisseur, cache fournisseur).",
+      "asset": "Complétude des appels d'outils.",
+      "effect": "Des outils s'exécutent côté fournisseur, hors du mandataire MCP.",
+      "response": {
+        "text": "Requêtes refusées ou réduites à une référence selon la configuration (CT-2 EX-5.32) ; ce qui n'est pas capturé est dit (CT-2 §5.8).",
+        "refs": [
+          "CT-2 EX-5.32",
+          "CT-2 §5.8"
+        ]
+      },
+      "detection": {
+        "text": "Lignes `model_request_refused` (raison `serveurs_mcp_fournisseur`) et `provider_mcp_bypass` (CT-2 EX-17.2).",
+        "refs": [
+          "CT-2 EX-17.2"
+        ]
+      },
+      "residual": {
+        "text": "Ce que le fournisseur exécute de son côté n'est pas prouvé (CT-2 §5.8).",
+        "accepted_risk": {
+          "id": "RA-11",
+          "name": "Exécution côté fournisseur",
+          "bound": "Limitée aux routes où la configuration admet les serveurs MCP du fournisseur",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une requête qui déclare un serveur MCP au fournisseur est refusée avec la raison attendue ; si le refus est retiré, elle part et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-14",
+      "component": "passerelle_modele",
+      "stride": [
+        "repudiation"
+      ],
+      "actor": "Le client qui choisit le mode `miroir` ou `desactive`.",
+      "asset": "Rang de preuve des échanges avec le modèle.",
+      "effect": "Les échanges sont capturés en lecture seule, ou pas du tout, sans pouvoir être bloqués.",
+      "response": {
+        "text": "Rang de chaque mode écrit (CT-2 §5.1, CT-2 EX-5.1, CT-2 EX-5.6) ; mode déclaré dans l'attestation de périmètre (CT-7 §7).",
+        "refs": [
+          "CT-2 §5.1",
+          "CT-2 EX-5.1",
+          "CT-2 EX-5.6",
+          "CT-7 §7"
+        ]
+      },
+      "detection": {
+        "text": "Le mode est lisible dans la configuration et dans l'attestation de périmètre.",
+        "refs": []
+      },
+      "residual": {
+        "text": "Un mode miroir ne peut rien empêcher ; un mode désactivé ne prouve rien du modèle.",
+        "accepted_risk": {
+          "id": "RA-12",
+          "name": "Capture du modèle en lecture seule ou absente",
+          "bound": "Limitée aux journaux dont la configuration nomme `miroir` ou `desactive`",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la validation de configuration refuse un mode inconnu et la démonstration de référence tourne en mode `passerelle` ; si le mode n'est plus contrôlé, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-15",
+      "component": "sdk_otel",
+      "stride": [
+        "repudiation",
+        "alteration"
+      ],
+      "actor": "Un agent compromis qui emploie le SDK ou un adaptateur.",
+      "asset": "Exactitude des appels déclarés par le chemin déclaratif.",
+      "effect": "L'agent déclare d'autres arguments que ceux de l'acte, ou se tait.",
+      "response": {
+        "text": "Pare-feu de sortie exigé pour ce chemin (CT-2 EX-6.2) ; rang de preuve écrit et alias annoncés dans la chaîne (CT-2 §6.7, CT-2 EX-6.24) ; aucun hachage ni écriture dans le processus de l'agent (CT-2 EX-6.1).",
+        "refs": [
+          "CT-2 EX-6.2",
+          "CT-2 §6.7",
+          "CT-2 EX-6.24",
+          "CT-2 EX-6.1"
+        ]
+      },
+      "detection": {
+        "text": "Le lecteur reconnaît le chemin à l'alias de l'outil (CT-2 §6.7) ; le rapport dit « déclaré » (CT-7 §7).",
+        "refs": [
+          "CT-2 §6.7",
+          "CT-7 §7"
+        ]
+      },
+      "residual": {
+        "text": "Un agent compromis peut mentir ou se taire par ce chemin (CT-2 §6.3).",
+        "accepted_risk": {
+          "id": "RA-13",
+          "name": "Déclaration d'un agent compromis",
+          "bound": "Limitée aux outils de préfixe d'un alias du SDK, que le pare-feu borne à ce que l'agent peut joindre",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un appel déclaré par le SDK produit un événement de préfixe `<alias SDK>__` reconnaissable ; si l'alias n'est plus annoncé dans l'ensemble de politique, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-16",
+      "component": "sdk_otel",
+      "stride": [
+        "usurpation",
+        "deni_de_service"
+      ],
+      "actor": "Une source OpenTelemetry compromise, ou une machine qui atteint le point d'entrée.",
+      "asset": "Intégrité et disponibilité de l'ingestion ; écrivain partagé.",
+      "effect": "Des spans fabriqués deviennent des événements, ou l'ingestion sature l'écrivain.",
+      "response": {
+        "text": "Sources authentifiées, noms limités au préfixe de la source, bornes et quotas, TLS hors boucle locale en production (CT-2 EX-6.37, CT-2 EX-6.40, CT-2 EX-6.28, CT-2 EX-4.47).",
+        "refs": [
+          "CT-2 EX-6.37",
+          "CT-2 EX-6.40",
+          "CT-2 EX-6.28",
+          "CT-2 EX-4.47"
+        ]
+      },
+      "detection": {
+        "text": "Alertes « Ingestion OpenTelemetry refusée », « Spans rejetés », « Span OpenTelemetry rejoué avec un autre contenu » (CT-2 §17.4).",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Une source authentifiée peut fabriquer des spans : c'est la déclarante (CT-2 EX-6.40, point 6).",
+        "accepted_risk": {
+          "id": "RA-14",
+          "name": "Spans fabriqués par une source authentifiée",
+          "bound": "Limités au préfixe de la source et à ses quotas",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un span d'une source qui tente un nom d'un autre alias est rejeté ; si la règle du préfixe est retirée, il est scellé et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-17",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "alteration",
+        "repudiation"
+      ],
+      "actor": "L'opérateur, ou un attaquant qui détient la clé Ed25519 ou l'usage du signataire.",
+      "asset": "Intégrité des événements déjà scellés de la période en cours.",
+      "effect": "Il réécrit et signe de nouveau les événements que le dernier point ancré n'engage pas encore, ou ancre une série réécrite à part.",
+      "response": {
+        "text": "Points de contrôle à cadence courte, contresignés et ancrés (CT-2 EX-12.24, CT-1 §10.9, CT-5 EX-4.3) ; admission de chaque point et contrôle de série (CT-5 AN-2, CT-5 AN-3) ; contrôle de complétude au registre (CT-5 EX-10.7) ; rotation d'urgence (CT-2 EX-11.16).",
+        "refs": [
+          "CT-2 EX-12.24",
+          "CT-1 §10.9",
+          "CT-5 EX-4.3",
+          "CT-5 AN-2",
+          "CT-5 AN-3",
+          "CT-5 EX-10.7",
+          "CT-2 EX-11.16"
+        ]
+      },
+      "detection": {
+        "text": "Contrôles 4, 5 et 8 et vérifications K-7 à K-9 au vérificateur (CT-6 §5.4) ; complétude au registre (CT-5 AN-61) ; alertes `jeton_anterieur_au_point` et `contresignature_tardive` (CT-5 §8.9).",
+        "refs": [
+          "CT-6 §5.4",
+          "CT-5 AN-61",
+          "CT-5 §8.9"
+        ]
+      },
+      "residual": {
+        "text": "La fenêtre de réécriture reste ouverte jusqu'au jeton du point couvrant (CT-1 §10.9, CT-5 §3.3).",
+        "accepted_risk": {
+          "id": "RA-15",
+          "name": "Fenêtre de réécriture",
+          "bound": "Au plus `c_T` plus `d_jeton` (300 s plus le délai du jeton par défaut, CT-5 P-3) avec un prestataire extérieur pour les points ; une heure plus le délai du jeton sans points ; pendant une panne des prestataires sans secours utilisable, la borne dégradée de RA-55 (CT-5 §13)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un dossier dont un événement couvert par un point ancré est réécrit et signé de nouveau doit échouer à K-7 ou K-8 ; si les ancres du point ne sont plus vérifiées, il passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "3.4",
+          "row": "Opérateur ou enregistreur compromis : détient la clé Ed25519 ou l'usage du signataire"
+        },
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Points antidatés ou insérés par qui tient la clé de l'enregistreur"
+        },
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Série réécrite et ancrée à part par qui tient la clé de l'enregistreur et la clé de chaîne"
+        },
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Enregistreur compromis : un attaquant détient sa clé Ed25519, sa clé de chaîne, ou les deux"
+        },
+        {
+          "spec": "CT-2",
+          "section": "18.5",
+          "row": "puce 1"
+        },
+        {
+          "spec": "CT-2",
+          "section": "18.5",
+          "row": "puce 2"
+        }
+      ]
+    },
+    {
+      "id": "MN-18",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "repudiation"
+      ],
+      "actor": "L'opérateur ou un enregistreur compromis.",
+      "asset": "Complétude du journal pour ce qui a traversé l'enregistreur.",
+      "effect": "Un acte vu par l'enregistreur n'est pas journalisé, ou un dossier défavorable n'est pas exporté.",
+      "response": {
+        "text": "Aucune règle ne l'empêche contre qui tient l'enregistreur ; les effets restent chez le client et les journaux des serveurs d'outils et des fournisseurs existent hors de lui (CT-2 §18.5).",
+        "refs": [
+          "CT-2 §18.5"
+        ]
+      },
+      "detection": {
+        "text": "Rapprochement de l'usage des fournisseurs de modèle (CT-7 EX-3.8) ; comparaison par le client des journaux de ses serveurs d'outils, qu'aucune exigence de la version 0 ne fixe ; trou de la série des points (CT-5 §10).",
+        "refs": [
+          "CT-7 EX-3.8",
+          "CT-5 §10"
+        ]
+      },
+      "residual": {
+        "text": "Une omission par qui tient l'enregistreur n'est visible que par une source extérieure à lui.",
+        "accepted_risk": {
+          "id": "RA-16",
+          "name": "Omission par l'enregistreur",
+          "bound": "Limitée aux actes dont aucun autre système du client ne garde trace",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le rapprochement de CT-7 EX-3.8 sur la démonstration de référence trouve un échange de modèle envoyé hors de la journalisation ; si le rapprochement est retiré, l'écart passe inaperçu et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Opérateur : le client qui exploite l'agent et l'enregistreur, et qui exporte le dossier"
+        },
+        {
+          "spec": "CT-2",
+          "section": "18.5",
+          "row": "puce 1"
+        }
+      ]
+    },
+    {
+      "id": "MN-19",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "Une bascule mal faite, un magasin de bail défaillant, ou deux instances actives.",
+      "asset": "Chaîne unique d'un journal (écrivain unique).",
+      "effect": "Deux écrivains écrivent deux suites concurrentes du même journal (fourche).",
+      "response": {
+        "text": "Bail, époque, jeton de clôture vérifié par le stockage et contrôle après écriture (CT-2 EX-13.1, CT-2 EX-13.4, CT-2 EX-13.5, CT-2 EX-13.6, CT-2 EX-13.10) ; le signataire ne signe que pour le titulaire du bail (CT-2 EX-11.3).",
+        "refs": [
+          "CT-2 EX-13.1",
+          "CT-2 EX-13.4",
+          "CT-2 EX-13.5",
+          "CT-2 EX-13.6",
+          "CT-2 EX-13.10",
+          "CT-2 EX-11.3"
+        ]
+      },
+      "detection": {
+        "text": "Alerte « Fourche » (`journal_fork`, CT-2 §17.4) ; alerte « Bail ».",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Un magasin de bail compromis peut donner le bail à deux instances jusqu'au contrôle après écriture.",
+        "accepted_risk": {
+          "id": "RA-17",
+          "name": "Magasin de bail compromis",
+          "bound": "Limité à l'intervalle avant le contrôle après écriture d'EX-13.10 de CT-2",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : deux écrivains de test dont le second reçoit une époque supérieure : l'écriture du premier est refusée par le stockage ; si le jeton de clôture n'est plus vérifié, les deux écrivent et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-20",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "alteration",
+        "deni_de_service"
+      ],
+      "actor": "Une panne du disque, une coupure, une erreur `EIO` ou `ENOSPC`.",
+      "asset": "Intégrité des segments et de la fin du journal.",
+      "effect": "Une ligne tronquée ou corrompue rend un segment illisible.",
+      "response": {
+        "text": "Synchronisation, relecture et troncature d'une fin incomplète, mode dégradé « stockage » (CT-2 EX-12.8, CT-2 EX-12.10, CT-2 EX-12.11) ; copies WORM (CT-2 EX-12.16).",
+        "refs": [
+          "CT-2 EX-12.8",
+          "CT-2 EX-12.10",
+          "CT-2 EX-12.11",
+          "CT-2 EX-12.16"
+        ]
+      },
+      "detection": {
+        "text": "Contrôles périodiques d'intégrité (CT-2 EX-17.5) ; lignes `segment_truncated`, `segment_corrupted` (CT-2 EX-17.2).",
+        "refs": [
+          "CT-2 EX-17.5",
+          "CT-2 EX-17.2"
+        ]
+      },
+      "residual": {
+        "text": "Les événements non synchronisés au moment de la panne sont perdus ; aucun n'a reçu de réponse (CT-2 EX-12.6).",
+        "accepted_risk": {
+          "id": "RA-67",
+          "name": "Événements non synchronisés perdus à la panne",
+          "bound": "Les seuls événements de la validation groupée en cours (CT-2 EX-12.7), dont aucun n'a reçu de réponse ni produit d'effet d'écriture sans intention durable",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un segment tronqué au milieu d'une ligne est relu et tronqué à la dernière ligne valide ; si la relecture est retirée, le démarrage accepte la ligne et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-21",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "Un attaquant ou un défaut qui déplace l'horloge de l'enregistreur.",
+      "asset": "`ts` des événements et des points, échéances de l'ancrage.",
+      "effect": "Des événements ou des points portent une date fausse.",
+      "response": {
+        "text": "Horloge synchronisée, `ts` non décroissant, blocage sur saut en avant (CT-2 EX-7.10, CT-2 EX-7.13, CT-1 §5.2) ; contrôle de `genTime` contre l'horloge locale (CT-5 EX-5.11) ; seule la contresignature extérieure date (CT-1 §10.9).",
+        "refs": [
+          "CT-2 EX-7.10",
+          "CT-2 EX-7.13",
+          "CT-1 §5.2",
+          "CT-5 EX-5.11",
+          "CT-1 §10.9"
+        ]
+      },
+      "detection": {
+        "text": "Alertes « Horloge » (CT-2 §17.4) et `horloge_suspecte` (CT-5 EX-5.11) ; AV-K-2 et AV-K-4 au rapport (CT-6 §7.9).",
+        "refs": [
+          "CT-2 §17.4",
+          "CT-5 EX-5.11",
+          "CT-6 §7.9"
+        ]
+      },
+      "residual": {
+        "text": "`ts` reste déclaratif à la tolérance près (CT-6 §3.2).",
+        "accepted_risk": {
+          "id": "RA-18",
+          "name": "Horodatage déclaré par l'enregistreur",
+          "bound": "Écart au plus `clock_tolerance_s` (120 s par défaut) avant alerte ; toute date prouvée vient des ancres",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un saut d'horloge en avant au-delà du seuil bloque l'écrivain et produit la ligne attendue ; si le contrôle est retiré, l'événement est scellé à la date sautée et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Horloge de l'enregistreur fausse ou manipulée"
+        }
+      ]
+    },
+    {
+      "id": "MN-22",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "divulgation"
+      ],
+      "actor": "L'hôte, l'agent, ou une personne qui lit le volume du journal.",
+      "asset": "Pièces rédigées, journal d'exploitation, données personnelles qu'ils portent.",
+      "effect": "Lecture des pièces ou du journal d'exploitation par qui n'en a pas l'usage.",
+      "response": {
+        "text": "Aucun droit de l'hôte ni de l'agent sur `storage.root` (CT-2 EX-3.2, CT-2 EX-18.5) ; rédaction avant hachage (CT-2 EX-10.2) ; ce qui ne va jamais dans le journal d'exploitation (CT-2 EX-9.6, CT-2 EX-17.3).",
+        "refs": [
+          "CT-2 EX-3.2",
+          "CT-2 EX-18.5",
+          "CT-2 EX-10.2",
+          "CT-2 EX-9.6",
+          "CT-2 EX-17.3"
+        ]
+      },
+      "detection": {
+        "text": "Journaux d'accès du système de fichiers ou du support, tenus par le client.",
+        "refs": []
+      },
+      "residual": {
+        "text": "Les pièces rédigées restent des données du client ; leur accès relève du client.",
+        "accepted_risk": {
+          "id": "RA-19",
+          "name": "Accès aux pièces par l'administrateur du client",
+          "bound": "Limité aux personnes à qui le client donne l'accès au volume",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le processus de l'agent de la démonstration ne peut pas lister `storage.root` ; si le volume est monté dans son conteneur, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-23",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "alteration",
+        "repudiation"
+      ],
+      "actor": "L'administrateur du client, qui écrit la configuration et la politique.",
+      "asset": "Politique et configuration en vigueur.",
+      "effect": "La politique est assouplie, le jeu remplacé par un jeu `statique`, ou la configuration d'exploitation changée, sans trace.",
+      "response": {
+        "text": "Toute version de politique annoncée dans la chaîne avant usage, avec son empreinte (CT-2 EX-9.1, CT-2 EX-9.2, CT-2 EX-8.11) ; jeu `statique` refusé en production (CT-3 EX-8.2) ; empreinte de la configuration consignée (CT-2 EX-18.6) ; empreinte de la configuration d'exploitation dans la chaîne proposée (CT-7 §6, PA-2).",
+        "refs": [
+          "CT-2 EX-9.1",
+          "CT-2 EX-9.2",
+          "CT-2 EX-8.11",
+          "CT-3 EX-8.2",
+          "CT-2 EX-18.6",
+          "CT-7 §6"
+        ]
+      },
+      "detection": {
+        "text": "Événement `noortrace.journal.politique` (CT-1 §5.1) ; lignes `startup` et `config_reloaded` (CT-2 EX-17.2), que l'administrateur peut effacer (MN-96) ; copie WORM du journal d'exploitation proposée à CT-2 (CT-7 PA-18).",
+        "refs": [
+          "CT-1 §5.1",
+          "CT-2 EX-17.2",
+          "CT-7 PA-18"
+        ]
+      },
+      "residual": {
+        "text": "Un assouplissement de `policy` est visible, non empêché, car il est annoncé dans la chaîne (CT-2 EX-9.2) ; face à l'administrateur, un changement hors `policy` n'a aucune trace hors de PA-1 et PA-2 ; la signature de la configuration n'est pas en version 0 (CT-2 §21).",
+        "accepted_risk": {
+          "id": "RA-20",
+          "name": "Configuration d'exploitation hors de la chaîne",
+          "bound": "Jusqu'à l'adoption de PA-2 ; face à l'administrateur, un changement hors `policy` n'a aucune trace hors de PA-1 et PA-2, la ligne `config_reloaded` pouvant être effacée (RA-80) ; les changements de `policy` restent annoncés (CT-2 EX-9.2)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un rechargement de politique produit un événement de politique avant le premier événement de la nouvelle version ; si l'événement n'est plus produit, le vecteur `ct-2/evenements/journal-demo/` diffère et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Opérateur"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.4",
+          "row": "Un jeu `statique`, écrit par l'opérateur, remplace celui du registre"
+        }
+      ]
+    },
+    {
+      "id": "MN-24",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "divulgation"
+      ],
+      "actor": "Une personne qui détient la clé du coffre des originaux.",
+      "asset": "Originaux non rédigés des pièces.",
+      "effect": "Lecture des valeurs que la rédaction protège.",
+      "response": {
+        "text": "Coffre chiffré, clé propre distincte de celle du signataire (CT-2 EX-10.22) ; déchiffrement à deux personnes et consigné (CT-7 EX-3.11).",
+        "refs": [
+          "CT-2 EX-10.22",
+          "CT-7 EX-3.11"
+        ]
+      },
+      "detection": {
+        "text": "Registre des accès au coffre (CT-7 EX-3.11).",
+        "refs": [
+          "CT-7 EX-3.11"
+        ]
+      },
+      "residual": {
+        "text": "Deux personnes de connivence lisent les originaux.",
+        "accepted_risk": {
+          "id": "RA-21",
+          "name": "Connivence au coffre",
+          "bound": "Limitée aux deux personnes que le client désigne pour chaque accès",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : l'outil de lecture du coffre refuse un déchiffrement sans seconde approbation distincte du demandeur ; si la seconde approbation est retirée, il déchiffre et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-25",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "alteration",
+        "divulgation",
+        "elevation_de_privilege"
+      ],
+      "actor": "Un attaquant qui compromet le démon de l'enregistreur.",
+      "asset": "Ce que l'enregistreur relaie à l'agent et à l'hôte : résultats d'outils, réponses de modèle, clés en transit.",
+      "effect": "Le démon compromis change les résultats renvoyés à l'agent, lit les prompts et les clés de fournisseur, injecte des instructions.",
+      "response": {
+        "text": "Surfaces d'écoute et de sortie exhaustives, moindre privilège, mémoire non vidable (CT-2 EX-18.1, CT-2 EX-18.2, CT-2 EX-18.4, CT-2 EX-18.7) ; version du logiciel dans chaque événement et empreinte de l'image (CT-2 EX-18.6, CT-7 EX-3.14).",
+        "refs": [
+          "CT-2 EX-18.1",
+          "CT-2 EX-18.2",
+          "CT-2 EX-18.4",
+          "CT-2 EX-18.7",
+          "CT-2 EX-18.6",
+          "CT-7 EX-3.14"
+        ]
+      },
+      "detection": {
+        "text": "Écart entre l'empreinte de l'image en cours et celle de la version publiée (CT-7 EX-3.14) ; `code.recorder` dans la chaîne (CT-1 §5.3).",
+        "refs": [
+          "CT-7 EX-3.14",
+          "CT-1 §5.3"
+        ]
+      },
+      "residual": {
+        "text": "L'enregistreur est sur le chemin par conception : le compromettre, c'est compromettre ce qu'il relaie (CT-2 §18.5).",
+        "accepted_risk": {
+          "id": "RA-22",
+          "name": "Enregistreur sur le chemin",
+          "bound": "Limité au trafic que le démon relaie, à ses secrets en mémoire et à la fenêtre RA-15",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le démarrage consigne l'empreinte de l'image et `code.recorder` ; une image dont l'empreinte diffère de la version publiée est signalée ; si la comparaison est retirée, le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-2",
+          "section": "18.5",
+          "row": "puce 6"
+        }
+      ]
+    },
+    {
+      "id": "MN-26",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "repudiation"
+      ],
+      "actor": "L'administrateur du client, ou un attaquant qui arrête, redémarre ou fait basculer l'enregistreur.",
+      "asset": "Datation, dans la chaîne, des changements d'état de l'enregistreur : démarrage, arrêt, bascule de bail.",
+      "effect": "Une interruption de la capture, ou une reprise par un autre écrivain, n'apparaît pas dans la chaîne ; un réviseur ne sait pas quand elle a eu lieu.",
+      "response": {
+        "text": "Points de contrôle produits à chaque instant aligné, qu'un événement ait été écrit ou non (preuve de vie, CT-2 EX-12.24) ; lignes `startup`, `lease_acquired`, `lease_lost` du journal d'exploitation (CT-2 EX-17.2) ; annonce de reprise proposée à CT-2 (CT-7 §6.2, PA-1).",
+        "refs": [
+          "CT-2 EX-12.24",
+          "CT-2 EX-17.2",
+          "CT-7 §6.2"
+        ]
+      },
+      "detection": {
+        "text": "Point manqué constaté (`point_manquant`, CT-5 §8.9) et trou dans la série des points publiée au réviseur (CT-5 §10.2) ; alertes « Bail » et « Fourche » (CT-2 §17.4) ; les lignes du journal d'exploitation, que l'administrateur peut effacer (MN-96).",
+        "refs": [
+          "CT-5 §8.9",
+          "CT-5 §10.2",
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Tant que PA-1 n'est pas adoptée, ces changements d'état restent hors de la chaîne (CT-7 §6.1) ; un redémarrage de moins de `c_K` ne laisse aucun trou dans la série des points.",
+        "accepted_risk": {
+          "id": "RA-66",
+          "name": "Changement d'état de l'enregistreur hors de la chaîne",
+          "bound": "Un trou de plus de `c_K` (60 s par défaut) dans la série des points est visible par qui lit la série ; un redémarrage de moins de `c_K` n'en laisse aucun, et face à l'administrateur il n'a aucune trace hors de PA-1 et PA-18 (RA-80)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un redémarrage de l'enregistreur de la démonstration laisse une ligne `startup` et, une fois PA-1 adoptée, un événement d'annonce de reprise ; si la ligne `startup` n'est plus écrite, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-84",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "alteration",
+        "repudiation"
+      ],
+      "actor": "L'exportateur, avec ou sans la clé de l'enregistreur, qui forge un événement d'inscription.",
+      "asset": "Inscription de l'attestation au journal.",
+      "effect": "Une attestation paraît inscrite à un rang où elle ne l'était pas.",
+      "response": {
+        "text": "Signature de l'inscription vérifiée sous la clé de l'événement prouvé, seule admise, et rang au plus celui de l'événement prouvé (CT-1 AT-6, CT-7 EX-7.10) ; l'inscription a son propre dossier, avec ses ancres (CT-7 EX-7.10).",
+        "refs": [
+          "CT-1 AT-6",
+          "CT-7 EX-7.10"
+        ]
+      },
+      "detection": {
+        "text": "Le dossier de l'événement d'inscription, confronté à ses ancres (CT-6 §5.1).",
+        "refs": [
+          "CT-6 §5.1"
+        ]
+      },
+      "residual": {
+        "text": "Même risque que la réécriture du journal par qui détient la clé, dans la fenêtre de réécriture (CT-1 §10.9) ; AT-6 ne relie pas l'inscription à la chaîne de l'événement prouvé par un hachage, seul `seq` est comparé : l'appartenance de l'inscription à la chaîne n'est prouvée que par son propre dossier.",
+        "accepted_risk": {
+          "id": "RA-71",
+          "name": "Inscription réécrite par qui tient la clé",
+          "bound": "La fenêtre de réécriture de RA-15, sur l'événement d'inscription",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : dans le dossier `valide-at6-inscription-signature-fausse`, AT-6 doit échouer ; si la vérification de la signature de l'inscription est retirée, AT-6 réussit et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-85",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "repudiation"
+      ],
+      "actor": "Un enregistreur qui ne sait pas porter l'inscription tant que PA-8 n'est pas adoptée.",
+      "asset": "Date et rang de l'attestation.",
+      "effect": "Une attestation rédigée après coup paraît couvrir l'événement.",
+      "response": {
+        "text": "Sans inscription, AT-6 et AT-7 ne s'exécutent pas, raison `partie_absente`, et le fragment FP porte la clause fixe « non inscrite au journal (ni sa date ni son rang ne sont établis) » (CT-7 EX-7.12, CT-6 EX-6.19) ; membre `policy.perimeter` proposé à CT-2 (CT-7 PA-8). Seule l'inscription situe l'attestation : `validity.from` peut précéder `issued_at`, et un contrôle de l'un contre l'autre ne protégerait de rien, `issued_at` étant déclaré.",
+        "refs": [
+          "CT-7 EX-7.12",
+          "CT-6 EX-6.19",
+          "CT-7 PA-8"
+        ]
+      },
+      "detection": {
+        "text": "`facts.perimeter.inscription` nul dans le rapport (CT-6 EX-6.20).",
+        "refs": [
+          "CT-6 EX-6.20"
+        ]
+      },
+      "residual": {
+        "text": "Rien ne situe une attestation sans inscription dans le temps du journal, et sa validité peut être rétroactive.",
+        "accepted_risk": {
+          "id": "RA-72",
+          "name": "Attestation non située dans le journal",
+          "bound": "Limité aux dossiers sans inscription, jusqu'à l'adoption de PA-8 par CT-2, que l'exploitant NOORTRACE suit au titre de la publication de l'enregistreur et des spécifications ; ensuite, RA-82",
+          "owner": "exploitant_noortrace"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le dossier `valide-seq-7-attestation-sans-inscription` a un fragment FP qui porte la clause « non inscrite au journal » ; si la règle est retirée, le fragment annonce une inscription et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-90",
+      "component": "ecrivain_stockage",
+      "stride": [
+        "usurpation",
+        "repudiation"
+      ],
+      "actor": "L'exportateur, sans aucune clé de l'enregistreur : il ajoute à `cles.json` une clé qu'il génère et signe avec elle un événement d'inscription.",
+      "asset": "Inscription de l'attestation au journal.",
+      "effect": "Une attestation paraît inscrite au journal de l'événement prouvé, sous une clé que rien ne relie à ce journal.",
+      "response": {
+        "text": "AT-6 n'est réussie que si la clé de l'inscription est celle de l'événement prouvé ; sinon elle n'est pas exécutée (`ancre_absente`), AT-7 non plus, et FP le dit (CT-1 AT-6, CT-6 EX-5.12, CT-6 EX-6.19) ; la provenance de la clé est nommée dans FP, jamais « fournie par le fichier d'ancres » quand N-3 ne l'a pas comparée (CT-6 EX-6.19).",
+        "refs": [
+          "CT-1 AT-6",
+          "CT-6 EX-5.12",
+          "CT-6 EX-6.19"
+        ]
+      },
+      "detection": {
+        "text": "AT-6 `non_execute`, raison `ancre_absente`, dans le rapport (CT-6 EX-5.12) ; clause de FP « dont l'inscription jointe n'est pas signée par la clé de l'événement prouvé » (CT-6 EX-6.19).",
+        "refs": [
+          "CT-6 EX-5.12",
+          "CT-6 EX-6.19"
+        ]
+      },
+      "residual": {
+        "text": "Aucun au-delà de l'hypothèse H3 de CT-6 : la clé de l'événement prouvé n'est elle-même établie que par N-3 ; sans fichier d'ancres qui la donne, FP la dit « déclarée par le dossier ».",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : dans le dossier `valide-at6-cle-non-ancree`, AT-6 doit être `non_execute` (`ancre_absente`) et AT-7 non exécutée ; si la comparaison des clés est retirée, AT-6 réussit et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-27",
+      "component": "worm_gel",
+      "stride": [
+        "alteration",
+        "deni_de_service"
+      ],
+      "actor": "Un enregistreur compromis, un exploitant du client, ou l'administrateur du compte du support.",
+      "asset": "Copies verrouillées des segments, manifestes, points et ancres.",
+      "effect": "Effacer une copie, raccourcir sa rétention ou écrire une seconde version.",
+      "response": {
+        "text": "Rétention par défaut en mode Compliance, droits de l'écrivain réduits, rôles séparés (CT-2 EX-12.30, CT-2 EX-12.32, CT-2 EX-18.9) ; relevé de verrouillage (CT-2 EX-17.6).",
+        "refs": [
+          "CT-2 EX-12.30",
+          "CT-2 EX-12.32",
+          "CT-2 EX-18.9",
+          "CT-2 EX-17.6"
+        ]
+      },
+      "detection": {
+        "text": "Alertes « Verrou WORM non conforme », « Versions inattendues », « Relevé de verrouillage en retard » (CT-2 §17.4).",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "La suppression du compte du fournisseur et l'administrateur du compte non lié par une politique d'organisation restent hors de portée (CT-2 §18.5).",
+        "accepted_risk": {
+          "id": "RA-23",
+          "name": "Administrateur du compte du support",
+          "bound": "Limité au compte qui porte le support ; une politique d'organisation le lie",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le vecteur `ct-2/worm/` d'une version sans verrou rend le verdict non conforme ; si le contrôle du verrou est retiré, le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-2",
+          "section": "18.3",
+          "row": "Écrivain"
+        },
+        {
+          "spec": "CT-2",
+          "section": "18.3",
+          "row": "Administrateur du compte"
+        },
+        {
+          "spec": "CT-2",
+          "section": "18.5",
+          "row": "puce 4"
+        },
+        {
+          "spec": "CT-2",
+          "section": "18.5",
+          "row": "puce 5"
+        }
+      ]
+    },
+    {
+      "id": "MN-28",
+      "component": "worm_gel",
+      "stride": [
+        "alteration",
+        "elevation_de_privilege"
+      ],
+      "actor": "Une personne seule qui veut lever un gel, ou un démon qui écrit dans le registre des gels.",
+      "asset": "Gel juridique des copies et registre des gels.",
+      "effect": "Un gel est levé par une seule personne, ou le registre des gels est falsifié pour éteindre la surveillance.",
+      "response": {
+        "text": "Règle de garde de la levée par deux personnes, registre des gels écrit avant et après chaque action, gardien de levée distinct (CT-2 EX-12.37, CT-2 EX-12.38, CT-2 EX-18.9) ; relecture par le rôle Lecteur hors du démon (CT-2 EX-17.7).",
+        "refs": [
+          "CT-2 EX-12.37",
+          "CT-2 EX-12.38",
+          "CT-2 EX-18.9",
+          "CT-2 EX-17.7"
+        ]
+      },
+      "detection": {
+        "text": "Alertes « Registre des gels invalide », « Gel non posé sur une version d'un gel actif », « Gel levé » (CT-2 §17.4).",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Sur les supports où la pose et la levée ne se séparent pas, la règle repose sur l'activation approuvée du rôle ; les identités du registre sont déclarées (CT-2 EX-12.41).",
+        "accepted_risk": {
+          "id": "RA-24",
+          "name": "Séparation pose et levée non garantie par le support",
+          "bound": "Limitée aux supports d'EX-12.34 de CT-2 sans séparation des droits, et à la fenêtre d'un jour de la relecture",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le vecteur `ct-2/worm/` d'une levée demandée et accordée par la même identité est refusé par la règle de garde ; si la règle est retirée, la levée passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-2",
+          "section": "18.3",
+          "row": "Gardien de pose"
+        },
+        {
+          "spec": "CT-2",
+          "section": "18.3",
+          "row": "Gardien de levée"
+        },
+        {
+          "spec": "CT-2",
+          "section": "18.3",
+          "row": "Lecteur"
+        }
+      ]
+    },
+    {
+      "id": "MN-29",
+      "component": "worm_gel",
+      "stride": [
+        "deni_de_service"
+      ],
+      "actor": "Une panne du support, du réseau ou des identifiants de l'écrivain.",
+      "asset": "Copie verrouillée d'un segment fermé.",
+      "effect": "Une copie manque ou est perdue ; seul l'original local reste.",
+      "response": {
+        "text": "Copie de chaque segment fermé, attribut local d'ajout seul, comparaison horaire (CT-2 EX-12.16, CT-2 EX-12.18, CT-2 EX-17.5).",
+        "refs": [
+          "CT-2 EX-12.16",
+          "CT-2 EX-12.18",
+          "CT-2 EX-17.5"
+        ]
+      },
+      "detection": {
+        "text": "Alertes « Copie WORM en retard » et « Contrôle d'intégrité en échec » (CT-2 §17.4).",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Le segment courant et un segment fermé avant sa copie ne sont protégés que localement (CT-2 §18.5).",
+        "accepted_risk": {
+          "id": "RA-25",
+          "name": "Segment non encore copié",
+          "bound": "Au plus un segment courant plus le délai d'alerte d'une heure",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une copie WORM rendue impossible fait monter `noortrace_worm_copy_pending` et lever l'alerte après une heure ; si la comparaison horaire est retirée, aucune alerte et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-30",
+      "component": "cles",
+      "stride": [
+        "divulgation",
+        "usurpation"
+      ],
+      "actor": "Un attaquant qui lit la mémoire du démon ou le disque (classes C et D).",
+      "asset": "Clé privée Ed25519 de l'enregistreur.",
+      "effect": "La clé est copiée ; l'attaquant signe hors de l'enregistreur.",
+      "response": {
+        "text": "Classe D refusée en production, non-exportabilité quand le backend l'offre, mémoire protégée (CT-2 EX-11.8, CT-2 EX-11.5, CT-2 EX-18.7) ; création en cérémonie (CT-7 EX-5.1) ; aucune sauvegarde (CT-7 EX-4.4).",
+        "refs": [
+          "CT-2 EX-11.8",
+          "CT-2 EX-11.5",
+          "CT-2 EX-18.7",
+          "CT-7 EX-5.1",
+          "CT-7 EX-4.4"
+        ]
+      },
+      "detection": {
+        "text": "Aucun signal du vol lui-même : en classes C et D, aucun journal du backend ne voit la signature (CT-7 EX-3.7). Les ancres extérieures (CT-6 §3.4) rendent visible la réécriture d'un événement couvert par un point ancré (contrôles 4, 5 et 8, vérifications K-7 à K-9, CT-6 §5.4) ; elles ne révèlent pas la copie de la clé. L'usage du signataire en classes A et B relève de MN-31.",
+        "refs": [
+          "CT-7 EX-3.7",
+          "CT-6 §3.4",
+          "CT-6 §5.4"
+        ]
+      },
+      "residual": {
+        "text": "En classe C, la graine est en mémoire du démon (CT-2 §11.2).",
+        "accepted_risk": {
+          "id": "RA-26",
+          "name": "Graine en mémoire en classe C",
+          "bound": "Limitée aux journaux en classe C ; la fenêtre RA-15 borne ce qu'une clé copiée réécrit",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une configuration de production en classe D est refusée au démarrage ; si le refus est retiré, le démon démarre et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-2",
+          "section": "18.5",
+          "row": "puce 3"
+        }
+      ]
+    },
+    {
+      "id": "MN-31",
+      "component": "cles",
+      "stride": [
+        "usurpation",
+        "elevation_de_privilege"
+      ],
+      "actor": "Un processus ou une personne qui obtient l'identité d'usage du signataire (classes A et B).",
+      "asset": "Usage de la clé de l'enregistreur hors de l'écrivain.",
+      "effect": "Des objets sont signés par le signataire sans être des événements de l'écrivain titulaire du bail.",
+      "response": {
+        "text": "Identité d'usage seule, signature seulement pour le titulaire du bail (CT-2 EX-11.4, CT-2 EX-11.3) ; rapprochement mensuel des appels de signature avec les objets signés (CT-7 EX-3.7).",
+        "refs": [
+          "CT-2 EX-11.4",
+          "CT-2 EX-11.3",
+          "CT-7 EX-3.7"
+        ]
+      },
+      "detection": {
+        "text": "Écart du rapprochement (CT-7 EX-3.7) ; journaux d'audit du backend (CT-2 §11.6).",
+        "refs": [
+          "CT-7 EX-3.7",
+          "CT-2 §11.6"
+        ]
+      },
+      "residual": {
+        "text": "Un usage abusif entre deux rapprochements n'est vu qu'au suivant ; les ancres bornent ce qu'il réécrit.",
+        "accepted_risk": {
+          "id": "RA-27",
+          "name": "Usage du signataire entre deux rapprochements",
+          "bound": "Au plus l'intervalle de rapprochement (un mois) pour la découverte, la fenêtre RA-15 pour l'effet",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un journal d'audit de backend de test qui compte une signature de plus que les objets signés de l'intervalle fait échouer le rapprochement ; si le rapprochement est retiré, l'écart passe et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-32",
+      "component": "cles",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "Une personne qui détient l'identité d'administration d'un backend de clés.",
+      "asset": "Politique de clé : création, export, suppression, droits d'usage.",
+      "effect": "Elle rend une clé exportable, crée une clé hors cérémonie ou donne l'usage à un autre principal.",
+      "response": {
+        "text": "Séparation de l'administration et de l'usage (CT-2 EX-11.4) ; cérémonie à deux personnes au moins pour toute opération d'administration (CT-7 EX-5.1, CT-7 EX-5.2) ; contrôle multipartite écrit fonction par fonction (CT-7 EX-4.5).",
+        "refs": [
+          "CT-2 EX-11.4",
+          "CT-7 EX-5.1",
+          "CT-7 EX-5.2",
+          "CT-7 EX-4.5"
+        ]
+      },
+      "detection": {
+        "text": "Revue des journaux d'audit du backend (CT-7 EX-4.9) ; procès-verbal absent pour une opération constatée.",
+        "refs": [
+          "CT-7 EX-4.9"
+        ]
+      },
+      "residual": {
+        "text": "Un administrateur seul garde le pouvoir que le backend lui laisse.",
+        "accepted_risk": {
+          "id": "RA-28",
+          "name": "Pouvoir propre de l'administrateur du backend",
+          "bound": "Limité aux backends sans contrôle multipartite natif ; vu à la revue des journaux d'audit",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un procès-verbal de création signé par une seule personne échoue à CR-2 ; si CR-2 est retirée, il est valide et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-33",
+      "component": "cles",
+      "stride": [
+        "deni_de_service"
+      ],
+      "actor": "La perte ou la destruction du module, ou la perte du secret d'accès.",
+      "asset": "Continuité du journal.",
+      "effect": "La clé courante n'est plus utilisable : aucune rotation signée par elle ne peut exister.",
+      "response": {
+        "text": "Rupture de journal et nouveau journal lié au registre (CT-2 EX-11.16) ; révocation de l'ancienne clé de chaîne (CT-2 EX-11.14) ; pas de sauvegarde de la clé de l'enregistreur, par choix (CT-7 EX-4.4).",
+        "refs": [
+          "CT-2 EX-11.16",
+          "CT-2 EX-11.14",
+          "CT-7 EX-4.4"
+        ]
+      },
+      "detection": {
+        "text": "Mode dégradé « clé » et alerte critique (CT-2 §17.4).",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Le journal est rompu ; le lien entre l'ancien et le nouveau journal est hors chaîne.",
+        "accepted_risk": {
+          "id": "RA-29",
+          "name": "Rupture de journal à la perte de la clé",
+          "bound": "Un journal rompu par perte, lien consigné au registre et au journal d'exploitation",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un signataire injoignable sans reprise met le démon en mode dégradé « clé » bloquant ; si le démon continue d'écrire, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-34",
+      "component": "cles",
+      "stride": [
+        "usurpation",
+        "deni_de_service"
+      ],
+      "actor": "Un attaquant qui détient la clé de chaîne d'un enregistreur.",
+      "asset": "Ancres de l'organisation et provision de la clé.",
+      "effect": "Il ancre des empreintes quelconques, occupe celles de son organisation, disperse la provision vers des adresses neuves.",
+      "response": {
+        "text": "Provision bornée et alerte au-delà de deux fois le budget (CT-4 EX-4.20, CT-4 EX-8.18) ; révocation au seuil (CT-4 §8.4, CT-2 EX-11.14) ; une clôture exige toujours le seuil (CT-4 §3.3) ; le contrôle 8 écarte les ancres d'une clé révoquée (CT-6 R-10).",
+        "refs": [
+          "CT-4 EX-4.20",
+          "CT-4 EX-8.18",
+          "CT-4 §8.4",
+          "CT-2 EX-11.14",
+          "CT-4 §3.3",
+          "CT-6 R-10"
+        ]
+      },
+      "detection": {
+        "text": "Alerte de consommation (CT-4 EX-8.18) ; journaux `Anchored` inattendus (CT-5 EX-10.7).",
+        "refs": [
+          "CT-4 EX-8.18",
+          "CT-5 EX-10.7"
+        ]
+      },
+      "residual": {
+        "text": "Jusqu'à la révocation et au-delà, tant que le solde le permet ; la dispersion défait la cadence d'une transaction par bloc (CT-4 §12).",
+        "accepted_risk": {
+          "id": "RA-30",
+          "name": "Capacité restante d'une clé de chaîne compromise",
+          "bound": "Le solde résiduel de la clé, borné par `P_k`, et le délai de révocation (4 h visé, ou le délai mesuré par l'exercice de CT-7 EX-3.12 s'il est supérieur)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un dossier dont l'émetteur de l'ancre n'est pas la clé de chaîne inscrite pour la clé du manifeste échoue à R-10 ; si R-10 est retirée, il passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Clé de chaîne compromise"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Clé de chaîne compromise"
+        }
+      ]
+    },
+    {
+      "id": "MN-35",
+      "component": "cles",
+      "stride": [
+        "usurpation",
+        "divulgation"
+      ],
+      "actor": "Un attaquant qui obtient la clé d'un approbateur : page compromise dans le parcours par fichier de clé, mesure temporelle, poste partagé.",
+      "asset": "Clé secp256k1 d'un approbateur.",
+      "effect": "Il signe des votes à la place de l'approbateur.",
+      "response": {
+        "text": "La clé naît chez l'approbateur et n'est jamais détenue par un serveur (CT-3 EX-3.4, CT-3 EX-13.1) ; parcours par fichier seulement permis, page de référence sans ce parcours (CT-3 EX-13.28, CT-3 EX-13.31) ; portefeuille matériel recommandé (CT-3 EX-9.9).",
+        "refs": [
+          "CT-3 EX-3.4",
+          "CT-3 EX-13.1",
+          "CT-3 EX-13.28",
+          "CT-3 EX-13.31",
+          "CT-3 EX-9.9"
+        ]
+      },
+      "detection": {
+        "text": "Notification de chaque vote inscrit par un canal indépendant (CT-3 EX-13.3).",
+        "refs": [
+          "CT-3 EX-13.3"
+        ]
+      },
+      "residual": {
+        "text": "Une page compromise lit la clé dans le parcours par fichier ; une mesure temporelle n'est pas exclue (CT-3 §14.9).",
+        "accepted_risk": {
+          "id": "RA-31",
+          "name": "Clé d'approbateur exposée dans la page",
+          "bound": "Limitée aux approbateurs qui emploient le parcours par fichier de clé ; le seuil exige d'autres signatures",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la page de référence de la console n'offre pas le parcours par fichier de clé (test Chromium de CT-3) ; si le parcours y apparaît, le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Un script de la page lit la clé déchiffrée d'un fichier de clé"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Canal auxiliaire temporel sur la signature locale du parcours d : la signature de `scripts/lib/console.mjs` (`signerHachage`, appelée par `signerCondense` : ECDSA à nonce RFC 6979 écrit en `BigInt`) n'est pas à temps constant, et la durée de ses multiplications et inversions dépend des bits de la clé et du nonce ; un observateur qui mesure ces durées pourrait en tirer de l'information sur la clé"
+        }
+      ]
+    },
+    {
+      "id": "MN-36",
+      "component": "cles",
+      "stride": [
+        "usurpation",
+        "elevation_de_privilege"
+      ],
+      "actor": "Une personne qui tient deux clés du jeu, ou deux comptes du système d'identité.",
+      "asset": "Double autorisation que le seuil doit réaliser.",
+      "effect": "Une seule personne atteint seule un seuil de deux signatures.",
+      "response": {
+        "text": "« Une personne, une clé » (CT-3 EX-8.11, CT-3 EX-13.10, CT-4 EX-7.8) ; cérémonie d'inscription des membres : chaque membre signe le procès-verbal avec sa clé devant un témoin qui vérifie son identité (CT-7 EX-5.1, CT-7 CR-8, CT-7 CR-11).",
+        "refs": [
+          "CT-3 EX-8.11",
+          "CT-3 EX-13.10",
+          "CT-4 EX-7.8",
+          "CT-7 EX-5.1",
+          "CT-7 CR-8",
+          "CT-7 CR-11"
+        ]
+      },
+      "detection": {
+        "text": "Procès-verbal d'inscription des membres (CT-7 §5) ; annuaire exporté (CT-3 EX-13.19).",
+        "refs": [
+          "CT-7 §5",
+          "CT-3 EX-13.19"
+        ]
+      },
+      "residual": {
+        "text": "La vérification d'identité par le témoin est déclarée par le procès-verbal ; deux personnes de connivence restent deux signatures.",
+        "accepted_risk": {
+          "id": "RA-32",
+          "name": "Identité des membres déclarée",
+          "bound": "Limitée à ce que le témoin a constaté, nommé dans le procès-verbal",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un procès-verbal où deux membres déclarent la même adresse échoue à CR-2 ; si CR-2 est retirée, il est valide et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-37",
+      "component": "cles",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "Un attaquant qui tient la clé de gouvernance d'une organisation, ou des approbateurs de connivence au seuil.",
+      "asset": "Jeu d'approbateurs de l'organisation et suite de ses clôtures.",
+      "effect": "Il prend le jeu en deux blocs, inscrit sa clé de chaîne et clôt une période frauduleuse qui rend le journal inachevable.",
+      "response": {
+        "text": "Clé de gouvernance en classe A à C, jamais D, créée en cérémonie (CT-4 EX-8.21, CT-7 EX-4.2) ; relais de l'exploitant sur confirmation hors bande (CT-4 EX-8.21) ; sondage des événements du jeu (CT-4 EX-8.12) ; journal abandonné et nouveau nom (CT-4 EX-8.10).",
+        "refs": [
+          "CT-4 EX-8.21",
+          "CT-7 EX-4.2",
+          "CT-4 EX-8.12",
+          "CT-4 EX-8.10"
+        ]
+      },
+      "detection": {
+        "text": "Sondage des événements du `CuratorSet` et des journaux par le client (CT-4 EX-8.12).",
+        "refs": [
+          "CT-4 EX-8.12"
+        ]
+      },
+      "residual": {
+        "text": "Le journal attaqué est perdu pour le contrôle 8 ; un délai ou une cosignature est seulement proposé (CT-4 §14).",
+        "accepted_risk": {
+          "id": "RA-33",
+          "name": "Prise du jeu par la clé de gouvernance",
+          "bound": "Un journal rendu inachevable, remplacé par un nouveau nom ; collusion d'au moins `required` membres pour la variante de connivence",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un procès-verbal de création de la clé de gouvernance en classe D pour la production échoue à CR-6 ; si la règle de classe est retirée, il est valide et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Approbateurs au seuil, de connivence"
+        },
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Clé de gouvernance compromise"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Clé de gouvernance compromise, ou approbateurs de connivence"
+        }
+      ]
+    },
+    {
+      "id": "MN-38",
+      "component": "cles",
+      "stride": [
+        "elevation_de_privilege",
+        "deni_de_service"
+      ],
+      "actor": "Un attaquant qui tient la clé de l'administrateur du registre.",
+      "asset": "Assignation du jeu de chaque organisation.",
+      "effect": "Il réassigne le jeu de toute organisation vers une adresse qu'il contrôle ; le jeu réassigné peut aussi signer une attestation de périmètre ou faire inscrire une clé de chaîne.",
+      "response": {
+        "text": "Garde en module matériel, clé distincte, usage borné (CT-4 EX-5.4, CT-4 EX-3.1, CT-7 EX-4.2) ; jeu épinglé par la politique (CT-3 EX-8.1, CT-3 EX-8.6) ; réassignation sur demande écrite consignée (CT-4 EX-8.10, CT-7 EX-5.1).",
+        "refs": [
+          "CT-4 EX-5.4",
+          "CT-4 EX-3.1",
+          "CT-7 EX-4.2",
+          "CT-3 EX-8.1",
+          "CT-3 EX-8.6",
+          "CT-4 EX-8.10",
+          "CT-7 EX-5.1"
+        ]
+      },
+      "detection": {
+        "text": "Surveillance de `CuratorSetAssigned` (CT-4 EX-8.12) ; recoupement par le réviseur de l'historique des `CuratorSetAssigned` de l'organisation, du jeu épinglé jusqu'à la date des signatures (CT-7 EX-7.13).",
+        "refs": [
+          "CT-4 EX-8.12",
+          "CT-7 EX-7.13"
+        ]
+      },
+      "residual": {
+        "text": "Il bloque les approbations des organisations jusqu'à une nouvelle version de politique (CT-3 §14.4) ; une attestation ou une inscription de clé signée par le jeu réassigné n'est démasquée que par le recoupement de l'historique des réassignations.",
+        "accepted_risk": {
+          "id": "RA-34",
+          "name": "Déni de service par réassignation",
+          "bound": "Jusqu'à la publication d'une nouvelle version de politique par l'organisation ; public sur la chaîne. Une attestation de périmètre ou une inscription de clé de chaîne signée par le jeu réassigné vaut tant que le réviseur ne recoupe pas l'historique des `CuratorSetAssigned` (CT-7 EX-7.13) ; voir aussi RA-48",
+          "owner": "exploitant_noortrace"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la trace `ct-3/tickets/` d'un jeu réassigné fait expirer le ticket avec la raison « jeu reassigne » ; si l'épinglage est retiré, le ticket est décidé par le jeu réassigné et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Administrateur du registre"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.4",
+          "row": "L'administrateur du registre réassigne le jeu de l'organisation"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Administrateur du registre"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Clé de l'administrateur du registre"
+        }
+      ]
+    },
+    {
+      "id": "MN-39",
+      "component": "cles",
+      "stride": [
+        "alteration",
+        "elevation_de_privilege"
+      ],
+      "actor": "Un attaquant qui lit la clé d'un validateur, ou un opérateur qui restaure une base.",
+      "asset": "Votes des validateurs et unicité des certificats de commit.",
+      "effect": "Un validateur signe deux fois une même hauteur ; deux certificats contradictoires peuvent exister au-delà de f fautifs.",
+      "response": {
+        "text": "Clé générée sur site, fichier `0600`, un seul signataire actif, aucune restauration ni réplication, au plus f par opérateur et par site (CT-4 EX-10.7, CT-4 EX-10.9, CT-4 EX-4.12) ; création en cérémonie, sans sauvegarde (CT-7 EX-4.4, CT-7 EX-5.1).",
+        "refs": [
+          "CT-4 EX-10.7",
+          "CT-4 EX-10.9",
+          "CT-4 EX-4.12",
+          "CT-7 EX-4.4",
+          "CT-7 EX-5.1"
+        ]
+      },
+      "detection": {
+        "text": "Supervision de `noor_bft_equivocations_total` et publication des preuves proposées (CT-4 §14).",
+        "refs": [
+          "CT-4 §14"
+        ]
+      },
+      "residual": {
+        "text": "La garde en module n'est pas possible sans changer noorcore (CT-4 §10.5).",
+        "accepted_risk": {
+          "id": "RA-35",
+          "name": "Clé de validateur en fichier",
+          "bound": "Au plus f validateurs par opérateur et par site ; H6 de CT-6",
+          "owner": "operateur_validateur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un procès-verbal de création d'une clé de validateur avec sauvegarde échoue à CR-7 ; si la règle de sauvegarde est retirée, il est valide et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Clés des validateurs"
+        }
+      ]
+    },
+    {
+      "id": "MN-40",
+      "component": "cles",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "Un attaquant qui tient la clé du compte chaud de trésorerie.",
+      "asset": "Provision de NUR de toute l'instance.",
+      "effect": "Il vide la trésorerie ou approvisionne des expéditeurs qu'il contrôle.",
+      "response": {
+        "text": "Destinataires admis et plafond quotidien (CT-4 EX-8.20) ; trésorerie froide et compte d'approvisionnement borné recomplété par cérémonie (CT-4 EX-8.20, CT-7 EX-5.1).",
+        "refs": [
+          "CT-4 EX-8.20",
+          "CT-7 EX-5.1"
+        ]
+      },
+      "detection": {
+        "text": "Registre d'approvisionnements de l'exploitant et examen des consommations (CT-4 EX-8.18).",
+        "refs": [
+          "CT-4 EX-8.18"
+        ]
+      },
+      "residual": {
+        "text": "Un compte chaud signe en ligne ; la trésorerie froide est seulement proposée en version 0 (CT-4 §14).",
+        "accepted_risk": {
+          "id": "RA-36",
+          "name": "Compte chaud de trésorerie",
+          "bound": "Le plafond `fees.max_daily_budget_gas` par jour, puis le solde du compte d'approvisionnement",
+          "owner": "exploitant_noortrace"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un approvisionnement vers un destinataire non admis est refusé par l'outil de référence ; si le contrôle est retiré, il part et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Trésorerie"
+        }
+      ]
+    },
+    {
+      "id": "MN-41",
+      "component": "cles",
+      "stride": [
+        "divulgation",
+        "usurpation"
+      ],
+      "actor": "Un attaquant qui obtient un identifiant d'accès à un prestataire d'horodatage ou un certificat client.",
+      "asset": "Abonnement et identité du client auprès du prestataire.",
+      "effect": "Il fait horodater des empreintes aux frais du client ou épuise son débit.",
+      "response": {
+        "text": "Secrets par référence, jamais dans la file, les traces ni le journal (CT-5 EX-4.8, CT-5 AN-43) ; TLS vérifié (CT-5 EX-5.5) ; rotation et révocation des identifiants (CT-7 §4.6).",
+        "refs": [
+          "CT-5 EX-4.8",
+          "CT-5 AN-43",
+          "CT-5 EX-5.5",
+          "CT-7 §4.6"
+        ]
+      },
+      "detection": {
+        "text": "Alerte sur le volume de requêtes (CT-5 §8.9) ; `401` traité comme erreur permanente (CT-5 EX-5.12).",
+        "refs": [
+          "CT-5 §8.9",
+          "CT-5 EX-5.12"
+        ]
+      },
+      "residual": {
+        "text": "Un identifiant volé sert jusqu'à sa révocation chez le prestataire.",
+        "accepted_risk": {
+          "id": "RA-37",
+          "name": "Identifiant de prestataire volé",
+          "bound": "Le débit de l'abonnement jusqu'à la révocation chez le prestataire",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : aucune ligne de la file ni du journal d'exploitation des vecteurs `ct-5/` ne contient un secret (AN-43) ; si un secret y est écrit, le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Secrets d'accès au prestataire (Basic, certificat client)"
+        }
+      ]
+    },
+    {
+      "id": "MN-42",
+      "component": "cles",
+      "stride": [
+        "usurpation"
+      ],
+      "actor": "Un attaquant qui tient la clé du serveur d'horodatage interne, ou l'opérateur lui-même.",
+      "asset": "Contresignature interne des points.",
+      "effect": "Il produit des jetons internes à n'importe quelle heure.",
+      "response": {
+        "text": "Clé hors de l'hôte de l'enregistreur, classe A à C, autre rôle d'exploitation (CT-5 EX-7.3) ; serveur étiqueté « non qualifié » (CT-5 EX-7.2) ; cérémonie de la clé (CT-7 EX-5.1).",
+        "refs": [
+          "CT-5 EX-7.3",
+          "CT-5 EX-7.2",
+          "CT-7 EX-5.1"
+        ]
+      },
+      "detection": {
+        "text": "Le réviseur choisit d'inscrire ou non l'autorité interne (CT-6 EX-3.8).",
+        "refs": [
+          "CT-6 EX-3.8"
+        ]
+      },
+      "residual": {
+        "text": "Contre l'opérateur, le jeton interne ne vaut rien (CT-5 EX-7.3).",
+        "accepted_risk": {
+          "id": "RA-38",
+          "name": "Jeton interne contre l'opérateur",
+          "bound": "Limité aux points contresignés par le serveur interne ; la clôture reste qualifiée",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un procès-verbal de création de la clé du serveur interne en classe D échoue à CR-6 ; si la règle est retirée, il est valide et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Interface du serveur interne exposée"
+        }
+      ]
+    },
+    {
+      "id": "MN-43",
+      "component": "cles",
+      "stride": [
+        "divulgation"
+      ],
+      "actor": "Une personne qui lit un secret de service : clé du MAC de relais, clé de pseudonymisation, jetons, DSN du bail, identifiants WORM ou de serveurs d'outils.",
+      "asset": "Secrets de l'inventaire de 4.2 hors des clés de signature.",
+      "effect": "Selon le secret : forger un relais, retrouver une valeur pseudonymisée par dictionnaire, usurper un hôte ou l'écrivain.",
+      "response": {
+        "text": "Références de secrets, fichiers `0400`, jamais écrits ni journalisés (CT-2 EX-15.3, CT-2 EX-18.4, CT-2 EX-17.3) ; rotation et conduite par secret (CT-7 §4.6).",
+        "refs": [
+          "CT-2 EX-15.3",
+          "CT-2 EX-18.4",
+          "CT-2 EX-17.3",
+          "CT-7 §4.6"
+        ]
+      },
+      "detection": {
+        "text": "Selon le secret : `auth_failed` (CT-2 EX-18.3), alerte « Clé du MAC de relais » (CT-2 §17.4).",
+        "refs": [
+          "CT-2 EX-18.3",
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Un secret lu sert jusqu'à sa rotation.",
+        "accepted_risk": {
+          "id": "RA-39",
+          "name": "Secret de service divulgué",
+          "bound": "Jusqu'à la rotation prévue en 4.6 pour ce secret",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la validation refuse une valeur littérale là où une référence de secret est attendue ; si la forme objet n'est plus exigée, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-92",
+      "component": "cles",
+      "stride": [
+        "usurpation",
+        "repudiation"
+      ],
+      "actor": "Une personne qui génère seule plusieurs clés de participant, ou qui inscrit comme témoin une personne absente ou une clé qu'elle détient.",
+      "asset": "Procès-verbal de cérémonie et ancres que le réviseur en tire.",
+      "effect": "Un procès-verbal de production paraît multipartite et témoigné alors qu'une seule personne l'a fabriqué et signé.",
+      "response": {
+        "text": "Un participant `temoin` distinct de l'exécutant à chaque étape, l'auditeur s'y ajoutant sans le remplacer (CR-4, CT-7 EX-5.9 ; règle du témoin, CT-7 EX-5.2) ; ancre tirée seulement d'un procès-verbal dont un signataire est connu du réviseur par un canal indépendant du client, auditeur qu'il a mandaté (CT-7 EX-5.10) ; clés de signature des participants inventoriées (CLE-29, 4.2).",
+        "refs": [
+          "CT-7 EX-5.9",
+          "CT-7 EX-5.2",
+          "CT-7 EX-5.10"
+        ]
+      },
+      "detection": {
+        "text": "CR-4 en échec quand aucun témoin n'est nommé (CT-7 EX-5.9) ; le réviseur constate qu'aucun signataire ne lui est connu par un canal indépendant.",
+        "refs": [
+          "CT-7 EX-5.9"
+        ]
+      },
+      "residual": {
+        "text": "Les CR- ne voient que des signatures valides : la présence réelle d'un témoin et l'identité des signataires restent déclarées (5.9).",
+        "accepted_risk": {
+          "id": "RA-76",
+          "name": "Procès-verbal sans signataire indépendant",
+          "bound": "Limité aux procès-verbaux dont aucun signataire n'est connu du réviseur par un canal indépendant du client ; aucune ancre n'en est tirée (CT-7 EX-5.10)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le cas `invalide-cr4-temoin-auditeur-seul` échoue à CR-4, et un procès-verbal signé par des clés d'une même personne sans auditeur mandaté ne donne aucune ancre au réviseur ; si la règle du témoin ou la condition d'EX-5.10 est retirée, le procès-verbal passe et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-93",
+      "component": "cles",
+      "stride": [
+        "repudiation",
+        "alteration"
+      ],
+      "actor": "Qui rédige un procès-verbal après coup et lui donne une date antérieure.",
+      "asset": "Date de création d'une clé et rang des événements qu'elle signe.",
+      "effect": "Une clé paraît créée en cérémonie avant les événements qu'elle a signés.",
+      "response": {
+        "text": "En production, `D_C` ancré par un jeton RFC 3161 joint au procès-verbal ou par une inscription au registre (CT-7 EX-5.11) ; recoupement de la clé d'enregistreur avec son inscription au registre (`registerRecorder`, contrôle 8 de CT-6), qui borne l'antidatage (CT-7 EX-5.10).",
+        "refs": [
+          "CT-7 EX-5.11",
+          "CT-7 EX-5.10"
+        ]
+      },
+      "detection": {
+        "text": "Absence d'ancre de `D_C`, ou date de l'ancre éloignée de `ended_at` (fin déclarée de la cérémonie, 5.6), constatée par le réviseur (CT-7 EX-5.11) ; CT-7 ne fixe pas de tolérance ; le réviseur juge l'écart, et une ancre ne prouve qu'une date au plus tard (RA-77).",
+        "refs": [
+          "CT-7 EX-5.11"
+        ]
+      },
+      "residual": {
+        "text": "Sans ancre, la date du procès-verbal n'est que déclarée.",
+        "accepted_risk": {
+          "id": "RA-77",
+          "name": "Date déclarée du procès-verbal",
+          "bound": "Sans ancre de `D_C`, la date est déclarée ; avec une ancre, l'antidatage est borné par la date du jeton ou de l'inscription au registre (CT-7 EX-5.11)",
+          "owner": "reviseur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un procès-verbal de production sans ancre de `D_C` est signalé au réviseur comme daté par déclaration seulement ; si l'exigence d'ancrage est retirée, il est accepté sans réserve et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-94",
+      "component": "cles",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "Qui restaure une clé sauvegardée sans réunir le seuil de détenteurs de part.",
+      "asset": "Clés sauvegardées par partage k sur n (4.4 : CLE-4 si le client l'a choisi, CLE-5, CLE-8 pour la trésorerie froide, CLE-26).",
+      "effect": "Une clé d'administrateur ou de gouvernance est reconstituée hors du contrôle multipartite.",
+      "response": {
+        "text": "CR-12 : un procès-verbal `restauration` porte `purpose_details` avec `2 ≤ k ≤ n` et au moins k participants `detenteur_part` (CT-7 EX-5.9 ; restauration : CT-7 EX-5.5) ; sauvegarde et partage selon 4.4 (CT-7 EX-5.5).",
+        "refs": [
+          "CT-7 EX-5.9",
+          "CT-7 EX-5.5"
+        ]
+      },
+      "detection": {
+        "text": "CR-12 en échec ; une restauration faite hors cérémonie ne se voit qu'à l'usage de la clé (4.7).",
+        "refs": []
+      },
+      "residual": {
+        "text": "Une restauration hors cérémonie ne laisse de trace que par l'usage de la clé restaurée.",
+        "accepted_risk": {
+          "id": "RA-78",
+          "name": "Restauration hors cérémonie",
+          "bound": "Limité aux clés sauvegardées (4.4) ; une restauration hors cérémonie ne se voit qu'à l'usage de la clé restaurée (4.7)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le cas `invalide-cr12-restauration-sans-detenteur` échoue à CR-12 ; si la règle est retirée, il passe et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-95",
+      "component": "cles",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "Une personne qui reçoit plusieurs parts sous des noms différents.",
+      "asset": "Seuil k de la sauvegarde partagée.",
+      "effect": "Le seuil de restauration est atteint par moins de k personnes.",
+      "response": {
+        "text": "Le témoin constate l'identité distincte de chaque détenteur de part et le consigne (CT-7 EX-5.2) ; la distinction est déclarée au procès-verbal (5.9).",
+        "refs": [
+          "CT-7 EX-5.2"
+        ]
+      },
+      "detection": {
+        "text": "Aucune par les CR- : l'identité distincte des détenteurs est un constat déclaré du témoin.",
+        "refs": []
+      },
+      "residual": {
+        "text": "Que les détenteurs de part soient des personnes distinctes reste déclaré.",
+        "accepted_risk": {
+          "id": "RA-79",
+          "name": "Détenteurs de part déclarés distincts",
+          "bound": "Limité aux sauvegardes partagées ; la distinction des personnes est un constat déclaré du témoin (5.9)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un procès-verbal de `sauvegarde` qui remet deux parts à la même personne sous deux noms est relevé par le témoin dans `findings` ; si le constat du témoin est retiré, rien ne le relève et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-44",
+      "component": "approbation_console",
+      "stride": [
+        "alteration",
+        "elevation_de_privilege"
+      ],
+      "actor": "Un service d'approbation compromis, qui répond ce qu'il veut sauf des signatures.",
+      "asset": "Décisions `autorise` et `refuse`, jeu déclaré, affichage des arguments.",
+      "effect": "Il rend `autorise` à tort, déclare un faux jeu, ignore la fenêtre de contestation ou affiche d'autres arguments.",
+      "response": {
+        "text": "Canal authentifié (CT-2 EX-18.8, CT-3 EX-12.2) ; vérification de toute remise (CT-2 EX-7.5, CT-3 SG-5, CT-3 SG-6, CT-3 SG-7) et des relais (CT-2 EX-7.21) ; contrôles de la console sur l'événement retenu et la pièce (CT-3 EX-9.6) ; intégrité du service (CT-7 EX-3.10).",
+        "refs": [
+          "CT-2 EX-18.8",
+          "CT-3 EX-12.2",
+          "CT-2 EX-7.5",
+          "CT-3 SG-5",
+          "CT-3 SG-6",
+          "CT-3 SG-7",
+          "CT-2 EX-7.21",
+          "CT-3 EX-9.6",
+          "CT-7 EX-3.10"
+        ]
+      },
+      "detection": {
+        "text": "Réévaluation par le réviseur (CT-3 §6.8) ; un appel `autorise` après un `retenue` du même outil dans la chaîne (CT-3 §14.7).",
+        "refs": [
+          "CT-3 §6.8",
+          "CT-3 §14.7"
+        ]
+      },
+      "residual": {
+        "text": "Le jeu reste « déclaré par le dossier » ; `autorise` n'est pas signé ; une valeur rédigée peut être substituée dans l'affichage (CT-3 §14.4, CT-3 §14.5).",
+        "accepted_risk": {
+          "id": "RA-40",
+          "name": "Service d'approbation compromis",
+          "bound": "Limité aux réponses non signées et au jeu déclaré ; jamais une décision `approuve` sans signatures valides du jeu remis",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une remise `approuve` dont une signature ne recouvre pas un membre du jeu remis est refusée par SG-5 ou SG-6 ; si la vérification est retirée, la décision est scellée et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Service d'approbation compromis"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.4",
+          "row": "Le service déclare un faux jeu (membres qu'il contrôle)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.5",
+          "row": "Le service affiche d'autres arguments que ceux de la demande retenue"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.5",
+          "row": "La pièce rédigée ne montre pas le clair : `request_hash` ne lie que la forme rédigée"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Service d'approbation compromis"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Service compromis"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Le service sert un événement, une pièce, des champs ou un `D_A` qui ne sont pas ceux de la demande retenue"
+        }
+      ]
+    },
+    {
+      "id": "MN-45",
+      "component": "approbation_console",
+      "stride": [
+        "usurpation",
+        "alteration"
+      ],
+      "actor": "Une console compromise, ou un émetteur sur le canal console vers service avec des identifiants valides.",
+      "asset": "Ce que l'approbateur signe et ce qui est transmis en son nom.",
+      "effect": "Elle fait signer un autre condensé que celui qu'elle affiche, présente un condensé du registre comme un vote, forge une récusation ou un retrait, ne transmet pas un refus.",
+      "response": {
+        "text": "Console qui recalcule et affiche `D_A` en entier, recouvre l'adresse sur son propre condensé (CT-3 EX-9.6, CT-3 EX-9.17, CT-3 EX-9.21) ; notification indépendante de chaque vote (CT-3 EX-13.3) ; une récusation ne retire jamais un refus (CT-3 EX-10.4) ; politique de sécurité du contenu (CT-3 EX-13.35) ; publication des empreintes de la page hors du serveur (CT-7 EX-3.9).",
+        "refs": [
+          "CT-3 EX-9.6",
+          "CT-3 EX-9.17",
+          "CT-3 EX-9.21",
+          "CT-3 EX-13.3",
+          "CT-3 EX-10.4",
+          "CT-3 EX-13.35",
+          "CT-7 EX-3.9"
+        ]
+      },
+      "detection": {
+        "text": "Notification d'un vote que l'approbateur n'a pas émis (CT-3 EX-13.3) ; écart d'empreinte de la page (CT-7 EX-3.9).",
+        "refs": [
+          "CT-3 EX-13.3",
+          "CT-7 EX-3.9"
+        ]
+      },
+      "residual": {
+        "text": "Limite du format v0 : l'approbateur qui ne compare pas l'empreinte peut signer une autre demande retenue, ou `approuve` pour qui voulait refuser (CT-3 §9.3).",
+        "accepted_risk": {
+          "id": "RA-41",
+          "name": "Signature à l'aveugle d'un condensé de 32 octets",
+          "bound": "Limitée aux demandes réellement retenues de l'organisation et aux approbateurs qui ne comparent pas l'empreinte, en deux cas : (a) quand `required` ≥ 2 et qu'au moins un des signataires qui forment le seuil compare l'empreinte, la signature à l'aveugle des autres ne suffit pas, et une demande ne passe qu'avec la signature de ce signataire ; (b) quand `required` = 1, ou quand aucun signataire du seuil ne compare, la seule borne est l'ensemble des demandes retenues de l'organisation (voir aussi RA-44)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le vecteur `ct-3/console/` d'une réponse du portefeuille qui ne recouvre pas l'adresse sur le `D_A` de la console n'aboutit à aucun vote ; si le recouvrement est retiré, un vote part et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Console compromise"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Console compromise, ou émetteur sur le canal console → service"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Console compromise"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "La console est compromise"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Une console compromise, ou un site tiers, présente comme un vote un condensé du registre de CT-4 (`registerDigest`, `revokeDigest`, `periodDigest`)"
+        }
+      ]
+    },
+    {
+      "id": "MN-46",
+      "component": "approbation_console",
+      "stride": [
+        "usurpation",
+        "alteration"
+      ],
+      "actor": "Une extension ou un fournisseur malveillant dans le navigateur de l'approbateur, ou un site tiers.",
+      "asset": "Choix du portefeuille et message réellement signé.",
+      "effect": "Un faux portefeuille se fait choisir, s'interpose et remplace `params[0]`, rend une signature forgée, fait signer le `D_A` d'une autre demande, encadre la page.",
+      "response": {
+        "text": "Aucun choix implicite, doublons d'`uuid` exclus (CT-3 EX-13.22) ; comparaison de l'empreinte à l'écran du portefeuille (CT-3 EX-9.20) ; recouvrement et contrôle de forme avant toute bibliothèque (CT-3 EX-9.21, CT-3 EX-9.22) ; une requête à la fois, réponses tardives ignorées (CT-3 EX-13.21, CT-3 EX-13.30) ; `frame-ancestors 'none'` (CT-3 EX-13.35).",
+        "refs": [
+          "CT-3 EX-13.22",
+          "CT-3 EX-9.20",
+          "CT-3 EX-9.21",
+          "CT-3 EX-9.22",
+          "CT-3 EX-13.21",
+          "CT-3 EX-13.30",
+          "CT-3 EX-13.35"
+        ]
+      },
+      "detection": {
+        "text": "Vote refusé `adresse_differente` ou signature ignorée, consignés par la console (CT-3 §13.14).",
+        "refs": [
+          "CT-3 §13.14"
+        ]
+      },
+      "residual": {
+        "text": "Un approbateur qui ne compare pas peut signer le `D_A` d'une autre demande retenue ; une extension peut bloquer la signature (CT-3 §14.9).",
+        "accepted_risk": {
+          "id": "RA-42",
+          "name": "Extension malveillante du navigateur",
+          "bound": "Limitée au poste de l'approbateur, aux demandes retenues et au déni de service",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : les vecteurs `ct-3/console/` de découverte avec `uuid` dupliqué excluent les deux annonces ; si l'exclusion est retirée, un portefeuille est choisi et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Extension ou fournisseur malveillant dans le navigateur de l'approbateur"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Extension ou fournisseur malveillant dans le navigateur de l'approbateur"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Un faux portefeuille s'annonce sous le nom, l'icône ou le `rdns` d'un autre (R4-F6)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Une extension s'interpose entre la page et le portefeuille et remplace `params[0]` par le `D_A` d'une autre demande"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Le fournisseur rend une signature forgée, malléable ou d'une autre forme"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Une bibliothèque encode `D_A` comme la chaîne `\"0x…\"`"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Un site tiers présente le `D_A` d'un ticket en attente comme un message à signer"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "La page de signature est encadrée par un autre site pour faire cliquer l'approbateur"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Un clic répété envoie deux requêtes ou deux votes"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Une signature arrive après le délai, après un changement de décision ou d'adresse, ou après l'ouverture d'un autre ticket"
+        }
+      ]
+    },
+    {
+      "id": "MN-47",
+      "component": "approbation_console",
+      "stride": [
+        "usurpation",
+        "deni_de_service"
+      ],
+      "actor": "Un attaquant qui vole une session de la console, un administrateur d'annuaire malveillant, ou un site d'hameçonnage.",
+      "asset": "Annuaire des approbateurs : inscriptions, validations, révocations.",
+      "effect": "Il inscrit l'adresse d'un autre, confisque une adresse, rejoue une preuve, révoque ou désactive un membre.",
+      "response": {
+        "text": "Preuve de possession sur un texte qui nomme l'identité, nonce unique, adresse jamais réattribuée (CT-3 EX-13.13, CT-3 EX-13.15, CT-3 EX-13.10) ; réauthentification récente (CT-3 EX-13.8) ; validation après vérification par un autre canal, jamais de sa propre adresse (CT-3 EX-13.17) ; séparation des domaines (CT-3 EX-13.16).",
+        "refs": [
+          "CT-3 EX-13.13",
+          "CT-3 EX-13.15",
+          "CT-3 EX-13.10",
+          "CT-3 EX-13.8",
+          "CT-3 EX-13.17",
+          "CT-3 EX-13.16"
+        ]
+      },
+      "detection": {
+        "text": "Notification de chaque opération qui vise la personne (CT-3 EX-13.3) ; `operations` de l'annuaire (CT-3 §13.6).",
+        "refs": [
+          "CT-3 EX-13.3",
+          "CT-3 §13.6"
+        ]
+      },
+      "residual": {
+        "text": "Confiscation et révocation par session volée restent possibles : déni de service visible (CT-3 §14.8).",
+        "accepted_risk": {
+          "id": "RA-43",
+          "name": "Déni de service sur l'annuaire",
+          "bound": "Limité à l'état `en_attente` ou à la révocation d'une adresse, visible dans `operations`, sans effet sur le jeu figé",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la trace `ct-3/annuaire/traces/confiscation.json` aboutit à l'état attendu ; si la vérification d'identité du message est retirée, l'inscription est acceptée sous une autre session et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Inscrire l'adresse d'un autre à son nom"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Faire signer à une personne une inscription de son adresse au nom de l'attaquant (confiscation)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Rejouer une preuve"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Faire prendre une inscription pour un vote, ou l'inverse"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Administrateur malveillant"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.8",
+          "row": "Session volée (jeton ou cookie de la console)"
+        }
+      ]
+    },
+    {
+      "id": "MN-48",
+      "component": "approbation_console",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "Un approbateur malveillant ou contraint, une collusion, ou le demandeur lui-même.",
+      "asset": "Seuil des approbations et séparation des tâches.",
+      "effect": "Une collusion d'au moins `required` membres décide ; un approbateur est forcé de signer ; le demandeur s'approuve.",
+      "response": {
+        "text": "Seuil d'adresses distinctes (CT-1 A-3) ; séparation du demandeur et vérification par le noyau (CT-3 EX-10.2, CT-3 SG-7) ; fenêtre de contestation (CT-3 §5.6).",
+        "refs": [
+          "CT-1 A-3",
+          "CT-3 EX-10.2",
+          "CT-3 SG-7",
+          "CT-3 §5.6"
+        ]
+      },
+      "detection": {
+        "text": "Décision signée donc attribuable (contrôle 7, CT-6 §5) ; objection pendant la fenêtre (CT-3 EX-10.7).",
+        "refs": [
+          "CT-6 §5",
+          "CT-3 EX-10.7"
+        ]
+      },
+      "residual": {
+        "text": "Pas de signal de contrainte en version 0 ; une collusion au seuil décide (CT-3 §3.5).",
+        "accepted_risk": {
+          "id": "RA-44",
+          "name": "Collusion ou contrainte des approbateurs",
+          "bound": "Au moins `required` membres distincts, chacun attribuable par sa signature",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une remise signée par l'adresse déclarée du demandeur est refusée par SG-7 ; si SG-7 est retirée, la décision est scellée et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Approbateur malveillant"
+        },
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Approbateur contraint"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Opérateur de l'agent (demandeur)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Approbateur malveillant ou contraint"
+        }
+      ]
+    },
+    {
+      "id": "MN-49",
+      "component": "approbation_console",
+      "stride": [
+        "alteration",
+        "usurpation"
+      ],
+      "actor": "Qui détient une signature d'approbateur et la présente ailleurs, sous une autre forme, ou deux fois.",
+      "asset": "Lien d'une signature à un ticket, une décision, un journal et une organisation.",
+      "effect": "Une signature sert pour un autre ticket, une autre décision, une seconde décision, ou comme transaction.",
+      "response": {
+        "text": "Objet signé `A` complet (CT-1 §6.3, CT-3 EX-9.1) ; décision unique scellée par le noyau (CT-3 SG-3) ; normalisation et refus des formes non canoniques (CT-3 EX-9.3, CT-3 EX-9.22, CT-3 SG-5) ; identifiant unique malgré la perte d'état (CT-3 EX-7.1, CT-2 EX-7.17) ; préfixe `0x19` (CT-1 §6.3).",
+        "refs": [
+          "CT-1 §6.3",
+          "CT-3 EX-9.1",
+          "CT-3 SG-3",
+          "CT-3 EX-9.3",
+          "CT-3 EX-9.22",
+          "CT-3 SG-5",
+          "CT-3 EX-7.1",
+          "CT-2 EX-7.17"
+        ]
+      },
+      "detection": {
+        "text": "Refus SG consignés (CT-2 §17.4, « Remise refusée »).",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Aucun au-delà des hypothèses H1 et H2 de CT-6.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : le fichier `ct-3/signatures/normalisation.json` est rejoué : chaque forme refusée l'est ; si le contrôle de forme est délégué à la bibliothèque, une forme refusée passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Signature d'un ticket présentée pour un autre ticket, un autre journal, une autre organisation"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Signature `approuve` présentée comme `refuse`, ou l'inverse"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Seconde décision pour un ticket décidé"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Décision d'une autre demande sous un identifiant réattribué après une perte d'état"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Signature non canonique (`s` haut)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Signature d'une autre forme : `v = 37` ou `38` (EIP-155), signature compacte de 64 octets, `s` haut, `v ∈ {0, 1}`"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.2",
+          "row": "Signature EIP-191 rejouée comme transaction"
+        }
+      ]
+    },
+    {
+      "id": "MN-50",
+      "component": "approbation_console",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "L'administrateur du jeu d'approbateurs.",
+      "asset": "Membres et seuil du jeu pendant l'attente d'un ticket.",
+      "effect": "Il abaisse le seuil ou ajoute des membres qu'il contrôle pendant qu'un ticket attend.",
+      "response": {
+        "text": "Surveillance, nouveau gel, seuil effectif qui ne baisse jamais, membres ajoutés signalés, confirmation avant remise (CT-3 EX-8.5, CT-3 EX-8.6, CT-3 EX-8.7).",
+        "refs": [
+          "CT-3 EX-8.5",
+          "CT-3 EX-8.6",
+          "CT-3 EX-8.7"
+        ]
+      },
+      "detection": {
+        "text": "Membres ajoutés signalés à la console et dans la trace (CT-3 EX-8.6) ; événements publics du jeu (CT-4 EX-8.12).",
+        "refs": [
+          "CT-3 EX-8.6",
+          "CT-4 EX-8.12"
+        ]
+      },
+      "residual": {
+        "text": "Des membres ajoutés par l'administrateur votent (CT-3 §14.4).",
+        "accepted_risk": {
+          "id": "RA-45",
+          "name": "Membres ajoutés pendant l'attente",
+          "bound": "Visibles sur la chaîne et signalés ; le nombre de signatures exigé ne baisse pas",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la trace `ct-3/tickets/` d'un seuil abaissé pendant l'attente garde le seuil effectif d'origine ; si le seuil suit la baisse, le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Administrateur du jeu"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.4",
+          "row": "Le jeu change pendant l'attente (membre retiré ou ajouté, seuil changé)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Administrateur du jeu"
+        }
+      ]
+    },
+    {
+      "id": "MN-51",
+      "component": "approbation_console",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "L'exploitant du nœud RPC que le service interroge.",
+      "asset": "Lecture du jeu d'approbateurs au registre.",
+      "effect": "Le service fige un jeu inventé.",
+      "response": {
+        "text": "Interroger un validateur que le client opère ou un validateur partenaire (CT-3 EX-8.2, CT-7 EX-3.10).",
+        "refs": [
+          "CT-3 EX-8.2",
+          "CT-7 EX-3.10"
+        ]
+      },
+      "detection": {
+        "text": "Le réviseur relit le jeu à la hauteur de `source` (CT-3 §8.5).",
+        "refs": [
+          "CT-3 §8.5"
+        ]
+      },
+      "residual": {
+        "text": "noorcore ne sert aucune preuve d'état (CT-3 §14.4).",
+        "accepted_risk": {
+          "id": "RA-46",
+          "name": "Lecture d'état non prouvée",
+          "bound": "Limitée au nœud que le service interroge ; nulle si ce nœud est un validateur que le client opère",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la validation de la configuration du service refuse en production un point RPC qui n'est pas déclaré comme validateur du client ou d'un partenaire ; si la règle est retirée, le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "3.5",
+          "row": "Exploitant du nœud RPC"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.4",
+          "row": "Le nœud RPC sert un état faux"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Exploitant du nœud RPC"
+        }
+      ]
+    },
+    {
+      "id": "MN-52",
+      "component": "approbation_console",
+      "stride": [
+        "divulgation",
+        "deni_de_service"
+      ],
+      "actor": "Le relais du parcours mobile, ou un tiers qui voit le code d'appariement.",
+      "asset": "Messages entre la console et le portefeuille mobile.",
+      "effect": "Le relais retient, retarde ou observe les métadonnées ; un tiers apparie son portefeuille.",
+      "response": {
+        "text": "Chiffrement de bout en bout, parcours désactivé par défaut, échéance bornée, code montré à la seule session authentifiée et jamais journalisé (CT-3 EX-13.27).",
+        "refs": [
+          "CT-3 EX-13.27"
+        ]
+      },
+      "detection": {
+        "text": "Délai de la console (CT-3 EX-13.30).",
+        "refs": [
+          "CT-3 EX-13.30"
+        ]
+      },
+      "residual": {
+        "text": "Déni de service et métadonnées de trafic (CT-3 §14.9) ; l'usage d'un code vu par un tiers n'est pas analysé (CT-3 §14.9).",
+        "accepted_risk": {
+          "id": "RA-47",
+          "name": "Relais du parcours mobile",
+          "bound": "Limité aux organisations qui activent le parcours c",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la configuration par défaut de la console de référence n'offre pas le parcours c ; s'il apparaît sans activation, le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-3",
+          "section": "14.7",
+          "row": "Relais du parcours mobile (13.12)"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Le relais mobile retient, retarde ou observe"
+        },
+        {
+          "spec": "CT-3",
+          "section": "14.9",
+          "row": "Le code d'appariement mobile est vu par un tiers"
+        }
+      ]
+    },
+    {
+      "id": "MN-53",
+      "component": "registre",
+      "stride": [
+        "elevation_de_privilege",
+        "deni_de_service"
+      ],
+      "actor": "L'exploitant du registre, qui tient l'administration du registre et sert le RPC.",
+      "asset": "Jeu assigné à une organisation et suite de ses clôtures.",
+      "effect": "Il réassigne le jeu d'une organisation, inscrit des clés et soumet une clôture qui rend un journal inachevable.",
+      "response": {
+        "text": "Réassignation sur demande écrite et jeu administré par la même clé de gouvernance (CT-4 EX-8.10) ; jeu épinglé (CT-3 EX-8.6) ; demande consignée par procès-verbal (CT-7 EX-5.1).",
+        "refs": [
+          "CT-4 EX-8.10",
+          "CT-3 EX-8.6",
+          "CT-7 EX-5.1"
+        ]
+      },
+      "detection": {
+        "text": "Surveillance de `CuratorSetAssigned` et des journaux par le client (CT-4 EX-8.12).",
+        "refs": [
+          "CT-4 EX-8.12"
+        ]
+      },
+      "residual": {
+        "text": "Un journal ainsi rendu inachevable est abandonné ; c'est public (CT-4 §3.5).",
+        "accepted_risk": {
+          "id": "RA-48",
+          "name": "Exploitant du registre hostile",
+          "bound": "Un journal par organisation visée, remplacé par un nouveau nom ; visible sur la chaîne",
+          "owner": "exploitant_noortrace"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : l'outil de référence refuse un nouveau jeu dont `admin()` diffère sans `--changement-administrateur` (OP-5) ; si le contrôle est retiré, la réassignation part et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Exploitant"
+        },
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Fournisseur NOORTRACE : il exploite le registre et publie le vérificateur"
+        }
+      ]
+    },
+    {
+      "id": "MN-54",
+      "component": "registre",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "Des validateurs fautifs ou coalisés, ou le fournisseur du registre qui contrôle un quorum.",
+      "asset": "Certificats de commit et blocs du registre.",
+      "effect": "Des blocs faux passent le contrôle 8 ; deux certificats contradictoires existent.",
+      "response": {
+        "text": "Au plus f validateurs par opérateur et par site, validateurs partenaires (CT-4 EX-4.12, CT-4 EX-10.6) ; aucune date tirée du registre (CT-4 EX-3.2) ; quorum calculé sur le jeu du réviseur (CT-6 R-2).",
+        "refs": [
+          "CT-4 EX-4.12",
+          "CT-4 EX-10.6",
+          "CT-4 EX-3.2",
+          "CT-6 R-2"
+        ]
+      },
+      "detection": {
+        "text": "Publication des preuves de double signature (CT-4 §14) ; ancres RFC 3161 et Bitcoin indépendantes du registre (CT-5 §3.4).",
+        "refs": [
+          "CT-4 §14",
+          "CT-5 §3.4"
+        ]
+      },
+      "residual": {
+        "text": "Contre un quorum, le contrôle 8 ne prouve rien (CT-6 §3.4).",
+        "accepted_risk": {
+          "id": "RA-49",
+          "name": "Quorum de validateurs fautif",
+          "bound": "H6 de CT-6 : au plus f fautifs sur N ≥ 3f + 1",
+          "owner": "operateur_validateur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le dossier `invalide-r2-jeu-substitue` de `ct-6/dossiers/` échoue à R-2 ; si le quorum est calculé sur `validateurs.json`, il passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Validateurs fautifs, au plus f"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Validateurs coalisés"
+        },
+        {
+          "spec": "CT-5",
+          "section": "3.4",
+          "row": "Fournisseur du registre"
+        },
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Fournisseur NOORTRACE : il exploite le registre et publie le vérificateur"
+        },
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Validateurs minoritaires : au plus f = ⌊(N − 1)/3⌋ validateurs du jeu du fichier d'ancres"
+        }
+      ]
+    },
+    {
+      "id": "MN-55",
+      "component": "registre",
+      "stride": [
+        "deni_de_service"
+      ],
+      "actor": "Un expéditeur sans solde qui atteint un point RPC en écriture, une clé qui envoie trop, ou une panne de validateur.",
+      "asset": "Mempool et capacité d'inclusion du registre.",
+      "effect": "La mempool se remplit de transactions jamais prêtes ; les ancres et clôtures attendent.",
+      "response": {
+        "text": "Garde d'admission par client, RPC des validateurs fermés, soumission à au moins deux validateurs (CT-4 EX-10.8, CT-4 EX-10.3, CT-4 EX-8.15) ; une clé de chaîne par clé Ed25519 (CT-2 EX-11.19) ; le registre ne bloque jamais l'enregistreur (CT-2 §14.2).",
+        "refs": [
+          "CT-4 EX-10.8",
+          "CT-4 EX-10.3",
+          "CT-4 EX-8.15",
+          "CT-2 EX-11.19",
+          "CT-2 §14.2"
+        ]
+      },
+      "detection": {
+        "text": "Alerte de CT-8 sur la taille de la mempool (CT-4 §12) ; `registry_pending` (CT-2 EX-17.2).",
+        "refs": [
+          "CT-4 §12",
+          "CT-2 EX-17.2"
+        ]
+      },
+      "residual": {
+        "text": "Le contrôle du solde à l'admission par noorcore est seulement proposé (CT-4 §14).",
+        "accepted_risk": {
+          "id": "RA-50",
+          "name": "Saturation de la mempool",
+          "bound": "Retard des ancres au registre, jamais un blocage d'appel ; les autres ancres restent",
+          "owner": "exploitant_noortrace"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : l'épreuve SU-2 de CT-4 est rejouée sur le réseau de développement ; si la garde d'admission est retirée, les transactions à 1 wei sont refusées et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Expéditeur sans solde qui atteint un point RPC en écriture : client authentifié mais compromis, poste qui atteint le relais RPC d'un client (10.3), tiers"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Empoisonnement de la mempool par un expéditeur sans solde : client authentifié mais compromis, poste atteignant le relais RPC d'un client, tiers"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Débit d'une clé"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Panne d'un validateur"
+        }
+      ]
+    },
+    {
+      "id": "MN-56",
+      "component": "registre",
+      "stride": [
+        "alteration",
+        "usurpation"
+      ],
+      "actor": "Un point RPC ou un relais RPC menteur.",
+      "asset": "Lectures d'état, reçus et identifiant de chaîne servis aux outils.",
+      "effect": "Il sert un état, des reçus ou un identifiant de chaîne faux.",
+      "response": {
+        "text": "Capture auprès d'un validateur, certificat vérifié contre le jeu du manifeste avant d'être tenu pour capturé (CT-4 CP-1, CT-4 CP-4) ; contrôle d'identifiant (CT-4 EX-4.9) ; tout recalculé au vérificateur (CT-6 §11.1).",
+        "refs": [
+          "CT-4 CP-1",
+          "CT-4 CP-4",
+          "CT-4 EX-4.9",
+          "CT-6 §11.1"
+        ]
+      },
+      "detection": {
+        "text": "Échec CP-4 consigné (CT-4 §9.4).",
+        "refs": [
+          "CT-4 §9.4"
+        ]
+      },
+      "residual": {
+        "text": "Un relais peut retenir ; il ne peut pas forger un quorum (CT-4 §12).",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : le vecteur `ct-4/capture/` d'un certificat altéré est refusé par CP-4 ; si CP-4 est retirée, la capture est tenue pour faite et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Point RPC ou relais RPC menteur"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Relais RPC menteur"
+        }
+      ]
+    },
+    {
+      "id": "MN-57",
+      "component": "registre",
+      "stride": [
+        "usurpation",
+        "alteration"
+      ],
+      "actor": "Qui rejoue une signature ou une transaction d'une autre chaîne, d'une autre organisation, ou une demande signée ancienne ; qui altère un dossier d'inscription.",
+      "asset": "Condensés signés au seuil, transactions et dossier d'inscription.",
+      "effect": "Une signature ou une transaction sert ailleurs ; d'autres clés sont inscrites qu'annoncé.",
+      "response": {
+        "text": "Identifiant EVM, adresse, étiquette et `org_id` dans chaque condensé, transactions de type 2 seulement, clés propres à l'instance (CT-4 EX-4.8, CT-4 §6.6) ; une demande par position et échéance `expires_at` (CT-4 EX-8.19) ; contrôle du client avant toute politique (CT-4 EX-7.17) ; manifeste et adresses recoupés (CT-4 OP-1, CT-4 RG-19).",
+        "refs": [
+          "CT-4 EX-4.8",
+          "CT-4 §6.6",
+          "CT-4 EX-8.19",
+          "CT-4 EX-7.17",
+          "CT-4 OP-1",
+          "CT-4 RG-19"
+        ]
+      },
+      "detection": {
+        "text": "Refus `demande_existante` ou échec OP consigné (CT-4 §7.3).",
+        "refs": [
+          "CT-4 §7.3"
+        ]
+      },
+      "residual": {
+        "text": "Le dossier d'inscription n'est authentifié par personne en version 0 (CT-4 EX-7.8).",
+        "accepted_risk": {
+          "id": "RA-51",
+          "name": "Dossier d'inscription non authentifié",
+          "bound": "Limité à l'inscription, que le client contrôle avant toute politique",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le vecteur `ct-4/condenses.json` d'une signature d'une autre organisation est refusé ; si `orgId` sort du condensé, il est accepté et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Client"
+        },
+        {
+          "spec": "CT-4",
+          "section": "3.5",
+          "row": "Rejeu"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Dossier d'inscription non authentifié"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Demande signée rejouée"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Substitution d'adresses"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Rejeu entre chaînes"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Rejeu entre organisations"
+        }
+      ]
+    },
+    {
+      "id": "MN-58",
+      "component": "registre",
+      "stride": [
+        "deni_de_service"
+      ],
+      "actor": "Qui voit une empreinte avant son inclusion : horodateur, chemin RPC, intermédiaire.",
+      "asset": "Unicité de l'empreinte d'ancre au registre.",
+      "effect": "Il ancre l'empreinte le premier ; l'ancre légitime est refusée.",
+      "response": {
+        "text": "Ancre du registre envoyée avant la requête d'horodatage, attente bornée pour un point (CT-4 EX-8.4, CT-5 EX-4.7, CT-5 EX-9.6) ; aucun nouvel essai, incident consigné (CT-5 EX-9.7, CT-4 EX-8.6).",
+        "refs": [
+          "CT-4 EX-8.4",
+          "CT-5 EX-4.7",
+          "CT-5 EX-9.6",
+          "CT-5 EX-9.7",
+          "CT-4 EX-8.6"
+        ]
+      },
+      "detection": {
+        "text": "Statut `empreinte_squattee` (CT-5 §9).",
+        "refs": [
+          "CT-5 §9"
+        ]
+      },
+      "residual": {
+        "text": "Une empreinte liée à l'émetteur est seulement proposée (CT-4 §14).",
+        "accepted_risk": {
+          "id": "RA-52",
+          "name": "Empreinte prise",
+          "bound": "La période ou le point visé perd son ancre au registre ; les ancres RFC 3161 et Bitcoin restent",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une trace du planificateur où l'empreinte est déjà ancrée aboutit à `empreinte_squattee` sans nouvel essai, incident consigné ; si l'ordre « ancre d'abord » ou l'arrêt des essais est retiré, la trace diffère et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Empreinte prise"
+        },
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Empreinte prise au registre (`empreinte_squattee`)"
+        }
+      ]
+    },
+    {
+      "id": "MN-59",
+      "component": "registre",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "Un défaut du code d'un contrat, ou une réorganisation apparente de la chaîne.",
+      "asset": "Sens des journaux émis par les contrats (H7) et décision des blocs.",
+      "effect": "Une faille fait émettre ce qu'un attaquant veut ; un outil s'appuie sur une tête non décidée.",
+      "response": {
+        "text": "Aucune mise à niveau en place, redéploiement et nouvelle révision du manifeste (CT-4 EX-5.9, CT-4 EX-5.10, CT-4 EX-4.25) ; bloc décidé seulement par un certificat vérifié (CT-4 CP-4).",
+        "refs": [
+          "CT-4 EX-5.9",
+          "CT-4 EX-5.10",
+          "CT-4 EX-4.25",
+          "CT-4 CP-4"
+        ]
+      },
+      "detection": {
+        "text": "R-8 sur un dossier réparti entre deux générations de contrats (CT-6 R-8).",
+        "refs": [
+          "CT-6 R-8"
+        ]
+      },
+      "residual": {
+        "text": "H7 n'est pas vérifiée par le vérificateur (CT-6 §3.5).",
+        "accepted_risk": {
+          "id": "RA-53",
+          "name": "Code des contrats non vérifié (H7)",
+          "bound": "Limité au sens donné aux journaux émis ; sans H7, le contrôle 8 établit encore l'émission dans un bloc certifié",
+          "owner": "exploitant_noortrace"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le dossier `invalide-r8-autre-contrat` échoue à R-8 ; si l'adresse du contrat n'est plus comparée à l'ancre, il passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Faille d'un contrat"
+        },
+        {
+          "spec": "CT-4",
+          "section": "12",
+          "row": "Réorganisation"
+        }
+      ]
+    },
+    {
+      "id": "MN-60",
+      "component": "ancrage",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "Un prestataire RFC 3161 malhonnête ou compromis, ou dont la clé est compromise.",
+      "asset": "`genTime` des jetons.",
+      "effect": "Il antidate ou postdate un jeton.",
+      "response": {
+        "text": "Contrôle de `genTime` à l'acquisition, qui marque le jeton sans le refuser (CT-5 EX-5.11) ; deux prestataires d'exploitants distincts, pour la continuité et non pour une confrontation de deux jetons (CT-5 EX-11.2) ; en version 0, aucun prestataire de secours utilisable n'est documenté (CT-5 EX-11.3) : la relève par le secours est le mécanisme prévu, elle n'opère qu'avec un secours conforme et joignable, et sans lui c'est le régime dégradé de RA-55 qui s'applique ; preuve OpenTimestamps sur chaque clôture, borne « au plus tard » seulement (CT-5 EX-6.2) ; révocation `keyCompromise` vue par T-10 (CT-6 T-10) ; second jeton d'un prestataire d'un autre exploitant proposé (CT-7 PA-19).",
+        "refs": [
+          "CT-5 EX-5.11",
+          "CT-5 EX-11.2",
+          "CT-5 EX-11.3",
+          "CT-5 EX-6.2",
+          "CT-6 T-10",
+          "CT-7 PA-19"
+        ]
+      },
+      "detection": {
+        "text": "`horloge_suspecte` et alerte (CT-5 EX-5.11) ; `noortrace_anchoring_d_jeton_s` (CT-5 §8.9).",
+        "refs": [
+          "CT-5 EX-5.11",
+          "CT-5 §8.9"
+        ]
+      },
+      "residual": {
+        "text": "H4 n'est pas vérifiable ; un antidatage n'est borné par aucune autre ancre du dossier, Bitcoin ne donnant qu'une borne « au plus tard » (CT-6 §3.4).",
+        "accepted_risk": {
+          "id": "RA-54",
+          "name": "Autorité d'horodatage menteuse (H4)",
+          "bound": "Un antidatage n'est borné par aucune autre ancre : la preuve OpenTimestamps ne donne qu'une borne « au plus tard », et le registre ne date rien (CT-6 §3.4). Une postdatation ne fait qu'affaiblir la borne « au plus tard », que le contrôle 5 resserre. Le contrôle d'acquisition (CT-5 EX-5.11) protège seulement un client honnête contre un prestataire qui le trompe de plus de `clock_tolerance_s`, et il marque le jeton sans le refuser",
+          "owner": "reviseur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un jeton antidaté de moins de `clock_tolerance_s`, accepté sous H4, n'est contredit par aucune ancre du dossier et le rapport le dit borne « au plus tard » seulement ; la réponse `ct-5/reponses/` à `genTime` hors tolérance est promue et marquée `horloge_suspecte` ; si le marquage est retiré, le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "3.4",
+          "row": "Prestataire RFC 3161 malhonnête ou compromis"
+        },
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Prestataire menteur ou compromis : `genTime` faux, antidaté ou postdaté"
+        },
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Autorité d'horodatage malhonnête ou compromise"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Clé de TSA compromise"
+        }
+      ]
+    },
+    {
+      "id": "MN-61",
+      "component": "ancrage",
+      "stride": [
+        "alteration",
+        "usurpation"
+      ],
+      "actor": "Qui présente une pièce d'ancrage d'une autre donnée : jeton, preuve OpenTimestamps, chaîne d'en-têtes, attestation.",
+      "asset": "Lien entre une ancre et le `periodHash` ou le `checkpointHash` qu'elle doit porter.",
+      "effect": "Une ancre d'un autre manifeste, d'un autre point, d'une autre autorité ou d'un autre bloc passe pour celle de la période.",
+      "response": {
+        "text": "Nonce frais et égalité stricte à l'acquisition (CT-5 EX-5.3) ; T-2, T-5, T-7, O-2, O-4, O-5 sur l'empreinte recalculée (CT-6 T-2, CT-6 T-5, CT-6 T-7, CT-6 O-2, CT-6 O-4, CT-6 O-5) ; K-7 et K-9 pour un point (CT-1 K-7, CT-1 K-9) ; `non_execute` jamais compté comme réussi (CT-6 §6).",
+        "refs": [
+          "CT-5 EX-5.3",
+          "CT-6 T-2",
+          "CT-6 T-5",
+          "CT-6 T-7",
+          "CT-6 O-2",
+          "CT-6 O-4",
+          "CT-6 O-5",
+          "CT-1 K-7",
+          "CT-1 K-9",
+          "CT-6 §6"
+        ]
+      },
+      "detection": {
+        "text": "Statut `echoue` de la vérification au rapport (CT-6 §8.6).",
+        "refs": [
+          "CT-6 §8.6"
+        ]
+      },
+      "residual": {
+        "text": "Aucun au-delà des hypothèses H1 à H5 de CT-6.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : les dossiers `invalide-t2-jeton-autre-manifeste`, `invalide-o2-preuve-autre-manifeste` et `invalide-k7-jeton-autre-empreinte` échouent à la vérification nommée ; si l'empreinte n'est plus recalculée, ils passent et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Rejeu d'un jeton : un jeton obtenu sur une empreinte est présenté pour une autre, ou une réponse ancienne est renvoyée au client"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Rejeu d'un jeton d'horodatage sur un autre manifeste"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Jeton d'une TSA que le réviseur n'accepte pas, ou expirée à `genTime`"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Rétrogradation d'algorithme"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Preuve OpenTimestamps d'un autre manifeste"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Chaîne d'en-têtes sans travail, ou d'un autre réseau"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Attestation désignant un autre bloc"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.2) Jeton de la clôture, ou d'un autre point, rejoué comme jeton du point"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.2) Preuve OpenTimestamps d'une autre donnée embarquée pour le point"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Ancre absente traitée comme réussie"
+        }
+      ]
+    },
+    {
+      "id": "MN-62",
+      "component": "ancrage",
+      "stride": [
+        "deni_de_service"
+      ],
+      "actor": "Un calendrier OpenTimestamps, un agrégateur, ou un prestataire RFC 3161 injoignable longtemps.",
+      "asset": "Obtention des preuves de date.",
+      "effect": "Les preuves restent en attente ; la fenêtre de date s'allonge.",
+      "response": {
+        "text": "Au moins deux calendriers d'exploitants distincts, `min_responses`, abandon alerté (CT-5 EX-4.9, CT-5 EX-6.6, CT-5 EX-8.11) ; relève par le secours et file durable (CT-5 EX-5.7, CT-5 EX-8.5) ; en version 0, aucun prestataire de secours utilisable n'est documenté (CT-5 EX-11.3) : la relève est le mécanisme prévu, elle n'opère qu'avec un secours conforme et joignable, et sans lui c'est le régime dégradé de RA-55 qui s'applique ; une preuve en attente n'est jamais une preuve (CT-6 O-7).",
+        "refs": [
+          "CT-5 EX-4.9",
+          "CT-5 EX-6.6",
+          "CT-5 EX-8.11",
+          "CT-5 EX-5.7",
+          "CT-5 EX-8.5",
+          "CT-5 EX-11.3",
+          "CT-6 O-7"
+        ]
+      },
+      "detection": {
+        "text": "Alerte `prestataire_injoignable` (aucun `obtenue` d'un prestataire sollicité depuis 15 min) et alerte « ancre en retard » au-delà de `anchor_pending_alert_s` (CT-5 §8.9) ; `upper_bound` du dossier (CT-6 §6.6).",
+        "refs": [
+          "CT-5 §8.9",
+          "CT-6 §6.6"
+        ]
+      },
+      "residual": {
+        "text": "Sans secours utilisable, ce qui est le régime de la version 0 (CT-5 EX-11.3), la fenêtre de réécriture pour la date se dégrade vers `3600 s + d` puis `n × 3600 s + d` (CT-5 §13) jusqu'au premier jeton obtenu ; pendant ce temps, la borne `c_T` plus `d_jeton` de RA-15 ne vaut pas.",
+        "accepted_risk": {
+          "id": "RA-55",
+          "name": "Ancrage dégradé",
+          "bound": "La fenêtre de réécriture pour la date, dégradée vers `3600 s + d` puis `n × 3600 s + d` (CT-5 §13), affichée par `noortrace_anchoring_window_s` et montrée par `upper_bound` du dossier ; rien n'est caché au réviseur",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la trace `ct-5/planification/principal-injoignable.json`, où un secours de test (`qtsa-secours`) est configuré, produit les rejets consignés (`anchor_response_rejected`) et la relève (`anchor_fallback`) attendus ; le test éprouve le mécanisme et ne dit pas qu'un secours utilisable existe en version 0 (CT-5 EX-11.3) ; si la relève est retirée, la trace diffère et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "3.4",
+          "row": "Calendrier OpenTimestamps"
+        },
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Prestataire injoignable longtemps (jours)"
+        },
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Déni de service d'un calendrier ou d'un agrégateur OpenTimestamps"
+        }
+      ]
+    },
+    {
+      "id": "MN-63",
+      "component": "ancrage",
+      "stride": [
+        "deni_de_service",
+        "repudiation"
+      ],
+      "actor": "Un composant d'ancrage compromis, qui tient les identifiants des prestataires.",
+      "asset": "Régularité de l'ancrage et abonnement du client.",
+      "effect": "Il cesse d'ancrer, fait horodater des empreintes quelconques, divulgue `checkpointHash`.",
+      "response": {
+        "text": "Aucune clé Ed25519 ni clé de chaîne dans le composant (CT-2 EX-11.19, CT-5 §3.4) ; moindre privilège (CT-2 EX-18.4) ; alerte de volume et rotation des identifiants (CT-5 §8.9, CT-7 §4.6) ; l'ancrage ne modifie jamais ce qu'il prouve (CT-5 EX-13.1).",
+        "refs": [
+          "CT-2 EX-11.19",
+          "CT-5 §3.4",
+          "CT-2 EX-18.4",
+          "CT-5 §8.9",
+          "CT-7 §4.6",
+          "CT-5 EX-13.1"
+        ]
+      },
+      "detection": {
+        "text": "Points attendus absents, `point_manquant`, `anchor_pending` (CT-5 §8.9).",
+        "refs": [
+          "CT-5 §8.9"
+        ]
+      },
+      "residual": {
+        "text": "Un arrêt de l'ancrage allonge la fenêtre RA-15 jusqu'à sa détection.",
+        "accepted_risk": {
+          "id": "RA-56",
+          "name": "Arrêt de l'ancrage par un composant compromis",
+          "bound": "Jusqu'à l'alerte d'ancre en retard (deux heures au plus, CT-2 §17.4)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la trace `point-manquant` de `ct-5/planification/` lève l'alerte attendue ; si la détection est retirée, la trace diffère et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "3.4",
+          "row": "Composant d'ancrage compromis"
+        }
+      ]
+    },
+    {
+      "id": "MN-64",
+      "component": "ancrage",
+      "stride": [
+        "deni_de_service"
+      ],
+      "actor": "Une perte ou une corruption de la file d'ancrage.",
+      "asset": "Demandes d'ancrage en cours.",
+      "effect": "Des demandes sont oubliées.",
+      "response": {
+        "text": "Écriture avant envoi, `fdatasync`, reconstruction au démarrage, copie WORM des fichiers de file (CT-5 EX-8.5, CT-5 EX-8.12, CT-5 EX-8.14).",
+        "refs": [
+          "CT-5 EX-8.5",
+          "CT-5 EX-8.12",
+          "CT-5 EX-8.14"
+        ]
+      },
+      "detection": {
+        "text": "Alerte `file_perdue` et ligne `anchoring_queue_rebuilt` (CT-5 EX-8.12).",
+        "refs": [
+          "CT-5 EX-8.12"
+        ]
+      },
+      "residual": {
+        "text": "Une perte ne fait perdre que du temps, jamais un événement (CT-5 §13).",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : la trace `file-perdue` recrée les demandes manquantes ; si la reconstruction est retirée, la trace diffère et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Perte ou corruption de la file"
+        }
+      ]
+    },
+    {
+      "id": "MN-65",
+      "component": "ancrage",
+      "stride": [
+        "usurpation"
+      ],
+      "actor": "L'exploitant du client qui déclare qualifié un prestataire qui ne l'est pas, ou ne suit pas un retrait.",
+      "asset": "Statut « qualifié » de l'instantané d'acquisition.",
+      "effect": "Des jetons non qualifiés portent un instantané `qualified` faux.",
+      "response": {
+        "text": "Statut établi sur la liste de confiance, jamais sur une déclaration, ré-établi à chaque séquence et au plus tous les trente jours (CT-5 EX-5.9) ; constat fait par une personne et relu par une seconde (CT-7 EX-4.5) ; le réviseur établit lui-même le statut (CT-6 T-11).",
+        "refs": [
+          "CT-5 EX-5.9",
+          "CT-7 EX-4.5",
+          "CT-6 T-11"
+        ]
+      },
+      "detection": {
+        "text": "Vérification du statut qualifié au vérificateur, avec le fichier d'ancres du réviseur (CT-6 T-11).",
+        "refs": [
+          "CT-6 T-11"
+        ]
+      },
+      "residual": {
+        "text": "L'instantané reste déclaratif pour le réviseur (CT-5 EX-5.9).",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : une configuration de production sans principal qualifié est refusée par AN-1 ; si la règle 4 d'AN-1 est retirée, le rechargement passe et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-66",
+      "component": "verificateur",
+      "stride": [
+        "alteration",
+        "elevation_de_privilege"
+      ],
+      "actor": "Le fournisseur qui publie un vérificateur altéré, ou un environnement d'exécution compromis.",
+      "asset": "Verdicts rendus au réviseur.",
+      "effect": "Le réviseur exécute un code qui dit « valide » à tort.",
+      "response": {
+        "text": "Implémentation de référence publiée et relisible ; binaire reconstruit et comparé octet pour octet à partir de la phase 2 (CT-6 EX-14.6, CT-6 EX-14.8) ; vérificateurs indépendants confrontés sur les vecteurs (CT-6 §3.1).",
+        "refs": [
+          "CT-6 EX-14.6",
+          "CT-6 EX-14.8",
+          "CT-6 §3.1"
+        ]
+      },
+      "detection": {
+        "text": "Reconstruction et comparaison (CT-6 §14.3) ; confrontation des vecteurs.",
+        "refs": [
+          "CT-6 §14.3"
+        ]
+      },
+      "residual": {
+        "text": "En version 0, croire Node et `ethers`, que la spécification n'épingle pas (CT-6 §7.8).",
+        "accepted_risk": {
+          "id": "RA-57",
+          "name": "Environnement du vérificateur non épinglé",
+          "bound": "Jusqu'à la livraison du binaire reproductible de la phase 2",
+          "owner": "reviseur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : les vérificateurs Go indépendants de `ct-1` à `ct-5` rendent les mêmes valeurs que l'implémentation de référence sur leurs vecteurs ; une discordance fait échouer le test.",
+      "sources": [
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Fournisseur NOORTRACE : il exploite le registre et publie le vérificateur"
+        }
+      ]
+    },
+    {
+      "id": "MN-67",
+      "component": "verificateur",
+      "stride": [
+        "usurpation"
+      ],
+      "actor": "Qui fournit au réviseur de fausses ancres, ou un dossier qui porte ses propres ancres.",
+      "asset": "Fichier d'ancres du réviseur (H3).",
+      "effect": "Le vérificateur rattache les preuves à une autorité, un contrat ou un jeu que le réviseur n'a pas choisi.",
+      "response": {
+        "text": "Aucune ancre tirée du dossier ni du réseau (CT-6 EX-3.3, CT-6 EX-3.4, CT-6 EX-12.1) ; recoupement des ancres par le réviseur (CT-6 §12.5) ; clés d'enregistreur prises dans un procès-verbal de cérémonie vérifié dont un signataire est connu du réviseur par un canal indépendant du client (CT-7 EX-5.10).",
+        "refs": [
+          "CT-6 EX-3.3",
+          "CT-6 EX-3.4",
+          "CT-6 EX-12.1",
+          "CT-6 §12.5",
+          "CT-7 EX-5.10"
+        ]
+      },
+      "detection": {
+        "text": "N-1 à N-4 au vérificateur (CT-6 N-3, CT-6 N-4).",
+        "refs": [
+          "CT-6 N-3",
+          "CT-6 N-4"
+        ]
+      },
+      "residual": {
+        "text": "H3 : le fichier d'ancres dit vrai (CT-6 §3.5).",
+        "accepted_risk": {
+          "id": "RA-58",
+          "name": "Fichier d'ancres du réviseur (H3)",
+          "bound": "Limité à ce que le réviseur n'a pas recoupé selon CT-6 §12.5",
+          "owner": "reviseur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un dossier dont la clé de `cles.json` diffère de l'ancre `recorders` échoue à N-3 ; si N-3 est retirée, il passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Ancre lue dans le dossier ou sur le réseau"
+        }
+      ]
+    },
+    {
+      "id": "MN-68",
+      "component": "verificateur",
+      "stride": [
+        "deni_de_service",
+        "elevation_de_privilege"
+      ],
+      "actor": "Qui fabrique un dossier, un jeton ou une réponse piégés pour l'analyseur.",
+      "asset": "Sûreté du vérificateur et du composant d'ancrage.",
+      "effect": "Longueurs, profondeur, octets en trop ou formes non minimales font paniquer, boucler ou mal lire.",
+      "response": {
+        "text": "Bornes, aucune récursion non bornée, cibles de fuzzing (CT-6 EX-15.1, CT-6 EX-15.2, CT-6 EX-15.3) ; corps de réponse bornés à l'acquisition (CT-5 EX-5.12).",
+        "refs": [
+          "CT-6 EX-15.1",
+          "CT-6 EX-15.2",
+          "CT-6 EX-15.3",
+          "CT-5 EX-5.12"
+        ]
+      },
+      "detection": {
+        "text": "Code 2 ou échec T-1 et O-1 au rapport (CT-6 §8.3).",
+        "refs": [
+          "CT-6 §8.3"
+        ]
+      },
+      "residual": {
+        "text": "Aucun au-delà des bornes de CT-6 §15.1.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : les dossiers `invalide-t1-octet-en-trop` et `invalide-o1-octet-en-trop` échouent à T-1 et O-1 ; si la lecture DER redevient permissive, ils passent et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Réponse surdimensionnée ou malformée d'un prestataire ou d'un calendrier"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Analyseur piégé (longueurs, profondeur, octets en trop, formes non minimales)"
+        }
+      ]
+    },
+    {
+      "id": "MN-69",
+      "component": "verificateur",
+      "stride": [
+        "alteration",
+        "usurpation"
+      ],
+      "actor": "L'exportateur qui forge les pièces du registre ou de la partie des points d'un dossier.",
+      "asset": "Pièces `registre.json`, `certificat-commit.json`, `validateurs.json` et `points-de-controle.json`.",
+      "effect": "Un certificat d'une autre chaîne, un en-tête ou un reçu falsifié, un événement d'un autre contrat, un point d'un autre arbre ou une ancre relabellisée passent pour ceux du dossier.",
+      "response": {
+        "text": "Recalcul de tout contre les ancres du réviseur : R-4, R-6, R-7, R-8, R-9, R-11 (CT-6 R-4, CT-6 R-6, CT-6 R-7, CT-6 R-8, CT-6 R-9, CT-6 R-11) ; K-1, K-4, K-5 et K-8 pour un point (CT-1 K-1, CT-1 K-4, CT-1 K-5, CT-1 K-8).",
+        "refs": [
+          "CT-6 R-4",
+          "CT-6 R-6",
+          "CT-6 R-7",
+          "CT-6 R-8",
+          "CT-6 R-9",
+          "CT-6 R-11",
+          "CT-1 K-1",
+          "CT-1 K-4",
+          "CT-1 K-5",
+          "CT-1 K-8"
+        ]
+      },
+      "detection": {
+        "text": "Statut `echoue` de la vérification nommée au rapport (CT-6 §8.6).",
+        "refs": [
+          "CT-6 §8.6"
+        ]
+      },
+      "residual": {
+        "text": "Aucun au-delà des hypothèses H1, H2, H6 et H7 de CT-6.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : les dossiers `invalide-r4-autre-chaine`, `invalide-r6-entete-modifie`, `invalide-r7-recu-falsifie`, `invalide-r9-cloture-autre-periode`, `invalide-r11-ancre-de-periode` et `invalide-k8-empreinte` échouent à la vérification nommée ; si l'une est retirée, son dossier passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Certificat d'une autre chaîne signé par le même jeu"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Jeu de validateurs substitué (certificat forgé, `validateurs.json` assorti)"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "En-tête falsifié"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Reçu falsifié qui garde le `blockHash` certifié"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.2) Point de contrôle du journal qui ne couvre pas l'événement (`tree_size ≤ leaf_index`), ou d'une autre période"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.2) Point d'un autre arbre présenté comme préfixe du manifeste"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.2) Référence au registre forgée (empreinte, `docType`, contrat)"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.2) Ancre de période relabellisée en ancre de point"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.2) Ancre de point non incluse présentée comme incluse"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Événement émis par un autre contrat"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "Clôture ou ancre d'une autre période"
+        }
+      ]
+    },
+    {
+      "id": "MN-70",
+      "component": "verificateur",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "Le fournisseur d'en-têtes Bitcoin : l'exportateur, ou un mineur.",
+      "asset": "Chaîne d'en-têtes qui rattache une preuve OpenTimestamps au point de contrôle Bitcoin du réviseur.",
+      "effect": "Il mine au-dessus du point de contrôle autant de blocs que la chaîne fournie en contient.",
+      "response": {
+        "text": "Travail recalculé au-dessus du point de contrôle du réviseur et profondeur minimale (CT-6 O-5, CT-6 EX-10.9).",
+        "refs": [
+          "CT-6 O-5",
+          "CT-6 EX-10.9"
+        ]
+      },
+      "detection": {
+        "text": "Échec O-5 au rapport (CT-6 §10.4).",
+        "refs": [
+          "CT-6 §10.4"
+        ]
+      },
+      "residual": {
+        "text": "H5 ne tient pas sur un réseau d'essai (CT-6 §3.5).",
+        "accepted_risk": {
+          "id": "RA-59",
+          "name": "Puissance de calcul de l'adversaire (H5)",
+          "bound": "Le nombre de blocs fournis au-dessus du point de contrôle du réviseur ; nul sur un réseau d'essai",
+          "owner": "reviseur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le dossier `invalide-o5-chaine-sans-travail` échoue à O-5 ; si le travail n'est plus recalculé, il passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Fournisseur d'en-têtes Bitcoin : l'exportateur, ou un mineur"
+        }
+      ]
+    },
+    {
+      "id": "MN-79",
+      "component": "verificateur",
+      "stride": [
+        "usurpation",
+        "alteration"
+      ],
+      "actor": "L'exportateur qui joint l'attestation d'une autre organisation ou d'un autre journal.",
+      "asset": "Liaison de l'attestation au dossier.",
+      "effect": "Un périmètre étranger semble couvrir l'événement prouvé.",
+      "response": {
+        "text": "`org_id` et `journal_id` de l'attestation comparés à ceux de l'événement prouvé (CT-1 AT-5, CT-7 EX-7.16).",
+        "refs": [
+          "CT-1 AT-5",
+          "CT-7 EX-7.16"
+        ]
+      },
+      "detection": {
+        "text": "AT-5 en échec et avertissement AV-AT-1, sans effet sur le verdict (CT-6 EX-5.11, CT-6 §5.5).",
+        "refs": [
+          "CT-6 EX-5.11",
+          "CT-6 §5.5"
+        ]
+      },
+      "residual": {
+        "text": "Aucun.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : dans le dossier `valide-at5-autre-journal`, AT-5 doit échouer et l'attestation ne pas être retenue ; si la comparaison du `journal_id` est retirée, elle est retenue et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-80",
+      "component": "verificateur",
+      "stride": [
+        "alteration"
+      ],
+      "actor": "L'exportateur qui joint une attestation expirée ou pas encore valide, ou l'opérateur qui réécrit `ts` avant l'ancrage.",
+      "asset": "Période de validité de l'attestation.",
+      "effect": "Une attestation hors de sa validité semble couvrir l'événement.",
+      "response": {
+        "text": "`ts` de l'événement prouvé compris dans `validity` (CT-1 AT-5) ; attestation renouvelée avant `validity.until` (CT-7 EX-7.5).",
+        "refs": [
+          "CT-1 AT-5",
+          "CT-7 EX-7.5"
+        ]
+      },
+      "detection": {
+        "text": "AT-5 en échec, AV-AT-1 (CT-6 EX-5.11).",
+        "refs": [
+          "CT-6 EX-5.11"
+        ]
+      },
+      "residual": {
+        "text": "`ts` est déclaratif (CT-1 §5.2) : qui réécrit `ts` avant l'ancrage le peut aussi pour AT-5, dans la fenêtre de réécriture (CT-1 §10.9).",
+        "accepted_risk": {
+          "id": "RA-69",
+          "name": "Validité jugée sur un `ts` déclaré",
+          "bound": "La fenêtre de réécriture de RA-15",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : dans le dossier `valide-at5-hors-validite`, AT-5 doit échouer ; si le contrôle de `validity` est retiré, l'attestation est retenue et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-81",
+      "component": "verificateur",
+      "stride": [
+        "usurpation"
+      ],
+      "actor": "Qui présente une signature substituée, non canonique, ou d'une adresse hors du jeu ou hors des signataires nommés.",
+      "asset": "Signatures de l'attestation.",
+      "effect": "Une attestation semble signée par le jeu d'approbateurs.",
+      "response": {
+        "text": "Signature canonique recouvrée sur `M` et égale à l'adresse déclarée (CT-1 AT-3, CT-7 EX-7.6) ; adresses distinctes, membres du jeu, nommées dans `signatories`, au moins au seuil (CT-1 AT-4, CT-7 EX-7.8).",
+        "refs": [
+          "CT-1 AT-3",
+          "CT-7 EX-7.6",
+          "CT-1 AT-4",
+          "CT-7 EX-7.8"
+        ]
+      },
+      "detection": {
+        "text": "AT-3 ou AT-4 en échec, AV-AT-1 (CT-6 EX-5.11).",
+        "refs": [
+          "CT-6 EX-5.11"
+        ]
+      },
+      "residual": {
+        "text": "Aucun, sous H1 et H2 de CT-6.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : les cas `invalide-at3-*` et `invalide-at4-*` de `ct-7/attestations/attestations.json` échouent chacun à la vérification visée ; si le recouvrement de l'adresse est retiré, la signature substituée passe et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-83",
+      "component": "verificateur",
+      "stride": [
+        "usurpation"
+      ],
+      "actor": "Qui présente comme signature d'attestation une signature produite pour un autre usage (approbation, inscription d'approbateur, procès-verbal de cérémonie, condensé du registre), ou l'inverse.",
+      "asset": "Séparation des domaines de signature.",
+      "effect": "Une signature obtenue ailleurs vaut attestation.",
+      "response": {
+        "text": "Préfixe propre `P_P`, Keccak-256 et non SHA-256 comme `D_A` (CT-7 EX-7.7) ; `D_P` recalculé par le signataire depuis le fichier, jamais signé par la console (CT-7 EX-7.8) ; préfixe distinct du procès-verbal (CT-7 EX-5.7).",
+        "refs": [
+          "CT-7 EX-7.7",
+          "CT-7 EX-7.8",
+          "CT-7 EX-5.7"
+        ]
+      },
+      "detection": {
+        "text": "AT-3 en échec (CT-1 AT-3).",
+        "refs": [
+          "CT-1 AT-3"
+        ]
+      },
+      "residual": {
+        "text": "Aucun, sous H1 de CT-6.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : chaque signature croisée de `ct-7/attestations/croises.json` est refusée ; si la vérification compare l'adresse sans recalculer `D_P` depuis le fichier, une signature croisée passe et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-89",
+      "component": "verificateur",
+      "stride": [
+        "deni_de_service",
+        "alteration"
+      ],
+      "actor": "Qui fabrique une partie `attestation-perimetre.json` énorme ou malformée.",
+      "asset": "Disponibilité du vérificateur et stabilité du verdict.",
+      "effect": "Déni de service, ou verdict changé par une pièce jointe.",
+      "response": {
+        "text": "Limites de 4 Mio et de 2 097 152 octets décodés (CT-6 EX-4.15) ; au-delà de 4 Mio, la partie n'est lue, en flux, que pour D-2, jusqu'au plafond de 64 Mio au-delà duquel l'entrée est inutilisable (CT-6 EX-4.15) ; aucune AT- n'a d'effet sur les statuts ni sur le verdict (CT-6 EX-5.11, CT-6 V-10).",
+        "refs": [
+          "CT-6 EX-4.15",
+          "CT-6 EX-5.11",
+          "CT-6 V-10"
+        ]
+      },
+      "detection": {
+        "text": "AT-1 en échec, AV-AT-1 (CT-1 AT-1).",
+        "refs": [
+          "CT-1 AT-1"
+        ]
+      },
+      "residual": {
+        "text": "Aucun.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : les dossiers `valide-at1-partie-nulle` et `valide-at1-taille` gardent le verdict `valide` avec AT-1 en échec ; si l'exclusion des AT- du verdict est retirée, ils deviennent invalides et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-71",
+      "component": "exploitant",
+      "stride": [
+        "usurpation",
+        "alteration"
+      ],
+      "actor": "L'exploitant NOORTRACE, qui publie le manifeste d'instance, sert le RPC et opère des validateurs.",
+      "asset": "Adresses de contrats, identifiant de chaîne et jeux de validateurs que le réviseur reprend.",
+      "effect": "Le réviseur reprend sans recoupement des adresses ou un jeu qui désignent un contrat ou des validateurs de l'exploitant.",
+      "response": {
+        "text": "Manifeste en révisions chaînées et publiées (CT-4 EX-4.25) ; recoupement par le réviseur avec les transactions de déploiement et un jeu obtenu d'au moins deux opérateurs indépendants (CT-6 §12.5, CT-4 RG-19) ; au plus f validateurs de l'exploitant en production (CT-4 EX-4.12).",
+        "refs": [
+          "CT-4 EX-4.25",
+          "CT-6 §12.5",
+          "CT-4 RG-19",
+          "CT-4 EX-4.12"
+        ]
+      },
+      "detection": {
+        "text": "Écart lors du recoupement (CT-6 §12.5).",
+        "refs": [
+          "CT-6 §12.5"
+        ]
+      },
+      "residual": {
+        "text": "Sans recoupement, la confiance du réviseur repose sur l'exploitant (CT-6 §3.4) ; les règles de calcul du contrôle 8 viennent du code privé de noorcore (CT-6 §7.8).",
+        "accepted_risk": {
+          "id": "RA-60",
+          "name": "Règles de noorcore non recoupables publiquement",
+          "bound": "Le seul contrôle 8 ; la confrontation à go-ethereum couvre la racine des reçus et le décodage des journaux",
+          "owner": "exploitant_noortrace"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le dossier `invalide-r4-autre-chaine` échoue quand l'identifiant de chaîne de l'ancre diffère ; si la comparaison est retirée, il passe et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-6",
+          "section": "3.4",
+          "row": "Fournisseur NOORTRACE : il exploite le registre et publie le vérificateur"
+        }
+      ]
+    },
+    {
+      "id": "MN-72",
+      "component": "exploitant",
+      "stride": [
+        "divulgation"
+      ],
+      "actor": "Tout lecteur de la chaîne du registre : validateurs, partenaires, exploitant.",
+      "asset": "Métadonnées d'activité du client.",
+      "effect": "La cadence des ancres et des clôtures d'un `org_id` est lisible, et révèle le rythme d'activité de ses journaux.",
+      "response": {
+        "text": "Seules des empreintes de 32 octets et des clés publiques sont écrites (CT-4 §3.4) ; `org_id` et `journal_id` jamais envoyés aux prestataires (CT-5 §13) ; serveur interne pour les points si la cadence est jugée sensible (CT-5 §7).",
+        "refs": [
+          "CT-4 §3.4",
+          "CT-5 §13",
+          "CT-5 §7"
+        ]
+      },
+      "detection": {
+        "text": "Aucune : la lecture de la chaîne n'est pas tracée.",
+        "refs": []
+      },
+      "residual": {
+        "text": "La cadence par organisation reste lisible par qui lit la chaîne.",
+        "accepted_risk": {
+          "id": "RA-61",
+          "name": "Cadence d'activité lisible au registre",
+          "bound": "Nombre et instants des transactions par `org_id`, jamais leur contenu",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : aucune transaction des vecteurs `ct-4/transactions.json` ne porte autre chose que des empreintes, des clés publiques et des identifiants ; si un champ de contenu apparaît, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-73",
+      "component": "exploitant",
+      "stride": [
+        "elevation_de_privilege"
+      ],
+      "actor": "Un membre de l'exploitant qui relaie une administration de jeu ou approvisionne une clé sans l'accord du client.",
+      "asset": "Jeu du client et provision de ses clés.",
+      "effect": "Une opération d'administration est relayée pour le compte du client sans son accord.",
+      "response": {
+        "text": "Relais et approvisionnement seulement sur confirmation hors bande consignée (CT-4 EX-8.21) ; demande de changement d'administrateur consignée par procès-verbal (CT-7 EX-5.1).",
+        "refs": [
+          "CT-4 EX-8.21",
+          "CT-7 EX-5.1"
+        ]
+      },
+      "detection": {
+        "text": "Événements publics du jeu sondés par le client (CT-4 EX-8.12).",
+        "refs": [
+          "CT-4 EX-8.12"
+        ]
+      },
+      "residual": {
+        "text": "La confirmation hors bande est un acte d'exploitation déclaré.",
+        "accepted_risk": {
+          "id": "RA-62",
+          "name": "Relais sans accord du client",
+          "bound": "Limité aux opérations que la clé de gouvernance a signées ; visibles sur la chaîne",
+          "owner": "exploitant_noortrace"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : l'outil de référence refuse `administrer-jeu` sans référence de confirmation ; si la référence n'est plus exigée, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-97",
+      "component": "exploitant",
+      "stride": [
+        "alteration",
+        "usurpation"
+      ],
+      "actor": "Qui altère l'outil de référence publié par l'exploitant NOORTRACE (`attestation.mjs`, `ceremonie.mjs`) ou le poste qui l'exécute.",
+      "asset": "Condensé que le signataire croit signer (`D_P`, `D_C`).",
+      "effect": "L'outil affiche un condensé et en fait signer un autre ; une attestation ou un procès-verbal que le signataire n'a pas lu porte sa signature.",
+      "response": {
+        "text": "Comparaison du condensé, groupe de huit chiffres par groupe de huit, entre l'écran du portefeuille matériel et un second outil indépendant ; avec un fichier de clé, recalcul obligatoire par ce second outil (CT-7 EX-5.8, CT-7 EX-7.8) ; modes `condenser` et `condenser-pv` du vérificateur Go de `ct-7` (CT-7 EX-A.21).",
+        "refs": [
+          "CT-7 EX-5.8",
+          "CT-7 EX-7.8",
+          "CT-7 EX-A.21"
+        ]
+      },
+      "detection": {
+        "text": "Écart constaté par la comparaison ; recalcul de `D_P` par AT-2 et de `D_C` par le vérificateur de procès-verbal chez le réviseur (CT-1 AT-2, CT-7 EX-5.9).",
+        "refs": [
+          "CT-1 AT-2",
+          "CT-7 EX-5.9"
+        ]
+      },
+      "residual": {
+        "text": "Un signataire qui ne compare pas signe ce que l'outil lui présente.",
+        "accepted_risk": {
+          "id": "RA-81",
+          "name": "Outil de condensation non recoupé",
+          "bound": "Limité aux signatures faites sans comparaison du condensé à un second outil indépendant (CT-7 EX-5.8, CT-7 EX-7.8)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un outil modifié pour faire signer un autre condensé est arrêté par la comparaison au second outil ; si la comparaison est retirée, la signature est produite et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-74",
+      "component": "administrateur_client",
+      "stride": [
+        "repudiation",
+        "alteration"
+      ],
+      "actor": "L'administrateur du client, qui exploite l'enregistreur et exporte les dossiers.",
+      "asset": "Dossiers remis au réviseur et attestation de périmètre.",
+      "effect": "Il fabrique un journal faux avant la clôture, choisit les voisins, les pièces et le point qu'il exporte, ne produit pas un dossier défavorable, déclare un périmètre plus large que le vrai.",
+      "response": {
+        "text": "Ancres extérieures de la période et des points (CT-6 §3.4, CT-1 §10.9) ; série des points publiée au réviseur (CT-5 §10.2) ; attestation de périmètre signée par des membres du jeu, rapportée « déclaré par » (CT-7 §7).",
+        "refs": [
+          "CT-6 §3.4",
+          "CT-1 §10.9",
+          "CT-5 §10.2",
+          "CT-7 §7"
+        ]
+      },
+      "detection": {
+        "text": "Série des points et complétude au registre (CT-5 EX-10.7) ; recoupement de l'attestation par le réviseur.",
+        "refs": [
+          "CT-5 EX-10.7"
+        ]
+      },
+      "residual": {
+        "text": "Ce qui est fabriqué avant l'ancre est ancré tel quel ; l'attestation reste une déclaration.",
+        "accepted_risk": {
+          "id": "RA-63",
+          "name": "Opérateur qui fabrique avant l'ancre ou déclare à tort",
+          "bound": "Avant le jeton du point couvrant (RA-15) ; l'attestation engage ses signataires nommés",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : un dossier dont la partie des points embarque un point qui ne couvre pas l'événement échoue à K-4 ; si K-4 est retirée, il passe et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-75",
+      "component": "administrateur_client",
+      "stride": [
+        "deni_de_service",
+        "repudiation"
+      ],
+      "actor": "L'administrateur du client qui coupe la supervision, les alertes ou la relecture des gels.",
+      "asset": "Détection des incidents de 17.4 de CT-2.",
+      "effect": "Les alertes ne partent plus ; un incident passe inaperçu.",
+      "response": {
+        "text": "Relecture par un rôle Lecteur hors du démon (CT-2 EX-17.7, CT-2 EX-18.9) ; métriques publiques sur la santé (CT-2 EX-17.1) ; le réviseur demande la série des points (CT-5 §10.2).",
+        "refs": [
+          "CT-2 EX-17.7",
+          "CT-2 EX-18.9",
+          "CT-2 EX-17.1",
+          "CT-5 §10.2"
+        ]
+      },
+      "detection": {
+        "text": "Trou dans la série des points et dans `noortrace_worm_last_audit_age_s` (CT-2 §17.4).",
+        "refs": [
+          "CT-2 §17.4"
+        ]
+      },
+      "residual": {
+        "text": "Une supervision coupée par qui la tient n'est vue que par un tiers.",
+        "accepted_risk": {
+          "id": "RA-64",
+          "name": "Supervision coupée par l'administrateur",
+          "bound": "Jusqu'à la relecture du Lecteur tiers (un jour) ou la demande du réviseur",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : la relecture quotidienne par le Lecteur alerte sur une version d'un gel actif qui n'est pas `on` ; si la relecture n'est faite que par le démon, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-78",
+      "component": "administrateur_client",
+      "stride": [
+        "repudiation",
+        "alteration"
+      ],
+      "actor": "L'administrateur du client et les approbateurs qui signent une attestation de périmètre plus large que la réalité.",
+      "asset": "Ce que le réviseur croit du périmètre de capture.",
+      "effect": "Un réviseur croit que tout passe par l'enregistreur alors qu'un canal le contourne.",
+      "response": {
+        "text": "Le périmètre est rapporté « déclaré, non prouvé » et n'est jamais compté parmi ce que le dossier prouve (CT-7 EX-7.1, CT-7 EX-7.17, CT-6 EX-6.19, CT-6 EX-7.3) ; signataires nommés, membres du jeu, au moins au seuil (CT-7 EX-7.8, CT-1 AT-4) ; toute sortie `direct` déclarée dans `not_captured` (CT-7 EX-7.4) ; essai de sortie annuel (CT-7 EX-3.13).",
+        "refs": [
+          "CT-7 EX-7.1",
+          "CT-7 EX-7.17",
+          "CT-6 EX-6.19",
+          "CT-6 EX-7.3",
+          "CT-7 EX-7.8",
+          "CT-1 AT-4",
+          "CT-7 EX-7.4",
+          "CT-7 EX-3.13"
+        ]
+      },
+      "detection": {
+        "text": "Essai d'exfiltration, au mieux par un évaluateur indépendant (CT-7 EX-3.13) ; journal des refus du pare-feu (CT-2 §4.9) ; l'énoncé et `facts.perimeter` nomment les signataires (CT-6 EX-6.20).",
+        "refs": [
+          "CT-7 EX-3.13",
+          "CT-2 §4.9",
+          "CT-6 EX-6.20"
+        ]
+      },
+      "residual": {
+        "text": "Une déclaration fausse et signée reste fausse : le dossier ne la corrige pas (CT-7 §7.8).",
+        "accepted_risk": {
+          "id": "RA-68",
+          "name": "Périmètre faux mais signé",
+          "bound": "Borné à la période `validity` et aux journaux nommés ; les signataires nommés en répondent",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : sur tous les rapports des vecteurs, aucun énoncé n'applique « prouvé » ou « vérifié » au périmètre et chaque fragment FP contient « déclaré, non prouvé » ; si la règle d'EX-6.19 de CT-6 est retirée, un énoncé dit le périmètre vérifié et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-82",
+      "component": "administrateur_client",
+      "stride": [
+        "usurpation",
+        "elevation_de_privilege"
+      ],
+      "actor": "L'exportateur qui déclare dans `approver_set` un jeu qui contient sa propre adresse.",
+      "asset": "Jeu d'approbateurs auquel AT-4 compare les signataires.",
+      "effect": "Une attestation signée par un tiers paraît atteindre le seuil.",
+      "response": {
+        "text": "Jeu déclaratif nommé avec sa source dans l'énoncé et dans `facts.perimeter.set_source` (CT-7 EX-7.17, CT-6 EX-6.20) ; avertissement AV-AT-2 quand il diffère du jeu de `approbations.json` (CT-6 §5.5).",
+        "refs": [
+          "CT-7 EX-7.17",
+          "CT-6 EX-6.20",
+          "CT-6 §5.5"
+        ]
+      },
+      "detection": {
+        "text": "AV-AT-2 ; recoupement par le réviseur avec le `CuratorSet` de l'organisation et l'historique de ses `CuratorSetAssigned`, du jeu épinglé par la politique (CT-3 EX-8.6) jusqu'à la date des signatures, toute réassignation intervenue entre-temps étant signalée (CT-7 EX-7.13).",
+        "refs": [
+          "CT-3 EX-8.6",
+          "CT-7 EX-7.13"
+        ]
+      },
+      "residual": {
+        "text": "Le jeu de l'attestation est déclaré par le dossier, comme celui du contrôle 7 (CT-6 §3.3).",
+        "accepted_risk": {
+          "id": "RA-70",
+          "name": "Jeu d'approbateurs de l'attestation déclaré",
+          "bound": "Limité à ce que le dossier déclare ; le jeu et sa source sont nommés dans l'énoncé",
+          "owner": "reviseur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le dossier `valide-at4-jeu-different` porte AV-AT-2 ; si l'avertissement est retiré, le rapport ne le porte plus et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-86",
+      "component": "administrateur_client",
+      "stride": [
+        "repudiation",
+        "alteration"
+      ],
+      "actor": "L'administrateur du client qui rédige et inscrit l'attestation après l'événement qu'elle prétend couvrir.",
+      "asset": "Rang de l'attestation dans le journal.",
+      "effect": "Couverture rétroactive d'un incident.",
+      "response": {
+        "text": "`seq` de l'inscription au plus celui de l'événement prouvé (même `hash` recalculé en cas d'égalité), et `ts` au plus le sien (CT-1 AT-6, CT-7 EX-7.13).",
+        "refs": [
+          "CT-1 AT-6",
+          "CT-7 EX-7.13"
+        ]
+      },
+      "detection": {
+        "text": "AT-6 en échec, AV-AT-1 (CT-6 EX-5.11).",
+        "refs": [
+          "CT-6 EX-5.11"
+        ]
+      },
+      "residual": {
+        "text": "Sans inscription, la menace se ramène à MN-85 (RA-72) ; avec une inscription sous une autre clé que celle de l'événement prouvé, à MN-90.",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : dans le dossier `valide-at6-inscription-posterieure`, AT-6 doit échouer ; si la comparaison des `seq` est retirée, l'attestation est retenue et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-87",
+      "component": "administrateur_client",
+      "stride": [
+        "divulgation"
+      ],
+      "actor": "Tout destinataire d'un dossier qui porte l'attestation et, au choix du client, son inscription.",
+      "asset": "Topologie, noms d'hôtes, routes et politique du client.",
+      "effect": "Fuite d'information vers chaque réviseur.",
+      "response": {
+        "text": "Ni secret, ni adresse IP, ni contenu des règles de sortie dans l'attestation, refus par l'outil de référence (CT-7 EX-7.3) ; inscription jointe au choix du client (CT-7 EX-7.14).",
+        "refs": [
+          "CT-7 EX-7.3",
+          "CT-7 EX-7.14"
+        ]
+      },
+      "detection": {
+        "text": "Relecture de l'attestation avant sa signature (CT-7 §7.4, pas 3 et 5).",
+        "refs": [
+          "CT-7 §7.4"
+        ]
+      },
+      "residual": {
+        "text": "Ce que l'attestation porte est divulgué à chaque réviseur.",
+        "accepted_risk": {
+          "id": "RA-73",
+          "name": "Divulgation du périmètre déclaré",
+          "bound": "Limitée aux membres de l'attestation et, si le client le joint, au document de politique",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : l'outil de référence refuse une adresse IPv4 dans `host` ; si le refus est retiré, l'attestation est acceptée et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-88",
+      "component": "administrateur_client",
+      "stride": [
+        "repudiation"
+      ],
+      "actor": "L'administrateur du client dont le périmètre change pendant la validité de l'attestation (agent ajouté, règle de sortie modifiée).",
+      "asset": "Exactitude de l'attestation en vigueur.",
+      "effect": "L'attestation en vigueur devient fausse sans que rien ne le signale.",
+      "response": {
+        "text": "Nouvelle attestation dès qu'un élément déclaré change (CT-7 EX-7.5) ; consignes et métrique d'échéance proposées à CT-2 (CT-7 PA-10, CT-7 PA-11).",
+        "refs": [
+          "CT-7 EX-7.5",
+          "CT-7 PA-10",
+          "CT-7 PA-11"
+        ]
+      },
+      "detection": {
+        "text": "Consigne `perimeter_unlisted_host` et métrique d'échéance, une fois PA-10 et PA-11 adoptées ; essai de sortie annuel (CT-7 EX-3.13).",
+        "refs": [
+          "CT-7 EX-3.13"
+        ]
+      },
+      "residual": {
+        "text": "Jusqu'à l'attestation suivante, l'inventaire peut être périmé.",
+        "accepted_risk": {
+          "id": "RA-74",
+          "name": "Inventaire périmé",
+          "bound": "L'intervalle entre le changement et l'inscription de l'attestation suivante, collecte des signatures comprise, au plus la validité, que AT-1 limite à 366 jours (CT-1 AT-1, CT-7 EX-7.2)",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une fois PA-10 adoptée, une connexion d'hôte dont l'alias manque à l'inventaire produit la consigne ; si la consigne est retirée, rien n'est écrit et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-91",
+      "component": "administrateur_client",
+      "stride": [
+        "alteration",
+        "repudiation"
+      ],
+      "actor": "L'administrateur du client qui réannonce, sous un nom de version déjà employé, une politique au contenu différent.",
+      "asset": "Lien entre l'attestation inscrite et la version de politique de l'événement prouvé.",
+      "effect": "AT-7 réussit alors que l'attestation inscrite n'était plus en vigueur pour l'événement.",
+      "response": {
+        "text": "AT-7 ne compare que des noms, et FP dit « de même nom », jamais que l'attestation était en vigueur (CT-1 AT-7, CT-6 EX-6.19) ; unicité des noms de version proposée à CT-2 (CT-7 PA-9).",
+        "refs": [
+          "CT-1 AT-7",
+          "CT-6 EX-6.19",
+          "CT-7 PA-9"
+        ]
+      },
+      "detection": {
+        "text": "Deux événements `noortrace.journal.politique` de même `policy_version` et de `policy_sha256` différents, visibles dans le journal (CT-1 §5.1) ; `same_policy_version` de `facts.perimeter.inscription` (CT-6 EX-6.20).",
+        "refs": [
+          "CT-1 §5.1",
+          "CT-6 EX-6.20"
+        ]
+      },
+      "residual": {
+        "text": "Tant que PA-9 n'est pas adoptée, la vigueur de l'attestation pour l'événement n'est pas établie par AT-7.",
+        "accepted_risk": {
+          "id": "RA-75",
+          "name": "Nom de version de politique réannoncé",
+          "bound": "Jusqu'à l'adoption de PA-9 par CT-2 ; limité aux dossiers dont l'inscription porte un nom de version réannoncé, ce que le journal montre ; FP ne dit que « même nom »",
+          "owner": "reviseur"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le dossier `valide-at7-nom-reannonce` fait réussir AT-7 et son FP ne dit que « même nom » ; si FP affirme la vigueur de l'attestation, le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-96",
+      "component": "administrateur_client",
+      "stride": [
+        "repudiation",
+        "alteration"
+      ],
+      "actor": "L'administrateur du client, qui a les droits d'exploitation de l'hôte de l'enregistreur.",
+      "asset": "Journal d'exploitation : lignes `startup`, `config_reloaded`, `lease_*`, `clock_*` et `worm_*` (CT-2 EX-17.2).",
+      "effect": "Il redémarre l'enregistreur ou passe `model.mode` en `desactive`, membre hors `policy`, puis efface les lignes qui le montrent ; aucune trace ne reste hors de la chaîne.",
+      "response": {
+        "text": "Changements de `policy` annoncés dans la chaîne (CT-2 EX-9.2) ; copie WORM des fichiers tournés du journal d'exploitation, relue hors du démon par le rôle Lecteur, proposée à CT-2 (CT-7 PA-18).",
+        "refs": [
+          "CT-2 EX-9.2",
+          "CT-7 PA-18"
+        ]
+      },
+      "detection": {
+        "text": "Aucune en version 0 ; une fois PA-18 adoptée, discontinuité de la série copiée, signalée par un avertissement.",
+        "refs": []
+      },
+      "residual": {
+        "text": "Tant que PA-18 n'est pas adoptée, un changement hors `policy` et un redémarrage de moins de `c_K` n'ont aucune trace que l'administrateur ne puisse effacer.",
+        "accepted_risk": {
+          "id": "RA-80",
+          "name": "Journal d'exploitation effaçable",
+          "bound": "Jusqu'à l'adoption de PA-18 par CT-2 ; un changement hors `policy` et un redémarrage de moins de `c_K` n'ont aucune trace hors du journal d'exploitation",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une ligne effacée du journal d'exploitation de la démonstration de référence est détectée par comparaison à sa copie WORM ; sans la copie, l'effacement passe inaperçu et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-98",
+      "component": "administrateur_client",
+      "stride": [
+        "repudiation"
+      ],
+      "actor": "Le client qui, une fois PA-8 adoptée, choisit de ne pas inscrire l'attestation ou de ne pas joindre l'inscription.",
+      "asset": "Date et rang de l'attestation.",
+      "effect": "Une attestation rédigée après coup paraît couvrir l'événement.",
+      "response": {
+        "text": "Inscription exigée dès que l'enregistreur sait la porter (CT-7 EX-7.5) ; clause fixe « non inscrite au journal (ni sa date ni son rang ne sont établis) » de FP (CT-6 EX-6.19).",
+        "refs": [
+          "CT-7 EX-7.5",
+          "CT-6 EX-6.19"
+        ]
+      },
+      "detection": {
+        "text": "`facts.perimeter.inscription` nul dans le rapport (CT-6 EX-6.20) ; clause de FP.",
+        "refs": [
+          "CT-6 EX-6.20"
+        ]
+      },
+      "residual": {
+        "text": "Le réviseur décide, en lisant la clause, de ce que vaut une attestation non située.",
+        "accepted_risk": {
+          "id": "RA-82",
+          "name": "Attestation non inscrite par choix du client",
+          "bound": "Après l'adoption de PA-8 : limité aux dossiers dont l'attestation n'est pas inscrite ou dont l'inscription n'est pas jointe ; FP le dit (CT-6 EX-6.19) et le réviseur en décide",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : le dossier `valide-seq-7-complet-attestation` de `ct-6` porte la clause « non inscrite au journal » dans son énoncé ; si la clause est retirée, l'énoncé ne dit plus que l'attestation n'est pas située et le test échoue.",
+      "sources": []
+    },
+    {
+      "id": "MN-76",
+      "component": "reseau",
+      "stride": [
+        "divulgation",
+        "deni_de_service"
+      ],
+      "actor": "Un intermédiaire réseau entre l'enregistreur et un prestataire, un calendrier, le registre, un serveur d'outils ou un fournisseur.",
+      "asset": "Confidentialité et délai des échanges sortants.",
+      "effect": "Il lit, retarde ou coupe le trafic ; il voit une empreinte avant son inclusion.",
+      "response": {
+        "text": "TLS vérifié vers les prestataires (CT-5 EX-5.5) et les amonts (CT-2 EX-4.40) ; condensé OpenTimestamps masqué par un nonce (CT-5 EX-6.2) ; réponses tardives rejetées (CT-5 EX-5.11) ; ancre au registre d'abord (CT-5 EX-4.7) ; l'ancrage ne bloque jamais (CT-2 §14.2).",
+        "refs": [
+          "CT-5 EX-5.5",
+          "CT-2 EX-4.40",
+          "CT-5 EX-6.2",
+          "CT-5 EX-5.11",
+          "CT-5 EX-4.7",
+          "CT-2 §14.2"
+        ]
+      },
+      "detection": {
+        "text": "Délais et erreurs consignés (CT-5 §8.9, CT-2 EX-17.2).",
+        "refs": [
+          "CT-5 §8.9",
+          "CT-2 EX-17.2"
+        ]
+      },
+      "residual": {
+        "text": "Retarder allonge la fenêtre ; une empreinte vue peut être prise au registre (RA-52) ; un prestataire voit la cadence d'un compte (CT-5 §13).",
+        "accepted_risk": {
+          "id": "RA-65",
+          "name": "Retard et observation par le réseau",
+          "bound": "La fenêtre de date s'allonge du retard ; seules des empreintes de 32 octets circulent vers les prestataires",
+          "owner": "client"
+        }
+      },
+      "test": "Le test échoue si la réponse est retirée : une réponse RFC 3161 reçue au-delà de `max_response_delay_s` est classée `reponse_tardive` ; si la fraîcheur n'est plus contrôlée, elle est promue et le test échoue.",
+      "sources": [
+        {
+          "spec": "CT-5",
+          "section": "3.4",
+          "row": "Intermédiaire réseau entre l'enregistreur et un prestataire, un calendrier ou le registre"
+        },
+        {
+          "spec": "CT-5",
+          "section": "13",
+          "row": "Fuite par les empreintes : le prestataire ou le calendrier apprend quelque chose du journal"
+        }
+      ]
+    },
+    {
+      "id": "MN-77",
+      "component": "reseau",
+      "stride": [
+        "divulgation",
+        "usurpation"
+      ],
+      "actor": "Un tiers sur le réseau entre l'hôte, le démon, le service d'approbation et la console.",
+      "asset": "Jetons d'hôte, décisions du service, sessions de la console.",
+      "effect": "Il lit un jeton, répond à la place du service, vole une session.",
+      "response": {
+        "text": "Prises locales ou TLS, jetons comparés en temps constant (CT-2 EX-18.3) ; canal du service authentifié par mTLS ou jeton et TLS hors boucle locale (CT-3 EX-12.2, CT-2 EX-18.8) ; console en HTTPS, réauthentification récente (CT-3 EX-13.8) ; certificats TLS inventoriés et tournés (CT-7 §4.2).",
+        "refs": [
+          "CT-2 EX-18.3",
+          "CT-3 EX-12.2",
+          "CT-2 EX-18.8",
+          "CT-3 EX-13.8",
+          "CT-7 §4.2"
+        ]
+      },
+      "detection": {
+        "text": "`auth_failed` (CT-2 EX-18.3) ; `approval_response_invalid` (CT-2 EX-17.2).",
+        "refs": [
+          "CT-2 EX-18.3",
+          "CT-2 EX-17.2"
+        ]
+      },
+      "residual": {
+        "text": "Aucun au-delà de la garde des certificats et des jetons (RA-39).",
+        "accepted_risk": null
+      },
+      "test": "Le test échoue si la réponse est retirée : une réponse du service reçue sur un canal non authentifié est traitée comme une indisponibilité ; si l'authentification du canal est retirée, la réponse est appliquée et le test échoue.",
+      "sources": []
+    }
+  ]
+}

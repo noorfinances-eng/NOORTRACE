@@ -1,0 +1,93 @@
+{
+  "valid": false,
+  "target": "T-6",
+  "failed_checks": [
+    "T-6"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "echoue",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "reussi"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "AT-6",
+      "reason": "partie_absente"
+    },
+    {
+      "id": "AT-7",
+      "reason": "partie_absente"
+    },
+    {
+      "id": "T-7",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-10",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-11",
+      "reason": "prerequis_en_echec"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-test.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : T-6 ; vérification(s) non exécutée(s) sans raison admise : T-7, T-10, T-11 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): T-6; check(s) not run without an admitted reason: T-7, T-10, T-11; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    },
+    {
+      "id": "AT-7",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    }
+  ],
+  "perimeter_retained": true,
+  "description": "invalide-t6-signature (jeton-rfc3161.der = rfc3161/jetons/t6-signature.der, dernier octet de la signature inversé) avec la partie de valide-seq-7-complet-attestation : T-6 échoue, verdict invalide ; l'énoncé est celui d'EX-6.9, sans FP ; l'attestation est retenue et facts.perimeter est gardé pour le diagnostic (EX-6.13, EX-6.20)."
+}

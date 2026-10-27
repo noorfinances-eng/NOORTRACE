@@ -1,0 +1,48 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": "AT-3",
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "echoue",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "non_execute",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "AT-5",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    },
+    {
+      "id": "AT-7",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    }
+  ],
+  "perimeter_retained": false,
+  "warnings": [
+    "AV-AT-1"
+  ],
+  "description": "La signature du compte Hardhat 3 sur D_P est déclarée pour le compte 2 (cas invalide-at3-signature-substituee de CT-7 annexe A.6) : l'adresse recouvrée est 0x90f79bf6eb2c4f870365e785982e1f101e93b906, AT-3 échoue, AT-4 n'est pas exécutée, AV-AT-1 ; le dossier reste valide."
+}

@@ -6,6 +6,48 @@ is tagged.
 
 ## Unreleased
 
+- CT-7, security and compliance, version 0.1: a threat model by component (14
+  components, 98 threats, each with its answer citing exact requirements, its
+  detection, its residual risk and the test CT-9 must write; 82 accepted risks,
+  each named, bounded and assigned), consolidating without contradiction the
+  threat tables of CT-2 to CT-6 and answering every reference to CT-7 in the
+  other specifications; the inventory of keys and secrets with their custody
+  class, rotation, revocation and response to compromise; the key ceremony and
+  its minutes record (`ceremonie-cles-v0`), signed by every participant over a
+  digest with its own domain prefix and checked offline (CR-1 to CR-12); the
+  recorder's mandatory events on itself, and what CT-7 asks of CT-2 as
+  proposals; the perimeter attestation (`attestation-perimetre-v0`), signed by
+  members of the client's approver set and reported as declared, never as
+  proven; a compliance matrix (`matrice-conformite-v0`: 10 texts, 58 rows, each
+  with the exact quotation of the primary source, what the evidence covers,
+  what remains with the client and its status) presented as a technical
+  mapping, not legal advice; six model audit clauses. Schema
+  `modele-menace-v0` for the threat model.
+- CT-1, formats, revision 0.4, and CT-6, the verifier, revision 0.3: an
+  optional fourteenth evidence folder part `attestation-perimetre.json`, a
+  compatible extension of `dossier-v0`, with checks AT-1 to AT-7 filed under
+  checks 6 and 7 without changing their status or any verdict, the
+  `facts.perimeter` member of the report and a statement fragment; 20 new CT-1
+  folders and 5 new CT-6 folders, existing vectors unchanged except `INDEX.md`.
+  The CT-1 Go verifier, and its copy in the CT-2 verifier, now recompute 2,985
+  values, 2,923 matching, none discordant, 62 outside their scope.
+- CT-7 reference code (`scripts/lib/securite.mjs`, `scripts/verify/ceremonie.mjs`)
+  and a cross-reference checker (`scripts/conformite/verifier-renvois.mjs`) run
+  by the tests and continuous integration: every requirement cited by the
+  threat model and the matrix exists, and the tables of the text equal their
+  JSON files. Vectors `spec/vecteurs/ct-7` (`npm run vecteurs:ct7`) and a new Go
+  verifier written from the specification alone: 1,241 values recomputed, all
+  matching, 32 outside its scope. Signatures of attestations (100) and
+  ceremony minutes (130) are confronted with ethers 6.17.0 and eth-account
+  0.14.0, without discrepancy.
+- CT-5 confrontation: the published `reponses.txt` and `coherence.txt` outputs
+  are replayed and carry one more block, for the new CT-6 folder that reuses an
+  already confronted checkpoint part.
+- `README.fr.md` and `ARCHITECTURE.md`: regulatory statements aligned on the
+  primary texts read for CT-7 (DORA for financial entities; FINMA
+  communication 08/2024; OPDo art. 4 para. 1 and 5 since 1 December 2025;
+  EU AI Act dates of application, 2 December 2027 and 2 August 2028; Olico
+  art. 9 para. 1 let. b, without a compliance claim).
 - CT-3, approvals, revision 0.3: a named person, authenticated by the
   client's identity system, approves from their session while the signature
   is still made by their own key in their own wallet, never by a server; the

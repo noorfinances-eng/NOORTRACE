@@ -96,18 +96,25 @@ describe("CT-6 : dossiers complets de spec/vecteurs/ct-6 par la ligne de command
       expect(doc.bound, nom).to.equal(a.bound === null ? null : a.bound.fr);
       // V-1 : admitted conforme à la table 6.2 ; blocking_unexecuted = non exécutées sans raison admise.
       for (const c of doc.checks) expect(c.admitted, `${nom} ${c.id}`).to.equal(c.status === "non_execute" ? c.reason !== "prerequis_en_echec" : null);
-      expect(doc.blocking_unexecuted, nom).to.deep.equal(doc.checks.filter((c) => c.admitted === false).map((c) => c.id));
+      // Révision 0.3 : les AT- n'entrent ni dans failed_checks ni dans blocking_unexecuted (EX-5.11).
+      expect(doc.blocking_unexecuted, nom).to.deep.equal(doc.checks.filter((c) => c.admitted === false && !c.id.startsWith("AT-")).map((c) => c.id));
+      expect(doc.failed_checks.some((id) => id.startsWith("AT-")), nom).to.equal(false);
       // V-6 : un contrôle réussi n'a que des vérifications réussies, hors piece_hors_dossier et vérifications sans effet.
       // Révision 0.2 : une vérification K- non exécutée est sans effet sur le statut de son contrôle (EX-5.7, EX-5.8).
       const sansEffet = new Set(["T-11", "R-3", "R-10", "R-11", "N-3", "N-4"]);
       for (const c of doc.controls.filter((x) => x.status === "reussi")) {
         for (const id of c.checks) {
           const v = doc.checks.find((x) => x.id === id);
-          if (v.status !== "reussi") expect(v.status === "non_execute" && (v.reason === "piece_hors_dossier" || sansEffet.has(id) || id.startsWith("K-")), `${nom} : ${id} dans le contrôle ${c.number} réussi`).to.equal(true);
+          // Révision 0.3 : une AT- est sans effet sur le statut de son contrôle, quel que soit son statut (EX-5.11, V-6).
+          if (v.status !== "reussi") expect(id.startsWith("AT-") || (v.status === "non_execute" && (v.reason === "piece_hors_dossier" || sansEffet.has(id) || id.startsWith("K-"))), `${nom} : ${id} dans le contrôle ${c.number} réussi`).to.equal(true);
         }
       }
       const faits = { 4: "timestamp", 5: "bitcoin", 6: "recorder_keys", 7: "approval", 8: "registry" };
       for (const [n, cle] of Object.entries(faits)) expect(doc.facts[cle] !== null, `${nom} : facts.${cle}`).to.equal(doc.controls[Number(n) - 1].status === "reussi");
+      // Révision 0.3 (EX-A.19, EX-A.21) : statuts des AT- et rétention de l'attestation ; facts.perimeter toujours écrit.
+      expect(doc.facts, nom).to.have.property("perimeter");
+      expect(doc.checks.filter((c) => c.id.startsWith("AT-")).map((c) => ({ id: c.id, status: c.status, reason: c.reason })), nom).to.deep.equal(a.perimeter_checks ?? []);
+      expect(doc.facts.perimeter !== null, nom).to.equal(a.perimeter_retained === true);
     }
   });
 
@@ -250,12 +257,13 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
   const lireDossier = (rep) => Object.fromEntries(fs.readdirSync(rep).filter((f) => V.FICHIERS_DOSSIER.includes(f)).map((f) => [f, fs.readFileSync(path.join(rep, f))]));
   const ancres = V.controlerAncres(fs.readFileSync(ANCRES_TEST), SCHEMAS);
 
-  it("les cinquante dossiers (quarante de la version 0.2 et dix de la révision 0.3), sans ancres et avec ancres-test.json : même code et mêmes vérifications en échec ; 4, 5, 8 hors_perimetre_version ; N-3 jamais en échec ; K-1 à K-9 seulement avec la partie points-de-controle.json", function () {
-    expect(noms).to.have.length(50);
+  it("les soixante-dix dossiers (quarante de la version 0.2, dix de la révision 0.3 et vingt de la révision 0.4), sans ancres et avec ancres-test.json : même code et mêmes vérifications en échec ; 4, 5, 8 hors_perimetre_version ; N-3 jamais en échec ; K-1 à K-9 seulement avec la partie points-de-controle.json, AT-1 à AT-7 seulement avec la partie attestation-perimetre.json", function () {
+    expect(noms).to.have.length(70);
     for (const nom of noms) {
       const a = lireJSON(racine, nom, "attendu.json");
       const avecPartie = fs.existsSync(path.join(racine, nom, "points-de-controle.json"));
-      const attendusIds = J.CONTROLES_DOSSIER.map((c) => c.id).filter((id) => avecPartie || !id.startsWith("K-"));
+      const avecAttestation = fs.existsSync(path.join(racine, nom, "attestation-perimetre.json"));
+      const attendusIds = [...J.CONTROLES_DOSSIER.map((c) => c.id).filter((id) => avecPartie || !id.startsWith("K-")), ...(avecAttestation ? ["AT-1", "AT-2", "AT-3", "AT-4", "AT-5", "AT-6", "AT-7"] : [])];
       for (const avec of [null, ancres]) {
         const corps = V.verifierDossierComplet({ fichiers: lireDossier(path.join(racine, nom)), schemas: SCHEMAS, ancres: avec });
         const etiquette = `${nom}${avec ? " (ancres-test.json)" : ""}`;
@@ -267,6 +275,9 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
         if (!avec) expect(corps.checks.find((c) => c.id === "N-3"), etiquette).to.equal(undefined);
         else expect(corps.checks.find((c) => c.id === "N-3")?.status ?? "absente", etiquette).to.not.equal("echoue");
         expect(corps.checks.filter((c) => c.id !== "N-3").map((c) => c.id), etiquette).to.deep.equal(attendusIds);
+        // Révision 0.4 de CT-1 : statuts des AT- et avertissements AV-AT- de attendu.json.
+        expect(corps.checks.filter((c) => c.id.startsWith("AT-")).map((c) => ({ id: c.id, status: c.status, reason: c.reason })), etiquette).to.deep.equal(a.perimeter_checks ?? []);
+        expect(corps.warnings.filter((w) => w.id.startsWith("AV-AT-")).map((w) => w.id), etiquette).to.deep.equal(a.warnings ?? []);
         // K-7 à K-9 (ancres du point) ne s'exécutent que sur une ancre présente : les dossiers de CT-1 n'en portent pas.
         for (const c of corps.checks.filter((x) => ["K-7", "K-8", "K-9"].includes(x.id))) {
           expect(c.status, `${etiquette} ${c.id}`).to.equal("non_execute");
@@ -601,8 +612,8 @@ describe("CT-6 : règles précisées par la revue", function () {
     expect(lancer(["--help", "--detail"]).code).to.equal(2);
   });
 
-  it("verifier.schemas : les neuf schémas embarqués (point-de-controle depuis la révision 0.2), dans l'ordre fixé, quelles que soient les options (section 8.6)", function () {
-    const ordre = ["evenement", "manifeste", "dossier", "point-de-controle", "registre", "validateurs", "ancres-confiance", "entetes-bitcoin", "rapport-verification"].map((n) => `https://noortrace.example/schemas/v0/${n}.schema.json`);
+  it("verifier.schemas : les dix schémas embarqués (point-de-controle depuis la révision 0.2, attestation-perimetre depuis la révision 0.3, EX-8.11), dans l'ordre fixé, quelles que soient les options (section 8.6)", function () {
+    const ordre = ["evenement", "manifeste", "dossier", "point-de-controle", "attestation-perimetre", "registre", "validateurs", "ancres-confiance", "entetes-bitcoin", "rapport-verification"].map((n) => `https://noortrace.example/schemas/v0/${n}.schema.json`);
     for (const args of [[COMPLET], [COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]]) expect(rapportJSON(args).doc.verifier.schemas.map((s) => s.id)).to.deep.equal(ordre);
   });
 
@@ -627,5 +638,170 @@ describe("CT-6 : règles précisées par la revue", function () {
   it("compatibilité CT-1 : un fichier d'ancres qui donne une autre clé pour l'organisation et le journal fait échouer N-3 (EX-6.14)", function () {
     const r = rapportJSON([path.join(CT1, "dossiers", "valide-seq-7"), "--ancres", path.join(CT6, "ancres", "ancres-cle-enregistreur-autre.json")]);
     expect([r.code, r.doc.failed_checks]).to.deep.equal([1, ["N-3"]]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Révision 0.3 de CT-6 : la partie attestation-perimetre.json (CT-1 révision
+// 0.4, CT-7 section 7), vérifications AT-1 à AT-7 rangées sous les contrôles 7
+// et 6, sans effet sur les statuts ni sur le verdict (section 5.5, V-10).
+describe("CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 à EX-6.21, V-10)", function () {
+  this.timeout(300_000);
+  const FICHIER = J.PARTIE_ATTESTATION_PERIMETRE.file;
+  const lireDossier = (rep) => Object.fromEntries(fs.readdirSync(rep).filter((f) => V.FICHIERS_DOSSIER.includes(f)).map((f) => [f, fs.readFileSync(path.join(rep, f))]));
+  /** Les dossiers qui portent la partie, dans ct-1 et ct-6, avec leurs ancres et en-têtes. */
+  const porteurs = () => {
+    const out = [];
+    for (const n of fs.readdirSync(path.join(CT1, "dossiers")).sort()) if (fs.existsSync(path.join(CT1, "dossiers", n, FICHIER))) out.push({ nom: `ct-1/${n}`, rep: path.join(CT1, "dossiers", n), ancres: null, entetes: null });
+    for (const n of fs.readdirSync(DOSSIERS).sort()) {
+      if (!fs.existsSync(path.join(DOSSIERS, n, FICHIER))) continue;
+      const a = lireJSON(DOSSIERS, n, "attendu.json");
+      out.push({ nom: `ct-6/${n}`, rep: path.join(DOSSIERS, n), ancres: a.anchors ? path.resolve(DOSSIERS, n, a.anchors) : null, entetes: a.bitcoin_headers ? path.resolve(DOSSIERS, n, a.bitcoin_headers) : null });
+    }
+    return out;
+  };
+  const verifier = (fichiers, { ancres, entetes }) => V.verifierDossierComplet({ fichiers, schemas: SCHEMAS, ancres: ancres ? V.controlerAncres(fs.readFileSync(ancres), SCHEMAS) : null, entetes: entetes ? V.controlerEntetes(fs.readFileSync(entetes), SCHEMAS) : null });
+
+  it("V-10 : chaque dossier qui porte la partie a le code, le verdict, failed_checks (hors D-2), blocking_unexecuted, les statuts des huit contrôles et la borne du même dossier privé de la partie (EX-A.20)", function () {
+    const liste = porteurs();
+    expect(liste.length).to.equal(19 + 5);
+    for (const d of liste) {
+      const avec = lireDossier(d.rep);
+      const sans = { ...avec };
+      delete sans[FICHIER];
+      const reindexe = J.reindexerDossier(sans).fichiers;
+      const nbParts = J.analyserJSONStrict(reindexe["dossier.json"]).parts.length;
+      expect([12, 13], d.nom).to.include(nbParts);
+      const r1 = verifier(avec, d);
+      const r2 = verifier(Object.fromEntries(Object.entries(reindexe).map(([f, c]) => [f, Buffer.isBuffer(c) ? c : Buffer.from(c)])), d);
+      const sansD2 = (l) => l.filter((id) => id !== "D-2");
+      expect(r2.checks.some((c) => c.id.startsWith("AT-")), d.nom).to.equal(false);
+      expect(r2.facts.perimeter, d.nom).to.equal(null);
+      expect(r1.checks.some((c) => c.id.startsWith("AT-")), d.nom).to.equal(true);
+      expect(sansD2(r1.failed_checks), d.nom).to.deep.equal(sansD2(r2.failed_checks));
+      expect(r1.blocking_unexecuted, d.nom).to.deep.equal(r2.blocking_unexecuted);
+      expect(r1.controls.map((c) => [c.number, c.status, c.reason, c.summary]), d.nom).to.deep.equal(r2.controls.map((c) => [c.number, c.status, c.reason, c.summary]));
+      expect(r1.bound, d.nom).to.equal(r2.bound);
+      if (!r1.failed_checks.includes("D-2")) expect([r1.verdict, r1.exit_code], d.nom).to.deep.equal([r2.verdict, r2.exit_code]);
+      // Les AT- figurent après les K- (ou A-4) et avant T-1 ; le contrôle 7 liste AT-1 à AT-5, le 6 AT-6 et AT-7.
+      const ids = r1.checks.map((c) => c.id);
+      const i1 = ids.indexOf("AT-1");
+      expect(ids.slice(i1, i1 + 7), d.nom).to.deep.equal(["AT-1", "AT-2", "AT-3", "AT-4", "AT-5", "AT-6", "AT-7"]);
+      expect(ids[i1 - 1], d.nom).to.match(/^(A-4|K-9)$/);
+      if (ids.includes("T-1")) expect(ids.indexOf("T-1"), d.nom).to.equal(i1 + 7);
+      expect(r1.controls[6].checks.filter((id) => id.startsWith("AT-")), d.nom).to.deep.equal(["AT-1", "AT-2", "AT-3", "AT-4", "AT-5"]);
+      expect(r1.controls[5].checks.filter((id) => id.startsWith("AT-")), d.nom).to.deep.equal(["AT-6", "AT-7"]);
+      // Énoncé : même énoncé que sans la partie, FP inséré avant F7 ou F8 (EX-6.19) ; pas de FP dans un énoncé invalide.
+      if (r1.failed_checks.includes("D-2")) expect(r1.verdict, d.nom).to.equal("invalide");
+      else if (r1.verdict === "invalide") expect(r1.statement, d.nom).to.deep.equal(r2.statement);
+      else {
+        const fp = V.fragmentPerimetre({ retenue: r1.facts.perimeter !== null, faits: r1.facts.perimeter, checks: r1.checks.filter((c) => c.id.startsWith("AT-")), nonRetenue: r1.checks.filter((c) => c.id.startsWith("AT-") && c.status === "echoue").map((c) => c.id) });
+        for (const l of ["fr", "en"]) {
+          const sansFp = r1.statement[l].replace(fp[l], "");
+          expect(sansFp, `${d.nom} ${l}`).to.equal(r2.statement[l]);
+          expect(r1.statement[l].length, `${d.nom} ${l}`).to.equal(r2.statement[l].length + fp[l].length);
+        }
+      }
+    }
+  });
+
+  it("EX-7.3 de CT-6, EX-7.18 point 3 de CT-7 : aucun texte des rapports n'applique « prouvé », « vérifié » ou « conforme » au périmètre ; le seul verbe est « déclaré »", function () {
+    const fautes = [];
+    const examiner = (nom, texte) => {
+      for (const segment of String(texte).split(/ ; |; |\n/)) {
+        if (/périmètre/i.test(segment)) {
+          // « l'événement prouvé » désigne l'événement du dossier (clause d'inscription d'EX-6.19), non le périmètre.
+          if (/prouvé/.test(segment.replace(/non prouvé/g, "").replace(/l'événement prouvé/g, ""))) fautes.push(`${nom} : ${segment}`);
+          if (/vérifié|conforme/.test(segment)) fautes.push(`${nom} : ${segment}`);
+        }
+        if (/perimeter/i.test(segment)) {
+          if (/proven/.test(segment.replace(/not proven/g, "").replace(/proven event/g, ""))) fautes.push(`${nom} : ${segment}`);
+          if (/verified|compliant/.test(segment)) fautes.push(`${nom} : ${segment}`);
+        }
+      }
+    };
+    for (const d of porteurs()) {
+      for (const langue of ["fr", "en"]) {
+        const args = [d.rep, ...(d.ancres ? ["--ancres", d.ancres] : []), ...(d.entetes ? ["--entetes-bitcoin", d.entetes] : []), "--langue", langue];
+        const { doc } = rapportJSON(args);
+        examiner(d.nom, doc.statement.fr);
+        examiner(d.nom, doc.statement.en);
+        for (const c of doc.checks) examiner(`${d.nom} ${c.id}`, c.detail ?? "");
+        for (const w of doc.warnings) examiner(`${d.nom} ${w.id}`, w.detail);
+        for (const c of doc.controls) examiner(`${d.nom} contrôle ${c.number}`, c.summary ?? "");
+        examiner(d.nom, lancer([...args, "--detail"]).stdout);
+      }
+    }
+    expect(fautes).to.deep.equal([]);
+  });
+
+  it("facts.perimeter (EX-6.20) : l'exemple annoté faits_perimetre de CT-6 est conforme et égal au fait du dossier valide-seq-12-attestation-inscrite ; null sans la partie ou quand l'attestation n'est pas retenue", function () {
+    const md = fs.readFileSync(path.join(SPEC, "CT-6-verificateur.md"), "utf8");
+    const exemple = J.analyserJSONStrict(/<!-- schema: faits_perimetre -->\n```json\n([\s\S]*?)\n```/.exec(md)[1]);
+    expect(J.validerSchema(exemple, SCHEMAS[V.ID_SCHEMA_RAPPORT], { registre: SCHEMAS, fragment: "#/$defs/faits_perimetre" })).to.deep.equal([]);
+    const { doc } = rapportJSON([path.join(CT1, "dossiers", "valide-seq-12-attestation-inscrite")]);
+    expect(doc.facts.perimeter).to.deep.equal(exemple);
+    expect(rapportJSON([path.join(CT1, "dossiers", "valide-seq-7")]).doc.facts.perimeter).to.equal(null);
+    expect(rapportJSON([path.join(CT1, "dossiers", "valide-at3-signature-substituee")]).doc.facts.perimeter).to.equal(null);
+    // Rapport invalide : facts.perimeter gardé pour le diagnostic (EX-6.13, EX-6.20), FP absent de l'énoncé.
+    const t6 = argumentsDossier("invalide-t6-signature-attestation");
+    const inv = rapportJSON(t6.args).doc;
+    expect(inv.verdict).to.equal("invalide");
+    expect(inv.facts.perimeter.provenance).to.equal("declaree");
+    expect(inv.statement.fr).to.not.match(/périmètre/);
+  });
+
+  it("FP de l'exemple d'EX-6.19 (français et anglais) et ligne lisible « Périmètre » (EX-8.10) ; AT- en échec « (sans effet sur le verdict) »", function () {
+    const md = fs.readFileSync(path.join(SPEC, "CT-6-verificateur.md"), "utf8");
+    const blocs = md.split("**EX-6.19 (fragment FP")[1].split("**EX-6.9**")[0].match(/```text\n([\s\S]*?)\n```/g).map((b) => b.replace(/^```text\n/, "").replace(/\n```$/, ""));
+    const { doc } = rapportJSON([path.join(CT1, "dossiers", "valide-seq-12-attestation-inscrite")]);
+    expect(doc.statement.fr).to.include(blocs[0]);
+    expect(doc.statement.en).to.include(blocs[1]);
+    expect(doc.statement.fr.endsWith(`${blocs[0]} ; ce dossier ne prouve rien sur sa date (contrôles 4 et 5), sur une approbation (contrôle 7) ni sur son inscription au registre (contrôle 8).`)).to.equal(true);
+    const fr = lancer([path.join(CT1, "dossiers", "valide-seq-12-attestation-inscrite")]).stdout.split("\n");
+    expect(fr).to.include("Périmètre     : déclaré, non prouvé : attestation 0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd, du 2026-11-01T00:00:00Z au 2027-01-31T23:59:59.999Z, 2 signatures, seuil de 2 sur 3 ; inscrite au seq 12");
+    const en = lancer([path.join(CT1, "dossiers", "valide-seq-12-attestation-inscrite"), "--langue", "en"]).stdout.split("\n");
+    expect(en).to.include("Perimeter     : declared, not proven: attestation 0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd, from 2026-11-01T00:00:00Z to 2027-01-31T23:59:59.999Z, 2 signatures, threshold 2 of 3; recorded at seq 12");
+    const sub = lancer([path.join(CT1, "dossiers", "valide-at3-signature-substituee")]);
+    expect(sub.code).to.equal(0);
+    const ls = sub.stdout.split("\n");
+    expect(ls).to.include("Périmètre     : attestation non retenue (AT-3 en échec)");
+    expect(ls).to.include("  [ÉCHEC] (sans effet sur le verdict) AT-3 [7] signatures de l'attestation");
+    expect(ls).to.include("  AV-AT-1 (AT-3) attestation de périmètre non retenue : AT-3 en échec ; elle ne change ni les statuts ni le verdict");
+    // Pas de ligne « Périmètre » sans la partie déclarée présente.
+    expect(lancer([path.join(CT1, "dossiers", "valide-seq-7-attestation-declaree-absente")]).stdout).to.not.match(/^Périmètre/m);
+  });
+
+  it("partie de 4 Mio plus un octet : non lue au-delà de la limite (EX-4.13, EX-4.15), SHA-256 calculé en flux pour D-2 ; AT-1 échoue et rien d'autre, code 0", function () {
+    const { code, doc } = rapportJSON([path.join(CT1, "dossiers", "valide-at1-taille")]);
+    expect(code).to.equal(0);
+    expect(doc.failed_checks).to.deep.equal([]);
+    const at1 = doc.checks.find((c) => c.id === "AT-1");
+    expect(at1.status).to.equal("echoue");
+    expect(at1.detail).to.match(/4194305 octets, au-delà de la limite de 4194304 octets/);
+    // Le même fichier dont l'index déclare un autre SHA-256 : D-2 échoue, invalide.
+    const rep = tmp("noortrace-ct6-attestation-grande-");
+    try {
+      for (const f of fs.readdirSync(path.join(CT1, "dossiers", "valide-at1-taille"))) if (V.FICHIERS_DOSSIER.includes(f)) fs.copyFileSync(path.join(CT1, "dossiers", "valide-at1-taille", f), path.join(rep, f));
+      const idx = lireJSON(rep, "dossier.json");
+      idx.parts[13].sha256 = "0x" + "00".repeat(32);
+      fs.writeFileSync(path.join(rep, "dossier.json"), JSON.stringify(idx, null, 2) + "\n");
+      const r = rapportJSON([rep]);
+      expect([r.code, r.doc.failed_checks]).to.deep.equal([1, ["D-2"]]);
+    } finally {
+      fs.rmSync(rep, { recursive: true, force: true });
+    }
+  });
+
+  it("--exiger ne nomme que les huit contrôles : une attestation non retenue ne rend pas un dossier incomplet ; le rapport de la révision 0.2 d'un dossier sans la partie ne diffère que par verifier.schemas et facts.perimeter (EX-6.21)", function () {
+    const r = lancer([path.join(CT1, "dossiers", "valide-at3-signature-substituee"), "--exiger", "1,2,3,6,7"]);
+    expect(r.code).to.equal(0);
+    // Les rapports des dossiers antérieurs portent facts.perimeter à null, en dernière clé de facts.
+    for (const n of ["valide-seq-7-complet", "valide-point-de-controle-complet", "invalide-t6-signature"]) {
+      const { doc } = rapportJSON(argumentsDossier(n).args);
+      expect(Object.keys(doc.facts), n).to.deep.equal(["recorder_keys", "approval", "timestamp", "bitcoin", "registry", "checkpoint", "perimeter"]);
+      expect(doc.facts.perimeter, n).to.equal(null);
+      expect(doc.checks.some((c) => c.id.startsWith("AT-")), n).to.equal(false);
+    }
   });
 });

@@ -1,0 +1,228 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-04-admin-registre-01",
+  "scope": "exploitant",
+  "organization": {
+    "name": "NOORTRACE, exploitant du registre (exemple)",
+    "org_id": null
+  },
+  "purpose": "sauvegarde",
+  "purpose_details": null,
+  "environment": "production",
+  "place": "Salle forte de l'exploitant (exemple)",
+  "started_at": "2026-11-04T09:00:00.000Z",
+  "ended_at": "2026-11-04T10:30:00.000Z",
+  "script": {
+    "title": "Sauvegarde partagée de la clé de l'administrateur du registre",
+    "version": "1",
+    "sha256": "0x3a1d6270623bb0b22241da089b8778515b3e9310b23c70379a5788b6304aa007"
+  },
+  "workstation": {
+    "description": "Poste d'administration du module, démarré sur support en lecture seule, interfaces réseau désactivées",
+    "offline": true,
+    "image_sha256": "0x2408b216725cd9a613845dc2b9efa49582fd569b72e1a8979313683fd0562da5"
+  },
+  "entropy": {
+    "source": "module",
+    "description": "Générateur aléatoire du module ; aucune valeur saisie"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant de l'exploitant (compte de test 8)",
+      "role": "officiant",
+      "affiliation": "NOORTRACE, exploitation",
+      "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 1)",
+      "role": "temoin",
+      "affiliation": "NOORTRACE, sécurité",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p3",
+      "name": "Détenteur de part (compte de test 5)",
+      "role": "detenteur_part",
+      "affiliation": "NOORTRACE, site principal",
+      "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc"
+    },
+    {
+      "id": "p4",
+      "name": "Détenteur de part (compte de test 6)",
+      "role": "detenteur_part",
+      "affiliation": "NOORTRACE, site de secours",
+      "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9"
+    },
+    {
+      "id": "p5",
+      "name": "Détenteur de part (compte de test 7)",
+      "role": "detenteur_part",
+      "affiliation": "NOORTRACE, direction",
+      "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-04T09:03:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Vérifier les scellés du module, démarrer le poste sur l'image dont le SHA-256 est inscrit, constater l'absence de réseau",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-04T09:12:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Générer dans le module la clé d'enveloppe AES-256",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-04T09:25:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 4,
+      "action": "Chiffrer la clé de l'administrateur du registre sous la clé d'enveloppe",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-04T09:36:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 5,
+      "action": "Partager la clé d'enveloppe en trois parts, dont deux la reconstituent",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-04T09:50:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 6,
+      "action": "Remettre chaque part à son détenteur, sous sac à témoin d'effraction",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-04T10:05:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 7,
+      "action": "Arrêter l'enregistrement vidéo, calculer les SHA-256 des enregistrements et des journaux",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-04T10:20:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "administrateur-registre-test-03",
+      "usage": "administrateur_registre",
+      "algorithm": "secp256k1",
+      "generated_in": "module",
+      "custody_class": "B",
+      "backend": "pkcs11",
+      "public_key": "0x0420b871f3ced029e14472ec4ebc3c0448164942b123aa6af91a3386c1c403e0ebd3b4a5752a2b6c49e574619e6aa0549eb9ccd036b9bbc507e1f7f9712a236092",
+      "fingerprint": "0x40aeb6ea3c51d30271f5bc2801e6b95f31b02ae8e470a19ebeac967b60bd0478",
+      "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "partage_k_sur_n",
+        "k": 2,
+        "n": 3,
+        "holders": [
+          "p3",
+          "p4",
+          "p5"
+        ]
+      }
+    },
+    {
+      "key_id": "enveloppe-administrateur-registre-01",
+      "usage": "enveloppe",
+      "algorithm": "aes256",
+      "generated_in": "module",
+      "custody_class": "A",
+      "backend": "pkcs11",
+      "public_key": null,
+      "fingerprint": null,
+      "address": null,
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "partage_k_sur_n",
+        "k": 2,
+        "n": 3,
+        "holders": [
+          "p3",
+          "p4",
+          "p5"
+        ]
+      }
+    }
+  ],
+  "records": [
+    {
+      "kind": "video",
+      "name": "camera-1.mp4",
+      "sha256": "0xded6825106886b8bbe039168cc53e83da38dcbd69d384789789f5a805da45d38"
+    },
+    {
+      "kind": "journal_module",
+      "name": "journal-module.txt",
+      "sha256": "0x99a259b856bb8435dac0217d3fa3467f069ae6b8522f2091ce9588a1e4fee8e4"
+    }
+  ],
+  "findings": [
+    {
+      "n": 1,
+      "step": 6,
+      "kind": "observation",
+      "text": "Parts remises sous les sacs à témoin d'effraction numéros 0001 (p3), 0002 (p4) et 0003 (p5) (exemple).",
+      "resolution": null
+    }
+  ],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0x5073312f9b49e79060724f035fe313231864cc8dd66fb8cd2ae12043a4a80fc4518dab82205b7a07ff5b1d8d343cd29ee8c022308df0c65715218774ddc535801b"
+    },
+    {
+      "participant": "p2",
+      "signature": "0x85e56ee49fd32129b4eb8fae7895938b1fa05fb2729cb34e42bf8ba1c8f8783422ad7c31d5ee6c8e27181b3eef6dd2e4951dd067db304deedbfccb6484c9179d1c"
+    },
+    {
+      "participant": "p3",
+      "signature": "0x9c2bef8fa4414ae823365303a641999dfe562f2419b8c19580c8ad2f34df787a43047b4169a1f7219bd263ad9f2ecc0ce1529f8cadd3f4e6058db487e6c1716d1c"
+    },
+    {
+      "participant": "p4",
+      "signature": "0xd01c130d89e13a116545d192527d3764ece90e50fa5c20e2d3dce76b668fcd113f69efdfaae93505e806d1d275df6d427c30d088c5f426f82295522ab21c6a6b1b"
+    },
+    {
+      "participant": "p5",
+      "signature": "0xebee1818108c2018760b88ac102f96b48e250ca138e276ae8dd0bf77beda1b1738b2b44e2e60d1894e22f93e15dd411b6572bb151d7ed489d893436f4766cb441b"
+    }
+  ]
+}

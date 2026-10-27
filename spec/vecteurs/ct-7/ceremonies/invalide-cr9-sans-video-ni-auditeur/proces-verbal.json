@@ -1,0 +1,160 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-03-membres-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "inscription_membres",
+  "purpose_details": null,
+  "environment": "production",
+  "place": "Salle de réunion, site principal (exemple)",
+  "started_at": "2026-11-03T14:00:00.000Z",
+  "ended_at": "2026-11-03T14:40:00.000Z",
+  "script": {
+    "title": "Inscription des membres du jeu d'approbateurs",
+    "version": "1",
+    "sha256": "0x44b022351f4b39ee5e5f2377b138f295af35162586378c6abae083f5004d3c6f"
+  },
+  "workstation": {
+    "description": "Aucune clé générée en cérémonie : chaque clé naît dans le portefeuille de son membre",
+    "offline": false,
+    "image_sha256": null
+  },
+  "entropy": {
+    "source": "detenteur",
+    "description": "Chaque membre a généré sa clé dans son portefeuille, avant la cérémonie"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant (compte de test 1)",
+      "role": "officiant",
+      "affiliation": "assureur-demo, exploitation",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 2)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, sécurité",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    },
+    {
+      "id": "p3",
+      "name": "Membre (compte de test 5)",
+      "role": "membre",
+      "affiliation": "assureur-demo, sinistres",
+      "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc"
+    },
+    {
+      "id": "p4",
+      "name": "Membre (compte de test 6)",
+      "role": "membre",
+      "affiliation": "assureur-demo, conformité",
+      "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-03T14:02:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Le témoin constate l'identité du membre p3 sur une pièce d'identité ; le membre lit son adresse dans son portefeuille ; l'officiant l'inscrit",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-03T14:10:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Le témoin constate l'identité du membre p4 sur une pièce d'identité ; le membre lit son adresse dans son portefeuille ; l'officiant l'inscrit",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-03T14:18:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 4,
+      "action": "Écrire le procès-verbal ; chaque participant recalcule D_C sur son poste et signe",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-03T14:35:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "approbateur-compte-5",
+      "usage": "approbateur",
+      "algorithm": "secp256k1",
+      "generated_in": "detenteur",
+      "custody_class": "sans_objet",
+      "backend": "portefeuille du membre",
+      "public_key": null,
+      "fingerprint": null,
+      "address": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    },
+    {
+      "key_id": "approbateur-compte-6",
+      "usage": "approbateur",
+      "algorithm": "secp256k1",
+      "generated_in": "detenteur",
+      "custody_class": "sans_objet",
+      "backend": "portefeuille du membre",
+      "public_key": null,
+      "fingerprint": null,
+      "address": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    }
+  ],
+  "records": [],
+  "findings": [],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0x71b8eb78d1ee3ebb8e9144b447432e701389a296a556eabdb2e85fe4b217c8e86a05f7a79e56088a472a39c3b6c479d633e88a648b1f92ec13c8f70e8a3d8cd31b"
+    },
+    {
+      "participant": "p2",
+      "signature": "0x2f82951a68f50a90aeb1a196728559d6166fb939abe489839a8c677905b70a377903b44bbfbb015bace16c3c1065c1fefe5f4a3ec7355f7b7f12474d934b00001b"
+    },
+    {
+      "participant": "p3",
+      "signature": "0x613fbd500bd2385402e145e1b29b1d309ab65485b775444b6f273b3e44c2ae02611a4a0a258d628626199ddcd8ed29d71e602c86c5fcc055934c1f060f0530f81c"
+    },
+    {
+      "participant": "p4",
+      "signature": "0xf5920fe9bebaea81bdc6740f3323307190b853fb51e7dbb6b5f359fe9e9aa39332d44f131704d1751a445fd3b22581d61211210c18146a1041c15a3580fb260c1b"
+    }
+  ]
+}
