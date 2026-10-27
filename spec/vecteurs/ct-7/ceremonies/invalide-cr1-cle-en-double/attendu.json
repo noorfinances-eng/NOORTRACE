@@ -1,0 +1,21 @@
+{
+  "verdict": "invalide",
+  "digest": null,
+  "failed": [
+    "CR-1"
+  ],
+  "not_executed": [
+    "CR-2",
+    "CR-3",
+    "CR-4",
+    "CR-5",
+    "CR-6",
+    "CR-7",
+    "CR-8",
+    "CR-9",
+    "CR-10",
+    "CR-11",
+    "CR-12"
+  ],
+  "signers": []
+}

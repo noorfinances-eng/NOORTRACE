@@ -22,7 +22,7 @@ jobs:
       - run: npm test
 
   vecteurs:
-    name: vecteurs CT-1 à CT-6, régénération déterministe et implémentations indépendantes
+    name: vecteurs CT-1 à CT-7, régénération déterministe et implémentations indépendantes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -129,6 +129,41 @@ jobs:
           go vet ./...
           go test ./...
           go run . ..
+      # Vecteurs CT-7 (spec/CT-7-securite-et-conformite.md, annexe A, EX-A.2,
+      # EX-A.12, EX-A.26 à EX-A.28) : le générateur scripts/vecteurs/generer-ct7.mjs
+      # écrit menaces.json depuis les tables du texte, les procès-verbaux de
+      # cérémonie, les clés de test, les attestations, la matrice de conformité
+      # et ses cas invalides, les épreuves et INDEX.md ; il n'efface et ne
+      # réécrit que ses propres entrées, jamais confrontation/ ni
+      # verificateur-independant/, et ne touche aucun fichier de ct-1 à ct-6.
+      # Tout doit être redonné à l'identique, sans fichier de plus.
+      - name: régénérer les vecteurs CT-7 et exiger les mêmes octets, sans fichier de plus
+        run: |
+          npm run vecteurs:ct7
+          git diff --exit-code -- spec/vecteurs/ct-7
+          test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-7)"
+      # Vérificateur Go indépendant de CT-7 (EX-A.21 à EX-A.23, EX-A.26,
+      # EX-A.27) : écrit depuis le seul texte de CT-7, de CT-1 §6.3 et des
+      # schémas ; D_C et CR-1 à CR-11 de chaque procès-verbal, JCS(P), D_P,
+      # adresses recouvrées et AT-1 à AT-4 des attestations, signatures
+      # croisées, MX-1 à MX-3, MX-5 et MX-9 de la matrice, menaces.json
+      # contre son schéma et les tables du texte, clés de test. Zéro
+      # discordance exigée.
+      - name: vérificateur Go indépendant contre les vecteurs CT-7
+        working-directory: spec/vecteurs/ct-7/verificateur-independant
+        run: |
+          gofmt -l . && test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          go run . ..
+      # Vérificateur de renvois de CT-7 (EX-A.13, EX-A.18) : RV-1 à RV-9 (chaque
+      # renvoi EX- de menaces.json et de la table de traçabilité existe, chaque
+      # menace a une réponse, tables du texte égales au fichier, occurrences de
+      # « CT-7 » toutes tracées) et MX-1 à MX-9 sur matrice-conformite.json.
+      - name: vérificateur de renvois et de la matrice de CT-7 (code 0 exigé)
+        run: node scripts/conformite/verifier-renvois.mjs
+      - name: vérificateur de procès-verbal de cérémonie sur l'exemple de CT-7 §5.10 (code 0)
+        run: node scripts/verify/ceremonie.mjs spec/vecteurs/ct-7/ceremonies/valide-creation-enregistreur/proces-verbal.json
       - name: vérificateur de référence sur le dossier complet CT-6 et un dossier CT-1 (codes 0 et 3)
         run: |
           node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet \
@@ -172,10 +207,11 @@ jobs:
           npx hardhat --config hardhat.config.mjs test test/console.test.js 2>&1 | tee "$RUNNER_TEMP/console.txt"
           if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/console.txt"; then exit 1; fi
 
-  # Confrontation des vecteurs CT-2, CT-3, CT-5 et CT-6 par des
+  # Confrontation des vecteurs CT-2, CT-3, CT-5, CT-6 et CT-7 par des
   # implémentations tierces (spec/CT-6-verificateur.md, annexe A.8 ;
   # spec/CT-5-ancrage.md, annexe A.6 ; spec/CT-2-enregistreur.md, annexes B.5
   # et B.8 ; spec/CT-3-approbations.md, annexe A.11 ;
+  # spec/CT-7-securite-et-conformite.md, annexe A.13 ;
   # spec/vecteurs/ct-*/confrontation/). Les sorties publiées
   # (confrontation/sorties/) viennent d'OpenSSL 3.0.13, de
   # python-opentimestamps 0.4.5, de transparency-dev/merkle v0.0.2, de
@@ -183,13 +219,13 @@ jobs:
   # d'ethers 6.17.0 (celui du dépôt) et d'eth-account 0.14.0 ;
   # ici, chaque programme est rejoué avec l'OpenSSL de l'exécuteur, les mêmes
   # versions des paquets Python et la même version du module Go, et doit rendre
-  # le code 0 (aucune discordance) ; les sorties de CT-2 et de CT-3 doivent en
-  # outre être égales, octet pour octet, aux sorties publiées. La
+  # le code 0 (aucune discordance) ; les sorties de CT-2, de CT-3 et de CT-7
+  # doivent en outre être égales, octet pour octet, aux sorties publiées. La
   # confrontation du registre (go-ethereum et noorcore) exige une copie de
   # noorchain-core : elle n'est pas rejouée ici, et test/confrontation.test.js
   # vérifie que sa sortie publiée porte sur les vecteurs du dépôt.
   confrontation:
-    name: vecteurs CT-2, CT-3, CT-5 et CT-6 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai, à opentelemetry-proto, à ethers et à eth-account
+    name: vecteurs CT-2, CT-3, CT-5, CT-6 et CT-7 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai, à opentelemetry-proto, à ethers et à eth-account
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -223,6 +259,37 @@ jobs:
           set -o pipefail
           "$RUNNER_TEMP/venv-eth-account/bin/python" -I spec/vecteurs/ct-3/confrontation/eth-account/confronter_eth_account.py spec/vecteurs/ct-3 | tee "$RUNNER_TEMP/eth-account.txt" | tail -1
           diff spec/vecteurs/ct-3/confrontation/sorties/eth-account.txt "$RUNNER_TEMP/eth-account.txt"
+      # CT-7 (EX-A.24, EX-A.25, EX-A.27) : chaque signature des procès-verbaux
+      # de ct-7/ceremonies/ recouvrée sur D_C, et chaque signature
+      # d'attestation (ct-7/attestations/, dossiers de ct-1 et de ct-6 à
+      # partie attestation-perimetre.json) recouvrée sur D_P, par verifyMessage
+      # d'ethers, version du dépôt, après le contrôle de forme du programme
+      # (CR-11, EX-7.6). Code 0 et sortie égale à la sortie publiée.
+      - name: CT-7 signatures des procès-verbaux et des attestations par ethers
+        run: |
+          set -o pipefail
+          node spec/vecteurs/ct-7/confrontation/ceremonies/confronter_ethers.mjs spec/vecteurs/ct-7 | tee "$RUNNER_TEMP/ct7-ceremonies-ethers.txt" | tail -1
+          diff spec/vecteurs/ct-7/confrontation/ceremonies/sorties/ethers.txt "$RUNNER_TEMP/ct7-ceremonies-ethers.txt"
+          node spec/vecteurs/ct-7/confrontation/attestations/confronter_ethers.mjs spec/vecteurs/ct-7 spec/vecteurs/ct-1 spec/vecteurs/ct-6 | tee "$RUNNER_TEMP/ct7-attestations-ethers.txt" | tail -1
+          diff spec/vecteurs/ct-7/confrontation/attestations/sorties/ethers.txt "$RUNNER_TEMP/ct7-attestations-ethers.txt"
+      # CT-7 (EX-A.24, EX-A.25, EX-A.27) : les mêmes signatures recouvrées par
+      # Account.recover_message d'eth-account 0.14.0 (encode_defunct par
+      # primitive= et hexstr= sur le condensé, par primitive= et text= pour le
+      # texte d'inscription d'un cas croisé) ; versions exactes de toutes les
+      # dépendances (exigences.txt de chaque répertoire, --no-deps). Code 0 et
+      # sortie égale à la sortie publiée.
+      - name: CT-7 signatures des procès-verbaux et des attestations par eth-account 0.14.0 (environnement virtuel)
+        run: |
+          set -o pipefail
+          for partie in ceremonies attestations; do
+            python3 -m venv "$RUNNER_TEMP/venv-ct7-$partie"
+            "$RUNNER_TEMP/venv-ct7-$partie/bin/pip" install --only-binary :all: --no-deps -r spec/vecteurs/ct-7/confrontation/$partie/exigences.txt
+            "$RUNNER_TEMP/venv-ct7-$partie/bin/pip" check
+          done
+          "$RUNNER_TEMP/venv-ct7-ceremonies/bin/python" -I spec/vecteurs/ct-7/confrontation/ceremonies/confronter_eth_account.py spec/vecteurs/ct-7 | tee "$RUNNER_TEMP/ct7-ceremonies-eth-account.txt" | tail -1
+          diff spec/vecteurs/ct-7/confrontation/ceremonies/sorties/eth-account.txt "$RUNNER_TEMP/ct7-ceremonies-eth-account.txt"
+          "$RUNNER_TEMP/venv-ct7-attestations/bin/python" -I spec/vecteurs/ct-7/confrontation/attestations/confronter_eth_account.py spec/vecteurs/ct-7 spec/vecteurs/ct-1 spec/vecteurs/ct-6 | tee "$RUNNER_TEMP/ct7-attestations-eth-account.txt" | tail -1
+          diff spec/vecteurs/ct-7/confrontation/attestations/sorties/eth-account.txt "$RUNNER_TEMP/ct7-attestations-eth-account.txt"
       - name: rfc3161 par openssl (ts, cms, asn1parse, x509, crl, verify)
         run: |
           set -o pipefail

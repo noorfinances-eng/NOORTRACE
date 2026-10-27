@@ -1,0 +1,209 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-02-sinistres-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "creation",
+  "purpose_details": null,
+  "environment": "production",
+  "place": "Salle de cérémonie, site principal (exemple)",
+  "started_at": "2026-11-02T08:00:00.000Z",
+  "ended_at": "2026-11-02T09:10:00.000Z",
+  "script": {
+    "title": "Création de la clé de l'enregistreur et de sa clé de chaîne",
+    "version": "1",
+    "sha256": "0xa3415496b2c101b78f6e4e8307705aac29139294aa0bf679f8b7e49e3fd00f08"
+  },
+  "workstation": {
+    "description": "Poste d'administration du module, démarré sur support en lecture seule, interfaces réseau désactivées",
+    "offline": true,
+    "image_sha256": "0x2408b216725cd9a613845dc2b9efa49582fd569b72e1a8979313683fd0562da5"
+  },
+  "entropy": {
+    "source": "module",
+    "description": "Générateur aléatoire du module ; aucune valeur saisie"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant (compte de test 1)",
+      "role": "officiant",
+      "affiliation": "assureur-demo, exploitation",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 2)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, sécurité",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    },
+    {
+      "id": "p3",
+      "name": "Auditeur (compte de test 4)",
+      "role": "auditeur",
+      "affiliation": "cabinet d'audit (exemple)",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-02T08:02:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Vérifier les scellés du module, démarrer le poste sur l'image dont le SHA-256 est inscrit, constater l'absence de réseau",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-02T08:10:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Générer dans le module la clé Ed25519 rec-test-01, non exportable",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-02T08:21:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 4,
+      "action": "Lire la clé publique Ed25519, calculer son SHA-256 et l'afficher à tous",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-02T08:24:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 5,
+      "action": "Générer dans le module la clé de chaîne secp256k1, signer un condensé d'essai et recouvrer l'adresse",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-02T08:35:00.000Z",
+      "outcome": "exception"
+    },
+    {
+      "n": 6,
+      "action": "Remettre au démon la seule identité d'usage : ni export, ni suppression, ni changement de politique",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-02T08:48:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 7,
+      "action": "Exporter l'attestation du module (preuve d'origine) et calculer son SHA-256",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-02T08:55:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 8,
+      "action": "Arrêter l'enregistrement vidéo, calculer les SHA-256 des enregistrements et des journaux",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-02T09:05:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "rec-test-01",
+      "usage": "enregistreur",
+      "algorithm": "ed25519",
+      "generated_in": "module",
+      "custody_class": "A",
+      "backend": "pkcs11",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "fingerprint": "0x06fa51071909aab2e05b5a04643eca0f984a73824809f5ddeba5b63c8a7d5c88",
+      "address": null,
+      "origin_proof_sha256": "0x018ac515d811bcd8db6e592c2c1c73945774caadc69bab3f881a7459e4561b51",
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    },
+    {
+      "key_id": "chaine-test-03",
+      "usage": "chaine",
+      "algorithm": "secp256k1",
+      "generated_in": "module",
+      "custody_class": "A",
+      "backend": "pkcs11",
+      "public_key": "0x0420b871f3ced029e14472ec4ebc3c0448164942b123aa6af91a3386c1c403e0ebd3b4a5752a2b6c49e574619e6aa0549eb9ccd036b9bbc507e1f7f9712a236092",
+      "fingerprint": "0x40aeb6ea3c51d30271f5bc2801e6b95f31b02ae8e470a19ebeac967b60bd0478",
+      "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    }
+  ],
+  "records": [
+    {
+      "kind": "video",
+      "name": "camera-1.mp4",
+      "sha256": "0x6cfcb6099d7e00281179f5af504960bfdede22670a825c0bf1035b774a3237f2"
+    },
+    {
+      "kind": "journal_module",
+      "name": "journal-module.txt",
+      "sha256": "0x43e562f9f1ad1011f1b13981ba65e0e45b795f5837d0279011786ed6622477b3"
+    },
+    {
+      "kind": "preuve_origine",
+      "name": "attestation-rec-test-01.der",
+      "sha256": "0x018ac515d811bcd8db6e592c2c1c73945774caadc69bab3f881a7459e4561b51"
+    }
+  ],
+  "findings": [],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0x222e77156625b8d66ef86692601888eb11b249880788fc6d3f868ff6b22c13716ce0ad1cf06adae5534196b0e7e3dffcc85d339c516aaeeec80d7fd84779f3f01b"
+    },
+    {
+      "participant": "p2",
+      "signature": "0x66eeb4c3339403598f748183ae09af2d2610182d9369006f1d7972d91d92e3b379b4fdf7c4fde3b6b67452d5736ccaf9775286c19b6bbd09d10dc02785de9fc51c"
+    },
+    {
+      "participant": "p3",
+      "signature": "0xfc7d218aee6d97b0945ae29c17ffea7505a3155c743b96e72b7186c018da8e6c592494ac39255967b0e7aadaabd7de8ec2a8fea25b3fb799068165eb1a08df211b"
+    }
+  ]
+}

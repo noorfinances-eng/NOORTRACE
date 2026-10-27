@@ -4,7 +4,9 @@
 // points-de-controle.json (K-7 à K-9, qui réemploient les vérifications de
 // CT-6, sont hors périmètre quand l'ancre n'est pas nulle ; index à douze
 // parties ou partie absente avec raison : les neuf sont non exécutées pour une
-// raison admise, §11.4). E-9 (EIP-191) est hors périmètre de ce vérificateur ;
+// raison admise, §11.4), et, révision 0.4, AT-1 à AT-7 sur la quatorzième
+// partie facultative attestation-perimetre.json (attestation.go ; sans effet
+// sur la validité du dossier). E-9 (EIP-191) est hors périmètre de ce vérificateur ;
 // les parties réservées à CT-4 et CT-5 rendent les contrôles 4, 5 et 8 non
 // exécutés et bornent le verdict (§11.3).
 
@@ -26,7 +28,8 @@ type Partie struct {
 }
 
 // partiesAttendues sont les douze parties, dans l'ordre imposé, puis la
-// treizième, facultative (révision 0.3).
+// treizième, facultative (révision 0.3), et la quatorzième, facultative,
+// déclarée seulement après la treizième (révision 0.4).
 var partiesAttendues = []struct{ name, file string }{
 	{"evenement", "evenement.json"},
 	{"voisins", "voisins.json"},
@@ -41,6 +44,7 @@ var partiesAttendues = []struct{ name, file string }{
 	{"certificat_commit", "certificat-commit.json"},
 	{"validateurs", "validateurs.json"},
 	{"points_de_controle", "points-de-controle.json"},
+	{"attestation_perimetre", "attestation-perimetre.json"},
 }
 
 // idsK sont les vérifications de la treizième partie (§11.4, révision 0.3).
@@ -61,6 +65,13 @@ type Dossier struct {
 	Resultats    *Resultats
 	Bornes       []string
 	admis        map[string]bool // contrôles non exécutés pour une raison admise (§11.4)
+	// Perimetre porte les statuts de AT-1 à AT-7 (révision 0.4), nil quand
+	// la quatorzième partie n'est pas déclarée présente ; ils n'entrent ni
+	// dans Resultats ni dans la validité du dossier.
+	Perimetre []*StatutAT
+	// clesExploitable : cles.json lu et conforme à la première partie de
+	// E-8 (schéma, org_id et journal_id, unicité, validités), prérequis d'AT-6.
+	clesExploitable bool
 }
 
 // nonExecuteAdmis marque un contrôle non exécuté pour une raison que §11.4 admet.
@@ -173,8 +184,10 @@ func VerifierDossier(dir string) *Dossier {
 			r.Echec("E-8", "cles.json : %s", m)
 		}
 		d.Cles = jeu
+		d.clesExploitable = jeu != nil && len(mq) == 0
 		if jeu != nil && (jeu.OrgID != chaineDe(d.Evenement, "org_id") || jeu.JournalID != chaineDe(d.Evenement, "journal_id")) {
 			r.Echec("E-8", "cles.json : org_id ou journal_id différents de ceux de l'événement")
+			d.clesExploitable = false
 		}
 	}
 
@@ -199,6 +212,9 @@ func VerifierDossier(dir string) *Dossier {
 
 	// Treizième partie (révision 0.3) : K-1 à K-9
 	d.controlerPointsDeControle()
+
+	// Quatorzième partie (révision 0.4) : AT-1 à AT-7, sans effet sur le verdict
+	d.controlerAttestation()
 
 	// Borne du verdict (§11.3)
 	d.enoncerBornes()
@@ -231,8 +247,8 @@ func (d *Dossier) controlerIndex() {
 	if parts.Kind != KindArray {
 		m.add("dossier.parts", "tableau attendu")
 	} else {
-		if len(parts.Arr) != 12 && len(parts.Arr) != 13 {
-			m.add("dossier.parts", "douze parties attendues (treize avec points-de-controle.json, révision 0.3), %d déclarées", len(parts.Arr))
+		if len(parts.Arr) < 12 || len(parts.Arr) > 14 {
+			m.add("dossier.parts", "douze parties attendues (treize avec points-de-controle.json, révision 0.3 ; quatorze avec attestation-perimetre.json, révision 0.4), %d déclarées", len(parts.Arr))
 		}
 		for i, p := range parts.Arr {
 			ch := fmt.Sprintf("dossier.parts[%d]", i)

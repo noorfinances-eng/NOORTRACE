@@ -48,9 +48,12 @@ python3 -I spec/vecteurs/ct-5/confrontation/reponses/confronter_reponses.py spec
 Code de retour : 0 si tout concorde, 1 sinon, 2 pour un usage incorrect. La
 sortie de référence est `../sorties/reponses.txt` (OpenSSL 3.0.13) : 28 cas
 de `reponses.json` (20 réponses DER, 8 réponses HTTP représentées sans
-objet), 17 dossiers de CT-6 à partie `points-de-controle.json` (15 jetons
+objet), 18 dossiers de CT-6 à partie `points-de-controle.json` (16 jetons
 vérifiés, dont ceux du point contresigné de 09:35 et du point de clôture ; 2
-sans jeton), 0 discordance, 0 limite de l'outil.
+sans jeton), 0 discordance, 0 limite de l'outil. Le dix-huitième,
+`valide-point-de-controle-complet-attestation` (CT-7, CT-6 révision 0.3),
+reprend tel quel le `points-de-controle.json` de
+`valide-point-de-controle-complet`.
 
 Les raisons d'échec d'openssl sont lues dans son ordre, chacune une fois.
 Les erreurs de la bibliothèque système (« system library ») sont écartées :

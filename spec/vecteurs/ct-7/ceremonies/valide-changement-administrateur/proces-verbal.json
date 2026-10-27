@@ -1,0 +1,187 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-06-gouvernance-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "changement_administrateur",
+  "purpose_details": {
+    "approver_set_hash": "0x3e807bb9c8dbdc52ee69646d1271a488c1c91be1c2b97773189e329d515892fc",
+    "required": 2
+  },
+  "environment": "production",
+  "place": "Salle de cérémonie, site principal (exemple)",
+  "started_at": "2026-11-06T10:00:00.000Z",
+  "ended_at": "2026-11-06T11:00:00.000Z",
+  "script": {
+    "title": "Changement d'administrateur du jeu sur perte de la clé de gouvernance",
+    "version": "1",
+    "sha256": "0x3f2819eabb8592a19ff2f40aa3f13016b8b6ac481a2437de2bdfd8b4d03df162"
+  },
+  "workstation": {
+    "description": "Poste d'administration du module, démarré sur support en lecture seule, interfaces réseau désactivées",
+    "offline": true,
+    "image_sha256": "0x2408b216725cd9a613845dc2b9efa49582fd569b72e1a8979313683fd0562da5"
+  },
+  "entropy": {
+    "source": "module",
+    "description": "Générateur aléatoire du module ; aucune valeur saisie"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant de l'exploitant (compte de test 8)",
+      "role": "officiant",
+      "affiliation": "NOORTRACE, exploitation",
+      "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 4)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, sécurité",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
+    },
+    {
+      "id": "p3",
+      "name": "Membre présent (compte de test 1)",
+      "role": "membre",
+      "affiliation": "assureur-demo, sinistres",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p4",
+      "name": "Membre présent (compte de test 2)",
+      "role": "membre",
+      "affiliation": "assureur-demo, conformité",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-06T10:02:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Lire sur la chaîne le jeu en vigueur et constater que les membres présents en sont, au moins au seuil",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-06T10:12:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Générer dans le module la nouvelle clé de gouvernance et lire son adresse",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-06T10:25:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 4,
+      "action": "Écrire le procès-verbal ; chaque participant recalcule D_C sur son poste et signe",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-06T10:50:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "approbateur-compte-1",
+      "usage": "approbateur",
+      "algorithm": "secp256k1",
+      "generated_in": "detenteur",
+      "custody_class": "sans_objet",
+      "backend": "portefeuille du membre",
+      "public_key": null,
+      "fingerprint": null,
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    },
+    {
+      "key_id": "approbateur-compte-2",
+      "usage": "approbateur",
+      "algorithm": "secp256k1",
+      "generated_in": "detenteur",
+      "custody_class": "sans_objet",
+      "backend": "portefeuille du membre",
+      "public_key": null,
+      "fingerprint": null,
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    },
+    {
+      "key_id": "gouvernance-test-07",
+      "usage": "gouvernance",
+      "algorithm": "secp256k1",
+      "generated_in": "module",
+      "custody_class": "A",
+      "backend": "pkcs11",
+      "public_key": "0x0401f2bf1fa920e77a43c7aec2587d0b3814093420cc59a9b3ad66dd5734dda7be6f8b7de790eac3a720fd8e4bcb9eae9434f843d3cec111d9e07adeddeae090f2",
+      "fingerprint": "0xfd094f48df8180ae499e9f9edff6f51dd53f56c28635d2e6c3026069c55530a3",
+      "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    }
+  ],
+  "records": [
+    {
+      "kind": "video",
+      "name": "camera-1.mp4",
+      "sha256": "0x205e366d34b851b996d2c1227a061b876970f4a80eb5be650501a61f69c4db5f"
+    }
+  ],
+  "findings": [],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0x3601a874a95b5adebc252a6353fbf9c60fddee6ed3ff2affd913638392e6ce53061bfafcebfee02e735004cfdca5351d26e959e81576a982325d7a2b04912f7c1b"
+    },
+    {
+      "participant": "p2",
+      "signature": "0x12f8c46b72d3bf643a47c8d50ec6393a96beda1c4e330062cfc21e2db370e7b119d0aee69b06687cbf13ed2cd652fa0776b7688be185f625e523a733e8551d561b"
+    },
+    {
+      "participant": "p3",
+      "signature": "0x39507adbb832663080a834ae6a502e233c14faddaa7c55c0efa7aba3d2d5e6fa61e7174fe1b145f770bcd9f592a0395e80d95c81f375d4a00489984ebf606d261c"
+    },
+    {
+      "participant": "p4",
+      "signature": "0xd44d45b91780db73c05c8e75c1d5f77866ce50dde38399e66ed99b321626328d0801726965b8903c1b4f00433a3a2dee11d0441392b579c4fb562e837c00cdfe1b"
+    }
+  ]
+}

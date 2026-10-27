@@ -1,0 +1,139 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-12-sinistres-urgence-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "rotation_urgence",
+  "purpose_details": {
+    "decided_at": "2026-11-12T07:55:00.000Z",
+    "revocation_included_at": "2026-11-12T07:52:00.000Z"
+  },
+  "environment": "production",
+  "place": "Salle de cérémonie, site principal (exemple)",
+  "started_at": "2026-11-12T08:00:00.000Z",
+  "ended_at": "2026-11-12T08:40:00.000Z",
+  "script": {
+    "title": "Rotation d'urgence de la clé de chaîne de l'enregistreur",
+    "version": "1",
+    "sha256": "0x9687712589da5f38484383252031de6d7124f848a54f6812a8a8f350708f66e6"
+  },
+  "workstation": {
+    "description": "Poste d'administration du module, démarré sur support en lecture seule, interfaces réseau désactivées",
+    "offline": true,
+    "image_sha256": "0x2408b216725cd9a613845dc2b9efa49582fd569b72e1a8979313683fd0562da5"
+  },
+  "entropy": {
+    "source": "module",
+    "description": "Générateur aléatoire du module ; aucune valeur saisie"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant (compte de test 1)",
+      "role": "officiant",
+      "affiliation": "assureur-demo, exploitation",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 2)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, sécurité",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    },
+    {
+      "id": "p3",
+      "name": "Auditeur (compte de test 4)",
+      "role": "auditeur",
+      "affiliation": "cabinet d'audit (exemple)",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Lire le script à voix haute et comparer son SHA-256 à celui publié avant la cérémonie",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-12T08:02:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Générer dans le module la nouvelle clé de chaîne secp256k1, signer un condensé d'essai et recouvrer l'adresse",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2",
+        "p3"
+      ],
+      "at": "2026-11-12T08:15:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Remettre au démon la seule identité d'usage de la nouvelle clé",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-12T08:30:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [
+    {
+      "key_id": "chaine-test-07",
+      "usage": "chaine",
+      "algorithm": "secp256k1",
+      "generated_in": "module",
+      "custody_class": "A",
+      "backend": "pkcs11",
+      "public_key": "0x0401f2bf1fa920e77a43c7aec2587d0b3814093420cc59a9b3ad66dd5734dda7be6f8b7de790eac3a720fd8e4bcb9eae9434f843d3cec111d9e07adeddeae090f2",
+      "fingerprint": "0xfd094f48df8180ae499e9f9edff6f51dd53f56c28635d2e6c3026069c55530a3",
+      "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+      "origin_proof_sha256": null,
+      "backup": {
+        "scheme": "aucune",
+        "k": null,
+        "n": null,
+        "holders": []
+      }
+    }
+  ],
+  "records": [
+    {
+      "kind": "video",
+      "name": "camera-1.mp4",
+      "sha256": "0xde238dba279917010ed0249bcac7fd3b5b5192c10c939b10bbe6be03ed9afe89"
+    }
+  ],
+  "findings": [
+    {
+      "n": 1,
+      "step": null,
+      "kind": "observation",
+      "text": "Révocation de l'ancienne clé de chaîne incluse 12 minutes après la décision ; délai mesuré inscrit dans purpose_details (exemple).",
+      "resolution": null
+    }
+  ],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0x00a7faaa29642043ef3d6e63a1393329ca5ee33c124aa0e61780edfb5440bb0673e32d8d3c778c4c51fed4a5559db6b210049c5f4c4472c4ce220c72c64597f41c"
+    },
+    {
+      "participant": "p2",
+      "signature": "0x0b461e89f44a4ce8e814a26dccf7288c82081a0a91a70a8f17975b8127d68b43434baf59406a83082a15da2f4331a3093ffe348805afe62bb368b601a60a89f61b"
+    },
+    {
+      "participant": "p3",
+      "signature": "0x6f3eec280b8345b89586adfd876ed50ab9501513202054ed5be32632c2d870424892323397a08e29458d7d5df4a8ef8c77a4db0f7cfceabff9b0913a717196a71b"
+    }
+  ]
+}

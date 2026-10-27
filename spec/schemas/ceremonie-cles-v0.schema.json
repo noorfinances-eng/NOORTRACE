@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/ceremonie-cles.schema.json",
+  "title": "Procès-verbal de cérémonie des clés (CT-7 §5)",
+  "description": "Procès-verbal lisible par machine d'une cérémonie des clés : participants, étapes, clés produites et leurs empreintes, enregistrements, constats, et une signature EIP-191 de chaque participant sur le condensé D_C (CT-7 §5.7). Les règles que le schéma n'exprime pas sont les vérifications CR-2 à CR-12 (CT-7 §5.8). Dans les $defs, le fichier attendu d'un cas de vecteur (`attendu`) et le fichier des clés de test des vecteurs (`cles_de_test`, CT-7 EX-A.7).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "ceremony_id", "scope", "organization", "purpose", "purpose_details", "environment", "place", "started_at", "ended_at", "script", "workstation", "entropy", "participants", "steps", "keys", "records", "findings", "signatures"],
+  "properties": {
+    "version": { "const": 0 },
+    "kind": { "const": "ceremonie-cles" },
+    "ceremony_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{0,63}$" },
+    "scope": { "type": "string", "enum": ["client", "exploitant"] },
+    "organization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "org_id"],
+      "properties": {
+        "name": { "$ref": "#/$defs/texte_court" },
+        "org_id": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hex32" }] }
+      }
+    },
+    "purpose": {
+      "type": "string",
+      "enum": ["creation", "rotation", "rotation_urgence", "revocation", "inscription_membres", "sauvegarde", "restauration", "destruction", "changement_administrateur", "recompletement", "autre"]
+    },
+    "purpose_details": {
+      "description": "Ce que l'objet consigne en plus, en membres structurés (CT-7 5.1, CR-12) : null pour creation, rotation, sauvegarde, inscription_membres et autre ; un objet de la forme propre à l'objet sinon.",
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/details_rotation_urgence" },
+        { "$ref": "#/$defs/details_transaction" },
+        { "$ref": "#/$defs/details_destruction" },
+        { "$ref": "#/$defs/details_restauration" },
+        { "$ref": "#/$defs/details_changement_administrateur" }
+      ]
+    },
+    "environment": { "type": "string", "enum": ["production", "preproduction", "developpement"] },
+    "place": { "$ref": "#/$defs/texte_court" },
+    "started_at": { "$ref": "#/$defs/horodatage" },
+    "ended_at": { "$ref": "#/$defs/horodatage" },
+    "script": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "version", "sha256"],
+      "properties": {
+        "title": { "$ref": "#/$defs/texte_court" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "sha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hex32" }] }
+      }
+    },
+    "workstation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "offline", "image_sha256"],
+      "properties": {
+        "description": { "$ref": "#/$defs/texte_court" },
+        "offline": { "type": "boolean" },
+        "image_sha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hex32" }] }
+      }
+    },
+    "entropy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "description"],
+      "properties": {
+        "source": { "type": "string", "enum": ["module", "systeme_du_poste", "detenteur", "sans_objet"] },
+        "description": { "$ref": "#/$defs/texte_court" }
+      }
+    },
+    "participants": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "role", "affiliation", "address"],
+        "properties": {
+          "id": { "$ref": "#/$defs/participant_id" },
+          "name": { "$ref": "#/$defs/texte_court" },
+          "role": { "type": "string", "enum": ["officiant", "temoin", "detenteur_part", "auditeur", "membre", "observateur"] },
+          "affiliation": { "$ref": "#/$defs/texte_court" },
+          "address": { "$ref": "#/$defs/adresse" }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "action", "performed_by", "witnessed_by", "at", "outcome"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 1, "maximum": 512 },
+          "action": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "performed_by": { "$ref": "#/$defs/participant_id" },
+          "witnessed_by": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/participant_id" } },
+          "at": { "$ref": "#/$defs/horodatage" },
+          "outcome": { "type": "string", "enum": ["fait", "exception"] }
+        }
+      }
+    },
+    "keys": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "usage", "algorithm", "generated_in", "custody_class", "backend", "public_key", "fingerprint", "address", "origin_proof_sha256", "backup"],
+        "properties": {
+          "key_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$" },
+          "usage": {
+            "type": "string",
+            "enum": ["enregistreur", "chaine", "approbateur", "gouvernance", "administrateur_registre", "deployeur", "relayeur", "tresorerie", "approvisionnement", "validateur", "tsa_interne", "enveloppe"]
+          },
+          "algorithm": { "type": "string", "enum": ["ed25519", "secp256k1", "rsa", "ecdsa_p256", "aes256"] },
+          "generated_in": { "type": "string", "enum": ["module", "service", "poste", "detenteur"] },
+          "custody_class": { "type": "string", "enum": ["A", "B", "C", "D", "sans_objet"] },
+          "backend": { "$ref": "#/$defs/texte_court" },
+          "public_key": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^0x([0-9a-f]{2}){32,4096}$" }] },
+          "fingerprint": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hex32" }] },
+          "address": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/adresse" }] },
+          "origin_proof_sha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hex32" }] },
+          "backup": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scheme", "k", "n", "holders"],
+            "properties": {
+              "scheme": { "type": "string", "enum": ["aucune", "partage_k_sur_n"] },
+              "k": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 16 }] },
+              "n": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 16 }] },
+              "holders": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/participant_id" } }
+            }
+          }
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "name", "sha256"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["video", "journal_poste", "journal_module", "script_annote", "preuve_origine", "autre"] },
+          "name": { "$ref": "#/$defs/texte_court" },
+          "sha256": { "$ref": "#/$defs/hex32" }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "step", "kind", "text", "resolution"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 1, "maximum": 256 },
+          "step": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 512 }] },
+          "kind": { "type": "string", "enum": ["ecart", "incident", "observation"] },
+          "text": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "resolution": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 4096 }] }
+        }
+      }
+    },
+    "signatures": {
+      "description": "Hors du condensé D_C : une entrée par participant (CR-11).",
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["participant", "signature"],
+        "properties": {
+          "participant": { "$ref": "#/$defs/participant_id" },
+          "signature": { "type": "string", "pattern": "^0x[0-9a-f]{130}$" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hex32": { "type": "string", "pattern": "^0x[0-9a-f]{64}$" },
+    "adresse": { "type": "string", "pattern": "^0x[0-9a-f]{40}$" },
+    "horodatage": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "texte_court": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "participant_id": { "type": "string", "pattern": "^p[1-9][0-9]{0,2}$" },
+    "verification": { "type": "string", "pattern": "^CR-([1-9]|1[0-2])$" },
+    "details_rotation_urgence": {
+      "description": "rotation_urgence : instant de la décision et instant d'inclusion de la révocation de l'ancienne clé (CT-7 5.1, EX-3.12).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decided_at", "revocation_included_at"],
+      "properties": {
+        "decided_at": { "$ref": "#/$defs/horodatage" },
+        "revocation_included_at": { "$ref": "#/$defs/horodatage" }
+      }
+    },
+    "details_transaction": {
+      "description": "revocation et recompletement : hachage de la transaction au registre (CT-7 5.1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tx_hash"],
+      "properties": { "tx_hash": { "$ref": "#/$defs/hex32" } }
+    },
+    "details_destruction": {
+      "description": "destruction : SHA-256 de la preuve de destruction produite par le backend (CT-7 5.1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["destruction_proof_sha256"],
+      "properties": { "destruction_proof_sha256": { "$ref": "#/$defs/hex32" } }
+    },
+    "details_restauration": {
+      "description": "restauration : D_C du procès-verbal de la sauvegarde restaurée, et son partage k sur n (CT-7 EX-5.5, CR-12).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backup_ceremony_digest", "k", "n"],
+      "properties": {
+        "backup_ceremony_digest": { "$ref": "#/$defs/hex32" },
+        "k": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "n": { "type": "integer", "minimum": 1, "maximum": 16 }
+      }
+    },
+    "details_changement_administrateur": {
+      "description": "changement_administrateur : hachage du jeu d'approbateurs en vigueur et son seuil déclaré (CT-7 5.1, CR-12).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approver_set_hash", "required"],
+      "properties": {
+        "approver_set_hash": { "$ref": "#/$defs/hex32" },
+        "required": { "type": "integer", "minimum": 1, "maximum": 64 }
+      }
+    },
+    "cles_de_test": {
+      "description": "Fichier `spec/vecteurs/ct-7/cles-de-test.json` (CT-7 EX-A.7) : les clés publiques de test publiées par les vecteurs, triées par source puis étiquette. Une clé RSA ou ECDSA P-256 n'a que spki_sha256 ; une clé Ed25519 n'a que public_key ; une clé secp256k1 a public_key et address.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "keys"],
+      "properties": {
+        "version": { "const": 0 },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["source", "label", "algorithm", "public_key", "address", "spki_sha256"],
+            "properties": {
+              "source": { "type": "string", "enum": ["ct-1", "ct-3", "ct-4", "ct-6"] },
+              "label": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "algorithm": { "type": "string", "enum": ["ed25519", "secp256k1", "rsa", "ecdsa_p256"] },
+              "public_key": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^0x([0-9a-f]{2}){32,4096}$" }] },
+              "address": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/adresse" }] },
+              "spki_sha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hex32" }] }
+            }
+          }
+        }
+      }
+    },
+    "attendu": {
+      "description": "Fichier `attendu.json` d'un cas de `spec/vecteurs/ct-7/ceremonies/` (CT-7 annexe A).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "digest", "failed", "not_executed", "signers"],
+      "properties": {
+        "verdict": { "type": "string", "enum": ["valide", "invalide"] },
+        "digest": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hex32" }] },
+        "failed": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/verification" } },
+        "not_executed": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/verification" } },
+        "signers": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/adresse" } }
+      }
+    }
+  }
+}

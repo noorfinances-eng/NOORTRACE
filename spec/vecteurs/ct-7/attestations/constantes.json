@@ -1,0 +1,62 @@
+{
+  "version": 0,
+  "prefix_hex": "6e6f6f7274726163652f6174746573746174696f6e2d706572696d657472652f76300a",
+  "prefix_utf8": "noortrace/attestation-perimetre/v0\n",
+  "mnemonic": "test test test test test test test test test test test junk",
+  "accounts": [
+    {
+      "index": 1,
+      "derivation_path": "m/44'/60'/0'/0/1",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "index": 2,
+      "derivation_path": "m/44'/60'/0'/0/2",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    },
+    {
+      "index": 3,
+      "derivation_path": "m/44'/60'/0'/0/3",
+      "address": "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    },
+    {
+      "index": 4,
+      "derivation_path": "m/44'/60'/0'/0/4",
+      "address": "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65"
+    }
+  ],
+  "org": {
+    "slug": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "derivation": "keccak256(UTF-8(slug))"
+  },
+  "journals": [
+    {
+      "name": "journal-principal",
+      "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+      "derivation": "keccak256(UTF-8(name))"
+    },
+    {
+      "name": "journal-sinistres",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "derivation": "keccak256(UTF-8(name))"
+    }
+  ],
+  "rules_sha256": {
+    "label": "export fictif des règles de sortie du pare-feu, vecteurs CT-7",
+    "sha256": "0xf36e414b01b7813795a3220703368246d2904119c701835cfbef527c2bfb23ae",
+    "derivation": "SHA-256(UTF-8(label))"
+  },
+  "approver_set": {
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "members": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "source": "comptes Hardhat 1 à 3 (vecteurs CT-1)"
+  }
+}

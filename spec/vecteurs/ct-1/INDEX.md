@@ -121,7 +121,10 @@ déclarées dans `dossier.json`, les cinq parties réservées à CT-4 et CT-5
 absentes avec la raison « hors périmètre CT-1 » ; révision 0.3 : les
 dossiers `*-point-de-controle`, `*-partie-declaree-absente` et `invalide-k*`
 déclarent une treizième partie `points-de-controle.json`, vérifications K-1 à
-K-6, ancres à `null`) plus un fichier
+K-6, ancres à `null` ; révision 0.4 : les dossiers `*attestation*`,
+`valide-at*` et `valide-seq-13-at7-autre-version` déclarent quatorze
+parties, la quatorzième `attestation-perimetre.json`, vérifications AT-1 à
+AT-7, sans effet sur le verdict, CT-7 annexe A.7) plus un fichier
 `attendu.json`, étranger au dossier et ignoré par le vérificateur, qui donne le
 verdict attendu : `valide`, `controle` (le contrôle visé), `controles_en_echec`
 (la liste **exacte** des contrôles en échec, dans l'ordre de CT-1 §11.4) et une
@@ -131,6 +134,24 @@ de `valide-seq-7` et leur index est recalculé après l'altération, pour que se
 le contrôle visé échoue ; quand une cascade est inévitable, elle est listée.
 « Journal rejoué » : l'altération est faite à la source et la chaîne, les
 manifestes et le dossier sont recalculés.
+
+Révision 0.4 (CT-1 §11.5, CT-7 annexe A.7) : l'`attendu.json` d'un dossier
+qui déclare la quatorzième partie donne en plus `perimeter_target` (la
+vérification AT- que le dossier exerce : en échec, non exécutée avec sa raison,
+ou réussie quand le cas vise un avertissement, AV-AT-2 pour
+`valide-at4-jeu-different` ; `null` pour les dossiers de référence et
+pour `invalide-d2-attestation-sha256`), `perimeter_checks` (statut et raison de
+AT-1 à AT-7, dans l'ordre ; vide quand la partie est déclarée absente),
+`perimeter_retained` (attestation retenue, CT-6 EX-6.19 ; `null` sans la
+partie) et `warnings` (avertissements AV-AT-). L'attestation est celle de
+CT-7 §7.1, signée par les comptes Hardhat 1 et 2 (D_P
+`0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd`) ; le
+« journal rejoué de CT-7 §7.5 » est `journal-valide` dont seq 12 annonce le
+document de politique réduit
+`{"perimeter":{"attestation_digest":D_P},"version":"2026-11-05"}` (hash
+`0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90`). Une
+vérification AT- en échec ne rend jamais le dossier invalide ; seule D-2 porte
+sur le fichier de la partie.
 
 | Répertoire | Verdict attendu | Altération |
 |---|---|---|
@@ -184,6 +205,26 @@ manifestes et le dossier sont recalculés.
 | `invalide-k6-last-hash/` | **K-6** | last_hash du point réécrit (point re-signé, checkpoint_hash recalculé : K-2 et K-3 passent) : l'événement last_seq (seq 8) est le voisin suivant et son hash recalculé n'est pas celui que le point annonce. |
 | `valide-seq-7-point-de-cloture/` | valide | Dossier de seq 7 dont la treizième partie porte le point de clôture de la période 1 (2026-11-05T10:00:00.300Z, tree_size 9 = count) : preuve de cohérence de neuf feuilles vers neuf, chemin vide et racines égales (CT-1 §10.7, m = n) ; K-1 à K-5 réussies ; K-6 non exécutée pour une raison admise (l'événement last_seq, seq 9, est hors du dossier) ; K-7 à K-9 non exécutées, ancres nulles. |
 | `invalide-k1-double-defaut/` | **K-1** | La partie porte un membre « extra » hors du schéma et un chemin de cohérence tronqué : K-1 échoue sur le schéma ; K-2 à K-9 ne sont pas exécutées (prérequis K-1 en échec), si bien que le chemin tronqué n'est pas examiné et K-5 n'est pas en échec. |
+| `valide-seq-12-attestation-inscrite/` | valide ; attestation retenue | Journal rejoué de CT-7 §7.5 : seq 12 (rec-test-02) annonce la politique 2026-11-05 dont le document réduit porte perimeter.attestation_digest = D_P de l'attestation de CT-7 §7.1. Dossier de seq 12, quatorze parties (la treizième absente, « aucun point de contrôle ») ; la partie porte l'attestation signée par les comptes Hardhat 1 et 2, le jeu des comptes 1 à 3 au seuil de 2, et l'inscription (seq 12 et le document en base64). AT-1 à AT-7 réussissent : attestation retenue et inscrite (clé rec-test-02, celle de l'événement prouvé) ; AT-7 ne compare que le nom de la version de politique, et l'énoncé dit « sous une version de politique de même nom que celle de cet événement » (CT-6 EX-6.19). |
+| `valide-seq-7-attestation-sans-inscription/` | valide ; attestation retenue | Dossier valide-seq-7 avec la quatorzième partie sans inscription (inscription vaut null) et la treizième absente : AT-1 à AT-5 réussissent, AT-6 et AT-7 ne sont pas exécutées (partie absente) ; l'attestation est retenue sans place dans le journal (CT-7 EX-7.12). Le jeu déclaré est celui de approbations.json : aucun avertissement. |
+| `valide-seq-7-attestation-declaree-absente/` | valide ; aucune AT- | Dossier valide-seq-7 dont l'index déclare quatorze parties, la treizième et la quatorzième absentes (« aucun point de contrôle », « aucune attestation de périmètre ») : aucune vérification AT- n'est exécutée ni rapportée ; le dossier ne dit rien du périmètre (CT-7 EX-7.15). |
+| `valide-seq-13-at7-autre-version/` | valide ; AT-7 visée, attestation retenue (AV-AT-3) | Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui annonce la politique 2026-11-06, sans membre perimeter ; dossier de seq 13 dont la partie joint l'inscription seq 12. AT-6 réussit (seq 12 précède seq 13) ; AT-7 n'est pas exécutée (pièce hors dossier : l'ensemble de politique en vigueur pour l'événement n'est pas celui de l'inscription), avertissement AV-AT-3 ; l'attestation reste retenue, et l'énoncé dit « sans preuve qu'elle était en vigueur pour cet événement (version de politique différente) » (CT-6 EX-6.19). |
+| `valide-at1-partie-nulle/` | valide ; AT-1 visée, attestation non retenue (AV-AT-1) | La partie attestation-perimetre.json est le littéral null (index recalculé) : AT-1 échoue, AT-2 à AT-7 ne sont pas exécutées (prérequis en échec), AV-AT-1 ; le dossier reste valide (CT-1 §11.4, CT-6 EX-5.11). |
+| `valide-at1-taille/` | valide ; AT-1 visée, attestation non retenue (AV-AT-1) | La partie fait 4194305 octets (4 Mio plus un octet) : la même partie que valide-seq-7-attestation-sans-inscription, complétée par des espaces de mise en forme avant le saut de ligne final, donc conforme à son schéma. Au-delà de la limite de CT-6 EX-4.15 : AT-1 échoue, AT-2 à AT-7 ne sont pas exécutées, AV-AT-1 ; D-2 réussit (SHA-256 de l'index exact), le dossier reste valide. |
+| `valide-at3-signature-substituee/` | valide ; AT-3 visée, attestation non retenue (AV-AT-1) | La signature du compte Hardhat 3 sur D_P est déclarée pour le compte 2 (cas invalide-at3-signature-substituee de CT-7 annexe A.6) : l'adresse recouvrée est 0x90f79bf6eb2c4f870365e785982e1f101e93b906, AT-3 échoue, AT-4 n'est pas exécutée, AV-AT-1 ; le dossier reste valide. |
+| `valide-at4-jeu-different/` | valide ; AT-4 visée, attestation retenue (AV-AT-2) | Le jeu déclaré par la partie est celui des comptes Hardhat 1, 2 et 4 (seuil de 2 sur 3), approbations.json déclare les comptes 1 à 3 : AT-4 réussit (les comptes 1 et 2 sont membres des deux jeux), l'attestation est retenue, et AV-AT-2 signale les deux jeux différents. |
+| `valide-at5-autre-journal/` | valide ; AT-5 visée, attestation non retenue (AV-AT-1) | Attestation (signée par les comptes 1 et 2) qui ne couvre que journal-principal et son agent : l'événement prouvé est de journal-sinistres, AT-5 échoue, AV-AT-1 ; le dossier reste valide. |
+| `valide-at5-hors-validite/` | valide ; AT-5 visée, attestation non retenue (AV-AT-1) | Attestation valable du 1er au 4 novembre 2026 (signée par les comptes 1 et 2), événement prouvé du 5 novembre : ts hors de la validité, AT-5 échoue, AV-AT-1 ; le dossier reste valide. |
+| `valide-at6-inscription-posterieure/` | valide ; AT-6 visée, attestation non retenue (AV-AT-1) | Dossier de seq 11 du journal rejoué, dont la partie joint l'inscription seq 12 : l'inscription suit l'événement prouvé (seq et ts), AT-6 échoue, AT-7 n'est pas exécutée (prérequis en échec), AV-AT-1 ; le dossier reste valide. |
+| `valide-at6-document-autre-condense/` | valide ; AT-6 visée, attestation non retenue (AV-AT-1) | Journal rejoué dont seq 12 annonce un document de politique dont perimeter.attestation_digest est SHA-256(« noortrace/vecteurs/ct7/autre-attestation ») et non D_P (événement rescellé, dossier de seq 12) : AT-6 échoue, AV-AT-1 ; le dossier reste valide. |
+| `valide-at6-inscription-signature-fausse/` | valide ; AT-6 visée, attestation non retenue (AV-AT-1) | Dossier valide-seq-12-attestation-inscrite dont l'événement d'inscription joint à la partie est signé par rec-test-01 alors qu'il nomme rec-test-02 (hash inchangé, evenement.json intact) : la signature est invalide sous la clé nommée, AT-6 échoue, AV-AT-1 ; le dossier reste valide. |
+| `valide-at6-cle-non-ancree/` | valide ; AT-6 visée, attestation retenue | Dossier valide-seq-7-attestation-sans-inscription où l'exportateur ajoute à cles.json une clé rec-forge-01 (graine = SHA-256 de « noortrace/vecteurs/ct7/rec-forge-01 ») et joint une inscription forgée : seq 2, 09:10:00.000Z, signée par rec-forge-01, document de politique portant D_P sous la version de l'événement prouvé. L'événement prouvé (seq 7) est signé par rec-test-01 : la clé de l'inscription n'est pas la sienne, rien ne la relie au journal, AT-6 n'est pas exécutée (ancre_absente) et AT-7 non plus (prérequis) ; l'attestation est retenue sans clause d'inscription (CT-6 EX-6.19), le dossier reste valide (CT-7 MN-84, MN-90). |
+| `valide-at2-condense-faux/` | valide ; AT-2 visée, attestation non retenue (AV-AT-1) | signed.digest est le D_P d'une autre attestation (issued_at du 31 octobre) : AT-2 échoue ; AT-3 et AT-4 réussissent, les signatures portant sur le D_P recalculé ; inscription nulle, AT-6 et AT-7 ne sont pas exécutées, partie absente (la raison partie_absente l'emporte sur l'échec d'AT-2, CT-6 EX-5.12) ; AV-AT-1 ; le dossier reste valide (CT-6 EX-5.11, V-10). |
+| `valide-at4-seuil-non-atteint/` | valide ; AT-4 visée, attestation non retenue (AV-AT-1) | L'attestation n'est signée que par le compte Hardhat 1, pour un jeu déclaré au seuil de 2 sur 3 : AT-3 réussit, AT-4 échoue, AV-AT-1 ; le dossier reste valide (CT-6 EX-5.11, V-10). |
+| `invalide-e1-attestation-non-executee/` | **E-1** (en échec : E-1, E-7, E-8, C-2, M-1) ; AT-5 visée, attestation non retenue (AV-AT-1) | evenement.json de valide-seq-7-attestation-sans-inscription porte un membre hors schéma (extra) : E-1 échoue, avec E-7, E-8, C-2 et M-1 que le hash recalculé met en échec, et le dossier est invalide. AT-1 à AT-4 réussissent ; AT-5 n'est pas exécutée (evenement.json inexploitable) ; inscription nulle, AT-6 et AT-7 non exécutées (partie absente). Aucune AT- n'est en échec, et l'attestation n'est pas retenue : AV-AT-1 nomme AT-5, non exécutée (CT-6 5.5). |
+| `valide-at7-nom-reannonce/` | valide ; AT-7 visée, attestation retenue | Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui annonce, sous le même nom de version 2026-11-05, un autre document de politique, sans membre perimeter (ce que CT-2 0.5 n'interdit pas au démarrage tant que PA-9 n'est pas adoptée) ; dossier de seq 13 dont la partie joint l'inscription seq 12. AT-6 et AT-7 réussissent : AT-7 ne compare que des noms. L'énoncé dit seulement « sous une version de politique de même nom que celle de cet événement », jamais que l'attestation était en vigueur (CT-7 MN-91, RA-75). |
+| `valide-at7-attestation-remplacee/` | valide ; AT-7 visée, attestation retenue (AV-AT-3) | Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui inscrit une attestation B (issued_at 10:15, une exception de capture de plus) sous la version 2026-11-06 ; l'exportateur joint au dossier de seq 13 l'attestation A et son inscription seq 12. AT-6 réussit ; AT-7 n'est pas exécutée (pièce hors dossier), AV-AT-3 ; l'attestation A est retenue, et l'énoncé dit « sans preuve qu'elle était en vigueur pour cet événement » (CT-6 EX-6.19, CT-7 EX-7.11). |
+| `invalide-d2-attestation-sha256/` | **D-2** ; attestation retenue | Dossier valide-seq-7-attestation-sans-inscription dont l'index déclare pour attestation-perimetre.json un autre SHA-256 : D-2 échoue et le dossier est invalide, parce que l'index n'est plus celui que l'exportateur a scellé (CT-1 §11.4) ; l'attestation elle-même est vérifiée et retenue, sans effet sur ce verdict. |
 
 Vérification d'un dossier : `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7`
 (code 0), `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux --json`

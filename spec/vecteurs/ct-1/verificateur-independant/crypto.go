@@ -143,7 +143,7 @@ func inverser(b []byte) []byte {
 	return out
 }
 
-func modP(z *big.Int) *big.Int { return z.Mod(z, pEd25519) }
+func modPEd25519(z *big.Int) *big.Int { return z.Mod(z, pEd25519) }
 
 // decoderPointEd25519 applique le décodage de la RFC 8032 §5.1.3.
 func decoderPointEd25519(enc []byte) (*big.Int, *big.Int, error) {
@@ -157,21 +157,21 @@ func decoderPointEd25519(enc []byte) (*big.Int, *big.Int, error) {
 	if y.Cmp(pEd25519) >= 0 {
 		return nil, nil, ErrCleNonCanonique
 	}
-	y2 := modP(new(big.Int).Mul(y, y))
-	u := modP(new(big.Int).Sub(y2, big.NewInt(1)))
-	v := modP(new(big.Int).Add(new(big.Int).Mul(dEd25519, y2), big.NewInt(1)))
+	y2 := modPEd25519(new(big.Int).Mul(y, y))
+	u := modPEd25519(new(big.Int).Sub(y2, big.NewInt(1)))
+	v := modPEd25519(new(big.Int).Add(new(big.Int).Mul(dEd25519, y2), big.NewInt(1)))
 	// x = u v^3 (u v^7)^((p-5)/8)
-	v3 := modP(new(big.Int).Mul(modP(new(big.Int).Mul(v, v)), v))
-	v7 := modP(new(big.Int).Mul(modP(new(big.Int).Mul(v3, v3)), v))
+	v3 := modPEd25519(new(big.Int).Mul(modPEd25519(new(big.Int).Mul(v, v)), v))
+	v7 := modPEd25519(new(big.Int).Mul(modPEd25519(new(big.Int).Mul(v3, v3)), v))
 	exp := new(big.Int).Div(new(big.Int).Sub(pEd25519, big.NewInt(5)), big.NewInt(8))
-	x := modP(new(big.Int).Mul(modP(new(big.Int).Mul(u, v3)), new(big.Int).Exp(modP(new(big.Int).Mul(u, v7)), exp, pEd25519)))
-	vx2 := modP(new(big.Int).Mul(v, modP(new(big.Int).Mul(x, x))))
+	x := modPEd25519(new(big.Int).Mul(modPEd25519(new(big.Int).Mul(u, v3)), new(big.Int).Exp(modPEd25519(new(big.Int).Mul(u, v7)), exp, pEd25519)))
+	vx2 := modPEd25519(new(big.Int).Mul(v, modPEd25519(new(big.Int).Mul(x, x))))
 	switch {
 	case vx2.Cmp(u) == 0:
-	case vx2.Cmp(modP(new(big.Int).Neg(u))) == 0:
+	case vx2.Cmp(modPEd25519(new(big.Int).Neg(u))) == 0:
 		// x = x * 2^((p-1)/4)
 		e := new(big.Int).Div(new(big.Int).Sub(pEd25519, big.NewInt(1)), big.NewInt(4))
-		x = modP(new(big.Int).Mul(x, new(big.Int).Exp(big.NewInt(2), e, pEd25519)))
+		x = modPEd25519(new(big.Int).Mul(x, new(big.Int).Exp(big.NewInt(2), e, pEd25519)))
 	default:
 		return nil, nil, ErrCleNonCanonique
 	}
@@ -179,7 +179,7 @@ func decoderPointEd25519(enc []byte) (*big.Int, *big.Int, error) {
 		return nil, nil, ErrCleNonCanonique
 	}
 	if byte(x.Bit(0)) != signe {
-		x = modP(new(big.Int).Sub(pEd25519, x))
+		x = modPEd25519(new(big.Int).Sub(pEd25519, x))
 	}
 	return x, y, nil
 }
@@ -187,15 +187,15 @@ func decoderPointEd25519(enc []byte) (*big.Int, *big.Int, error) {
 // doublerEd25519 double un point affine de la courbe tordue d'Edwards
 // -x^2 + y^2 = 1 + d x^2 y^2.
 func doublerEd25519(x, y *big.Int) (*big.Int, *big.Int) {
-	x2 := modP(new(big.Int).Mul(x, x))
-	y2 := modP(new(big.Int).Mul(y, y))
-	dx2y2 := modP(new(big.Int).Mul(dEd25519, modP(new(big.Int).Mul(x2, y2))))
-	num := modP(new(big.Int).Mul(big.NewInt(2), modP(new(big.Int).Mul(x, y))))
-	den := modP(new(big.Int).Add(big.NewInt(1), dx2y2))
-	x3 := modP(new(big.Int).Mul(num, new(big.Int).ModInverse(den, pEd25519)))
-	num2 := modP(new(big.Int).Add(y2, x2))
-	den2 := modP(new(big.Int).Sub(big.NewInt(1), dx2y2))
-	y3 := modP(new(big.Int).Mul(num2, new(big.Int).ModInverse(den2, pEd25519)))
+	x2 := modPEd25519(new(big.Int).Mul(x, x))
+	y2 := modPEd25519(new(big.Int).Mul(y, y))
+	dx2y2 := modPEd25519(new(big.Int).Mul(dEd25519, modPEd25519(new(big.Int).Mul(x2, y2))))
+	num := modPEd25519(new(big.Int).Mul(big.NewInt(2), modPEd25519(new(big.Int).Mul(x, y))))
+	den := modPEd25519(new(big.Int).Add(big.NewInt(1), dx2y2))
+	x3 := modPEd25519(new(big.Int).Mul(num, new(big.Int).ModInverse(den, pEd25519)))
+	num2 := modPEd25519(new(big.Int).Add(y2, x2))
+	den2 := modPEd25519(new(big.Int).Sub(big.NewInt(1), dx2y2))
+	y3 := modPEd25519(new(big.Int).Mul(num2, new(big.Int).ModInverse(den2, pEd25519)))
 	return x3, y3
 }
 

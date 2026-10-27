@@ -459,3 +459,174 @@ describe("CT-3 : sorties publiées de la confrontation des signatures par des ou
     expect(r.stdout).to.equal(sortieEthAccount());
   });
 });
+
+// ---------------------------------------------------------------------------
+// CT-7 (spec/CT-7-securite-et-conformite.md, version 0.1, EX-A.24, EX-A.25) :
+// sorties publiées de spec/vecteurs/ct-7/confrontation/ceremonies/ et
+// attestations/ (jamais écrites par le générateur), par ethers (celui du
+// dépôt) et par eth-account 0.14.0. Les programmes n'importent rien de
+// scripts/ ; ceux d'ethers et d'eth-account portent les mêmes lignes, dans le
+// même ordre, avec les mêmes adresses attendues : une ligne par signature de
+// chaque procès-verbal de ceremonies/, de attestations/exemple/, de chaque
+// cas de attestations.json, deux par cas de croises.json, et une par
+// signature de la partie attestation-perimetre.json des dossiers de ct-1 et
+// de ct-6. Les programmes ethers sont toujours rejoués ; ceux d'eth-account
+// le sont quand un interpréteur Python porte exactement les versions
+// d'exigences.txt (NOORTRACE_PYTHON_CONFRONTATION, sinon python3).
+// ---------------------------------------------------------------------------
+
+describe("CT-7 : sorties publiées de la confrontation des signatures de procès-verbal et d'attestation par des outils tiers (EX-A.24, EX-A.25)", function () {
+  const VECTEURS = path.join(PROJECT_ROOT, "spec", "vecteurs");
+  const CT7 = path.join(VECTEURS, "ct-7");
+  const CONFRONTATION7 = path.join(CT7, "confrontation");
+  const PARTIES = ["ceremonies", "attestations"];
+  const sortie7 = (partie, outil) => lire(CONFRONTATION7, partie, "sorties", `${outil}.txt`);
+  const exigences7 = (partie) =>
+    lire(CONFRONTATION7, partie, "exigences.txt")
+      .split("\n")
+      .filter((l) => /^[A-Za-z0-9_.-]+==/.test(l))
+      .map((l) => l.split("=="));
+  const lignes7 = (texte) => texte.split("\n").filter((l) => l !== "" && !l.startsWith("# ")).map((l) => l.split(" | "));
+  const BILAN7 = /^# bilan : (\d+) signatures ; concorde (\d+), acceptee_par_la_bibliotheque (\d+), refusee_par_la_bibliotheque (\d+), discordance 0$/m;
+  const arguments7 = (partie) => (partie === "ceremonies" ? ["spec/vecteurs/ct-7"] : ["spec/vecteurs/ct-7", "spec/vecteurs/ct-1", "spec/vecteurs/ct-6"]);
+  const casCeremonies = () => fs.readdirSync(path.join(CT7, "ceremonies")).filter((n) => fs.existsSync(path.join(CT7, "ceremonies", n, "proces-verbal.json"))).sort();
+  const dossiersAvecPartie = (famille) =>
+    fs.readdirSync(path.join(VECTEURS, famille, "dossiers")).filter((n) => fs.existsSync(path.join(VECTEURS, famille, "dossiers", n, "attestation-perimetre.json"))).sort();
+
+  it("quatre sorties publiées, aucun chemin local, aucune discordance ; en-têtes aux versions d'ethers du dépôt et d'exigences.txt ; exigences.txt égal à celui de ct-3", function () {
+    const version = lireJSON(PROJECT_ROOT, "node_modules", "ethers", "package.json").version;
+    const exigences3 = lire(PROJECT_ROOT, "spec", "vecteurs", "ct-3", "confrontation", "eth-account", "exigences.txt").split("\n").filter((l) => /^[A-Za-z0-9_.-]+==/.test(l));
+    for (const partie of PARTIES) {
+      expect(fs.readdirSync(path.join(CONFRONTATION7, partie)).sort(), partie).to.deep.equal(["LISEZMOI.md", "confronter_eth_account.py", "confronter_ethers.mjs", "exigences.txt", "sorties"]);
+      expect(fs.readdirSync(path.join(CONFRONTATION7, partie, "sorties")).sort(), partie).to.deep.equal(["eth-account.txt", "ethers.txt"]);
+      for (const outil of ["ethers", "eth-account"]) {
+        const texte = sortie7(partie, outil);
+        expect(texte, `${partie}/${outil}`).not.to.match(/\/home\/|\/tmp\/|\/root\/|[A-Z]:\\/);
+        expect(texte, `${partie}/${outil}`).not.to.match(/\| discordance$/m);
+        expect(texte, `${partie}/${outil}`).to.match(BILAN7);
+        const [, total, ...parts] = texte.match(BILAN7).map(Number);
+        expect(lignes7(texte).length, `${partie}/${outil}`).to.equal(total);
+        expect(parts.reduce((a, b) => a + b, 0), `${partie}/${outil}`).to.equal(total);
+      }
+      const ex = exigences7(partie);
+      expect(ex.map((l) => l.join("=="))).to.deep.equal(exigences3);
+      const v = (p) => ex.find(([n]) => n === p)[1];
+      expect(v("eth-account")).to.equal("0.14.0");
+      const objet = partie === "ceremonies" ? "des procès-verbaux des vecteurs CT-7" : "d'attestation des vecteurs CT-7, CT-1 et CT-6";
+      expect(sortie7(partie, "ethers").split("\n")[0]).to.equal(`# Confrontation des signatures ${objet} par ethers ${version} (verifyMessage, getBytes)`);
+      expect(sortie7(partie, "eth-account").split("\n")[0]).to.equal(`# Confrontation des signatures ${objet} par eth-account ${v("eth-account")} (eth-keys ${v("eth-keys")} ; Account.recover_message, encode_defunct)`);
+    }
+  });
+
+  it("les programmes n'importent rien de scripts/ ; ethers par verifyMessage(getBytes(…)), eth-account par encode_defunct(primitive=…)", function () {
+    for (const partie of PARTIES) {
+      const js = lire(CONFRONTATION7, partie, "confronter_ethers.mjs");
+      const importsJs = js.split("\n").filter((l) => /^\s*import\b|\bimport\(|\brequire\(/.test(l));
+      expect(importsJs.length).to.be.above(0);
+      for (const l of importsJs) expect(l, partie).to.match(/^import [^;]+ from "(node:[a-z]+|ethers)";$/);
+      expect(js).to.include("verifyMessage(");
+      expect(js).to.match(/getBytes\(d\)/);
+      const py = lire(CONFRONTATION7, partie, "confronter_eth_account.py");
+      for (const l of py.split("\n").filter((x) => /^\s*(import|from)\s/.test(x))) expect(l, partie).to.match(/^(import (importlib\.metadata|json|os|sys)|from eth_account(\.messages)? import (Account|encode_defunct))$/);
+      expect(py).to.include("encode_defunct(primitive=bytes.fromhex(d[2:]))");
+      expect(py).not.to.match(/encode_defunct\(text=d|primitive=int\(/);
+    }
+  });
+
+  it("ceremonies : une ligne par signature de chaque procès-verbal, mêmes lignes pour les deux outils ; signataires de attendu.json recouverts", function () {
+    const e = lignes7(sortie7("ceremonies", "ethers"));
+    const a = lignes7(sortie7("ceremonies", "eth-account"));
+    expect(a.map((l) => [l[0], l[1], l[2], l[4]])).to.deep.equal(e.map((l) => [l[0], l[1], l[2], l[4]]));
+    const attendues = [];
+    for (const n of casCeremonies()) {
+      const pv = JSON.parse(lire(CT7, "ceremonies", n, "proces-verbal.json"));
+      const attendu = lireJSON(CT7, "ceremonies", n, "attendu.json");
+      const famille = attendu.digest === null ? "ceremonies/cr1-lecture-permissive" : "ceremonies";
+      pv.signatures.forEach((s, i) => attendues.push([famille, n, String(i)]));
+      for (const sortie of [e, a]) {
+        const adresses = sortie.filter((l) => l[1] === n && l[5] === "concorde" && l[3] === l[4]).map((l) => l[3]);
+        for (const adr of attendu.signers) expect(adresses, `${n} ${adr}`).to.include(adr);
+      }
+    }
+    expect(e.map((l) => l.slice(0, 3))).to.deep.equal(attendues);
+    for (const n of casCeremonies().filter((x) => x.startsWith("valide-"))) {
+      for (const sortie of [e, a]) expect(sortie.filter((l) => l[1] === n).every((l) => l[5] === "concorde"), n).to.equal(true);
+    }
+  });
+
+  it("attestations : exemple, chaque cas de attestations.json, deux lignes par cas de croises.json, chaque dossier de ct-1 et de ct-6 à partie signée ; mêmes lignes pour les deux outils", function () {
+    const e = lignes7(sortie7("attestations", "ethers"));
+    const a = lignes7(sortie7("attestations", "eth-account"));
+    expect(a.map((l) => [l[0], l[1], l[2], l[4]])).to.deep.equal(e.map((l) => [l[0], l[1], l[2], l[4]]));
+    const attendues = [];
+    for (const f of ["condense.json", "attestation-signee.json"]) lireJSON(CT7, "attestations", "exemple", f).signatures.forEach((s, i) => attendues.push(["attestations/exemple", f, String(i), s.address]));
+    for (const c of lireJSON(CT7, "attestations", "attestations.json").cases) {
+      const signee = typeof c.input.signed === "string" ? JSON.parse(c.input.signed) : c.input.signed;
+      const at1 = c.expected.checks.find((x) => x.id === "AT-1").status === "reussi";
+      signee.signatures.forEach((s, i) => attendues.push(["attestations/cas", c.name, String(i), at1 ? (c.expected.recovered[i] ?? "forme refusée par CT-7") : null]));
+    }
+    const croises = lireJSON(CT7, "attestations", "croises.json");
+    for (const c of croises.cases) attendues.push(["attestations/croises", c.name, "0", croises.address], ["attestations/croises", c.name, "1", c.expected.recovered]);
+    for (const famille of ["ct-1", "ct-6"]) {
+      const noms = dossiersAvecPartie(famille);
+      expect(noms.length, famille).to.be.at.least(4);
+      for (const n of noms) {
+        const partie = lireJSON(VECTEURS, famille, "dossiers", n, "attestation-perimetre.json");
+        if (partie === null || typeof partie !== "object") continue;
+        const at3 = lireJSON(VECTEURS, famille, "dossiers", n, "attendu.json").perimeter_checks.find((x) => x.id === "AT-3").status === "reussi";
+        partie.signed.signatures.forEach((s, i) => attendues.push([`${famille}/dossiers`, n, String(i), at3 ? s.address : null]));
+      }
+    }
+    expect(e.length).to.equal(attendues.length);
+    attendues.forEach(([famille, cas, indice, adresse], k) => {
+      expect(e[k].slice(0, 3), `${famille} ${cas} ${indice}`).to.deep.equal([famille, cas, indice]);
+      if (adresse !== null) expect(e[k][4], `${famille} ${cas} ${indice}`).to.equal(adresse);
+    });
+    // Exemple de CT-7 §7.2 : comptes 1 et 2 recouverts par les deux outils.
+    for (const sortie of [sortie7("attestations", "ethers"), sortie7("attestations", "eth-account")]) {
+      expect(sortie).to.include("attestations/exemple | condense.json | 0 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | concorde");
+      expect(sortie).to.include("attestations/exemple | condense.json | 1 | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | concorde");
+      expect(sortie).to.include("attestations/cas | invalide-at3-signature-substituee | 1 | 0x90f79bf6eb2c4f870365e785982e1f101e93b906 | 0x90f79bf6eb2c4f870365e785982e1f101e93b906 | concorde");
+    }
+  });
+
+  it("écarts inscrits d'EX-A.25, seulement sur les cas invalides de forme : eth-account accepte s haut et v = 0, ethers accepte v = 0 et refuse s haut", function () {
+    const ce = sortie7("ceremonies", "ethers");
+    const ca = sortie7("ceremonies", "eth-account");
+    expect(ce).to.match(/^ceremonies \| invalide-cr11-s-haut \| 1 \| refusée \| forme refusée par CT-7 \| concorde$/m);
+    expect(ca).to.match(/^ceremonies \| invalide-cr11-s-haut \| 1 \| 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc \| forme refusée par CT-7 \| acceptee_par_la_bibliotheque$/m);
+    const ae = sortie7("attestations", "ethers");
+    const aa = sortie7("attestations", "eth-account");
+    expect(ae).to.match(/^attestations\/cas \| invalide-at3-s-haut \| 1 \| refusée \| forme refusée par CT-7 \| concorde$/m);
+    expect(aa).to.match(/^attestations\/cas \| invalide-at3-s-haut \| 1 \| 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc \| forme refusée par CT-7 \| acceptee_par_la_bibliotheque$/m);
+    for (const s of [ae, aa]) expect(s).to.match(/^attestations\/cas \| invalide-at3-v-hors-domaine \| 1 \| 0x[0-9a-f]{40} \| forme refusée par CT-7 \| acceptee_par_la_bibliotheque$/m);
+    for (const s of [ce, ca, ae, aa]) {
+      const ecarts = s.split("\n").filter((l) => / \| acceptee_par_la_bibliotheque$/.test(l));
+      for (const l of ecarts) expect(l).to.match(/ \| invalide-(cr11-s-haut|at3-s-haut|at3-v-hors-domaine) \| /);
+      expect(s).not.to.match(/\| refusee_par_la_bibliotheque$/m);
+    }
+  });
+
+  for (const partie of PARTIES) {
+    it(`rejeu de ${partie}/confronter_ethers.mjs : code 0, sortie égale à ${partie}/sorties/ethers.txt`, function () {
+      this.timeout(180_000);
+      const r = spawnSync(process.execPath, [path.join(CONFRONTATION7, partie, "confronter_ethers.mjs"), ...arguments7(partie)], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stdout).to.equal(sortie7(partie, "ethers"));
+    });
+
+    it(`rejeu de ${partie}/confronter_eth_account.py (interpréteur aux versions d'exigences.txt présent) : code 0, sortie égale à ${partie}/sorties/eth-account.txt`, function () {
+      this.timeout(180_000);
+      const ex = exigences7(partie);
+      const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
+      const code = `import importlib.metadata as m, json\nout = {}\nfor p in ${JSON.stringify(ex.map(([p]) => p))}:\n    try: out[p] = m.version(p)\n    except m.PackageNotFoundError: out[p] = None\nprint(json.dumps(out))`;
+      const versions = spawnSync(python, ["-I", "-c", code], { encoding: "utf8" });
+      if (versions.error || versions.status !== 0) this.skip();
+      const lues = JSON.parse(versions.stdout);
+      if (!ex.every(([p, v]) => lues[p] === v)) this.skip();
+      const r = spawnSync(python, ["-I", path.join(CONFRONTATION7, partie, "confronter_eth_account.py"), ...arguments7(partie)], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
+      expect(r.status, r.stdout.split("\n").slice(-4).join("\n") + r.stderr).to.equal(0);
+      expect(r.stdout).to.equal(sortie7(partie, "eth-account"));
+    });
+  }
+});

@@ -1,0 +1,46 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": null,
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-7",
+      "status": "reussi",
+      "reason": null
+    }
+  ],
+  "perimeter_retained": true,
+  "warnings": [],
+  "description": "Journal rejoué de CT-7 §7.5 : seq 12 (rec-test-02) annonce la politique 2026-11-05 dont le document réduit porte perimeter.attestation_digest = D_P de l'attestation de CT-7 §7.1. Dossier de seq 12, quatorze parties (la treizième absente, « aucun point de contrôle ») ; la partie porte l'attestation signée par les comptes Hardhat 1 et 2, le jeu des comptes 1 à 3 au seuil de 2, et l'inscription (seq 12 et le document en base64). AT-1 à AT-7 réussissent : attestation retenue et inscrite (clé rec-test-02, celle de l'événement prouvé) ; AT-7 ne compare que le nom de la version de politique, et l'énoncé dit « sous une version de politique de même nom que celle de cet événement » (CT-6 EX-6.19)."
+}

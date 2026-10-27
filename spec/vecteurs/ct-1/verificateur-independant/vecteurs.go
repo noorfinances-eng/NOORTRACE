@@ -1114,11 +1114,13 @@ func familleDossiers(rap *Rapport, racine string, strict bool) {
 		nom := relatif(dir, d)
 		valide, ctrl := true, []string(nil)
 		source := "par défaut"
+		var attenduV *Value
 		switch {
 		case fichierExiste(filepath.Join(d, "attendu.json")):
 			if v := lireFichierJSON(rap, filepath.Join(d, "attendu.json")); v != nil {
 				valide, ctrl, _ = lireAttendu(v)
 				source = "attendu.json"
+				attenduV = v
 			}
 		case attendus[nom] != nil:
 			if attendus[nom].Kind == KindObject {
@@ -1141,9 +1143,45 @@ func familleDossiers(rap *Rapport, racine string, strict bool) {
 		} else {
 			comparerVerdict(rap, "dossiers", etiq+" (attendu : "+source+")", valide, ctrl, res.Resultats, strict)
 		}
+		comparerPerimetre(rap, etiq, attenduV, res)
 		rap.Detail("[dossiers] %s\n%s", etiq, res.Resultats.Resume("    "))
+		for _, s := range res.Perimetre {
+			rap.Detail("    %-4s %s %s %s", s.ID, s.Statut, s.Raison, strings.Join(s.Details, " ; "))
+		}
 		for _, b := range res.Bornes {
 			rap.Detail("    %s", b)
+		}
+	}
+}
+
+// comparerPerimetre confronte les statuts de AT-1 à AT-7 (révision 0.4) à
+// perimeter_checks de attendu.json. perimeter_target (la vérification dont
+// le dossier exerce l'échec ou l'avertissement), perimeter_retained
+// (« attestation retenue ») et les avertissements AV-AT- relèvent de CT-6
+// (révision 0.3) et de CT-7, pas de CT-1 : hors périmètre de ce vérificateur.
+func comparerPerimetre(rap *Rapport, etiq string, attendu *Value, res *Dossier) {
+	pc := attendu.Get("perimeter_checks")
+	if pc == nil || pc.Kind != KindArray {
+		if res.Perimetre != nil {
+			rap.Comparer("dossiers", etiq, "statuts de AT-1 à AT-7", "(non déclarés par attendu.json)", strings.Join(res.PerimetreTexte(), ", "))
+		}
+		return
+	}
+	var att []string
+	for _, c := range pc.Arr {
+		r := c.Get("reason")
+		raison := "null"
+		if r != nil && !r.IsNull() {
+			raison = r.Str
+		}
+		att = append(att, chaineDe(c, "id")+" "+chaineDe(c, "status")+" "+raison)
+	}
+	rap.Comparer("dossiers", etiq, "statuts de AT-1 à AT-7", "["+strings.Join(att, ", ")+"]", "["+strings.Join(res.PerimetreTexte(), ", ")+"]")
+	for _, k := range []string{"perimeter_target", "perimeter_retained", "warnings"} {
+		if v := attendu.Get(k); v != nil {
+			c, _ := Canonique(v)
+			rap.Comparaisons = append(rap.Comparaisons, Comparaison{Famille: "dossiers", Vecteur: etiq, Grandeur: k, Attendu: string(c), Obtenu: "non recalculé",
+				HorsPerimetre: true, Note: "notion de CT-6 (révision 0.3) et de CT-7 (vérification visée, attestation retenue, avertissements AV-AT-), hors du texte de CT-1"})
 		}
 	}
 }

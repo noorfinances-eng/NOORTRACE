@@ -1,0 +1,101 @@
+{
+  "version": 0,
+  "previous": {
+    "version": 0,
+    "seq": 10,
+    "ts": "2026-11-05T10:04:12.555Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-02",
+    "prev_hash": "0xb6c72c8cc185dcd57299d7b6be057f3a32592eb43eefb0ce3042a6f09edf29c4",
+    "delegation": {
+      "launched_by": "u.martin@assureur-demo.example",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement,courriel",
+      "run_id": "run-2026-11-05-0007"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": "0xfc944f11dae59f80bd591d538bb06c2a0227ce1badeb56f2a742ecf23774b3bd",
+      "policy_version": "2026-11-01",
+      "recorder": "0.1.0"
+    },
+    "intent": "Clore le dossier 2026-81044 après un complément de 900.00 CHF",
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": "pii-v1"
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.modele.echange",
+      "arguments": {
+        "sha256": "0xec634e1b07dd4c40c6a34e90426fa010faf2e4dedc80c943a2893f49fe1250ff",
+        "length": 161,
+        "redacted": true
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x4189668dccb6a44fe21889ab9a1176452c15a824a15c389adccf613796f6958d",
+        "length": 288,
+        "redacted": false
+      },
+      "duration_ms": 1640,
+      "is_error": false
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0x873c1a9390f139e3737b51ecf489dff56264c3cdbfabd8a5316ce0bb0206ed49",
+    "sig": "0x3c402c7f737bbdad7f7bd571bcab40e82d7b252305df8e07bcc5965763e6399bdfcdc0e63fad3f12ac013ba095b4d96cd6a3f59ba7a51e389a3a17d9ac4eb302"
+  },
+  "next": {
+    "version": 0,
+    "seq": 12,
+    "ts": "2026-11-05T10:05:00.000Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-02",
+    "prev_hash": "0xf92b743f6e089038b2182131434071ef5d6fe5c4dbc55fd8c30a0e431725efdb",
+    "delegation": {
+      "launched_by": "noortrace-enregistreur",
+      "on_behalf_of": null,
+      "scope": "journal:administration",
+      "run_id": null
+    },
+    "code": {
+      "model": null,
+      "prompt_version": null,
+      "policy_version": "2026-11-05",
+      "recorder": "0.1.0"
+    },
+    "intent": null,
+    "policy": {
+      "rule": null,
+      "decision": "sans_objet",
+      "ticket": null,
+      "redaction": null
+    },
+    "approval": null,
+    "execution": {
+      "tool": "noortrace.journal.politique",
+      "arguments": {
+        "sha256": "0xabf74619ab04a14027f13003aacba674f864cdebb83d611b001391543cc965aa",
+        "length": 116,
+        "redacted": false,
+        "value": {
+          "policy_version": "2026-11-05",
+          "policy_sha256": "0x5016ffc47d07a5ec0dae8c464a0a5cf466cd4f425fadbf293dafbd36617f63d9"
+        }
+      },
+      "status": "executee",
+      "result": null,
+      "duration_ms": null,
+      "is_error": null
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90",
+    "sig": "0x7e757e190377226dac6baf2ba65db8d534565003e16603863a3bdc111c8cb00ff87ce43cfffa3e8f81f434c3de28b624d3480d64688bddd640355f3a2e718f04"
+  }
+}

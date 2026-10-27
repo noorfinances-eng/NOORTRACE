@@ -1,0 +1,26 @@
+# Versions exactes d'eth-account 0.14.0 et de ses dépendances, identiques à celles de
+# spec/vecteurs/ct-3/confrontation/eth-account/exigences.txt (résolues par pip le 2026-10-26,
+# Python 3.13, Linux x86_64) ; installation : pip install --only-binary :all: --no-deps -r exigences.txt
+annotated-types==0.8.0
+bitarray==3.12.3
+ckzg==2.1.8
+cytoolz==1.2.0
+eth-account==0.14.0
+eth-hash==0.8.0
+eth-keyfile==0.10.0
+eth-keys==0.8.0
+eth-rlp==3.0.0
+eth-typing==6.0.0
+eth-utils==6.0.0
+eth_abi==6.0.0
+hexbytes==2.0.0
+parsimonious==0.10.0
+py-ecc==8.0.0
+pycryptodome==3.24.1
+pydantic==2.14.1
+pydantic_core==2.50.1
+regex==2026.9.29
+rlp==5.0.0
+toolz==1.2.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0

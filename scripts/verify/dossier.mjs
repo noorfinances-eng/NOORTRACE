@@ -13,6 +13,9 @@
 //                             (scripts/lib/registre.mjs) ;
 //   K-1 à K-9               : partie facultative points-de-controle.json (CT-1
 //                             révision 0.3, CT-6 révision 0.2) ;
+//   AT-1 à AT-7             : partie facultative attestation-perimetre.json (CT-1
+//                             révision 0.4, CT-6 révision 0.3, CT-7 section 7),
+//                             sans effet sur les statuts ni sur le verdict ;
 //   N-1 à N-4               : fichier d'ancres du réviseur, fichier d'en-têtes,
 //                             clés d'enregistreur et clé de chaîne.
 //
@@ -36,6 +39,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as J from "../lib/journal.mjs";
+import * as S from "../lib/securite.mjs";
 import * as V from "../lib/verificateur.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -120,6 +124,7 @@ function aide(langue) {
       "  --json              JSON report (schema rapport-verification-v0) instead of the readable report",
       "  --detail            readable report: every check, not only those that did not pass",
       "The optional thirteenth part points-de-controle.json (journal checkpoint, CT-1 revision 0.3) is verified by K-1 to K-9 when the index declares it present.",
+      "The optional fourteenth part attestation-perimetre.json (perimeter attestation, CT-1 revision 0.4, CT-7) is verified by AT-1 to AT-7 when the index declares it present; the perimeter is declared, not proven, and these checks do not change the verdict.",
       "Exit codes: 0 valid, 1 invalid, 2 unusable input, 3 incomplete (--exiger).",
     ].join("\n");
   }
@@ -139,6 +144,7 @@ function aide(langue) {
     "  --json              rapport JSON (schéma rapport-verification-v0) au lieu du rapport lisible",
     "  --detail            rapport lisible : toutes les vérifications, pas seulement celles qui n'ont pas réussi",
     "La treizième partie facultative points-de-controle.json (point de contrôle du journal, CT-1 révision 0.3) est vérifiée par K-1 à K-9 quand l'index la déclare présente.",
+    "La quatorzième partie facultative attestation-perimetre.json (attestation de périmètre, CT-1 révision 0.4, CT-7) est vérifiée par AT-1 à AT-7 quand l'index la déclare présente ; le périmètre est déclaré, non prouvé, et ces vérifications ne changent pas le verdict.",
     "Codes de retour : 0 valide, 1 invalide, 2 entrée inutilisable, 3 incomplet (--exiger).",
   ].join("\n");
 }
@@ -166,6 +172,30 @@ function lireBorne(fichier, limite) {
     const octets = Buffer.concat(morceaux);
     if (total > limite) return { trop: true, taille: Math.max(st.size, total), debut: octets };
     return { octets };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
+ * SHA-256 des octets complets d'un fichier, lu par morceaux de 1 Mio (aucun
+ * octet n'est conservé), au plus `plafond` octets : au-delà, l'entrée est
+ * inutilisable (le fichier a grandi depuis sa mesure).
+ */
+function sha256Flux(fichier, plafond) {
+  const fd = fs.openSync(fichier, "r");
+  try {
+    const h = crypto.createHash("sha256");
+    const tampon = Buffer.alloc(1 << 20);
+    let lus = 0;
+    for (;;) {
+      const n = fs.readSync(fd, tampon, 0, tampon.length, null);
+      if (n === 0) break;
+      lus += n;
+      if (lus > plafond) throw new V.EntreeInutilisable("taille_depassee", T(`${path.basename(fichier)} : au-delà du plafond de lecture de ${plafond} octets (CT-6 EX-4.15)`, `${path.basename(fichier)}: beyond the read ceiling of ${plafond} bytes (CT-6 EX-4.15)`));
+      h.update(tampon.subarray(0, n));
+    }
+    return "0x" + h.digest("hex");
   } finally {
     fs.closeSync(fd);
   }
@@ -230,7 +260,7 @@ function principal(argv, etat) {
   etat.inputs = inputs;
 
   // 1. Schémas, fichier d'ancres (N-1), fichier d'en-têtes (N-2), entrées à part (EX-5.2).
-  // verifier.schemas : les neuf schémas embarqués, dans l'ordre fixé (section 8.6, EX-8.9), quelles que soient les options.
+  // verifier.schemas : les dix schémas embarqués, dans l'ordre fixé (section 8.6, EX-8.9, EX-8.11), quelles que soient les options.
   const { registre: schemas, empreintes } = chargerSchemas(repertoireSchemas);
   etat.schemas = V.FICHIERS_SCHEMAS.map(({ id }) => ({ id, sha256: empreintes.get(id) }));
 
@@ -306,7 +336,14 @@ function principal(argv, etat) {
     }
     if (lu.trop) {
       if (e.name === "dossier.json") throw new V.EntreeInutilisable("taille_depassee", T(`dossier.json : ${lu.taille} octets, au-delà de la limite de ${limite}`, `dossier.json: ${lu.taille} bytes, beyond the limit of ${limite}`));
-      nonLus.set(e.name, { taille: lu.taille, limite, debut: lu.debut });
+      // attestation-perimetre.json au-delà de 4 Mio fait échouer AT-1 et rien d'autre (CT-6 EX-4.15) : son SHA-256 est calculé en flux pour D-2,
+      // jusqu'au plafond absolu de 64 Mio ; au-delà, l'entrée est inutilisable (code 2), comme une pièce trop grande.
+      const info = { taille: lu.taille, limite, debut: lu.debut };
+      if (e.name === J.PARTIE_ATTESTATION_PERIMETRE.file) {
+        if (lu.taille > S.PLAFOND_LECTURE_ATTESTATION) throw new V.EntreeInutilisable("taille_depassee", T(`${e.name} : ${lu.taille} octets, au-delà du plafond de lecture de ${S.PLAFOND_LECTURE_ATTESTATION} octets (CT-6 EX-4.15)`, `${e.name}: ${lu.taille} bytes, beyond the read ceiling of ${S.PLAFOND_LECTURE_ATTESTATION} bytes (CT-6 EX-4.15)`));
+        info.sha256 = sha256Flux(path.join(repertoire, e.name), S.PLAFOND_LECTURE_ATTESTATION);
+      }
+      nonLus.set(e.name, info);
     } else fichiers[e.name] = lu.octets;
   }
   if (fichiers["dossier.json"]) inputs.dossier.index_sha256 = sha256Hex(fichiers["dossier.json"]);

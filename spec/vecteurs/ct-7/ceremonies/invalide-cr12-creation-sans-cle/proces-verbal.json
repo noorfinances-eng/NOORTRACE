@@ -1,0 +1,91 @@
+{
+  "version": 0,
+  "kind": "ceremonie-cles",
+  "ceremony_id": "cer-2026-11-01-developpement-01",
+  "scope": "client",
+  "organization": {
+    "name": "assureur-demo",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab"
+  },
+  "purpose": "creation",
+  "purpose_details": null,
+  "environment": "developpement",
+  "place": "Poste de développement (exemple)",
+  "started_at": "2026-11-01T07:00:00.000Z",
+  "ended_at": "2026-11-01T07:20:00.000Z",
+  "script": {
+    "title": "Création d'une clé d'enregistreur de développement",
+    "version": "0",
+    "sha256": null
+  },
+  "workstation": {
+    "description": "Poste de développement, en ligne",
+    "offline": false,
+    "image_sha256": null
+  },
+  "entropy": {
+    "source": "systeme_du_poste",
+    "description": "Générateur aléatoire du système du poste"
+  },
+  "participants": [
+    {
+      "id": "p1",
+      "name": "Officiant (compte de test 1)",
+      "role": "officiant",
+      "affiliation": "assureur-demo, développement",
+      "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+    },
+    {
+      "id": "p2",
+      "name": "Témoin (compte de test 2)",
+      "role": "temoin",
+      "affiliation": "assureur-demo, développement",
+      "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+    }
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "action": "Générer sur le poste la graine Ed25519 de la clé de développement",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-01T07:05:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 2,
+      "action": "Écrire la graine dans un fichier de mode 0600 (classe D)",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-01T07:08:00.000Z",
+      "outcome": "fait"
+    },
+    {
+      "n": 3,
+      "action": "Lire la clé publique, calculer son SHA-256 et l'afficher",
+      "performed_by": "p1",
+      "witnessed_by": [
+        "p2"
+      ],
+      "at": "2026-11-01T07:12:00.000Z",
+      "outcome": "fait"
+    }
+  ],
+  "keys": [],
+  "records": [],
+  "findings": [],
+  "signatures": [
+    {
+      "participant": "p1",
+      "signature": "0xd5e689907374fb3c37c83d844aeff33cdba7c58f8cd686ed8334533f3b70c8473d53a276ecd37fd474c1158aad9d80ff3f441c1ee875353b1f04aa35c791e1371c"
+    },
+    {
+      "participant": "p2",
+      "signature": "0xf561910c4a3efe6f4461e458386a5ed73279515125a9ce0b49c232700cfe0b6852a35ed4005c96e2b1a8137f1f36d94c9fb016546e90e2f29473a09c2e56c3b21b"
+    }
+  ]
+}

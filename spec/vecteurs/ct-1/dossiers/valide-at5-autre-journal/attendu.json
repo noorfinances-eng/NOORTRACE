@@ -1,0 +1,48 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "perimeter_target": "AT-5",
+  "perimeter_checks": [
+    {
+      "id": "AT-1",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-2",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-3",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-4",
+      "status": "reussi",
+      "reason": null
+    },
+    {
+      "id": "AT-5",
+      "status": "echoue",
+      "reason": null
+    },
+    {
+      "id": "AT-6",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    },
+    {
+      "id": "AT-7",
+      "status": "non_execute",
+      "reason": "partie_absente"
+    }
+  ],
+  "perimeter_retained": false,
+  "warnings": [
+    "AV-AT-1"
+  ],
+  "description": "Attestation (signée par les comptes 1 et 2) qui ne couvre que journal-principal et son agent : l'événement prouvé est de journal-sinistres, AT-5 échoue, AV-AT-1 ; le dossier reste valide."
+}

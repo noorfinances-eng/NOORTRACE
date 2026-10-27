@@ -1,0 +1,3425 @@
+{
+  "version": 0,
+  "family": "matrice-conformite",
+  "spec": "CT-7",
+  "spec_version": "0.1",
+  "date": "2026-10-26",
+  "warning": "Cette matrice établit une correspondance technique entre des passages de textes et des pièces de preuve produites par NOORTRACE. Elle n'est pas un avis juridique et ne dit jamais qu'un client est conforme : la qualification du client, l'applicabilité de chaque texte et la conformité relèvent du client et de ses conseils.",
+  "texts": [
+    {
+      "id": "T-1",
+      "source": "S1",
+      "title": "Communication FINMA sur la surveillance 08/2024, « Gouvernance et gestion des risques en lien avec l'utilisation de l'intelligence artificielle »",
+      "nature": "communication_surveillance",
+      "version": "18 décembre 2024",
+      "url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20241218-finma-aufsichtsmitteilung-08-2024.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "addressee": "assujettis à la surveillance de la FINMA qui utilisent l'IA",
+      "applicability": {
+        "status": "publie",
+        "from": [],
+        "note": "Une communication sur la surveillance décrit des constats et des points évalués ; elle ne crée pas d'obligation nouvelle. Le texte ne contient aucune occurrence de « journal », « traçab », « trace », « enregistr » ni « piste » (R6-F10)."
+      }
+    },
+    {
+      "id": "T-2",
+      "source": "S2",
+      "title": "Circulaire FINMA 2018/3 « Outsourcing »",
+      "nature": "circulaire",
+      "version": "du 21 septembre 2017, en vigueur le 1er avril 2018, dernière modification du 4 novembre 2020",
+      "url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "addressee": "entreprises assujetties qui externalisent une fonction essentielle (Cm 3 et 4)",
+      "applicability": {
+        "status": "vigueur_a_confirmer",
+        "from": [],
+        "note": "Vigueur au 2026-10-26 déduite de deux documents de la FINMA, non lue dans un acte (R6-F13, NV-1). Les chiffres marginaux ont été lus sur le rendu des pages. Les catégories d'assujettis visées par la circulaire, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) : savoir si elle s'applique au client relève de lui (NV-8)."
+      }
+    },
+    {
+      "id": "T-3",
+      "source": "S5",
+      "title": "Ordonnance sur la protection des données (OPDo, RS 235.11)",
+      "nature": "ordonnance",
+      "version": "état le 1er décembre 2025",
+      "url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2022/568/20251201/fr/html/fedlex-data-admin-ch-eli-cc-2022-568-20251201-fr-html-2.html",
+      "read_on": "2026-10-26",
+      "addressee": "responsables du traitement et sous-traitants privés (art. 4 al. 1) ; organes fédéraux (art. 4 al. 2)",
+      "applicability": {
+        "status": "en_vigueur",
+        "from": [
+          {
+            "date": "2025-12-01",
+            "scope": "art. 4, nouvelle teneur du 29 octobre 2025 (RO 2025 694)"
+          }
+        ],
+        "note": "Le délai du 31 décembre 2026 de l'art. 46 al. 1 vise l'examen de l'art. 4 al. 2, organes fédéraux seulement (R6-F27)."
+      }
+    },
+    {
+      "id": "T-4",
+      "source": "S6",
+      "title": "PFPDT, « Recommandations techniques du PFPDT relative à la journalisation prévue à l'art. 4 OPDo »",
+      "nature": "recommandation",
+      "version": "version 1.1 du 15 octobre 2026",
+      "url": "https://www.edoeb.admin.ch/dam/fr/sd-web/HKcvqpRgro2P/Empfehlung%20Protokollierung%20nach%20DSV_FR.pdf",
+      "read_on": "2026-10-26",
+      "addressee": "responsables du traitement soumis à l'art. 4 OPDo",
+      "applicability": {
+        "status": "publie",
+        "from": [],
+        "note": "Recommandations de l'autorité de surveillance ; elles précisent l'art. 4 OPDo sans s'y substituer."
+      }
+    },
+    {
+      "id": "T-5",
+      "source": "S8",
+      "title": "PFPDT, « Update - La loi actuelle sur la protection des données est directement applicable à l'IA »",
+      "nature": "recommandation",
+      "version": "publiée le 8 mai 2025",
+      "url": "https://www.edoeb.admin.ch/fr/update-loi-actuelle-applicable-ia",
+      "read_on": "2026-10-26",
+      "addressee": "fabricants, fournisseurs et exploitants de systèmes d'IA",
+      "applicability": {
+        "status": "publie",
+        "from": [],
+        "note": "Même teneur dans la page « IA et protection des données » du 24 septembre 2025 (S9). Aucun guide du PFPDT propre à la journalisation des systèmes d'IA trouvé (NV-7)."
+      }
+    },
+    {
+      "id": "T-6",
+      "source": "S10",
+      "title": "Règlement (UE) 2022/2554 (DORA)",
+      "nature": "reglement_ue",
+      "version": "JO L 333 du 27.12.2022",
+      "url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "addressee": "entités financières au sens du règlement",
+      "applicability": {
+        "status": "en_vigueur",
+        "from": [
+          {
+            "date": "2025-01-17",
+            "scope": "tout le règlement (art. 64)"
+          }
+        ],
+        "note": "La qualification du client comme entité financière relève du client (NV-8). Normes techniques sur la sous-traitance et la politique contractuelle non lues (NV-4). L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8)."
+      }
+    },
+    {
+      "id": "T-7",
+      "source": "S11",
+      "title": "Règlement délégué (UE) 2024/1774 (cadre de gestion du risque lié aux TIC)",
+      "nature": "reglement_delegue_ue",
+      "version": "JO L du 25.6.2024",
+      "url": "http://publications.europa.eu/resource/celex/32024R1774",
+      "read_on": "2026-10-26",
+      "addressee": "entités financières au sens du règlement (UE) 2022/2554",
+      "applicability": {
+        "status": "en_vigueur",
+        "from": [],
+        "note": "Entrée en vigueur le vingtième jour suivant la publication (art. 42) ; le texte ne fixe pas de date d'application distincte, aucune autre date lue (NV-5). L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8)."
+      }
+    },
+    {
+      "id": "T-8",
+      "source": "S12",
+      "title": "Règlement (UE) 2024/1689 sur l'intelligence artificielle",
+      "nature": "reglement_ue",
+      "version": "JO L du 12.7.2024 ; consolidation du 27.07.2026 (règlement (UE) 2026/1744), articles cités identiques",
+      "url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "addressee": "fournisseurs (art. 12, 14, 19) et déployeurs (art. 26) de systèmes d'IA à haut risque",
+      "applicability": {
+        "status": "pas_encore_applicable",
+        "from": [
+          {
+            "date": "2027-12-02",
+            "scope": "systèmes à haut risque de l'annexe III"
+          },
+          {
+            "date": "2028-08-02",
+            "scope": "systèmes à haut risque de l'annexe I"
+          }
+        ],
+        "note": "Art. 113 point c), tel que modifié par le règlement (UE) 2026/1744 : aucun des art. 12, 14, 19 et 26 ne s'applique au 2026-10-26 (R6-F55, R6-F56). Le classement d'un système à haut risque relève du client (NV-8). L'art. 12 ne mentionne ni intégrité ni protection contre la manipulation des journaux (constat de lecture, R6-F50) ; NV-10 reste un point non vérifié parce que les normes harmonisées qui préciseraient ce point n'ont pas été lues. L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8)."
+      }
+    },
+    {
+      "id": "T-9",
+      "source": "S15",
+      "title": "Ordonnance concernant la tenue et la conservation des livres de comptes (Olico, en allemand GeBüV, RS 221.431)",
+      "nature": "ordonnance",
+      "version": "état le 1er janvier 2013",
+      "url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/html/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-html-6.html",
+      "read_on": "2026-10-26",
+      "addressee": "entreprises tenues de tenir et conserver des livres",
+      "applicability": {
+        "status": "en_vigueur",
+        "from": [],
+        "note": "Vise les livres et pièces comptables : un journal d'agent n'en fait partie que si le client l'y range (qualification qui relève du client)."
+      }
+    },
+    {
+      "id": "T-10",
+      "source": "S16",
+      "title": "Code des obligations (RS 220), art. 958f",
+      "nature": "loi",
+      "version": "état le 1er octobre 2026 (même texte de l'art. 958f au 1er juillet 2027)",
+      "url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/27/317_321_377/20261001/fr/html/fedlex-data-admin-ch-eli-cc-27-317_321_377-20261001-fr-html-3.html",
+      "read_on": "2026-10-26",
+      "addressee": "entreprises tenues de tenir une comptabilité",
+      "applicability": {
+        "status": "en_vigueur",
+        "from": [],
+        "note": "Même remarque que pour l'Olico : la qualification du journal relève du client."
+      }
+    }
+  ],
+  "rows": [
+    {
+      "id": "MC-1",
+      "text": "T-1",
+      "reference": "ch. 2.1 « Gouvernance » et 2.2 « Inventaire et classification des risques »",
+      "facts": [
+        "R6-F4"
+      ],
+      "quote": "La FINMA a évalué si les assujettis ayant recours à de nombreuses applications ou à des applications importantes disposaient d’une gouvernance en matière d’IA comprenant notamment un inventaire centralisé, y compris une classification des risques et les mesures qui en découlent",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20241218-finma-aufsichtsmitteilung-08-2024.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Une gouvernance de l'IA comprenant un inventaire centralisé des applications, leur classification des risques et les mesures qui en découlent.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Inventaire des agents capturés, par journal : identifiant, hôte, cadre, canal de capture, et ce qui n'est pas capturé, déclaré par l'organisation et signé",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "partie",
+              "spec": "CT-1",
+              "ref": "attestation_perimetre"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Modèle et version du prompt système observés, événement par événement",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Tenue de l'inventaire centralisé, classification des risques, mesures qui en découlent",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-2",
+      "text": "T-1",
+      "reference": "ch. 2.1 « Gouvernance », externalisation",
+      "facts": [
+        "R6-F4"
+      ],
+      "quote": "En cas d’externalisation, elle a évalué si les assujettis avaient mis en place des tests, des contrôles et des clauses contractuelles supplémentaires régissant les compétences et les questions de responsabilité et s’ils s’étaient assurés que les tiers auxquels ils faisaient appel disposaient des compétences et de l’expérience nécessaires.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20241218-finma-aufsichtsmitteilung-08-2024.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "En cas d'externalisation : tests, contrôles et clauses contractuelles supplémentaires sur les compétences et la responsabilité ; compétence et expérience du tiers.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Modèles de clauses de droit d'audit, d'accès, de réversibilité, de sous-traitance et de notification d'incident",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-1"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-3"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-4"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-5"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Contrôles que le client exécute lui-même sur les preuves, hors ligne, sans le service de l'exploitant",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-6",
+              "ref": "EX-3.3"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-6",
+              "ref": "§5.1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Choix et rédaction des clauses, évaluation des compétences et de l'expérience du tiers",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-3",
+      "text": "T-1",
+      "reference": "ch. 2.4 « Tests et surveillance constante »",
+      "facts": [
+        "R6-F6"
+      ],
+      "quote": "La surveillance comprend aussi l’analyse des cas où le résultat a été ignoré ou modifié par les utilisateurs, puisque de telles corrections manuelles peuvent indiquer des points faibles.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20241218-finma-aufsichtsmitteilung-08-2024.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "La surveillance des applications d'IA comprend l'analyse des cas où le résultat a été ignoré ou modifié par les utilisateurs.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Trace signée des actions de l'agent refusées par des approbateurs ou expirées sans décision",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-3",
+              "ref": "EX-9.13"
+            },
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "A-3"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "7"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Résultats du modèle ignorés ou modifiés par un utilisateur hors d'une approbation : la version 0 ne capture pas la correction humaine d'une sortie",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.19"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Analyse des cas, seuils et méthodes de validation",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-4",
+      "text": "T-1",
+      "reference": "ch. 2.5 « Documentation »",
+      "facts": [
+        "R6-F7"
+      ],
+      "quote": "Pour les applications importantes, la FINMA a évalué si les assujettis abordaient dans la documentation le but de l’application, la sélection et la préparation des données, le choix du modèle, les mesures de performance, les hypothèses, les limitations, les tests et les contrôles ainsi que les solutions de repli.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20241218-finma-aufsichtsmitteilung-08-2024.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Documentation des applications importantes : but, données, choix du modèle, mesures de performance, hypothèses, limitations, tests, contrôles, solutions de repli.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Identification du modèle, de la version du prompt système et de la version de politique de chaque action",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-9.1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Documentation du but, des données, du choix du modèle, des performances et des limitations",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Rédaction et tenue de la documentation",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-5",
+      "text": "T-1",
+      "reference": "ch. 2.6 « Explicabilité »",
+      "facts": [
+        "R6-F8"
+      ],
+      "quote": "La FINMA a constaté que les résultats ne sont souvent pas compris, expliqués ou reproduits et qu’ils ne peuvent donc pas être évalués de manière critique.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20241218-finma-aufsichtsmitteilung-08-2024.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Comprendre, expliquer et reproduire les résultats pour pouvoir les évaluer de manière critique.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Entrées et sorties de chaque action et de chaque échange avec le modèle, conservées comme pièces référencées par leur SHA-256",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.4"
+            },
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "E-6"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§8.2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Explication du comportement du modèle",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Évaluation critique des résultats",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-6",
+      "text": "T-1",
+      "reference": "ch. 2.7 « Vérification indépendante »",
+      "facts": [
+        "R6-F9"
+      ],
+      "quote": "Pour les applications importantes, la FINMA a évalué si la vérification indépendante inclut l’émission d’un avis objectif, averti et impartial sur l’adéquation et la fiabilité d’une procédure pour un cas d’application donné",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/4dokumentation/finma-aufsichtsmitteilungen/20241218-finma-aufsichtsmitteilung-08-2024.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Une vérification indépendante émettant un avis objectif, averti et impartial sur l'adéquation et la fiabilité d'une procédure.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Avis sur l'adéquation et la fiabilité d'une application d'IA : le vérificateur de CT-6 vérifie des preuves de journal, pas une application",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Organisation de la vérification indépendante et prise en compte de ses conclusions",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "hors_perimetre"
+    },
+    {
+      "id": "MC-7",
+      "text": "T-2",
+      "reference": "Cm 14",
+      "facts": [
+        "R6-F15"
+      ],
+      "quote": "Un inventaire des fonctions externalisées doit être établi et tenu à jour. Il comprendra une description de la fonction externalisée, le fournisseur (y compris les sous-traitants), le bénéficiaire et l'organe responsable au sein de l’entreprise (cf. Cm 20).",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Inventaire tenu à jour des fonctions externalisées : fonction, fournisseur et sous-traitants, bénéficiaire, organe responsable.",
+      "applicability": "vigueur_a_confirmer",
+      "elements": [
+        {
+          "element": "Inventaire publié des composants tiers employés par NOORTRACE, avec leur rôle, ce qu'ils reçoivent et l'effet de leur perte sur les preuves",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.9"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Tenue de l'inventaire, désignation du bénéficiaire et de l'organe responsable",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-8",
+      "text": "T-2",
+      "reference": "Cm 18 et 18.1",
+      "facts": [
+        "R6-F16"
+      ],
+      "quote": "Lors de la décision statuant sur l’outsourcing et du choix du prestataire, les possibilités et les conséquences d’un changement doivent être prises en considération. Le prestataire doit offrir la garantie d’un exercice durable de la fonction. […] La réintégration ordonnée de la fonction externalisée ou le transfert à un autre prestataire doivent être garantis.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Prendre en compte les possibilités et conséquences d'un changement ; garantir la réintégration ordonnée ou le transfert à un autre prestataire.",
+      "applicability": "vigueur_a_confirmer",
+      "elements": [
+        {
+          "element": "Journal, pièces et clés tenus sur l'infrastructure du client ; formats publiés ; vérification sans service ni compte de l'exploitant",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§11.2"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-6",
+              "ref": "EX-3.3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.10"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Clause de conservation, de restitution et de réversibilité",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Décision, plan et exécution de la réintégration ou du transfert",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-9",
+      "text": "T-2",
+      "reference": "Cm 20 et 21",
+      "facts": [
+        "R6-F17"
+      ],
+      "quote": "Le système de contrôle interne de l’entreprise doit s’étendre à la fonction externalisée. […] L’entreprise s’assure que le prestataire lui reconnaisse le droit de lui donner des instructions et de procéder aux contrôles nécessaires à cet effet.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Étendre le contrôle interne à la fonction externalisée ; droit de donner des instructions et de procéder aux contrôles nécessaires.",
+      "applicability": "vigueur_a_confirmer",
+      "elements": [
+        {
+          "element": "Clause de droit d'audit, de regard et d'instruction",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Supervision et contrôles périodiques que l'administrateur du client peut brancher sur son propre système",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-17.5"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§17.4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Désignation de l'organe responsable, surveillance suivie du prestataire",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-10",
+      "text": "T-2",
+      "reference": "Cm 24 et 25",
+      "facts": [
+        "R6-F19"
+      ],
+      "quote": "En cas d’externalisations déterminantes pour la sécurité (notamment dans le domaine informatique), l’entreprise et le prestataire fixent par contrat les exigences en matière de sécurité. L’entreprise doit veiller à leur respect. […] L’entreprise et le prestataire élaborent un dispositif de sécurité qui permet en cas d’urgence la continuité de la fonction externalisée.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Exigences de sécurité fixées par contrat et respectées ; dispositif de continuité en cas d'urgence.",
+      "applicability": "vigueur_a_confirmer",
+      "elements": [
+        {
+          "element": "Exigences de sécurité publiées de l'enregistreur, du vérificateur et de l'ancrage",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§18"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-6",
+              "ref": "§3.4"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-5",
+              "ref": "§3.4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Continuité : écrivain unique avec bail et bascule, ancrage jamais bloquant, copies WORM pour reconstruire",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§13"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-5",
+              "ref": "EX-4.12"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.17"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Clauses de sécurité, de lieux de traitement et de notification d'incident",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-5"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-6"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Fixation contractuelle des exigences et contrôle de leur respect, plan d'urgence",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-11",
+      "text": "T-2",
+      "reference": "Cm 26",
+      "facts": [
+        "R6-F20"
+      ],
+      "quote": "L’entreprise, sa société d’audit et la FINMA doivent être en mesure de vérifier le respect des dispositions prudentielles auprès du prestataire. Un droit de regard et d’examen intégral, permanent et sans entraves sur la fonction externalisée doit leur être reconnu par contrat.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Droit de regard et d'examen intégral, permanent et sans entraves de l'entreprise, de sa société d'audit et de la FINMA, reconnu par contrat.",
+      "applicability": "vigueur_a_confirmer",
+      "elements": [
+        {
+          "element": "Clause de droit de regard, d'examen et d'audit au profit du client, de sa société d'audit et de l'autorité",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Dossier vérifiable hors ligne par un tiers, sans accès au système de l'exploitant ni au réseau",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-6",
+              "ref": "EX-3.3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-6",
+              "ref": "EX-12.1"
+            },
+            {
+              "kind": "verification",
+              "spec": "CT-6",
+              "ref": "V-8"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Reconnaissance contractuelle du droit et son exercice",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-12",
+      "text": "T-2",
+      "reference": "Cm 29",
+      "facts": [
+        "R6-F20"
+      ],
+      "quote": "Si le prestataire n’est pas assujetti à la surveillance de la FINMA, il doit s’engager par contrat envers l’entreprise à mettre à la disposition de la FINMA tous les renseignements et documents relatifs au domaine d’activités transféré dont la FINMA a besoin pour remplir ses tâches de surveillance.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Engagement contractuel du prestataire non assujetti de mettre à disposition de la FINMA tous les renseignements et documents nécessaires.",
+      "applicability": "vigueur_a_confirmer",
+      "elements": [
+        {
+          "element": "Clause d'information de l'autorité de surveillance",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Conclusion de l'engagement et transmission à la FINMA",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-13",
+      "text": "T-2",
+      "reference": "Cm 30 et 31",
+      "facts": [
+        "R6-F21"
+      ],
+      "quote": "Un transfert à l’étranger est autorisé à condition que l’entreprise puisse expressément garantir qu’elle-même, sa société d’audit ainsi que la FINMA peuvent exercer et faire appliquer leurs droits de regard et d’examen. La capacité d’assainissement et de liquidation de l’entreprise en Suisse doit être garantie. Il faut que l’accès aux informations nécessaires à cet effet soit possible à tout moment en Suisse.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Transfert à l'étranger seulement si les droits de regard et d'examen restent exerçables et si l'accès aux informations nécessaires est possible à tout moment en Suisse.",
+      "applicability": "vigueur_a_confirmer",
+      "elements": [
+        {
+          "element": "Journal, pièces, clés de l'enregistreur et dossiers tenus sur l'infrastructure que le client choisit ; seuls des condensés et des clés publiques partent vers les ancres",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.9"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-18.2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Clause sur les lieux de traitement et de stockage",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-6"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Choix des lieux d'hébergement et garantie expresse des droits",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-14",
+      "text": "T-2",
+      "reference": "Cm 33 et 34",
+      "facts": [
+        "R6-F22"
+      ],
+      "quote": "L’entreprise s’assure d'être informée suffisamment tôt du recours, ou du changement de recours, à des sous-traitants exerçant des fonctions essentielles et de pouvoir mettre un terme à l’outsourcing de manière ordonnée au sens du Cm 18.1. En cas de recours à des sous-traitants, les obligations et les garanties du prestataire nécessaires au respect de la présente circulaire doivent leur être transférées.",
+      "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
+      "read_on": "2026-10-26",
+      "requirement": "Information précoce sur le recours à des sous-traitants exerçant des fonctions essentielles ; transfert des obligations et garanties aux sous-traitants.",
+      "applicability": "vigueur_a_confirmer",
+      "elements": [
+        {
+          "element": "Inventaire publié des composants tiers de NOORTRACE",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.9"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Clause de sous-traitance",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Mesures contractuelles et procédure interne d'autorisation (Cm 34, 35)",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-15",
+      "text": "T-3",
+      "reference": "art. 4 al. 1",
+      "facts": [
+        "R6-F24"
+      ],
+      "quote": "Lors de traitements automatisés de données sensibles à grande échelle ou de profilages à risque élevé et lorsque les mesures préventives ne suffisent pas à garantir la protection des données, le responsable du traitement privé et son sous-traitant privé journalisent au moins l’enregistrement, la modification, la communication, l’effacement et la destruction des données ainsi que l’accès aux données. La journalisation est notamment nécessaire lorsque, sans cette mesure, il n’est pas possible de vérifier a posteriori que les données ont été traitées conformément aux finalités pour lesquelles elles ont été collectées ou communiquées.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2022/568/20251201/fr/html/fedlex-data-admin-ch-eli-cc-2022-568-20251201-fr-html-2.html",
+      "read_on": "2026-10-26",
+      "requirement": "Dans les cas visés, journaliser au moins l'enregistrement, la modification, la communication, l'effacement, la destruction et l'accès aux données.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Chaque action de l'agent par un canal capturé est un événement signé dont les effets portent une action parmi `lecture`, `ecriture`, `suppression`, `envoi`, `execution`, selon la table de passage",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-7.6"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.8"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Distinction entre enregistrement et modification, et entre effacement et destruction, dans l'énumération des actions de CT-1 v0",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.8"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Traitements faits par d'autres systèmes que l'agent, ou par un canal que l'enregistreur ne voit pas",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-4.1"
+            },
+            {
+              "kind": "partie",
+              "spec": "CT-1",
+              "ref": "attestation_perimetre"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Qualification du traitement (données sensibles à grande échelle, profilage à risque élevé, insuffisance des mesures préventives)",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-16",
+      "text": "T-3",
+      "reference": "art. 4 al. 4",
+      "facts": [
+        "R6-F26"
+      ],
+      "quote": "4 La journalisation doit fournir des informations sur l’identité de la personne qui a effectué le traitement, la nature, la date et l’heure du traitement et, cas échéant, l’identité du destinataire des données.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2022/568/20251201/fr/html/fedlex-data-admin-ch-eli-cc-2022-568-20251201-fr-html-2.html",
+      "read_on": "2026-10-26",
+      "requirement": "Identité de la personne, nature, date et heure du traitement, et le cas échéant identité du destinataire.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Identité de la personne ou du service qui a lancé l'agent, pour le compte de qui, et identité technique de l'enregistreur",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Date et heure : `ts` de l'horloge synchronisée de l'enregistreur, borné par les ancres",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.2"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-7.10"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "4"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "5"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Nature : outil appelé et action déclarée de chaque effet",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-7.6"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Destinataire des données : aucun champ propre ; le système et l'objet d'un effet `envoi` y contribuent sans le nommer",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.8"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Rattachement de l'identité technique de l'agent à une personne responsable",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-17",
+      "text": "T-3",
+      "reference": "art. 4 al. 5",
+      "facts": [
+        "R6-F26"
+      ],
+      "quote": "5 Les procès-verbaux de journalisation sont conservés durant au moins un an, séparément du système dans lequel les données personnelles sont traitées. Ils sont accessibles uniquement aux organes et aux personnes chargés de vérifier l’application des dispositions relatives à la protection des données personnelles ou de préserver ou restaurer la confidentialité, l’intégrité, la disponibilité et la traçabilité des données, et ne peuvent être utilisés qu’à cette fin.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2022/568/20251201/fr/html/fedlex-data-admin-ch-eli-cc-2022-568-20251201-fr-html-2.html",
+      "read_on": "2026-10-26",
+      "requirement": "Conservation au moins un an, séparément du système qui traite les données ; accès réservé aux personnes chargées de la protection ou de la sécurité des données ; usage limité à cette fin.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Conservation : au moins dix ans pour les événements, manifestes et signatures",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.19"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-15.4"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.12"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Stockage séparé : copie WORM de chaque segment, manifeste et signature, hors du système de l'agent et des systèmes du client qu'il touche",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.16"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.30"
+            }
+          ],
+          "condition": "si `storage.seal.worm` est configuré"
+        },
+        {
+          "element": "Restriction de l'accès aux journaux et limitation de leur usage ; l'enregistreur ne s'en charge que pour ses propres fichiers (utilisateur dédié, droits restreints)",
+          "relation": "releve_du_client",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-18.4"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-18.9"
+            }
+          ],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-18",
+      "text": "T-3",
+      "reference": "art. 3 al. 3 let. a à c",
+      "facts": [
+        "R6-F28"
+      ],
+      "quote": "3 Pour assurer la traçabilité, le responsable du traitement et le sous-traitant prennent des mesures appropriées afin que: a. il soit possible de vérifier quelles données personnelles sont saisies ou modifiées dans le système de traitement automatisé de données, par quelle personne et à quel moment (contrôle de la saisie); b. il soit possible de vérifier à qui sont communiquées les données personnelles à l’aide d’installations de transmission (contrôle de la communication); c. les violations de la sécurité des données puissent être rapidement détectées (détection) et que des mesures puissent être prises pour atténuer ou éliminer les conséquences (réparation).",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2022/568/20251201/fr/html/fedlex-data-admin-ch-eli-cc-2022-568-20251201-fr-html-2.html",
+      "read_on": "2026-10-26",
+      "requirement": "Contrôle de la saisie, contrôle de la communication, détection rapide des violations de la sécurité des données et réparation.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Saisie et modification par l'agent : événement signé avec l'identité de lancement, l'outil, les effets et l'instant",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "6"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Communication par l'agent : effets `envoi` et échanges avec le modèle journalisés",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.1"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-7.6"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Détection : toute modification du journal est apparente au vérificateur, et la supervision alerte sur un contrôle d'intégrité en échec",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "E-7"
+            },
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "C-2"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-17.5"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Mesures de réparation et traitement des violations",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-19",
+      "text": "T-4",
+      "reference": "ch. 2.1.1 « Saisie »",
+      "facts": [
+        "R6-F32"
+      ],
+      "quote": "Cela permet de retracer ultérieurement quel système a accédé au système, sous quelle identité technique cet accès a eu lieu et qui est responsable de cette identité technique.",
+      "source_url": "https://www.edoeb.admin.ch/dam/fr/sd-web/HKcvqpRgro2P/Empfehlung%20Protokollierung%20nach%20DSV_FR.pdf",
+      "read_on": "2026-10-26",
+      "requirement": "Retracer quel système a accédé, sous quelle identité technique, et qui en est responsable.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Système et identité technique : connexion d'hôte, identifiant de clé de l'enregistreur, exécution de l'agent",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.2"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Personne ou service qui a lancé l'agent, telle que le système d'identité du client la nomme",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Attribution de chaque identité technique à une personne ou à une entité responsable",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-20",
+      "text": "T-4",
+      "reference": "ch. 2.1.2 « Enregistrement »",
+      "facts": [
+        "R6-F33"
+      ],
+      "quote": "Les données de journalisation doivent être stockées de manière sécurisée et protégée, séparément des systèmes de traitement des données afin de garantir leur disponibilité même si le système principal est en dérangement (p. ex. à la suite d’une attaque par un rançongiciel).",
+      "source_url": "https://www.edoeb.admin.ch/dam/fr/sd-web/HKcvqpRgro2P/Empfehlung%20Protokollierung%20nach%20DSV_FR.pdf",
+      "read_on": "2026-10-26",
+      "requirement": "Stockage sécurisé, protégé, séparé des systèmes de traitement, disponible même si le système principal est en dérangement.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Copie WORM en mode sans contournement, à partir de laquelle le journal se reconstruit",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.16"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.17"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.30"
+            }
+          ],
+          "condition": "si `storage.seal.worm` est configuré"
+        },
+        {
+          "element": "Sécurité de l'hébergement, sauvegardes, droits d'accès au support",
+          "relation": "releve_du_client",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-18.9"
+            }
+          ],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-21",
+      "text": "T-4",
+      "reference": "ch. 3.1 let. c",
+      "facts": [
+        "R6-F34"
+      ],
+      "quote": "c) Vérification régulière des données de journalisation : il convient de vérifier régulièrement que les données de journalisation sont complètes, qu’elles n’ont pas été manipulées et que les directives de sécurité sont respectées.",
+      "source_url": "https://www.edoeb.admin.ch/dam/fr/sd-web/HKcvqpRgro2P/Empfehlung%20Protokollierung%20nach%20DSV_FR.pdf",
+      "read_on": "2026-10-26",
+      "requirement": "Vérifier régulièrement que les journaux sont complets, non manipulés, et que les directives de sécurité sont respectées.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Complétude et absence de manipulation : relecture horaire et quotidienne, comparaison aux copies WORM, continuité des manifestes ; vérification d'un dossier par un tiers",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-17.5"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-6",
+              "ref": "§5.1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Contrôle périodique de l'intégrité et de la lisibilité des segments anciens et de leurs copies WORM : non spécifié en version 0 (lacune L-10)",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Respect des directives de sécurité du client",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-22",
+      "text": "T-4",
+      "reference": "ch. 3.1 let. f et g",
+      "facts": [
+        "R6-F34"
+      ],
+      "quote": "f) Horodatage : les données de journalisation sont horodatées afin de consigner le moment précis de la survenue d’un événement dans le système. […] g) Synchronisation : la précision de l’horodatage dépend directement de la synchronisation précise de tous les systèmes du réseau. La synchronisation des horloges de tous les systèmes, effectuée au moyen d’un serveur NTP commun, permet de garantir la précision et la cohérence des données du journal.",
+      "source_url": "https://www.edoeb.admin.ch/dam/fr/sd-web/HKcvqpRgro2P/Empfehlung%20Protokollierung%20nach%20DSV_FR.pdf",
+      "read_on": "2026-10-26",
+      "requirement": "Horodater chaque entrée ; synchroniser les horloges de tous les systèmes sur un serveur NTP commun.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Horodatage de chaque événement à la milliseconde, et preuve d'existence au plus tard par jeton RFC 3161 et OpenTimestamps",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.2"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "4"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "5"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Horloge synchronisée de l'enregistreur, écarts consignés et alertés",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-7.10"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§17.4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Synchronisation des autres systèmes du client",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "couvert"
+    },
+    {
+      "id": "MC-23",
+      "text": "T-4",
+      "reference": "ch. 3.2 let. b",
+      "facts": [
+        "R6-F35"
+      ],
+      "quote": "b) Durée de conservation : il importe de définir une durée de conservation claire pour les données de journalisation afin d’éviter de les conserver inutilement. Il convient évidemment de respecter les exigences légales en matière de durée de conservation. La durée de conservation des données de journalisation en rapport avec le traitement de données personnelles est fixée à au moins un an.",
+      "source_url": "https://www.edoeb.admin.ch/dam/fr/sd-web/HKcvqpRgro2P/Empfehlung%20Protokollierung%20nach%20DSV_FR.pdf",
+      "read_on": "2026-10-26",
+      "requirement": "Définir une durée de conservation claire, éviter la conservation inutile, respecter les durées légales, au moins un an.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Au moins un an : les événements sont conservés au moins dix ans",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.19"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.12"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Éviter la conservation inutile : pièces purgeables, rédaction avant hachage",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.20"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-10.2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Les données personnelles en ligne des événements ne peuvent pas être effacées avant le plancher de dix ans",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.14"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Fixation de la durée claire et de sa justification",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-24",
+      "text": "T-4",
+      "reference": "ch. 4, FAQ 9",
+      "facts": [
+        "R6-F36"
+      ],
+      "quote": "9) Est-il autorisé d’utiliser des services externes à la demande pour la gestion des procès-verbaux de journalisation ? Dans la mesure du possible, il convient de consulter le service juridique et le conseiller à la protection des données de l’entreprise, car les risques dans le domaine des données personnelles ont plutôt tendance à augmenter qu’à diminuer. Nous déconseillons de recourir à de tels services. Une telle solution est exceptionnellement possible si on recourt déjà à un logiciel en tant que service (software-as-a-service) pour le traitement des données, à condition que les personnes susmentionnées aient déjà été consultées.",
+      "source_url": "https://www.edoeb.admin.ch/dam/fr/sd-web/HKcvqpRgro2P/Empfehlung%20Protokollierung%20nach%20DSV_FR.pdf",
+      "read_on": "2026-10-26",
+      "requirement": "Déconseille les services externes pour la gestion des journaux, sauf exception : logiciel en tant que service déjà employé pour le traitement, après consultation du service juridique et du conseiller à la protection des données.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "L'enregistreur et le journal sont chez le client ; les ancres ne reçoivent que des condensés, des clés publiques et des adresses",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.9"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-18.2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Choix d'un hébergement externe de l'enregistreur, s'il en fait un ; recours éventuel à l'exception et consultation préalable du service juridique et du conseiller à la protection des données",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "couvert"
+    },
+    {
+      "id": "MC-25",
+      "text": "T-5",
+      "reference": "page du 8 mai 2025, paragraphe sur la transparence",
+      "facts": [
+        "R6-F38"
+      ],
+      "quote": "Compte-tenu des exigences de la LPD, les fabricants, fournisseurs et exploitants de systèmes d’IA doivent rendre transparent la finalité, le fonctionnement et la source de données traités par l’intelligence artificielle.",
+      "source_url": "https://www.edoeb.admin.ch/fr/update-loi-actuelle-applicable-ia",
+      "read_on": "2026-10-26",
+      "requirement": "Rendre transparents la finalité, le fonctionnement et la source des données traitées par l'IA.",
+      "applicability": "publie",
+      "elements": [
+        {
+          "element": "Transparence envers les personnes concernées",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Information des personnes, analyse d'impact en cas de risque élevé",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "hors_perimetre"
+    },
+    {
+      "id": "MC-26",
+      "text": "T-6",
+      "reference": "art. 28 § 1 a)",
+      "facts": [
+        "R6-F40"
+      ],
+      "quote": "les entités financières qui ont conclu des accords contractuels pour l’utilisation de services TIC dans le cadre de leurs activités restent à tout moment pleinement responsables du respect et de l’exécution de toutes les obligations découlant du présent règlement et du droit applicable aux services financiers;",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "L'entité financière reste pleinement responsable de ses obligations malgré le recours à des services TIC.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Responsabilité de l'entité financière",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "hors_perimetre"
+    },
+    {
+      "id": "MC-27",
+      "text": "T-6",
+      "reference": "art. 28 § 3",
+      "facts": [
+        "R6-F41"
+      ],
+      "quote": "Aux fins de leur cadre de gestion du risque lié aux TIC, les entités financières tiennent et mettent à jour, au niveau de l’entité et aux niveaux sous-consolidé et consolidé, un registre d’informations en rapport avec tous les accords contractuels portant sur l’utilisation de services TIC fournis par des prestataires tiers de services TIC.",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "Tenir un registre d'informations sur tous les accords d'utilisation de services TIC.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Inventaire publié des composants tiers de NOORTRACE, utilisable pour renseigner le registre",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.9"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Tenue du registre d'informations",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-28",
+      "text": "T-6",
+      "reference": "art. 28 § 6",
+      "facts": [
+        "R6-F42"
+      ],
+      "quote": "Lorsqu’elles exercent leurs droits d’accès, d’inspection et d’audit à l’égard d’un prestataire tiers de services TIC, les entités financières déterminent au préalable, sur la base d’une approche fondée sur les risques, la fréquence des audits et des inspections, ainsi que les domaines qui doivent faire l’objet d’un audit, dans le respect des normes d’audit communément admises et conformément à toute instruction de surveillance relative à l’utilisation et à l’incorporation de ces normes d’audit.",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "Fixer à l'avance, selon les risques, la fréquence et les domaines des audits et inspections.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Clause de droit d'audit qui laisse au client fréquence et domaines",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Contrôles du dossier répétables à toute fréquence, hors ligne",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-6",
+              "ref": "EX-3.3"
+            },
+            {
+              "kind": "verification",
+              "spec": "CT-6",
+              "ref": "V-8"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Détermination de la fréquence et des domaines",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-29",
+      "text": "T-6",
+      "reference": "art. 28 § 8",
+      "facts": [
+        "R6-F44"
+      ],
+      "quote": "Les entités financières définissent des solutions alternatives et élaborent des plans de transition leur permettant de supprimer les services TIC visés par le contrat et les données pertinentes détenues par le prestataire tiers de services TIC, et de les transférer en toute sécurité et intégralement à des prestataires alternatifs ou de les réincorporer en interne.",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "Solutions alternatives et plans de transition pour retirer les services et données et les transférer intégralement.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Journal et preuves chez le client, formats publiés, vérification sans l'exploitant",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§11.2"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-6",
+              "ref": "EX-3.3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.10"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Clause de réversibilité",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Plan de transition",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-30",
+      "text": "T-6",
+      "reference": "art. 29 § 2",
+      "facts": [
+        "R6-F45"
+      ],
+      "quote": "Lorsque les accords contractuels relatifs à l’utilisation de services TIC qui soutiennent des fonctions critiques ou importantes prévoient une sous-traitance, les entités financières évaluent si et comment des chaînes de sous-traitance potentiellement longues ou complexes sont susceptibles de compromettre leur capacité à assurer un suivi rigoureux des fonctions visées par le contrat et la capacité de l’autorité compétente à surveiller efficacement l’entité financière à cet égard.",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "Évaluer si des chaînes de sous-traitance longues ou complexes compromettent le suivi et la surveillance.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Inventaire des composants tiers, avec l'effet de la perte de chacun sur les preuves",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.9"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Clause de sous-traitance",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Évaluation de la chaîne",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-31",
+      "text": "T-6",
+      "reference": "art. 30 § 2 c)",
+      "facts": [
+        "R6-F46"
+      ],
+      "quote": "des dispositions sur la disponibilité, l’authenticité, l’intégrité et la confidentialité en ce qui concerne la protection des données, y compris les données à caractère personnel;",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "Dispositions contractuelles sur la disponibilité, l'authenticité, l'intégrité et la confidentialité des données.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Substance technique des dispositions : authenticité et intégrité vérifiables (hachage, chaînage, signature de l'enregistreur et des approbateurs) ; leur rédaction contractuelle relève du client",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "1"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "2"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "6"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "7"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Disponibilité : copies WORM ; confidentialité : rédaction avant hachage",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.16"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-10.2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Clause de sécurité",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-6"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Rédaction des dispositions contractuelles",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-32",
+      "text": "T-6",
+      "reference": "art. 30 § 2 d)",
+      "facts": [
+        "R6-F46"
+      ],
+      "quote": "des dispositions sur la garantie de l’accès, de la récupération et de la restitution, dans un format facilement accessible, des données à caractère personnel et autres traitées par l’entité financière en cas d’insolvabilité, de résolution, de cessation des activités du prestataire tiers de services TIC ou de résiliation des accords contractuels;",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "Accès, récupération et restitution des données dans un format facilement accessible en cas de fin du prestataire ou de résiliation.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Format facilement accessible : JSON UTF-8 et formats publiés de CT-1 ; journal tenu par le client",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§3"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§11.2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Clause de restitution",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Négociation et exercice de la restitution",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-33",
+      "text": "T-6",
+      "reference": "art. 30 § 3 e)",
+      "facts": [
+        "R6-F47"
+      ],
+      "quote": "e) le droit d’assurer un suivi permanent des performances du prestataire tiers de services TIC, qui comprend les éléments suivants: i) les droits illimités d’accès, d’inspection et d’audit par l’entité financière ou par une tierce partie désignée, et par l’autorité compétente, et le droit de prendre des copies des documents pertinents sur place s’ils sont essentiels aux activités du prestataire tiers de services TIC, dont l’exercice effectif n’est pas entravé ou limité par d’autres accords contractuels ou politiques d’exécution; ii) le droit de convenir d’autres niveaux d’assurance si les droits d’autres clients sont affectés; iii) l’obligation pour le prestataire tiers de services TIC de coopérer pleinement lors des inspections sur place et des audits effectués par les autorités compétentes, le superviseur principal, l’entité financière ou une tierce partie désignée; et iv) l’obligation de fournir des précisions sur la portée, les procédures à suivre et la fréquence de ces inspections et audits;",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "Pour les fonctions critiques ou importantes : droits illimités d'accès, d'inspection et d'audit, coopération lors des inspections, précisions sur la portée et la fréquence.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Clause de droit d'audit et de coopération",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Accès au vérificateur et aux formats sans restriction d'usage",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-2"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-6",
+              "ref": "§14.4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Qualification de la fonction comme critique ou importante, exercice des droits",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-34",
+      "text": "T-6",
+      "reference": "art. 30 § 3 f)",
+      "facts": [
+        "R6-F47"
+      ],
+      "quote": "les stratégies de sortie, en particulier la fixation d’une période de transition adéquate obligatoire: […] ii) qui permet à l’entité financière de migrer vers un autre prestataire tiers de services TIC ou de recourir à des solutions en interne adaptées à la complexité du service fourni.",
+      "source_url": "http://publications.europa.eu/resource/celex/32022R2554",
+      "read_on": "2026-10-26",
+      "requirement": "Stratégies de sortie avec période de transition adéquate permettant la migration ou l'internalisation.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Clause de réversibilité avec période de transition",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Aucune preuve ne dépend d'un service de l'exploitant pour être vérifiée",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.10"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Durée de la période de transition, exécution de la sortie",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-35",
+      "text": "T-7",
+      "reference": "art. 12 § 1",
+      "facts": [
+        "R6-F49"
+      ],
+      "quote": "1. Dans le cadre des garanties contre les intrusions et l’utilisation abusive de données, les entités financières élaborent, documentent et mettent en œuvre des procédures, protocoles et outils de journalisation.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1774",
+      "read_on": "2026-10-26",
+      "requirement": "Élaborer, documenter et mettre en œuvre des procédures, protocoles et outils de journalisation.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Outil de journalisation des actions des agents, spécifié et publié",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Procédures et protocoles de l'entité",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-36",
+      "text": "T-7",
+      "reference": "art. 12 § 2 a)",
+      "facts": [
+        "R6-F49"
+      ],
+      "quote": "a) l’identification des événements à enregistrer dans le journal, la durée de conservation des journaux et les mesures visant à sécuriser et à gérer les données des journaux, en tenant compte de la finalité pour laquelle les journaux sont créés;",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1774",
+      "read_on": "2026-10-26",
+      "requirement": "Identifier les événements à enregistrer, fixer la durée de conservation, sécuriser et gérer les données des journaux.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Liste publiée des événements que NOORTRACE enregistre, journal de l'enregistreur sur lui-même compris ; l'entité identifie les siens",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.1"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§9"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Sécuriser les données des journaux : hachage, chaînage, signatures, ancres, copies WORM",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "6"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.16"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Durée de conservation réglable, plancher de dix ans",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.19"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.12"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Choix de la durée selon la finalité et l'évaluation du risque, dernier alinéa de l'article",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-37",
+      "text": "T-7",
+      "reference": "art. 12 § 2 c)",
+      "facts": [
+        "R6-F49"
+      ],
+      "quote": "c) l’obligation de consigner dans les journaux les événements relatifs à l’ensemble des éléments suivants: i) le contrôle de l’accès logique et physique, tel que visé à l’article 21, et la gestion de l’identité; ii) la gestion des capacités; iii) la gestion des modifications; iv) les opérations de TIC, y compris les activités liées aux systèmes de TIC; v) le trafic réseau, y compris les performances des réseaux de TIC;",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1774",
+      "read_on": "2026-10-26",
+      "requirement": "Consigner les événements relatifs au contrôle d'accès et à l'identité, aux capacités, aux modifications, aux opérations de TIC et au trafic réseau.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Gestion des modifications : chaque changement de l'ensemble de politique est un événement de la chaîne avant usage",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-9.1"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-10.21"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Opérations de TIC : actions des agents et échanges avec les modèles ; identité de lancement et décisions d'approbation signées",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.1"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "7"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Contrôle d'accès physique, gestion des capacités, trafic réseau en dehors des échanges capturés",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Journalisation des autres systèmes de TIC",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-38",
+      "text": "T-7",
+      "reference": "art. 12 § 2 d)",
+      "facts": [
+        "R6-F49"
+      ],
+      "quote": "d) des mesures visant à protéger les systèmes de journalisation et les informations des journaux contre les manipulations, la suppression et l’accès non autorisé, au repos, en transit et, le cas échéant, en cours d’utilisation;",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1774",
+      "read_on": "2026-10-26",
+      "requirement": "Protéger les systèmes et informations de journalisation contre la manipulation, la suppression et l'accès non autorisé.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Manipulation : détectée par hachage, chaînage, signatures et ancres",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "E-7"
+            },
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "C-2"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "6"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "4"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Suppression : copies WORM non supprimables avant l'échéance, levée de gel à deux personnes",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.30"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.38"
+            }
+          ],
+          "condition": "si `storage.seal.worm` est configuré"
+        },
+        {
+          "element": "Accès non autorisé : moindre privilège de l'enregistreur, rédaction avant hachage",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-18.4"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-10.2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Contrôle d'accès aux journaux et à leurs copies",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-39",
+      "text": "T-7",
+      "reference": "art. 12 § 2 e)",
+      "facts": [
+        "R6-F49"
+      ],
+      "quote": "e) des mesures visant à détecter les défaillances des systèmes de journalisation;",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1774",
+      "read_on": "2026-10-26",
+      "requirement": "Détecter les défaillances des systèmes de journalisation.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Santé, métriques, alertes prescrites et contrôles périodiques de l'enregistreur",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-17.1"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§17.4"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-17.5"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Branchement des alertes et réaction",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "couvert"
+    },
+    {
+      "id": "MC-40",
+      "text": "T-7",
+      "reference": "art. 12 § 2 f)",
+      "facts": [
+        "R6-F49"
+      ],
+      "quote": "f) sans préjudice de toute exigence réglementaire applicable en vertu du droit de l’Union ou du droit national, la synchronisation des horloges de chacun des systèmes de TIC de l’entité financière avec une horloge de référence fiable et documentée.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1774",
+      "read_on": "2026-10-26",
+      "requirement": "Synchroniser les horloges de chaque système de TIC avec une horloge de référence fiable et documentée.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Horloge synchronisée de l'enregistreur, écarts consignés",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-7.10"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Horloge de référence et synchronisation des autres systèmes",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "couvert"
+    },
+    {
+      "id": "MC-41",
+      "text": "T-7",
+      "reference": "art. 7 § 1 à 3",
+      "facts": [
+        "R7-F17"
+      ],
+      "quote": "1. Les entités financières incluent dans la politique de gestion des clés cryptographiques visée à l’article 6, paragraphe 2, point d), des exigences relatives à la gestion des clés cryptographiques tout au long de leur cycle de vie, notamment en ce qui concerne la génération, le renouvellement, le stockage, la sauvegarde, l’archivage, la récupération, la transmission, le retrait, la révocation et la destruction de ces clés cryptographiques. […] 3. Les entités financières élaborent et mettent en œuvre des méthodes pour remplacer les clés cryptographiques en cas de perte ou lorsque ces clés sont compromises ou endommagées.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1774",
+      "read_on": "2026-10-26",
+      "requirement": "Gérer les clés cryptographiques sur tout leur cycle de vie ; méthodes de remplacement en cas de perte ou de compromission.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Inscription, rotation planifiée, rotation d'urgence et révocation des clés de l'enregistreur",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-11.13"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-11.15"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-11.16"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Politique de gestion des clés de l'entité",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-42",
+      "text": "T-8",
+      "reference": "art. 12 § 1",
+      "facts": [
+        "R6-F50"
+      ],
+      "quote": "1. Les systèmes d’IA à haut risque permettent, techniquement, l’enregistrement automatique des événements (journaux) tout au long de la durée de vie du système.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "Enregistrement automatique des événements tout au long de la durée de vie du système.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Enregistrement automatique de chaque action et de chaque échange avec le modèle qui passent par un canal capturé",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§3"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Événements qui ne passent pas par un canal capturé",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-4.1"
+            },
+            {
+              "kind": "partie",
+              "spec": "CT-1",
+              "ref": "attestation_perimetre"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Classement du système à haut risque et couverture de toute sa durée de vie",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-43",
+      "text": "T-8",
+      "reference": "art. 12 § 2",
+      "facts": [
+        "R6-F50"
+      ],
+      "quote": "2. Afin de garantir un degré de traçabilité du fonctionnement d’un système d’IA qui soit adapté à la destination du système, les fonctionnalités de journalisation permettent l’enregistrement des événements pertinents pour: a) repérer les situations susceptibles d’avoir pour effet que le système d’IA à haut risque présente un risque au sens de l’article 79, paragraphe 1, ou d’entraîner une modification substantielle; b) faciliter la surveillance après commercialisation visée à l’article 72; et c) surveiller le fonctionnement du système d’IA à haut risque comme prévu à l’article 26, paragraphe 5.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "Événements pertinents pour repérer les risques, la surveillance après commercialisation et la surveillance par le déployeur.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Actions, refus, approbations et échanges avec le modèle, datés et signés",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.1"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "7"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Choix des événements pertinents selon la destination du système",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-44",
+      "text": "T-8",
+      "reference": "art. 14 § 4 d)",
+      "facts": [
+        "R6-F51"
+      ],
+      "quote": "d) de décider, dans une situation particulière, de ne pas utiliser le système d’IA à haut risque ou d’ignorer, remplacer ou inverser la sortie du système d’IA à haut risque;",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "Les personnes chargées du contrôle humain peuvent décider de ne pas utiliser le système, ou ignorer, remplacer ou inverser sa sortie.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Approbation ou refus signés d'une action proposée par l'agent, avant qu'elle soit relayée",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-3",
+              "ref": "EX-9.13"
+            },
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "A-3"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "7"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Remplacer ou inverser une sortie : non capturé en version 0 (lacune L-6, 8.9)",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Conception du contrôle humain par le fournisseur",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-45",
+      "text": "T-8",
+      "reference": "art. 14 § 4 e)",
+      "facts": [
+        "R6-F51"
+      ],
+      "quote": "e) d’intervenir dans le fonctionnement du système d’IA à haut risque ou d’interrompre le système au moyen d’un bouton d’arrêt ou d’une procédure similaire permettant au système de s’arrêter de manière sécurisée.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "Intervenir dans le fonctionnement ou interrompre le système de manière sécurisée.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Bouton d'arrêt ou procédure d'interruption du système d'IA",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Conception de l'arrêt",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "hors_perimetre"
+    },
+    {
+      "id": "MC-46",
+      "text": "T-8",
+      "reference": "art. 14 § 5",
+      "facts": [
+        "R6-F51"
+      ],
+      "quote": "[…] aucune mesure ou décision n’est prise par le déployeur sur la base de l’identification résultant du système sans vérification et confirmation distinctes de cette identification par au moins deux personnes physiques disposant des compétences, de la formation et de l’autorité nécessaires.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "La première phrase du § 5, coupée dans la citation (« […] ») et lue dans S12 (R6-F51), limite la règle aux systèmes visés à l'annexe III, point 1 a) : pour eux, vérification et confirmation distinctes par au moins deux personnes physiques.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Seuil d'approbation configurable ; avec `required ≥ 2`, au moins deux adresses distinctes du jeu ont signé",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "A-3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-3",
+              "ref": "EX-8.11"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-3",
+              "ref": "EX-13.10"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Compétences, formation et autorité des personnes ; portée limitée à l'annexe III, point 1 a) (première phrase du § 5, R6-F51) ; fixer `threshold.required ≥ 2` ; choisir `separation.self_approval` (CT-3 section 10), réglage de la politique d'approbation qui, sur la valeur « interdite », empêche toute adresse déclarée pour le demandeur de compter parmi les approbateurs (CT-3 SG-7) : CT-3 rapporte que le considérant 73 admet que l'une des deux personnes soit celle qui fait fonctionner le système (CT-3 §5.4 ; R3-F12 est un fait de la note de CT-3, non de l'annexe B de CT-7), d'où un réglage et non une interdiction ; tenir une personne par clé à l'inscription (CT-3 EX-8.11, non vérifié en version 0)",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-47",
+      "text": "T-8",
+      "reference": "art. 19 § 1",
+      "facts": [
+        "R6-F52"
+      ],
+      "quote": "1. Les fournisseurs de systèmes d’IA à haut risque assurent la tenue des journaux générés automatiquement par leurs systèmes d’IA à haut risque, visés à l’article 12, paragraphe 1, dans la mesure où ces journaux se trouvent sous leur contrôle. Sans préjudice du droit de l’Union ou du droit national applicable, les journaux sont conservés pendant une période adaptée à la destination du système d’IA à haut risque, d’au moins six mois, sauf disposition contraire dans le droit de l’Union ou le droit national applicable, en particulier dans le droit de l’Union sur la protection des données à caractère personnel.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "Le fournisseur tient les journaux sous son contrôle pendant une période adaptée, d'au moins six mois.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Durée : au moins dix ans pour les événements",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.19"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.12"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Journaux sous le contrôle de qui les tient : journal, pièces et clés sur l'infrastructure du client ; clause de conservation",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.10"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Plancher de dix ans non réductible face à la réserve du droit de la protection des données (lacune L-5)",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.14"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Qualité de fournisseur, contrôle des journaux, période adaptée à la destination",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-48",
+      "text": "T-8",
+      "reference": "art. 26 § 2",
+      "facts": [
+        "R6-F53"
+      ],
+      "quote": "2. Les déployeurs confient le contrôle humain à des personnes physiques qui disposent des compétences, de la formation et de l’autorité nécessaires ainsi que du soutien nécessaire.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "Confier le contrôle humain à des personnes physiques compétentes, formées et dotées de l'autorité nécessaire.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Approbateurs nommés par le système d'identité du client, inscrits dans un annuaire exportable, une personne et une clé",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-3",
+              "ref": "EX-13.10"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-3",
+              "ref": "EX-13.19"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Compétence, formation, autorité et soutien des personnes",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-49",
+      "text": "T-8",
+      "reference": "art. 26 § 5",
+      "facts": [
+        "R6-F53"
+      ],
+      "quote": "Les déployeurs surveillent le fonctionnement du système d’IA à haut risque sur la base de la notice d’utilisation et, le cas échéant, informent les fournisseurs conformément à l’article 72. Lorsque les déployeurs ont des raisons de considérer que l’utilisation du système d’IA à haut risque conformément à la notice d’utilisation pourrait conduire à ce que le système d’IA présente un risque au sens de l’article 79, paragraphe 1, ils en informent, sans retard injustifié, le fournisseur ou le distributeur ainsi que l’autorité de surveillance du marché concernée, et suspendent l’utilisation de ce système.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "Surveiller le fonctionnement selon la notice, informer et suspendre en cas de risque.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Journal signé des actions et décisions, disponible pour la surveillance",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§5.1"
+            },
+            {
+              "kind": "section",
+              "spec": "CT-6",
+              "ref": "§5.1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Surveillance, information du fournisseur et de l'autorité, suspension",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-50",
+      "text": "T-8",
+      "reference": "art. 26 § 6",
+      "facts": [
+        "R6-F54"
+      ],
+      "quote": "6. Les déployeurs de systèmes d’IA à haut risque assurent la tenue des journaux générés automatiquement par ce système d’IA à haut risque dans la mesure où ces journaux se trouvent sous leur contrôle, pendant une période adaptée à la destination du système d’IA à haut risque, d’au moins six mois, sauf disposition contraire dans le droit de l’Union ou le droit national applicable, en particulier dans le droit de l’Union sur la protection des données à caractère personnel.",
+      "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
+      "read_on": "2026-10-26",
+      "requirement": "Le déployeur tient les journaux sous son contrôle pendant une période adaptée, d'au moins six mois.",
+      "applicability": "pas_encore_applicable",
+      "elements": [
+        {
+          "element": "Durée : au moins dix ans pour les événements",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.19"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.12"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Journaux sous le contrôle du déployeur : journal, pièces et clés sur son infrastructure ; clause de conservation",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.10"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-3"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Plancher de dix ans non réductible face à la réserve du droit de la protection des données (lacune L-5)",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.14"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Période adaptée à la destination, lien avec la documentation du droit des services financiers",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-51",
+      "text": "T-9",
+      "reference": "art. 3",
+      "facts": [
+        "R6-F59"
+      ],
+      "quote": "Le mode de tenue, de saisie et de conservation doit garantir que les livres et les pièces comptables ne puissent être modifiés sans que la modification soit apparente.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/html/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-html-6.html",
+      "read_on": "2026-10-26",
+      "requirement": "Les livres et pièces ne peuvent être modifiés sans que la modification soit apparente.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Toute modification d'un événement, d'un voisin, d'un chemin ou d'un manifeste est apparente au vérificateur",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "1"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "2"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "3"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "6"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Qualification du journal comme livre ou pièce comptable",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "couvert"
+    },
+    {
+      "id": "MC-52",
+      "text": "T-9",
+      "reference": "art. 6",
+      "facts": [
+        "R6-F61"
+      ],
+      "quote": "1 Jusqu’à la fin du délai de conservation, toute personne autorisée doit pouvoir, en tout temps et dans un délai raisonnable, consulter et vérifier les livres et les pièces comptables. 2 Le personnel, les appareils et les instruments auxiliaires sont mis à disposition en tant qu’ils sont nécessaires à la consultation et à la vérification. 3 Dans le cadre du droit de consultation, la possibilité doit être offerte, à la personne autorisée qui le demande, de rendre les livres lisibles sans l’aide d’instruments auxiliaires.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/html/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-html-6.html",
+      "read_on": "2026-10-26",
+      "requirement": "Consultation et vérification en tout temps ; lecture possible sans instruments auxiliaires sur demande.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Événements et dossiers en JSON UTF-8 lisible ; vérificateur libre et hors ligne",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-6",
+              "ref": "EX-3.3"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Pièces binaires ou rédigées : leur lecture sans instrument dépend de leur format",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Mise à disposition du personnel et des moyens de consultation",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-53",
+      "text": "T-9",
+      "reference": "art. 8",
+      "facts": [
+        "R6-F62"
+      ],
+      "quote": "Art. 8 Archives Les informations sont inventoriées systématiquement et protégées contre les accès non autorisés. Les consultations et les accès sont enregistrés. Ces enregistrements sont soumis à la même obligation de conservation que les supports de données.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/html/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-html-6.html",
+      "read_on": "2026-10-26",
+      "requirement": "Archives inventoriées et protégées ; consultations et accès enregistrés et conservés aussi longtemps que les supports.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Registre des copies WORM et relevé de verrouillage : inventaire des copies",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.29"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-17.6"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Enregistrement des consultations et des accès au journal et à ses copies",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.15"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Journalisation des accès au stockage et à ses copies, conservée aussi longtemps",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-54",
+      "text": "T-9",
+      "reference": "art. 9 al. 1 let. b",
+      "facts": [
+        "R6-F63"
+      ],
+      "quote": "b. les supports d’information modifiables si: 1. des procédés techniques (p. ex. signature électronique) sont utilisés, qui garantissent l’intégrité des informations enregistrées, 2. le moment où les informations ont été enregistrées peut être prouvé sans possibilité de falsification (p. ex. grâce à un système d’horodatage), 3. les autres prescriptions relatives à l’utilisation du procédé en question qui existent au moment de l’enregistrement sont respectées, et 4. les procédures et les modes d’utilisation de ces supports sont consignés et les informations nécessaires (protocoles, journal de bord des connexions [log files]) sont également conservées.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/html/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-html-6.html",
+      "read_on": "2026-10-26",
+      "requirement": "Supports modifiables admis si intégrité garantie par un procédé technique, moment d'enregistrement prouvé, prescriptions respectées, procédures consignées et journaux conservés.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Ch. 1 : signature électronique de chaque événement et de chaque manifeste",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "6"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.21"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Ch. 2 : moment d'enregistrement prouvé par horodatage RFC 3161 et OpenTimestamps : une date au plus tard, celle de la période ou du point de contrôle qui engage l'événement (CT-1 §10.9) ; le `ts` de l'événement reste déclaratif ; le jeton RFC 3161 vaut sous l'hypothèse H4 de CT-6 (prestataire honnête, RA-54, PA-19), et la preuve OpenTimestamps donne une borne indépendante (contrôle 5)",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "4"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "5"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-5",
+              "ref": "EX-5.15"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Ch. 4 : journal d'exploitation, qui porte l'identité de connexion d'hôte et les refus d'authentification, conservé avec le journal dans la limite de `logging.keep_files` ; purges consignées",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-9.6"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.20"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Archivage des fichiers tournés du journal d'exploitation au-delà de `logging.keep_files` : renvoyé à CT-8 (lacune L-9)",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Ch. 3 : autres prescriptions du procédé ; qualification du journal",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-55",
+      "text": "T-9",
+      "reference": "art. 10 al. 1",
+      "facts": [
+        "R6-F64"
+      ],
+      "quote": "1 L’intégrité et la lisibilité des supports d’information sont régulièrement contrôlées.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/html/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-html-6.html",
+      "read_on": "2026-10-26",
+      "requirement": "Contrôle régulier de l'intégrité et de la lisibilité des supports.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Relecture et vérification horaire et quotidienne des segments, comparaison aux copies WORM",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-17.5"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.21"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Contrôle périodique de l'intégrité et de la lisibilité des segments anciens et de leurs copies WORM : non spécifié en version 0 (lacune L-10)",
+          "relation": "ne_couvre_pas",
+          "pieces": [],
+          "condition": null
+        },
+        {
+          "element": "Contrôle des supports qu'il exploite hors de l'enregistreur",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-56",
+      "text": "T-9",
+      "reference": "art. 10 al. 2 et 3",
+      "facts": [
+        "R6-F64"
+      ],
+      "quote": "2 Le format des données peut être modifié et les données peuvent être transférées sur d’autres supports d’information (migration), s’il est garanti: a. que les informations restent complètes et exactes, et b. que la disponibilité et la lisibilité continuent de satisfaire aux exigences légales. 3 Le transfert des données d’un support d’information à un autre doit faire l’objet d’un procès-verbal. Ce dernier est conservé avec les informations.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/2002/216/20130101/fr/html/fedlex-data-admin-ch-eli-cc-2002-216-20130101-fr-html-6.html",
+      "read_on": "2026-10-26",
+      "requirement": "Migration admise si complétude, exactitude, disponibilité et lisibilité sont garanties ; procès-verbal de transfert conservé.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Après migration, chaque dossier se vérifie de nouveau : la complétude et l'exactitude se constatent par les contrôles",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-6",
+              "ref": "§5.1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Procès-verbal de migration de support : renvoyé à CT-8, non spécifié en version 0 (lacune L-2, 8.9)",
+          "relation": "ne_couvre_pas",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-2",
+              "ref": "§12.8"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Décision et exécution de la migration",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    },
+    {
+      "id": "MC-57",
+      "text": "T-10",
+      "reference": "art. 958f al. 1",
+      "facts": [
+        "R6-F65"
+      ],
+      "quote": "1 Les livres et les pièces comptables ainsi que le rapport de gestion et le rapport de révision sont conservés pendant dix ans. Ce délai court à partir de la fin de l’exercice.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/27/317_321_377/20261001/fr/html/fedlex-data-admin-ch-eli-cc-27-317_321_377-20261001-fr-html-3.html",
+      "read_on": "2026-10-26",
+      "requirement": "Conservation pendant dix ans à partir de la fin de l'exercice.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Événements, manifestes, signatures, pièces d'horodatage et file conservés au moins dix ans à compter de la fin de l'exercice",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "exigence",
+              "spec": "CT-2",
+              "ref": "EX-12.19"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-5",
+              "ref": "EX-5.15"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-5",
+              "ref": "EX-8.14"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-7",
+              "ref": "EX-8.12"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Qualification du journal comme livre ou pièce comptable ; fin de l'exercice",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "couvert"
+    },
+    {
+      "id": "MC-58",
+      "text": "T-10",
+      "reference": "art. 958f al. 3",
+      "facts": [
+        "R6-F65"
+      ],
+      "quote": "3 Les livres et les pièces comptables peuvent être conservés sur support papier, sur support électronique ou sous toute forme équivalente, pour autant que le lien avec les transactions et les autres faits sur lesquels ils portent soit garanti et que leur lecture reste possible en toutes circonstances.",
+      "source_url": "https://fedlex.data.admin.ch/filestore/fedlex.data.admin.ch/eli/cc/27/317_321_377/20261001/fr/html/fedlex-data-admin-ch-eli-cc-27-317_321_377-20261001-fr-html-3.html",
+      "read_on": "2026-10-26",
+      "requirement": "Support électronique admis si le lien avec les faits est garanti et si la lecture reste possible en toutes circonstances.",
+      "applicability": "en_vigueur",
+      "elements": [
+        {
+          "element": "Lien avec les faits : chaque pièce jointe est liée à son événement par son SHA-256, l'événement à la chaîne",
+          "relation": "repond_a",
+          "pieces": [
+            {
+              "kind": "verification",
+              "spec": "CT-1",
+              "ref": "E-6"
+            },
+            {
+              "kind": "controle",
+              "spec": "CT-6",
+              "ref": "1"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Lecture : formats publiés et vérificateur libre, hors ligne",
+          "relation": "contribue_a",
+          "pieces": [
+            {
+              "kind": "section",
+              "spec": "CT-1",
+              "ref": "§3"
+            },
+            {
+              "kind": "exigence",
+              "spec": "CT-6",
+              "ref": "EX-3.3"
+            },
+            {
+              "kind": "clause",
+              "spec": "CT-7",
+              "ref": "CL-2"
+            }
+          ],
+          "condition": null
+        },
+        {
+          "element": "Lecture en toutes circonstances des supports qu'il exploite",
+          "relation": "releve_du_client",
+          "pieces": [],
+          "condition": null
+        }
+      ],
+      "status": "partiel"
+    }
+  ],
+  "clauses": [
+    {
+      "id": "CL-1",
+      "title": "Droit d'audit, de regard et d'information",
+      "serves": [
+        "MC-2",
+        "MC-9",
+        "MC-11",
+        "MC-12",
+        "MC-28",
+        "MC-33"
+      ]
+    },
+    {
+      "id": "CL-2",
+      "title": "Accès au vérificateur et aux formats",
+      "serves": [
+        "MC-33",
+        "MC-52",
+        "MC-58"
+      ]
+    },
+    {
+      "id": "CL-3",
+      "title": "Conservation, restitution et réversibilité",
+      "serves": [
+        "MC-2",
+        "MC-8",
+        "MC-29",
+        "MC-32",
+        "MC-34",
+        "MC-47",
+        "MC-50"
+      ]
+    },
+    {
+      "id": "CL-4",
+      "title": "Sous-traitance",
+      "serves": [
+        "MC-2",
+        "MC-7",
+        "MC-14",
+        "MC-27",
+        "MC-30"
+      ]
+    },
+    {
+      "id": "CL-5",
+      "title": "Notification d'incident",
+      "serves": [
+        "MC-2",
+        "MC-10"
+      ]
+    },
+    {
+      "id": "CL-6",
+      "title": "Lieux de traitement et exigences de sécurité",
+      "serves": [
+        "MC-10",
+        "MC-13",
+        "MC-31"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "id": "L-1",
+      "title": "Consultations et accès au journal non enregistrés par NOORTRACE",
+      "rows": [
+        "MC-99"
+      ],
+      "response": "releve_du_client",
+      "bound": "Toute modification du contenu du journal est détectée par les contrôles 1 à 8 ; elle n'est empêchée que par la copie WORM, si elle est configurée ; seule la trace des lectures manque.",
+      "owner": "client (journalisation de son stockage) ; proposition PA-15 à CT-8",
+      "rule": "EX-8.15"
+    },
+    {
+      "id": "L-2",
+      "title": "Procès-verbal de migration de support non spécifié",
+      "rows": [
+        "MC-56"
+      ],
+      "response": "renvoi",
+      "bound": "Tout dossier se revérifie après migration ; seul le procès-verbal manque.",
+      "owner": "CT-8 (CT-2 §12.8) ; proposition PA-15",
+      "rule": "EX-8.19"
+    },
+    {
+      "id": "L-3",
+      "title": "Destinataire des données sans champ propre",
+      "rows": [
+        "MC-16"
+      ],
+      "response": "risque_accepte",
+      "bound": "Le système et l'objet d'un effet `envoi` sont journalisés ; le destinataire peut figurer dans l'objet par le gabarit d'effets. Le destinataire écrit dans `object` n'est pas purgeable (L-5).",
+      "owner": "client (gabarits d'effets, CT-2 EX-7.6) ; format v0 figé",
+      "rule": "EX-8.8"
+    },
+    {
+      "id": "L-4",
+      "title": "Enregistrement et modification, effacement et destruction non distingués",
+      "rows": [
+        "MC-15"
+      ],
+      "response": "risque_accepte",
+      "bound": "L'outil appelé et l'objet distinguent l'opération ; seule l'énumération `action` est plus grossière.",
+      "owner": "client (nommage des outils et gabarits) ; une version 1 du format peut l'affiner",
+      "rule": "EX-8.8"
+    },
+    {
+      "id": "L-5",
+      "title": "Plancher de dix ans pour les données personnelles en ligne des événements",
+      "rows": [
+        "MC-23",
+        "MC-47",
+        "MC-50"
+      ],
+      "response": "proposition",
+      "bound": "Touche les valeurs en ligne de CT-2 EX-10.2 (`delegation`, `intent`, `effects`, `code.model`, nom de prompt, motifs et adresses d'approbation) et, hors chaîne, `participants[].name` et `affiliation` des procès-verbaux (section 5), `prepared_by.identity` et les signataires des attestations (section 7) ; les pièces sont purgeables et rédigées.",
+      "owner": "proposition PA-12 à CT-2 et PA-13 à CT-5 ; risque accepté par le client tant qu'elles ne sont pas adoptées",
+      "rule": "EX-8.14"
+    },
+    {
+      "id": "L-6",
+      "title": "Sorties ignorées, remplacées ou inversées hors approbation non capturées",
+      "rows": [
+        "MC-3",
+        "MC-44"
+      ],
+      "response": "risque_accepte",
+      "bound": "Seuls les refus et expirations d'approbation sont journalisés et signés.",
+      "owner": "client (journalisation de l'application) ; proposition PA-16 pour une version 1",
+      "rule": "EX-8.19"
+    },
+    {
+      "id": "L-7",
+      "title": "Durées sectorielles de conservation non recherchées",
+      "rows": [
+        "MC-57"
+      ],
+      "response": "releve_du_client",
+      "bound": "Les paramètres de durée acceptent toute valeur supérieure au plancher.",
+      "owner": "client (NV-6)",
+      "rule": "EX-8.12"
+    },
+    {
+      "id": "L-8",
+      "title": "Vigueur de la circulaire FINMA 2018/3 au 2026-10-26 non lue dans un acte",
+      "rows": [
+        "MC-7",
+        "MC-8",
+        "MC-9",
+        "MC-10",
+        "MC-11",
+        "MC-12",
+        "MC-13",
+        "MC-14"
+      ],
+      "response": "renvoi",
+      "bound": "Les lignes restent valables comme correspondance technique ; leur statut juridique est à confirmer. Pour la circulaire FINMA 2018/3, la vigueur au 2026-10-26 n'a pas été lue dans un acte (NV-1), et les catégories d'assujettis visées, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) ; savoir si elle s'applique au client relève de lui (NV-8).",
+      "owner": "prochaine révision de CT-7 (NV-1)",
+      "rule": "EX-8.4"
+    },
+    {
+      "id": "L-9",
+      "title": "Archivage du journal d'exploitation au-delà de `logging.keep_files` non spécifié",
+      "rows": [
+        "MC-54"
+      ],
+      "response": "renvoi",
+      "bound": "Le démon ne garde que `logging.keep_files` fichiers tournés ; la durée du journal (CT-2 EX-9.6) n'est tenue pour le journal d'exploitation que si le client archive les fichiers tournés.",
+      "owner": "CT-8 ; proposition PA-15 étendue à l'archivage des fichiers tournés",
+      "rule": "EX-8.19"
+    },
+    {
+      "id": "L-10",
+      "title": "Contrôle périodique de l'intégrité et de la lisibilité des segments anciens et de leurs copies WORM non spécifié",
+      "rows": [
+        "MC-21",
+        "MC-55"
+      ],
+      "response": "proposition",
+      "bound": "Segments fermés du jour et de l'heure contrôlés (CT-2 EX-17.5) ; tout dossier exporté se revérifie entièrement (CT-6 §5.1).",
+      "owner": "proposition PA-17 à CT-2 (EX-17.5)",
+      "rule": "EX-8.19"
+    }
+  ]
+}

@@ -13,7 +13,8 @@ import (
 
 // Comparaison est une valeur attendue confrontée à une valeur recalculée.
 // HorsPerimetre marque une valeur que ce vérificateur ne peut pas recalculer
-// (contrôle E-9, signatures EIP-191) : ni concordante ni discordante.
+// (contrôle E-9, signatures EIP-191 ; notions de CT-6 et de CT-7 portées
+// par les attendus de la révision 0.4) : ni concordante ni discordante.
 type Comparaison struct {
 	Famille       string `json:"famille"`
 	Vecteur       string `json:"vecteur"`
@@ -79,7 +80,7 @@ func (r *Rapport) Comptes() (int, int, int, int) {
 }
 
 // ToutConcorde dit si le code de retour doit être 0 : aucune discordance et
-// aucune erreur. Les valeurs hors périmètre (E-9) sont énoncées, pas comptées
+// aucune erreur. Les valeurs hors périmètre sont énoncées, pas comptées
 // comme discordantes.
 func (r *Rapport) ToutConcorde() bool {
 	_, _, d, _ := r.Comptes()
@@ -151,11 +152,11 @@ func (r *Rapport) EcrireTexte(w io.Writer, verbeux bool) {
 		}
 	}
 	t, c, d, hp := r.Comptes()
-	fmt.Fprintf(w, "\nTotal : %d valeur(s) recalculée(s), %d concordante(s), %d discordante(s), %d hors périmètre (E-9), %d erreur(s)\n", t, c, d, hp, len(r.Erreurs))
+	fmt.Fprintf(w, "\nTotal : %d valeur(s) recalculée(s), %d concordante(s), %d discordante(s), %d hors périmètre, %d erreur(s)\n", t, c, d, hp, len(r.Erreurs))
 	if r.ToutConcorde() {
 		fmt.Fprintln(w, "Résultat : tout concorde.")
 		if hp > 0 {
-			fmt.Fprintln(w, "Les valeurs hors périmètre (signatures EIP-191, contrôle 7 / E-9) ne sont pas vérifiées par ce vérificateur et restent à confronter par l'implémentation de référence.")
+			fmt.Fprintln(w, "Les valeurs hors périmètre (signatures EIP-191 des approbateurs, contrôle 7 / E-9 ; vérification visée, attestation retenue et avertissements AV-AT- des dossiers de la révision 0.4, définis par CT-6 et CT-7) ne sont pas vérifiées par ce vérificateur et restent à confronter par l'implémentation de référence.")
 		}
 	} else {
 		fmt.Fprintln(w, "Résultat : DISCORDANCE ou erreur.")

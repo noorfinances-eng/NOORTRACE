@@ -249,6 +249,12 @@ Entrées : ct-1/merkle/coherence.json, ct-1/points-de-controle/attendu.json, ct-
   second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
   path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
   proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/valide-point-de-controle-complet-attestation (vérifications en échec attendues : aucune)
+  SHA-256 de points-de-controle.json : 0x817e9756dcd57635a27a68fc36cf9602a7d7373e719571b6136e5f8eff25ea4f
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
 -- ct-6/dossiers/valide-point-de-controle-jeton-seul (vérifications en échec attendues : aucune)
   SHA-256 de points-de-controle.json : 0x9a29f95d90a2607443746a048434341d4f9e954775f13107c86764cdc5163bcc
   consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d

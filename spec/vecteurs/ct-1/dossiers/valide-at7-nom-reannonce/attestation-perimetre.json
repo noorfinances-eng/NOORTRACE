@@ -1,0 +1,200 @@
+{
+  "version": 0,
+  "signed": {
+    "version": 0,
+    "attestation": {
+      "version": 0,
+      "org": {
+        "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+        "slug": "assureur-demo",
+        "name": "Assureur démo SA"
+      },
+      "journals": [
+        {
+          "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+          "name": "journal-principal"
+        },
+        {
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "name": "journal-sinistres"
+        }
+      ],
+      "validity": {
+        "from": "2026-11-01T00:00:00.000Z",
+        "until": "2027-01-31T23:59:59.999Z"
+      },
+      "issued_at": "2026-10-30T16:00:00.000Z",
+      "prepared_by": {
+        "identity": "oidc https://idp.assureur-demo.example admin-agents",
+        "function": "administrateur de la plate-forme d'agents"
+      },
+      "agents": [
+        {
+          "agent_id": "agent-sinistres",
+          "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+          "host": "hote-agents-01",
+          "framework": "service Python, SDK NOORTRACE 0.1",
+          "capture_channels": [
+            "mandataire_mcp",
+            "passerelle"
+          ],
+          "notes": null
+        },
+        {
+          "agent_id": "agent-principal",
+          "journal_id": "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+          "host": "hote-agents-02",
+          "framework": "hôte MCP de bureau",
+          "capture_channels": [
+            "mandataire_mcp",
+            "icap"
+          ],
+          "notes": "requêtes de modèle vues par le mandataire HTTPS de l'organisation"
+        }
+      ],
+      "tools_via_proxy_only": [
+        {
+          "server_alias": "sap",
+          "tools": [
+            "*"
+          ],
+          "enforcement": "seul l'hôte de l'enregistreur joint le serveur d'outils SAP (règle de sortie 12)"
+        },
+        {
+          "server_alias": "crm",
+          "tools": [
+            "claims.get"
+          ],
+          "enforcement": "jeton du serveur CRM détenu par l'enregistreur seul (règle de sortie 13)"
+        }
+      ],
+      "egress": {
+        "default_policy": "refus_par_defaut",
+        "rules_sha256": "0xf36e414b01b7813795a3220703368246d2904119c701835cfbef527c2bfb23ae",
+        "rules_format": "export texte du pare-feu",
+        "summary": "Refus par défaut. Les hôtes d'agents ne joignent que l'enregistreur ; seul l'hôte de l'enregistreur joint les fournisseurs de modèle et les serveurs d'outils ; les refus sont journalisés au pare-feu.",
+        "allowed_destinations": [
+          {
+            "name": "fournisseurs de modèle",
+            "via": "enregistreur",
+            "description": "route /v1/messages de la passerelle"
+          },
+          {
+            "name": "serveurs d'outils SAP et CRM",
+            "via": "enregistreur",
+            "description": "frontal MCP de l'enregistreur"
+          },
+          {
+            "name": "relais de messagerie interne",
+            "via": "direct",
+            "description": "envoi de courriels hors capture, déclaré dans not_captured"
+          }
+        ]
+      },
+      "gateway_credentials": [
+        {
+          "route": "/v1/messages",
+          "provider_label": "fournisseur",
+          "secret_ref": {
+            "file": "/run/secrets/cle-fournisseur"
+          }
+        }
+      ],
+      "not_captured": [
+        {
+          "channel": "relais de messagerie interne",
+          "description": "Un courriel envoyé par le relais SMTP sans passer par l'outil mail.send n'est pas journalisé par l'enregistreur.",
+          "compensating_control": "journal du relais SMTP conservé un an"
+        }
+      ],
+      "signatories": [
+        {
+          "name": "Approbateur 1",
+          "function": "responsable des sinistres",
+          "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8"
+        },
+        {
+          "name": "Approbateur 2",
+          "function": "responsable de la conformité",
+          "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+        }
+      ],
+      "declaration": "Nous déclarons qu'à notre connaissance, pendant la période de validité, les agents de l'inventaire n'atteignent leurs outils et leurs modèles que par les canaux de capture indiqués, sous les règles de sortie dont l'empreinte est donnée, sauf les cas déclarés non capturés."
+    },
+    "digest": "0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd",
+    "signatures": [
+      {
+        "address": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "signature": "0x77cd5463cb88d5e9327bc0f31aecde620267a3a2267efd3cbf18839a57955af1793571375853490a4d494f5eaf28a90812ac70c8fae00d18a7d1edb372ee44f11c"
+      },
+      {
+        "address": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+        "signature": "0x7d80f09897a9661ecd568bd94ccd75d0b53381566aa77c108b28cafa6b6bdc617ad35c56e5976232b50568f40b3901bb7d19d5e8be3d14bccd76c1b283e5f26f1c"
+      }
+    ]
+  },
+  "approver_set": {
+    "threshold": {
+      "required": 2,
+      "size": 3
+    },
+    "members": [
+      "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    ],
+    "source": "comptes Hardhat 1 à 3 (vecteurs CT-1)"
+  },
+  "inscription": {
+    "event": {
+      "version": 0,
+      "seq": 12,
+      "ts": "2026-11-05T10:05:00.000Z",
+      "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+      "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+      "recorder_key_id": "rec-test-02",
+      "prev_hash": "0xf92b743f6e089038b2182131434071ef5d6fe5c4dbc55fd8c30a0e431725efdb",
+      "delegation": {
+        "launched_by": "noortrace-enregistreur",
+        "on_behalf_of": null,
+        "scope": "journal:administration",
+        "run_id": null
+      },
+      "code": {
+        "model": null,
+        "prompt_version": null,
+        "policy_version": "2026-11-05",
+        "recorder": "0.1.0"
+      },
+      "intent": null,
+      "policy": {
+        "rule": null,
+        "decision": "sans_objet",
+        "ticket": null,
+        "redaction": null
+      },
+      "approval": null,
+      "execution": {
+        "tool": "noortrace.journal.politique",
+        "arguments": {
+          "sha256": "0xabf74619ab04a14027f13003aacba674f864cdebb83d611b001391543cc965aa",
+          "length": 116,
+          "redacted": false,
+          "value": {
+            "policy_version": "2026-11-05",
+            "policy_sha256": "0x5016ffc47d07a5ec0dae8c464a0a5cf466cd4f425fadbf293dafbd36617f63d9"
+          }
+        },
+        "status": "executee",
+        "result": null,
+        "duration_ms": null,
+        "is_error": null
+      },
+      "effects": [],
+      "context": [],
+      "hash": "0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90",
+      "sig": "0x7e757e190377226dac6baf2ba65db8d534565003e16603863a3bdc111c8cb00ff87ce43cfffa3e8f81f434c3de28b624d3480d64688bddd640355f3a2e718f04"
+    },
+    "policy_document": "eyJwZXJpbWV0ZXIiOnsiYXR0ZXN0YXRpb25fZGlnZXN0IjoiMHg0NDgxYTJlNDc3MTI1MzljNGNhNTBmMmVlYTNkNjA2MmVjMTFhNzBkNDk3YzE1M2MxYTZmNzA3NjA2NjU3Y2ZkIn0sInZlcnNpb24iOiIyMDI2LTExLTA1In0="
+  }
+}

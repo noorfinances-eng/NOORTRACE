@@ -1,0 +1,9 @@
+{
+  "verdict": "invalide",
+  "digest": "0x577ccdb31ce77dde5c9a35c45de41bd6b1f2e36432af669d3f21514da4fe70ed",
+  "failed": [
+    "CR-11"
+  ],
+  "not_executed": [],
+  "signers": []
+}

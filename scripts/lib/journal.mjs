@@ -13,6 +13,11 @@
 
 import { createHash, createPrivateKey, createPublicKey, sign as signerCrypto, verify as verifierCrypto } from "node:crypto";
 import { Signature, getBytes, hashMessage, keccak256, recoverAddress, solidityPacked, toUtf8Bytes } from "ethers";
+// Révision 0.4 de CT-1 : vérifications AT-1 à AT-7 de la partie
+// attestation-perimetre.json, définies avec l'attestation par CT-7 section 7.
+// securite.mjs importe aussi ce module : ni l'un ni l'autre ne lit de valeur
+// de l'autre au chargement.
+import * as S from "./securite.mjs";
 
 // ---------------------------------------------------------------------------
 // Constantes du format v0
@@ -79,11 +84,15 @@ export const PARTIES_RESERVEES = ["jeton_rfc3161", "preuve_ots", "registre", "ce
 
 /** Treizième partie facultative du dossier (CT-1 révision 0.3, §11.1), toujours en treizième position quand elle est déclarée. */
 export const PARTIE_POINTS_DE_CONTROLE = { name: "points_de_controle", file: "points-de-controle.json" };
+/** Quatorzième partie facultative du dossier (CT-1 révision 0.4, §11.1), déclarée seulement après la treizième. */
+export const PARTIE_ATTESTATION_PERIMETRE = { name: "attestation_perimetre", file: "attestation-perimetre.json" };
 
 export const RAISON_HORS_PERIMETRE = "hors périmètre CT-1";
 export const RAISON_AUCUNE_APPROBATION = "aucune approbation liée";
 /** Raison d'absence de la partie points_de_controle quand l'exportateur la déclare sans la fournir (CT-1 §11.1). */
 export const RAISON_AUCUN_POINT = "aucun point de contrôle";
+/** Raison d'absence de la partie attestation_perimetre quand l'exportateur la déclare sans la fournir (CT-1 §11.1, révision 0.4). */
+export const RAISON_AUCUNE_ATTESTATION = "aucune attestation de périmètre";
 /** docType de l'ancre d'un point de contrôle au registre : keccak256(UTF-8("noortrace/point-de-controle/v0")) (CT-1 §10.6, CT-4 §6.4). */
 export const DOC_TYPE_POINT_DE_CONTROLE = keccak256(toUtf8Bytes("noortrace/point-de-controle/v0"));
 
@@ -92,6 +101,8 @@ export const ID_SCHEMA_EVENEMENT = "https://noortrace.example/schemas/v0/eveneme
 export const ID_SCHEMA_MANIFESTE = "https://noortrace.example/schemas/v0/manifeste.schema.json";
 export const ID_SCHEMA_DOSSIER = "https://noortrace.example/schemas/v0/dossier.schema.json";
 export const ID_SCHEMA_POINT_DE_CONTROLE = "https://noortrace.example/schemas/v0/point-de-controle.schema.json";
+/** Schéma de l'attestation de périmètre (CT-7 §7.1), référencé par $defs/attestation_perimetre de dossier-v0 (CT-1 révision 0.4). */
+export const ID_SCHEMA_ATTESTATION_PERIMETRE = "https://noortrace.example/schemas/v0/attestation-perimetre.schema.json";
 
 /** Les contrôles du vérificateur (CT-1 §11.4), dans l'ordre du rapport, avec le contrôle de l'architecture qu'ils servent. */
 export const CONTROLES_DOSSIER = [
@@ -1903,15 +1914,22 @@ export function controlesEvenement(ev, { schemas, cles } = {}) {
  * des absents. La treizième partie facultative points_de_controle (CT-1
  * révision 0.3) est ajoutée quand son fichier est fourni ou quand `raisons`
  * porte une raison d'absence pour elle ; sinon l'index garde douze parties.
+ * La quatorzième, attestation_perimetre (révision 0.4), est ajoutée de même ;
+ * elle n'est déclarée qu'après la treizième, qui est alors déclarée absente
+ * avec la raison « aucun point de contrôle » si elle n'est pas fournie.
  */
 export function indexDossier({ evenement, generated_at, fichiers, raisons = {} }) {
-  const declarees = fichiers[PARTIE_POINTS_DE_CONTROLE.file] !== undefined && fichiers[PARTIE_POINTS_DE_CONTROLE.file] !== null || raisons[PARTIE_POINTS_DE_CONTROLE.name] !== undefined
-    ? [...PARTIES_DOSSIER, PARTIE_POINTS_DE_CONTROLE]
-    : PARTIES_DOSSIER;
+  const declaree = (p) => (fichiers[p.file] !== undefined && fichiers[p.file] !== null) || raisons[p.name] !== undefined;
+  const avecAttestation = declaree(PARTIE_ATTESTATION_PERIMETRE);
+  const declarees = avecAttestation
+    ? [...PARTIES_DOSSIER, PARTIE_POINTS_DE_CONTROLE, PARTIE_ATTESTATION_PERIMETRE]
+    : declaree(PARTIE_POINTS_DE_CONTROLE)
+      ? [...PARTIES_DOSSIER, PARTIE_POINTS_DE_CONTROLE]
+      : PARTIES_DOSSIER;
   const parts = declarees.map(({ name, file }) => {
     const contenu = fichiers[file];
     if (contenu !== undefined && contenu !== null) return { name, file, sha256: sha256(enOctets(contenu)), present: true, reason_if_absent: null };
-    const raison = raisons[name] ?? (PARTIES_RESERVEES.includes(name) ? RAISON_HORS_PERIMETRE : name === "approbations" ? RAISON_AUCUNE_APPROBATION : name === PARTIE_POINTS_DE_CONTROLE.name ? RAISON_AUCUN_POINT : "partie absente");
+    const raison = raisons[name] ?? (PARTIES_RESERVEES.includes(name) ? RAISON_HORS_PERIMETRE : name === "approbations" ? RAISON_AUCUNE_APPROBATION : name === PARTIE_POINTS_DE_CONTROLE.name ? RAISON_AUCUN_POINT : name === PARTIE_ATTESTATION_PERIMETRE.name ? RAISON_AUCUNE_ATTESTATION : "partie absente");
     return { name, file, sha256: null, present: false, reason_if_absent: raison };
   });
   return {
@@ -1933,9 +1951,12 @@ export function indexDossier({ evenement, generated_at, fichiers, raisons = {} }
  * `pointsDeControle` (CT-1 révision 0.3, facultatif) : la partie
  * points-de-controle.json (construirePartiePointsDeControle) ; sans elle et sans
  * raison `raisons.points_de_controle`, l'index garde douze parties.
+ * `attestationPerimetre` (CT-1 révision 0.4, facultatif) : la partie
+ * attestation-perimetre.json (objet, ou texte déjà écrit) ; avec elle, ou avec
+ * une raison `raisons.attestation_perimetre`, l'index a quatorze parties.
  * Les parties réservées à CT-4 et CT-5 sont déclarées absentes.
  */
-export function assemblerDossier({ evenement, previous = null, next = null, hashesPeriode, manifeste, manifesteSig, cles, approbations = null, pointsDeControle = null, generated_at, raisons = {} }) {
+export function assemblerDossier({ evenement, previous = null, next = null, hashesPeriode, manifeste, manifesteSig, cles, approbations = null, pointsDeControle = null, attestationPerimetre = null, generated_at, raisons = {} }) {
   const chemin = preuveInclusion(hashesPeriode, evenement.seq - manifeste.first_seq);
   const fichiers = {
     "evenement.json": texteJSON(evenement),
@@ -1956,6 +1977,7 @@ export function assemblerDossier({ evenement, previous = null, next = null, hash
     });
   }
   if (pointsDeControle) fichiers[PARTIE_POINTS_DE_CONTROLE.file] = texteJSON(pointsDeControle);
+  if (attestationPerimetre !== null && attestationPerimetre !== undefined) fichiers[PARTIE_ATTESTATION_PERIMETRE.file] = typeof attestationPerimetre === "string" || Buffer.isBuffer(attestationPerimetre) ? attestationPerimetre : texteJSON(attestationPerimetre);
   const index = indexDossier({ evenement, generated_at, fichiers, raisons });
   return { index, fichiers: { "dossier.json": texteJSON(index), ...fichiers } };
 }
@@ -2077,9 +2099,20 @@ const IDS_K = ["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"];
  * au-delà de la limite de la partie, imbrication JSON trop profonde). Une telle
  * partie met en échec le contrôle qui la porte, avec ce motif ; si ses octets ne
  * sont pas dans `fichiers` (fichier non lu), D-2 échoue aussi, son SHA-256
- * n'étant pas vérifiable. Sans cette option, le comportement est celui de CT-1.
+ * n'étant pas vérifiable, sauf si `empreintes` (Map nom de fichier -> SHA-256
+ * 0x des octets complets, calculé par l'appelant en flux) le donne. Sans ces
+ * options, le comportement est celui de CT-1.
+ *
+ * Révision 0.4 : l'index compte douze, treize ou quatorze parties ; avec la
+ * quatorzième (attestation_perimetre) déclarée présente, AT-1 à AT-7 sont
+ * exécutées par scripts/lib/securite.mjs et rendues dans `attestation` ({
+ * checks, retenue, digest, faits, avertissements, nonRetenue }, null sans la
+ * partie déclarée présente). Elles ne figurent pas dans `controles` : une AT-
+ * en échec ne rend jamais le dossier invalide (CT-1 §11.4, CT-6 EX-5.11) ;
+ * seule D-2 porte sur le fichier. `schemas` doit alors contenir aussi le
+ * schéma attestation-perimetre-v0.
  */
-export function verifierDossier(fichiers, { schemas, inexploitables = null } = {}) {
+export function verifierDossier(fichiers, { schemas, inexploitables = null, empreintes = null } = {}) {
   if (!schemas || !schemas[ID_SCHEMA_EVENEMENT] || !schemas[ID_SCHEMA_MANIFESTE] || !schemas[ID_SCHEMA_DOSSIER]) {
     throw new DossierInutilisable("les trois schémas (evenement, manifeste, dossier) sont requis pour vérifier un dossier");
   }
@@ -2106,12 +2139,13 @@ export function verifierDossier(fichiers, { schemas, inexploitables = null } = {
   rapport.resultat("D-1", erreursIndex.length === 0, erreursIndex.length ? `dossier.json : ${resumerErreurs(erreursIndex)}` : "dossier.json conforme au schéma");
   const parts = Array.isArray(index.parts) ? index.parts : [];
   const partie = (name) => parts.find((p) => p && p.name === name);
-  if (parts.length !== PARTIES_DOSSIER.length && parts.length !== PARTIES_DOSSIER.length + 1) {
+  if (parts.length < PARTIES_DOSSIER.length || parts.length > PARTIES_DOSSIER.length + 2) {
     for (const c of rapport.controles) if (c.id !== "D-1") rapport.nonExecute(c.id, "index inexploitable");
     return terminer(rapport, index, null, parts);
   }
   // Treize parties : la treizième est points_de_controle (sinon D-1 l'a déjà dit) ; douze : la partie n'est pas déclarée.
-  const partiesDeclarees = parts.length === PARTIES_DOSSIER.length + 1 ? [...PARTIES_DOSSIER, PARTIE_POINTS_DE_CONTROLE] : PARTIES_DOSSIER;
+  // Quatorze (révision 0.4) : la quatorzième est attestation_perimetre, après la treizième.
+  const partiesDeclarees = [...PARTIES_DOSSIER, PARTIE_POINTS_DE_CONTROLE, PARTIE_ATTESTATION_PERIMETRE].slice(0, parts.length);
 
   // D-2 : les fichiers tels qu'ils sont dans le répertoire.
   for (const { name, file } of partiesDeclarees) {
@@ -2122,7 +2156,10 @@ export function verifierDossier(fichiers, { schemas, inexploitables = null } = {
       continue;
     }
     if (p.present === true) {
-      if (nonLu(file)) rapport.echec("D-2", `${file} non lu (${refus(file)}) : SHA-256 non vérifiable`);
+      if (nonLu(file) && empreintes instanceof Map && empreintes.has(file)) {
+        if (empreintes.get(file) !== p.sha256) rapport.echec("D-2", `${file} : SHA-256 ${empreintes.get(file)} différent de l'index ${p.sha256}`);
+        else rapport.succes("D-2");
+      } else if (nonLu(file)) rapport.echec("D-2", `${file} non lu (${refus(file)}) : SHA-256 non vérifiable`);
       else if (!o) rapport.echec("D-2", `${file} déclaré présent mais absent du répertoire`);
       else if (sha256(o) !== p.sha256) rapport.echec("D-2", `${file} : SHA-256 ${sha256(o)} différent de l'index ${p.sha256}`);
       else rapport.succes("D-2");
@@ -2416,7 +2453,16 @@ export function verifierDossier(fichiers, { schemas, inexploitables = null } = {
     verifierPartiePointsDeControle(rapport, pointsDoc, { ev, voisins, chemin, manifeste, cles, schemas, hashRecalcule });
   }
 
-  return terminer(rapport, index, ev, parts);
+  // AT-1 à AT-7 : la partie attestation-perimetre.json (CT-1 révision 0.4, §11.4), sans effet sur la validité.
+  let attestation = null;
+  const partieAttestation = partie(PARTIE_ATTESTATION_PERIMETRE.name);
+  if (parts.length === PARTIES_DOSSIER.length + 2 && partieAttestation && partieAttestation.present === true) {
+    if (!schemas[ID_SCHEMA_ATTESTATION_PERIMETRE]) throw new DossierInutilisable("le schéma attestation-perimetre est requis pour vérifier la partie attestation-perimetre.json (CT-1 révision 0.4)");
+    const file = PARTIE_ATTESTATION_PERIMETRE.file;
+    attestation = S.verifierPartieAttestation({ octets: brut(file), inexploitable: refus(file), evenement, cles: clesDoc, approbations, schemas });
+  }
+
+  return terminer(rapport, index, ev, parts, attestation);
 }
 
 /**
@@ -2524,7 +2570,7 @@ function verifierPartiePointsDeControle(rapport, doc, { ev, voisins, chemin, man
   }
 }
 
-function terminer(rapport, index, ev, parts) {
+function terminer(rapport, index, ev, parts, attestation = null) {
   const partiesAbsentes = parts.filter((p) => p && p.present === false).map((p) => ({ name: p.name, file: p.file, reason: p.reason_if_absent ?? null }));
   const reserveesAbsentes = partiesAbsentes.filter((p) => PARTIES_RESERVEES.includes(p.name));
   const borne = reserveesAbsentes.length
@@ -2541,6 +2587,7 @@ function terminer(rapport, index, ev, parts) {
     journal_id: index.journal_id ?? null,
     partiesAbsentes,
     borne,
+    attestation,
   };
 }
 

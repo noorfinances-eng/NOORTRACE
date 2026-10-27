@@ -1,6 +1,12 @@
 # CT-6 — Vérificateur
 
-Version 0.2, 2026-10-25 (révision 0.2 : vérification de la partie facultative
+Version 0.3, 2026-10-26 (révision 0.3 : vérification de la partie
+facultative `attestation-perimetre.json` du dossier, ajoutée par CT-1
+révision 0.4 et définie par CT-7 section 7 ; vérifications AT-1 à AT-7
+rangées sous les contrôles 6 et 7 sans effet sur leur statut ni sur le
+verdict, fragment FP de l'énoncé, `facts.perimeter` du rapport,
+avertissements AV-AT-1 à AV-AT-3, sections 5.5 et 7.10 ; ajouts seuls,
+section 16. Révision 0.2, 2026-10-25 : vérification de la partie facultative
 `points-de-controle.json` du dossier, ajoutée par CT-1 révision 0.3 ;
 vérifications K-1 à K-9 rattachées aux huit contrôles, vérification R-11,
 fragment FK de l'énoncé, `facts.checkpoint` du rapport, section 7.9 ; ajouts
@@ -50,6 +56,12 @@ complète en place, en le disant, le texte d'EX-4.3, EX-5.2, EX-5.6, EX-6.3,
 EX-6.4, EX-6.8, EX-6.13, EX-9.18, EX-10.12, EX-11.20, EX-11.21 et EX-12.4,
 sans changer ce qu'elles décident pour un dossier sans la partie
 `points-de-controle.json` ; aucune règle n'est retirée (section 16).
+La révision 0.3 ajoute EX-4.15, EX-5.10 à EX-5.12, EX-6.19 à EX-6.21,
+EX-7.3, EX-8.10, EX-8.11, EX-A.18 à EX-A.21 et V-10 ; elle complète en
+place, en le disant, le texte d'EX-4.3, EX-5.2, EX-5.6, EX-6.3, EX-6.4,
+EX-6.7, EX-6.8, EX-6.12, EX-6.13, EX-8.6, EX-8.9, V-3 et V-6, sans changer
+ce qu'elles décident pour un dossier sans la partie
+`attestation-perimetre.json`.
 
 Les vérifications élémentaires portent l'identifiant de leur famille :
 
@@ -60,6 +72,7 @@ Les vérifications élémentaires portent l'identifiant de leur famille :
 | O- | 5, preuve OpenTimestamps | section 10 |
 | R- | 8, registre et certificat de commit | section 11 (R-11, ancre d'un point de contrôle du journal : révision 0.2, 11.9) |
 | K- | 2, 3, 4, 5, 6 et 8 : vérifications de la partie facultative `points-de-controle.json` (révision 0.2) | CT-1 §11.4 (révision 0.3), reprises sans changement ; la section 5.4 fixe leur rattachement aux contrôles et leur effet sur le statut, les sections 9.9, 10.9 et 11.9 l'exécution de K-7, K-9 et K-8 |
+| AT- | aucun statut : rangées sous les contrôles 7 (AT-1 à AT-5) et 6 (AT-6, AT-7) pour la lecture du rapport, sans effet sur leur statut ni sur le verdict ; vérifications de la partie facultative `attestation-perimetre.json` (révision 0.3) | CT-1 §11.4 (révision 0.4), reprises sans changement ; la section 5.5 fixe leur rattachement et leur absence d'effet |
 | N- | fichier d'ancres et son application au dossier | section 12 |
 | V- | verdict, énoncé et codes de retour | section 6.9 |
 
@@ -128,6 +141,13 @@ CT-6 fixe, pour la version 0 du vérificateur :
    10.9, 11.9, vérification R-11), ce que le verdict prouve de nouveau
    (section 7.9), ce que CT-5 produit pour les points (section 13.4), les
    vecteurs (annexe A).
+9. (révision 0.3) la vérification de la partie facultative
+   `attestation-perimetre.json` (CT-1 révision 0.4, CT-7 section 7) :
+   rattachement des vérifications AT-1 à AT-7 aux contrôles 7 et 6 sans
+   effet sur leur statut ni sur le verdict (section 5.5), fragment FP de
+   l'énoncé, `facts.perimeter` et avertissements AV-AT- (sections 6.5, 6.7,
+   8), ce que le verdict ne prouve pas du périmètre (section 7.10), les
+   vecteurs (annexe A).
 
 Hors périmètre : la production des cinq parties réservées du dossier (CT-4
 pour le registre, CT-5 pour l'horodatage et OpenTimestamps ; la section 13 dit
@@ -151,11 +171,12 @@ Relations avec les autres spécifications :
 
 | Spécification | Ce que CT-6 en reprend | Ce que CT-6 lui fournit ou lui impose |
 |---|---|---|
-| CT-1 | Le dossier v0 et ses douze parties (§11.1, §11.2) ; les vingt-huit vérifications D-1 à A-4 (§11.4) ; `periodHash` (§10.2) ; `anchorFingerprint` (§10.4) ; la borne du verdict (§11.3) ; depuis la révision 0.3 de CT-1, la treizième partie facultative `points-de-controle.json`, le point de contrôle du journal, sa preuve de cohérence et les vérifications K-1 à K-9 (§10.5 à §10.9, §11.1, §11.2, §11.4) | Le statut de chacun des huit contrôles, le verdict, l'énoncé. Aucune vérification de CT-1 n'est redéfinie. Les lignes de §11.2 des cinq parties réservées renvoient à CT-6, et celles de `jeton-rfc3161.der` et `preuve.ots` disent `periodHash` (section 16). La révision 0.2 fixe en un seul endroit (5.4) dans quels contrôles K-1 à K-9 comptent et leur effet sur le statut, la raison de leur non-exécution, le fragment FK de l'énoncé (EX-6.16) et ce qu'il prouve (7.9), comme CT-1 §11.3 et §11.4 le lui demandent. |
+| CT-1 | Le dossier v0 et ses douze parties (§11.1, §11.2) ; les vingt-huit vérifications D-1 à A-4 (§11.4) ; `periodHash` (§10.2) ; `anchorFingerprint` (§10.4) ; la borne du verdict (§11.3) ; depuis la révision 0.3 de CT-1, la treizième partie facultative `points-de-controle.json`, le point de contrôle du journal, sa preuve de cohérence et les vérifications K-1 à K-9 (§10.5 à §10.9, §11.1, §11.2, §11.4) ; depuis la révision 0.4 de CT-1, la quatorzième partie facultative `attestation-perimetre.json` et les vérifications AT-1 à AT-7 (§11.1, §11.2, §11.4) | Le statut de chacun des huit contrôles, le verdict, l'énoncé. Aucune vérification de CT-1 n'est redéfinie. Les lignes de §11.2 des cinq parties réservées renvoient à CT-6, et celles de `jeton-rfc3161.der` et `preuve.ots` disent `periodHash` (section 16). La révision 0.2 fixe en un seul endroit (5.4) dans quels contrôles K-1 à K-9 comptent et leur effet sur le statut, la raison de leur non-exécution, le fragment FK de l'énoncé (EX-6.16) et ce qu'il prouve (7.9), comme CT-1 §11.3 et §11.4 le lui demandent. |
 | CT-2 | La clé Ed25519 de l'enregistreur et la clé de chaîne secp256k1 sous laquelle elle est inscrite, qui signe les ancres et relaie les clôtures (§11, EX-11.13, EX-11.19) ; ce que la capture ne couvre pas (§21) | Rien de nouveau : le vérificateur contrôle ce que l'enregistreur produit. |
 | CT-4 | — | Le contenu de `registre.json`, `certificat-commit.json` et `validateurs.json`, et leur capture au moment de chaque transaction (sections 11 et 13) ; depuis la révision 0.2, l'entrée de rôle `ancre_point_de_controle` pour l'ancre d'un point de contrôle du journal (11.9), avec le `docType` que CT-4 §6.4 inscrit en révision 0.3. |
 | CT-5 | — | Le contenu de `jeton-rfc3161.der` et de `preuve.ots`, et le fichier d'en-têtes Bitcoin qui accompagne le dossier (sections 9, 10 et 13) ; depuis la révision 0.2, les ancres embarquées d'un point de contrôle du journal dans `points-de-controle.json` et ce qui est publié pour le réviseur (section 13.4). |
 | CT-9 | — | Les identifiants EX-, T-, O-, R-, N- et V-, et les vecteurs `spec/vecteurs/ct-6` (annexe A). |
+| CT-7 | (révision 0.3) L'attestation de périmètre, son condensé `D_P` et sa signature EIP-191 (section 7) ; la règle selon laquelle le périmètre est déclaré, jamais prouvé (EX-7.1) | Le rattachement des AT- sans effet sur le verdict (5.5), le fragment FP (EX-6.19), `facts.perimeter` (EX-6.20) |
 
 ## 2. Terminologie
 
@@ -193,6 +214,8 @@ ajoutent :
 | Point de contrôle du journal | (révision 0.2) Tête signée de l'arbre de Merkle de la période en cours, produite par l'enregistreur à cadence courte (CT-1 §10.5) : racine des `tree_size` premières feuilles, `last_seq`, `last_hash`, `checkpoint_ts`, chaînage au point précédent, signature ; son empreinte `checkpointHash` (CT-1 §10.6) reçoit les ancres de CT-5. Un dossier en porte au plus un, dans la partie facultative `points-de-controle.json` (CT-1 §11.2). |
 | Point couvrant | (révision 0.2) Le point de contrôle du journal que porte le dossier : un point dont `tree_size` est strictement supérieur à l'indice de feuille de l'événement prouvé, choisi par l'exportateur (CT-1 §11.2, CT-5 §10) ; K-4 vérifie la couverture, K-5 que son arbre est un préfixe de celui du manifeste. |
 | Fenêtre de réécriture | (révision 0.2) Pour un événement de `ts = t_e`, `W = T − t_e`, `T` étant le plus précoce des instants prouvés par une ancre qui date et qui engage l'événement : `genTime` plus la précision d'un jeton RFC 3161, celui du point (K-7) ou celui de la clôture (contrôle 4) (CT-1 §10.9). Une ancre au registre ne fournit pas de `T` : elle ordonne sans dater. La création d'un bloc Bitcoin termine aussi la fenêtre (K-9, contrôle 5), sans que son instant soit prouvé ; elle ne fournit pas non plus de `T`. Le vérificateur ne mesure pas `W` dans l'absolu : il énonce `T` (fragment FK) et rapporte `T − t_e` pour cet événement (`facts.checkpoint.rewrite_window_ms`). |
+| Attestation de périmètre | (révision 0.3) Déclaration du périmètre de capture, signée en EIP-191 par des membres du jeu d'approbateurs de l'organisation (CT-7 section 7), jointe au dossier par la partie facultative `attestation-perimetre.json` (CT-1 §11.2). Le vérificateur établit qui l'a signée et où elle est inscrite ; jamais que le périmètre est exact. |
+| Attestation retenue | (révision 0.3) Attestation dont AT-1 à AT-5 réussissent et dont AT-6 réussit ou n'est pas exécutée faute d'inscription (`partie_absente`) ou faute d'une clé reliée à l'événement prouvé (`ancre_absente`) ; AT-7 n'y entre pas. Elle donne le fragment FP, qui dit sans inscription reliée que ni sa date ni son rang ne sont établis, et `facts.perimeter` (EX-6.19, EX-6.20). Une attestation non retenue est signalée par AV-AT-1. |
 | Confirmations | Nombre d'en-têtes de la chaîne fournie depuis le bloc attesté, lui compris, jusqu'au dernier : t − h + 1 (EX-10.10). |
 | Registre | L'instance dédiée de noorcore qui porte `PeriodRegistry`, `AttestationRegistry` et `RecorderRegistry` (architecture, « Instance dédiée »). |
 | Certificat de commit | La proposition signée et au moins un quorum de precommits signés qui ont décidé un bloc du registre, servis par `noor_getCommitCertificate` (`scripts/verify/README.md`). |
@@ -294,6 +317,11 @@ exception :
   (jeton, preuve `.ots`, référence au registre), tant que K-7, K-9 et K-8 ne
   les ont pas rattachées au fichier d'ancres ; `checkpoint_ts` reste
   déclaratif même alors (CT-1 §10.5).
+- (révision 0.3) la partie `attestation-perimetre.json` : l'attestation, son
+  condensé, ses signatures, le jeu d'approbateurs qu'elle déclare et
+  l'événement d'inscription ; même quand AT-1 à AT-7 réussissent, le
+  périmètre qu'elle décrit reste une déclaration de ses signataires (CT-7
+  EX-7.1).
 
 Le vérificateur ne consulte pas non plus l'horloge du système (EX-3.2), le
 réseau ni les magasins de certificats du système (EX-3.3).
@@ -311,6 +339,7 @@ réseau ni les magasins de certificats du système (EX-3.3).
 | 7 | `approbations.json`, signatures | Aucune ancre d'approbateurs en version 0 | Les adresses nommées ont signé, au seuil déclaré ; pour une demande expirée, aucune signature n'est attachée. |
 | 8 | `registre.json`, `certificat-commit.json`, `validateurs.json` | Identifiant de chaîne, adresses des contrats, jeux de validateurs et hauteurs de validité ; clés de chaîne des enregistreurs, si le réviseur en fournit (N-4) | Un quorum du jeu du fichier d'ancres a signé les blocs où les contrats du fichier d'ancres ont émis la clôture et l'ancre de `periodHash` ; l'émetteur de l'ancre est la clé de chaîne du fichier d'ancres si celui-ci en donne une pour la clé du manifeste, sous les mêmes `org_id`, `journal_id` et `key_id` (N-4, EX-12.5). |
 | K- (partie `points-de-controle.json`, révision 0.2) | `points-de-controle.json` : point de contrôle du journal, `checkpoint_hash`, preuve de cohérence, jeton, preuve `.ots`, référence au registre ; entrée `ancre_point_de_controle` de `registre.json` | Les mêmes ancres que les contrôles 4, 5, 6 et 8 (autorités d'horodatage, `bitcoin`, `registry`, `recorders`) ; aucune ancre nouvelle (EX-12.6) | Le point couvre l'événement et son arbre est un préfixe de celui du manifeste (K-4, K-5) ; `checkpointHash` recalculé et signé par la clé déclarée (K-2, K-3) ; `checkpointHash` existait au plus tard à l'instant du jeton du point selon une autorité du fichier d'ancres (K-7), avant un bloc Bitcoin (K-9), et son ancre a été émise au registre dans un bloc certifié (K-8, R-11), chacune sous les hypothèses du contrôle qu'elle sert. |
+| AT- (partie `attestation-perimetre.json`, révision 0.3) | l'attestation signée, `approver_set`, l'inscription et son document de politique | aucune ancre (pas d'ancre d'approbateurs en version 0) | Des adresses du jeu déclaré, en nombre au moins égal à son seuil, ont signé ce texte ; il nomme l'organisation et le journal de l'événement et sa validité couvre son `ts` déclaré ; avec l'inscription, il est porté par l'ensemble de politique d'un événement signé de rang au plus celui de l'événement prouvé. Jamais : que le périmètre est exact. |
 
 **EX-3.6** Le rapport DOIT dire d'où viennent les clés du contrôle 6
 (`dossier`, `ancres` ou `registre`, clé par clé quand elles diffèrent) et le
@@ -368,6 +397,15 @@ les points qu'il détient, celui qu'il embarque, pourvu qu'il couvre l'événeme
 (K-4) : la borne énoncée est celle de ce point, et le réviseur ne sait pas s'il
 en existait un plus précoce (7.9).
 
+Révision 0.3. Une attestation de périmètre ne change rien à cette table :
+elle n'empêche aucun adversaire de faire passer quoi que ce soit. Elle
+ajoute ce que l'opérateur **déclare** du périmètre ; un opérateur qui
+déclare faux le fait sous la signature de ses approbateurs, et le rapport
+le dit « déclaré, non prouvé » (CT-7 MN-78). Ce qu'il peut encore faire :
+ne joindre aucune attestation, ou en joindre une sans inscription
+(CT-7 MN-85) ; le rapport le montre par l'absence de FP ou de sa clause
+d'inscription.
+
 ### 3.5 Hypothèses
 
 Les phrases de la section 7 sont vraies sous ces hypothèses ; si l'une tombe,
@@ -387,6 +425,11 @@ La révision 0.2 n'ajoute aucune hypothèse : H3 et H4 valent pour l'autorité
 qui contresigne un point de contrôle du journal (K-7), H5 pour sa preuve
 OpenTimestamps (K-9), H6 et H7 pour son ancre au registre (K-8, R-11), H1 et
 H2 pour sa signature et sa preuve de cohérence (K-2, K-3, K-5).
+
+La révision 0.3 n'ajoute aucune hypothèse : H1 et H2 valent pour le
+condensé et les signatures de l'attestation (AT-2, AT-3) et pour la
+signature de l'événement d'inscription (AT-6). Le jeu d'approbateurs
+d'AT-4 est déclaratif, sans hypothèse qui le rende de confiance.
 
 ## 4. Entrées
 
@@ -419,6 +462,7 @@ parties réservées :
 | `certificat_commit` | `certificat-commit.json` | un certificat de commit par bloc que cite `registre.json` | 8 | section 11 |
 | `validateurs` | `validateurs.json` | jeu de validateurs déclaré par l'exportateur ; facultative, elle ne sert qu'au contrôle de cohérence R-3 | 8 | section 11 |
 | `points_de_controle` (révision 0.2) | `points-de-controle.json` | treizième partie, facultative (CT-1 §11.1, §11.2) : le point de contrôle du journal qui couvre l'événement, son `checkpoint_hash`, sa preuve de cohérence vers le manifeste et ses ancres embarquées en base64 (jeton RFC 3161, référence au registre, preuve OpenTimestamps) ; requise par aucun contrôle | 2, 3, 4, 5, 6, 8 (K-1 à K-9, section 5.4) | CT-1 §11.2 ; sections 5.4, 9.9, 10.9, 11.9 |
+| `attestation_perimetre` (révision 0.3) | `attestation-perimetre.json` | quatorzième partie, facultative (CT-1 §11.1, §11.2), déclarée seulement après la treizième : l'attestation de périmètre signée, le jeu d'approbateurs déclaré et l'inscription facultative ; requise par aucun contrôle | aucun statut ; rangée sous 7 et 6 (AT-1 à AT-7, section 5.5) | CT-1 §11.2 ; CT-7 section 7 |
 
 **EX-4.1** Le vérificateur lit un seul dossier par exécution. Il ignore les
 fichiers du répertoire que `dossier.json` ne déclare pas (CT-1 §11.1) et n'en
@@ -441,6 +485,10 @@ R-3, sans effet sur le contrôle 8 (section 11). La partie `points_de_controle`
 absente ou non déclarée (index à douze parties), elle ne rend aucun contrôle
 `non_execute`, et n'apparaît que dans `absent_parts` quand l'index la déclare
 absente.
+Révision 0.3 : de même, la partie `attestation_perimetre` n'est requise par
+aucun contrôle (EX-5.10) ; absente, déclarée absente ou non déclarée, elle
+ne rend aucun contrôle `non_execute` et n'apparaît que dans `absent_parts`
+quand l'index la déclare absente.
 
 **EX-4.4** Le rapport donne le SHA-256 des octets de `dossier.json`
 (`inputs.dossier.index_sha256`), qui désigne sans ambiguïté le dossier
@@ -462,6 +510,25 @@ inatteignable. Un base64 non canonique rend l'ancre inexploitable : K-7 ou K-9
 échoue (EX-9.22, EX-10.16). Un index à douze parties, ou à treize dont la
 treizième est absente avec une raison, laisse le dossier tel que la version
 0.1 le vérifiait (EX-6.18).
+
+**EX-4.15** (révision 0.3) La partie `attestation_perimetre` est lue et
+vérifiée quand l'index la déclare présente : D-2 contrôle son SHA-256, AT-1
+la valide contre `dossier-v0.schema.json#/$defs/attestation_perimetre`
+(l'attestation contre `attestation-perimetre-v0.schema.json`, l'événement
+d'inscription contre `evenement-v0.schema.json`, que le vérificateur
+embarque, 8.6), et AT-2 à AT-7 s'exécutent comme la section 5.5 le dit. Sa
+limite de taille est 4 Mio. Le document de politique qu'elle embarque est
+décodé depuis un base64 canonique (même règle qu'EX-4.14) et limité à
+2 097 152 octets décodés. Une partie qui dépasse sa limite, qui n'est pas un
+objet JSON ou qui enfreint son schéma fait échouer AT-1, et rien d'autre :
+contrairement aux autres parties (EX-4.11), son défaut ne rend pas le
+dossier invalide (EX-5.11). Au-delà de 4 Mio, la partie n'est pas analysée,
+mais D-2 en calcule encore le SHA-256, en flux et sans rien conserver,
+jusqu'à un plafond absolu de lecture de 64 Mio ; une partie de plus de
+64 Mio rend l'entrée inutilisable (code 2, `taille_depassee`), comme une pièce
+trop grande (EX-4.6), et le temps de lecture reste borné. Un index à douze ou
+treize parties, ou à quatorze dont la quatorzième est absente avec une raison,
+laisse le dossier tel que la révision 0.2 le vérifiait (EX-6.21).
 
 ### 4.3 Les entrées à part
 
@@ -566,6 +633,7 @@ analyseurs.
 | `certificat-commit.json` | 64 Mio | 7 075 à 7 782 octets par certificat (R3 F47) |
 | `validateurs.json` | 1 Mio | non mesurée |
 | `points-de-controle.json` (révision 0.2) | 1 Mio (EX-4.14) | 4 148 octets (exemple de CT-1 §11.2, jeton de 2 104 octets embarqué en base64) |
+| `attestation-perimetre.json` (révision 0.3) | 4 Mio (EX-4.15) ; document de politique embarqué : 2 097 152 octets décodés | 5 443 octets (exemple de CT-1 §11.2, sans inscription) ; 7 359 octets avec l'inscription de CT-7 §7.5 |
 | fichier d'en-têtes Bitcoin | 200 000 en-têtes (EX-10.3), 64 Mio | 80 octets par en-tête (R2-F43) |
 | second manifeste | 1 Mio | 629 octets (`manifeste.json` de `valide-seq-7`) |
 | fichier d'ancres | 16 Mio | non mesurée |
@@ -585,8 +653,8 @@ analyseurs.
 | 3 | Chemin de Merkle jusqu'à la racine | M-1, M-2, M-3, P-1, P-2, P-3, P-4, P-5 ; K-1, K-2, K-4, K-5 (partie facultative, 5.4) | `chemin.json`, `manifeste.json`, `manifeste.sig` ; second manifeste si fourni | — | L'événement est la feuille d'indice `seq − first_seq` de l'arbre dont la racine est dans le manifeste ; `periodHash` est recalculé et signé par la clé déclarée. |
 | 4 | Jeton RFC 3161 sur `periodHash` | T-1 à T-11 (section 9 ; T-11 sans effet sur le statut) ; K-7 (partie facultative, 5.4, 9.9) | `jeton-rfc3161.der` | autorités d'horodatage, politiques admises, révocation, statut qualifié déclaré | `periodHash` existait au plus tard à `genTime` augmenté de la précision du jeton, selon une autorité du fichier d'ancres. Chaque certificat du chemin qui mène à cette autorité, le sien excepté, était valide à `genTime` (T-7) et, à cet instant, non révoqué selon une CRL à signature vérifiée (du fichier d'ancres ou du jeton) ou selon une déclaration du fichier d'ancres, de date postérieure ou égale à `genTime` (T-10 ; portée de cette preuve en 7.2). Les dates du certificat de l'autorité ne sont pas contrôlées (sauf unité épinglée, dont les dates sont contrôlées comme celles du certificat signataire), et sa révocation ne l'est que si une CRL du fichier d'ancres la porte (EX-9.13, EX-9.16, H3). |
 | 5 | Preuve OpenTimestamps contre les en-têtes Bitcoin | O-1 à O-7 (section 10) ; K-9 (partie facultative, 5.4, 10.9) | `preuve.ots` ; en-têtes Bitcoin pour O-4 à O-6 (EX-4.5) | réseau, point de contrôle, profondeur minimale | `periodHash` existait avant la création d'un bloc Bitcoin relié au point de contrôle par la chaîne d'en-têtes fournie, preuve de travail recalculée au-dessus du point de contrôle, sous k confirmations. |
-| 6 | Signature Ed25519 de l'enregistreur | E-8, E-10, E-11, C-3, P-5 ; N-3 (section 12) si le fichier d'ancres donne des clés ; K-3 (partie facultative, 5.4) | `cles.json`, `evenement.json`, `voisins.json`, `manifeste.sig` | clés d'enregistreurs, facultatives | La clé nommée a signé l'événement, ses voisins et le manifeste. Le `ts` de chaque événement et le `generated_at` du manifeste, tels que déclarés, tombent dans la période de validité que `cles.json` annonce pour la clé qui les signe (E-11, P-5), ce qui ne date pas la signature ; la clé nommée est celle du fichier d'ancres si celui-ci en donne une sous les mêmes `org_id`, `journal_id` et `key_id` (N-3, EX-12.4). Une clé dont le `key_id` est absent du fichier d'ancres n'est pas comparée, même si le fichier donne d'autres clés pour ce journal (EX-6.14, 7.2). |
-| 7 | Signatures des approbateurs et respect du seuil | E-5, E-9, A-1, A-2, A-3, A-4 | `approbations.json` quand `approval` n'est pas nul | — | Les adresses nommées ont signé la décision liée à l'événement, en nombre au moins égal au seuil du jeu déclaré. Pour une demande expirée (`decision` = `expire`), la décision liée à l'événement ne porte aucune signature (A-3) : aucun nombre de signatures n'est comparé au seuil, que l'énoncé rappelle. |
+| 6 | Signature Ed25519 de l'enregistreur | E-8, E-10, E-11, C-3, P-5 ; N-3 (section 12) si le fichier d'ancres donne des clés ; K-3 (partie facultative, 5.4) ; AT-6, AT-7 (partie facultative `attestation-perimetre.json`, 5.5, sans effet sur le statut) | `cles.json`, `evenement.json`, `voisins.json`, `manifeste.sig` | clés d'enregistreurs, facultatives | La clé nommée a signé l'événement, ses voisins et le manifeste. Le `ts` de chaque événement et le `generated_at` du manifeste, tels que déclarés, tombent dans la période de validité que `cles.json` annonce pour la clé qui les signe (E-11, P-5), ce qui ne date pas la signature ; la clé nommée est celle du fichier d'ancres si celui-ci en donne une sous les mêmes `org_id`, `journal_id` et `key_id` (N-3, EX-12.4). Une clé dont le `key_id` est absent du fichier d'ancres n'est pas comparée, même si le fichier donne d'autres clés pour ce journal (EX-6.14, 7.2). |
+| 7 | Signatures des approbateurs et respect du seuil | E-5, E-9, A-1, A-2, A-3, A-4 ; AT-1 à AT-5 (partie facultative `attestation-perimetre.json`, 5.5, sans effet sur le statut) | `approbations.json` quand `approval` n'est pas nul | — | Les adresses nommées ont signé la décision liée à l'événement, en nombre au moins égal au seuil du jeu déclaré. Pour une demande expirée (`decision` = `expire`), la décision liée à l'événement ne porte aucune signature (A-3) : aucun nombre de signatures n'est comparé au seuil, que l'énoncé rappelle. |
 | 8 | Inclusion de la transaction du registre dans un bloc certifié par un quorum | R-1 à R-11 (section 11 ; R-3, R-10 et R-11 sans effet sur le statut quand elles ne sont pas exécutées) ; N-4 (section 12) si le fichier d'ancres donne la clé de chaîne de la clé du manifeste ; K-8 (partie facultative, 5.4, 11.9) | `registre.json`, `certificat-commit.json` ; `validateurs.json` facultative | identifiant de chaîne, adresses des contrats, jeux de validateurs et leurs hauteurs ; clé de chaîne d'enregistreur, facultative | Un quorum du jeu du fichier d'ancres a signé les blocs où les contrats du fichier d'ancres ont émis `PeriodSubmitted` avec ce `periodHash` et `Anchored` avec son `anchorFingerprint`. |
 
 Dans la colonne « Parties et entrées requises », les entrées à part ne sont
@@ -605,6 +673,14 @@ contrôle 2, K-7 le contrôle 4, K-8 le contrôle 8, K-9 le contrôle 5 ; la
 section 5.4 est le seul endroit qui fixe ce rattachement et son effet sur le
 statut.
 
+Les vérifications AT-1 à AT-7 (révision 0.3) sont rangées sous le contrôle
+7 (AT-1 à AT-5 : forme, condensé, signatures et seuil d'un jeu
+d'approbateurs, liaison) et sous le contrôle 6 (AT-6, AT-7 : événement
+d'inscription signé par l'enregistreur, version de politique). Ce
+rangement sert la lecture du rapport et de la colonne « Contrôle de
+l'architecture » de CT-1 §11.4 ; il ne donne aux AT- aucun effet sur le
+statut de ces contrôles ni sur le verdict (5.5).
+
 **EX-5.1** Le vérificateur exécute les vérifications de cette table, et
 seulement elles ; aucune autre règle n'entre dans le verdict. Une vérification
 qui sert deux contrôles compte pour les deux.
@@ -621,7 +697,9 @@ qui sert deux contrôles compte pour les deux.
 3. vérifications de CT-1 dans l'ordre de CT-1 §11.4 (E-, C-, M-, P-, A-),
    E-6 avec les pièces fournies à part et P-5 avec le second manifeste, puis
    K-1 à K-9 quand la partie `points-de-controle.json` est déclarée présente
-   (révision 0.2, section 5.4) ;
+   (révision 0.2, section 5.4), puis AT-1 à AT-7 quand la partie
+   `attestation-perimetre.json` est déclarée présente (révision 0.3,
+   section 5.5) ;
 4. vérifications T- (contrôle 4), O- (contrôle 5), R- (contrôle 8, R-11
    comprise), chaque famille dans l'ordre de ses numéros ;
 5. vérifications N-3, qui compare les clés de `cles.json` à celles du
@@ -629,7 +707,8 @@ qui sert deux contrôles compte pour les deux.
    du registre à la clé de chaîne du fichier d'ancres (contrôle 8) ;
 6. statuts des contrôles, verdict, énoncé, borne (section 6).
 
-Le rapport suit cet ordre : D, E, C, M, P, A, K (CT-1 §11.4), puis T, O, R, N,
+Le rapport suit cet ordre : D, E, C, M, P, A, K, AT (CT-1 §11.4), puis T, O,
+R, N,
 qui est aussi celui des listes de l'`attendu.json` des vecteurs (EX-A.3).
 L'ordre ne change aucun statut : chaque vérification ne dépend que de ses
 entrées et de ses prérequis (section 5.3).
@@ -647,6 +726,7 @@ entrées et de ses prérequis (section 5.3).
 | 7 | `approbations.json` quand `approval` n'est pas nul | 1 réussi |
 | 8 | `registre.json`, `certificat-commit.json` ; pour R-9 et R-10, `periodHash` recalculé et le manifeste (`org_id` et `journal_id` pour `anchorFingerprint`, EX-5.4) | 1 et 3 réussis |
 | K-1 à K-9 (révision 0.2) | la partie `points-de-controle.json` déclarée présente et exploitable (K-1) ; K-1 : `manifeste.json` exploitable (P-1) ; K-2 : K-1 réussie ; K-3 : K-1 et la première partie de E-8 (`cles.json` exploitable) ; K-4 : K-1, `chemin.json` exploitable et M-3 réussie ; K-5 : K-1 et P-1 ; K-6 : K-1 et les hachages recalculés du contrôle 1 ; K-7, K-8, K-9 : K-2 réussie (`checkpoint_hash` recalculé) et leur ancre non nulle | 1, 3 et 6 réussis, K-1 à K-5 réussies, K-6 réussie ou non exécutée pour l'événement hors du dossier (EX-6.16) |
+| AT-1 à AT-7 (révision 0.3) | la partie `attestation-perimetre.json` déclarée présente ; AT-1 : la partie seule ; AT-2, AT-3 : AT-1 réussie ; AT-4 : AT-3 réussie ; AT-5 : AT-1 réussie et `evenement.json` exploitable ; AT-6 : AT-2 réussie, `evenement.json` et `cles.json` exploitables, `inscription` non nul ; AT-7 : AT-6 réussie | verdict `valide` ou `incomplet` ; contrôle 1 réussi ; attestation retenue (EX-6.19) |
 
 En version 0, la colonne « Pour entrer dans l'énoncé » ne retire jamais
 rien. Pour un verdict valide ou incomplet, les contrôles 1, 2, 3 et 6 sont
@@ -692,7 +772,10 @@ d'ancres donne une clé de chaîne pour la clé du manifeste et que les parties
 du contrôle 8 sont présentes (EX-12.5). Les vingt-huit vérifications D-1 à A-4
 de CT-1 figurent toujours toutes, comme dans CT-1 ; les neuf vérifications K-1
 à K-9 de CT-1 (révision 0.3) figurent quand la partie `points-de-controle.json`
-est déclarée présente, et seulement alors (révision 0.2, EX-5.7).
+est déclarée présente, et seulement alors (révision 0.2, EX-5.7). Les sept
+vérifications AT-1 à AT-7 de CT-1 (révision 0.4) figurent quand la partie
+`attestation-perimetre.json` est déclarée présente, et seulement alors
+(révision 0.3, EX-5.10).
 
 ### 5.4 Partie `points-de-controle.json` : vérifications K-1 à K-9 (révision 0.2)
 
@@ -768,6 +851,82 @@ l'ordre d'EX-6.5 est retenue (EX-5.5). Le `detail` de chaque K- dit la valeur
 comparée (par exemple « leaf_index 6 < tree_size 7 ; ts ≤ checkpoint_ts » pour
 K-4, les quatre champs de `consistency` et la longueur de `path` pour K-5).
 
+### 5.5 Partie `attestation-perimetre.json` : vérifications AT-1 à AT-7 (révision 0.3)
+
+La révision 0.4 de CT-1 ajoute au dossier une quatorzième partie
+facultative, `attestation-perimetre.json` (CT-1 §11.1, §11.2) :
+l'attestation de périmètre de CT-7 (section 7), signée par des membres du
+jeu d'approbateurs de l'organisation, le jeu déclaré, et son inscription au
+journal ; et sept vérifications AT-1 à AT-7 (CT-1 §11.4), toutes
+exécutables avec les seules pièces du dossier. CT-7 EX-7.1 fixe leur
+portée : une attestation retenue ne change aucun verdict, une attestation
+non retenue est signalée sans invalider l'événement prouvé. Cette section
+le rend exécutable, en un seul endroit ; EX-6.19 dit la proposition de
+l'énoncé, EX-6.20 les faits rapportés, la section 7.10 ce que cela ne
+prouve pas.
+
+**EX-5.10 (rattachement, présence au rapport)** Les vérifications AT-1 à
+AT-5 sont rangées sous le contrôle 7 et AT-6, AT-7 sous le contrôle 6 :
+leur champ `controls` vaut `[7]` ou `[6]`, et le contrôle les liste dans
+`checks`. Motif : l'attestation est signée par des membres d'un jeu
+d'approbateurs, comme la décision du contrôle 7 ; son inscription est un
+événement signé par l'enregistreur, comme ceux du contrôle 6. Les sept
+figurent dans le rapport, dans l'ordre AT-1 à AT-7, après K-9 (ou après
+A-4 sans K-) et avant T-1, si et seulement si l'index déclare la partie
+présente (quatorze parties, quatorzième à `present: true`). Index à douze
+ou treize parties, ou quatorzième partie déclarée absente : aucune AT- ne
+figure, `absent_parts` porte la partie quand elle est déclarée absente
+(EX-6.21).
+
+**EX-5.11 (aucun effet sur les statuts ni sur le verdict)** Une
+vérification AT- est sans effet sur le statut de son contrôle **quel que
+soit son statut**, `echoue` compris : elle s'ajoute aux vérifications de la
+règle 2 d'EX-6.4, et la règle 1 d'EX-6.4 ne la compte pas. Elle n'entre ni
+dans `failed_checks` ni dans `blocking_unexecuted`, et EX-6.7 ne la compte
+pas : le verdict, le code de retour, la borne (EX-6.12) et le statut des
+huit contrôles d'un dossier sont ceux qu'il aurait sans la partie. Une
+attestation qui n'est pas retenue (EX-6.19) est signalée par AV-AT-1, par
+le fragment FP « non retenue » et par ses AT- en échec dans `checks`.
+`--exiger` ne peut pas exiger une attestation (section 17). Seule D-2, qui
+porte sur l'index et non sur l'attestation, peut rendre invalide un dossier
+qui porte la partie (CT-1 §11.4). Motif : l'attestation est une déclaration
+(CT-7 EX-7.1) ; une déclaration fausse ou mal signée ne dit rien de
+l'événement prouvé, et ne doit pas permettre à un exportateur de rendre
+invalide, en y joignant une pièce, un dossier qui ne l'est pas.
+
+**EX-5.12 (raisons de non-exécution)** Les raisons sont celles de la table
+6.2, appliquées ainsi :
+
+| Vérification | `non_execute`, raison | Cas |
+|---|---|---|
+| AT-2 à AT-7 | `prerequis_en_echec` | AT-1 en échec ; pour AT-4, AT-3 en échec ; pour AT-5 et AT-6, `evenement.json` inexploitable ; pour AT-6, AT-2 en échec ou `cles.json` inexploitable (première partie de E-8) ; pour AT-7, AT-6 en échec ou non exécutée pour l'une de ces raisons, ou pour la raison `ancre_absente` |
+| AT-6 | `partie_absente` | `inscription` vaut `null` ; cette raison l'emporte sur toutes les autres, sauf l'échec d'AT-1 |
+| AT-6 | `ancre_absente` | l'événement d'inscription passe toutes ses règles, mais sa clé (`recorder_key_id`) n'est pas celle de l'événement prouvé : `cles.json` étant déclaré par l'exportateur, rien ne relie cette clé au journal de l'événement (CT-1 §11.4) |
+| AT-7 | `partie_absente` | AT-6 non exécutée, `partie_absente` |
+| AT-7 | `piece_hors_dossier` | AT-6 réussie, et la version de politique de l'événement prouvé n'est pas celle de l'inscription : l'ensemble de politique en vigueur pour l'événement n'est pas dans le dossier (comme A-4) |
+
+AT-1 n'a pas de raison de non-exécution : elle est `reussi` ou `echoue`. Le
+champ `admitted` suit la table 6.2 (`prerequis_en_echec` : `false`), mais
+EX-5.11 exclut les AT- de `blocking_unexecuted`. Le `detail` de chaque AT-
+dit la valeur comparée (le `D_P` recalculé pour AT-2, les adresses
+recouvrées pour AT-3, le nombre de signataires membres et le seuil pour
+AT-4, les deux versions de politique pour AT-7).
+
+`{ids}` désigne les AT- en échec, dans l'ordre du rapport ; s'il n'y en a
+aucune, les AT-1 à AT-6 non exécutées faute de prérequis
+(`prerequis_en_echec`), dans l'ordre du rapport (une attestation peut n'être
+pas retenue sans AT- en échec : AT-5 non exécutée quand `evenement.json` est
+inexploitable).
+
+Avertissements de la partie (ordre d'EX-6.15 ; un avertissement ne change
+aucun statut) :
+
+| Id | Levé par | Quand | Détail |
+|---|---|---|---|
+| AV-AT-1 | la première AT- de `{ids}` | l'attestation n'est pas retenue | `attestation de périmètre non retenue : {ids} en échec ; elle ne change ni les statuts ni le verdict`, ou, sans AT- en échec, `attestation de périmètre non retenue : {ids} non exécutée(s) ; elle ne change ni les statuts ni le verdict` |
+| AV-AT-2 | AT-4 | AT-4 réussie, `approbations.json` exploitable, et `approver_set` de la partie diffère du sien (membres, en ensemble, ou `threshold`) | `jeu d'approbateurs de l'attestation différent de celui de approbations.json` suivi des deux sources |
+| AV-AT-3 | AT-7 | AT-7 `non_execute`, `piece_hors_dossier` | `version de politique de l'événement ({v_e}) différente de celle de l'inscription ({v_i})` |
+
 ## 6. Verdicts
 
 ### 6.1 Statut d'une vérification
@@ -817,19 +976,28 @@ K-6 non exécutée parce que l'événement `last_seq` n'est pas dans le dossier 
 `partie_absente` ; K-1 à K-9 non exécutées pour une partie présente mais
 inexploitable, ou pour un prérequis en échec → `prerequis_en_echec` (EX-5.9).
 
+Révision 0.3 : AT-6 non exécutée faute d'inscription et AT-7 non exécutée
+pour la même raison → `partie_absente` ; AT-7 non exécutée parce que
+l'événement de politique en vigueur pour l'événement prouvé n'est pas dans
+le dossier → `piece_hors_dossier` ; AT-2 à AT-7 non exécutées pour un
+prérequis en échec ou une pièce inexploitable → `prerequis_en_echec`
+(EX-5.12).
+
 ### 6.3 Statut d'un contrôle
 
 **EX-6.4** Sauf règle propre de sa section (EX-9.18 pour le contrôle 4,
 EX-10.12 pour le contrôle 5, EX-11.20 pour le contrôle 8, qui prévalent), le
 statut d'un contrôle se déduit de ses vérifications (table 5.1) :
 
-1. `echoue` si au moins une de ses vérifications est `echoue` ;
+1. `echoue` si au moins une de ses vérifications est `echoue` (sauf AT-1 à
+   AT-7, EX-5.11) ;
 2. sinon `non_execute` si une partie requise du contrôle est absente
    (EX-4.3), ou si au moins une de ses vérifications est `non_execute` pour
    une autre raison que `piece_hors_dossier`, sauf les vérifications déclarées
    sans effet sur le statut quand elles ne sont pas exécutées (en version 0 :
    T-11, EX-9.17 ; R-3 et R-10, EX-11.20 ; N-3, EX-12.4 ; N-4, EX-12.5 ;
-   révision 0.2 : K-1 à K-9, EX-5.8, et R-11, EX-11.24) ;
+   révision 0.2 : K-1 à K-9, EX-5.8, et R-11, EX-11.24 ; révision 0.3 : AT-1
+   à AT-7, quel que soit leur statut, EX-5.11) ;
 3. sinon `reussi`.
 
 **EX-6.5** Sauf règle propre de sa section, la raison d'un contrôle
@@ -850,7 +1018,9 @@ traite une ancre absente comme un succès.
 
 1. `invalide` si au moins une vérification, de n'importe quelle famille (D-
    comprise), est `echoue`, ou `non_execute` avec la raison
-   `prerequis_en_echec` ;
+   `prerequis_en_echec` ; révision 0.3 : les vérifications AT-1 à AT-7 ne
+   comptent pas (EX-5.11), et ni `failed_checks` ni `blocking_unexecuted` ne
+   les listent ;
 2. sinon `incomplet` si l'option `--exiger` (section 8.2) nomme un contrôle
    dont le statut n'est pas `reussi` ;
 3. sinon `valide`.
@@ -870,15 +1040,15 @@ les contrôles 4, 5, 7 et 8 peuvent être non exécutés pour une raison admise.
 ### 6.5 Énoncé : construction exacte
 
 **EX-6.8** Pour un verdict `valide` ou `incomplet`, l'énoncé est une phrase
-assemblée à partir des fragments ci-dessous, dans l'ordre F0 à F6, FK
-(révision 0.2, EX-6.16), F7 et F8, sans aucun autre caractère ; `␣` y note une
-espace (U+0020). Un fragment conditionnel n'apparaît que si sa condition est
-vraie. Le vérificateur produit l'énoncé en français et en anglais. F0 à F3
-portent sur l'événement. F4, F5 et F6 sont les propositions que les sections 9,
-10 et 11 fournissent sur le manifeste ; F1 les relie à l'événement, puisqu'il le
-dit inclus dans ce manifeste. FK (révision 0.2) porte sur le point de contrôle
-du journal qui couvre l'événement (EX-6.16). F7 dit ce qui n'est pas prouvé. Les
-accolades désignent des valeurs (EX-6.11).
+assemblée à partir des fragments ci-dessous, dans l'ordre F0 à F6, FK (révision
+0.2, EX-6.16), FP (révision 0.3, EX-6.19), F7 et F8, sans aucun autre
+caractère ; `␣` y note une espace (U+0020). Un fragment conditionnel n'apparaît
+que si sa condition est vraie. Le vérificateur produit l'énoncé en français et
+en anglais. F0 à F3 portent sur l'événement. F4, F5 et F6 sont les propositions
+que les sections 9, 10 et 11 fournissent sur le manifeste ; F1 les relie à
+l'événement, puisqu'il le dit inclus dans ce manifeste. FK (révision 0.2) porte
+sur le point de contrôle du journal qui couvre l'événement (EX-6.16). F7 dit ce
+qui n'est pas prouvé. Les accolades désignent des valeurs (EX-6.11).
 
 | Fragment | Condition | Français | Anglais |
 |---|---|---|---|
@@ -893,6 +1063,7 @@ accolades désignent des valeurs (EX-6.11).
 | F5 | contrôle 5 réussi | `␣;␣` suivi de la proposition française de EX-10.15 | `;␣` suivi de la proposition anglaise de EX-10.15 |
 | F6 | contrôle 8 réussi | `␣;␣` suivi de la proposition française de EX-11.22 | `;␣` suivi de la proposition anglaise de EX-11.22 |
 | FK | révision 0.2 : conditions d'EX-6.16 | `␣;␣` suivi de la proposition française d'EX-6.16 | `;␣` suivi de la proposition anglaise d'EX-6.16 |
+| FP | révision 0.3 : conditions d'EX-6.19 | `␣;␣` suivi de la proposition française d'EX-6.19 | `;␣` suivi de la proposition anglaise d'EX-6.19 |
 | F7 | au moins un contrôle `non_execute` | `␣; ce dossier ne prouve rien sur␣` suivi des éléments, joints par `, sur␣` et, devant le dernier, par `␣ni sur␣` | `; this dossier proves nothing about␣` suivi des éléments, joints par `,␣` et, devant le dernier, par `␣or␣` |
 | F8 | toujours | `.` | `.` |
 
@@ -984,6 +1155,73 @@ authority (control 4)`), `un ancrage de son manifeste dans Bitcoin (contrôle
 l'énoncé de tout dossier sans la partie, ou dont les K- n'ont pas abouti, est
 celui de la version 0.1 (EX-6.18).
 
+**EX-6.19 (fragment FP, attestation de périmètre ; révision 0.3)** FP
+n'apparaît que pour un verdict `valide` ou `incomplet` et si la partie
+`attestation-perimetre.json` est déclarée présente. L'attestation est
+**retenue** si AT-1 à AT-5 sont `reussi` et AT-6 `reussi` ou `non_execute`
+avec la raison `partie_absente` ou `ancre_absente` ; AT-7, qui ne peut pas
+échouer, n'y entre pas. Retenue, FP est formé, sans autre caractère, de la
+tête, d'une clause d'inscription et de la clôture :
+
+| Élément | Condition | Français | Anglais |
+|---|---|---|---|
+| tête | toujours | `le périmètre de capture est déclaré, non prouvé, par l'attestation {digest} valable du {from} au {until}, signée par {signataires} ({nb} signatures, seuil de {required} sur {size} du jeu déclaré par le dossier)` | `the capture perimeter is declared, not proven, by attestation {digest} valid from {from} to {until}, signed by {signers} ({nb} signatures, threshold {required} of {size} of the set declared by the dossier)` |
+| inscription | AT-6 réussie | `, inscrite au journal par l'événement seq {seq_i} (clé {cle_i} {provenance})` ; suivi, si AT-7 a réussi, de ` sous une version de politique de même nom que celle de cet événement`, et sinon (AT-7 `piece_hors_dossier`) de `, sans preuve qu'elle était en vigueur pour cet événement (version de politique différente)` | `, recorded in the journal by event seq {seq_i} (key {cle_i} {provenance})` ; ` under a policy version with the same name as this event's` ; `, with no proof that it was in force for this event (different policy version)` |
+| inscription | AT-6 `non_execute`, `partie_absente` | `, non inscrite au journal (ni sa date ni son rang ne sont établis)` | `, not recorded in the journal (neither its date nor its rank is established)` |
+| inscription | AT-6 `non_execute`, `ancre_absente` | `, dont l'inscription jointe n'est pas signée par la clé de l'événement prouvé (ni sa date ni son rang ne sont établis)` | `, whose attached inscription is not signed by the proven event's key (neither its date nor its rank is established)` |
+| clôture | toujours | `, et qui ne déclare aucune exception de capture` (aucune), `, et qui déclare 1 exception de capture` (une), `, et qui déclare {k} exceptions de capture` (plusieurs) | `, and which declares no capture exception` ; `, and which declares 1 capture exception` ; `, and which declares {k} capture exceptions` |
+
+Non retenue, FP est `l'attestation de périmètre jointe n'est pas retenue
+(vérification(s) en échec : {ids})` (anglais `the attached perimeter
+attestation is not retained (failed check(s): {ids})`), `{ids}` étant les
+AT- en échec, dans l'ordre du rapport, jointes par `,␣` ; s'il n'y en a
+aucune, FP est `l'attestation de périmètre jointe n'est pas retenue
+(vérification(s) non exécutée(s) : {ids})` (anglais `the attached perimeter
+attestation is not retained (check(s) not run: {ids})`), `{ids}` étant
+alors les AT-1 à AT-6 non exécutées faute de prérequis (5.5).
+
+Valeurs : `{digest}` est `D_P` recalculé (AT-2) ; `{from}` et `{until}`
+sont `validity.from` et `validity.until` au format des instants d'EX-6.11 ;
+`{signataires}` et `{signers}` sont les adresses de `signed.signatures`,
+dans leur ordre, jointes comme `{approbateurs}` (EX-6.8) ; `{nb}` est leur
+nombre (`1 signature` quand il vaut 1) ; `{required}` et `{size}` sont ceux
+de `approver_set.threshold` ; `{seq_i}` est le `seq` de l'événement
+d'inscription ; `{cle_i}` est son `recorder_key_id`, qui est celui de
+l'événement prouvé, et `{provenance}` la provenance de cette clé au sens
+d'EX-6.8 (`fournie par le fichier d'ancres`, `inscrite au registre` ou
+`déclarée par le dossier` ; anglais `given by the anchors file`,
+`registered in the registry`, `declared by the dossier`), jamais « fournie
+par le fichier d'ancres » quand N-3 ne l'a pas comparée ; `{k}` est le
+nombre d'éléments de `not_captured`. AT-7 ne compare que des noms : une
+version de politique réannoncée sous le même nom avec un autre contenu la
+fait réussir, et FP ne dit alors que « même nom », jamais que l'attestation
+était en vigueur. Aucun
+texte libre de l'attestation (`name`, `declaration`, `summary`,
+`description`) n'entre dans l'énoncé : il pourrait contenir n'importe quelle
+affirmation. Quand FP est présent, F7 ne change pas : le périmètre n'est
+jamais compté parmi ce que le dossier prouve.
+
+Exemple, dossier `valide-seq-12-attestation-inscrite` de CT-1 (journal
+rejoué de CT-7 §7.5), fragment français tel qu'il s'insère avant F7 ou F8 :
+
+```text
+ ; le périmètre de capture est déclaré, non prouvé, par l'attestation 0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd valable du 2026-11-01T00:00:00Z au 2027-01-31T23:59:59.999Z, signée par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier), inscrite au journal par l'événement seq 12 (clé rec-test-02 déclarée par le dossier) sous une version de politique de même nom que celle de cet événement, et qui déclare 1 exception de capture
+```
+
+et anglais :
+
+```text
+; the capture perimeter is declared, not proven, by attestation 0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd valid from 2026-11-01T00:00:00Z to 2027-01-31T23:59:59.999Z, signed by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, threshold 2 of 3 of the set declared by the dossier), recorded in the journal by event seq 12 (key rec-test-02 declared by the dossier) under a policy version with the same name as this event's, and which declares 1 capture exception
+```
+
+Pour `valide-seq-7-complet-attestation` (sans inscription), FP porte la
+clause `, non inscrite au journal (ni sa date ni son rang ne sont établis)`
+à la place de la clause d'inscription, et l'énoncé est celui de
+`valide-seq-7-complet` (annexe A.7) avec ce fragment inséré avant le point
+final ; avec une signature substituée, FP est ` ; l'attestation de
+périmètre jointe n'est pas retenue (vérification(s) en échec : AT-3)`, et
+rien d'autre ne change.
+
 **EX-6.9** Pour un verdict `invalide`, l'énoncé est formé de trois
 fragments, le deuxième seulement si `blocking_unexecuted` n'est pas vide :
 
@@ -1035,7 +1273,8 @@ l'ordre de 1 à 8, de `contrôle {N} non exécuté ({raison})` (anglais
 Ce que la borne laisse sans preuve est dit par le fragment F7 de l'énoncé. Les
 vérifications K- non exécutées n'entrent pas dans la borne, qui ne nomme que
 les contrôles (révision 0.2, EX-5.8) ; ce qu'un point de contrôle du journal a
-prouvé ou non est dit par FK et par `facts.checkpoint`.
+prouvé ou non est dit par FK et par `facts.checkpoint`. Les vérifications AT-
+n'entrent pas non plus dans la borne (révision 0.3, EX-5.11).
 
 La raison que donne la borne est un code de la liste fermée de 6.2. Son nom
 ne suffit pas toujours à dire la cause. La table 6.2 en donne la portée. La
@@ -1045,13 +1284,13 @@ comment les lire.
 ### 6.7 Faits rapportés
 
 **EX-6.13** Le rapport JSON ne range sous `facts` que des valeurs établies par
-des contrôles réussis : `recorder_keys` est nul si le contrôle 6 n'a pas
-réussi, `approval` si le 7, `timestamp` si le 4, `bitcoin` si le 5,
-`registry` si le 8. Les champs de `timestamp`, `bitcoin` et `registry` sont
-ceux qu'exigent EX-9.19, EX-10.14 et EX-11.21. Une valeur lue dans le dossier
-sans être prouvée n'y figure jamais ; les valeurs qu'une vérification en
-échec a lues figurent dans son `detail`, comme diagnostic. Les champs `event`, `org_id`, `journal_id` et `period` servent
-à désigner l'événement ; ils sont lus dans `evenement.json` et
+des contrôles réussis : `recorder_keys` est nul si le contrôle 6 n'a pas réussi,
+`approval` si le 7, `timestamp` si le 4, `bitcoin` si le 5, `registry` si le 8.
+Les champs de `timestamp`, `bitcoin` et `registry` sont ceux qu'exigent EX-9.19,
+EX-10.14 et EX-11.21. Une valeur lue dans le dossier sans être prouvée n'y
+figure jamais ; les valeurs qu'une vérification en échec a lues figurent dans
+son `detail`, comme diagnostic. Les champs `event`, `org_id`, `journal_id` et
+`period` servent à désigner l'événement ; ils sont lus dans `evenement.json` et
 `manifeste.json` quand ceux-ci sont exploitables, et ne sont pas des faits
 prouvés quand le verdict est `invalide` (comme dans CT-1, rien n'est repris de
 l'index à la place d'une partie inexploitable). Dans un rapport `invalide`,
@@ -1059,8 +1298,11 @@ l'index à la place d'une partie inexploitable). Dans un rapport `invalide`,
 sont pas des affirmations (7.4). Un programme qui lit le rapport NE DOIT
 employer `facts` que si `verdict` vaut `valide` ou `incomplet`. Révision 0.2 :
 `facts.checkpoint` est la seule exception à la règle du contrôle réussi : ses
-valeurs sont établies par des vérifications K- réussies (EX-6.17), chacune
-dans un contrôle qui n'a pas échoué.
+valeurs sont établies par des vérifications K- réussies (EX-6.17), chacune dans
+un contrôle qui n'a pas échoué. Révision 0.3 : `facts.perimeter` est une seconde
+exception : ses valeurs sont établies par les vérifications AT- réussies
+(EX-6.20), et déclarées par l'attestation ; `provenance` vaut toujours
+`declaree`.
 
 **EX-6.15** Les avertissements (`warnings`) sont rapportés dans l'ordre du
 rapport de la vérification qui les lève (son `check`, ordre de la section
@@ -1092,6 +1334,70 @@ même règle que les autres faits : aide au diagnostic, jamais une affirmation
 (7.4). Le schéma `rapport-verification-v0` définit `checkpoint` comme membre
 facultatif de `facts`, pour qu'un rapport de la version 0.1 reste valide ; un
 vérificateur de la révision 0.2 l'écrit toujours (EX-8.9).
+
+**EX-6.20 (`facts.perimeter`, révision 0.3)** Le rapport porte toujours
+`facts.perimeter` : `null` sans partie `attestation-perimetre.json`
+déclarée présente, ou quand l'attestation n'est pas retenue (EX-6.19). Il
+n'est pas nul si et seulement si l'attestation est retenue. Il porte alors
+`provenance` (`declaree`), `digest` (`D_P` recalculé), `org_id`,
+`journal_ids`, `valid_from`, `valid_until` et `issued_at` (déclaratifs),
+`signers` (adresses recouvrées, AT-3), `required`, `size` et `set_source`
+(jeu déclaré), `agents` (nombre d'agents), `capture_channels` (union des
+canaux, dans l'ordre `mandataire_mcp`, `passerelle`, `icap`, `miroir`,
+`sdk`, `opentelemetry`), `exceptions` (nombre d'éléments de
+`not_captured`), `egress_default_policy`, `egress_rules_sha256`, et
+`inscription` : `null` sans AT-6 réussie, sinon `seq`, `hash` recalculé,
+`ts` (déclaratif), `key_id` (la clé de l'inscription, celle de l'événement
+prouvé), `policy_version`, `policy_sha256` et `same_policy_version` (vrai si
+AT-7 a réussi : même nom de version, sans preuve que l'attestation était en
+vigueur). Dans un rapport `invalide`, `facts.perimeter` suit la règle
+d'EX-6.13 : aide au diagnostic, jamais une affirmation. Le schéma
+`rapport-verification-v0` définit `perimeter` comme membre facultatif de
+`facts`, pour qu'un rapport des révisions 0.1 et 0.2 reste valide ; un
+vérificateur de la révision 0.3 l'écrit toujours.
+
+Exemple, dossier `valide-seq-12-attestation-inscrite` :
+
+<!-- schema: faits_perimetre -->
+```json
+{
+  "provenance": "declaree",
+  "digest": "0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_ids": [
+    "0x0e276f6ddd536cf34002bcf73a87e04f09c91ac66839399253a0a78ce9b0c64b",
+    "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164"
+  ],
+  "valid_from": "2026-11-01T00:00:00.000Z",
+  "valid_until": "2027-01-31T23:59:59.999Z",
+  "issued_at": "2026-10-30T16:00:00.000Z",
+  "signers": [
+    "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+  ],
+  "required": 2,
+  "size": 3,
+  "set_source": "comptes Hardhat 1 à 3 (vecteurs CT-1)",
+  "agents": 2,
+  "capture_channels": [
+    "mandataire_mcp",
+    "passerelle",
+    "icap"
+  ],
+  "exceptions": 1,
+  "egress_default_policy": "refus_par_defaut",
+  "egress_rules_sha256": "0xf36e414b01b7813795a3220703368246d2904119c701835cfbef527c2bfb23ae",
+  "inscription": {
+    "seq": 12,
+    "hash": "0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90",
+    "ts": "2026-11-05T10:05:00.000Z",
+    "key_id": "rec-test-02",
+    "policy_version": "2026-11-05",
+    "policy_sha256": "0x5016ffc47d07a5ec0dae8c464a0a5cf466cd4f425fadbf293dafbd36617f63d9",
+    "same_policy_version": true
+  }
+}
+```
 
 ### 6.8 Compatibilité avec les dossiers CT-1
 
@@ -1128,6 +1434,21 @@ d'`absent_parts`. Les cinquante dossiers de `spec/vecteurs/ct-6/dossiers`
 antérieurs à la révision 0.2 et les quarante de CT-1 gardent ainsi leur
 `attendu.json` ; la CI le vérifie (V-9, annexe A.7).
 
+**EX-6.21 (compatibilité avec les dossiers de la révision 0.2 ; révision
+0.3)** Sur un dossier dont l'index a douze ou treize parties, ou quatorze
+dont la quatorzième est déclarée absente, le vérificateur de la révision
+0.3 rend le même code de retour, les mêmes statuts, le même énoncé, la même
+borne et les mêmes `failed_checks`, `blocking_unexecuted`, vérifications non
+exécutées et avertissements qu'en révision 0.2 ; le rapport JSON ne diffère
+que par `verifier.schemas` (dix schémas, EX-8.11), `facts.perimeter`
+(`null`) et, si la quatorzième partie est déclarée absente, par la ligne
+correspondante d'`absent_parts`. Sur un dossier qui porte la partie, tout
+ce qui précède est encore vrai, sauf : les AT- figurent dans `checks` et
+dans la liste `checks` des contrôles 6 et 7, AV-AT- dans `warnings`, FP
+dans l'énoncé et `facts.perimeter` est rempli ; le code de retour, le
+verdict, `failed_checks` (hors D-2), `blocking_unexecuted`, les statuts des
+huit contrôles et la borne sont ceux du même dossier sans la partie.
+
 ### 6.9 Vérifications du verdict (V-)
 
 Ces vérifications portent sur le rapport, pas sur le dossier : CT-9 les
@@ -1138,13 +1459,14 @@ vecteur. Elles ne figurent pas dans `checks`.
 |---|---|---|
 | V-1 | Chaque vérification que la section 5 fait figurer au rapport (EX-5.6) figure une fois dans `checks`, dans l'ordre de la section 5.2, avec un statut et, si elle est `non_execute`, une raison de la liste fermée et `admitted` conforme à la table 6.2. | EX-5.6, EX-6.1, EX-6.2, EX-6.3 |
 | V-2 | Le statut et la raison de chacun des huit contrôles suivent EX-6.4 et EX-6.5. | EX-6.4, EX-6.5, EX-6.6 |
-| V-3 | Le verdict, `failed_checks` et `blocking_unexecuted` suivent EX-6.7. | EX-6.7 |
+| V-3 | Le verdict, `failed_checks` et `blocking_unexecuted` suivent EX-6.7 ; les AT- n'y figurent jamais (EX-5.11). | EX-6.7 |
 | V-4 | Le code de retour et `exit_code` correspondent au verdict (section 8.3). | EX-8.4 |
 | V-5 | L'énoncé, dans les deux langues, est égal octet pour octet à celui que construisent les fragments de la section 6.5, et la borne à celle de EX-6.12. | EX-6.8 à EX-6.12 |
-| V-6 | Aucun contrôle n'est `reussi` sans que ses parties requises soient présentes, ses ancres fournies et ses vérifications exécutées et réussies (sauf `piece_hors_dossier` et les vérifications sans effet sur le statut, EX-6.4) ; `facts` ne contient que des valeurs de contrôles réussis. | EX-6.6, EX-6.13 |
+| V-6 | Aucun contrôle n'est `reussi` sans que ses parties requises soient présentes, ses ancres fournies et ses vérifications exécutées et réussies (sauf `piece_hors_dossier`, les AT-, sans effet quel que soit leur statut (EX-5.11), et les vérifications sans effet sur le statut, EX-6.4) ; `facts` ne contient que des valeurs de contrôles réussis. | EX-6.6, EX-6.13 |
 | V-7 | Sur chacun des quarante dossiers de `spec/vecteurs/ct-1/dossiers`, le code de retour et `failed_checks` sont ceux de leur `attendu.json`. | EX-6.14 |
 | V-8 | Deux exécutions sur les mêmes entrées donnent le même rapport JSON, octet pour octet, aux chemins de `inputs` près ; une exécution sans réseau (`unshare -n`) donne le même rapport qu'une exécution avec réseau. | EX-3.2, EX-3.3, EX-8.7 |
 | V-9 | (révision 0.2) Sur chacun des cinquante dossiers de `spec/vecteurs/ct-6/dossiers` antérieurs à la révision 0.2, le code de retour, `failed_checks`, les statuts des contrôles, les vérifications non exécutées, les avertissements, l'énoncé et la borne sont ceux de leur `attendu.json`, et `facts.checkpoint` est `null` ; sur les dossiers qui portent la partie (EX-A.16), les K- figurent après A-4, FK et `facts.checkpoint` suivent EX-6.16 et EX-6.17, et les K- non exécutées ne changent aucun statut de contrôle. | EX-5.7, EX-5.8, EX-6.16, EX-6.17, EX-6.18 |
+| V-10 | (révision 0.3) Sur chaque dossier qui porte la partie `attestation-perimetre.json`, le code de retour, le verdict, `failed_checks`, `blocking_unexecuted`, les statuts des huit contrôles et la borne sont égaux à ceux du même dossier sans la partie (sauf un échec de D-2 sur la partie) ; les AT- figurent après K- et avant T- ; FP, `facts.perimeter` et AV-AT- suivent EX-6.19, EX-6.20 et 5.5 ; aucun texte du rapport n'applique « prouvé » ou « vérifié » au périmètre. | EX-5.10, EX-5.11, EX-6.19, EX-6.20, EX-6.21, EX-7.3 |
 
 ## 7. Ce que le vérificateur prouve et ne prouve pas
 
@@ -1982,6 +2304,57 @@ Le vérificateur ne prouve pas :
   lieu, ni quand : le dossier n'en porte rien, et une telle copie serait de
   toute façon déclarative pour un réviseur (CT-5 R2-F36).
 
+### 7.10 Attestation de périmètre : ce que le verdict ne prouve pas (révision 0.3)
+
+Cette section se lit seule. Elle ne vaut que pour un dossier dont l'énoncé
+porte le fragment FP (EX-6.19). Un dossier sans la partie
+`attestation-perimetre.json` ne dit rien du périmètre de capture : ni qu'il
+est complet, ni qu'il ne l'est pas.
+
+Ce que vous pouvez affirmer, quand FP dit « déclaré, non prouvé » :
+
+- Les adresses nommées, membres du jeu d'approbateurs que le dossier
+  déclare, en nombre au moins égal à son seuil, ont signé ce texte
+  d'attestation, qui n'a pas changé depuis (AT-2 à AT-4 ; H1, H2).
+- L'attestation nomme l'organisation et le journal de l'événement, et sa
+  validité couvre l'instant que l'événement déclare (AT-5).
+- Avec la clause d'inscription : un événement signé par la clé de
+  l'événement prouvé, dont la provenance est celle que l'énoncé nomme, de
+  rang et d'instant déclaré au plus ceux de l'événement prouvé, annonce un
+  ensemble de politique qui porte le condensé de cette attestation (AT-6) ;
+  avec « sous une version de politique de même nom que celle de cet
+  événement », l'événement prouvé porte le même nom de version de politique
+  que cette annonce (AT-7).
+
+Ce que vous ne pouvez pas affirmer :
+
+- Que le périmètre déclaré est exact, qu'aucun agent n'a contourné la
+  capture, que les règles de sortie dont l'empreinte est donnée sont
+  celles qui s'appliquaient, que l'inventaire est complet. Une signature
+  établit qui a signé et que le texte n'a pas changé (R7-F53), pas que le
+  texte est vrai ; une déclaration de l'exploitant n'est pas un essai mené
+  par un évaluateur indépendant (R7-F51, R7-F52).
+- Que le jeu déclaré est le `CuratorSet` de l'organisation à la date des
+  signatures, ni que les personnes nommées tiennent les clés : déclaratif,
+  comme pour le contrôle 7 (section 17).
+- La date de l'attestation : `issued_at` est déclaré ; l'inscription n'est
+  datée que par les ancres de son propre dossier. Sans inscription reliée,
+  FP le dit : « ni sa date ni son rang ne sont établis ».
+- Que l'inscription appartient à la chaîne de l'événement prouvé : AT-6 ne
+  la relie par aucun hachage, seuls `seq` et `ts` sont comparés ; son
+  appartenance se prouve par son propre dossier.
+- Que l'attestation était en vigueur pour l'événement : AT-7 compare des
+  noms de version, et un même nom peut être réannoncé avec un autre contenu
+  tant que CT-2 ne l'interdit pas (proposition PA-9 de CT-7).
+- Une conformité réglementaire : CT-7 (section 8) établit des
+  correspondances techniques, pas un avis juridique.
+
+**EX-7.3** (révision 0.3) Aucune sortie du vérificateur NE DOIT appliquer
+« prouvé », « vérifié », « conforme » ou leurs équivalents anglais au
+périmètre de capture ; le seul verbe de l'énoncé pour le périmètre est
+« déclaré ». Une attestation non retenue NE DOIT changer ni le verdict ni le
+code de retour (EX-5.11).
+
 ## 8. Interface
 
 ### 8.1 Commande
@@ -2084,6 +2457,18 @@ résument les règles de sa table 11.4, qui n'a pas de version anglaise :
 l'implémentation les traduit. V-5 ne compare que l'énoncé et la borne, pas les
 libellés.
 
+Libellés des vérifications AT- (révision 0.3) :
+
+| Id | Français | Anglais |
+|---|---|---|
+| AT-1 | forme de l'attestation de périmètre | form of the perimeter attestation |
+| AT-2 | condensé de l'attestation | attestation digest |
+| AT-3 | signatures de l'attestation | attestation signatures |
+| AT-4 | signataires membres du jeu déclaré, seuil | signers in the declared set, threshold |
+| AT-5 | organisation, journal et validité de l'attestation | organisation, journal and validity of the attestation |
+| AT-6 | inscription de l'attestation au journal | attestation recorded in the journal |
+| AT-7 | politique en vigueur pour l'événement | policy in force for the event |
+
 ### 8.5 Sortie lisible
 
 **EX-8.6** Le rapport lisible comporte ces lignes, dans cet ordre ; les
@@ -2100,7 +2485,8 @@ CT-1 :
 5. `Événement`, `Journal` et `Période`, quand les parties qui les portent sont
    exploitables ; puis, révision 0.2, `Pt de contrôle` quand la partie
    `points-de-controle.json` est déclarée présente et que K-1 et K-2 ont
-   réussi (EX-8.8) ;
+   réussi (EX-8.8) ; puis, révision 0.3, `Périmètre` quand la partie
+   `attestation-perimetre.json` est déclarée présente (EX-8.10) ;
 6. `Contrôles de l'architecture :` puis une ligne par contrôle :
    `  [statut] N  libellé — résumé`, et pour un contrôle non exécuté
    `— non exécuté (raison) : résumé` ;
@@ -2299,16 +2685,16 @@ mise en forme (indentation, ordre des clés) suit l'ordre du schéma.
 | Clé | Contenu |
 |---|---|
 | `format`, `version` | `noortrace/rapport-verification`, `0`. |
-| `verifier` | `name`, `implementation` (`binaire_go` ou `reference_javascript`), `version`, `runtime` (version de Go ou de Node) et `schemas` : identifiant et SHA-256 de chacun des neuf schémas que la révision 0.2 embarque (huit en version 0.1), quelles que soient les options, dans cet ordre : `evenement`, `manifeste`, `dossier`, `point-de-controle` (CT-1 révision 0.3, depuis la révision 0.2), `registre`, `validateurs`, `ancres-confiance`, `entetes-bitcoin`, `rapport-verification`. La version de Go est rapportée parce que le comportement de la bibliothèque standard varie entre versions : lecture des certificats et vérification des signatures par `crypto/x509`, et `encoding/asn1` (avis GO-2025-4011 et GO-2026-5972, R4 F3.14) ; GO-2026-6809, qui change le résultat de `Certificate.Verify`, ne touche pas T-7, dont la validation de chemin est faite par le code du vérificateur (EX-14.4). |
+| `verifier` | `name`, `implementation` (`binaire_go` ou `reference_javascript`), `version`, `runtime` (version de Go ou de Node) et `schemas` : identifiant et SHA-256 de chacun des neuf schémas que la révision 0.2 embarque (huit en version 0.1), quelles que soient les options, dans cet ordre : `evenement`, `manifeste`, `dossier`, `point-de-controle` (CT-1 révision 0.3, depuis la révision 0.2), `registre`, `validateurs`, `ancres-confiance`, `entetes-bitcoin`, `rapport-verification`. La version de Go est rapportée parce que le comportement de la bibliothèque standard varie entre versions : lecture des certificats et vérification des signatures par `crypto/x509`, et `encoding/asn1` (avis GO-2025-4011 et GO-2026-5972, R4 F3.14) ; GO-2026-6809, qui change le résultat de `Certificate.Verify`, ne touche pas T-7, dont la validation de chemin est faite par le code du vérificateur (EX-14.4). Dix schémas en révision 0.3 (EX-8.11). |
 | `language` | `fr` ou `en`. |
 | `inputs` | Chemin et SHA-256 de chaque entrée lue (`dossier.index_sha256` : SHA-256 de `dossier.json`), `null` pour une entrée non fournie ; `required_controls` : les contrôles de `--exiger`. |
 | `event`, `org_id`, `journal_id`, `period` | Désignation de l'événement et de sa période (EX-6.13) ; `period.period_hash` est le `periodHash` recalculé. |
 | `controls` | Les huit contrôles, dans l'ordre : `number`, `status`, `reason` (`null` sauf `non_execute`), `checks` (vérifications rattachées présentes dans le rapport), `anchors_used` (pointeurs JSON, RFC 6901, vers les ancres employées dans le fichier d'ancres : `/tsa_authorities/0`, `/bitcoin`, `/registry/validator_sets/0`, `/recorders/1`…), `summary` (résumé dans la langue choisie). |
-| `checks` | Les vérifications dans l'ordre de la section 5.2 (K-1 à K-9 après A-4 quand la partie `points-de-controle.json` est présente, R-11 après R-10 ; révision 0.2) : `id`, `controls` (contrôles servis, vide pour D-1 et D-2), `status`, `reason` et `admitted` (`null` sauf `non_execute`), `detail`. |
+| `checks` | Les vérifications dans l'ordre de la section 5.2 (K-1 à K-9 après A-4 quand la partie `points-de-controle.json` est présente, R-11 après R-10 ; révision 0.2) : `id`, `controls` (contrôles servis, vide pour D-1 et D-2), `status`, `reason` et `admitted` (`null` sauf `non_execute`), `detail`. Révision 0.3 : AT-1 à AT-7 après les K- et avant T-1 quand la partie `attestation-perimetre.json` est présente. |
 | `failed_checks`, `blocking_unexecuted` | EX-6.7. |
 | `absent_parts` | Les parties déclarées absentes dans l'index, avec leur raison, comme dans CT-1. |
-| `warnings` | Les avertissements des sections 9 à 11 et, révision 0.2, AV-K- (sections 9.9 et 11.9) (`id` AV-…, `check`, `detail`), dans l'ordre de EX-6.15 ; un avertissement ne change aucun statut. |
-| `facts` | Les valeurs établies par les contrôles réussis (EX-6.13) : clés d'enregistreur et leur provenance (`source` : `dossier`, `ancres`, `registre`, ou `mixte` quand les deux clés diffèrent de provenance ; `event_key_source` et `manifest_key_source`, provenance de chaque clé, EX-6.8), approbation (`decision`, `ticket`, `approvers`, vide pour `expire`, `required`, `size`, `set_source`), et, pour les contrôles 4, 5 et 8, les valeurs que EX-9.19, EX-10.14 et EX-11.21 exigent ; `checkpoint` (révision 0.2, EX-6.17) : le point de contrôle du journal qui couvre l'événement, ou `null` ; dans un rapport `invalide`, aide au diagnostic seulement (EX-6.13). |
+| `warnings` | Les avertissements des sections 9 à 11 et, révision 0.2, AV-K- (sections 9.9 et 11.9) (`id` AV-…, `check`, `detail`), dans l'ordre de EX-6.15 ; un avertissement ne change aucun statut. Révision 0.3 : AV-AT- (section 5.5). |
+| `facts` | Les valeurs établies par les contrôles réussis (EX-6.13) : clés d'enregistreur et leur provenance (`source` : `dossier`, `ancres`, `registre`, ou `mixte` quand les deux clés diffèrent de provenance ; `event_key_source` et `manifest_key_source`, provenance de chaque clé, EX-6.8), approbation (`decision`, `ticket`, `approvers`, vide pour `expire`, `required`, `size`, `set_source`), et, pour les contrôles 4, 5 et 8, les valeurs que EX-9.19, EX-10.14 et EX-11.21 exigent ; `checkpoint` (révision 0.2, EX-6.17) : le point de contrôle du journal qui couvre l'événement, ou `null` ; dans un rapport `invalide`, aide au diagnostic seulement (EX-6.13). Révision 0.3 : `perimeter` (EX-6.20) : l'attestation de périmètre retenue, déclarée, ou `null`. |
 | `verdict`, `exit_code` | Section 8.3 ; le schéma impose leur concordance. |
 | `statement` | L'énoncé, `fr` et `en`, quelle que soit `--langue`. |
 | `bound` | La borne (EX-6.12) ou `null`. |
@@ -2334,13 +2720,45 @@ rapport de la version 0.1 reste valide contre le schéma
 `rapport-verification-v0` étendu (membre `checkpoint` facultatif, identifiants
 K- et R-11 admis, avertissements AV-K- admis, rôle `ancre_point_de_controle`).
 
+**EX-8.10** (révision 0.3) La ligne `Périmètre` (anglais `Perimeter`) du
+rapport lisible suit `Pt de contrôle` (ou `Période`) et n'apparaît que si la
+partie `attestation-perimetre.json` est déclarée présente. Attestation
+retenue : `déclaré, non prouvé : attestation {digest}, du {from} au
+{until}, {nb} signatures, seuil de {required} sur {size}` (`declared, not
+proven: attestation {digest}, from {from} to {until}, {nb} signatures,
+threshold {required} of {size}`), suivi de ` ; inscrite au seq {seq_i}`
+(`; recorded at seq {seq_i}`) quand AT-6 a réussi, de ` ; inscription non
+reliée à la clé de l'événement` (`; inscription not tied to the event's
+key`) quand AT-6 n'est pas exécutée avec la raison `ancre_absente`, et de
+` ; non inscrite` (`; not recorded`) sans inscription. Non retenue :
+`attestation non retenue ({ids} en échec)` (`attestation not retained
+({ids} failed)`), ou, sans AT- en échec, `attestation non retenue ({ids}
+non exécutée(s))` (`attestation not retained ({ids} not run)`), `{ids}`
+comme en 5.5. Les AT- figurent dans `Vérifications non réussies` et
+`Vérifications` comme les autres, avec leur contrôle entre crochets ; leur
+statut `[ÉCHEC]` est suivi de « (sans effet sur le verdict) » (« (no effect
+on the verdict) »).
+
+**EX-8.11** (révision 0.3) `verifier.schemas` liste dix schémas, dans cet
+ordre : `evenement`, `manifeste`, `dossier`, `point-de-controle`,
+`attestation-perimetre`, `registre`, `validateurs`, `ancres-confiance`,
+`entetes-bitcoin`, `rapport-verification` ; l'implémentation de référence
+lit `attestation-perimetre-v0.schema.json` dans le répertoire des schémas
+et le place dans le registre de validation, le binaire l'embarque.
+EX-8.9 est complétée en conséquence : « neuf schémas » s'y lit « neuf
+schémas en révision 0.2, dix en révision 0.3 (EX-8.11) ».
+
 Rapport JSON du dossier complet de la section 8.5, avec les mêmes valeurs
 que le rapport lisible (chemins abrégés de même ; révision 0.2 :
 `verifier.schemas` à neuf entrées, dont les empreintes sont celles des
 fichiers de `spec/schemas` à la date de la révision, et `facts.checkpoint` à
 `null`) ; le document est valide
 contre le schéma (`npx --yes ajv-cli@5
-validate --spec=draft2020 --strict=true`) :
+validate --spec=draft2020 --strict=true`). Révision 0.3 : les empreintes de
+`dossier-v0` et de `rapport-verification-v0` sont celles des schémas étendus
+de la révision ; l'exemple porte la dixième entrée (`attestation-perimetre`,
+EX-8.11) et `facts.perimeter` à `null` (EX-6.21), comme le rapport que
+produit l'implémentation de la révision 0.3 :
 
 <!-- schema: rapport-verification -->
 ```json
@@ -2355,13 +2773,14 @@ validate --spec=draft2020 --strict=true`) :
     "schemas": [
       { "id": "https://noortrace.example/schemas/v0/evenement.schema.json", "sha256": "0xcd2efffae72ebe2d00459ac643785415ad25d138325681aca6127a0a2fa0393f" },
       { "id": "https://noortrace.example/schemas/v0/manifeste.schema.json", "sha256": "0x1341dd18b1cc4b570c13ed4010228b13b78d1582292ea7ecba0ce1ac7a462bf2" },
-      { "id": "https://noortrace.example/schemas/v0/dossier.schema.json", "sha256": "0x6b308d54091e69f98dc33b3bbe251f77e3886a8c37a2b8c5ffdcdd2ff49e710f" },
+      { "id": "https://noortrace.example/schemas/v0/dossier.schema.json", "sha256": "0x124933825aae2b39e473ff186c1eefdd40dd3ba25fcc3519468b0341f544b63f" },
       { "id": "https://noortrace.example/schemas/v0/point-de-controle.schema.json", "sha256": "0x7c40a7edba0d099f71506ea67e790b5d05f5a4f82113156ae9c83baffb4f69f2" },
+      { "id": "https://noortrace.example/schemas/v0/attestation-perimetre.schema.json", "sha256": "0xbe912c582c9f580cc21fe0144d370c36e94739dcd060d6d1b7b6f28b2d7ec86d" },
       { "id": "https://noortrace.example/schemas/v0/registre.schema.json", "sha256": "0x5944ff946b06d718d0741b149d7cc43b1fb5793b4df005497ccfb65861c21e54" },
       { "id": "https://noortrace.example/schemas/v0/validateurs.schema.json", "sha256": "0x233e7ee41d597119c9319382eacc673f316fe891f8e271cc1032a183972825fd" },
       { "id": "https://noortrace.example/schemas/v0/ancres-confiance.schema.json", "sha256": "0x1ab686a61d7dad8ea8e1d26b69e750e414b19e819f9a3516cb1d7c737c807d04" },
       { "id": "https://noortrace.example/schemas/v0/entetes-bitcoin.schema.json", "sha256": "0x77e991e484add0e308291578d8576c28a4264b5d2b2ae2c06b6832b470b6308c" },
-      { "id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json", "sha256": "0x41f44bc5e8e86b657409dcf5a45bd06deb89fba1229e9a6f70972c3b6e8304fc" }
+      { "id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json", "sha256": "0xbe8494a287d2185390beb1a0515d157a53e295289342fbc127b362ce60d06019" }
     ]
   },
   "language": "fr",
@@ -2643,7 +3062,8 @@ validate --spec=draft2020 --strict=true`) :
         }
       ]
     },
-    "checkpoint": null
+    "checkpoint": null,
+    "perimeter": null
   },
   "verdict": "valide",
   "exit_code": 0,
@@ -2726,13 +3146,14 @@ Rapport d'erreur d'un répertoire sans `dossier.json` (code 2) :
     "schemas": [
       { "id": "https://noortrace.example/schemas/v0/evenement.schema.json", "sha256": "0xcd2efffae72ebe2d00459ac643785415ad25d138325681aca6127a0a2fa0393f" },
       { "id": "https://noortrace.example/schemas/v0/manifeste.schema.json", "sha256": "0x1341dd18b1cc4b570c13ed4010228b13b78d1582292ea7ecba0ce1ac7a462bf2" },
-      { "id": "https://noortrace.example/schemas/v0/dossier.schema.json", "sha256": "0x6b308d54091e69f98dc33b3bbe251f77e3886a8c37a2b8c5ffdcdd2ff49e710f" },
+      { "id": "https://noortrace.example/schemas/v0/dossier.schema.json", "sha256": "0x124933825aae2b39e473ff186c1eefdd40dd3ba25fcc3519468b0341f544b63f" },
       { "id": "https://noortrace.example/schemas/v0/point-de-controle.schema.json", "sha256": "0x7c40a7edba0d099f71506ea67e790b5d05f5a4f82113156ae9c83baffb4f69f2" },
+      { "id": "https://noortrace.example/schemas/v0/attestation-perimetre.schema.json", "sha256": "0xbe912c582c9f580cc21fe0144d370c36e94739dcd060d6d1b7b6f28b2d7ec86d" },
       { "id": "https://noortrace.example/schemas/v0/registre.schema.json", "sha256": "0x5944ff946b06d718d0741b149d7cc43b1fb5793b4df005497ccfb65861c21e54" },
       { "id": "https://noortrace.example/schemas/v0/validateurs.schema.json", "sha256": "0x233e7ee41d597119c9319382eacc673f316fe891f8e271cc1032a183972825fd" },
       { "id": "https://noortrace.example/schemas/v0/ancres-confiance.schema.json", "sha256": "0x1ab686a61d7dad8ea8e1d26b69e750e414b19e819f9a3516cb1d7c737c807d04" },
       { "id": "https://noortrace.example/schemas/v0/entetes-bitcoin.schema.json", "sha256": "0x77e991e484add0e308291578d8576c28a4264b5d2b2ae2c06b6832b470b6308c" },
-      { "id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json", "sha256": "0x41f44bc5e8e86b657409dcf5a45bd06deb89fba1229e9a6f70972c3b6e8304fc" }
+      { "id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json", "sha256": "0xbe8494a287d2185390beb1a0515d157a53e295289342fbc127b362ce60d06019" }
     ]
   },
   "language": "fr",
@@ -4809,7 +5230,10 @@ rend toujours 0 (R4 F3.15).
 ### 15.1 Bornes
 
 **EX-15.1** Le vérificateur lit chaque entrée dans la limite de taille de la
-table EX-4.13, puis applique, pendant l'analyse, les bornes ci-dessous ; une
+table EX-4.13 (révision 0.3 : la partie `attestation-perimetre.json`
+au-delà de 4 Mio n'est lue que pour son SHA-256, en flux, jusqu'au plafond
+de 64 Mio d'EX-4.15), puis applique, pendant l'analyse, les bornes
+ci-dessous ; une
 partie qui en dépasse une est inexploitable et fait échouer la vérification
 qui la porte (T-1, O-1, R-1, R-3, ou celle de CT-1 §11.4) ; un fichier
 d'ancres ou d'en-têtes qui en dépasse une rend l'entrée inutilisable (N-1,
@@ -4954,8 +5378,23 @@ des vérificateurs Go ou d'une autre spécification, nommés) :
 | CT-1 §11.4, K-8 | « `chain_id` et `contract` égaux à ceux du fichier d'ancres » | seul `contract` est comparé ; `chain_id` (identifiant EVM) n'a pas d'ancre et reste déclaratif (EX-11.25, section 17) ; CT-1 à aligner d'un mot | fait (CT-1 §11.4, texte, 2026-10-25) |
 | CT-5 §9.2 (EX-9.2), §14 | « R-9 étendu au `docType` du point » | vérification R-11 à part, R-9 inchangée (11.9) ; même effet sur les dossiers | fait (CT-5 version 0.1, EX-9.2, EX-10.4 et §14) |
 | CT-4 §6.4 | une ligne (`noortrace/periode/v0`) | ligne `noortrace/point-de-controle/v0` = `0x72c486c933f8fb8fef2c726539023e8fd80113cc0ca89e3fdf1314d553932178` (CT-1 §11.2, CT-5 §9.5) | fait (CT-4 révision 0.3, texte) |
-| `spec/README.md` | CT-6 version 0.1 | CT-6 version 0.2 ; `-r spec/schemas/point-de-controle-v0.schema.json` dans toute commande `ajv` qui charge `dossier-v0.schema.json` (CT-1 §17) ; vecteurs nouveaux | fait (index) ; vecteurs nouveaux à produire |
+| `spec/README.md` | CT-6 version 0.1 | CT-6 version 0.2 ; `-r spec/schemas/point-de-controle-v0.schema.json` dans toute commande `ajv` qui charge `dossier-v0.schema.json` (CT-1 §17) ; vecteurs nouveaux | fait |
 | `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | vérificateur à huit contrôles sur `periodHash` ; fenêtre « une heure » | le vérificateur vérifie aussi le point de contrôle du journal et énonce la fenêtre bornée au point (7.9) ; révision 0.2 au journal des changements | à faire (documents racine, hors de ce lot) |
+
+La révision 0.3 ne touche aucune décision de l'architecture. Alignement de
+la révision 0.3 avec le dépôt (« fait » : dans ce lot de spécification ;
+« à faire » : attendu des références JavaScript, des vecteurs, des
+vérificateurs Go ou d'une autre spécification, nommés) :
+
+| Emplacement | Avant | Attendu par la révision 0.3 | État |
+|---|---|---|---|
+| `spec/schemas/rapport-verification-v0.schema.json` | identifiants D- à N- et K- ; AV-T/O/R/N/K ; `facts` sans `perimeter` | identifiants AT- (`id_verification`), AV-AT- (`avertissement`), `$defs/faits_perimetre`, `facts.perimeter` facultatif ; tout rapport des révisions 0.1 et 0.2 reste valide | fait |
+| `spec/schemas/attestation-perimetre-v0.schema.json` | — | schéma nouveau (CT-7), embarqué par le vérificateur | fait |
+| `scripts/lib/verificateur.mjs`, `scripts/verify/dossier.mjs` | treize parties, neuf schémas | quatorze parties ; AT-1 à AT-7 par `scripts/lib/securite.mjs`, exclues des statuts, de `failed_checks`, de `blocking_unexecuted` et de la borne ; FP, `facts.perimeter`, AV-AT-, ligne `Périmètre` ; dix schémas | fait (lot de code de l'attestation) |
+| `scripts/vecteurs/generer-ct6.mjs`, `spec/vecteurs/ct-6/` | 68 dossiers | dossiers nouveaux de CT-7 annexe A.7 (famille `ct-6`) ; les 68 inchangés | fait (lot de code de l'attestation ; 73 dossiers) |
+| `test/verificateur.test.js` | V-1 à V-9 | V-10 ; exemple annoté `faits_perimetre` validé ; exemple de 8.6 régénéré avec dix schémas et `facts.perimeter` | fait (lot de code de l'attestation) |
+| `spec/README.md` | CT-6 version 0.2 | CT-6 version 0.3 ; table des schémas : `attestation-perimetre-v0` | fait |
+| `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | vérificateur sans attestation de périmètre | attestation jointe vérifiée, rapportée « déclarée, non prouvée », sans effet sur le verdict (fragment FP, `facts.perimeter`) | à faire (alignement des documents racine) |
 
 ## 17. Ce que cette version ne couvre pas
 
@@ -5002,6 +5441,15 @@ des vérificateurs Go ou d'une autre spécification, nommés) :
   de la clé du point n'est jointe (AV-K-3), et la comparaison de la clé du
   point à la clé en vigueur à `checkpoint_ts` (CT-1 §10.5, règle 5), que le
   dossier ne permet pas sans la série.
+
+- (révision 0.3) **Le périmètre de capture** : une attestation retenue est
+  une déclaration signée ; aucune vérification ne prouve que le périmètre
+  est exact ni complet (7.10). **Une exigence d'attestation par
+  `--exiger`** : l'option ne nomme que les huit contrôles. **L'appartenance
+  des signataires au `CuratorSet`** à la date des signatures : le jeu est
+  déclaré par le dossier, sans ancre d'approbateurs. **L'inclusion et la
+  date de l'événement d'inscription** : elles se prouvent par son propre
+  dossier.
 
 ## Annexe A — Vecteurs CT-6
 
@@ -5459,6 +5907,31 @@ dossiers sont extraits du base64 et confrontés de même. Les `TimeStampReq` et
 les fichiers `.ots` que CT-5 produit sont confrontés par CT-5 (annexe A.6 de
 CT-5), pas ici.
 
+**EX-A.18** (révision 0.3) Les dossiers de la famille `ct-6` qui portent
+la partie `attestation-perimetre.json` sont ceux de CT-7 annexe A.7 ;
+ils sont produits par `scripts/vecteurs/generer-ct6.mjs` à partir des
+dossiers existants (`valide-seq-7-complet`,
+`valide-point-de-controle-complet`, `invalide-t6-signature`) et de la
+partie construite par `scripts/lib/securite.mjs`, sans modifier aucun
+fichier existant.
+
+**EX-A.19** (révision 0.3) L'`attendu.json` d'un dossier qui porte la
+partie donne en plus `perimeter_checks` (statut et raison de AT-1 à AT-7,
+dans l'ordre), `perimeter_retained` (booléen ; `null` dans un `attendu.json`
+de CT-1 dont la quatorzième partie est déclarée absente, CT-1 §11.5), et
+les avertissements AV-AT- dans `warnings` ; son `statement` est l'énoncé
+complet, FP compris.
+
+**EX-A.20** (révision 0.3) Pour chaque dossier qui porte la partie, le test
+vérifie aussi V-10 : il vérifie le même dossier privé de la partie (index
+réécrit à douze ou treize parties) et compare le code de retour, le
+verdict, `failed_checks`, `blocking_unexecuted`, les statuts des huit
+contrôles et la borne.
+
+**EX-A.21** (révision 0.3) Les soixante-huit dossiers antérieurs gardent
+leur `attendu.json` ; leur rapport JSON porte `facts.perimeter` à `null`
+(EX-6.21) ; la CI le vérifie.
+
 ## Annexe B — Sources des faits externes
 
 Les renvois R1 à R4 du texte désignent des notes de recherche internes du lot
@@ -5774,3 +6247,14 @@ Les faits cités dans cette spécification :
 | CT-5 R2-F36 | la rétention d'un objet verrouillé est lisible par l'API du stockage, sans signature : déclarative pour un réviseur (7.9) | https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObjectRetention.html | 2026-10-25 |
 | CT-5 R2-F45 | `docType` = keccak256 du libellé ; un libellé nouveau pour un sens nouveau (11.9) | `spec/CT-4-registre.md` §6.4 à §6.6 (présent dépôt) | 2026-10-25 |
 | CT-5 R2 (section 7.9) | conséquence 22 : aucune borne « pas avant » ; un point qui engagerait une valeur fraîche extérieure la donnerait ; proposition sans source, non retenue | aucune source primaire ; proposition de conception de la note | 2026-10-25 |
+
+### B.6 Notes du lot CT-7 (révision 0.3)
+
+La révision 0.3 cite trois faits de la note de recherche R7 du lot CT-7
+(relue le 2026-10-26), écrits « R7-Fn » dans la section 7.10 : R7-F51
+(méthodes d'évaluation « examine, interview, and test », NIST SP 800-53A Rev. 5,
+https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53Ar5.pdf),
+R7-F52 (indépendance de l'évaluateur, même document) et R7-F53 (services
+d'une signature numérique, NIST SP 800-57 Part 1 Rev. 5,
+https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57pt1r5.pdf).
+CT-7 annexe B en donne les extraits exacts.

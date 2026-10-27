@@ -1,0 +1,670 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/attestation-perimetre.schema.json",
+  "title": "Attestation de périmètre de capture NOORTRACE, version 0 (CT-7 §7, CT-1 révision 0.4)",
+  "description": "Le schéma principal décrit l'attestation P : le document que l'administrateur du client remplit et que des membres du jeu d'approbateurs de l'organisation signent. Son condensé est D_P = keccak256(\"noortrace/attestation-perimetre/v0\\n\" || JCS(P)), signé en EIP-191 version 0x45 (CT-1 §6.3). Les $defs décrivent l'attestation signée (attestation_signee), le jeu d'approbateurs déclaré (jeu_approbateurs) et le fichier de cas des vecteurs ct-7/attestations (cas_attestation, fichier_vecteurs). Les relations que le schéma n'exprime pas (validity.from <= validity.until, journal de chaque agent parmi journals, adresses distinctes) relèvent de AT-1 ; le condensé, les signatures et le seuil de AT-2 à AT-4 (CT-1 §11.4). Une attestation est déclarative : sa vérification établit qui l'a signée, jamais que son contenu est vrai.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "org",
+    "journals",
+    "validity",
+    "issued_at",
+    "prepared_by",
+    "agents",
+    "tools_via_proxy_only",
+    "egress",
+    "gateway_credentials",
+    "not_captured",
+    "signatories",
+    "declaration"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "org": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["org_id", "slug", "name"],
+      "properties": {
+        "org_id": {
+          "$ref": "#/$defs/hex32",
+          "description": "Identifiant d'organisation de CT-1 §3, celui des événements des journaux couverts."
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "Nom court de l'organisation, celui d'où org_id est dérivé (CT-4) ; déclaratif."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "journals": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["journal_id", "name"],
+        "properties": {
+          "journal_id": {
+            "$ref": "#/$defs/hex32"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "description": "Journaux couverts ; journal_id distincts (AT-1)."
+    },
+    "validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "until"],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "until": {
+          "$ref": "#/$defs/horodatage"
+        }
+      },
+      "description": "Période de validité déclarée, bornes incluses ; from <= until (AT-1). L'événement prouvé y tombe (AT-5)."
+    },
+    "issued_at": {
+      "$ref": "#/$defs/horodatage",
+      "description": "Instant de rédaction déclaré par l'administrateur ; non prouvé."
+    },
+    "prepared_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "function"],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Identité de l'administrateur du client, telle que son système d'identité la nomme (même forme que delegation.launched_by, CT-1 §5.3)."
+        },
+        "function": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "agents": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["agent_id", "journal_id", "host", "framework", "capture_channels", "notes"],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+          },
+          "journal_id": {
+            "$ref": "#/$defs/hex32",
+            "description": "Journal où l'agent est capturé ; l'un des journal_id de journals (AT-1)."
+          },
+          "host": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Nom d'inventaire de l'hôte de l'agent ; jamais une adresse IP, ni un secret."
+          },
+          "framework": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Cadre ou hôte d'agent (nom et version), dans le vocabulaire du client."
+          },
+          "capture_channels": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 6,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/canal_capture"
+            }
+          },
+          "notes": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        }
+      },
+      "description": "Inventaire des agents ; agent_id distincts (AT-1)."
+    },
+    "tools_via_proxy_only": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["server_alias", "tools", "enforcement"],
+        "properties": {
+          "server_alias": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
+            "description": "Alias du serveur d'outils dans policy.servers de la configuration de l'enregistreur (CT-2 EX-4.9)."
+          },
+          "tools": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1024,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^(\\*|[A-Za-z0-9][A-Za-z0-9._:/-]{0,127})$"
+            },
+            "description": "Noms d'outils, ou \"*\" pour tous les outils du serveur."
+          },
+          "enforcement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Comment l'organisation empêche de joindre ce serveur sans passer par le mandataire (règle de pare-feu, réseau, identifiants) ; déclaratif."
+          }
+        }
+      }
+    },
+    "egress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default_policy", "rules_sha256", "rules_format", "summary", "allowed_destinations"],
+      "properties": {
+        "default_policy": {
+          "enum": ["refus_par_defaut", "autorisation_par_defaut"]
+        },
+        "rules_sha256": {
+          "$ref": "#/$defs/hex32",
+          "description": "SHA-256 des octets de l'export des règles de sortie tel que le client le conserve ; le fichier n'est pas joint."
+        },
+        "rules_format": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "allowed_destinations": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "via", "description"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "via": {
+                "enum": ["enregistreur", "mandataire_sortant", "direct"],
+                "description": "enregistreur : seul le démon de l'enregistreur joint la destination ; mandataire_sortant : par le mandataire HTTPS du client (ICAP ou miroir) ; direct : joignable sans capture, à déclarer aussi dans not_captured."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              }
+            }
+          }
+        }
+      }
+    },
+    "gateway_credentials": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["route", "provider_label", "secret_ref"],
+        "properties": {
+          "route": {
+            "type": "string",
+            "pattern": "^/[A-Za-z0-9._~/-]{0,255}$",
+            "description": "path de la route du frontal modèle (policy.model.routes, CT-2 EX-5.2)."
+          },
+          "provider_label": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9.-]{0,31}$"
+          },
+          "secret_ref": {
+            "$ref": "#/$defs/reference_secret"
+          }
+        }
+      },
+      "description": "Identifiants d'API que seule la passerelle détient : leur désignation, jamais leur valeur."
+    },
+    "not_captured": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["channel", "description", "compensating_control"],
+        "properties": {
+          "channel": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "compensating_control": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        }
+      },
+      "description": "Exceptions connues : ce que l'organisation sait ne pas être capturé. Un tableau vide déclare qu'aucune exception n'est connue, non qu'il n'en existe pas."
+    },
+    "signatories": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "function", "address"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "function": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "address": {
+            "$ref": "#/$defs/adresse"
+          }
+        }
+      },
+      "description": "Personnes appelées à signer, adresses distinctes (AT-1) ; chaque signature porte l'adresse d'un signataire (AT-4)."
+    },
+    "declaration": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "description": "Texte que les signataires déclarent, en clair ; il n'entre jamais dans l'énoncé du vérificateur."
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "adresse": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{40}$"
+    },
+    "signature_eip191": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{130}$"
+    },
+    "horodatage": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$",
+      "description": "RFC 3339, UTC, trois décimales, suffixe Z ; date existante du calendrier grégorien (CT-1 §3), contrôlée par AT-1."
+    },
+    "canal_capture": {
+      "enum": ["mandataire_mcp", "passerelle", "icap", "miroir", "sdk", "opentelemetry"],
+      "description": "Canal par lequel l'enregistreur voit l'agent (CT-2 §4, §5.1, §6) : frontal MCP, frontal modèle en mode passerelle, icap ou miroir, point d'entrée du SDK, ingestion OpenTelemetry."
+    },
+    "reference_secret": {
+      "description": "Désignation d'un secret par son emplacement, même forme que CT-2 §15.2 sans encoding : exactement une des clés env, file, vault.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["env"],
+          "properties": {
+            "env": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]{0,127}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file"],
+          "properties": {
+            "file": {
+              "type": "string",
+              "pattern": "^/[^\\u0000]{1,4095}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["vault"],
+          "properties": {
+            "vault": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "field"],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "jeu_approbateurs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["threshold", "members", "source"],
+      "properties": {
+        "threshold": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required", "size"],
+          "properties": {
+            "required": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          }
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65535,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/adresse"
+          }
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "description": "Jeu d'approbateurs déclaré, même forme que approver_set de approbations.json (CT-1 §11.2) ; déclaratif, avec sa source."
+    },
+    "attestation_signee": {
+      "title": "Attestation signée",
+      "description": "Ce que l'administrateur du client remet : l'attestation P, son condensé D_P déclaré (recalculé par AT-2) et les signatures EIP-191 des signataires sur D_P, chacune avec l'adresse qu'elle doit recouvrer (AT-3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "attestation", "digest", "signatures"],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "attestation": {
+          "$ref": "#"
+        },
+        "digest": {
+          "$ref": "#/$defs/hex32"
+        },
+        "signatures": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["address", "signature"],
+            "properties": {
+              "address": {
+                "$ref": "#/$defs/adresse"
+              },
+              "signature": {
+                "$ref": "#/$defs/signature_eip191"
+              }
+            }
+          }
+        }
+      }
+    },
+    "statut_at": {
+      "enum": ["reussi", "echoue", "non_execute"]
+    },
+    "cas_attestation": {
+      "title": "Cas de la famille ct-7/attestations",
+      "description": "Une attestation signée et un jeu déclaré, soumis hors de tout dossier aux vérifications AT-1 à AT-4 ; input est libre pour qu'un cas invalide puisse violer le schéma (AT-1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "description", "input", "expected"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["signed", "approver_set"],
+          "properties": {
+            "signed": {},
+            "approver_set": {}
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["digest", "recovered", "checks", "retained"],
+          "properties": {
+            "digest": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/hex32"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "D_P recalculé, null si AT-1 échoue."
+            },
+            "recovered": {
+              "type": ["array", "null"],
+              "items": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/adresse"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": "Adresse recouvrée de chaque signature, dans l'ordre, null pour une signature non recouvrable ou non canonique ; null si AT-3 n'est pas exécutée."
+            },
+            "checks": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "status", "reason"],
+                "properties": {
+                  "id": {
+                    "enum": ["AT-1", "AT-2", "AT-3", "AT-4"]
+                  },
+                  "status": {
+                    "$ref": "#/$defs/statut_at"
+                  },
+                  "reason": {
+                    "oneOf": [
+                      {
+                        "enum": ["prerequis_en_echec"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "retained": {
+              "type": "boolean",
+              "description": "Vrai si et seulement si AT-1 à AT-4 réussissent."
+            }
+          }
+        }
+      }
+    },
+    "fichier_vecteurs": {
+      "title": "Fichier de la famille ct-7/attestations",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "family", "prefix_hex", "cases"],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "family": {
+          "const": "attestations"
+        },
+        "prefix_hex": {
+          "const": "6e6f6f7274726163652f6174746573746174696f6e2d706572696d657472652f76300a"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/cas_attestation"
+          }
+        }
+      }
+    },
+    "croises": {
+      "title": "Fichier ct-7/attestations/croises.json (CT-7 EX-A.9)",
+      "description": "Signatures croisées d'un même compte sur des objets de domaines différents (décision D_A, texte d'inscription, procès-verbal D_C, condensé du registre, attestation D_P), chacune présentée pour un autre domaine et refusée par la vérification nommée. target est absent quand l'objet présenté est l'attestation de l'exemple.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "family", "account", "address", "attestation_digest", "cases"],
+      "properties": {
+        "version": { "const": 0 },
+        "family": { "const": "croises" },
+        "account": { "type": "integer", "minimum": 0, "maximum": 19 },
+        "address": { "$ref": "#/$defs/adresse" },
+        "attestation_digest": { "$ref": "#/$defs/hex32" },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "description", "message", "signature", "presented_as", "expected"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+              "description": { "type": "string", "minLength": 1 },
+              "message": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind"],
+                "properties": {
+                  "kind": { "enum": ["approbation", "inscription", "ceremonie", "registre", "attestation"] },
+                  "digest": { "$ref": "#/$defs/hex32" },
+                  "text": { "type": "string", "minLength": 1 },
+                  "case": { "type": "string", "minLength": 1 }
+                }
+              },
+              "signature": { "$ref": "#/$defs/signature_eip191" },
+              "presented_as": { "enum": ["attestation", "approbation", "inscription", "ceremonie"] },
+              "target": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "digest": { "$ref": "#/$defs/hex32" },
+                  "text": { "type": "string", "minLength": 1 },
+                  "case": { "type": "string", "minLength": 1 }
+                }
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["check", "status", "recovered"],
+                "properties": {
+                  "check": { "type": "string", "pattern": "^CT-[1-7] [A-Z]{1,2}-[0-9]+$" },
+                  "status": { "const": "echoue" },
+                  "recovered": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/adresse" }] }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "grille_attestation": {
+      "description": "Grille de l'épreuve à l'aveugle de l'administrateur du client (`acceptation-attestation-attendu.json`, CT-7 EX-9.4, EX-9.5) ; jamais remise à la personne éprouvée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "test", "rule", "success", "questions"],
+      "properties": {
+        "version": { "const": 0 },
+        "test": { "const": "acceptation-attestation" },
+        "rule": { "type": "string" },
+        "success": { "type": "string", "minLength": 1 },
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "question", "expected"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^Q[1-9]$" },
+              "question": { "type": "string", "minLength": 1 },
+              "expected": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

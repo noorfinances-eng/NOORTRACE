@@ -1,0 +1,27 @@
+Vérification hors ligne d'un dossier de preuve NOORTRACE (format v0, CT-1 et CT-6)
+Index         : dossier.json, SHA-256 0x35cbf72b290474bcfc9b9012c85af724493f2ae6971b09d8935f9eff57434be7
+Ancres        : aucun fichier d'ancres
+Événement     : seq 12, hash 0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90, ts 2026-11-05T10:05:00.000Z, outil noortrace.journal.politique
+Journal       : org_id 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal_id 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164
+Période       : 2026-11-05T10:00:00Z à 2026-11-05T11:00:00Z, periodHash 0xaef87e5b25d0a37dcb3582fd19547c01b634a4f50731842672c5f644ff0e82bb
+Périmètre     : déclaré, non prouvé : attestation 0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd, du 2026-11-01T00:00:00Z au 2027-01-31T23:59:59.999Z, 2 signatures, seuil de 2 sur 3 ; inscrite au seq 12
+Contrôles de l'architecture :
+  [réussi]      1  hachage canonique de l'événement — hachage canonique recalculé égal à hash
+  [réussi]      2  chaînage avec les voisins — chaîné au voisin précédent seq 11 (le dossier ne fournit pas de suivant)
+  [réussi]      3  inclusion dans la racine du manifeste — feuille 2 de l'arbre de 3 du manifeste 0xaef87e5b25d0a37dcb3582fd19547c01b634a4f50731842672c5f644ff0e82bb
+  [non exécuté] 4  jeton d'horodatage RFC 3161 sur periodHash — non exécuté (hors_perimetre_version) : jeton-rfc3161.der absent (hors périmètre CT-1)
+  [non exécuté] 5  preuve OpenTimestamps et en-têtes Bitcoin — non exécuté (hors_perimetre_version) : preuve.ots absent (hors périmètre CT-1)
+  [réussi]      6  signatures de l'enregistreur — rec-test-02 (événement et manifeste), clé déclarée par le dossier
+  [non exécuté] 7  signatures des approbateurs et seuil — non exécuté (partie_absente) : approbations.json absent (aucune approbation liée)
+  [non exécuté] 8  inclusion au registre, bloc certifié par un quorum — non exécuté (hors_perimetre_version) : registre.json, certificat-commit.json, validateurs.json absents (hors périmètre CT-1)
+Vérifications non réussies :
+  [non exécuté] A-2  [7] chaque événement d'approbation est une décision (E-1 à E-11) dont approval et arguments.value correspondent à l'événement prouvé ; décision antérieure à l'appel relayé (seq, approval.at <= ts) ; une décision prouvée figure dans events
+                      aucune approbation liée (partie_absente)
+  [non exécuté] A-3  [7] approbateurs distincts, membres du jeu déclaré, en nombre >= required ; seuil cohérent avec le jeu
+                      aucune approbation liée (partie_absente)
+  [non exécuté] A-4  [7] request_hash = hash recalculé de l'événement de demande (status retenue) quand il est dans le dossier
+                      aucune approbation liée (partie_absente)
+Parties absentes : approbations.json (aucune approbation liée), jeton-rfc3161.der (hors périmètre CT-1), preuve.ots (hors périmètre CT-1), registre.json (hors périmètre CT-1), certificat-commit.json (hors périmètre CT-1), validateurs.json (hors périmètre CT-1), points-de-controle.json (aucun point de contrôle)
+Borne         : verdict borné : contrôle 4 non exécuté (hors_perimetre_version), contrôle 5 non exécuté (hors_perimetre_version), contrôle 7 non exécuté (partie_absente), contrôle 8 non exécuté (hors_perimetre_version)
+Résultat      : VALIDE — aucune vérification en échec, aucune vérification non exécutée sans raison admise
+Énoncé        : L'événement seq 12 (hachage 0x5aac251a7fa898317e6fd40eae4594234960cf682e4a182cf2de0a9f65b0ef90) du journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 de l'organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab est bien formé, chaîné à son voisin précédent seq 11 (le dossier ne fournit pas de suivant) et inclus dans la période du 2026-11-05T10:00:00Z au 2026-11-05T11:00:00Z close par le manifeste 0xaef87e5b25d0a37dcb3582fd19547c01b634a4f50731842672c5f644ff0e82bb ; l'événement est signé, comme le manifeste, par la clé d'enregistreur rec-test-02, clé déclarée par le dossier ; le périmètre de capture est déclaré, non prouvé, par l'attestation 0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd valable du 2026-11-01T00:00:00Z au 2027-01-31T23:59:59.999Z, signée par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier), inscrite au journal par l'événement seq 12 (clé rec-test-02 déclarée par le dossier) sous une version de politique de même nom que celle de cet événement, et qui déclare 1 exception de capture ; ce dossier ne prouve rien sur sa date (contrôles 4 et 5), sur une approbation (contrôle 7) ni sur son inscription au registre (contrôle 8).

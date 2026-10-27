@@ -1,0 +1,12 @@
+{
+  "verdict": "valide",
+  "digest": "0x3de079cadb5d04e79ab6ff8d2e4a995b59116375b6b15ad187aa6c37d69ba528",
+  "failed": [],
+  "not_executed": [],
+  "signers": [
+    "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+    "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+    "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+  ]
+}

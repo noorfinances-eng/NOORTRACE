@@ -1,0 +1,60 @@
+{
+  "version": 0,
+  "test": "acceptation-attestation",
+  "rule": "CT-7 EX-9.4, EX-9.5",
+  "success": "Chaque réponse contient tous ses éléments ; une réponse qui dit l'attestation « preuve du périmètre » ou « preuve de conformité » échoue, quels que soient ses autres éléments.",
+  "questions": [
+    {
+      "id": "Q1",
+      "question": "Quelles pièces rassemblez-vous pour remplir l'attestation ?",
+      "expected": [
+        "`org_id` et `slug`",
+        "`journal_id` de chaque journal",
+        "connexions d'hôte",
+        "`policy.servers` et routes",
+        "export du pare-feu et son SHA-256",
+        "annuaire des approbateurs",
+        "exceptions connues (7.4, pas 1)"
+      ]
+    },
+    {
+      "id": "Q2",
+      "question": "Qui doit signer, et combien ?",
+      "expected": [
+        "des membres du jeu d'approbateurs, nommés dans `signatories`, au moins `required` distincts",
+        "l'administrateur ne compte que s'il est membre (EX-7.8)"
+      ]
+    },
+    {
+      "id": "Q3",
+      "question": "Que vérifie un signataire avant de signer ?",
+      "expected": [
+        "il recalcule `D_P` depuis le fichier, lit les membres en clair, ne signe jamais un condensé reçu tout fait",
+        "pas par la console (EX-7.8)"
+      ]
+    },
+    {
+      "id": "Q4",
+      "question": "Qu'est-ce qui ne doit jamais figurer dans l'attestation ?",
+      "expected": [
+        "valeurs de secrets, adresses IP, contenu des règles, données personnelles hors identités nommées (EX-7.3)"
+      ]
+    },
+    {
+      "id": "Q5",
+      "question": "Que prouve l'attestation vérifiée, et que ne prouve-t-elle pas ?",
+      "expected": [
+        "qui a signé, intégrité du texte, seuil atteint du jeu déclaré, rang d'inscription",
+        "pas l'exactitude du périmètre, pas l'absence de contournement, pas la date de signature (7.8)"
+      ]
+    },
+    {
+      "id": "Q6",
+      "question": "Le rapport du dossier fourni dit-il que le périmètre est prouvé ?",
+      "expected": [
+        "non : « déclaré, non prouvé »",
+        "le verdict ne dépend pas de l'attestation (EX-7.1)"
+      ]
+    }
+  ]
+}
