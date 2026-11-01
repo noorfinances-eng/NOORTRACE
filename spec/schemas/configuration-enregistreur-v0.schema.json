@@ -2359,9 +2359,10 @@
             "mode": {
               "enum": [
                 "retenir",
-                "erreur"
+                "erreur",
+                "observation"
               ],
-              "description": "Attente de la décision, requis : erreur (valeur de la configuration de référence, de la démonstration et des outils du projet, CT-3 EX-11.1), le signal d'approbation, résultat isError qui porte le ticket et son état, est rendu aussitôt ; retenir, la requête de l'hôte reste ouverte jusqu'à la décision ou hold_timeout_ms, une seule par ticket (CT-2 §4.4, EX-4.49, EX-4.50). La commande de validation avertit pour retenir."
+              "description": "Attente de la décision, requis : erreur (valeur de la configuration de référence, de la démonstration et des outils du projet, CT-3 EX-11.1), le signal d'approbation, résultat isError qui porte le ticket et son état, est rendu aussitôt ; retenir, la requête de l'hôte reste ouverte jusqu'à la décision ou hold_timeout_ms, une seule par ticket (CT-2 §4.4, EX-4.49, EX-4.50) ; observation (révision 0.6), mode observation de l'ensemble de politique : la politique est évaluée sans effet, aucun appel n'est retenu ni refusé par elle, chaque appel d'outil est relayé et porte dans policy.rule la marque « [observation <x>] » de ce qu'elle aurait exigé, et aucune panne ne bloque un appel (CT-2 EX-14.13 à EX-14.17, CT-3 EX-11.11 à EX-11.15, CT-8 §12). La commande de validation avertit pour retenir et pour observation."
             },
             "hold_timeout_ms": {
               "$ref": "#/$defs/ms"

@@ -1,0 +1,102 @@
+{
+  "description": "Montage lié de la prise du moteur /var/run/docker.sock dans le service enregistreur (CO-11, montage_interdit).",
+  "file": "socket-du-moteur.yaml",
+  "attendu": {
+    "version": 0,
+    "file": "socket-du-moteur.yaml",
+    "sha256": "3dfd8c6fd93818c7087b57479f7e5b120d36adcc85fb6b2597788fc61b2884d9",
+    "verdict": "non_conforme",
+    "all_images_by_digest": false,
+    "checks": [
+      {
+        "id": "CO-1",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-2",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-3",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-4",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-5",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-6",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-7",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-8",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-9",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-10",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-11",
+        "status": "echoue",
+        "reason": null,
+        "findings": [
+          {
+            "service": "enregistreur",
+            "code": "montage_interdit"
+          }
+        ]
+      },
+      {
+        "id": "CO-12",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-13",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-14",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      }
+    ]
+  }
+}

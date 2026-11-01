@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/consultation.schema.json",
+  "title": "Ligne du journal des consultations et des accès, version 0",
+  "description": "Une ligne du journal des consultations et des accès au stockage de l'enregistreur, aux copies WORM, aux exports et au coffre des originaux (CT-8 §11.10 ; CT-7 EX-8.15, PA-15, lacune L-1 ; Olico art. 8). Fichier NDJSON en ajout seul, une ligne JCS v0 par accès, chaînée à la précédente par prev_sha256 ; il n'entre pas dans la chaîne de CT-1 et n'a pas de signature propre : sa protection est sa copie WORM. Vérifications CA-1 à CA-6 (CT-8 §11.10).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "n",
+    "prev_sha256",
+    "ts",
+    "collected_at",
+    "source",
+    "principal",
+    "role",
+    "action",
+    "object",
+    "outcome",
+    "motif"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "n": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Rang de la ligne dans le fichier, 1 pour la première, sans trou (CA-2)."
+    },
+    "prev_sha256": {
+      "$ref": "#/$defs/hex32",
+      "description": "SHA-256 des octets de la ligne précédente sans son \\n, ou du nom du fichier en UTF-8 pour la première ligne (CA-3)."
+    },
+    "ts": {
+      "$ref": "#/$defs/horodatage",
+      "description": "Instant de l'accès selon la source (horloge de l'hôte ou du fournisseur du support)."
+    },
+    "collected_at": {
+      "$ref": "#/$defs/horodatage",
+      "description": "Instant où le collecteur a écrit la ligne ; non décroissant dans le fichier (CA-4)."
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "record_sha256",
+        "locator"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "audit_systeme",
+            "journal_acces_support",
+            "outil_export",
+            "outil_exploitation",
+            "coffre"
+          ],
+          "description": "audit_systeme : audit du système d'exploitation de l'hôte sur storage.root ; journal_acces_support : journal d'accès aux objets du support WORM tenu par son fournisseur ; outil_export : exportateur de dossiers (CT-6) ; outil_exploitation : noortrace-ctl et l'outil de gel ; coffre : coffre des originaux (CT-2 §10.7)."
+        },
+        "record_sha256": {
+          "$ref": "#/$defs/hex32",
+          "description": "SHA-256 de l'enregistrement brut de la source, conservé par elle, pour rapprocher la ligne de son origine (CA-5)."
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Où relire l'enregistrement brut : fichier et rang, clé d'objet du journal d'accès ; jamais une adresse réseau ni un secret."
+        }
+      }
+    },
+    "principal": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Qui a accédé : utilisateur système, identité du rôle du support, identité de session ; donnée personnelle du client, conservée comme le journal (CT-2 EX-9.6)."
+    },
+    "role": {
+      "enum": [
+        "ecrivain",
+        "lecteur",
+        "gardien_pose",
+        "gardien_levee",
+        "administrateur",
+        "exportateur",
+        "exploitant",
+        "inconnu"
+      ],
+      "description": "Rôle d'EX-18.9 de CT-2 ou de CT-8 §11.10 auquel le principal est rattaché ; inconnu déclenche l'alerte « Accès d'un principal non déclaré » (CT-8 §10.7)."
+    },
+    "action": {
+      "enum": [
+        "lecture",
+        "liste",
+        "ecriture",
+        "suppression",
+        "export",
+        "restauration",
+        "droits"
+      ]
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "org_id",
+        "journal_id",
+        "path",
+        "version_id"
+      ],
+      "properties": {
+        "org_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex32"
+            }
+          ]
+        },
+        "journal_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex32"
+            }
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Chemin relatif à storage.root, clé d'objet relative à <prefix>, ou identifiant de dossier exporté."
+        },
+        "version_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          ]
+        }
+      }
+    },
+    "outcome": {
+      "enum": [
+        "autorise",
+        "refuse"
+      ]
+    },
+    "motif": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      ],
+      "description": "Référence de dossier ou de demande du client, jamais une donnée des pièces."
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "horodatage": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    }
+  }
+}

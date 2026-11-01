@@ -1,0 +1,97 @@
+{
+  "description": "Fichier de référence deploiement/compose/rapide.yaml, sans changement : conforme.",
+  "file": "valide-rapide.yaml",
+  "attendu": {
+    "version": 0,
+    "file": "valide-rapide.yaml",
+    "sha256": "12011feb774e00e24336801f91c960494e17731c7d2a0162f10bb59a3f372e5f",
+    "verdict": "conforme",
+    "all_images_by_digest": false,
+    "checks": [
+      {
+        "id": "CO-1",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-2",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-3",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-4",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-5",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-6",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-7",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-8",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-9",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-10",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-11",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-12",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-13",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-14",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      }
+    ]
+  }
+}

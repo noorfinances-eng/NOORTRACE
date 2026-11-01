@@ -1,0 +1,825 @@
+# Confrontation des paquets réviseurs de CT-8 par tar (GNU tar) 1.35, sha256sum (GNU coreutils) 9.4, jq-1.7
+# Archives : 13 ; cas.json : 17 cas
+
+== chemin-absolu.tar
+sha256sum : 6f07e6e4cb1dc1e6ebeac41a546ab140be71dd974d08a54cbbd084a5b1251fe2 ; cas.json : concorde
+attendu (cas.json, cas chemin-absolu) : paquet non_conforme, PR-5 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 51 membres
+-rw-r--r-- 0/0              11 2026-10-27 00:00:00 /paquet-reviseur/evasion.txt
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+message : tar: Removing leading `/' from member names
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+message : tar: Removing leading `/' from member names
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : 1
+  paquet-reviseur/evasion.txt
+-- membres listés contre le manifeste (nom, type, taille) : 1
+  membre non déclaré : /paquet-reviseur/evasion.txt
+-- résultat : tar accepte ; écarts au manifeste 2 ; verdict limite_de_l_outil
+
+== chemin-hors-archive.tar
+sha256sum : fc6446e02c04c10aea067a848c0fdc263d8f5a4a8242bec113475340dc678253 ; cas.json : concorde
+attendu (cas.json, cas chemin-hors-archive) : paquet non_conforme, PR-5 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 51 membres
+-rw-r--r-- 0/0              40 2026-10-27 00:00:00 paquet-reviseur/../../evasion.txt
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+message : tar: Removing leading `paquet-reviseur/../../' from member names
+-- extraction (tar -xf, répertoire neuf et vide) : code 2
+message : tar: Removing leading `paquet-reviseur/../../' from member names
+message : tar: paquet-reviseur/../../evasion.txt: Member name contains '..'
+message : tar: Exiting with failure status due to previous errors
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : 1
+  membre non déclaré : paquet-reviseur/../../evasion.txt
+-- résultat : tar refuse ; écarts au manifeste 1 ; verdict concorde
+
+== contrefacon-coherente.tar
+sha256sum : d806d8e7af25c118d9f241ead0c8b51892e10e778a8f1a0238f831334e822344 ; cas.json : concorde
+attendu (cas.json, cas contrefacon-coherente) : paquet intact
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 50 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : aucun
+-- résultat : tar accepte ; écarts au manifeste 0 ; verdict concorde
+
+== fichier-altere.tar
+sha256sum : b41b49dbe9b529f90b4de5b1c73986406951af163e0f9ed2a8381481227e7d29 ; cas.json : concorde
+attendu (cas.json, cas fichier-altere) : paquet non_conforme, PR-8 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 50 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 1
+en échec : paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+message : sha256sum: WARNING: 1 computed checksum did NOT match
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : aucun
+-- résultat : tar accepte ; écarts au manifeste 1 ; verdict concorde
+
+== fichier-en-trop.tar
+sha256sum : 40558d06651fd5f539942952a9d6ea0f2a1322f0262ec41d06e8b0e00fa4730d ; cas.json : concorde
+attendu (cas.json, cas fichier-en-trop) : paquet non_conforme, PR-8 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 51 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0              49 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/note.txt
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : 1
+  paquet-reviseur/dossiers/valide-seq-7-complet/note.txt
+-- membres listés contre le manifeste (nom, type, taille) : 1
+  membre non déclaré : paquet-reviseur/dossiers/valide-seq-7-complet/note.txt
+-- résultat : tar accepte ; écarts au manifeste 2 ; verdict concorde
+
+== fichier-manquant.tar
+sha256sum : 92dd0e6f2d3f76d8281925c73ae0d31fe8bfc80f6112b506e6cd39f794c8acbe ; cas.json : concorde
+attendu (cas.json, cas fichier-manquant) : paquet non_conforme, PR-8 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 49 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 1
+en échec : paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+message : sha256sum: paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json: No such file or directory
+message : sha256sum: WARNING: 1 listed file could not be read
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : 1
+  déclaré, non listé : paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-- résultat : tar accepte ; écarts au manifeste 2 ; verdict concorde
+
+== lien-physique.tar
+sha256sum : e8c92cba21f5c6ada90b7e17a595923888056f51345fbfacd35402437c186735 ; cas.json : concorde
+attendu (cas.json, cas lien-physique) : paquet non_conforme, PR-4 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 51 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+hrw-r--r-- 0/0               0 2026-10-27 00:00:00 paquet-reviseur/ancres/double link to paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : 1
+  paquet-reviseur/ancres/double
+-- membres listés contre le manifeste (nom, type, taille) : 1
+  membre d'un autre type (h) : paquet-reviseur/ancres/double
+-- résultat : tar accepte ; écarts au manifeste 2 ; verdict limite_de_l_outil
+
+== lien-symbolique.tar
+sha256sum : f036a91c971e6fbd3c75da67ddc90f5e3f6522e8a7a3c250f7178bf644c25071 ; cas.json : concorde
+attendu (cas.json, cas lien-symbolique) : paquet non_conforme, PR-4 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 51 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+lrw-r--r-- 0/0               0 2026-10-27 00:00:00 paquet-reviseur/ancres/raccourci -> ../../../evasion
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : 1
+  paquet-reviseur/ancres/raccourci -> ../../../evasion
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : 1
+  membre d'un autre type (l) : paquet-reviseur/ancres/raccourci
+-- résultat : tar accepte ; écarts au manifeste 2 ; verdict limite_de_l_outil
+
+== manifeste-altere.tar
+sha256sum : 32ba2c02676d40d5d25f42e90a235763c53c78cd8348f18e34ae82e51473b122 ; cas.json : concorde
+attendu (cas.json, cas manifeste-altere) : paquet non_conforme, PR-8 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 50 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 1
+en échec : paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+message : sha256sum: WARNING: 1 computed checksum did NOT match
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : aucun
+-- résultat : tar accepte ; écarts au manifeste 1 ; verdict concorde
+
+== metadonnees-non-fixees.tar
+sha256sum : 275277ac3f74b02b8902301de1c5441b71803d2aace807511b87421af26410a3 ; cas.json : concorde
+attendu (cas.json, cas metadonnees-non-fixees) : paquet non_conforme, PR-6 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 50 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw------- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : aucun
+-- résultat : tar accepte ; écarts au manifeste 0 ; verdict limite_de_l_outil
+
+== nom-en-double.tar
+sha256sum : cfbc9d58c6e0174c3fdb86d10155ad642741166434522a94ca82b495398d2697 ; cas.json : concorde
+attendu (cas.json, cas nom-en-double) : paquet non_conforme, PR-5 en échec
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 51 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0              67 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 1
+en échec : paquet-reviseur/LISEZMOI.md
+message : sha256sum: WARNING: 1 computed checksum did NOT match
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : 1
+  nom répété : paquet-reviseur/LISEZMOI.md
+-- résultat : tar accepte ; écarts au manifeste 2 ; verdict limite_de_l_outil
+
+== observation.tar
+sha256sum : 127b257aebef28bb8436f7b07fe7a3c6d4e805ce7ca9c3f3e991c53b543f9ba5 ; cas.json : concorde
+attendu (cas.json, cas observation) : paquet intact
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 18 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0            3847 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0             459 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-1/chemin.json
+-rw-r--r-- 0/0             563 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-1/cles.json
+-rw-r--r-- 0/0            2657 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-1/dossier.json
+-rw-r--r-- 0/0            1703 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-1/evenement.json
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-1/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-1/manifeste.sig
+-rw-r--r-- 0/0            1719 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-1/voisins.json
+-rw-r--r-- 0/0             459 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/chemin.json
+-rw-r--r-- 0/0             563 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/cles.json
+-rw-r--r-- 0/0            2657 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/dossier.json
+-rw-r--r-- 0/0            1729 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/evenement.json
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/manifeste.sig
+-rw-r--r-- 0/0            3547 2026-10-27 00:00:00 paquet-reviseur/dossiers/seq-3/voisins.json
+-rw-r--r-- 0/0            6550 2026-10-27 00:00:00 paquet-reviseur/pieces/3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 17 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : aucun
+-- résultat : tar accepte ; écarts au manifeste 0 ; verdict concorde
+
+== valide.tar
+sha256sum : 8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982 ; cas.json : concorde
+attendu (cas.json, cas valide) : paquet intact
+-- liste (tar --list --verbose --numeric-owner --full-time) : code 0, 50 membres
+-rw-r--r-- 0/0            8340 2026-10-27 00:00:00 paquet-reviseur/LISEZMOI.md
+-rw-r--r-- 0/0           11274 2026-10-27 00:00:00 paquet-reviseur/MANIFESTE.json
+-rw-r--r-- 0/0            7729 2026-10-27 00:00:00 paquet-reviseur/README.md
+-rw-r--r-- 0/0            5924 2026-10-27 00:00:00 paquet-reviseur/ancres/ancres-test.json
+-rw-r--r-- 0/0            4802 2026-10-27 00:00:00 paquet-reviseur/attestation/attestation-signee.json
+-rw-r--r-- 0/0             281 2026-10-27 00:00:00 paquet-reviseur/attestation/jeu-approbateurs.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json
+-rw-r--r-- 0/0           40069 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json
+-rw-r--r-- 0/0            3148 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig
+-rw-r--r-- 0/0            5099 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots
+-rw-r--r-- 0/0            8708 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json
+-rw-r--r-- 0/0            5443 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json
+-rw-r--r-- 0/0            3343 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json
+-rw-r--r-- 0/0            3345 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json
+-rw-r--r-- 0/0           31434 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json
+-rw-r--r-- 0/0             533 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json
+-rw-r--r-- 0/0             857 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/cles.json
+-rw-r--r-- 0/0            2918 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json
+-rw-r--r-- 0/0            2938 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json
+-rw-r--r-- 0/0            2103 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der
+-rw-r--r-- 0/0             629 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json
+-rw-r--r-- 0/0             285 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig
+-rw-r--r-- 0/0             316 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots
+-rw-r--r-- 0/0            7198 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/registre.json
+-rw-r--r-- 0/0            1021 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json
+-rw-r--r-- 0/0            4718 2026-10-27 00:00:00 paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-rw-r--r-- 0/0            5661 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine-points.json
+-rw-r--r-- 0/0            5476 2026-10-27 00:00:00 paquet-reviseur/entetes/chaine.json
+-rw-r--r-- 0/0            6900 2026-10-27 00:00:00 paquet-reviseur/pieces/instance-r1.json
+-- extraction (tar -xf, répertoire neuf et vide) : code 0
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- sha256sum --strict -c contre le manifeste : code 0
+-- fichiers extraits absents du manifeste : aucun
+-- membres listés contre le manifeste (nom, type, taille) : aucun
+-- résultat : tar accepte ; écarts au manifeste 0 ; verdict concorde
+
+== reconstruction de valide.tar par la recette d'EX-13.15
+cmp : identique octet pour octet ; mtime @1793059200 ; sha256sum 8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982, égal à archive_sha256 du cas valide
+
+# bilan : 13 archives ; concorde 8, limite_de_l_outil 5, discordance 0

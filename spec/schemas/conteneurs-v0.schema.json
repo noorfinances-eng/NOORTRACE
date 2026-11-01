@@ -1,0 +1,480 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/conteneurs.schema.json",
+  "title": "Conteneurs de référence de NOORTRACE (CT-8 §3 et §4)",
+  "description": "Racine : deploiement/images/images.json, la description des services et de leurs images. $defs/rapport : la sortie de scripts/deploiement/verifier-conteneurs.mjs (--json), vérifications CO-1 à CO-14 ; $defs/cas : un fichier attendu de la famille ct-8/conteneurs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "description",
+    "services"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "services": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{0,31}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/service"
+      }
+    }
+  },
+  "$defs": {
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "tag",
+        "status",
+        "kind",
+        "source",
+        "user",
+        "passwd",
+        "group_add",
+        "cap_add",
+        "network_mode",
+        "networks",
+        "ports",
+        "volumes",
+        "tmpfs",
+        "environment",
+        "bind_sources",
+        "secrets",
+        "probe"
+      ],
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._/-]{0,127}$"
+        },
+        "tag": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$",
+          "not": {
+            "const": "latest"
+          },
+          "description": "Étiquette exacte ; jamais latest (CO-2)."
+        },
+        "status": {
+          "enum": [
+            "existante",
+            "a_construire"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "service",
+            "outil"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "user": {
+          "type": "string",
+          "pattern": "^[0-9]{1,10}:[0-9]{1,10}$"
+        },
+        "passwd": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "uid"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z_][a-z0-9_-]{0,31}$"
+              },
+              "uid": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967294
+              }
+            }
+          }
+        },
+        "group_add": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,9}$"
+          },
+          "description": "Groupes supplémentaires du compte (CO-4), en GID numériques : 10010 donne à l'enregistreur et au service d'approbation le répertoire des prises /run/noortrace (CT-8 EX-3.5)."
+        },
+        "cap_add": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 8,
+          "items": {
+            "enum": [
+              "LINUX_IMMUTABLE",
+              "FOWNER",
+              "DAC_READ_SEARCH",
+              "NET_BIND_SERVICE"
+            ]
+          }
+        },
+        "network_mode": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "const": "none"
+            }
+          ]
+        },
+        "networks": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 8,
+          "items": {
+            "enum": [
+              "hotes",
+              "outils",
+              "console",
+              "sortie"
+            ]
+          }
+        },
+        "ports": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 16,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          }
+        },
+        "volumes": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target",
+              "access"
+            ],
+            "properties": {
+              "target": {
+                "type": "string",
+                "pattern": "^/[^\\u0000]{1,4095}$"
+              },
+              "access": {
+                "enum": [
+                  "rw",
+                  "ro"
+                ]
+              }
+            }
+          }
+        },
+        "tmpfs": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^/run/[a-z0-9-]{1,64}$"
+            }
+          ],
+          "description": "Répertoire temporaire en mémoire, borné (CO-5) ; la variable TMPDIR du service le désigne. null : l'image n'écrit aucun fichier temporaire."
+        },
+        "environment": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+          },
+          "description": "Liste fermée des variables d'environnement que le service peut recevoir (CO-9) ; jamais un secret."
+        },
+        "bind_sources": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "pattern": "^(\\./|/)[A-Za-z0-9._/-]{0,255}/$"
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "pattern": "^\\^[a-z0-9()?+*|\\[\\]\\-]{1,64}\\$$"
+          },
+          "description": "Motifs (expressions régulières ancrées) des noms de secrets que le service peut recevoir (CO-9)."
+        },
+        "probe": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "test"
+              ],
+              "properties": {
+                "type": {
+                  "const": "commande"
+                },
+                "test": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 16,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "contains": {
+                    "const": "CMD"
+                  },
+                  "maxContains": 1,
+                  "description": "Forme exec : premier élément CMD (vérifié par CO-12), jamais CMD-SHELL."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "method"
+              ],
+              "properties": {
+                "type": {
+                  "const": "externe"
+                },
+                "method": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_]{1,64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "aucune"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "constat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service",
+        "code"
+      ],
+      "properties": {
+        "service": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          ]
+        },
+        "code": {
+          "anyOf": [
+            {
+              "enum": [
+                "yaml_invalide",
+                "services_absents",
+                "service_non_decrit",
+                "image_non_epinglee",
+                "construction_presente",
+                "utilisateur_absent",
+                "utilisateur_non_conforme",
+                "racine_inscriptible",
+                "tmp_non_borne",
+                "capacites_non_retirees",
+                "capacite_ajoutee",
+                "privileges_non_bloques",
+                "reseau_hote",
+                "fichier_environnement",
+                "secret_en_environnement",
+                "secret_non_decrit",
+                "secret_non_declare",
+                "secret_hors_run_secrets",
+                "secret_hors_repertoire",
+                "secret_depuis_environnement",
+                "port_invalide",
+                "port_toutes_interfaces",
+                "port_non_decrit",
+                "montage_interdit",
+                "volume_non_decrit",
+                "volume_inscriptible",
+                "montage_non_decrit",
+                "creation_chemin_hote",
+                "sonde_non_conforme",
+                "sonde_non_desactivee",
+                "dependance_sans_condition",
+                "redemarrage_non_conforme",
+                "reseau_attendu_aucun",
+                "reseau_par_defaut",
+                "reseau_non_decrit",
+                "reseau_non_interne",
+                "cle_premier_niveau_non_admise",
+                "groupe_non_conforme",
+                "confinement_desactive",
+                "variable_non_decrite",
+                "secret_en_ligne_de_commande",
+                "secret_partage_entre_comptes",
+                "volume_lie_hote"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^cle_interdite_[a-z_]{1,64}$",
+              "description": "CO-8 : clé de service hors de la liste fermée, suffixée de son nom."
+            }
+          ]
+        }
+      }
+    },
+    "rapport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "file",
+        "sha256",
+        "verdict",
+        "all_images_by_digest",
+        "checks"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "file": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "verdict": {
+          "enum": [
+            "conforme",
+            "non_conforme"
+          ]
+        },
+        "all_images_by_digest": {
+          "type": "boolean",
+          "description": "Vrai si chaque service du fichier désigne son image par un condensé @sha256: ; faux pour un fichier sans service ou qui ne s'analyse pas."
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 14,
+          "maxItems": 14,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "status",
+              "reason",
+              "findings"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^CO-([1-9]|1[0-4])$"
+              },
+              "status": {
+                "enum": [
+                  "reussi",
+                  "echoue",
+                  "non_execute"
+                ]
+              },
+              "findings": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "$ref": "#/$defs/constat"
+                }
+              },
+              "reason": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "const": "prerequis_en_echec"
+                  }
+                ],
+                "description": "null, sauf pour une vérification non exécutée parce que CO-1 a échoué faute d'un document analysable (yaml_invalide, services_absents, cle_premier_niveau_non_admise)."
+              }
+            }
+          }
+        }
+      }
+    },
+    "cas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "file",
+        "attendu"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "file": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]{1,64}\\.yaml$"
+        },
+        "attendu": {
+          "$ref": "#/$defs/rapport"
+        }
+      }
+    }
+  }
+}

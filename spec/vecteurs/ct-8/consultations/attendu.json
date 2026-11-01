@@ -1,0 +1,300 @@
+{
+  "version": 0,
+  "description": "CA-1 à CA-6 (CT-8 EX-11.20) ; CA-5 n'est pas exécutée sans les enregistrements bruts des sources.",
+  "cases": [
+    {
+      "id": "valide",
+      "file": "valide/consultations-2026-11-05.ndjson",
+      "description": "Les deux lignes chaînées de 11.10 (export d'un dossier par un réviseur, lecture d'un segment par le rôle Lecteur).",
+      "expected": {
+        "version": 0,
+        "file": "consultations-2026-11-05.ndjson",
+        "lines": 2,
+        "verdict": "valide",
+        "checks": [
+          {
+            "id": "CA-1",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-2",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-3",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-4",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-5",
+            "status": "non_execute",
+            "line": null,
+            "detail": "sources_absentes"
+          },
+          {
+            "id": "CA-6",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "rang-saute",
+      "file": "rang-saute/consultations-2026-11-05.ndjson",
+      "description": "Seconde ligne de rang 3 au lieu de 2 (CA-2).",
+      "expected": {
+        "version": 0,
+        "file": "consultations-2026-11-05.ndjson",
+        "lines": 2,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "CA-1",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-2",
+            "status": "echoue",
+            "line": 2,
+            "detail": "n 3, attendu 2"
+          },
+          {
+            "id": "CA-3",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-4",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-5",
+            "status": "non_execute",
+            "line": null,
+            "detail": "sources_absentes"
+          },
+          {
+            "id": "CA-6",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "chainage-rompu",
+      "file": "chainage-rompu/consultations-2026-11-05.ndjson",
+      "description": "prev_sha256 de la seconde ligne qui n'est pas le SHA-256 de la première (CA-3).",
+      "expected": {
+        "version": 0,
+        "file": "consultations-2026-11-05.ndjson",
+        "lines": 2,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "CA-1",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-2",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-3",
+            "status": "echoue",
+            "line": 2,
+            "detail": "prev_sha256 0x1111111111111111111111111111111111111111111111111111111111111111, attendu 0xab57413bd76298fc388d887d5ba22088ccc4b7e3e61ad881cb6ead5782bb463a"
+          },
+          {
+            "id": "CA-4",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-5",
+            "status": "non_execute",
+            "line": null,
+            "detail": "sources_absentes"
+          },
+          {
+            "id": "CA-6",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "collecte-decroissante",
+      "file": "collecte-decroissante/consultations-2026-11-05.ndjson",
+      "description": "Seconde ligne collectée avant la première (CA-4).",
+      "expected": {
+        "version": 0,
+        "file": "consultations-2026-11-05.ndjson",
+        "lines": 2,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "CA-1",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-2",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-3",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-4",
+            "status": "echoue",
+            "line": 2,
+            "detail": "collected_at décroissant"
+          },
+          {
+            "id": "CA-5",
+            "status": "non_execute",
+            "line": null,
+            "detail": "sources_absentes"
+          },
+          {
+            "id": "CA-6",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "role-inconnu",
+      "file": "role-inconnu/consultations-2026-11-05.ndjson",
+      "description": "Principal sans rôle déclaré (role inconnu) : CA-6, règle noortrace_acces_non_declare.",
+      "expected": {
+        "version": 0,
+        "file": "consultations-2026-11-05.ndjson",
+        "lines": 2,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "CA-1",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-2",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-3",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-4",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-5",
+            "status": "non_execute",
+            "line": null,
+            "detail": "sources_absentes"
+          },
+          {
+            "id": "CA-6",
+            "status": "echoue",
+            "line": 2,
+            "detail": "rôle inconnu : principal sans rôle déclaré (règle noortrace_acces_non_declare, RB-8)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "non-jcs",
+      "file": "non-jcs/consultations-2026-11-05.ndjson",
+      "description": "Première ligne écrite avec des espaces, hors JCS v0 (CA-1) ; la seconde reste chaînée à ses octets.",
+      "expected": {
+        "version": 0,
+        "file": "consultations-2026-11-05.ndjson",
+        "lines": 2,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "CA-1",
+            "status": "echoue",
+            "line": 1,
+            "detail": "ligne qui n'est pas en JCS v0"
+          },
+          {
+            "id": "CA-2",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-3",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-4",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          },
+          {
+            "id": "CA-5",
+            "status": "non_execute",
+            "line": null,
+            "detail": "sources_absentes"
+          },
+          {
+            "id": "CA-6",
+            "status": "reussi",
+            "line": null,
+            "detail": null
+          }
+        ]
+      }
+    }
+  ]
+}

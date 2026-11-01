@@ -1,0 +1,102 @@
+{
+  "description": "Clé user retirée du service enregistreur : le compte serait celui de l'image (CO-4, utilisateur_absent).",
+  "file": "utilisateur-absent.yaml",
+  "attendu": {
+    "version": 0,
+    "file": "utilisateur-absent.yaml",
+    "sha256": "6882e2fc2741f83aae674f9b52ccd5f8a4b6491d40300a847a95dfd4d0508d02",
+    "verdict": "non_conforme",
+    "all_images_by_digest": false,
+    "checks": [
+      {
+        "id": "CO-1",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-2",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-3",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-4",
+        "status": "echoue",
+        "reason": null,
+        "findings": [
+          {
+            "service": "enregistreur",
+            "code": "utilisateur_absent"
+          }
+        ]
+      },
+      {
+        "id": "CO-5",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-6",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-7",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-8",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-9",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-10",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-11",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-12",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-13",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-14",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      }
+    ]
+  }
+}

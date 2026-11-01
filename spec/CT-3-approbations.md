@@ -1,17 +1,18 @@
 # CT-3 — Approbations
 
-Version 0.3, 2026-10-26. Spécification normative, soumise à la revue de la
+Version 0.4, 2026-10-27 (révision 0.4, minimale : mode observation, 11.7) ;
+version 0.3 du 2026-10-26. Spécification normative, soumise à la revue de la
 porte 1 du plan de projet (document interne). La version 0.3 dit comment une
 personne nommée, authentifiée par le système d'identité du client, approuve
-depuis sa session, la signature restant faite par sa propre clé ; la version
-0.2 alignait CT-3 sur la version 0.3 de CT-2 ; la fin de la section 0 dit ce
-que chacune change. Elle met en œuvre la section « Approbation : avant
-l'action, pas après » de l'[architecture cible](../ARCHITECTURE.md). Elle
-s'appuie sur les formats v0 de [CT-1](CT-1-evenements-et-formats.md) sans
-les modifier, sur le point d'appel de [CT-2](CT-2-enregistreur.md) (version
-0.3, qui applique l'alignement de la section 15) sans créer de code
-d'erreur, et laisse [CT-6](CT-6-verificateur.md) inchangé. Elle clôt la
-décision ouverte 4 de l'architecture (sections 11 et 15).
+depuis sa session, la signature restant faite par sa propre clé ; la version 0.2
+alignait CT-3 sur la version 0.3 de CT-2 ; la fin de la section 0 dit ce que
+chacune change. Elle met en œuvre la section « Approbation : avant l'action, pas
+après » de l'[architecture cible](../ARCHITECTURE.md). Elle s'appuie sur les
+formats v0 de [CT-1](CT-1-evenements-et-formats.md) sans les modifier, sur le
+point d'appel de [CT-2](CT-2-enregistreur.md) (version 0.3, qui applique
+l'alignement de la section 15) sans créer de code d'erreur, et laisse
+[CT-6](CT-6-verificateur.md) inchangé. Elle clôt la décision ouverte 4 de
+l'architecture (sections 11 et 15).
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit qui
 agit, ce qui est signé et journalisé, comment une règle s'écrit, ce que
@@ -253,6 +254,22 @@ les clés d'accès (WebAuthn) restent hors de la version 0 (section 16).
   opérations des annuaires et des exports, `unresolved` et `intent_status`
   dans les modèles) ; sorties publiées de la confrontation régénérées pour
   les trois exports nouveaux ; vérificateur Go étendu.
+
+La version 0.4, du 2026-10-27, minimale, ajoute le mode observation demandé
+par CT-8 §12 et appliqué par CT-2 0.6 : troisième valeur `observation` du
+mode d'attente, reçue par le service dans `approval` du message `charger` ;
+évaluation sans effet, ni ticket ni unité de fenêtre consommée (EX-11.11 à
+EX-11.15) ; réponse d'`evaluer` sans ticket, huitième combinaison admise sous
+une version en mode observation (EX-12.20 ; EX-12.6 renvoie à elle) ; marque
+` [observation <x>]` posée par le noyau dans `policy.rule` (EX-6.8, ligne
+ajoutée à la table d'EX-6.4), nom `evaluation impossible` réservé à cette
+marque et réponse dont la règle dépasse 998 caractères tenue pour invalide
+(EX-6.8, EX-12.20) ; exception d'EX-11.1 pour l'installation rapide
+de CT-8. Règles complétées : EX-6.5 (aucun effet en mode observation) et le
+schéma `politique-approbation-v0`, qui refuse le nom `evaluation impossible`
+(extension compatible : aucun document de `spec/vecteurs/ct-3` ne porte ce
+nom). Aucune autre règle ne change ; aucun vecteur de `spec/vecteurs/ct-3` ne
+change.
 
 ## 1. Objet, périmètre et relations
 
@@ -1505,6 +1522,7 @@ dont la documentation reconnaît qu'il peut empêcher un `forbid` de bloquer
 | Condition INDETERMINE | `<nom> [indetermine]` | `paiement > 5000 CHF [indetermine]` |
 | Appel couvert par une fenêtre | `<nom> [fenetre <ticket> <fin>]` | `paiement de 1000 a 5000 CHF [fenetre apr-3001 2026-11-05T16:00:00.000Z]` |
 | Règle par défaut | `<nom de la règle par défaut>` | `defaut : revue` |
+| Appel relayé en mode observation (révision 0.4, posée par le noyau, CT-2 EX-14.14) | `<chaîne de l'évaluation> [observation <x>]` ; `evaluation impossible [observation inconnu]` sans évaluation | `paiement > 5000 CHF [indetermine] [observation a_approuver]` |
 
 `<ticket>` est l'identifiant du ticket ouvrant, `<fin>` l'instant `fin` au
 format de CT-1 §3 (RFC 3339, UTC, trois décimales, `Z`). Un nom ne contient
@@ -1518,16 +1536,35 @@ Les noms de CT-1 (`paiement > 5000 CHF`, `beneficiaire hors liste blanche`,
 chaîne `policy.rule` des vecteurs CT-1 et CT-2 a déjà la forme d'une règle
 retenue avec une condition VRAI.
 
+**EX-6.8** **Marque d'observation (révision 0.4).** En mode observation
+(11.7), le noyau ajoute à la chaîne `rule` que rend le service (nom et
+marque de 6.4) la marque ` [observation <x>]`, où `<x>` est la `decision`
+rendue (`autorise`, `a_approuver`, `refuse`), ou `inconnu` quand aucune
+réponse valide n'a été reçue ; dans ce dernier cas seulement, la chaîne qui
+précède la marque est le nom fixe `evaluation impossible`, qui ne désigne
+aucune règle. La marque d'observation est toujours la dernière : elle se lit
+après la dernière occurrence de ` [observation ` ; la marque de 6.4 qui la
+précède, s'il y en a une, se lit comme en 6.4 sur la chaîne privée de la
+marque d'observation. La chaîne reste sous les 1 024 caractères de CT-1 (256
+pour le nom, au plus 164 pour la marque de 6.4, 26 pour la marque
+d'observation). Le service ne pose jamais cette marque. Ses formes sont
+réservées : le nom `evaluation impossible` est refusé comme nom de règle par
+le schéma `politique-approbation-v0` (EX-4.2), et un nom ne peut contenir
+`[observation`, les crochets y étant interdits ; le noyau tient pour invalide
+une réponse dont la `rule` emploie l'une de ces formes ou dépasse 998
+caractères (EX-12.20).
+
 ### 6.5 Effets de l'évaluation
 
-**EX-6.5** L'évaluation a deux effets, et deux seulement : consommer une
-unité de la fenêtre dont l'issue est retenue (rang 2, EX-5.5), et créer un
-ticket pour une décision `a_approuver` (section 7). Une fenêtre épuisée
-reste dans la copie que rend `EVALUER`, avec `restant = 0` ; c'est le
-service qui la retire ensuite de son état (EX-5.6). Une issue candidate qui
-n'est pas retenue ne consomme rien. Une unité consommée l'est même si le
-noyau ne relaie pas l'appel ensuite (mode dégradé, CT-2 §14) : une fenêtre
-autorise donc **au plus** `max_calls` appels.
+**EX-6.5** L'évaluation a deux effets, et deux seulement : consommer une unité
+de la fenêtre dont l'issue est retenue (rang 2, EX-5.5), et créer un ticket pour
+une décision `a_approuver` (section 7). Une fenêtre épuisée reste dans la copie
+que rend `EVALUER`, avec `restant = 0` ; c'est le service qui la retire ensuite
+de son état (EX-5.6). Une issue candidate qui n'est pas retenue ne consomme
+rien. Une unité consommée l'est même si le noyau ne relaie pas l'appel ensuite
+(mode dégradé, CT-2 §14) : une fenêtre autorise donc **au plus** `max_calls`
+appels. En mode observation (révision 0.4), aucun de ces deux effets n'a lieu
+(EX-11.12).
 
 ### 6.6 Déterminisme et bornes
 
@@ -3383,9 +3420,10 @@ elle ne crée aucun code d'erreur.
 
 ### 11.1 Décision : le mode `erreur` par défaut
 
-**EX-11.1** Le mode d'attente par défaut est **`erreur`** : la configuration
-de référence, la démonstration et toute configuration produite par les
-outils du projet DOIVENT l'employer, et la commande de validation de
+**EX-11.1** Le mode d'attente par défaut est **`erreur`** : la configuration de
+référence, la démonstration et toute configuration produite par les outils du
+projet DOIVENT l'employer, sauf la configuration de l'installation rapide de
+CT-8, qui emploie le mode observation (11.7), et la commande de validation de
 l'enregistreur (CT-2 §15.6) DOIT avertir quand `mode` vaut `retenir`.
 
 **EX-11.2** Le mode `retenir` n'est admis que si `hold_timeout_ms` est
@@ -3611,6 +3649,37 @@ qui l'impose, en inscrivant et en consommant chaque `requestState` hérité
 (CT-2 EX-4.21) (R2-F16,
 https://github.com/modelcontextprotocol/modelcontextprotocol/blob/80041ab0a139a8f4fb3adbc99f7ae9113ea59671/docs/specification/2026-07-28/basic/patterns/mrtr.mdx#L231-L243).
 
+### 11.7 Mode observation (révision 0.4)
+
+**EX-11.11** Le mode `observation` est la troisième valeur de
+`policy.approval.mode` (CT-2 révision 0.6) : le mandataire n'attend jamais de
+décision, parce qu'aucun ticket n'est créé. Le service le lit dans
+`approval` du message `charger` de chaque version (12.2) et applique 11.7 à
+toute évaluation sous une version dont `mode` vaut `observation`.
+
+**EX-11.12** Sous une telle version, le service exécute `EVALUER` (6.2) sans
+ses effets (6.5) : aucun ticket n'est créé, aucune unité de fenêtre n'est
+consommée, aucune réservation n'est écrite, aucun rapprochement de
+ré-émission (7.2) n'est fait ; il rend `{ "rule", "decision", "ticket":
+null, "ticket_state": null, "approval": null, "approver_set": null }`, avec
+`rule` et `decision` d'`EVALUER`. Il ne rend jamais `plafond_atteint`
+(14.6), qui protège contre un excès de tickets.
+
+**EX-11.13** Une fenêtre ouverte avant le passage en observation reste dans
+l'état du service ; une évaluation qu'elle couvre rend le rang 2 et la
+marque ` [fenetre <ticket> <fin>]` (6.3) sans consommer d'unité.
+
+**EX-11.14** Le service PEUT consigner dans son journal le nombre
+d'évaluations par règle et par décision ; il ne garde ni les arguments ni
+leur empreinte (EX-7.24, même règle).
+
+**EX-11.15** Le passage d'une version en mode observation à une version dans
+un autre mode se fait par `charger` (12.2) ; les tickets créés sous la
+nouvelle version suivent la section 7. Le noyau refuse d'entrer en mode
+observation tant qu'un ticket a une `retenue` sans décision scellée (CT-2
+EX-15.8) : le service n'a donc aucun ticket ouvert quand il commence à
+évaluer en observation.
+
 ## 12. Interface du service d'approbation
 
 Le noyau de l'enregistreur est toujours le client : la surface d'écoute de
@@ -3723,17 +3792,18 @@ Réponse :
 | `approval` | objet `approval` de CT-1 §5.3 ou `null` | l'objet **scellé** (avec `at`), clé pour clé, tel que le noyau l'a scellé et rendu au service (`acquitter`, `expiration`), quand `ticket_state` vaut `approuve`, `refuse` ou `expire` ; `null` sinon |
 | `approver_set` | jeu déclaré (`$defs/approver_set` : `threshold`, `members`, `source`) ou `null` | non nul si et seulement si `ticket_state` vaut `nouveau` : le jeu que le ticket déclarerait s'il n'était jamais figé, jeu statique de la politique ou jeu de repli courant (EX-8.3, EX-8.8) ; le noyau le garde pour sceller seul une expiration (EX-12.11) |
 
-**EX-12.6** Les combinaisons admises sont exactement les sept combinaisons
-(`decision`, `ticket_state`, `approval`) de la table d'EX-7.16, avec, pour
-une décision scellée, `approval.ticket` égal à `ticket` et
+**EX-12.6** Les combinaisons admises sont exactement les sept combinaisons,
+plus, sous une version en mode observation, celle d'EX-12.20, soit les
+combinaisons (`decision`, `ticket_state`, `approval`) de la table d'EX-7.16,
+avec, pour une décision scellée, `approval.ticket` égal à `ticket` et
 `approval.decision` égal à `ticket_state`, et `approver_set` non nul pour
 `nouveau` seulement. La réponse a exactement les six membres de la table
 ci-dessus, dans un ordre quelconque ; `rule` est non nul pour `a_approuver`
-(CT-1 §5.3) ; l'`approver_set` d'une réponse `nouveau` est exploitable :
-forme de `$defs/approver_set` (SG-1), `source` d'EX-8.8, membres distincts,
+(CT-1 §5.3) ; l'`approver_set` d'une réponse `nouveau` est exploitable : forme
+de `$defs/approver_set` (SG-1), `source` d'EX-8.8, membres distincts,
 `threshold.size` égal au nombre de membres et `threshold.required` au plus
-`size` (la cohérence de SG-6), puisque le noyau peut avoir à en tirer seul
-une décision `expire` (EX-12.11). Le noyau traite toute autre réponse comme
+`size` (la cohérence de SG-6), puisque le noyau peut avoir à en tirer seul une
+décision `expire` (EX-12.11). Le noyau traite toute autre réponse comme
 invalide, donc comme une indisponibilité du service (CT-2 §14.2) : le mandataire
 rend `-31010`, raison `approbation`, jamais un relais ; il la consigne. Une
 réponse dont l'`approval` diffère de la décision que le noyau a lui-même scellée
@@ -3755,6 +3825,29 @@ l'appel n'est jamais relayé.
 EX-7.4) : l'évaluation de la section 6 est en mémoire, le rapprochement aussi,
 la réservation est une écriture locale (EX-7.22) ; aucune lecture du
 registre n'a lieu pendant `evaluer` (8.2).
+
+**EX-12.20** **Réponse en mode observation (révision 0.4).** Sous une
+version dont `mode` vaut `observation`, la seule réponse admise à `evaluer`
+est `{ "rule", "decision", "ticket": null, "ticket_state": null,
+"approval": null, "approver_set": null }`, `rule` non nul, d'au plus 998
+caractères et sans forme réservée (EX-6.8), `decision` ∈
+{`autorise`, `a_approuver`, `refuse`} (EX-11.12) ; le noyau tient toute autre
+réponse pour invalide et relaie l'appel avec la marque `inconnu` (CT-2
+EX-7.23, EX-14.15). Exemple pour le paiement de 7 400 CHF de l'exemple de
+CT-2 §15.3 (valeur calculée par l'évaluateur de référence,
+`scripts/lib/approbation.mjs`) :
+
+<!-- schema: ticket/reponse_evaluer -->
+```json
+{
+  "rule": "paiement > 5000 CHF",
+  "decision": "a_approuver",
+  "ticket": null,
+  "ticket_state": null,
+  "approval": null,
+  "approver_set": null
+}
+```
 
 ### 12.4 `ouvrir`
 
@@ -6775,6 +6868,7 @@ en dépendent le sont aussi (CT-2 §22).
 | CT-2, `delegation.launched_by` et identité de session | `${oauth_subject}` ; aucune identité de session | aucun changement de CT-2 : l'alias de demandeur de l'annuaire rapproche `launched_by` de l'identité de session (13.3, 13.4) ; que la console et les connexions d'hôte emploient le même client OIDC n'est pas vérifié (R5 NV-4) | sans objet |
 | `package.json`, `.github/workflows/ci.yml` | `vecteurs:ct1`, `ct2`, `ct6` | `vecteurs:ct3` ; régénération de `spec/vecteurs/ct-3` exigée à l'identique ; vérificateur Go de `ct-3` (`gofmt`, `go vet`, `go test`, `go run . ..`), étape sans condition (annexe A.9) | fait avec CT-3 |
 | `scripts/lib/capture.mjs`, `erreursMotifRE2` (CT-2 EX-10.6, EX-10.23) | admet les quatre motifs à retour arrière exponentiel d'OWASP ; `limits.redaction_budget_ms` absent du code | hors de CT-3, signalé à CT-2 (R2-F84) | fait avec CT-2 0.3 (règles de structure et de taille d'EX-10.6, budget d'EX-10.23 ; code, vecteurs et vérificateur Go alignés dans la même livraison, CT-2 §22) |
+| CT-2 0.6 et CT-8 §12 (mode observation) | deux modes d'attente bloquants | (révision 0.4) mode `observation` : évaluation sans effet, réponse sans ticket, marque posée par le noyau (EX-6.8, EX-11.11 à EX-11.15, EX-12.20) ; fonction `evaluerObservation` de `scripts/lib/approbation.mjs` ; cas dans `spec/vecteurs/ct-8/observation/` ; vérificateur Go de ct-8 (OB-1 à OB-4 ; OB-6 rejoué par les tests Node) | fait (texte et code, même livraison) |
 
 ## 16. Ce que cette version ne couvre pas
 
@@ -6890,6 +6984,9 @@ en dépendent le sont aussi (CT-2 §22).
   par client (R5-F9, R5 NV-4).
 - **Les comptes de contrat** (ERC-1271) comme adresses d'approbateur, dont la
   signature dépend de l'état de la chaîne (R5-F19, R5 NV-8).
+- **Un mode « avertir »** : rendre à l'agent ce que la politique aurait
+  exigé sans bloquer l'appel (pratique `warn`, CT-8 §12) ; le mode
+  observation de la révision 0.4 ne fait que consigner.
 
 ## Annexe A — Vecteurs CT-3
 

@@ -1,0 +1,57 @@
+{
+  "version": 0,
+  "seq": 3,
+  "ts": "2026-11-05T08:01:30.400Z",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "recorder_key_id": "rec-test-01",
+  "prev_hash": "0xb8f666e5d7c656c5e673f6d9cf00700f5deeb831b7867fa46b0277b76708519c",
+  "delegation": {
+    "launched_by": "agent-sinistres",
+    "on_behalf_of": "service-sinistres",
+    "scope": "sinistres:lecture,paiement",
+    "run_id": "run-2026-11-05-0042"
+  },
+  "code": {
+    "model": "fournisseur/modele@2026-09",
+    "prompt_version": null,
+    "policy_version": "2026-11-05-observation",
+    "recorder": "0.1.0"
+  },
+  "intent": null,
+  "policy": {
+    "rule": "paiement > 5000 CHF [observation a_approuver]",
+    "decision": "autorise",
+    "ticket": null,
+    "redaction": null
+  },
+  "approval": null,
+  "execution": {
+    "tool": "sap__payments.create",
+    "arguments": {
+      "sha256": "0xfb18d13a89ee1dbd6ecd7b36f89085fb24d8298632fe8b5d8e581940150cb9a1",
+      "length": 61,
+      "redacted": false
+    },
+    "status": "executee",
+    "result": {
+      "sha256": "0xecef30d54ff85cb9f99d8866f15513d482157e03697d796feb8548477109da82",
+      "length": 116,
+      "redacted": false
+    },
+    "duration_ms": 213,
+    "is_error": false
+  },
+  "effects": [
+    {
+      "system": "SAP",
+      "action": "ecriture",
+      "object": "PAY-000981",
+      "amount": "7400.00",
+      "currency": "CHF"
+    }
+  ],
+  "context": [],
+  "hash": "0xf9bf8b088b139609ca54f2abfac3dbb5c4333105ad0031e718e81c82dca80287",
+  "sig": "0x0d923cd96e2a521cdbfaf7285ae222291ae10107ae43f5315acd624d09163a8d9b526ca97d913b87bdcc2d8fce1841164c5856c552112e0014a1f8caacfe0009"
+}

@@ -9,3 +9,7 @@ AttestationRegistry, CuratorSet and CuratorSetRegistry are copied unchanged
 from noorchain-core, by the same copyright holder. PeriodRegistry is derived
 from noorchain-core's PoSSRegistry, and the signature loop of
 ThresholdSignatures follows the one in PoSSRegistry.
+
+A complete reviewer package built by scripts/paquet-reviseur/construire.mjs
+(CT-8 §13) redistributes dist/ethers.js from the npm distribution of ethers,
+under the MIT license, together with its LICENSE.md.

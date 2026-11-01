@@ -630,3 +630,281 @@ describe("CT-7 : sorties publiées de la confrontation des signatures de procès
     });
   }
 });
+
+// ---------------------------------------------------------------------------
+// CT-8 (spec/CT-8-deploiement-et-exploitation.md, version 0.1, annexe A.15,
+// EX-A.32 à EX-A.35) : sorties publiées de
+// spec/vecteurs/ct-8/confrontation/paquets/ (jamais écrites par le
+// générateur), par GNU tar et sha256sum (confronter_gnutar.sh) et par tarfile
+// de Python, filtre « data » (confronter_tarfile.py). Les sorties doivent
+// porter sur les archives des vecteurs (SHA-256 égaux à archive_sha256 de
+// cas.json) ; les membres listés par GNU tar et lus par tarfile égalent, un à
+// un, ceux de lireArchive (nom, type, taille, mode, propriétaires, date,
+// lien) ; cas par cas, le code d'extraction de GNU tar, les liens extraits,
+// le résultat de sha256sum, les fichiers absents du manifeste, l'exception de
+// tarfile et ses écarts au manifeste égalent la table d'EX-A.32, lue dans la
+// spécification ; les verdicts « limite_de_l_outil » sont exactement ceux
+// d'EX-A.33. Les deux programmes sont rejoués dans des répertoires neufs
+// quand GNU tar, sha256sum, jq et python3 (3.12 ou plus) sont présents : code
+// 0 exigé, et sortie égale à la sortie publiée quand l'en-tête (versions des
+// outils) est le même ; sinon, seuls les résultats sont comparés (un libellé
+// d'une autre version ne compte pas). NOORTRACE_CT8_SORTIES désigne un
+// répertoire de sorties rejouées hors du test (travail confrontation de la
+// CI), soumises aux mêmes exigences.
+// ---------------------------------------------------------------------------
+
+describe("CT-8 : sorties publiées de la confrontation des paquets réviseurs par GNU tar et tarfile (EX-A.32 à EX-A.35)", function () {
+  const CT8 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-8");
+  const PAQUETS8 = path.join(CT8, "paquets");
+  const CONFRONTATION8 = path.join(CT8, "confrontation", "paquets");
+  const SORTIES8 = path.join(CONFRONTATION8, "sorties");
+  const SPEC8 = path.join(PROJECT_ROOT, "spec", "CT-8-deploiement-et-exploitation.md");
+  // EX-A.33 : ce que chaque outil accepte et que CT-8 refuse.
+  const LIMITES = {
+    gnutar: ["chemin-absolu.tar", "lien-physique.tar", "lien-symbolique.tar", "metadonnees-non-fixees.tar", "nom-en-double.tar"],
+    tarfile: ["chemin-absolu.tar", "lien-physique.tar", "metadonnees-non-fixees.tar", "nom-en-double.tar"],
+  };
+  let lireArchive;
+  before(async function () {
+    ({ lireArchive } = await import("../scripts/lib/paquet.mjs"));
+  });
+
+  const archives8 = () => fs.readdirSync(PAQUETS8).filter((f) => f.endsWith(".tar")).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
+  const cas8 = () => lireJSON(PAQUETS8, "cas.json").cases;
+  // Blocs « == <archive> » d'une sortie : nom de l'archive → lignes.
+  const blocs = (texte) => {
+    const r = {};
+    let courant = null;
+    for (const l of texte.split("\n")) {
+      if (l.startsWith("== ")) courant = /\.tar$/.test(l) ? (r[l.slice(3)] = []) : null;
+      else if (courant && l !== "") courant.push(l);
+    }
+    return r;
+  };
+  // Liste qui suit « titre : aucun » ou « titre : n » (éléments en retrait).
+  const listeDe = (lignes, titre) => {
+    const i = lignes.findIndex((l) => l.startsWith(`${titre} : `));
+    expect(i, titre).to.be.at.least(0);
+    const v = lignes[i].slice(titre.length + 3);
+    if (v === "aucun" || v === "aucune") return [];
+    const n = Number(v);
+    const elements = lignes.slice(i + 1, i + 1 + n);
+    expect(elements.every((e) => e.startsWith("  ")), titre).to.equal(true);
+    return elements.map((e) => e.slice(2));
+  };
+  const valeur = (lignes, re) => {
+    const l = lignes.find((x) => re.test(x));
+    expect(l, String(re)).to.be.a("string");
+    return l.match(re);
+  };
+  const modeTexte = (e) => ({ 0: "-", 1: "h", 2: "l" })[e.type] + [6, 3, 0].map((s) => ["r", "w", "x"].map((c, i) => ((e.mode >> s) & (4 >> i) ? c : "-")).join("")).join("");
+  const TYPES_TARFILE = { 0: "fichier", 1: "lien-physique", 2: "lien-symbolique" };
+  const dateUTC = (t) => new Date(t * 1000).toISOString().slice(0, 19).replace("T", " ");
+
+  // Table d'EX-A.32, lue dans la spécification : archive → résultats.
+  const tableEXA32 = () => {
+    const texte = fs.readFileSync(SPEC8, "utf8");
+    const section = texte.slice(texte.indexOf("**EX-A.32**"), texte.indexOf("**EX-A.33**"));
+    const lignes = section.split("\n").filter((l) => /^\| `[a-z-]+\.tar` \|/.test(l));
+    const enCode = (c) => [...c.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+    const r = {};
+    for (const l of lignes) {
+      const c = l.split(" | ").map((x) => x.replace(/^\| /, "").replace(/ \|$/, ""));
+      expect(c.length, l).to.equal(7);
+      const ecarts = c[6] === "aucun" ? { liste: [], autres: 0 } : c[6] === "manifeste non extrait" ? null : {
+        liste: c[6].split(" ; ").filter((x) => !/^et \d+ autres absents$/.test(x)).map((x) => x.replace(/`/g, "")),
+        autres: Number((c[6].match(/ ; et (\d+) autres absents$/) || [0, 0])[1]),
+      };
+      r[enCode(c[0])[0]] = {
+        codeTar: Number(c[1].match(/^code (\d+)/)[1]),
+        liens: c[2] === "aucun" ? [] : enCode(c[2]),
+        codeSha: Number(c[3].match(/^code (\d+)/)[1]),
+        echecsSha: enCode(c[3]),
+        enTrop: c[4] === "aucun" ? [] : enCode(c[4]),
+        tarfile: c[5] === "réussie" ? "réussie" : `refusée, ${enCode(c[5])[0]}`,
+        ecarts,
+      };
+    }
+    return r;
+  };
+
+  // Exigences communes aux sorties publiées et aux sorties rejouées.
+  const verifierSorties = (gnu, tf) => {
+    for (const [nom, texte] of [["gnutar", gnu], ["tarfile", tf]]) {
+      expect(texte, nom).not.to.match(/\/home\/|\/tmp\/|\/root\/|\/Users\/|[A-Z]:\\/);
+      expect(texte, nom).not.to.match(/DISCORDANCE/);
+    }
+    expect(gnu.split("\n")[0]).to.match(/^# Confrontation des paquets réviseurs de CT-8 par tar \(GNU tar\) \S+, sha256sum \(GNU coreutils\) \S+, jq-\S+$/);
+    expect(tf.split("\n")[0]).to.match(/^# Confrontation des paquets réviseurs de CT-8 par Python 3\.\d+\.\d+\S*, tarfile, extractall\(filter="data"\), hashlib$/);
+    const archives = archives8();
+    expect(gnu).to.match(new RegExp(`^# bilan : ${archives.length} archives ; concorde ${archives.length - LIMITES.gnutar.length}, limite_de_l_outil ${LIMITES.gnutar.length}, discordance 0$`, "m"));
+    expect(tf).to.match(new RegExp(`^# bilan : ${archives.length} archives ; concorde ${archives.length - LIMITES.tarfile.length}, limite_de_l_outil ${LIMITES.tarfile.length}, discordance 0$`, "m"));
+    const g = blocs(gnu);
+    const t = blocs(tf);
+    expect(Object.keys(g)).to.deep.equal(archives);
+    expect(Object.keys(t)).to.deep.equal(archives);
+    const table = tableEXA32();
+    expect(Object.keys(table).sort()).to.deep.equal([...archives].sort());
+    const cas = cas8();
+    for (const a of archives) {
+      const octets = fs.readFileSync(path.join(PAQUETS8, a));
+      const h = crypto.createHash("sha256").update(octets).digest("hex");
+      const base = cas.find((c) => c.archive === a && c.options.expected_sha256 === null && c.options.anchors === null);
+      expect(base.archive_sha256, a).to.equal("0x" + h);
+      expect(g[a][0], a).to.equal(`sha256sum : ${h} ; cas.json : concorde`);
+      expect(t[a][0], a).to.equal(`hashlib : ${h} ; cas.json : concorde`);
+
+      // Membres : GNU tar et tarfile contre lireArchive, un à un.
+      const ref = lireArchive(octets).entrees;
+      const enTeteListe = valeur(g[a], /^-- liste \(tar --list --verbose --numeric-owner --full-time\) : code (\d+), (\d+) membres$/);
+      expect(Number(enTeteListe[1]), a).to.equal(0);
+      expect(Number(enTeteListe[2]), a).to.equal(ref.length);
+      const debutG = g[a].indexOf(enTeteListe[0]) + 1;
+      const listeG = g[a].slice(debutG, debutG + ref.length);
+      const debutT = t[a].findIndex((l) => l === `-- membres lus (tarfile) : ${ref.length}`) + 1;
+      expect(debutT, a).to.be.above(0);
+      const listeT = t[a].slice(debutT, debutT + ref.length);
+      ref.forEach((e, i) => {
+        const lien = e.champs.linkname.texte;
+        const suite = e.type === "2" ? ` -> ${lien}` : e.type === "1" ? ` link to ${lien}` : "";
+        const m = listeG[i].match(/^(\S+) (\d+)\/(\d+) +(\d+) (\S+ \S+) (.*)$/);
+        expect(m, `${a} #${i + 1} : ${listeG[i]}`).to.not.equal(null);
+        expect([m[1], Number(m[2]), Number(m[3]), Number(m[4]), m[5], m[6]], `${a} #${i + 1}`).to.deep.equal([modeTexte(e), e.uid, e.gid, e.taille, dateUTC(e.mtime), e.nom + suite]);
+        expect(listeT[i], `${a} #${i + 1}`).to.equal(
+          `${TYPES_TARFILE[e.type]} '${e.nom}' taille=${e.taille} mode=${e.mode.toString(8).padStart(4, "0")} uid=${e.uid} gid=${e.gid} uname='${e.champs.uname.texte}' gname='${e.champs.gname.texte}' mtime=${e.mtime} lien='${lien}' pax={}`,
+        );
+      });
+
+      // Résultats contre la table d'EX-A.32.
+      const attendu = table[a];
+      expect(Number(valeur(g[a], /^-- extraction \(tar -xf, répertoire neuf et vide\) : code (\d+)$/)[1]), a).to.equal(attendu.codeTar);
+      expect(listeDe(g[a], "-- liens extraits"), a).to.deep.equal(attendu.liens);
+      expect(listeDe(g[a], "-- entrées hors de la destination"), a).to.deep.equal([]);
+      expect(listeDe(t[a], "-- entrées hors de la destination"), a).to.deep.equal([]);
+      expect(Number(valeur(g[a], /^-- sha256sum --strict -c contre le manifeste : code (\d+)$/)[1]), a).to.equal(attendu.codeSha);
+      expect(g[a].filter((l) => l.startsWith("en échec : ")).map((l) => l.slice(11)), a).to.deep.equal(attendu.echecsSha);
+      expect(listeDe(g[a], "-- fichiers extraits absents du manifeste"), a).to.deep.equal(attendu.enTrop);
+      const extraction = valeur(t[a], /^-- extraction \(extractall, filter="data", répertoire neuf et vide\) : (réussie|refusée, \w+)$/)[1];
+      expect(extraction, a).to.equal(attendu.tarfile);
+      if (attendu.ecarts === null) {
+        expect(t[a], a).to.include("-- manifeste extrait : absent ou illisible ; manifeste non extrait");
+      } else {
+        const ecarts = listeDe(t[a], "-- écarts au manifeste (hashlib, fichiers extraits)");
+        expect(ecarts.slice(0, attendu.ecarts.liste.length), a).to.deep.equal(attendu.ecarts.liste);
+        expect(ecarts.length, a).to.equal(attendu.ecarts.liste.length + attendu.ecarts.autres);
+        expect(ecarts.slice(attendu.ecarts.liste.length).every((x) => / : absent$/.test(x)), a).to.equal(true);
+      }
+
+      // Verdicts : limites d'EX-A.33, concordance partout ailleurs.
+      expect(valeur(g[a], /^-- résultat : tar (accepte|refuse) ; écarts au manifeste \d+ ; verdict (\S+)$/)[2], a).to.equal(LIMITES.gnutar.includes(a) ? "limite_de_l_outil" : "concorde");
+      expect(valeur(t[a], /^-- résultat : tarfile (accepte|refuse) ; écarts au manifeste \d+ ; verdict (\S+)$/)[2], a).to.equal(LIMITES.tarfile.includes(a) ? "limite_de_l_outil" : "concorde");
+    }
+    // Reconstruction de valide.tar par la recette d'EX-13.15.
+    const valide = cas.find((c) => c.name === "valide").archive_sha256.slice(2);
+    expect(gnu).to.include(`== reconstruction de valide.tar par la recette d'EX-13.15\ncmp : identique octet pour octet ; mtime @1793059200 ; sha256sum ${valide}, égal à archive_sha256 du cas valide\n`);
+  };
+
+  const sortiePubliee = (f) => lire(SORTIES8, f);
+
+  it("deux programmes et deux sorties publiées ; programmes sans code du dépôt, sans tar -P, -h ni extractall sans filtre", function () {
+    expect(fs.readdirSync(SORTIES8).sort()).to.deep.equal(["gnutar.txt", "tarfile.txt"]);
+    expect(fs.readdirSync(CONFRONTATION8).sort()).to.deep.equal(["LISEZMOI.md", "confronter_gnutar.sh", "confronter_tarfile.py", "sorties"]);
+    const sh = lire(CONFRONTATION8, "confronter_gnutar.sh").split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    expect(sh).not.to.match(/\bnode\b|scripts\/|\btar\b[^\n]*(\s-P\b|--absolute-names|\s-h\b|--dereference)/);
+    const py = lire(CONFRONTATION8, "confronter_tarfile.py");
+    for (const l of py.split("\n").filter((x) => /^\s*(import|from)\s/.test(x))) expect(l).to.match(/^import (hashlib|json|os|sys|tarfile)$/);
+    for (const m of py.matchAll(/extractall\(([^)]*)\)/g)) expect(m[1]).to.match(/filter=\\?"data\\?"$/);
+    expect(py).to.include('t.extractall(dest, filter="data")');
+  });
+
+  it("sorties publiées : archives des vecteurs, membres égaux à ceux de lireArchive, résultats égaux à la table d'EX-A.32, limites d'EX-A.33, aucune discordance", function () {
+    verifierSorties(sortiePubliee("gnutar.txt"), sortiePubliee("tarfile.txt"));
+  });
+
+  it("sorties rejouées hors du test (NOORTRACE_CT8_SORTIES) : mêmes exigences, et sorties égales aux sorties publiées quand les versions sont les mêmes", function () {
+    const rep = process.env.NOORTRACE_CT8_SORTIES;
+    if (!rep) this.skip();
+    const gnu = fs.readFileSync(path.join(rep, "gnutar.txt"), "utf8");
+    const tf = fs.readFileSync(path.join(rep, "tarfile.txt"), "utf8");
+    verifierSorties(gnu, tf);
+    if (gnu.split("\n")[0] === sortiePubliee("gnutar.txt").split("\n")[0]) expect(gnu).to.equal(sortiePubliee("gnutar.txt"));
+    if (tf.split("\n")[0] === sortiePubliee("tarfile.txt").split("\n")[0]) expect(tf).to.equal(sortiePubliee("tarfile.txt"));
+  });
+
+  const present = (cmd, args) => {
+    const r = spawnSync(cmd, args, { encoding: "utf8" });
+    return !r.error && r.status === 0 ? r.stdout : null;
+  };
+
+  it("rejeu de confronter_gnutar.sh (GNU tar, sha256sum et jq présents) : code 0 ; sortie égale à sorties/gnutar.txt aux mêmes versions, résultats égaux sinon", function () {
+    this.timeout(120_000);
+    const tar = present("tar", ["--version"]);
+    if (!tar || !tar.includes("(GNU tar)") || !present("sha256sum", ["--version"]) || !present("jq", ["--version"]) || !present("bash", ["--version"])) this.skip();
+    const travail = fs.mkdtempSync(path.join(os.tmpdir(), "ct8-gnutar-"));
+    try {
+      const r = spawnSync("bash", [path.join(CONFRONTATION8, "confronter_gnutar.sh"), path.relative(PROJECT_ROOT, PAQUETS8), travail], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
+      expect(r.status, r.stdout.split("\n").slice(-3).join("\n") + r.stderr).to.equal(0);
+      const publiee = sortiePubliee("gnutar.txt");
+      if (r.stdout.split("\n")[0] === publiee.split("\n")[0]) expect(r.stdout).to.equal(publiee);
+      verifierSorties(r.stdout, sortiePubliee("tarfile.txt"));
+    } finally {
+      fs.rmSync(travail, { recursive: true, force: true });
+    }
+  });
+
+  it("rejeu de confronter_tarfile.py (python3 3.12 ou plus) : code 0 ; sortie égale à sorties/tarfile.txt à la même version, résultats égaux sinon", function () {
+    this.timeout(120_000);
+    const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
+    if (present(python, ["-I", "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"]) === null) this.skip();
+    const travail = fs.mkdtempSync(path.join(os.tmpdir(), "ct8-tarfile-"));
+    try {
+      const r = spawnSync(python, ["-I", path.join(CONFRONTATION8, "confronter_tarfile.py"), path.relative(PROJECT_ROOT, PAQUETS8), travail], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
+      expect(r.status, r.stdout.split("\n").slice(-3).join("\n") + r.stderr).to.equal(0);
+      const publiee = sortiePubliee("tarfile.txt");
+      if (r.stdout.split("\n")[0] === publiee.split("\n")[0]) expect(r.stdout).to.equal(publiee);
+      verifierSorties(sortiePubliee("gnutar.txt"), r.stdout);
+    } finally {
+      fs.rmSync(travail, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("CT-8 : sorties publiées de la confrontation de l'exploitation par sha256sum, jq et Python (EX-A.30)", function () {
+  const REP = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-8", "confrontation", "exploitation");
+  const VECT8 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-8");
+  const publiee = (n) => fs.readFileSync(path.join(REP, "sorties", n), "utf8");
+  const lancer = (cmd, args) => spawnSync(cmd, args, { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 16 * 1024 * 1024 });
+  const outilPresent = (cmd, args) => {
+    const r = spawnSync(cmd, args, { encoding: "utf8" });
+    return !r.error && r.status === 0;
+  };
+
+  it("sorties publiées : bilan sans discordance ; aucune ligne DISCORDANCE ; aucun chemin local", function () {
+    const s = publiee("sha256sum.txt");
+    const c = publiee("consultations.txt");
+    expect(s.trim().split("\n").at(-1)).to.match(/^# bilan : [0-9]+ fichier\(s\) ; discordance 0$/);
+    expect(c.trim().split("\n").at(-1)).to.equal("# bilan : 6 cas ; discordance 0");
+    for (const t of [s, c]) {
+      expect(t).to.not.include("DISCORDANCE");
+      expect(t).to.not.match(/\/home\/|\/tmp\//);
+    }
+    // Les valeurs d'EX-A.8 et de 11.10 figurent dans les sorties tierces.
+    expect(s).to.include("10086 octets, SHA-256 0x0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5");
+    expect(c).to.include("ligne 1 : SHA-256 0xab57413bd76298fc388d887d5ba22088ccc4b7e3e61ad881cb6ead5782bb463a");
+  });
+
+  it("rejeu de confronter_sha256sum.sh (sha256sum et jq présents) : code 0 ; sortie égale à la publiée aux mêmes versions", function () {
+    if (!outilPresent("sha256sum", ["--version"]) || !outilPresent("jq", ["--version"]) || !outilPresent("bash", ["--version"])) this.skip();
+    const r = lancer("bash", [path.join(REP, "confronter_sha256sum.sh"), path.relative(PROJECT_ROOT, VECT8)]);
+    expect(r.status, r.stdout.split("\n").slice(-3).join("\n") + r.stderr).to.equal(0);
+    if (r.stdout.split("\n")[0] === publiee("sha256sum.txt").split("\n")[0]) expect(r.stdout).to.equal(publiee("sha256sum.txt"));
+  });
+
+  it("rejeu de confronter_consultations.py (python3) : code 0 ; sortie égale à la publiée à la même version", function () {
+    const python = process.env.NOORTRACE_PYTHON_CONFRONTATION || "python3";
+    if (!outilPresent(python, ["-I", "-c", "import sys"])) this.skip();
+    const r = lancer(python, ["-I", path.join(REP, "confronter_consultations.py"), path.relative(PROJECT_ROOT, VECT8)]);
+    expect(r.status, r.stdout.split("\n").slice(-3).join("\n") + r.stderr).to.equal(0);
+    if (r.stdout.split("\n")[0] === publiee("consultations.txt").split("\n")[0]) expect(r.stdout).to.equal(publiee("consultations.txt"));
+  });
+});

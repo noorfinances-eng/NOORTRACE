@@ -1,0 +1,31 @@
+{
+  "description": "En-tête de segment de version de format 1 au lieu de 0 : entete_invalide.",
+  "rapport": {
+    "version": 0,
+    "verdict": "invalide",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "segments": [
+      {
+        "name": "seg-0000000000000001-00000000000000000001.ndjson",
+        "first_seq": 1,
+        "epoch": 1,
+        "events": 7,
+        "length": 10086,
+        "sha256": "0x41bf3e2a24b98d254be1bb9fb2e619515acb8c9d756a12c9c00fe2f17fe2aacc"
+      }
+    ],
+    "first_seq": 1,
+    "last_seq": 7,
+    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "manifests": [],
+    "errors": [
+      {
+        "check": "entete_invalide",
+        "segment": "seg-0000000000000001-00000000000000000001.ndjson",
+        "seq": null,
+        "detail": "en-tête de segment non conforme à CT-2 EX-12.3 (JCS v0, dix clés, noortrace_segment 0, first_seq et epoch du nom, org_id et journal_id de journal.json)"
+      }
+    ]
+  }
+}

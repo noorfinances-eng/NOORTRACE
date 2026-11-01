@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/verification-journal.schema.json",
+  "title": "Rapport de vérification d'un répertoire de journal, version 0",
+  "description": "Sortie JSON de scripts/deploiement/verifier-journal.mjs (CT-8 EX-11.7) : vérification sans réseau d'un répertoire de journal de la disposition de CT-2 EX-12.1, avec un fichier de clés de CT-1. Elle sert les reprises (CT-8 11.4), les migrations (11.6) et les procès-verbaux (PV-8) ; elle ne remplace pas la vérification d'un dossier par CT-6.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "verdict",
+    "org_id",
+    "journal_id",
+    "segments",
+    "first_seq",
+    "last_seq",
+    "last_hash",
+    "manifests",
+    "errors"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "verdict": {
+      "enum": [
+        "valide",
+        "invalide"
+      ]
+    },
+    "org_id": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/hex32"
+        }
+      ]
+    },
+    "journal_id": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/hex32"
+        }
+      ]
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "first_seq",
+          "epoch",
+          "events",
+          "length",
+          "sha256"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^seg-[0-9]{16}-[0-9]{20}\\.ndjson$"
+          },
+          "first_seq": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "events": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "$ref": "#/$defs/hex32"
+          }
+        }
+      },
+      "description": "Segments dans l'ordre des noms (CT-2 EX-12.1)."
+    },
+    "first_seq": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ]
+    },
+    "last_seq": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ]
+    },
+    "last_hash": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/hex32"
+        }
+      ]
+    },
+    "manifests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "period_start",
+          "verdict"
+        ],
+        "properties": {
+          "period_start": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "verdict": {
+            "enum": [
+              "valide",
+              "invalide",
+              "evenements_absents"
+            ]
+          }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check",
+          "segment",
+          "seq",
+          "detail"
+        ],
+        "properties": {
+          "check": {
+            "type": "string",
+            "pattern": "^(E-[1-9][0-9]?|C-[1-9]|entete_invalide|journal_json_invalide|first_seq_discontinu|epoque_decroissante|prev_hash_entete|ligne_incomplete|manifeste_invalide|signature_manifeste|cle_inconnue)$",
+            "description": "Vérification de CT-1 (E-, C-) ou de CT-2 §12 (codes en snake_case)."
+          },
+          "segment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              }
+            ]
+          },
+          "seq": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "integer",
+                "minimum": 1
+              }
+            ]
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      },
+      "description": "Erreurs triées par segment puis par seq ; vide si et seulement si verdict vaut valide."
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    }
+  }
+}

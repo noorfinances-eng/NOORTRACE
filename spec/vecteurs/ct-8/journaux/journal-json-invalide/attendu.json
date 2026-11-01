@@ -1,0 +1,31 @@
+{
+  "description": "journal.json sans le membre recorder : journal_json_invalide.",
+  "rapport": {
+    "version": 0,
+    "verdict": "invalide",
+    "org_id": null,
+    "journal_id": null,
+    "segments": [
+      {
+        "name": "seg-0000000000000001-00000000000000000001.ndjson",
+        "first_seq": 1,
+        "epoch": 1,
+        "events": 7,
+        "length": 10086,
+        "sha256": "0x0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5"
+      }
+    ],
+    "first_seq": 1,
+    "last_seq": 7,
+    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "manifests": [],
+    "errors": [
+      {
+        "check": "journal_json_invalide",
+        "segment": null,
+        "seq": null,
+        "detail": "journal.json : membres version, org_id, journal_id, created_at, recorder attendus (CT-2 EX-12.1)"
+      }
+    ]
+  }
+}

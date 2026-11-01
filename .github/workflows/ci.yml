@@ -22,7 +22,7 @@ jobs:
       - run: npm test
 
   vecteurs:
-    name: vecteurs CT-1 à CT-7, régénération déterministe et implémentations indépendantes
+    name: vecteurs CT-1 à CT-8, régénération déterministe et implémentations indépendantes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -173,6 +173,121 @@ jobs:
           set +e
           node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7 --exiger 4,5,8 > /dev/null
           test $? -eq 3
+      # Vecteurs de CT-8 (spec/CT-8-deploiement-et-exploitation.md, annexe A,
+      # EX-A.1, EX-A.25, EX-A.26, EX-A.29) : le générateur écrit les familles
+      # conteneurs/, controle-prealable/, dimensionnement/ et paquets/ et
+      # INDEX.md ; il n'efface et ne réécrit que ses propres familles, jamais
+      # confrontation/ ni verificateur-independant/, et ne touche aucun
+      # fichier de ct-1 à ct-7. Deux exécutions : mêmes octets que le dépôt,
+      # sans fichier de plus.
+      - name: régénérer les vecteurs CT-8 deux fois et exiger les mêmes octets, sans fichier de plus
+        run: |
+          npm run vecteurs:ct8
+          git diff --exit-code -- spec/vecteurs/ct-8
+          test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-8)"
+          npm run vecteurs:ct8
+          git diff --exit-code -- spec/vecteurs
+          test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs)"
+      # Fichiers de conteneur de référence (CT-8 §4, EX-4.2) : CO-1 à CO-14 par
+      # l'outil du dépôt, puis l'analyse de Docker Compose, sans construire ni
+      # lancer aucun conteneur ; production.yaml exige ses quatre variables
+      # (adresses de documentation de la RFC 5737). La présence de Docker
+      # Compose sur l'exécuteur hébergé n'est pas vérifiée par CT-8.
+      - name: fichiers de conteneur de référence, CO-1 à CO-14 et docker compose config (codes 0)
+        run: |
+          npm run deploiement:conteneurs
+          docker compose version
+          docker compose --project-directory deploiement -f deploiement/compose/rapide.yaml config --quiet
+          NOORTRACE_IP_INTERNE=192.0.2.40 NOORCORE_CHAIN_ID=noortrace-2124-dev NOORCORE_EVM_CHAIN_ID=2124 \
+            NOORCORE_LEADER_RPC=https://registre-test.example/rpc \
+            docker compose --project-directory deploiement -f deploiement/compose/production.yaml config --quiet
+      # Renvois vers CT-8 (EX-0.1, annexe A.2) : chaque occurrence de « CT-8 »
+      # de spec/*.md a sa ligne dans la table de CT-8 §0.2, et chaque réponse
+      # cite des identifiants qui existent dans CT-8.
+      - name: vérificateur de renvois de CT-8 (code 0 exigé)
+        run: npm run deploiement:renvois
+      # Calculateur et contrôle préalable rejoués sur un cas de chaque famille
+      # par la ligne de commande (les tests Node rejouent tous les cas).
+      - name: dimensionnement et contrôle préalable rejoués sur les vecteurs (codes 0 et 1)
+        run: |
+          node scripts/deploiement/dimensionner.mjs --entrees spec/vecteurs/ct-8/dimensionnement/reference.json --json \
+            | cmp - <(node -e 'process.stdout.write(JSON.stringify(require("./spec/vecteurs/ct-8/dimensionnement/reference.json").attendu, null, 2) + "\n")')
+          node scripts/deploiement/controle-prealable.mjs --profil rapide \
+            --observations spec/vecteurs/ct-8/controle-prealable/pret-rapide.json --json > /dev/null
+          set +e
+          node scripts/deploiement/controle-prealable.mjs --profil rapide \
+            --observations spec/vecteurs/ct-8/controle-prealable/port-occupe.json --json > /dev/null
+          test $? -eq 1
+      # Outils de l'exploitation (CT-8 EX-11.7, EX-12.10, EX-11.18, EX-11.20)
+      # rejoués sur un cas de chaque famille par la ligne de commande (les
+      # tests Node rejouent tous les cas) ; archive de déploiement (EX-3.6)
+      # écrite hors du dépôt et outils lancés depuis elle.
+      - name: outils de l'exploitation et archive de déploiement (codes 0 et 1)
+        run: |
+          V=spec/vecteurs/ct-8
+          node scripts/deploiement/verifier-journal.mjs $V/journaux/valide --cles $V/journaux/valide/cles.json --json > /dev/null
+          node scripts/deploiement/rapport-observation.mjs $V/observation/evenements.ndjson --json | cmp - $V/observation/rapport-attendu.json
+          node scripts/deploiement/proces-verbal.mjs verifier $V/proces-verbaux/valides/migration-support.json \
+            --racine $V/proces-verbaux/racine --cles $V/proces-verbaux/cles.json --json > /dev/null
+          node scripts/deploiement/consultations.mjs verifier $V/consultations/valide/consultations-2026-11-05.ndjson --json > /dev/null
+          set +e
+          node scripts/deploiement/verifier-journal.mjs $V/journaux/ligne-modifiee --cles $V/journaux/ligne-modifiee/cles.json --json > /dev/null
+          test $? -eq 1 || exit 1
+          set -e
+          A="$RUNNER_TEMP/archive-deploiement"
+          node scripts/deploiement/construire-archive.mjs --sortie "$A"
+          (cd "$A" && sha256sum --strict --quiet -c SHA256SUMS)
+          (cd "$A" && env -i PATH=/usr/bin:/bin "$(command -v node)" scripts/deploiement/controle-prealable.mjs --profil rapide \
+            --observations "$GITHUB_WORKSPACE/$V/controle-prealable/pret-rapide.json" --json > /dev/null)
+      # Vérificateur Go indépendant de CT-8 (EX-A.21, EX-A.22, EX-A.24,
+      # EX-A.25, EX-A.29) : écrit depuis le seul texte de CT-8 et les
+      # schémas ; DM-1 à DM-22 et EX-9.3 à l'égalité exacte, IP-1 à IP-13 et
+      # EX-6.3 sur les observations des cas, chaque archive des paquets lue
+      # par archive/tar et par une lecture brute des blocs d'EX-13.14,
+      # PR-1 à PR-12, SHA-256, tailles, état, avertissements et code de
+      # retour, fichiers des conteneurs et mesures de 9.2. Zéro discordance
+      # exigée.
+      - name: vérificateur Go indépendant contre les vecteurs CT-8
+        working-directory: spec/vecteurs/ct-8/verificateur-independant
+        run: |
+          gofmt -l . && test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          go run . ..
+      # Paquet réviseur complet (CT-8 §13, EX-A.29) : construit deux fois depuis
+      # la description des vecteurs, chemins rendus absolus et vérificateur
+      # joint ; mêmes octets ; vérifié par l'outil du dépôt (code 0, PR-11
+      # réussie) ; extrait par GNU tar hors du dépôt, puis vérifié par sa copie
+      # jointe sans réseau ni variable d'environnement (code 0 ; PR-11 y est
+      # non exécutée, raison auto_comparaison). Extraction par tar -xkf : un
+      # nom en double fait échouer tar au lieu de remplacer le premier fichier
+      # (13.11). unshare -n exige un privilège, d'où sudo ; la forme sans
+      # privilège unshare -rn n'est pas celle de la CI (CT-8 EX-A.29).
+      - name: paquet réviseur complet, construit deux fois, vérifié par le dépôt puis par sa copie jointe hors réseau
+        run: |
+          T=$(mktemp -d)
+          node -e '
+            const fs = require("fs"), path = require("path");
+            const rep = path.resolve("spec/vecteurs/ct-8/paquets");
+            const d = JSON.parse(fs.readFileSync(path.join(rep, "description.json"), "utf8"));
+            const abs = (p) => (p === null ? null : path.resolve(rep, p));
+            d.dossiers = d.dossiers.map((x) => ({ source: abs(x.source), anchors: abs(x.anchors), bitcoin_headers: abs(x.bitcoin_headers) }));
+            if (d.attestation) d.attestation = { signed: abs(d.attestation.signed), approver_set: abs(d.attestation.approver_set) };
+            d.pieces = d.pieces.map(abs);
+            d.include_verifier = true;
+            fs.writeFileSync(process.argv[1], JSON.stringify(d, null, 2) + "\n");' "$T/description.json"
+          node scripts/paquet-reviseur/construire.mjs --description "$T/description.json" --sortie "$T/a.tar"
+          node scripts/paquet-reviseur/construire.mjs --description "$T/description.json" --sortie "$T/b.tar"
+          cmp "$T/a.tar" "$T/b.tar"
+          H=$(sha256sum "$T/a.tar" | cut -c1-64)
+          node scripts/paquet-reviseur/verifier.mjs "$T/a.tar" --empreinte "$H" --json > "$T/rapport.json"
+          node -e '
+            const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            const pr11 = r.checks.find((c) => c.id === "PR-11");
+            if (r.exit_code !== 0 || !pr11 || pr11.status !== "reussi") { console.error(JSON.stringify(pr11)); process.exit(1); }' "$T/rapport.json"
+          mkdir "$T/x" && tar -xkf "$T/a.tar" -C "$T/x"
+          sudo unshare -n env -i TMPDIR="$T" "$(command -v node)" \
+            "$T/x/paquet-reviseur/verificateur/scripts/paquet-reviseur/verifier.mjs" "$T/a.tar" --empreinte "$H"
 
   # Test de bout en bout de la console de référence de CT-3 dans Chromium
   # (spec/CT-3-approbations.md, EX-13.36, EX-A.11) : Playwright 1.56.1, la
@@ -223,9 +338,12 @@ jobs:
   # doivent en outre être égales, octet pour octet, aux sorties publiées. La
   # confrontation du registre (go-ethereum et noorcore) exige une copie de
   # noorchain-core : elle n'est pas rejouée ici, et test/confrontation.test.js
-  # vérifie que sa sortie publiée porte sur les vecteurs du dépôt.
+  # vérifie que sa sortie publiée porte sur les vecteurs du dépôt. Les paquets
+  # réviseurs de CT-8 (spec/CT-8-deploiement-et-exploitation.md, annexe A.15)
+  # sont lus et extraits par GNU tar et par tarfile de Python (filtre data) :
+  # dernière étape du travail.
   confrontation:
-    name: vecteurs CT-2, CT-3, CT-5, CT-6 et CT-7 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai, à opentelemetry-proto, à ethers et à eth-account
+    name: vecteurs CT-2, CT-3, CT-5, CT-6, CT-7 et CT-8 confrontés à openssl, à python-opentimestamps, à transparency-dev/merkle, à google-genai, à opentelemetry-proto, à ethers, à eth-account, à GNU tar et à tarfile
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -356,3 +474,46 @@ jobs:
           gofmt -l . && test -z "$(gofmt -l .)"
           go vet ./...
           go run . ../../../ct-1 ../../../ct-6 | tail -4
+      # CT-8 (annexe A.15, EX-A.32 à EX-A.35) : chaque paquet réviseur de
+      # spec/vecteurs/ct-8/paquets/ listé et extrait par GNU tar dans un
+      # répertoire neuf, SHA-256 recalculés par sha256sum contre cas.json et
+      # contre le manifeste extrait, reconstruction de valide.tar par la recette
+      # d'EX-13.15 ; puis lu et extrait par tarfile (filter="data") de Python
+      # 3.13, SHA-256 par hashlib. Code 0 exigé (aucune discordance) ; sorties
+      # égales octet pour octet aux sorties publiées quand la première ligne
+      # (versions des outils) est la même ; dans tous les cas, partie CT-8 de
+      # test/confrontation.test.js appliquée aux nouvelles sorties (membres
+      # égaux à ceux de lireArchive, résultats égaux à la table d'EX-A.32,
+      # limites d'EX-A.33). Dernière étape du travail : setup-python ne change
+      # pas l'interpréteur des étapes précédentes.
+      - uses: actions/setup-python@v5
+        id: python-ct8
+        with:
+          python-version: "3.13"
+      - name: CT-8 paquets réviseurs par GNU tar, sha256sum et tarfile de Python (filtre data)
+        run: |
+          set -o pipefail
+          C=spec/vecteurs/ct-8/confrontation/paquets
+          S="$RUNNER_TEMP/ct8-sorties"
+          mkdir "$S"
+          bash "$C/confronter_gnutar.sh" spec/vecteurs/ct-8/paquets "$(mktemp -d)" > "$S/gnutar.txt"
+          "${{ steps.python-ct8.outputs.python-path }}" -I "$C/confronter_tarfile.py" spec/vecteurs/ct-8/paquets "$(mktemp -d)" > "$S/tarfile.txt"
+          for f in gnutar tarfile; do
+            head -1 "$S/$f.txt"
+            tail -1 "$S/$f.txt"
+            if [ "$(head -1 "$S/$f.txt")" = "$(head -1 "$C/sorties/$f.txt")" ]; then
+              diff "$C/sorties/$f.txt" "$S/$f.txt"
+            else
+              echo "$f : versions autres que celles de la sortie publiée ($(head -1 "$C/sorties/$f.txt")) ; résultats comparés par le test"
+            fi
+          done
+          # Exploitation (EX-A.30) : sha256sum et jq, puis json et hashlib de Python.
+          E=spec/vecteurs/ct-8/confrontation/exploitation
+          bash "$E/confronter_sha256sum.sh" spec/vecteurs/ct-8 > "$S/sha256sum.txt"
+          "${{ steps.python-ct8.outputs.python-path }}" -I "$E/confronter_consultations.py" spec/vecteurs/ct-8 > "$S/consultations.txt"
+          for f in sha256sum consultations; do
+            tail -1 "$S/$f.txt"
+            if [ "$(head -1 "$S/$f.txt")" = "$(head -1 "$E/sorties/$f.txt")" ]; then diff "$E/sorties/$f.txt" "$S/$f.txt"; fi
+          done
+          NOORTRACE_CT8_SORTIES="$S" NOORTRACE_PYTHON_CONFRONTATION="${{ steps.python-ct8.outputs.python-path }}" \
+            npx mocha test/confrontation.test.js --grep "CT-8"

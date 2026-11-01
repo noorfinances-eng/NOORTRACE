@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/dimensionnement.schema.json",
+  "title": "Dimensionnement d'un déploiement NOORTRACE (CT-8 §9)",
+  "description": "Racine : le document d'entrée du calculateur scripts/deploiement/dimensionner.mjs. $defs/sorties : sa sortie ; $defs/cas : un fichier de cas de la famille ct-8/dimensionnement des vecteurs. Clés en anglais, valeurs énumérées en français sans accent. Aucun prix.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "hours_per_year", "coefficients", "journals"],
+  "properties": {
+    "version": { "const": 0 },
+    "hours_per_year": { "enum": [8760, 8784], "description": "N_h : heures de l'année (CT-5 §12.2)." },
+    "coefficients": { "$ref": "#/$defs/coefficients" },
+    "journals": { "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/journal" } }
+  },
+  "$defs": {
+    "octets": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "positif": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "part": { "type": "number", "minimum": 0, "maximum": 1 },
+    "coefficients": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Remplacement facultatif des coefficients de la table de CT-8 §9.2 par une mesure de l'exploitant (CT-9) ; un membre absent garde la valeur de la table.",
+      "properties": {
+        "b_pt": { "$ref": "#/$defs/positif" },
+        "b_man": { "$ref": "#/$defs/positif" },
+        "b_tsq": { "$ref": "#/$defs/positif" },
+        "b_der": { "$ref": "#/$defs/positif" },
+        "b_tsr_sup": { "$ref": "#/$defs/octets" },
+        "b_ots": { "$ref": "#/$defs/positif" },
+        "b_cap": { "$ref": "#/$defs/positif" },
+        "gaz_ancre": { "$ref": "#/$defs/positif" },
+        "gaz_cloture": { "$ref": "#/$defs/positif" },
+        "tx_par_bloc": { "$ref": "#/$defs/positif" },
+        "blocs_par_s": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000 },
+        "debit_cible": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 }
+      }
+    },
+    "journal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "count", "activity", "storage", "anchoring", "memory"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$", "description": "Nom du type de journal, au choix de l'exploitant." },
+        "count": { "$ref": "#/$defs/positif", "description": "J : nombre de journaux de ce type." },
+        "activity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["agents", "events_per_hour", "active_hours", "peak_factor", "event_bytes", "piece_bytes_per_event", "pieces_per_event", "write_share", "ops_log_bytes_per_event"],
+          "properties": {
+            "agents": { "$ref": "#/$defs/positif", "description": "A : agents qui partagent le journal." },
+            "events_per_hour": { "type": "number", "minimum": 0, "maximum": 100000000, "description": "e : événements de la chaîne par heure d'activité et par agent." },
+            "active_hours": { "type": "integer", "minimum": 0, "maximum": 8784, "description": "H : heures d'activité par an." },
+            "peak_factor": { "type": "number", "minimum": 1, "maximum": 1000, "description": "f_pic : rapport du débit de pointe au débit moyen d'activité ; à mesurer (CT-9)." },
+            "event_bytes": { "$ref": "#/$defs/positif", "description": "b_e : octets d'une ligne de segment, saut de ligne compris (CT-2 §16.1)." },
+            "piece_bytes_per_event": { "$ref": "#/$defs/octets", "description": "b_p : octets de pièces nouvelles par événement (CT-2 §16.4)." },
+            "pieces_per_event": { "type": "number", "minimum": 0, "maximum": 1000, "description": "n_p : pièces nouvelles par événement." },
+            "write_share": { "$ref": "#/$defs/part", "description": "q_w : part des événements qui sont des appels de classe ecriture (intention forcée sur disque, CT-2 §3.2 pas 6)." },
+            "ops_log_bytes_per_event": { "$ref": "#/$defs/octets", "description": "b_o : octets du journal d'exploitation par événement ; à mesurer (CT-9)." }
+          }
+        },
+        "storage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["events_years", "local_days", "pieces_days", "segment_max_bytes", "min_free_bytes", "pending_max_bytes", "ops_log", "fsync", "worm"],
+          "properties": {
+            "events_years": { "type": "integer", "minimum": 10, "maximum": 100, "description": "storage.retention.events_years (CT-2 §15.4 : au moins 10)." },
+            "local_days": { "$ref": "#/$defs/positif", "description": "D_l : jours de conservation locale des segments et objets de journal." },
+            "pieces_days": { "$ref": "#/$defs/positif", "description": "D_lp : jours de conservation locale des pièces." },
+            "segment_max_bytes": { "$ref": "#/$defs/positif" },
+            "min_free_bytes": { "$ref": "#/$defs/octets" },
+            "pending_max_bytes": { "$ref": "#/$defs/octets", "description": "limits.pending_max_bytes (CT-2 §14.5)." },
+            "ops_log": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rotate_max_bytes", "keep_files"],
+              "properties": { "rotate_max_bytes": { "$ref": "#/$defs/positif" }, "keep_files": { "$ref": "#/$defs/positif" } }
+            },
+            "fsync": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["group_max_events", "group_max_wait_ms"],
+              "properties": { "group_max_events": { "$ref": "#/$defs/positif" }, "group_max_wait_ms": { "$ref": "#/$defs/octets" } }
+            },
+            "worm": {
+              "oneOf": [
+                { "type": "null" },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["retain_days", "copies", "pieces_in_worm", "ops_log_in_worm"],
+                  "properties": {
+                    "retain_days": { "$ref": "#/$defs/positif", "description": "D_w : storage.seal.worm.retain_days." },
+                    "copies": { "type": "integer", "minimum": 1, "maximum": 8, "description": "n_w : copies WORM indépendantes (supports distincts)." },
+                    "pieces_in_worm": { "type": "boolean" },
+                    "ops_log_in_worm": { "type": "boolean", "description": "Archivage des fichiers tournés du journal d'exploitation sur le support WORM (CT-7 PA-15, PA-18)." }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "anchoring": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["checkpoint_interval_s", "rfc3161_interval_s", "a", "r", "provider_role", "registry_checkpoints", "ots_checkpoint", "retention_years", "crl_per_token", "crl_bytes", "acquisition_bytes"],
+          "properties": {
+            "checkpoint_interval_s": { "type": "integer", "minimum": 10, "maximum": 3600, "description": "c_K (CT-5 §4.1) ; diviseur de 3600, contrôlé hors schéma (refus checkpoint_interval_s_non_diviseur)." },
+            "rfc3161_interval_s": { "type": "integer", "minimum": 60, "maximum": 3600, "description": "c_T (CT-5 §4.1)." },
+            "a": { "$ref": "#/$defs/part", "description": "Part des échéances de points qui engagent un nouvel événement (CT-5 §12.2)." },
+            "r": { "type": "number", "minimum": 0, "maximum": 10, "description": "Part de tentatives en plus par jeton obtenu (CT-5 §12.2)." },
+            "provider_role": { "enum": ["principal", "second_rang", "interne", "aucun"] },
+            "registry_checkpoints": { "enum": ["nouveaux_evenements", "tous", "aucun"] },
+            "ots_checkpoint": { "enum": ["aucun", "mi_periode"] },
+            "retention_years": { "type": "integer", "minimum": 0, "maximum": 100, "description": "rfc3161.retention_years ; au moins 10 (refus retention_years_inferieure_a_10)." },
+            "crl_per_token": { "type": "integer", "minimum": 0, "maximum": 16, "description": "n_crl : CRL capturées par jeton, une par certificat du chemin (CT-5 EX-5.14) ; 0 si crl_capture est désactivé." },
+            "crl_bytes": { "$ref": "#/$defs/octets", "description": "b_crl : octets d'une CRL capturée ; à mesurer (CT-9)." },
+            "acquisition_bytes": { "$ref": "#/$defs/octets", "description": "b_acq : octets d'un enregistrement d'acquisition (CT-5 EX-5.13) ; à mesurer (CT-9)." }
+          }
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_concurrent", "request_max_bytes", "response_max_bytes", "base_bytes"],
+          "properties": {
+            "max_concurrent": { "$ref": "#/$defs/positif", "description": "C : somme des quota.max_concurrent des connexions d'hôte (CT-2 §15)." },
+            "request_max_bytes": { "$ref": "#/$defs/positif" },
+            "response_max_bytes": { "$ref": "#/$defs/positif" },
+            "base_bytes": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/octets" }], "description": "m_0 : mémoire résidente à vide ; null tant qu'elle n'est pas mesurée (CT-9)." }
+          }
+        }
+      }
+    },
+    "erreur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["journal", "code"],
+      "properties": {
+        "journal": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "code": { "enum": ["checkpoint_interval_s_non_diviseur", "rfc3161_interval_s_invalide", "retention_years_inferieure_a_10", "retain_days_insuffisant", "depassement_capacite"] }
+      }
+    },
+    "sortie_journal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "count", "events_per_year", "mean_events_per_s", "peak_events_per_s", "peak_over_target", "segment_bytes_per_year", "piece_bytes_per_year", "piece_files_per_year", "checkpoint_bytes_per_year", "manifest_bytes_per_year", "anchor_bytes_per_year", "capture_bytes_per_year", "ops_log_bytes_per_year", "tokens_qualified_per_year", "tokens_other_per_year", "registry_anchors_per_year_max", "registry_closures_per_year", "ots_submissions_per_year", "registry_tx_per_hour_max", "registry_journals_max", "gas_per_year_max", "local_bytes", "worm_bytes", "ops_archive_bytes", "peak_write_bytes_per_s", "peak_fsync_per_s_max", "peak_fsync_per_s_min", "memory_buffers_max_bytes", "memory_base_bytes"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$" },
+        "count": { "$ref": "#/$defs/positif" },
+        "events_per_year": { "$ref": "#/$defs/octets" },
+        "mean_events_per_s": { "type": "number", "minimum": 0 },
+        "peak_events_per_s": { "type": "number", "minimum": 0 },
+        "peak_over_target": { "type": "boolean" },
+        "segment_bytes_per_year": { "$ref": "#/$defs/octets" },
+        "piece_bytes_per_year": { "$ref": "#/$defs/octets" },
+        "piece_files_per_year": { "$ref": "#/$defs/octets" },
+        "checkpoint_bytes_per_year": { "$ref": "#/$defs/octets" },
+        "manifest_bytes_per_year": { "$ref": "#/$defs/octets" },
+        "anchor_bytes_per_year": { "$ref": "#/$defs/octets" },
+        "capture_bytes_per_year": { "$ref": "#/$defs/octets" },
+        "ops_log_bytes_per_year": { "$ref": "#/$defs/octets" },
+        "tokens_qualified_per_year": { "$ref": "#/$defs/octets" },
+        "tokens_other_per_year": { "$ref": "#/$defs/octets" },
+        "registry_anchors_per_year_max": { "$ref": "#/$defs/octets" },
+        "registry_closures_per_year": { "$ref": "#/$defs/octets" },
+        "ots_submissions_per_year": { "$ref": "#/$defs/octets" },
+        "registry_tx_per_hour_max": { "type": "number", "minimum": 0 },
+        "registry_journals_max": { "$ref": "#/$defs/octets" },
+        "gas_per_year_max": { "$ref": "#/$defs/octets" },
+        "local_bytes": { "$ref": "#/$defs/octets" },
+        "worm_bytes": { "$ref": "#/$defs/octets" },
+        "ops_archive_bytes": { "$ref": "#/$defs/octets" },
+        "peak_write_bytes_per_s": { "$ref": "#/$defs/octets" },
+        "peak_fsync_per_s_max": { "type": "number", "minimum": 0 },
+        "peak_fsync_per_s_min": { "type": "number", "minimum": 0 },
+        "memory_buffers_max_bytes": { "$ref": "#/$defs/octets" },
+        "memory_base_bytes": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/octets" }] }
+      }
+    },
+    "sorties": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "valid", "journals", "totals"],
+          "properties": {
+            "version": { "const": 0 },
+            "valid": { "const": true },
+            "journals": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/sortie_journal" } },
+            "totals": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["journals", "local_bytes", "worm_bytes", "ops_archive_bytes", "tokens_qualified_per_year", "tokens_other_per_year", "registry_anchors_per_year_max", "registry_closures_per_year", "gas_per_year_max", "registry_tx_per_hour_max", "registry_capacity_tx_per_hour", "registry_capacity_share", "peak_write_bytes_per_s", "peak_fsync_per_s_max"],
+              "properties": {
+                "journals": { "$ref": "#/$defs/positif" },
+                "local_bytes": { "$ref": "#/$defs/octets" },
+                "worm_bytes": { "$ref": "#/$defs/octets" },
+                "ops_archive_bytes": { "$ref": "#/$defs/octets" },
+                "tokens_qualified_per_year": { "$ref": "#/$defs/octets" },
+                "tokens_other_per_year": { "$ref": "#/$defs/octets" },
+                "registry_anchors_per_year_max": { "$ref": "#/$defs/octets" },
+                "registry_closures_per_year": { "$ref": "#/$defs/octets" },
+                "gas_per_year_max": { "$ref": "#/$defs/octets" },
+                "registry_tx_per_hour_max": { "type": "number", "minimum": 0 },
+                "registry_capacity_tx_per_hour": { "type": "number", "minimum": 0 },
+                "registry_capacity_share": { "type": "number", "minimum": 0 },
+                "peak_write_bytes_per_s": { "$ref": "#/$defs/octets" },
+                "peak_fsync_per_s_max": { "type": "number", "minimum": 0 }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "valid", "errors"],
+          "properties": {
+            "version": { "const": 0 },
+            "valid": { "const": false },
+            "errors": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/erreur" } }
+          }
+        }
+      ]
+    },
+    "cas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "entrees", "attendu"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "entrees": { "$ref": "#" },
+        "attendu": { "$ref": "#/$defs/sorties" }
+      }
+    }
+  }
+}

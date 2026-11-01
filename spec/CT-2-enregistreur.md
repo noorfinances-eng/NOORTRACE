@@ -1,23 +1,26 @@
 # CT-2 — Enregistreur
 
-Version 0.5, 2026-10-26 (révision 0.5 ; version 0.4 du même jour, version 0.3
-du 2026-10-23). Spécification normative, soumise à revue. Elle met en œuvre la
-section « Capture : où l'enregistreur se place » et la section « Journal :
-comment un événement est écrit » de l'[architecture cible](../ARCHITECTURE.md),
-s'appuie sur le format d'événement de [CT-1](CT-1-evenements-et-formats.md)
-sans le modifier, et clôt les décisions ouvertes 2 (clés de l'enregistreur) et
-3 (rédaction avant hachage) de l'architecture (section 20). La révision 0.3
-l'aligne sur [CT-3](CT-3-approbations.md) (interface du service d'approbation),
-retire les codes d'erreur de la plage que la révision MCP `2026-07-28` dit
-héritée et borne le coût des motifs de rédaction ; la révision 0.4, du
-2026-10-26, minimale, spécifie la production des points de contrôle de CT-1
-(révision 0.3) et leur remise au composant d'ancrage de [CT-5](CT-5-ancrage.md)
-(12.10) ; la révision 0.5, du même jour, porte l'API Gemini à la passerelle en
-version 0 (5.3.3, 5.4.5), fixe l'interface publique des SDK Python et
-TypeScript, les adaptateurs des cadres d'agents, le rang de preuve des chemins
-déclaratifs et l'ingestion OpenTelemetry (6.5 à 6.8), le gel juridique des
-copies WORM (12.11) et le coût annuel par agent (16.4), et ajoute des fichiers
-d'intégration (19.5.7 à 19.5.11) ; la section 0.4 dit ce que chacune change.
+Version 0.6, 2026-10-27 (révision 0.6, minimale ; version 0.5 du 2026-10-26,
+version 0.4 du même jour, version 0.3 du 2026-10-23). Spécification normative,
+soumise à revue. Elle met en œuvre la section « Capture : où l'enregistreur se
+place » et la section « Journal : comment un événement est écrit » de
+l'[architecture cible](../ARCHITECTURE.md), s'appuie sur le format d'événement
+de [CT-1](CT-1-evenements-et-formats.md) sans le modifier, et clôt les décisions
+ouvertes 2 (clés de l'enregistreur) et 3 (rédaction avant hachage) de
+l'architecture (section 20). La révision 0.3 l'aligne sur
+[CT-3](CT-3-approbations.md) (interface du service d'approbation), retire les
+codes d'erreur de la plage que la révision MCP `2026-07-28` dit héritée et borne
+le coût des motifs de rédaction ; la révision 0.4, du 2026-10-26, minimale,
+spécifie la production des points de contrôle de CT-1 (révision 0.3) et leur
+remise au composant d'ancrage de [CT-5](CT-5-ancrage.md) (12.10) ; la révision
+0.5, du même jour, porte l'API Gemini à la passerelle en version 0 (5.3.3,
+5.4.5), fixe l'interface publique des SDK Python et TypeScript, les adaptateurs
+des cadres d'agents, le rang de preuve des chemins déclaratifs et l'ingestion
+OpenTelemetry (6.5 à 6.8), le gel juridique des copies WORM (12.11) et le coût
+annuel par agent (16.4), et ajoute des fichiers d'intégration (19.5.7 à
+19.5.11) ; la révision 0.6, du 2026-10-27, minimale, ajoute le mode observation,
+où la politique d'approbation est évaluée sans être appliquée et où aucune panne
+ne bloque un appel (14.6) ; la section 0.4 dit ce que chacune change.
 
 ## 0. En-tête, conventions, lecture
 
@@ -152,6 +155,28 @@ hors de la plage réservée et rend les issues d'approbation comme des
 résultats d'outil (4.4, « Codes d'erreur de l'enregistreur »).
 
 ### 0.4 Révisions
+
+**Révision 0.6** (2026-10-27, minimale). Mode observation, pour la parité avec
+un déploiement progressif de la politique, exprimée en exigences mesurables par
+CT-8 §12 : valeur `observation` de `policy.approval.mode` (15.1 ; extension
+compatible du schéma `configuration-enregistreur-v0`) ; au pas 3 de 4.4,
+l'évaluation est faite et ses suites (refus, `retenue`, signal d'approbation) ne
+s'appliquent pas (EX-4.51) ; réponse d'`evaluer` sans ticket admise sous une
+version en mode observation (EX-7.23, CT-3 EX-12.20) ; appel relayé scellé avec
+`policy.decision` `autorise`, sans ticket, et la marque ` [observation <x>]`
+dans `policy.rule` (EX-14.14, grammaire de CT-3 EX-6.8) ; service d'approbation
+indisponible : marque `inconnu` (EX-14.15) ; aucune panne ne bloque un appel
+relayable, les événements au-delà des bornes de 14.5 étant perdus et comptés
+(EX-14.16) ; liste exhaustive de ce que l'enregistreur rend encore lui-même
+(EX-14.17) ; avertissement de validation, refus d'entrer en observation avec des
+tickets ouverts, suffixe `-observation` de `policy.version` exigé en mode
+observation et interdit ailleurs, approbateurs de test refusés en production
+hors observation (EX-15.8) ; réponse du service dont la règle emploie une forme
+réservée ou dépasse 998 caractères tenue pour invalide (EX-7.23) ; métriques,
+lignes de journal et alertes (EX-17.8). Règles modifiées : la phrase de 14.2 qui
+renvoie à 14.6 ; le pas 3 d'EX-15.4, complété par EX-15.8 ; la table de 17.2,
+complétée de quatre lignes. Aucun vecteur de `spec/vecteurs/ct-2` ne change ;
+les cas du mode sont dans `spec/vecteurs/ct-8/observation/` (CT-8 annexe A).
 
 **Révision 0.5** (2026-10-26). Elle porte la capture et l'exploitation au
 niveau d'exigences mesurables (formats de modèle, SDK de langage, cadres
@@ -1600,6 +1625,14 @@ PEUT envoyer à l'hôte des `notifications/progress` si la requête porte un
 `progressToken`, à valeurs `progress` strictement croissantes, hors chaîne
 (CT-3 EX-11.6) ; elles ne prolongent ni `hold_timeout_ms` ni l'échéance du
 ticket.
+
+**EX-4.51** **Mode observation (révision 0.6).** Quand l'ensemble de
+politique en vigueur pour l'appel a `approval.mode: "observation"` (14.6),
+le pas 3 envoie `evaluer` comme dans les autres modes ; les pas 5 et 6 ne
+s'appliquent pas : aucun refus par la politique, aucune `retenue`, aucun
+signal d'approbation, aucun ticket. L'appel suit les pas 4 et 7 à 14 avec la
+`policy` d'EX-14.14 ; une précondition du pas 7 qui échoue le rend passant
+(EX-14.16) au lieu de le bloquer.
 
 **Différences d'ère.** Hôte hérité vers serveur moderne : le frontal ajoute
 les `_meta` requis ; un `resultType: "input_required"` reçu du serveur ne peut
@@ -5422,6 +5455,23 @@ après laquelle une ré-émission est une nouvelle demande. Une pièce
 « arguments » au-delà de la borne de temps n'atteint jamais RL-2 pour un
 outil susceptible d'approbation : elle est refusée au pas 4 (EX-10.23).
 
+**EX-7.23** **Réponse d'`evaluer` en mode observation (révision 0.6).** Pour
+un appel évalué sous une version de politique en mode observation, le noyau
+admet, en plus de la table d'EX-7.16, la réponse `{ "rule", "decision",
+"ticket": null, "ticket_state": null, "approval": null, "approver_set":
+null }` avec `decision` ∈ {`autorise`, `a_approuver`, `refuse`} et `rule`
+non nul (CT-3 EX-12.20) ; il n'écrit rien dans les fichiers des approbations
+(EX-12.23), n'envoie ni `ouvrir` ni `consommer`, et relaie l'appel avec la
+`policy` d'EX-14.14. Sous une telle version, une réponse qui porte un
+`ticket`, un `ticket_state` ou un `approval` non nul est invalide :
+`approval_response_invalid` est consigné et l'appel est relayé avec la
+marque `inconnu` (EX-14.15), jamais bloqué. Est invalide de même une réponse
+dont la `rule` vaut `evaluation impossible` (seule ou suivie de ` [`),
+contient `[observation` (formes réservées à la marque, CT-3 EX-6.8), ou
+dépasse 998 caractères, longueur qui laisse place à la plus longue marque
+(` [observation a_approuver]`, 26 caractères) sous les 1 024 caractères de
+`policy.rule` (CT-1).
+
 ## 8. Sérialisation des pièces
 
 ### 8.1 JCS intégral et JCS v0
@@ -9166,7 +9216,9 @@ echange bloque, enregistreur en mode degrade"}}` pour Messages,
 degrade","type":"noortrace_degrade","param":null,"code":"noortrace_degrade"}}`
 pour Chat Completions et Responses, `{"error":{"code":503,"message":"noortrace:
 echange bloque, enregistreur en mode degrade","status":"UNAVAILABLE"}}` pour
-Gemini, EX-5.30), sans événement : rien n'a atteint le fournisseur.
+Gemini, EX-5.30), sans événement : rien n'a atteint le fournisseur. En mode
+observation (14.6), les colonnes E, L et M ne s'appliquent pas : EX-14.16 les
+remplace.
 
 | Panne | Détection | E | L | M | Rendu à l'hôte (E) | Raison (`data.reason`) | Journal d'exploitation | Réglage |
 |---|---|---|---|---|---|---|---|---|
@@ -9299,6 +9351,63 @@ mode `miroir`, rien n'est bloqué : l'échange observé pendant un mode dégrad�
 « horloge », il est mis en attente aussi, dans la borne de 14.5, puis perdu
 au-delà, chaque perte étant consignée (`exchange_lost`) : un miroir est une
 preuve passive, il ne peut pas refuser ce qu'il voit passer.
+
+### 14.6 Mode observation (révision 0.6)
+
+**EX-14.13** **Portée.** En mode observation (`policy.approval.mode:
+"observation"`, 15.1), l'ensemble de politique est évalué sans être
+appliqué, et aucune panne ne bloque un appel ou un échange relayable : c'est
+la seule exception à la constante `policy.failure.ecriture: "bloquant"`
+(EX-14.2), qui reste écrite dans la configuration. Le mode vaut pour le
+frontal MCP, le SDK, la passerelle et ICAP ; le miroir (EX-14.12) et
+l'ingestion OpenTelemetry (6.8) ne bloquent déjà rien. Il ne change ni la
+rédaction, ni l'authentification, ni les bornes de taille, ni la garde des
+clés. CT-8 §12 en dit l'exploitation, le passage au mode bloquant et ce que
+le mode prouve.
+
+**EX-14.14** **Événement.** Un appel d'outil relayé en mode observation est
+scellé avec `policy.decision: "autorise"`, `policy.ticket: null`, `approval:
+null` et `policy.rule` égal au `rule` de la réponse d'`evaluer` suivi de
+` [observation <decision>]`, ou à `evaluation impossible [observation
+inconnu]` sans réponse valide (grammaire : CT-3 EX-6.8) ; `policy.redaction`,
+`execution`, `effects` et `context` suivent 7.2 comme en mode bloquant.
+L'intention du pas 8 suit la classe de l'outil (EX-14.1), un appel ne
+pouvant plus être « soumis à approbation » dans ce mode.
+
+**EX-14.15** **Service d'approbation indisponible.** Sans réponse dans
+`policy.approval.timeout_ms`, sur une erreur du service ou une réponse
+invalide, l'appel est relayé sans nouvel essai qui le retarde (un `charger`
+attendu est envoyé sans attendre sa réponse) avec `evaluation impossible
+[observation inconnu]` ; `approval_service_unavailable` ou
+`approval_response_invalid` est consigné comme en mode bloquant.
+
+**EX-14.16** **Pannes.** Dans tout mode dégradé (`stockage`, `cle`, `bail`
+quand l'instance a été active, `horloge`, `attente`, `approbation`), un appel
+ou un échange relayable est relayé, par exception à EX-4.19 et à la matrice
+de 14.2, et son événement est mis en attente selon 14.5 (fichier d'attente
+au mieux), la réponse étant rendue à l'hôte sans attendre la durabilité ;
+une panne après relais (EX-4.46) rend à l'hôte la réponse reçue, jamais
+`-31017`. Quand une borne d'EX-14.9 est atteinte, l'appel est encore relayé
+et son événement est perdu : la ligne `event_lost` (raison, nombre) est
+consignée et `noortrace_events_lost_total{reason}` augmente ; aucune lecture
+ni écriture ne devient bloquante. Le budget de rédaction dépassé (EX-10.23)
+et les quotas d'hôte (EX-4.47) ne bloquent pas : l'appel est relayé, une
+pièce au-delà du budget est traitée comme pour une lecture (EX-8.7). Chaque
+appel qu'un mode bloquant aurait bloqué, retenu ou refusé produit la ligne
+`observation_would_block` (EX-17.8). Pendant un mode dégradé « horloge »,
+l'instant de capture d'un événement en attente est l'instant mural du
+dernier événement scellé augmenté de l'avance de l'horloge monotone depuis
+ce scellement : aucun `ts` n'est posé dans le futur, et EX-14.10 s'applique
+à la sortie du mode.
+
+**EX-14.17** **Ce qui reste refusé.** En mode observation, l'enregistreur
+ne rend lui-même que : les refus d'authentification de 4.8 ; `-32700`,
+`-32600`, `-32601`, `-32602` ; `-31014` ; `-31013` de directions `requete`
+et `reponse` ; `-31016` (4.6) ; `-31010` de raison `bail_non_detenu`, rendu
+par une instance passive qui n'est pas en service (13.4). Il ne rend jamais
+le refus par la politique, le signal d'approbation, `-31010` d'une autre
+raison, `-31013` de direction `quota`, ni `-31017`, et la passerelle ne rend
+jamais le corps `noortrace_degrade` de 14.2.
 
 ## 15. Configuration
 
@@ -10114,6 +10223,7 @@ valeur fautive sauf pour les secrets) et un code de retour `2` :
    - `policy.approval.mode` : avertissement quand il vaut `retenir` (CT-3
      EX-11.1), qui rappelle la condition d'EX-4.50 sur `hold_timeout_ms` et
      le délai des hôtes raccordés, que la configuration ne connaît pas ;
+     (révision 0.6) avertissement quand il vaut `observation` (EX-15.8) ;
    - en `environment: "production"` : chaque serveur stdio a un `user`
      distinct de celui du démon et un `integrity` (EX-3.5) ; chaque serveur
      HTTP à OAuth a `issuer` et `resource_metadata_url` (EX-4.40) ; toute
@@ -10210,6 +10320,28 @@ de politique de cette version (EX-8.11).
 `code.policy_version` = la **nouvelle** version, `effects = [{ "system":
 "noortrace", "action": "ecriture", "object": "politique:<policy_version>",
 "amount": null, "currency": null }]` (section 9.1), `context = []`.
+
+**EX-15.8** **Mode observation (révision 0.6).** La validation (15.4 pas 3,
+15.6) avertit quand `policy.approval.mode` vaut `observation`, par le texte
+fixe « mode observation : aucun appel ne sera bloque ni soumis a
+approbation ; une ecriture peut n'avoir qu'un evenement en attente, ou aucun
+au-dela des bornes de 14.5 ». Un rechargement qui fait passer la version en
+vigueur d'un autre mode au mode observation est refusé
+(`config_reload_rejected`, raison `tickets_ouverts`) tant qu'une `retenue`
+des fichiers des approbations (EX-12.23) n'a pas de décision scellée ; au
+démarrage, le même cas est une erreur de validation (code `2`). Le passage
+du mode observation à un autre mode n'a pas de condition propre ; il se fait
+par rechargement (EX-15.5), qui scelle l'événement de politique avant tout
+appel évalué sous la nouvelle version.
+La validation exige en outre, comme erreur : que `policy.version` finisse par
+`-observation` quand `policy.approval.mode` vaut `observation`
+(`version_observation_sans_suffixe`) et ne le porte pas sinon
+(`suffixe_observation_hors_mode`), pour que `code.policy_version` de tout
+événement scellé en mode observation, appel d'outil ou non, le dise ; hors du
+mode observation, un jeu d'approbateurs `statique` qui contient une adresse
+des clés de test publiées (liste `spec/vecteurs/ct-7/cles-de-test.json`,
+comptes Hardhat publics) est une erreur en `production` et un avertissement
+ailleurs (`approbateurs_de_test`).
 
 ### 15.6 Commande de validation
 
@@ -10589,6 +10721,10 @@ un nom d'utilisateur, un identifiant de ticket ou un nom d'hôte de client.
 | `noortrace_ops_log_dropped_total` | compteur | — | Lignes du journal d'exploitation non écrites (EX-17.4) |
 | `noortrace_calls_executed_not_durable_total` | compteur | `class` | Appels relayés sans événement durable, `-31017` (EX-4.46) |
 | `noortrace_build_info` | jauge (1) | `version`, `protocol_versions` | Version du logiciel |
+| `noortrace_observation_mode` | jauge | — | (révision 0.6) 1 quand la version de politique en vigueur est en mode observation, 0 sinon (EX-17.8) |
+| `noortrace_observation_marks_total` | compteur | `would` (`autorise`, `a_approuver`, `refuse`, `inconnu`) | (révision 0.6) Événements scellés avec une marque d'observation (EX-14.14) |
+| `noortrace_observation_would_block_total` | compteur | `reason` (`approbation`, `politique`, `redaction`, `quota`, `stockage`, `cle`, `bail`, `horloge`, `attente`) | (révision 0.6) Appels qu'un mode bloquant aurait bloqués, retenus ou refusés (EX-14.16) |
+| `noortrace_events_lost_total` | compteur | `reason` (comme ci-dessus) | (révision 0.6) Événements perdus au-delà des bornes de 14.5 en mode observation (EX-14.16) |
 
 ### 17.3 Journal d'exploitation
 
@@ -10707,6 +10843,19 @@ les règles Prometheus) :
 | Span OpenTelemetry rejoué avec un autre contenu | `increase(noortrace_otel_conflicts_total[1h]) > 0` (EX-6.33) | mineure |
 | Latence | `histogram_quantile(0.99, noortrace_relay_latency_ms) > 50` sur 15 min | mineure |
 | Disque | `disk_low` dans le journal, ou espace libre < 2 × `min_free_bytes` | majeure |
+
+**EX-17.8** **Mode observation (révision 0.6).** Le journal d'exploitation
+reçoit `observation_would_block` (composant `politique` ; `data` : `would`,
+raison de la colonne `reason` de `noortrace_observation_would_block_total`,
+alias, nom annoncé, classe, `seq` de l'événement ou `null` s'il est en
+attente ; jamais les arguments) et `event_lost` (composant `noyau` ; `data` :
+raison, nombre) ; les métriques de 17.2 marquées « révision 0.6 » sont
+exposées ; deux alertes sont prescrites :
+
+| Alerte | Condition | Gravité |
+|---|---|---|
+| Mode observation actif | `noortrace_observation_mode == 1` | mineure : rappel permanent qu'aucun appel n'est bloqué |
+| Pertes en mode observation | `increase(noortrace_events_lost_total[5m]) > 0` | majeure : des appels relayés n'ont pas d'événement |
 
 ### 17.5 Contrôles périodiques
 
@@ -12195,6 +12344,11 @@ les cas. ARCHITECTURE.md est aligné en conséquence (section 22).
   (NV-R12-5) et le relais des en-têtes `X-Noortrace-*` par lui (19.5.10) ;
   la lecture des variables d'environnement d'OpenTelemetry par
   `@opentelemetry/sdk-node` (19.5.11) : à tester en phase 2.
+- **Un mode « avertir »** (révision 0.6) : en mode observation, l'agent ne
+  reçoit aucun avertissement de ce que la politique aurait exigé ; un mode
+  qui rendrait l'appel avec un avertissement lisible par l'agent, sans le
+  bloquer, est une proposition pour une version ultérieure (pratique
+  `warn` d'un contrôleur d'admission, CT-8 §12).
 
 ## 22. Alignement avec le dépôt
 
@@ -12256,6 +12410,16 @@ Révision 0.5 :
 | CT-6 §7 (7.1 ou 7.8) et §3.2 | — | proposition, sans changement normatif dans cette révision : une phrase non normative, avec un renvoi depuis §3.2 vers CT-2 6.7 : un événement dont `context[0]` est la pièce `{"noortrace_capture":{"channel":"otel","source":"<alias>"}}` (EX-6.35) est une déclaration OpenTelemetry constatée après coup, dont `policy.decision: "autorise"` et `policy.rule: null` ne signifient pas qu'une politique a été évaluée (EX-6.23) ; un échange de modèle dont `context[0]` est la pièce de canal `sdk` (EX-7.7) est une déclaration du SDK ; un appel d'outil de préfixe `<alias>__` est une déclaration du SDK quand l'alias figure dans `policy.sdk.aliases`, s'il est présent (EX-6.24) ; l'état WORM et le registre des gels restent hors du dossier et déclaratifs (EX-12.41) | proposition |
 | CT-8 | — | création du support (rétention par défaut, rôles d'EX-18.9, restriction de l'écrivain hors de `<prefix>gels/`, politiques d'organisation), procédure de levée à deux personnes (activation approuvée du rôle de levée), relecture par le rôle Lecteur, fin de rétention | proposition (CT-8 à écrire) |
 | `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | capture par MCP, passerelle (Anthropic, OpenAI) et SDK ; copies WORM sans gel | formats capturés (API Gemini à la passerelle) ; SDK Python et TypeScript, adaptateurs de cadres et ingestion OpenTelemetry, tous déclaratifs, avec ce qu'ils ne prouvent pas ; intégrations (google-genai, CrewAI, LlamaIndex, LiteLLM, OpenTelemetry) ; gel juridique levé par deux personnes ; formule de coût par agent à prix paramétrés, sans prix ; entrée CT-2 0.5 | à faire (même livraison) |
+
+Révision 0.6 :
+
+| Emplacement | Avant la révision 0.6 | Attendu par la révision 0.6 | État |
+|---|---|---|---|
+| `spec/schemas/configuration-enregistreur-v0.schema.json` | `policy.approval.mode` ∈ {`retenir`, `erreur`} | (révision 0.6) valeur `observation` ajoutée, description complétée ; aucune autre modification | fait (même livraison) |
+| `spec/vecteurs/ct-8/observation/` | — | cas de la révision 0.6 : marques, correspondance entre une évaluation de CT-3 et l'événement scellé, journal d'exemple et rapport (CT-8 annexe A) ; aucun vecteur de `spec/vecteurs/ct-2` ne change | à faire (CT-8) |
+| Enregistreur (code) | — | mode observation (4.4, 7.5, 14.6, 15.5, 17) | phase 2 |
+| `spec/README.md`, table des spécifications, ligne CT-2 ; table des schémas | « version 0.5, en revue » ; `configuration-enregistreur-v0` sans mode observation | « version 0.6 » (mode observation) ; ligne du schéma complétée (valeur `observation` de `policy.approval.mode`) | fait |
+| CT-8, ligne de la révision 0.5 (création du support, levée, relecture, fin de rétention) | proposition, CT-8 à écrire | répondue par CT-8 0.1 : création du support et rôles, EX-8.4 et EX-8.5 (pas IC-9) ; levée à trois personnes, EX-11.16 ; relecture par le Lecteur, EX-10.9 et tâche TP-4 ; fin de rétention, EX-11.15 | fait |
 
 ## Annexe B — Disposition des vecteurs `spec/vecteurs/ct-2`
 

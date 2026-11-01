@@ -13,13 +13,13 @@ les décisions ouvertes qu'elle nomme.
 | Réf. | Document | État | Clôt |
 |---|---|---|---|
 | CT-1 | [Modèle d'événement et formats](CT-1-evenements-et-formats.md) | version 0.4 (révision 0.4 : partie facultative `attestation-perimetre.json` et vérifications AT-1 à AT-7 ; révision 0.3 : point de contrôle, preuve de cohérence, partie facultative `points-de-controle.json`), en revue pour la porte 1 | décisions ouvertes 1 et 5 |
-| CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.5 (révision 0.5 : API Gemini à la passerelle, SDK Python et TypeScript, adaptateurs de cadres, ingestion OpenTelemetry, gel juridique des copies WORM, coût par agent ; révision 0.4 : production des points de contrôle), en revue pour la porte 1 | décisions 2 et 3 |
-| CT-3 | [Approbations](CT-3-approbations.md) | version 0.3 (révision 0.3 : personne nommée par le système d'identité du client, annuaire des approbateurs et inscription par preuve de possession, recopie du réglage `administrators` comme opération de l'annuaire, parcours de signature par portefeuille, contrôle local avant et après la signature, canal de la console et ordre de ses refus, effets connus après exécution, console de référence et son test Chromium en intégration continue), en revue pour la porte 1 | décision 4 |
+| CT-2 | [Enregistreur](CT-2-enregistreur.md) | version 0.6 (révision 0.6, minimale : mode observation, où la politique d'approbation est évaluée sans être appliquée et où aucune panne ne bloque un appel ; révision 0.5 : API Gemini à la passerelle, SDK Python et TypeScript, adaptateurs de cadres, ingestion OpenTelemetry, gel juridique des copies WORM, coût par agent ; révision 0.4 : production des points de contrôle), en revue pour la porte 1 | décisions 2 et 3 |
+| CT-3 | [Approbations](CT-3-approbations.md) | version 0.4 (révision 0.4, minimale : mode observation, évaluation sans effet, réponse sans ticket et marque ` [observation <x>]` de `policy.rule` ; révision 0.3 : personne nommée par le système d'identité du client, annuaire des approbateurs et inscription par preuve de possession, recopie du réglage `administrators` comme opération de l'annuaire, parcours de signature par portefeuille, contrôle local avant et après la signature, canal de la console et ordre de ses refus, effets connus après exécution, console de référence et son test Chromium en intégration continue), en revue pour la porte 1 | décision 4 |
 | CT-4 | [Registre](CT-4-registre.md) | version 0.4 (révision 0.4 minimale, textuelle : les condensés du registre se signent hors de la console de CT-3, par la commande `signer` de l'outil de référence ou un outil conforme à EX-7.10 ; révision 0.3 : libellé de `docType` du point de contrôle, §6.4 ; corrections de la revue appliquées en 0.2), en revue pour la porte 1 | — (touche les décisions 6 et 7 sans les clore, CT-4 §13) |
 | CT-5 | [Ancrage](CT-5-ancrage.md) | version 0.2 (révision 0.2 : corrections de la revue de la version 0.1), en revue pour la porte 1 | — (met en œuvre les points 2 et 3 de la section « Ancrage » de l'architecture et fixe la cadence des ancres des points de contrôle) |
 | CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.3 (révision 0.3 : vérification de la partie `attestation-perimetre.json`, sans effet sur le verdict ; révision 0.2 : vérification de la partie `points-de-controle.json`), en revue pour la porte 1 | — |
 | CT-7 | [Sécurité et conformité](CT-7-securite-et-conformite.md) | version 0.1 (modèle de menace par composant, clés et secrets, cérémonie des clés et procès-verbal vérifiable hors ligne, journal de l'enregistreur sur lui-même, attestation de périmètre, matrice de conformité et modèles de clauses), en revue pour la porte 1 | — |
-| CT-8 | Déploiement et exploitation | à écrire | — |
+| CT-8 | [Déploiement et exploitation](CT-8-deploiement-et-exploitation.md) | version 0.1 (topologies et paquets, fichiers de conteneur de référence vérifiés statiquement, prérequis réseau, contrôle préalable, installation rapide en 15 minutes et installation complète en moins d'une journée, dimensionnement, observabilité et runbooks, sauvegarde, reprise et mises à jour, journal des consultations et des accès, mode observation, paquet réviseur vérifiable en une commande), en revue pour la porte 1 | — |
 | CT-9 | Plan de tests | à écrire | — |
 
 Ordre d'écriture : CT-1, puis CT-6 et CT-2 en parallèle, puis CT-3, CT-4, CT-5,
@@ -39,7 +39,7 @@ schémas ; ils ne sont pas résolus en ligne.
 | [`point-de-controle-v0.schema.json`](schemas/point-de-controle-v0.schema.json) | Un point de contrôle de la période en cours (CT-1 §10.5, révision 0.3) ; l'exemple complet est imprimé en CT-1 §10.5 | `checkpoint` de `$defs/points_de_controle` du schéma de dossier |
 | [`attestation-perimetre-v0.schema.json`](schemas/attestation-perimetre-v0.schema.json) | L'attestation de périmètre de capture (CT-7 §7), et dans ses `$defs` l'attestation signée, le jeu d'approbateurs déclaré, la référence de secret, le canal de capture, le fichier de cas des vecteurs, les signatures croisées (`croises`) et la grille de l'épreuve de l'administrateur (`grille_attestation`) ; l'exemple complet est imprimé en CT-7 §7.1 | `$defs/attestation_perimetre` du schéma de dossier (CT-1 révision 0.4) |
 | [`politique-redaction-v0.schema.json`](schemas/politique-redaction-v0.schema.json) | Une politique de rédaction avant hachage (CT-2 §10) ; l'exemple complet `pii-v1` est imprimé en CT-2 §10.9 | `policy.redaction` du schéma de configuration |
-| [`configuration-enregistreur-v0.schema.json`](schemas/configuration-enregistreur-v0.schema.json) | Le document unique de configuration de l'enregistreur (CT-2 §15), dont l'ensemble de politique `policy` ; l'exemple complet est imprimé en CT-2 §15.3 ; il référence les schémas de politique de rédaction et de politique d'approbation ; depuis CT-2 révision 0.5, ajouts compatibles : `$defs/model_route` (route `gemini`), `otel`, `policy.otel`, `policy.sdk` et `$defs/worm` | — |
+| [`configuration-enregistreur-v0.schema.json`](schemas/configuration-enregistreur-v0.schema.json) | Le document unique de configuration de l'enregistreur (CT-2 §15), dont l'ensemble de politique `policy` ; l'exemple complet est imprimé en CT-2 §15.3 ; il référence les schémas de politique de rédaction et de politique d'approbation ; depuis CT-2 révision 0.5, ajouts compatibles : `$defs/model_route` (route `gemini`), `otel`, `policy.otel`, `policy.sdk` et `$defs/worm` ; depuis CT-2 révision 0.6, valeur `observation` de `policy.approval.mode` | — |
 | [`worm-v0.schema.json`](schemas/worm-v0.schema.json) | Gel juridique et contrôle des copies WORM (CT-2 §12.6 et §12.11, révision 0.5) : ligne du registre des copies, ligne de la liste des objets d'un gel, enregistrement du registre des gels, et dans ses `$defs` les fichiers de cas de la famille `ct-2/worm/` | — |
 | [`cout-agent-v0.schema.json`](schemas/cout-agent-v0.schema.json) | Entrées et sorties de la formule du coût annuel par agent (CT-2 §16.4, révision 0.5), prix en unités symboliques, et le fichier de cas de la famille `ct-2/cout-agent/` | — |
 | [`rapport-verification-v0.schema.json`](schemas/rapport-verification-v0.schema.json) | La sortie JSON du vérificateur (`--json`) : rapport (codes 0, 1, 3) ou rapport d'erreur (code 2) (CT-6 §8.6) ; depuis CT-6 révision 0.3, identifiants AT-, avertissements AV-AT- et `facts.perimeter` (`$defs/faits_perimetre`), facultatif | — |
@@ -60,6 +60,14 @@ schémas ; ils ne sont pas résolus en ligne.
 | [`modele-menace-v0.schema.json`](schemas/modele-menace-v0.schema.json) | Le modèle de menace par composant (CT-7 §3.8) : composants, tables sources consolidées, menaces et risques acceptés ; forme lisible par machine de la table du texte ; dans ses `$defs`, la grille de l'épreuve de sécurité (`grille_securite`) | — |
 | [`ceremonie-cles-v0.schema.json`](schemas/ceremonie-cles-v0.schema.json) | Le procès-verbal d'une cérémonie des clés (CT-7 §5.6), avec `purpose_details` propre à chaque objet (CR-12), et dans ses `$defs` le fichier `attendu.json` des vecteurs et `cles-de-test.json` (`cles_de_test`) ; l'exemple calculé est imprimé en CT-7 §5.10 | — |
 | [`matrice-conformite-v0.schema.json`](schemas/matrice-conformite-v0.schema.json) | La matrice de conformité (CT-7 §8.3) : textes, lignes et leur statut dérivé, clauses, lacunes ; l'avertissement y est une constante ; dans ses `$defs`, le fichier `attendu.json` des cas invalides (`cas_invalides_matrice`) et la grille de l'épreuve de conformité (`grille_conformite`) | — |
+| [`conteneurs-v0.schema.json`](schemas/conteneurs-v0.schema.json) | La description des images et des services de référence (`deploiement/images/images.json`) ; dans ses `$defs`, le rapport des vérifications CO-1 à CO-14 d'un fichier Compose et le fichier de cas de la famille `ct-8/conteneurs/` (CT-8 §4) | — |
+| [`controle-prealable-v0.schema.json`](schemas/controle-prealable-v0.schema.json) | Le rapport du contrôle préalable d'un hôte, IP-1 à IP-13 ; dans ses `$defs`, les observations relevées et le fichier de cas de la famille `ct-8/controle-prealable/` (CT-8 §6) | — |
+| [`dimensionnement-v0.schema.json`](schemas/dimensionnement-v0.schema.json) | Les entrées du calculateur de dimensionnement ; dans ses `$defs`, ses sorties et le fichier de cas de la famille `ct-8/dimensionnement/` (CT-8 §9) | — |
+| [`proces-verbal-exploitation-v0.schema.json`](schemas/proces-verbal-exploitation-v0.schema.json) | Le procès-verbal d'un acte d'exploitation : sauvegarde, restauration, exercice de restauration, migration de support, fin de rétention, passage de mode ; vérifications PV-1 à PV-9 (CT-8 §11.9) | — |
+| [`consultation-v0.schema.json`](schemas/consultation-v0.schema.json) | Une ligne du journal des consultations et des accès, chaînée à la précédente ; vérifications CA-1 à CA-6 (CT-8 §11.10) | — |
+| [`verification-journal-v0.schema.json`](schemas/verification-journal-v0.schema.json) | Le rapport de vérification d'un répertoire de journal sans réseau (CT-8 EX-11.7) | — |
+| [`rapport-observation-v0.schema.json`](schemas/rapport-observation-v0.schema.json) | Le rapport d'observation : ce que la politique aurait exigé, règle par règle, d'après les marques des événements (CT-8 §12.5) ; dans ses `$defs`, les fichiers de cas `observation/` des vecteurs | `ticket-v0` (`reponse_evaluer`), `evenement-v0` (`policy`) |
+| [`paquet-reviseur-v0.schema.json`](schemas/paquet-reviseur-v0.schema.json) | Le manifeste `MANIFESTE.json` d'un paquet réviseur (CT-8 §13.3) ; dans ses `$defs`, la description lue par l'outil de construction, le rapport de l'outil de vérification et le fichier de cas de la famille `ct-8/paquets/` | — |
 
 Validation d'un fichier avec ajv (les schémas de CT-1 doivent être chargés
 ensemble à cause des références croisées ; depuis CT-1 révision 0.3, le schéma
@@ -188,6 +196,27 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
   -d attestation-signee.json
 ```
 
+
+Les huit schémas nouveaux du déploiement et de l'exploitation se compilent en
+mode strict ; seul `rapport-observation-v0` a des références croisées (vers
+`ticket-v0` et `evenement-v0`, qui se chargent avec `politique-approbation-v0`).
+La description des images, un rapport de contrôle préalable, des entrées de
+dimensionnement, un procès-verbal, une ligne de consultation et un manifeste de
+paquet réviseur se valident seuls contre la racine de leur schéma ; une
+définition de leurs `$defs` (sorties du calculateur, observations, rapport de
+l'outil du paquet) se valide par un schéma enveloppe :
+
+```bash
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s spec/schemas/paquet-reviseur-v0.schema.json -d MANIFESTE.json
+echo '{"$schema":"https://json-schema.org/draft/2020-12/schema","$ref":"https://noortrace.example/schemas/v0/dimensionnement.schema.json#/$defs/sorties"}' > sorties.schema.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s sorties.schema.json -r spec/schemas/dimensionnement-v0.schema.json -d sorties.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s spec/schemas/rapport-observation-v0.schema.json -r spec/schemas/ticket-v0.schema.json \
+  -r spec/schemas/evenement-v0.schema.json -r spec/schemas/politique-approbation-v0.schema.json \
+  -d rapport-observation.json
+```
 ## Vecteurs de test (`vecteurs/`)
 
 ### CT-1 (`vecteurs/ct-1/`)
@@ -377,3 +406,27 @@ que des dossiers nouveaux et leur `INDEX.md`.
 | `ct-7/acceptation-securite/`, `ct-7/acceptation-conformite/`, `ct-7/acceptation-attestation/` | Consignes des trois épreuves à l'aveugle ; les grilles dans des fichiers à part | chaque réponse contient tous ses éléments |
 | `ct-7/confrontation/ceremonies/`, `ct-7/confrontation/attestations/` | Programmes et sorties publiées d'ethers et d'eth-account 0.14.0 (`LISEZMOI.md`, `exigences.txt`, `sorties/`) ; les programmes des procès-verbaux lisent `spec/vecteurs/ct-7`, ceux des attestations prennent trois arguments, `spec/vecteurs/ct-7`, `spec/vecteurs/ct-1` et `spec/vecteurs/ct-6` ; jamais écrit par le générateur ; `test/confrontation.test.js` relie les sorties aux vecteurs | aucune discordance ; écarts de forme inscrits |
 | `ct-7/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification | zéro discordance (`go run . ..`) |
+
+### CT-8 (`vecteurs/ct-8/`)
+
+Disposition fixée par l'annexe A de
+[CT-8](CT-8-deploiement-et-exploitation.md) (A.1) ; ils sont produits par
+`scripts/vecteurs/generer-ct8.mjs` (`npm run vecteurs:ct8`), deux générations
+donnant les mêmes octets, et rejoués par `test/deploiement.test.js`,
+`test/observation.test.js`, `test/exploitation.test.js` et
+`test/paquet-reviseur.test.js` ; seule la famille `supervision/` est à
+produire, lot suivant. Les vecteurs des
+spécifications précédentes ne changent pas : les familles du mode observation
+et du paquet réviseur lisent ceux de `ct-3/`, `ct-4/`, `ct-6/` et `ct-7/` sans
+les copier.
+
+| Répertoire ou fichier | Contenu | Résultat attendu |
+|---|---|---|
+| `ct-8/conteneurs/` | Description des images, fichiers Compose de référence et variantes altérées (schéma `conteneurs-v0`) | rapport des vérifications CO- |
+| `ct-8/controle-prealable/` | Observations d'un hôte et leur évaluation, par profil | verdict, statut de chaque vérification IP- |
+| `ct-8/dimensionnement/` | Entrées du calculateur et sorties exactes | chaque nombre à l'égalité exacte ; refus nommés |
+| `ct-8/observation/`, `ct-8/journaux/`, `ct-8/proces-verbaux/`, `ct-8/consultations/` ; `ct-8/supervision/` (à produire, lot suivant) | Marques, réponses et correspondance du mode observation, journal d'exemple, rapport et dossiers, répertoires de journal, procès-verbaux, journal des consultations ; lignes de journal et règles de supervision | vérifications OB-, PV-, CA-, et vérification de journal ; SV- au lot suivant |
+| `ct-8/paquets/` | Paquets réviseurs (archives ustar déterministes) valide et altérés, `cas.json` | code de retour, état du paquet, vérifications PR- |
+| `ct-8/acceptation-exploitation/`, `ct-8/acceptation-observation/` | Consignes des épreuves à l'aveugle (a) et (c) ; les grilles dans des fichiers à part | chaque réponse contient tous ses éléments |
+| `ct-8/confrontation/` | Programmes et sorties publiées de GNU tar, de `tarfile` de Python (`paquets/`), de `sha256sum` et de `json` et `hashlib` de Python (`exploitation/`) | mêmes membres et mêmes écarts que l'outil de référence ; aucune discordance |
+| `ct-8/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification | zéro discordance (`go run . ..`) |

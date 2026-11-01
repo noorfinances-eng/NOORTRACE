@@ -1,0 +1,743 @@
+{
+  "version": 0,
+  "description": "OB-6 (CT-8 EX-12.16) : chaque cas d'évaluation de CT-3 rejoué en mode observation (CT-3 EX-11.12, EX-12.20), et deux cas avec le service indisponible.",
+  "source": "ct-3/evaluation/assureur.json",
+  "cases": [
+    {
+      "id": "observation-lecture-inconditionnelle",
+      "description": "Cas lecture-inconditionnelle de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "lecture-inconditionnelle",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "outil crm.claims.get : lecture autorisee",
+          "decision": "autorise",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "outil crm.claims.get : lecture autorisee [observation autorise]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-7400",
+      "description": "Cas paiement-7400 de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-7400",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement > 5000 CHF [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-beneficiaire-hors-liste",
+      "description": "Cas beneficiaire-hors-liste de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "beneficiaire-hors-liste",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "beneficiaire hors liste blanche",
+          "decision": "refuse",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "beneficiaire hors liste blanche [observation refuse]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-800",
+      "description": "Cas paiement-800 de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-800",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement <= 1000 CHF",
+          "decision": "autorise",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement <= 1000 CHF [observation autorise]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-2500-sans-fenetre",
+      "description": "Cas paiement-2500-sans-fenetre de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-2500-sans-fenetre",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement de 1000 a 5000 CHF [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-2500-fenetre-ouverte",
+      "description": "Cas paiement-2500-fenetre-ouverte de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-2500-fenetre-ouverte",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF [fenetre apr-3001 2026-11-05T16:00:00.000Z]",
+          "decision": "autorise",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-05T08:00:00.000Z",
+            "end": "2026-11-05T16:00:00.000Z",
+            "remaining": 20,
+            "ticket": "apr-3001"
+          }
+        ],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement de 1000 a 5000 CHF [fenetre apr-3001 2026-11-05T16:00:00.000Z] [observation autorise]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-2500-autre-beneficiaire",
+      "description": "Cas paiement-2500-autre-beneficiaire de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-2500-autre-beneficiaire",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-05T08:00:00.000Z",
+            "end": "2026-11-05T16:00:00.000Z",
+            "remaining": 20,
+            "ticket": "apr-3001"
+          }
+        ],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement de 1000 a 5000 CHF [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-5000-borne",
+      "description": "Cas paiement-5000-borne de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-5000-borne",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement de 1000 a 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement de 1000 a 5000 CHF [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-5000-dix-huit-decimales",
+      "description": "Cas paiement-5000-dix-huit-decimales de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-5000-dix-huit-decimales",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement > 5000 CHF [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-nombre-entier",
+      "description": "Cas paiement-nombre-entier de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-nombre-entier",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement > 5000 CHF",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement > 5000 CHF [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-nombre-non-entier",
+      "description": "Cas paiement-nombre-non-entier de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-nombre-non-entier",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement > 5000 CHF [indetermine]",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement > 5000 CHF [indetermine] [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-hors-grammaire",
+      "description": "Cas paiement-hors-grammaire de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-hors-grammaire",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement > 5000 CHF [indetermine]",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement > 5000 CHF [indetermine] [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-montant-absent",
+      "description": "Cas paiement-montant-absent de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-montant-absent",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement > 5000 CHF [indetermine]",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement > 5000 CHF [indetermine] [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-devise-absente",
+      "description": "Cas paiement-devise-absente de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-devise-absente",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement hors CHF [indetermine]",
+          "decision": "refuse",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement hors CHF [indetermine] [observation refuse]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-devise-minuscules",
+      "description": "Cas paiement-devise-minuscules de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-devise-minuscules",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "paiement hors CHF",
+          "decision": "refuse",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "paiement hors CHF [observation refuse]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-iban-absent-fenetre",
+      "description": "Cas paiement-iban-absent-fenetre de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-iban-absent-fenetre",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "beneficiaire hors liste blanche [indetermine]",
+          "decision": "refuse",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [
+          {
+            "scope": {
+              "policy_version": "vecteurs-ct3-1",
+              "rule": "paiement de 1000 a 5000 CHF",
+              "tool": "sap.payments.create",
+              "launched_by": "u.martin@assureur-demo.example",
+              "values": [
+                "CH9300762011623852957"
+              ]
+            },
+            "start": "2026-11-05T08:00:00.000Z",
+            "end": "2026-11-05T16:00:00.000Z",
+            "remaining": 20,
+            "ticket": "apr-3001"
+          }
+        ],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "beneficiaire hors liste blanche [indetermine] [observation refuse]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-zero",
+      "description": "Cas paiement-zero de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-zero",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "defaut : revue",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "defaut : revue [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-paiement-moins-zero",
+      "description": "Cas paiement-moins-zero de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "paiement-moins-zero",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "defaut : revue",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "defaut : revue [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-courriel-assure",
+      "description": "Cas courriel-assure de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "courriel-assure",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "outil mail.send : envoi autorise vers l'assure",
+          "decision": "autorise",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "outil mail.send : envoi autorise vers l'assure [observation autorise]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-courriel-garage",
+      "description": "Cas courriel-garage de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "courriel-garage",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "defaut : revue",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "defaut : revue [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-courriel-sans-role",
+      "description": "Cas courriel-sans-role de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "courriel-sans-role",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "defaut : revue",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "defaut : revue [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-outil-sans-regle",
+      "description": "Cas outil-sans-regle de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "outil-sans-regle",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "defaut : revue",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "defaut : revue [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-outil-casse",
+      "description": "Cas outil-casse de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "outil-casse",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "defaut : revue",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "defaut : revue [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "observation-suppression",
+      "description": "Cas suppression de CT-3 évalué en mode observation : règle et décision d'evaluer, sans ticket, fenêtres inchangées.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "suppression",
+      "service_available": true,
+      "expected": {
+        "response": {
+          "rule": "suppression de sinistre",
+          "decision": "a_approuver",
+          "ticket": null,
+          "ticket_state": null,
+          "approval": null,
+          "approver_set": null
+        },
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "suppression de sinistre [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "indisponible-lecture-inconditionnelle",
+      "description": "Cas lecture-inconditionnelle de CT-3, service d'approbation sans réponse dans timeout_ms : nom fixe et marque inconnu.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "lecture-inconditionnelle",
+      "service_available": false,
+      "expected": {
+        "response": null,
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    },
+    {
+      "id": "indisponible-suppression",
+      "description": "Cas suppression de CT-3, service d'approbation sans réponse dans timeout_ms : nom fixe et marque inconnu.",
+      "checks": [
+        "OB-6"
+      ],
+      "source_case": "suppression",
+      "service_available": false,
+      "expected": {
+        "response": null,
+        "windows_after": [],
+        "tickets_created": 0,
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        }
+      }
+    }
+  ]
+}

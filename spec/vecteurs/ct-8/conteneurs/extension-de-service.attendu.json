@@ -1,0 +1,102 @@
+{
+  "description": "Clé extends dans l'enregistreur, qui importerait les clés d'un service non examiné (CO-8, cle_interdite_extends).",
+  "file": "extension-de-service.yaml",
+  "attendu": {
+    "version": 0,
+    "file": "extension-de-service.yaml",
+    "sha256": "a2cbb5d72346d71e5e12e2d0050ca586a652d6d71179cf4d8ecf50cbb9096b99",
+    "verdict": "non_conforme",
+    "all_images_by_digest": false,
+    "checks": [
+      {
+        "id": "CO-1",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-2",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-3",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-4",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-5",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-6",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-7",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-8",
+        "status": "echoue",
+        "reason": null,
+        "findings": [
+          {
+            "service": "enregistreur",
+            "code": "cle_interdite_extends"
+          }
+        ]
+      },
+      {
+        "id": "CO-9",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-10",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-11",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-12",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-13",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-14",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      }
+    ]
+  }
+}

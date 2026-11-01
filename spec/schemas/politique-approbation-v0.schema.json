@@ -32,7 +32,8 @@
       "minLength": 1,
       "maxLength": 256,
       "pattern": "^[^ \\[\\]\\u0000-\\u001F\\u007F-\\u009F](?:[^\\[\\]\\u0000-\\u001F\\u007F-\\u009F]{0,254}[^ \\[\\]\\u0000-\\u001F\\u007F-\\u009F])?$",
-      "description": "Nom de la règle, recopié dans policy.rule (CT-1 §5.3). Ni crochet, ni caractère de contrôle, ni espace en tête ou en fin. Unique dans le document, règle par défaut comprise (EX-4.2)."
+      "not": { "const": "evaluation impossible" },
+      "description": "Nom de la règle, recopié dans policy.rule (CT-1 §5.3). Ni crochet, ni caractère de contrôle, ni espace en tête ou en fin. Unique dans le document, règle par défaut comprise (EX-4.2). Le nom evaluation impossible est réservé à la marque inconnu du mode observation (EX-6.8, révision 0.4)."
     },
     "description": {
       "oneOf": [

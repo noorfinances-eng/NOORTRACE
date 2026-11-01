@@ -1,0 +1,368 @@
+{
+  "version": 0,
+  "description": "Descriptions des images et des services de référence de NOORTRACE (CT-8 §3 et §4). Une image noortrace/* de statut a_construire n'existe pas encore : sa description est l'exigence que la construction (phase 2) doit tenir. Les vérifications CO-1 à CO-14 confrontent chaque fichier Compose de deploiement/compose/ à ces descriptions.",
+  "services": {
+    "enregistreur": {
+      "image": "noortrace/enregistreur",
+      "tag": "0.1.0",
+      "status": "a_construire",
+      "kind": "service",
+      "source": "CT-2 (démon : mandataire MCP, passerelle du modèle et raccord ICAP, points d'entrée SDK et OpenTelemetry, écrivain, stockage, bail, clôture, exportateur, composant d'ancrage de CT-5 en fil distinct)",
+      "user": "10001:10001",
+      "passwd": [
+        {
+          "name": "noortrace",
+          "uid": 10001
+        },
+        {
+          "name": "noortrace-approbation",
+          "uid": 10002
+        }
+      ],
+      "group_add": [
+        "10010"
+      ],
+      "cap_add": [],
+      "network_mode": null,
+      "networks": [
+        "hotes",
+        "outils",
+        "sortie"
+      ],
+      "ports": [
+        8300,
+        8400,
+        1344,
+        4318,
+        8500
+      ],
+      "volumes": [
+        {
+          "target": "/var/lib/noortrace",
+          "access": "rw"
+        },
+        {
+          "target": "/var/log/noortrace",
+          "access": "rw"
+        },
+        {
+          "target": "/run/noortrace",
+          "access": "rw"
+        },
+        {
+          "target": "/var/lib/noortrace-exports",
+          "access": "rw"
+        },
+        {
+          "target": "/etc/noortrace/configuration.json",
+          "access": "ro"
+        },
+        {
+          "target": "/etc/noortrace/ancrage.json",
+          "access": "ro"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [
+        "./config/"
+      ],
+      "secrets": [
+        "^cle-enregistreur$",
+        "^cle-mac-relais$",
+        "^acces-signataire$",
+        "^cle-chaine$",
+        "^dsn-bail$",
+        "^worm-ecrivain$",
+        "^jeton-hote(-[a-z0-9-]+)?$",
+        "^jeton-passerelle$",
+        "^cle-fournisseur-[a-z0-9-]+$",
+        "^tsa-[a-z0-9-]+$",
+        "^tls-enregistreur-(certificat|cle)$",
+        "^bitcoin-rpc$",
+        "^cle-pseudonymisation$",
+        "^cle-coffre$",
+        "^identifiant-outil-[a-z0-9-]+$",
+        "^oauth-[a-z0-9-]+$"
+      ],
+      "probe": {
+        "type": "commande",
+        "test": [
+          "CMD",
+          "/usr/local/bin/noortrace-ctl",
+          "sonde",
+          "--url",
+          "http://127.0.0.1:8500/readyz"
+        ]
+      }
+    },
+    "attributs": {
+      "image": "noortrace/attributs",
+      "tag": "0.1.0",
+      "status": "a_construire",
+      "kind": "service",
+      "source": "CT-2 EX-12.18 : service compagnon qui pose les attributs a et i ; seul service admis sous l'utilisateur 0, avec trois capacités nommées",
+      "user": "0:0",
+      "passwd": [],
+      "group_add": [],
+      "cap_add": [
+        "LINUX_IMMUTABLE",
+        "FOWNER",
+        "DAC_READ_SEARCH"
+      ],
+      "network_mode": "none",
+      "networks": [],
+      "ports": [],
+      "volumes": [
+        {
+          "target": "/var/lib/noortrace",
+          "access": "rw"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [],
+      "secrets": [],
+      "probe": {
+        "type": "commande",
+        "test": [
+          "CMD",
+          "/usr/local/bin/noortrace-attributs",
+          "sonde"
+        ]
+      }
+    },
+    "approbation": {
+      "image": "noortrace/approbation",
+      "tag": "0.1.0",
+      "status": "a_construire",
+      "kind": "service",
+      "source": "CT-3 §12 (service d'approbation)",
+      "user": "10002:10002",
+      "passwd": [
+        {
+          "name": "noortrace-approbation",
+          "uid": 10002
+        },
+        {
+          "name": "noortrace",
+          "uid": 10001
+        }
+      ],
+      "group_add": [
+        "10010"
+      ],
+      "cap_add": [],
+      "network_mode": null,
+      "networks": [
+        "console",
+        "sortie"
+      ],
+      "ports": [
+        8601
+      ],
+      "volumes": [
+        {
+          "target": "/var/lib/noortrace-approbation",
+          "access": "rw"
+        },
+        {
+          "target": "/run/noortrace",
+          "access": "rw"
+        },
+        {
+          "target": "/etc/noortrace-approbation/configuration.json",
+          "access": "ro"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [
+        "./config/"
+      ],
+      "secrets": [
+        "^jeton-console-vers-service-approbation$",
+        "^jeton-noyau-vers-service$",
+        "^rpc-registre$",
+        "^notification-[a-z0-9-]+$",
+        "^tls-approbation$"
+      ],
+      "probe": {
+        "type": "commande",
+        "test": [
+          "CMD",
+          "/usr/local/bin/noortrace-approbation",
+          "sonde",
+          "--url",
+          "http://127.0.0.1:8601/v0/etat"
+        ]
+      }
+    },
+    "console": {
+      "image": "noortrace/console",
+      "tag": "0.1.0",
+      "status": "a_construire",
+      "kind": "service",
+      "source": "CT-3 §13 (serveur de console et page de référence de console/)",
+      "user": "10003:10003",
+      "passwd": [
+        {
+          "name": "noortrace-console",
+          "uid": 10003
+        }
+      ],
+      "group_add": [],
+      "cap_add": [],
+      "network_mode": null,
+      "networks": [
+        "console",
+        "sortie"
+      ],
+      "ports": [
+        8700
+      ],
+      "volumes": [
+        {
+          "target": "/etc/noortrace-console/configuration.json",
+          "access": "ro"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [
+        "./config/"
+      ],
+      "secrets": [
+        "^jeton-console-vers-service-console$",
+        "^oidc-client$",
+        "^tls-console$"
+      ],
+      "probe": {
+        "type": "commande",
+        "test": [
+          "CMD",
+          "/usr/local/bin/noortrace-console",
+          "sonde"
+        ]
+      }
+    },
+    "pont-fichiers": {
+      "image": "noortrace/pont-stdio",
+      "tag": "0.1.0",
+      "status": "a_construire",
+      "kind": "service",
+      "source": "CT-8 §3.4 : pont qui sert un serveur d'outils stdio en Streamable HTTP, un conteneur par serveur (CT-2 EX-3.5)",
+      "user": "10101:10101",
+      "passwd": [
+        {
+          "name": "mcp-fichiers",
+          "uid": 10101
+        }
+      ],
+      "group_add": [],
+      "cap_add": [],
+      "network_mode": null,
+      "networks": [
+        "outils"
+      ],
+      "ports": [],
+      "volumes": [
+        {
+          "target": "/srv/pieces",
+          "access": "rw"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [
+        "/srv/noortrace-outils/"
+      ],
+      "secrets": [
+        "^jeton-pont-[a-z0-9-]+$"
+      ],
+      "probe": {
+        "type": "commande",
+        "test": [
+          "CMD",
+          "/usr/local/bin/noortrace-pont-stdio",
+          "sonde",
+          "--url",
+          "http://127.0.0.1:9101/sante"
+        ]
+      }
+    },
+    "relais": {
+      "image": "noortrace/noorcore",
+      "tag": "618fcef-noortrace",
+      "status": "existante",
+      "kind": "service",
+      "source": "chain/docker/Dockerfile et chain/docker/docker-compose.yml (CT-4 §10.3) ; jamais pour une capture ni une soumission (CT-4 EX-10.5)",
+      "user": "65532:65532",
+      "passwd": [],
+      "group_add": [],
+      "cap_add": [],
+      "network_mode": null,
+      "networks": [
+        "sortie"
+      ],
+      "ports": [
+        8545,
+        8080,
+        9090
+      ],
+      "volumes": [
+        {
+          "target": "/var/lib/noorcore",
+          "access": "rw"
+        }
+      ],
+      "tmpfs": null,
+      "environment": [],
+      "bind_sources": [],
+      "secrets": [],
+      "probe": {
+        "type": "externe",
+        "method": "eth_blockNumber"
+      }
+    },
+    "verificateur": {
+      "image": "noortrace/verificateur",
+      "tag": "0.1.0",
+      "status": "a_construire",
+      "kind": "outil",
+      "source": "CT-6 (noortrace-verifier, binaire autonome sans réseau)",
+      "user": "10005:10005",
+      "passwd": [],
+      "group_add": [],
+      "cap_add": [],
+      "network_mode": "none",
+      "networks": [],
+      "ports": [],
+      "volumes": [
+        {
+          "target": "/var/lib/noortrace-exports",
+          "access": "ro"
+        }
+      ],
+      "tmpfs": "/run/temporaire",
+      "environment": [
+        "TMPDIR"
+      ],
+      "bind_sources": [],
+      "secrets": [],
+      "probe": {
+        "type": "aucune"
+      }
+    }
+  }
+}

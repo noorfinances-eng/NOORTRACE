@@ -1,0 +1,593 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/rapport-observation.schema.json",
+  "title": "Rapport d'observation NOORTRACE, version 0",
+  "description": "Ce que la politique d'approbation aurait exigé pendant une suite d'événements d'un journal tenu en mode observation (CT-8 §12.5), calculé des seules marques « [observation <x>] » de policy.rule (CT-3 EX-6.8, révision 0.4) ; il se recalcule depuis les événements, sans clé ni pièce. Dans $defs, les fichiers de cas des vecteurs spec/vecteurs/ct-8/observation (CT-8 annexe A.8, vérifications OB-1 à OB-6).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "org_id",
+    "journal_id",
+    "first_seq",
+    "last_seq",
+    "from_ts",
+    "to_ts",
+    "events",
+    "tool_calls",
+    "observed",
+    "totals",
+    "rows",
+    "anomalies"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "org_id": {
+      "$ref": "#/$defs/hex32"
+    },
+    "journal_id": {
+      "$ref": "#/$defs/hex32"
+    },
+    "first_seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "last_seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "from_ts": {
+      "$ref": "#/$defs/horodatage"
+    },
+    "to_ts": {
+      "$ref": "#/$defs/horodatage"
+    },
+    "events": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Événements lus, de first_seq à last_seq."
+    },
+    "tool_calls": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Appels d'outil (execution.tool hors du préfixe noortrace.)."
+    },
+    "observed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Appels d'outil dont policy.rule porte une marque d'observation valide (OB-1)."
+    },
+    "totals": {
+      "$ref": "#/$defs/comptes"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ligne"
+      },
+      "description": "Une ligne par (policy_version, rule, would), triée par policy_version, puis rule (unités UTF-16, CT-1 §4), puis would dans l'ordre autorise, a_approuver, refuse, inconnu."
+    },
+    "anomalies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/anomalie"
+      },
+      "description": "Vérifications OB- en échec, triées par seq puis par identifiant de vérification."
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "horodatage": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "would": {
+      "enum": [
+        "autorise",
+        "a_approuver",
+        "refuse",
+        "inconnu"
+      ]
+    },
+    "comptes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "autorise",
+        "a_approuver",
+        "refuse",
+        "inconnu"
+      ],
+      "properties": {
+        "autorise": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "a_approuver": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refuse": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inconnu": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ligne": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_version",
+        "rule",
+        "would",
+        "count",
+        "seqs"
+      ],
+      "properties": {
+        "policy_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "policy.rule sans la marque d'observation ; les marques de CT-3 qui la précèdent ([indetermine], [fenetre …]) restent."
+        },
+        "would": {
+          "$ref": "#/$defs/would"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "seqs": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "description": "seq des événements, croissants ; vide quand would vaut autorise (seul le compte est utile)."
+        }
+      }
+    },
+    "anomalie": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seq",
+        "check",
+        "detail"
+      ],
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "check": {
+          "enum": [
+            "OB-1",
+            "OB-2",
+            "OB-3",
+            "OB-4"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Code fixe en snake_case ASCII (CT-8 §12.8)."
+        }
+      }
+    },
+    "analyse_marque": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid",
+        "rule",
+        "would",
+        "error"
+      ],
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "rule": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          ]
+        },
+        "would": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/would"
+            }
+          ]
+        },
+        "error": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "trop_longue",
+                "absente",
+                "valeur_inconnue",
+                "nom_vide",
+                "marque_en_double",
+                "inconnu_sans_nom_fixe",
+                "nom_fixe_sans_inconnu"
+              ]
+            }
+          ]
+        }
+      },
+      "description": "Résultat d'OB-1 sur une chaîne policy.rule (CT-8 §12.8)."
+    },
+    "fichier_cas_marques": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "description",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "input",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^OB-[0-9]+$"
+                }
+              },
+              "input": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Chaîne policy.rule à analyser."
+              },
+              "expected": {
+                "$ref": "#/$defs/analyse_marque"
+              }
+            }
+          }
+        }
+      }
+    },
+    "fichier_cas_correspondance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "description",
+        "source",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fichier de cas d'évaluation de CT-3 dont les cas sont repris (chemin relatif à spec/vecteurs), lu sans être copié."
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "source_case",
+              "service_available",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^OB-[0-9]+$"
+                }
+              },
+              "source_case": {
+                "type": "string",
+                "minLength": 1,
+                "description": "id du cas de CT-3 repris : sa politique, sa demande, ses fenêtres et t."
+              },
+              "service_available": {
+                "type": "boolean",
+                "description": "Faux : le service ne répond pas dans timeout_ms (CT-2 EX-14.15)."
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "response",
+                  "windows_after",
+                  "tickets_created",
+                  "policy"
+                ],
+                "properties": {
+                  "response": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/reponse_evaluer"
+                      }
+                    ],
+                    "description": "Réponse d'evaluer du service en mode observation (CT-3 EX-11.12) ; null quand le service est indisponible."
+                  },
+                  "windows_after": {
+                    "type": "array",
+                    "description": "Fenêtres du service après l'évaluation : celles du cas de CT-3, inchangées (aucune unité consommée)."
+                  },
+                  "tickets_created": {
+                    "const": 0
+                  },
+                  "policy": {
+                    "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/policy",
+                    "description": "Membre policy de l'événement scellé par le noyau (CT-2 EX-14.14)."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fichier_cas_reponses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "description",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "response",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^OB-[0-9]+$"
+                }
+              },
+              "response": {
+                "description": "Réponse reçue du service (objet tel que reçu, conforme ou non à reponse_evaluer) ; null quand le service ne répond pas dans timeout_ms.",
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object"
+                  }
+                ]
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "admitted",
+                  "action",
+                  "policy",
+                  "would",
+                  "ops_log"
+                ],
+                "properties": {
+                  "admitted": {
+                    "type": "boolean",
+                    "description": "Vrai : réponse admise en mode observation (CT-2 EX-7.23, CT-3 EX-12.20)."
+                  },
+                  "action": {
+                    "const": "relayer",
+                    "description": "Le noyau relaie l'appel dans tous les cas (CT-2 EX-14.14)."
+                  },
+                  "policy": {
+                    "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/policy"
+                  },
+                  "would": {
+                    "$ref": "#/$defs/would"
+                  },
+                  "ops_log": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "enum": [
+                          "approval_service_unavailable",
+                          "approval_response_invalid"
+                        ]
+                      }
+                    ],
+                    "description": "Ligne du journal d'exploitation écrite par le noyau ; null quand la réponse est admise."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fichier_cas_invalides": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "description",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "file",
+              "with_policies",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "file": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+\\.ndjson$"
+              },
+              "with_policies": {
+                "type": "boolean",
+                "description": "Vrai : les pièces de politique (répertoire politiques/) sont fournies, OB-3 et OB-4 s'exécutent."
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "checks_run",
+                  "anomalies"
+                ],
+                "properties": {
+                  "checks_run": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "enum": [
+                        "OB-1",
+                        "OB-2",
+                        "OB-3",
+                        "OB-4"
+                      ]
+                    }
+                  },
+                  "anomalies": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/$defs/anomalie"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

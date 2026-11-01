@@ -1,0 +1,102 @@
+{
+  "description": "Image noortrace/enregistreur:latest, étiquette mutable (CO-2).",
+  "file": "image-latest.yaml",
+  "attendu": {
+    "version": 0,
+    "file": "image-latest.yaml",
+    "sha256": "f37d56bd99c9dcd1ca6d82945d0d5eee77dfebc03666745c3054de6d7ade4e09",
+    "verdict": "non_conforme",
+    "all_images_by_digest": false,
+    "checks": [
+      {
+        "id": "CO-1",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-2",
+        "status": "echoue",
+        "reason": null,
+        "findings": [
+          {
+            "service": "enregistreur",
+            "code": "image_non_epinglee"
+          }
+        ]
+      },
+      {
+        "id": "CO-3",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-4",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-5",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-6",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-7",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-8",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-9",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-10",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-11",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-12",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-13",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      },
+      {
+        "id": "CO-14",
+        "status": "reussi",
+        "reason": null,
+        "findings": []
+      }
+    ]
+  }
+}

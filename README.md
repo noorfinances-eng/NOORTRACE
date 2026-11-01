@@ -117,9 +117,22 @@ implementations written separately from the reference.
   EU texts to evidence and says what remains with the client, and model audit
   clauses. The matrix is a technical mapping, not legal advice. Signatures are
   confronted with ethers and eth-account.
+- **CT-8, deployment and operations**: topologies and packages, reference Compose
+  files checked statically (CO-1 to CO-14), network prerequisites (31 flows),
+  the host pre-check (IP-1 to IP-13), a quick install in eight steps within
+  15 minutes and a full production install in eighteen steps within a day,
+  calculated sizing (DM-1 to DM-22, a reference calculator), observability and
+  eight incident runbooks, backup and recovery without breaking the chain,
+  updates, a log of consultations and accesses, an observation mode in which
+  the approval policy is evaluated but never applied (CT-2 revision 0.6, CT-3
+  revision 0.4, both minimal and compatible), and a deterministic reviewer
+  package verified offline in one command (PR-1 to PR-12). Every duration and
+  capacity is a target to be measured by CT-9 once the recorder exists; the
+  install procedures themselves have not been run. Package archives are
+  confronted with GNU tar, Python's `tarfile` and `sha256sum`.
 
-CT-1, CT-2, CT-3, CT-4, CT-5 and CT-7 vectors are also recomputed by Go verifiers
-written from the specification alone, without reading the JavaScript.
+CT-1, CT-2, CT-3, CT-4, CT-5, CT-7 and CT-8 vectors are also recomputed by Go
+verifiers written from the specification alone, without reading the JavaScript.
 
 The registry contracts, the commit-certificate verifier and the reference approval
 console exist and are tested. The recorder, the approval service and the operating
@@ -134,6 +147,9 @@ binary are specified, not built yet.
 | `scripts/lib/` | JavaScript reference implementation |
 | `scripts/verify/` | Offline verifiers (evidence folder, commit certificate) |
 | `scripts/registre/` | CT-4 reference tool: client onboarding, anchoring, period closure, capture |
+| `deploiement/` | CT-8 reference deployment files: Compose files, image descriptions, quick-install configuration |
+| `scripts/deploiement/` | CT-8 tools: host pre-check, sizing, Compose checks, quick configuration, operations logs, minutes, consultations |
+| `scripts/paquet-reviseur/` | CT-8 reviewer package: build and offline verification in one command |
 | `console/` | CT-3 reference approval console: a static page with a strict content security policy |
 | `contracts/` | Registry contracts (Solidity) |
 | `test/` | Tests and fixtures |

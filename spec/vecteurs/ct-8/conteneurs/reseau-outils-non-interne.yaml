@@ -1,0 +1,368 @@
+# Installation complète de production de NOORTRACE (CT-8 §8) : topologies
+# « sur site », « tenant cloud du client » et « hébergeur suisse » (CT-8 §3).
+#
+# Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
+# l'image du nœud est celle de chain/docker/Dockerfile. Il est vérifié par
+# analyse statique (CT-8 §4, CO-1 à CO-14), jamais lancé dans le dépôt. Avant
+# la mise en service, chaque étiquette est complétée par le condensé publié
+# (pas IC-6) : le contrôle préalable de production refuse une image sans
+# condensé (IP-12). NOORTRACE_IP_INTERNE est l'adresse de l'interface interne
+# de l'hôte (jamais 0.0.0.0) ; les secrets sont des fichiers de ./secrets/
+# (mode 0400), jamais une variable d'environnement. Depuis le répertoire
+# deploiement/ :
+#
+#   docker compose --project-directory . -f compose/production.yaml up -d
+
+name: noortrace
+
+services:
+  enregistreur:
+    image: noortrace/enregistreur:0.1.0
+    user: "10001:10001"
+    group_add:
+      - "10010"
+    command: ["--configuration", "/etc/noortrace/configuration.json"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=67108864,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    ports:
+      - "${NOORTRACE_IP_INTERNE:?adresse interne requise}:8300:8300"
+      - "${NOORTRACE_IP_INTERNE:?adresse interne requise}:8400:8400"
+      - "${NOORTRACE_IP_INTERNE:?adresse interne requise}:1344:1344"
+      - "${NOORTRACE_IP_INTERNE:?adresse interne requise}:4318:4318"
+      - "127.0.0.1:8500:8500"
+    volumes:
+      - type: volume
+        source: journal
+        target: /var/lib/noortrace
+      - type: volume
+        source: exploitation
+        target: /var/log/noortrace
+      - type: volume
+        source: prises
+        target: /run/noortrace
+      - type: volume
+        source: exports
+        target: /var/lib/noortrace-exports
+      - type: bind
+        source: ./config/production/configuration.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./config/production/ancrage.json
+        target: /etc/noortrace/ancrage.json
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - cle-mac-relais
+      - acces-signataire
+      - cle-chaine
+      - dsn-bail
+      - worm-ecrivain
+      - jeton-hote-agents
+      - jeton-hote-otel
+      - jeton-passerelle
+      - cle-fournisseur-anthropic
+      - cle-fournisseur-openai
+      - cle-fournisseur-gemini
+      - tsa-principal
+      - tsa-secours
+      - tls-enregistreur-certificat
+      - tls-enregistreur-cle
+      - identifiant-outil-sap
+      - identifiant-outil-fichiers
+    networks:
+      - hotes
+      - outils
+      - sortie
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-ctl", "sonde", "--url", "http://127.0.0.1:8500/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      approbation:
+        condition: service_healthy
+
+  attributs:
+    image: noortrace/attributs:0.1.0
+    user: "0:0"
+    command: ["--racine", "/var/lib/noortrace", "--intervalle-s", "60"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=1048576,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    cap_add:
+      - LINUX_IMMUTABLE
+      - FOWNER
+      - DAC_READ_SEARCH
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    network_mode: none
+    volumes:
+      - type: volume
+        source: journal
+        target: /var/lib/noortrace
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-attributs", "sonde"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  approbation:
+    image: noortrace/approbation:0.1.0
+    user: "10002:10002"
+    group_add:
+      - "10010"
+    command: ["--configuration", "/etc/noortrace-approbation/configuration.json"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8601:8601"
+    volumes:
+      - type: volume
+        source: approbation-etat
+        target: /var/lib/noortrace-approbation
+      - type: volume
+        source: prises
+        target: /run/noortrace
+      - type: bind
+        source: ./config/production/approbation.json
+        target: /etc/noortrace-approbation/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - jeton-console-vers-service-approbation
+      - rpc-registre
+      - notification-courriel
+      - tls-approbation
+    networks:
+      - console
+      - sortie
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-approbation", "sonde", "--url", "http://127.0.0.1:8601/v0/etat"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  console:
+    image: noortrace/console:0.1.0
+    user: "10003:10003"
+    command: ["--configuration", "/etc/noortrace-console/configuration.json"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    ports:
+      - "${NOORTRACE_IP_INTERNE:?adresse interne requise}:8700:8700"
+    volumes:
+      - type: bind
+        source: ./config/production/console.json
+        target: /etc/noortrace-console/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - jeton-console-vers-service-console
+      - oidc-client
+      - tls-console
+    networks:
+      - console
+      - sortie
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-console", "sonde"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      approbation:
+        condition: service_healthy
+
+  pont-fichiers:
+    image: noortrace/pont-stdio:0.1.0
+    user: "10101:10101"
+    command: ["--ecoute", "0.0.0.0:9101", "--jeton", "/run/secrets/jeton-pont-fichiers", "--", "/opt/mcp/server-filesystem/bin/server-filesystem", "/srv/pieces"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=67108864,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /srv/noortrace-outils/fichiers
+        target: /srv/pieces
+        bind:
+          create_host_path: false
+    secrets:
+      - jeton-pont-fichiers
+    networks:
+      - outils
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-pont-stdio", "sonde", "--url", "http://127.0.0.1:9101/sante"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  relais:
+    image: noortrace/noorcore:618fcef-noortrace
+    user: "65532:65532"
+    profiles: ["relais"]
+    command:
+      - -chain-id=${NOORCORE_CHAIN_ID:?identifiant BFT requis}
+      - -evm-chain-id=${NOORCORE_EVM_CHAIN_ID:?identifiant EVM requis}
+      - -data-dir=/var/lib/noorcore
+      - -role=follower
+      - -follow-rpc=${NOORCORE_LEADER_RPC:?point RPC du meneur requis}
+      - -rpc-addr=0.0.0.0:8545
+      - -health-addr=0.0.0.0:8080
+      - -metrics-addr=0.0.0.0:9090
+      - -p2p-addr=127.0.0.1:30303
+      - -allow-public-bind
+      - -network-profile=prod-like
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8545:8545"
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - type: volume
+        source: noorcore-donnees
+        target: /var/lib/noorcore
+    networks:
+      - sortie
+    healthcheck:
+      disable: true
+
+  verificateur:
+    image: noortrace/verificateur:0.1.0
+    user: "10005:10005"
+    profiles: ["outils"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=67108864,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    network_mode: none
+    volumes:
+      - type: volume
+        source: exports
+        target: /var/lib/noortrace-exports
+        read_only: true
+    healthcheck:
+      disable: true
+
+networks:
+  hotes: {}
+  outils: {}
+  console:
+    internal: true
+  sortie: {}
+
+volumes:
+  journal: {}
+  exploitation: {}
+  prises: {}
+  exports: {}
+  approbation-etat: {}
+  noorcore-donnees: {}
+
+secrets:
+  cle-mac-relais:
+    file: ./secrets/cle-mac-relais
+  acces-signataire:
+    file: ./secrets/acces-signataire
+  cle-chaine:
+    file: ./secrets/cle-chaine
+  dsn-bail:
+    file: ./secrets/dsn-bail
+  worm-ecrivain:
+    file: ./secrets/worm-ecrivain
+  jeton-hote-agents:
+    file: ./secrets/jeton-hote-agents
+  jeton-hote-otel:
+    file: ./secrets/jeton-hote-otel
+  jeton-passerelle:
+    file: ./secrets/jeton-passerelle
+  cle-fournisseur-anthropic:
+    file: ./secrets/cle-fournisseur-anthropic
+  cle-fournisseur-openai:
+    file: ./secrets/cle-fournisseur-openai
+  cle-fournisseur-gemini:
+    file: ./secrets/cle-fournisseur-gemini
+  tsa-principal:
+    file: ./secrets/tsa-principal
+  tsa-secours:
+    file: ./secrets/tsa-secours
+  tls-enregistreur-certificat:
+    file: ./secrets/tls-enregistreur-certificat
+  tls-enregistreur-cle:
+    file: ./secrets/tls-enregistreur-cle
+  identifiant-outil-sap:
+    file: ./secrets/identifiant-outil-sap
+  identifiant-outil-fichiers:
+    file: ./secrets/identifiant-outil-fichiers
+  jeton-console-vers-service-approbation:
+    file: ./secrets/jeton-console-vers-service-approbation
+  jeton-console-vers-service-console:
+    file: ./secrets/jeton-console-vers-service-console
+  rpc-registre:
+    file: ./secrets/rpc-registre
+  notification-courriel:
+    file: ./secrets/notification-courriel
+  tls-approbation:
+    file: ./secrets/tls-approbation
+  oidc-client:
+    file: ./secrets/oidc-client
+  tls-console:
+    file: ./secrets/tls-console
+  jeton-pont-fichiers:
+    file: ./secrets/jeton-pont-fichiers

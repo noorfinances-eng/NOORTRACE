@@ -1,0 +1,15 @@
+{
+  "version": 0,
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "keys": [
+    {
+      "key_id": "rec-test-02",
+      "algorithm": "ed25519",
+      "public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+      "valid_from": "2026-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "source": "vecteurs CT-8 (clé de test rec-test-01 de CT-1 §13, graine dans spec/vecteurs/ct-1/cles/cles-test.json)"
+    }
+  ]
+}

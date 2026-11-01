@@ -1,0 +1,109 @@
+{
+  "version": 0,
+  "previous": {
+    "version": 0,
+    "seq": 2,
+    "ts": "2026-11-05T08:00:30.400Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xff8bdc8866c6f06e51c357b1b47803bdcd42f559084bedf2df82e2ec9cc49ce8",
+    "delegation": {
+      "launched_by": "agent-sinistres",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-2026-11-05-0042"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": null,
+      "policy_version": "2026-11-05-observation",
+      "recorder": "0.1.0"
+    },
+    "intent": null,
+    "policy": {
+      "rule": "lectures autorisees [observation autorise]",
+      "decision": "autorise",
+      "ticket": null,
+      "redaction": null
+    },
+    "approval": null,
+    "execution": {
+      "tool": "sap__claims.get",
+      "arguments": {
+        "sha256": "0x06aedb96a7572fdf28e4b470bac38cbf5430a0b192ad1221ab4d6083c46380e7",
+        "length": 25,
+        "redacted": false
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x7db99b8732cf71a0a0a2457797ef10c6038efd6dd2093fe60b264bd122a92063",
+        "length": 73,
+        "redacted": false
+      },
+      "duration_ms": 212,
+      "is_error": false
+    },
+    "effects": [],
+    "context": [],
+    "hash": "0xb8f666e5d7c656c5e673f6d9cf00700f5deeb831b7867fa46b0277b76708519c",
+    "sig": "0x667ebcc23dd7191aa251774eeae0f06fcf4bb825aeffaa549951a77efad0a2edd347cc388701f62fce6343da2ef57322e2f9de60369ddccabba63be96913b502"
+  },
+  "next": {
+    "version": 0,
+    "seq": 4,
+    "ts": "2026-11-05T08:02:30.400Z",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "recorder_key_id": "rec-test-01",
+    "prev_hash": "0xf9bf8b088b139609ca54f2abfac3dbb5c4333105ad0031e718e81c82dca80287",
+    "delegation": {
+      "launched_by": "agent-sinistres",
+      "on_behalf_of": "service-sinistres",
+      "scope": "sinistres:lecture,paiement",
+      "run_id": "run-2026-11-05-0042"
+    },
+    "code": {
+      "model": "fournisseur/modele@2026-09",
+      "prompt_version": null,
+      "policy_version": "2026-11-05-observation",
+      "recorder": "0.1.0"
+    },
+    "intent": null,
+    "policy": {
+      "rule": "paiement hors CHF [observation refuse]",
+      "decision": "autorise",
+      "ticket": null,
+      "redaction": null
+    },
+    "approval": null,
+    "execution": {
+      "tool": "sap__payments.create",
+      "arguments": {
+        "sha256": "0xdc9c9425e8aba80827a18c9f6550b3981df039699474696b16f45d6183962bcc",
+        "length": 60,
+        "redacted": false
+      },
+      "status": "executee",
+      "result": {
+        "sha256": "0x5fbd7e863a7e269957f713c5d81731e21ee6c5e065c36fb8995057a0916c44c4",
+        "length": 116,
+        "redacted": false
+      },
+      "duration_ms": 214,
+      "is_error": false
+    },
+    "effects": [
+      {
+        "system": "SAP",
+        "action": "ecriture",
+        "object": "PAY-000982",
+        "amount": "980.00",
+        "currency": "EUR"
+      }
+    ],
+    "context": [],
+    "hash": "0x5dde5e1d9f126531cbc8ffb2d4df156f4db9ef3406bf174e33fbfac41e18b970",
+    "sig": "0xb8fa081934286c32f0617d66f6879d3a9ecf860b588696157b67e624e536b9931401b431936439e45c015d8125f08f5cb285605ef170936e596a46728d043304"
+  }
+}

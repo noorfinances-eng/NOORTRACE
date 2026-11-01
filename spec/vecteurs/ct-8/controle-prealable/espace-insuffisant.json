@@ -1,0 +1,379 @@
+{
+  "description": "Seuil d'espace de 1 000 Gio, au-delà des 600 Gio libres : IP-3 échoue.",
+  "profile": "production",
+  "storage_free_min_bytes": 1073741824000,
+  "observations": {
+    "version": 0,
+    "checked_at": "2026-10-27T09:00:00.000Z",
+    "tool": "0.1.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpus": 8,
+    "memory_bytes": 17179869184,
+    "storage": {
+      "path": "/var/lib/docker/volumes",
+      "fstype": "ext4",
+      "free_bytes": 644245094400
+    },
+    "clock": {
+      "source": "chrony",
+      "synchronized": true,
+      "error_bound_ms": 3.2
+    },
+    "ports": [
+      {
+        "address": "127.0.0.1",
+        "port": 8500,
+        "free": true
+      },
+      {
+        "address": "192.0.2.40",
+        "port": 8300,
+        "free": true
+      },
+      {
+        "address": "192.0.2.40",
+        "port": 8400,
+        "free": true
+      }
+    ],
+    "dns": [
+      {
+        "name": "outils.interne.example",
+        "addresses": [
+          "192.0.2.21"
+        ]
+      },
+      {
+        "name": "api.anthropic.com",
+        "addresses": [
+          "198.51.100.31"
+        ]
+      },
+      {
+        "name": "api.openai.com",
+        "addresses": [
+          "198.51.100.32"
+        ]
+      },
+      {
+        "name": "a.pool.opentimestamps.org",
+        "addresses": [
+          "203.0.113.41"
+        ]
+      },
+      {
+        "name": "b.pool.opentimestamps.org",
+        "addresses": [
+          "203.0.113.42"
+        ]
+      }
+    ],
+    "egress": [
+      {
+        "flow": "FL-7",
+        "host": "outils.interne.example",
+        "port": 443,
+        "result": "ouvert"
+      },
+      {
+        "flow": "FL-8",
+        "host": "api.anthropic.com",
+        "port": 443,
+        "result": "ouvert"
+      },
+      {
+        "flow": "FL-8",
+        "host": "api.openai.com",
+        "port": 443,
+        "result": "ouvert"
+      },
+      {
+        "flow": "FL-18",
+        "host": "a.pool.opentimestamps.org",
+        "port": 443,
+        "result": "ouvert"
+      },
+      {
+        "flow": "FL-18",
+        "host": "b.pool.opentimestamps.org",
+        "port": 443,
+        "result": "ouvert"
+      }
+    ],
+    "proxy": {
+      "declared": false,
+      "environment_set": false
+    },
+    "rights": {
+      "uid": 1000,
+      "secrets_dir_mode": 448,
+      "secret_files": [
+        {
+          "name": "cle-enregistreur",
+          "mode": 256,
+          "uid": 10001,
+          "expected_uid": 10001
+        },
+        {
+          "name": "cle-mac-relais",
+          "mode": 256,
+          "uid": 10001,
+          "expected_uid": 10001
+        },
+        {
+          "name": "jeton-hote",
+          "mode": 256,
+          "uid": 10001,
+          "expected_uid": 10001
+        },
+        {
+          "name": "jeton-passerelle",
+          "mode": 256,
+          "uid": 10001,
+          "expected_uid": 10001
+        }
+      ],
+      "config_mode": 256,
+      "config_uid": 10001,
+      "config_expected_uid": 10001
+    },
+    "engine": {
+      "engine_ok": true,
+      "compose_ok": true
+    },
+    "compose": {
+      "file_sha256": null,
+      "failed": [],
+      "all_images_by_digest": true
+    },
+    "declarations": {
+      "write_cache_protected": true
+    },
+    "internal_address": {
+      "address": "192.0.2.40",
+      "on_host": true
+    }
+  },
+  "attendu": {
+    "version": 0,
+    "profile": "production",
+    "checked_at": "2026-10-27T09:00:00.000Z",
+    "tool": "0.1.0",
+    "verdict": "non_pret",
+    "exit_code": 1,
+    "checks": [
+      {
+        "id": "IP-1",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "platform": "linux",
+          "arch": "x64"
+        },
+        "expected": {
+          "platform": "linux",
+          "architectures": [
+            "x64"
+          ]
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-2",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "cpus": 8,
+          "memory_bytes": 17179869184
+        },
+        "expected": {
+          "cpus_min": 4,
+          "memory_min_bytes": 8589934592
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-3",
+        "status": "echoue",
+        "reason": "espace_insuffisant",
+        "measured": {
+          "free_bytes": 644245094400
+        },
+        "expected": {
+          "free_min_bytes": 1073741824000
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-4",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "fstype": "ext4"
+        },
+        "expected": {
+          "accepted": [
+            "ext4",
+            "xfs",
+            "btrfs"
+          ]
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-5",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "source": "chrony",
+          "synchronized": true,
+          "error_bound_ms": 3.2
+        },
+        "expected": {
+          "synchronized": true,
+          "max_error_ms": 1000
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-6",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "busy": [],
+          "internal_address": {
+            "address": "192.0.2.40",
+            "on_host": true
+          }
+        },
+        "expected": {
+          "free": [
+            {
+              "address": "127.0.0.1",
+              "port": 8500
+            },
+            {
+              "address": "192.0.2.40",
+              "port": 8300
+            },
+            {
+              "address": "192.0.2.40",
+              "port": 8400
+            }
+          ]
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-7",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "unresolved": []
+        },
+        "expected": {
+          "resolved": [
+            "outils.interne.example",
+            "api.anthropic.com",
+            "api.openai.com",
+            "a.pool.opentimestamps.org",
+            "b.pool.opentimestamps.org"
+          ]
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-8",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "failed": []
+        },
+        "expected": {
+          "open": [
+            "FL-7",
+            "FL-8",
+            "FL-8",
+            "FL-18",
+            "FL-18"
+          ]
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-9",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "environment_set": false
+        },
+        "expected": {
+          "declared": false
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-10",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "uid_is_root": false,
+          "secrets_dir_mode": 448,
+          "config_mode": 256,
+          "config_uid": 10001,
+          "config_expected_uid": 10001
+        },
+        "expected": {
+          "secret_modes": [
+            256,
+            384
+          ],
+          "secrets_mode_mask": 63,
+          "config_mode_mask": 63
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-11",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "engine_ok": true,
+          "compose_ok": true
+        },
+        "expected": {
+          "engine_ok": true,
+          "compose_ok": true
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-12",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "failed": [],
+          "all_images_by_digest": true
+        },
+        "expected": {
+          "failed": [],
+          "images_by_digest": true
+        },
+        "blocking": true
+      },
+      {
+        "id": "IP-13",
+        "status": "reussi",
+        "reason": null,
+        "measured": {
+          "declared": true
+        },
+        "expected": {
+          "declared": true
+        },
+        "blocking": true
+      }
+    ]
+  }
+}

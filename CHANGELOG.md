@@ -6,6 +6,67 @@ is tagged.
 
 ## Unreleased
 
+- CT-8, deployment and operations, version 0.1: topologies and packages (what
+  runs at the client, in a cloud tenant or at a Swiss host, and what stays
+  with the NOORTRACE operator); reference Compose files for the quick install
+  and for production, described image by image and checked statically by 14
+  rules (CO-1 to CO-14) without building or running a container; 31 network
+  flows, each tied to the requirement that needs it, with a default-deny
+  rule; a host pre-check of 13 points (IP-1 to IP-13), blocking or advisory
+  by profile; a quick install in eight steps with a 900-second budget and a
+  full production install in eighteen steps with a 450-minute budget, each
+  step with its command, expected result and check, including the WORM
+  support, the key ceremony of CT-7, the first verified folder and the
+  perimeter attestation; calculated sizing (DM-1 to DM-22) with a worked
+  example and 15 cases, each coefficient cited or marked as to be measured;
+  observability (collection points, alert rules, dashboard) and eight incident
+  runbooks (writer stopped, lease lost, degraded anchoring, time-stamp
+  provider unreachable, WORM copy lost, clock jump, registry RPC unreachable,
+  suspected key compromise) with invariants, gates and exit checks; backup
+  and recovery without breaking the chain (RPO/RTO as targets, two recovery
+  paths, ticket-prefix epoch change), updates, minutes of operating acts
+  (PV-1 to PV-10) and a chained log of consultations and accesses (CA-1 to
+  CA-6); an observation mode where the approval policy is evaluated but never
+  applied and no failure delays a relayable call; a deterministic reviewer
+  package (`MANIFESTE.json`, fixed tar metadata) verified offline in one
+  command (PR-1 to PR-12), with the instructions handed to the reviewer in
+  French and English; three blind-reading tests with their grids, to be run
+  by CT-9. Section 15 lists what this version does not cover: the images
+  themselves, the host-preparation script, the observability files, a backup
+  tool, a second WORM support, the installs themselves, which have not been
+  executed because the recorder does not exist yet; every duration and
+  capacity is a target. Eight new schemas (`conteneurs-v0`,
+  `controle-prealable-v0`, `dimensionnement-v0`,
+  `proces-verbal-exploitation-v0`, `consultation-v0`,
+  `verification-journal-v0`, `rapport-observation-v0`, `paquet-reviseur-v0`).
+- CT-2, the recorder, revision 0.6, and CT-3, approvals, revision 0.4, both
+  minimal and compatible: the observation mode (`observation` value of the
+  wait mode, reserved rule forms, `-observation` policy suffix and test
+  approvers in CT-2; `evaluerObservation`, evaluation without effect, answer
+  without ticket and the ` [observation <x>]` mark of `policy.rule` in CT-3).
+  `configuration-enregistreur-v0` extended compatibly; `politique-approbation-v0`
+  reserves one rule name. No CT-1 format and no CT-1 to CT-7 vector changes.
+- CT-8 reference code and tools: `deploiement/` (Compose files, image
+  descriptions, quick-install configuration), `scripts/deploiement/` (host
+  pre-check, sizing calculator, Compose checks, quick configuration,
+  deployment archive, log-directory verification, observation report,
+  minutes, consultations, CT-8 cross-reference checker: 115 references, 115
+  rows), `scripts/paquet-reviseur/` (build and verify), libraries
+  `scripts/lib/deploiement.mjs`, `exploitation.mjs`, `paquet.mjs`, and
+  `evaluerObservation` in `scripts/lib/approbation.mjs`. Vectors
+  `spec/vecteurs/ct-8` (`npm run vecteurs:ct8`: containers, pre-check, sizing,
+  observation, logs, minutes, consultations, two reading grids, 13 package
+  archives), regenerated twice to the same bytes; a Go verifier written from
+  the specification alone recomputes 5,183 values, all matching, 65 outside
+  its scope. Package archives are confronted with GNU tar 1.35, Python 3.13
+  `tarfile` and `sha256sum`, the consultation log with an independent Python
+  reading, without discrepancy. Continuous integration adds the CT-8 steps
+  (regeneration, Compose checks, cross-references, tools, Go verifier, a
+  complete package built twice and verified offline by its embedded copy).
+  `js-yaml` 4.3.2 becomes an exact development dependency.
+- `README.md`, `README.fr.md`, `ARCHITECTURE.md` (version 0.11) and `NOTICE`
+  (a complete reviewer package redistributes ethers under the MIT license)
+  mention CT-8.
 - CT-7, security and compliance, version 0.1: a threat model by component (14
   components, 98 threats, each with its answer citing exact requirements, its
   detection, its residual risk and the test CT-9 must write; 82 accepted risks,

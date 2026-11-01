@@ -1,0 +1,874 @@
+{
+  "version": 0,
+  "description": "PV-1 à PV-10 (CT-8 EX-11.18) ; root : la vérification est faite avec --racine racine (PV-7, PV-8, contenu de PV-10) et --cles cles.json.",
+  "cases": [
+    {
+      "id": "migration-support",
+      "file": "valides/migration-support.json",
+      "root": true,
+      "description": "Procès-verbal migration_support valide.",
+      "expected": {
+        "version": 0,
+        "verdict": "valide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-8",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "passage-mode",
+      "file": "valides/passage-mode.json",
+      "root": false,
+      "description": "Procès-verbal passage_mode valide.",
+      "expected": {
+        "version": 0,
+        "verdict": "valide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sauvegarde",
+      "file": "valides/sauvegarde.json",
+      "root": true,
+      "description": "Procès-verbal sauvegarde valide.",
+      "expected": {
+        "version": 0,
+        "verdict": "valide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-8",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "fin-de-retention",
+      "file": "valides/fin-de-retention.json",
+      "root": false,
+      "description": "Procès-verbal fin_de_retention valide.",
+      "expected": {
+        "version": 0,
+        "verdict": "valide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-9",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-10",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-1-cle-en-double",
+      "file": "invalides/pv-1-cle-en-double.json",
+      "root": false,
+      "description": "Clé kind répétée dans le document : JSON strict refusé (PV-1).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "echoue",
+            "detail": "JSON strict attendu : clé en double « kind » (caractère 71)"
+          },
+          {
+            "id": "PV-2",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          },
+          {
+            "id": "PV-3",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          },
+          {
+            "id": "PV-4",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          },
+          {
+            "id": "PV-5",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          },
+          {
+            "id": "PV-6",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          },
+          {
+            "id": "PV-10",
+            "status": "non_execute",
+            "detail": "prerequis_en_echec"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-2-non-trie",
+      "file": "invalides/pv-2-non-trie.json",
+      "root": false,
+      "description": "files dans l'ordre inverse des chemins (PV-2).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "echoue",
+            "detail": "journal.json : non trié ou en double"
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-3-totaux-faux",
+      "file": "invalides/pv-3-totaux-faux.json",
+      "root": false,
+      "description": "totals.bytes d'un octet de trop (PV-3).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "echoue",
+            "detail": "totals {\"files\":2,\"bytes\":10320}, attendu files 2, bytes 10319"
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-4-condense-different",
+      "file": "invalides/pv-4-condense-different.json",
+      "root": false,
+      "description": "sha256_destination du segment différent de sha256_source (PV-4).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "echoue",
+            "detail": "segments/seg-0000000000000001-00000000000000000001.ndjson : sha256_destination 0xabababababababababababababababababababababababababababababababab"
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-5-sans-temoin",
+      "file": "invalides/pv-5-sans-temoin.json",
+      "root": false,
+      "description": "Migration de support signée par le seul exécutant (PV-5).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "echoue",
+            "detail": "deux identités au moins, dont un témoin ou un approbateur"
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-6-destination-nulle",
+      "file": "invalides/pv-6-destination-nulle.json",
+      "root": false,
+      "description": "Migration de support sans support d'arrivée (PV-6).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "echoue",
+            "detail": "destination non nulle exactement pour les sortes qui copient"
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-7-fichier-different",
+      "file": "invalides/pv-7-fichier-different.json",
+      "root": true,
+      "description": "Longueur et SHA-256 annoncés pour journal.json qui ne sont pas ceux du fichier de la racine (PV-7).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "echoue",
+            "detail": "journal.json : longueur 233 ou SHA-256 0x219cfcec700c36d7f31921d33dce35c41d6b5e1c561b54b4d981a5b6a7625ccf différents de 232 et 0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+          },
+          {
+            "id": "PV-8",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-8-continuite-fausse",
+      "file": "invalides/pv-8-continuite-fausse.json",
+      "root": true,
+      "description": "continuity.last_seq 6 alors que le journal de la racine finit à seq 7 (PV-8).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-8",
+            "status": "echoue",
+            "detail": "last_seq 7, last_hash 0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb différents de continuity"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "reussi",
+            "detail": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-9-echeance-fausse",
+      "file": "invalides/pv-9-echeance-fausse.json",
+      "root": false,
+      "description": "Fin de rétention dont retain_until précède d'un jour la fin de l'exercice plus dix ans (PV-9).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-9",
+            "status": "echoue",
+            "detail": "retain_until 2035-12-30, attendu 2035-12-31 et antérieur à 2036-01-15, sans gel actif"
+          },
+          {
+            "id": "PV-10",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pv-10-secret-dans-sauvegarde",
+      "file": "invalides/pv-10-secret-dans-sauvegarde.json",
+      "root": false,
+      "description": "Sauvegarde qui liste le fichier secrets/cle-chaine : une clé hors de sa garde (PV-10).",
+      "expected": {
+        "version": 0,
+        "verdict": "invalide",
+        "checks": [
+          {
+            "id": "PV-1",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-2",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-3",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-4",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-5",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-6",
+            "status": "reussi",
+            "detail": null
+          },
+          {
+            "id": "PV-7",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-8",
+            "status": "non_execute",
+            "detail": "racine_absente"
+          },
+          {
+            "id": "PV-9",
+            "status": "non_execute",
+            "detail": "sans_objet"
+          },
+          {
+            "id": "PV-10",
+            "status": "echoue",
+            "detail": "secrets/cle-chaine : chemin d'un répertoire de secrets"
+          }
+        ]
+      }
+    }
+  ]
+}

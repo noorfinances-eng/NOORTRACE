@@ -1,0 +1,38 @@
+# Installation rapide de NOORTRACE (CT-8 §7) : un hôte, mode observation,
+# classe de garde D, bail « file », sans copie WORM, ancrage de test
+# (OpenTimestamps seul), sans approbation bloquante.
+#
+# Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
+# il est vérifié par analyse statique (CT-8 §4, vérifications CO-1 à CO-14),
+# jamais lancé dans le dépôt. Les secrets sont des fichiers de ./secrets/
+# créés au pas IR-2 (mode 0400), jamais une variable d'environnement.
+#
+# Depuis le répertoire deploiement/ (les chemins relatifs ./config et ./secrets
+# se résolvent alors contre lui) :
+#
+#   docker compose --project-directory . -f compose/rapide.yaml up -d
+#   docker compose --project-directory . -f compose/rapide.yaml ps
+
+name: noortrace-rapide
+
+services: {}
+networks:
+  hotes: {}
+  sortie: {}
+
+volumes:
+  journal: {}
+  exploitation: {}
+  prises: {}
+  exports: {}
+  approbation-etat: {}
+
+secrets:
+  cle-enregistreur:
+    file: ./secrets/cle-enregistreur
+  cle-mac-relais:
+    file: ./secrets/cle-mac-relais
+  jeton-hote:
+    file: ./secrets/jeton-hote
+  jeton-passerelle:
+    file: ./secrets/jeton-passerelle

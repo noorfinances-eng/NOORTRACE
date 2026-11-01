@@ -1,0 +1,23 @@
+{
+  "version": 0,
+  "label": "Paquet de démonstration du mode observation (vecteurs CT-8, journal d'exemple de 12.4)",
+  "created_at": "2026-10-27T00:00:00.000Z",
+  "prepared_by": "exploitant de l'instance de démonstration (vecteurs CT-8)",
+  "dossiers": [
+    {
+      "source": "../observation/dossiers/seq-1",
+      "anchors": null,
+      "bitcoin_headers": null
+    },
+    {
+      "source": "../observation/dossiers/seq-3",
+      "anchors": null,
+      "bitcoin_headers": null
+    }
+  ],
+  "attestation": null,
+  "pieces": [
+    "../observation/politiques/3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36.json"
+  ],
+  "include_verifier": false
+}

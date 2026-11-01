@@ -102,14 +102,16 @@ construction.
 - `spec/` : spécifications normatives, schémas JSON et vecteurs de test ; CT-1 pour
   les formats, CT-2 pour l'enregistreur, CT-3 pour les approbations, CT-4 pour le
   registre, CT-5 pour l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité
-  et la conformité. Les vecteurs de CT-1 à CT-5 et de CT-7 sont recalculés par des vérificateurs Go écrits depuis la seule
-  spécification ; ceux de CT-5 et de CT-6 aussi par OpenSSL et la bibliothèque
-  officielle d'OpenTimestamps, ceux de CT-6 par go-ethereum, les preuves de
-  cohérence par une implémentation publique de la RFC 9162, les échanges
-  Gemini et les traces OpenTelemetry de CT-2 par les bibliothèques officielles
-  google-genai et opentelemetry-proto, les signatures de CT-3 par ethers et
-  eth-account, les signatures d'attestation et de procès-verbal de CT-7 aussi ;
-  voir
+  et la conformité, CT-8 pour le déploiement et l'exploitation. Les vecteurs de
+  CT-1 à CT-5, de CT-7 et de CT-8 sont recalculés par des vérificateurs Go
+  écrits depuis la seule spécification ; ceux de CT-5 et de CT-6 aussi par
+  OpenSSL et la bibliothèque officielle d'OpenTimestamps, ceux de CT-6 par
+  go-ethereum, les preuves de cohérence par une implémentation publique de la
+  RFC 9162, les échanges Gemini et les traces OpenTelemetry de CT-2 par les
+  bibliothèques officielles google-genai et opentelemetry-proto, les signatures
+  de CT-3 par ethers et eth-account, les signatures d'attestation et de
+  procès-verbal de CT-7 aussi, les paquets réviseurs de CT-8 par GNU tar, le
+  module `tarfile` de Python et `sha256sum` ; voir
   [spec/README.md](spec/README.md).
 - `contracts/` : AttestationRegistry, CuratorSet et CuratorSetRegistry repris de
   noorchain-core sans modification ; PeriodRegistry, dérivé de PoSSRegistry de
@@ -123,9 +125,25 @@ construction.
   (dont, depuis sa révision 0.3, la bibliothèque de la console), des conventions
   de CT-4, du planificateur d'ancrage de CT-5, des contrôles 4, 5 et 8 de CT-6,
   avec les vérifications K- des points de contrôle et AT- de l'attestation de
-  périmètre, et de CT-7 (attestation, procès-verbal de cérémonie des clés).
+  périmètre, de CT-7 (attestation, procès-verbal de cérémonie des clés) et de
+  CT-8 (contrôle préalable, dimensionnement, vérifications des fichiers de
+  conteneur, marque d'observation, paquet réviseur, journal d'exploitation).
 - `scripts/conformite/` : vérificateur des renvois de CT-7 (chaque exigence citée
   par le modèle de menace et la matrice de conformité existe).
+- `deploiement/` : fichiers de déploiement de référence de CT-8 : fichiers
+  Compose de l'installation rapide et de la production, description des
+  images, configuration de l'installation rapide ; voir
+  [deploiement/LISEZMOI.md](deploiement/LISEZMOI.md). Les images elles-mêmes
+  ne sont pas construites.
+- `scripts/deploiement/` : outils de CT-8 : contrôle préalable d'un hôte,
+  calculateur de dimensionnement, vérification statique des fichiers Compose,
+  configuration rapide, archive de déploiement, vérification d'un répertoire
+  de journal, rapport d'observation, procès-verbaux d'exploitation, journal des
+  consultations, vérificateur des renvois vers CT-8.
+- `scripts/paquet-reviseur/` : construction d'un paquet réviseur déterministe
+  et sa vérification hors ligne en une commande, avec les instructions
+  remises au réviseur ; voir
+  [scripts/paquet-reviseur/instructions/LISEZMOI.md](scripts/paquet-reviseur/instructions/LISEZMOI.md).
 - `console/` : console d'approbation de référence de CT-3, page statique sous
   une politique de sécurité du contenu stricte, testée de bout en bout dans
   Chromium ; voir [console/LISEZMOI.md](console/LISEZMOI.md).
@@ -141,10 +159,12 @@ construction.
 
 ## Statut
 
-27 octobre 2026 : conception technique en cours. Écrits : les spécifications CT-1
-des formats, CT-2 de l'enregistreur, CT-3 des approbations, CT-4 du registre, CT-5
-de l'ancrage, CT-6 du vérificateur et CT-7 de la sécurité et de la conformité, avec leurs vecteurs, leur implémentation de
-référence et leur confrontation indépendante ; le vérificateur de dossier, avec les huit contrôles ;
+1er novembre 2026 : conception technique en cours. Écrites : les spécifications
+CT-1 des formats, CT-2 de l'enregistreur, CT-3 des approbations, CT-4 du
+registre, CT-5 de l'ancrage, CT-6 du vérificateur, CT-7 de la sécurité et de la
+conformité et CT-8 du déploiement et de l'exploitation, avec leurs vecteurs,
+leur implémentation de référence et leur confrontation indépendante ; le
+vérificateur de dossier, avec les huit contrôles ; l'outil du paquet réviseur ;
 l'instance de développement, les contrats du registre avec leurs tests, le
 parcours complet exécuté sur le réseau de développement ; la méthode RPC du
 certificat de commit, portée comme correctif sur noorcore fourni hors dépôt, et

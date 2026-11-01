@@ -1,0 +1,39 @@
+{
+  "description": "Second segment dont l'en-tête porte un prev_hash qui n'est pas le hash de seq 4 : prev_hash_entete.",
+  "rapport": {
+    "version": 0,
+    "verdict": "invalide",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "segments": [
+      {
+        "name": "seg-0000000000000001-00000000000000000001.ndjson",
+        "first_seq": 1,
+        "epoch": 1,
+        "events": 4,
+        "length": 5993,
+        "sha256": "0x53f5d34581ffcdaa10eea5bd515c1410032595fd5163d3d6a6cf908c8581f857"
+      },
+      {
+        "name": "seg-0000000000000005-00000000000000000002.ndjson",
+        "first_seq": 5,
+        "epoch": 2,
+        "events": 3,
+        "length": 4513,
+        "sha256": "0xcf38bb0d665f370bde04ad9ec5afe3b97340b4265f6aa8f2d23107c16f946be1"
+      }
+    ],
+    "first_seq": 1,
+    "last_seq": 7,
+    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "manifests": [],
+    "errors": [
+      {
+        "check": "prev_hash_entete",
+        "segment": "seg-0000000000000005-00000000000000000002.ndjson",
+        "seq": 5,
+        "detail": "prev_hash de l'en-tête 0xf9bf8b088b139609ca54f2abfac3dbb5c4333105ad0031e718e81c82dca80287, attendu 0x5dde5e1d9f126531cbc8ffb2d4df156f4db9ef3406bf174e33fbfac41e18b970"
+      }
+    ]
+  }
+}

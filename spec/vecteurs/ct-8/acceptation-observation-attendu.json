@@ -1,0 +1,27 @@
+{
+  "version": 0,
+  "description": "Grille de l'épreuve (c) de CT-8 §14.3 (EX-14.11, EX-14.12), tirée du texte de la section 14 ; le participant ne la reçoit pas.",
+  "questions": [
+    {
+      "question": "Q1. Qu'est-ce qui est capturé en mode observation ?",
+      "expected": "tout ce qui l'est en mode bloquant : appels d'outil, échanges de modèle, spans admis ; mêmes pièces ; rédaction appliquée ; signature, chaîne, manifestes, ancres (EX-12.3)"
+    },
+    {
+      "question": "Q2. Qu'est-ce qui n'est jamais bloqué ni retenu, et quelles erreurs restent ?",
+      "expected": "aucun refus par la politique, aucun signal d'approbation, aucun ticket, aucun `-31010` hors `bail_non_detenu`, ni `-31013` de quota, ni `-31017` ; restent l'authentification, le JSON-RPC invalide, l'outil inconnu ou injoignable (`-31014`), les tailles maximales, `-31016` et `-31010` `bail_non_detenu` d'une instance passive (EX-12.4, CT-2 EX-14.17) ; attente bornée par `timeout_ms` et l'écriture (EX-12.5)"
+    },
+    {
+      "question": "Q3. Où voit-on ce que la politique aurait exigé, et que dit l'événement `seq` 3 ?",
+      "expected": "marque ` [observation <x>]` de `policy.rule`, signée ; `decision` `autorise`, sans ticket ; `seq` 3 : la règle `paiement > 5000 CHF` aurait soumis le paiement à approbation ; rapport, ligne `observation_would_block`, métriques (EX-12.6 à EX-12.10)"
+    },
+    {
+      "question": "Q4. Comment passez-vous au mode bloquant ?",
+      "expected": "rapport relu, prérequis du mode bloquant (approbateurs, jeu, console, service prêt), jeu d'approbateurs de test remplacé (aucune adresse de CT-7 CLE-28), `mode` `erreur` et version nouvelle sans `-observation`, `validate-config`, `noortrace-ctl reload`, vérification (`noortrace_observation_mode` à 0, plus de marque, signal sur un appel de test), procès-verbal `passage_mode` ; l'événement sur soi est `noortrace.journal.politique` (EX-12.11, EX-12.12)"
+    },
+    {
+      "question": "Q5. Qu'est-ce qu'un journal tenu en mode observation ne prouve pas ?",
+      "expected": "aucune approbation humaine ; pas que la politique aurait été appliquée telle quelle ; pas que tout a été capturé : une perte au-delà des bornes ne laisse pas de trou dans la chaîne (EX-12.14)"
+    }
+  ],
+  "failure_rule": "Une réponse qui dit qu'un appel marqué a_approuver a été approuvé, ou que le mode observation capture moins que le mode bloquant (la perte d'événements au-delà des bornes d'attente, que la réponse à Q5 cite, n'en est pas une : à ces bornes, le mode bloquant refuse l'appel, EX-12.3, EX-12.14), échoue quels que soient ses autres éléments (EX-14.12)."
+}

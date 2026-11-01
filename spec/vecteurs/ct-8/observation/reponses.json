@@ -1,0 +1,270 @@
+{
+  "version": 0,
+  "description": "OB-6 (CT-8 EX-12.16) : réponse reçue du service sous une version en mode observation et ce que le noyau en fait (CT-2 EX-7.23, EX-14.15 ; CT-3 EX-12.20) : relais, policy scellée, marque, ligne d'exploitation.",
+  "cases": [
+    {
+      "id": "reponse-admise",
+      "description": "Réponse admise : règle et décision d'evaluer, sans ticket.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": true,
+        "action": "relayer",
+        "policy": {
+          "rule": "paiement > 5000 CHF [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "a_approuver",
+        "ops_log": null
+      }
+    },
+    {
+      "id": "service-indisponible",
+      "description": "Aucune réponse dans timeout_ms : marque inconnu, ligne approval_service_unavailable.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": null,
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_service_unavailable"
+      }
+    },
+    {
+      "id": "nom-reserve",
+      "description": "Règle evaluation impossible rendue par le service : nom réservé, réponse invalide.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "evaluation impossible",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "nom-reserve-avec-marque",
+      "description": "Règle evaluation impossible [indetermine] : nom réservé suivi d'une marque de 6.4, réponse invalide.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "evaluation impossible [indetermine]",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "marque-forgee",
+      "description": "Règle qui porte déjà « [observation » : marque que le service ne pose jamais, réponse invalide.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "lectures autorisees [observation refuse]",
+        "decision": "autorise",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "regle-de-998",
+      "description": "Règle de 998 caractères : la chaîne marquée tient dans les 1 024 de CT-1, réponse admise.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": true,
+        "action": "relayer",
+        "policy": {
+          "rule": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [observation a_approuver]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "a_approuver",
+        "ops_log": null
+      }
+    },
+    {
+      "id": "regle-de-999",
+      "description": "Règle de 999 caractères : la chaîne marquée dépasserait 1 024 caractères, réponse invalide.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "ticket-non-nul",
+      "description": "Réponse avec un ticket : combinaison du mode bloquant, invalide en observation.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": "apr-0001",
+        "ticket_state": "en_attente",
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "decision-hors-liste",
+      "description": "Décision approuve, hors de autorise, a_approuver, refuse.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "approuve",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    },
+    {
+      "id": "membre-en-trop",
+      "description": "Septième membre contest_ms : forme non admise.",
+      "checks": [
+        "OB-6"
+      ],
+      "response": {
+        "rule": "paiement > 5000 CHF",
+        "decision": "a_approuver",
+        "ticket": null,
+        "ticket_state": null,
+        "approval": null,
+        "approver_set": null,
+        "contest_ms": 0
+      },
+      "expected": {
+        "admitted": false,
+        "action": "relayer",
+        "policy": {
+          "rule": "evaluation impossible [observation inconnu]",
+          "decision": "autorise",
+          "ticket": null,
+          "redaction": null
+        },
+        "would": "inconnu",
+        "ops_log": "approval_response_invalid"
+      }
+    }
+  ]
+}

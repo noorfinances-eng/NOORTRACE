@@ -1,0 +1,80 @@
+{
+  "description": "c_K = 70, qui ne divise pas 3 600 : refus (EX-9.3).",
+  "entrees": {
+    "version": 0,
+    "hours_per_year": 8760,
+    "coefficients": {},
+    "journals": [
+      {
+        "id": "sinistres",
+        "count": 1,
+        "activity": {
+          "agents": 10,
+          "events_per_hour": 120,
+          "active_hours": 2920,
+          "peak_factor": 4,
+          "event_bytes": 2560,
+          "piece_bytes_per_event": 6144,
+          "pieces_per_event": 2,
+          "write_share": 0.1,
+          "ops_log_bytes_per_event": 512
+        },
+        "storage": {
+          "events_years": 10,
+          "local_days": 4018,
+          "pieces_days": 4018,
+          "segment_max_bytes": 268435456,
+          "min_free_bytes": 1073741824,
+          "pending_max_bytes": 268435456,
+          "ops_log": {
+            "rotate_max_bytes": 104857600,
+            "keep_files": 30
+          },
+          "fsync": {
+            "group_max_events": 64,
+            "group_max_wait_ms": 5
+          },
+          "worm": {
+            "retain_days": 4018,
+            "copies": 1,
+            "pieces_in_worm": false,
+            "ops_log_in_worm": false
+          }
+        },
+        "anchoring": {
+          "checkpoint_interval_s": 70,
+          "rfc3161_interval_s": 300,
+          "a": 1,
+          "r": 0,
+          "provider_role": "second_rang",
+          "registry_checkpoints": "nouveaux_evenements",
+          "ots_checkpoint": "aucun",
+          "retention_years": 10,
+          "crl_per_token": 2,
+          "crl_bytes": 833,
+          "acquisition_bytes": 2048
+        },
+        "memory": {
+          "max_concurrent": 96,
+          "request_max_bytes": 16777216,
+          "response_max_bytes": 16777216,
+          "base_bytes": null
+        }
+      }
+    ]
+  },
+  "attendu": {
+    "version": 0,
+    "valid": false,
+    "errors": [
+      {
+        "journal": "sinistres",
+        "code": "checkpoint_interval_s_non_diviseur"
+      },
+      {
+        "journal": "sinistres",
+        "code": "rfc3161_interval_s_invalide"
+      }
+    ]
+  }
+}

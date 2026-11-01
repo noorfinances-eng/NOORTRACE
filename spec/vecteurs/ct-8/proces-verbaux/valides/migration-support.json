@@ -1,0 +1,60 @@
+{
+  "version": 0,
+  "kind": "migration_support",
+  "id": "pv-2026-11-05-001",
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "started_at": "2026-11-05T09:20:00.000Z",
+  "finished_at": "2026-11-05T09:41:12.000Z",
+  "operators": [
+    {
+      "identity": "exploitant-noortrace-1",
+      "role": "executant"
+    },
+    {
+      "identity": "responsable-conformite",
+      "role": "temoin"
+    }
+  ],
+  "reason": "changement de volume, demande CHG-2026-0412",
+  "source": {
+    "medium": "volume_local",
+    "locator": "volume noortrace-donnees, hote enregistreur-1"
+  },
+  "destination": {
+    "medium": "volume_bloc",
+    "locator": "volume noortrace-donnees-2, hote enregistreur-1"
+  },
+  "files": [
+    {
+      "path": "journal.json",
+      "length": 233,
+      "sha256_source": "0x219cfcec700c36d7f31921d33dce35c41d6b5e1c561b54b4d981a5b6a7625ccf",
+      "sha256_destination": "0x219cfcec700c36d7f31921d33dce35c41d6b5e1c561b54b4d981a5b6a7625ccf"
+    },
+    {
+      "path": "segments/seg-0000000000000001-00000000000000000001.ndjson",
+      "length": 10086,
+      "sha256_source": "0x0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5",
+      "sha256_destination": "0x0670cb8b7f374a6728082a73e43a7cf7a42f8202d9710cde72a3d27a641febb5"
+    }
+  ],
+  "totals": {
+    "files": 2,
+    "bytes": 10319
+  },
+  "verification": {
+    "tool": "verifier-journal 0.1.0 (CT-8 EX-11.7)",
+    "command": "node scripts/deploiement/verifier-journal.mjs . --cles cles.json",
+    "result": "valide",
+    "report_sha256": null
+  },
+  "continuity": {
+    "last_seq": 7,
+    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "last_period_start": null
+  },
+  "retention": null,
+  "mode_change": null,
+  "observations": null
+}

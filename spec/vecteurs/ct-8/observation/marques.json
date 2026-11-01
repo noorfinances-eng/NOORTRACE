@@ -1,0 +1,188 @@
+{
+  "version": 0,
+  "description": "OB-1 (CT-8 EX-12.16) : chaînes policy.rule et leur analyse ; erreurs dans l'ordre de priorité trop_longue, absente, valeur_inconnue, nom_vide, marque_en_double, inconnu_sans_nom_fixe, nom_fixe_sans_inconnu.",
+  "cases": [
+    {
+      "id": "marque-a-approuver",
+      "description": "Règle conditionnelle soumise à revue, marque a_approuver.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "paiement > 5000 CHF [observation a_approuver]",
+      "expected": {
+        "valid": true,
+        "rule": "paiement > 5000 CHF",
+        "would": "a_approuver",
+        "error": null
+      }
+    },
+    {
+      "id": "marque-indetermine",
+      "description": "Marque [indetermine] de CT-3 6.4 gardée devant la marque d'observation.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "paiement > 5000 CHF [indetermine] [observation a_approuver]",
+      "expected": {
+        "valid": true,
+        "rule": "paiement > 5000 CHF [indetermine]",
+        "would": "a_approuver",
+        "error": null
+      }
+    },
+    {
+      "id": "marque-fenetre",
+      "description": "Fenêtre ouverte avant le passage en observation : marque [fenetre …] gardée, aucune unité consommée (CT-3 EX-11.13).",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "paiement de 1000 a 5000 CHF [fenetre apr-3001 2026-11-05T16:00:00.000Z] [observation autorise]",
+      "expected": {
+        "valid": true,
+        "rule": "paiement de 1000 a 5000 CHF [fenetre apr-3001 2026-11-05T16:00:00.000Z]",
+        "would": "autorise",
+        "error": null
+      }
+    },
+    {
+      "id": "marque-inconnu",
+      "description": "Service sans réponse : nom fixe et marque inconnu.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "evaluation impossible [observation inconnu]",
+      "expected": {
+        "valid": true,
+        "rule": "evaluation impossible",
+        "would": "inconnu",
+        "error": null
+      }
+    },
+    {
+      "id": "sans-marque",
+      "description": "Aucune marque : absente.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "paiement > 5000 CHF",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "absente"
+      }
+    },
+    {
+      "id": "valeur-inconnue",
+      "description": "Valeur approuve hors de autorise, a_approuver, refuse, inconnu.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "paiement > 5000 CHF [observation approuve]",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "valeur_inconnue"
+      }
+    },
+    {
+      "id": "nom-vide",
+      "description": "Rien devant la marque.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": " [observation refuse]",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "nom_vide"
+      }
+    },
+    {
+      "id": "inconnu-sans-nom-fixe",
+      "description": "Marque inconnu après un nom de règle.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "lectures autorisees [observation inconnu]",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "inconnu_sans_nom_fixe"
+      }
+    },
+    {
+      "id": "nom-fixe-sans-inconnu",
+      "description": "Nom fixe suivi d'une autre valeur qu'inconnu.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "evaluation impossible [observation autorise]",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "nom_fixe_sans_inconnu"
+      }
+    },
+    {
+      "id": "espace-finale",
+      "description": "Espace après le crochet final : la marque n'est plus la dernière.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "paiement > 5000 CHF [observation a_approuver] ",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "absente"
+      }
+    },
+    {
+      "id": "marque-en-double",
+      "description": "Chaîne qui portait déjà une marque d'observation avant celle du noyau (réponse forgée, CT-3 EX-12.20).",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "lectures autorisees [observation refuse] [observation autorise]",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "marque_en_double"
+      }
+    },
+    {
+      "id": "nom-fixe-avec-marque-de-ct3",
+      "description": "Nom fixe suivi d'une marque de CT-3 6.4 et d'une autre valeur qu'inconnu (nom réservé, CT-3 EX-6.8).",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "evaluation impossible [indetermine] [observation autorise]",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "nom_fixe_sans_inconnu"
+      }
+    },
+    {
+      "id": "trop-longue",
+      "description": "Chaîne de 1 025 caractères : au-delà de la borne de CT-1.",
+      "checks": [
+        "OB-1"
+      ],
+      "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [observation a_approuver]",
+      "expected": {
+        "valid": false,
+        "rule": null,
+        "would": null,
+        "error": "trop_longue"
+      }
+    }
+  ]
+}

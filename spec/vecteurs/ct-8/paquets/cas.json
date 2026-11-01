@@ -1,0 +1,1568 @@
+{
+  "version": 0,
+  "family": "paquets",
+  "description": "Paquets réviseurs de CT-8 §13 : un paquet valide et ses variantes, chacune avec ses options et le résultat attendu de l'outil de vérification.",
+  "cases": [
+    {
+      "name": "valide",
+      "archive": "valide.tar",
+      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 0,
+        "package_status": "intact",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-10",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "sans_objet"
+          },
+          {
+            "id": "PR-12",
+            "status": "reussi",
+            "reason": null
+          }
+        ],
+        "warnings": [
+          "AV-PR-3"
+        ],
+        "dossiers": [
+          {
+            "path": "dossiers/valide-seq-7-complet",
+            "exit_code": 0,
+            "observation_mode": false,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-seq-7-complet-attestation",
+            "exit_code": 0,
+            "observation_mode": false,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-point-de-controle-complet",
+            "exit_code": 0,
+            "observation_mode": false,
+            "observation": null
+          }
+        ],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Paquet construit par l'outil de référence : trois dossiers valides de ct-6, le fichier d'ancres de test, deux fichiers d'en-têtes, l'attestation de ct-7 ; sans vérificateur joint."
+    },
+    {
+      "name": "valide-empreinte",
+      "archive": "valide.tar",
+      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "options": {
+        "expected_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 0,
+        "package_status": "intact",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-10",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "sans_objet"
+          },
+          {
+            "id": "PR-12",
+            "status": "reussi",
+            "reason": null
+          }
+        ],
+        "warnings": [
+          "AV-PR-3"
+        ],
+        "dossiers": [
+          {
+            "path": "dossiers/valide-seq-7-complet",
+            "exit_code": 0,
+            "observation_mode": false,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-seq-7-complet-attestation",
+            "exit_code": 0,
+            "observation_mode": false,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-point-de-controle-complet",
+            "exit_code": 0,
+            "observation_mode": false,
+            "observation": null
+          }
+        ],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Le même paquet, vérifié avec l'empreinte attendue reçue à part : PR-2 réussit."
+    },
+    {
+      "name": "empreinte-fausse",
+      "archive": "valide.tar",
+      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "options": {
+        "expected_sha256": "0xb41b49dbe9b529f90b4de5b1c73986406951af163e0f9ed2a8381481227e7d29",
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-3",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-4",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-5",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-6",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-7",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-8",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Le même paquet, vérifié avec l'empreinte d'un autre paquet : PR-2 échoue, rien d'autre n'est lu."
+    },
+    {
+      "name": "fichier-altere",
+      "archive": "fichier-altere.tar",
+      "archive_sha256": "0xb41b49dbe9b529f90b4de5b1c73986406951af163e0f9ed2a8381481227e7d29",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Un octet de dossiers/valide-seq-7-complet/evenement.json changé (seq 7 devenu 9), manifeste inchangé : PR-8."
+    },
+    {
+      "name": "fichier-manquant",
+      "archive": "fichier-manquant.tar",
+      "archive_sha256": "0x92dd0e6f2d3f76d8281925c73ae0d31fe8bfc80f6112b506e6cd39f794c8acbe",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "dossiers/valide-seq-7-complet/voisins.json retiré de l'archive, toujours déclaré : PR-8."
+    },
+    {
+      "name": "fichier-en-trop",
+      "archive": "fichier-en-trop.tar",
+      "archive_sha256": "0x40558d06651fd5f539942952a9d6ea0f2a1322f0262ec41d06e8b0e00fa4730d",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "dossiers/valide-seq-7-complet/note.txt ajouté à sa place dans l'ordre, absent du manifeste : PR-8."
+    },
+    {
+      "name": "manifeste-altere",
+      "archive": "manifeste-altere.tar",
+      "archive_sha256": "0x32ba2c02676d40d5d25f42e90a235763c53c78cd8348f18e34ae82e51473b122",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Le manifeste déclare pour evenement.json le SHA-256 d'une autre version ; le fichier est intact : PR-8."
+    },
+    {
+      "name": "contrefacon-coherente",
+      "archive": "contrefacon-coherente.tar",
+      "archive_sha256": "0xd806d8e7af25c118d9f241ead0c8b51892e10e778a8f1a0238f831334e822344",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 1,
+        "package_status": "intact",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-10",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "sans_objet"
+          },
+          {
+            "id": "PR-12",
+            "status": "reussi",
+            "reason": null
+          }
+        ],
+        "warnings": [
+          "AV-PR-3"
+        ],
+        "dossiers": [
+          {
+            "path": "dossiers/valide-seq-7-complet",
+            "exit_code": 1,
+            "observation_mode": null,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-seq-7-complet-attestation",
+            "exit_code": 0,
+            "observation_mode": false,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-point-de-controle-complet",
+            "exit_code": 0,
+            "observation_mode": false,
+            "observation": null
+          }
+        ],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "evenement.json changé et le manifeste recalculé : le paquet est intact (PR-1 à PR-10), et le vérificateur de CT-6 rend le dossier invalide (D-2) : code 1."
+    },
+    {
+      "name": "chemin-hors-archive",
+      "archive": "chemin-hors-archive.tar",
+      "archive_sha256": "0xfc6446e02c04c10aea067a848c0fdc263d8f5a4a8242bec113475340dc678253",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-7",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-8",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Entrée paquet-reviseur/../../evasion.txt, qui sortirait du répertoire d'extraction : PR-5."
+    },
+    {
+      "name": "chemin-absolu",
+      "archive": "chemin-absolu.tar",
+      "archive_sha256": "0x6f07e6e4cb1dc1e6ebeac41a546ab140be71dd974d08a54cbbd084a5b1251fe2",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-7",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-8",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Entrée /paquet-reviseur/evasion.txt, nom absolu : PR-5."
+    },
+    {
+      "name": "lien-symbolique",
+      "archive": "lien-symbolique.tar",
+      "archive_sha256": "0xf036a91c971e6fbd3c75da67ddc90f5e3f6522e8a7a3c250f7178bf644c25071",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-6",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-7",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-8",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Entrée paquet-reviseur/ancres/raccourci, lien symbolique vers ../../../evasion, hors du répertoire d'extraction : PR-4."
+    },
+    {
+      "name": "lien-physique",
+      "archive": "lien-physique.tar",
+      "archive_sha256": "0xe8c92cba21f5c6ada90b7e17a595923888056f51345fbfacd35402437c186735",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-6",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-7",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-8",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Entrée paquet-reviseur/ancres/double, lien physique vers un fichier de l'archive : PR-4, plus strict que GNU tar et que le filtre data de Python."
+    },
+    {
+      "name": "nom-en-double",
+      "archive": "nom-en-double.tar",
+      "archive_sha256": "0xcfbc9d58c6e0174c3fdb86d10155ad642741166434522a94ca82b495398d2697",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-7",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-8",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Seconde entrée paquet-reviseur/LISEZMOI.md, d'un autre contenu : PR-5."
+    },
+    {
+      "name": "metadonnees-non-fixees",
+      "archive": "metadonnees-non-fixees.tar",
+      "archive_sha256": "0x275277ac3f74b02b8902301de1c5441b71803d2aace807511b87421af26410a3",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 4,
+        "package_status": "non_conforme",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "echoue",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-8",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-9",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-10",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "prerequis_en_echec"
+          }
+        ],
+        "warnings": [],
+        "dossiers": [],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "paquet-reviseur/README.md au mode 0600 : PR-6."
+    },
+    {
+      "name": "ancres-du-reviseur-discordantes",
+      "archive": "valide.tar",
+      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "options": {
+        "expected_sha256": null,
+        "anchors": "spec/vecteurs/ct-6/ancres/ancres-cle-enregistreur-autre.json"
+      },
+      "expected": {
+        "exit_code": 1,
+        "package_status": "intact",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-10",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "sans_objet"
+          },
+          {
+            "id": "PR-12",
+            "status": "reussi",
+            "reason": null
+          }
+        ],
+        "warnings": [],
+        "dossiers": [
+          {
+            "path": "dossiers/valide-seq-7-complet",
+            "exit_code": 1,
+            "observation_mode": null,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-seq-7-complet-attestation",
+            "exit_code": 1,
+            "observation_mode": null,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-point-de-controle-complet",
+            "exit_code": 1,
+            "observation_mode": null,
+            "observation": null
+          }
+        ],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Le paquet valide, vérifié avec un fichier d'ancres du réviseur qui attribue à rec-test-01 la clé de rec-test-02 : paquet intact, N-3 échoue dans chaque dossier, code 1."
+    },
+    {
+      "name": "ancres-non-conformes",
+      "archive": "valide.tar",
+      "archive_sha256": "0x8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982",
+      "options": {
+        "expected_sha256": null,
+        "anchors": "spec/vecteurs/ct-6/ots/entetes/chaine.json"
+      },
+      "expected": {
+        "exit_code": 2,
+        "package_status": "intact",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-10",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "sans_objet"
+          },
+          {
+            "id": "PR-12",
+            "status": "reussi",
+            "reason": null
+          }
+        ],
+        "warnings": [],
+        "dossiers": [
+          {
+            "path": "dossiers/valide-seq-7-complet",
+            "exit_code": 2,
+            "observation_mode": null,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-seq-7-complet-attestation",
+            "exit_code": 2,
+            "observation_mode": null,
+            "observation": null
+          },
+          {
+            "path": "dossiers/valide-point-de-controle-complet",
+            "exit_code": 2,
+            "observation_mode": null,
+            "observation": null
+          }
+        ],
+        "observation": {
+          "dossiers": 0,
+          "autorise": 0,
+          "a_approuver": 0,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Le paquet valide, vérifié avec --ancres désignant un fichier qui n'est pas un fichier d'ancres : chaque dossier rend le code 2 (N-1), code 2."
+    },
+    {
+      "name": "observation",
+      "archive": "observation.tar",
+      "archive_sha256": "0x127b257aebef28bb8436f7b07fe7a3c6d4e805ce7ca9c3f3e991c53b543f9ba5",
+      "options": {
+        "expected_sha256": null,
+        "anchors": null
+      },
+      "expected": {
+        "exit_code": 0,
+        "package_status": "intact",
+        "checks": [
+          {
+            "id": "PR-1",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-2",
+            "status": "non_execute",
+            "reason": "empreinte_non_fournie"
+          },
+          {
+            "id": "PR-3",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-4",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-5",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-6",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-7",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-8",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-9",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-10",
+            "status": "reussi",
+            "reason": null
+          },
+          {
+            "id": "PR-11",
+            "status": "non_execute",
+            "reason": "sans_objet"
+          },
+          {
+            "id": "PR-12",
+            "status": "non_execute",
+            "reason": "sans_objet"
+          }
+        ],
+        "warnings": [
+          "AV-PR-4"
+        ],
+        "dossiers": [
+          {
+            "path": "dossiers/seq-1",
+            "exit_code": 0,
+            "observation_mode": true,
+            "observation": null
+          },
+          {
+            "path": "dossiers/seq-3",
+            "exit_code": 0,
+            "observation_mode": true,
+            "observation": "a_approuver"
+          }
+        ],
+        "observation": {
+          "dossiers": 2,
+          "autorise": 0,
+          "a_approuver": 1,
+          "refuse": 0,
+          "inconnu": 0
+        }
+      },
+      "description": "Paquet des dossiers de seq 1 (annonce de l'ensemble, policy.rule nulle) et de seq 3 (appel marqué) du journal d'exemple de 12.4, avec la pièce de l'ensemble : les deux dossiers sont déclarés en mode observation (policy_version en -observation), seq 3 avec la marque a_approuver (EX-12.9, EX-A.15)."
+    }
+  ]
+}

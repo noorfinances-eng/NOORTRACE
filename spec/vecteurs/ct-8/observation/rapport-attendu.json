@@ -1,0 +1,73 @@
+{
+  "version": 0,
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "first_seq": 1,
+  "last_seq": 7,
+  "from_ts": "2026-11-05T08:00:00.000Z",
+  "to_ts": "2026-11-05T08:05:30.400Z",
+  "events": 7,
+  "tool_calls": 6,
+  "observed": 6,
+  "totals": {
+    "autorise": 1,
+    "a_approuver": 3,
+    "refuse": 1,
+    "inconnu": 1
+  },
+  "rows": [
+    {
+      "policy_version": "2026-11-05-observation",
+      "rule": "defaut : revue",
+      "would": "a_approuver",
+      "count": 1,
+      "seqs": [
+        5
+      ]
+    },
+    {
+      "policy_version": "2026-11-05-observation",
+      "rule": "evaluation impossible",
+      "would": "inconnu",
+      "count": 1,
+      "seqs": [
+        7
+      ]
+    },
+    {
+      "policy_version": "2026-11-05-observation",
+      "rule": "lectures autorisees",
+      "would": "autorise",
+      "count": 1,
+      "seqs": []
+    },
+    {
+      "policy_version": "2026-11-05-observation",
+      "rule": "paiement > 5000 CHF",
+      "would": "a_approuver",
+      "count": 1,
+      "seqs": [
+        3
+      ]
+    },
+    {
+      "policy_version": "2026-11-05-observation",
+      "rule": "paiement > 5000 CHF [indetermine]",
+      "would": "a_approuver",
+      "count": 1,
+      "seqs": [
+        6
+      ]
+    },
+    {
+      "policy_version": "2026-11-05-observation",
+      "rule": "paiement hors CHF",
+      "would": "refuse",
+      "count": 1,
+      "seqs": [
+        4
+      ]
+    }
+  ],
+  "anomalies": []
+}

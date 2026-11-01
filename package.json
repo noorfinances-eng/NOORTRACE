@@ -21,10 +21,22 @@
     "vecteurs:ct5": "node scripts/vecteurs/generer-ct5.mjs",
     "vecteurs:ct6": "node scripts/vecteurs/generer-ct6.mjs",
     "vecteurs:ct7": "node scripts/vecteurs/generer-ct7.mjs",
+    "vecteurs:ct8": "node scripts/vecteurs/generer-ct8.mjs",
     "registre": "node scripts/registre/noortrace-registre.mjs",
     "console:empreintes": "node scripts/console/empreintes.mjs",
     "conformite:renvois": "node scripts/conformite/verifier-renvois.mjs",
-    "conformite:attestation": "node scripts/conformite/attestation.mjs"
+    "conformite:attestation": "node scripts/conformite/attestation.mjs",
+    "deploiement:conteneurs": "node scripts/deploiement/verifier-conteneurs.mjs deploiement/compose/rapide.yaml deploiement/compose/production.yaml --images deploiement/images/images.json",
+    "deploiement:renvois": "node scripts/deploiement/renvois.mjs",
+    "deploiement:dimensionner": "node scripts/deploiement/dimensionner.mjs",
+    "deploiement:controle": "node scripts/deploiement/controle-prealable.mjs",
+    "deploiement:archive": "node scripts/deploiement/construire-archive.mjs",
+    "exploitation:verifier-journal": "node scripts/deploiement/verifier-journal.mjs",
+    "exploitation:rapport-observation": "node scripts/deploiement/rapport-observation.mjs",
+    "exploitation:proces-verbal": "node scripts/deploiement/proces-verbal.mjs",
+    "exploitation:consultations": "node scripts/deploiement/consultations.mjs",
+    "paquet:construire": "node scripts/paquet-reviseur/construire.mjs",
+    "paquet:verifier": "node scripts/paquet-reviseur/verifier.mjs"
   },
   "license": "Apache-2.0",
   "devDependencies": {
@@ -33,6 +45,7 @@
     "chai": "^6.0.1",
     "ethers": "^6.16.0",
     "hardhat": "^3.20.0",
+    "js-yaml": "4.3.2",
     "mocha": "^11.7.2"
   }
 }

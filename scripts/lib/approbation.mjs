@@ -34,6 +34,7 @@
 // énumérées en français sans accent.
 
 import { createHmac } from "node:crypto";
+import fs from "node:fs";
 import { Interface, ZeroAddress, getAddress, toQuantity } from "ethers";
 import * as J from "./journal.mjs";
 import * as C from "./capture.mjs";
@@ -86,6 +87,16 @@ export const INTERVALLE_LECTURE_DEFAUT_MS = 10000;
 
 /** Mode d'attente de la configuration de référence, de la démonstration et des outils du projet (EX-11.1) ; le membre mode est requis par le schéma de configuration de CT-2. */
 export const MODE_ATTENTE_DEFAUT = "erreur";
+/** Mode observation (révision 0.4, 11.7 ; CT-2 révision 0.6, 14.6) : évaluation sans effet, aucun appel retenu ni refusé par la politique. */
+export const MODE_OBSERVATION = "observation";
+/** Les trois valeurs de policy.approval.mode (CT-2 15.1, révision 0.6). */
+export const MODES_ATTENTE = Object.freeze(["retenir", "erreur", MODE_OBSERVATION]);
+/** Valeurs <x> de la marque d'observation « [observation <x>] » (EX-6.8). */
+export const VALEURS_OBSERVATION = Object.freeze(["autorise", "a_approuver", "refuse", "inconnu"]);
+/** Nom fixe qui précède la marque inconnu, quand aucune réponse valide n'a été reçue (EX-6.8) ; il ne désigne aucune règle. */
+export const NOM_EVALUATION_IMPOSSIBLE = "evaluation impossible";
+/** Avertissement de la commande de validation en mode observation (CT-2 EX-15.8), texte fixe. */
+export const AVERTISSEMENT_OBSERVATION = "mode observation : aucun appel ne sera bloque ni soumis a approbation ; une ecriture peut n'avoir qu'un evenement en attente, ou aucun au-dela des bornes de 14.5";
 
 /** États du ticket (7.3). */
 export const ETATS = ["reserve", "ouvert", "seuil_atteint", "verification", "a_remettre", "approuve", "refuse", "expire", "consomme", "clos", "abandonne"];
@@ -518,6 +529,113 @@ export function evaluer(P, d, { fenetres = [], t, policy_version = d.code?.polic
   const apres = fenetres.map(copie);
   if (fenetreConsommee !== null) apres[fenetreConsommee].remaining -= 1;
   return { rule, decision, contest_ms, opening, fenetres: apres, fenetreConsommee };
+}
+
+/**
+ * EVALUER en mode observation (révision 0.4, EX-11.12, EX-11.13) : appelle
+ * `evaluer` sur les mêmes entrées et rend la seule réponse admise sous une
+ * version en mode observation (EX-12.20) : { rule, decision, ticket: null,
+ * ticket_state: null, approval: null, approver_set: null }, avec `rule` et
+ * `decision` d'EVALUER. Aucun effet (6.5) : aucun ticket, aucune unité de
+ * fenêtre consommée — une fenêtre qui couvre la demande rend le rang 2 et la
+ * marque « [fenetre <ticket> <fin>] » sans être décomptée, et `fenetres` n'est
+ * pas modifié (evaluer travaille sur une copie) ; jamais plafond_atteint.
+ */
+export function evaluerObservation(P, d, { fenetres = [], t, policy_version = d.code?.policy_version } = {}) {
+  const e = evaluer(P, d, { fenetres, t, policy_version });
+  return { rule: e.rule, decision: e.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
+}
+
+/** Longueur maximale, en points de code, de la `rule` d'une réponse admise en mode observation : 1 024 moins les 26 de la marque la plus longue (EX-6.8, EX-12.20). */
+export const LONGUEUR_REGLE_OBSERVATION_MAX = 1024 - " [observation a_approuver]".length;
+
+/**
+ * `rule` réservée ou forgée (EX-6.8, EX-12.20) : le nom fixe `evaluation
+ * impossible`, seul ou suivi d'une marque de 6.4 (« evaluation impossible
+ * [ »), qui ne désigne aucune règle ; ou une chaîne qui porte déjà « [observation »,
+ * marque que le service ne pose jamais.
+ */
+export function regleObservationReservee(rule) {
+  return typeof rule === "string" && (rule === NOM_EVALUATION_IMPOSSIBLE || rule.startsWith(`${NOM_EVALUATION_IMPOSSIBLE} [`) || rule.includes("[observation"));
+}
+
+/**
+ * Réponse à evaluer admise sous une version en mode observation (EX-12.20 ;
+ * CT-2 EX-7.23) : exactement les six membres, `rule` chaîne non vide d'au
+ * plus 998 points de code (la chaîne marquée reste sous les 1 024 de CT-1),
+ * ni réservée ni déjà marquée (regleObservationReservee), `decision` ∈
+ * { autorise, a_approuver, refuse }, `ticket`, `ticket_state`, `approval` et
+ * `approver_set` nuls. Toute autre réponse est invalide.
+ */
+export function reponseObservationAdmise(r) {
+  if (!estObjet(r)) return false;
+  if (!J.egalJSON(Object.keys(r).sort(), ["approval", "approver_set", "decision", "rule", "ticket", "ticket_state"])) return false;
+  if (typeof r.rule !== "string" || r.rule === "" || [...r.rule].length > LONGUEUR_REGLE_OBSERVATION_MAX || regleObservationReservee(r.rule)) return false;
+  return ["autorise", "a_approuver", "refuse"].includes(r.decision) && r.ticket === null && r.ticket_state === null && r.approval === null && r.approver_set === null;
+}
+
+/**
+ * Chaîne policy.rule scellée en mode observation (EX-6.8 ; CT-2 EX-14.14,
+ * EX-14.15) : la règle rendue par le service suivie de « [observation <x>] »,
+ * ou « evaluation impossible [observation inconnu] » quand `x` vaut inconnu.
+ */
+export function regleObservation(rule, x) {
+  exiger(VALEURS_OBSERVATION.includes(x), `valeur de marque d'observation inconnue : ${JSON.stringify(x)}`);
+  if (x === "inconnu") return `${NOM_EVALUATION_IMPOSSIBLE} [observation inconnu]`;
+  exiger(typeof rule === "string" && rule !== "", "une règle non vide est exigée pour une marque autre que inconnu");
+  return `${rule} [observation ${x}]`;
+}
+
+/**
+ * Raison que le mode bloquant aurait rendue, pour la ligne
+ * observation_would_block (CT-2 EX-14.16, EX-17.8) d'un appel marqué `x` :
+ * approbation pour a_approuver (ticket) et inconnu (service indisponible,
+ * -31010 raison approbation en mode bloquant), politique pour refuse, null
+ * pour autorise (rien n'aurait été bloqué).
+ */
+export function raisonBlocageObservation(x) {
+  return { autorise: null, a_approuver: "approbation", refuse: "politique", inconnu: "approbation" }[x] ?? null;
+}
+
+/**
+ * Ce que le mandataire fait d'une réponse à evaluer sous une version en mode
+ * observation (CT-2 EX-4.51, EX-7.23, EX-14.14, EX-14.15) : toujours le relais,
+ * jamais de refus, de signal ni de retenue. `reponse` est la réponse reçue, ou
+ * null sans réponse (délai policy.approval.timeout_ms, erreur du service).
+ * Rend { action: "relayer", approval: null, policy: { rule, decision:
+ * "autorise", ticket: null }, would, raison, consigner } : `would` est la
+ * valeur de la marque, `raison` celle de observation_would_block (null pour
+ * autorise), `consigner` la ligne d'exploitation de l'indisponibilité
+ * (approval_service_unavailable sans réponse, approval_response_invalid pour
+ * une réponse non admise, null sinon).
+ */
+export function actionObservation(reponse) {
+  let would;
+  let consigner = null;
+  if (reponse === null || reponse === undefined) [would, consigner] = ["inconnu", "approval_service_unavailable"];
+  else if (!reponseObservationAdmise(reponse)) [would, consigner] = ["inconnu", "approval_response_invalid"];
+  else would = reponse.decision;
+  return {
+    action: "relayer",
+    approval: null,
+    policy: { rule: regleObservation(would === "inconnu" ? null : reponse.rule, would), decision: "autorise", ticket: null },
+    would,
+    raison: raisonBlocageObservation(would),
+    consigner,
+  };
+}
+
+/**
+ * Refus d'entrer en mode observation (CT-2 EX-15.8) : un rechargement qui
+ * fait passer la version en vigueur d'un autre mode au mode observation est
+ * refusé tant qu'une retenue des fichiers des approbations n'a pas de
+ * décision scellée. `retenuesSansDecision` : nombre de ces retenues. Rend
+ * null (admis) ou { event: "config_reload_rejected", reason: "tickets_ouverts" }.
+ * Le passage du mode observation à un autre mode n'a pas de condition propre.
+ */
+export function refusEntreeObservation({ modeEnVigueur, modeNouveau, retenuesSansDecision = 0 }) {
+  if (modeNouveau !== MODE_OBSERVATION || modeEnVigueur === MODE_OBSERVATION) return null;
+  return retenuesSansDecision > 0 ? { event: "config_reload_rejected", reason: "tickets_ouverts" } : null;
 }
 
 /**
@@ -1855,9 +1973,12 @@ export function resultatSignalApprobation(ticket, state, { hoteModerne = true, r
  *     seule erreur JSON-RPC ;
  *   { action: "retenir", ticket } — mode retenir, aucune requête de ce ticket
  *     déjà retenue (CT-2 EX-4.50).
+ * En mode observation (révision 0.4), le résultat est celui d'actionObservation :
+ * toujours le relais, avec la policy marquée (CT-2 EX-4.51, EX-14.14).
  * `recorder` est code.recorder, la version de l'enregistreur.
  */
 export function actionMandataire(reponse, { decisionScellee = null, mode = MODE_ATTENTE_DEFAUT, hoteModerne = true, requeteDejaRetenue = false, recorder = C.VERSION_ENREGISTREUR } = {}) {
+  if (mode === MODE_OBSERVATION) return actionObservation(reponse);
   if (!reponseEvaluerApplicable(reponse, { decisionScellee })) return { action: "erreur", error: C.erreurEnregistreur("MODE_DEGRADE", { reason: "approbation" }) };
   if (reponse.decision === "autorise" && reponse.ticket === null) return { action: "relayer", approval: null };
   if (reponse.decision === "autorise") return { action: "verifier_relais", ticket: reponse.ticket, approval: copie(decisionScellee) };
@@ -1900,12 +2021,14 @@ export function resultatDebutAppel(reponse, { call = null, decisionScellee = nul
 
 /**
  * Avertissements de la commande de validation de l'enregistreur sur le mode
- * d'attente (EX-11.1, EX-11.2) : `retenir` est signalé ; hold_timeout_ms doit
+ * d'attente (EX-11.1, EX-11.2) : `observation` est signalé par le texte fixe
+ * de CT-2 EX-15.8 ; `retenir` est signalé ; hold_timeout_ms doit
  * rester sous le plus petit délai par appel des hôtes raccordés, d'au moins
  * une seconde (`delaisHotesMs`, facultatif).
  */
 export function avertissementsModeAttente(approval, { delaisHotesMs = [] } = {}) {
   const out = [];
+  if (approval.mode === MODE_OBSERVATION) out.push(AVERTISSEMENT_OBSERVATION);
   if (approval.mode === "retenir") {
     out.push("mode retenir : le mode par défaut est erreur (CT-3 EX-11.1)");
     if (delaisHotesMs.length) {
@@ -1914,6 +2037,54 @@ export function avertissementsModeAttente(approval, { delaisHotesMs = [] } = {})
     }
   }
   return out;
+}
+
+/** Suffixe de `policy.version` d'un ensemble en mode observation (CT-2 EX-15.8, révision 0.6) : `code.policy_version` de tout événement le nomme. */
+export const SUFFIXE_VERSION_OBSERVATION = "-observation";
+
+/**
+ * Contrôles de validation propres au mode observation (CT-2 EX-15.8,
+ * révision 0.6 ; CT-8 EX-12.11, pas 2) sur l'ensemble de politique `policy`
+ * (membre `policy` de la configuration) :
+ * - erreur `version_observation_sans_suffixe` : mode `observation` et
+ *   `policy.version` qui ne finit pas par « -observation » ;
+ * - erreur `suffixe_observation_hors_mode` : version qui finit par
+ *   « -observation » sous un autre mode ;
+ * - `approbateurs_de_test` : jeu statique d'approbateurs qui contient une
+ *   adresse de clé de test publiée (`adressesTest`, adresses de
+ *   spec/vecteurs/ct-7/cles-de-test.json, CT-7 CLE-28) sous un mode bloquant :
+ *   erreur en `production`, avertissement sinon (la démonstration de CT-2
+ *   §21 garde ses comptes de test en développement).
+ * Rend { erreurs: [code], avertissements: [code] }, dans cet ordre.
+ */
+/**
+ * Adresses des clés de test publiées par les vecteurs (CT-7 CLE-28), lues dans
+ * spec/vecteurs/ct-7/cles-de-test.json ; liste vide si le fichier est absent
+ * (archive de déploiement sans vecteurs).
+ */
+export function adressesDeTest() {
+  try {
+    const f = new URL("../../spec/vecteurs/ct-7/cles-de-test.json", import.meta.url);
+    return JSON.parse(fs.readFileSync(f, "utf8")).keys.map((k) => k.address).filter((x) => typeof x === "string");
+  } catch {
+    return [];
+  }
+}
+
+export function controlesModeObservation(policy, { environment = "developpement", adressesTest = [] } = {}) {
+  const erreurs = [];
+  const avertissements = [];
+  const mode = policy?.approval?.mode;
+  const version = String(policy?.version ?? "");
+  const suffixe = version.endsWith(SUFFIXE_VERSION_OBSERVATION);
+  if (mode === MODE_OBSERVATION && !suffixe) erreurs.push("version_observation_sans_suffixe");
+  if (mode !== MODE_OBSERVATION && suffixe) erreurs.push("suffixe_observation_hors_mode");
+  const jeu = policy?.approval?.rules?.approver_set;
+  const test = new Set(adressesTest.map((x) => String(x).toLowerCase()));
+  if (mode !== MODE_OBSERVATION && jeu?.source === "statique" && (jeu.members ?? []).some((m) => test.has(String(m).toLowerCase()))) {
+    (environment === "production" ? erreurs : avertissements).push("approbateurs_de_test");
+  }
+  return { erreurs, avertissements };
 }
 
 // ---------------------------------------------------------------------------
@@ -2378,12 +2549,15 @@ export function fichierMacEchu(lignes, { requestTs, maintenantMs, expireAfterMs 
  *     du mode retenir (EX-11.1, EX-11.2 avec `delaisHotesMs`) ;
  *     règles de la révision 0.5 de CT-2 (otel, policy.sdk, routes gemini,
  *     support WORM : C.controlesConfigurationRevision05) ;
+ *     mode observation (révision 0.6 de CT-2) : avertissement d'EX-15.8, et
+ *     erreur si `retenuesSansDecision` (retenues des fichiers des
+ *     approbations sans décision scellée) est non nul (EX-15.8) ;
  *   - pas 4 (si `secrets` est donné : { relay_mac_key, pseudonym_key, autres :
  *     [clés] }, octets décodés) : relay_mac_key et pseudonym_key d'au moins 32
  *     octets, relay_mac_key distincte de toute autre clé.
  * Rend { erreurs, avertissements } (chaînes : pointeur JSON, règle).
  */
-export function controlesConfiguration(config, { schemas, outils = null, delaisHotesMs = [], secrets = null } = {}) {
+export function controlesConfiguration(config, { schemas, outils = null, delaisHotesMs = [], secrets = null, retenuesSansDecision = 0 } = {}) {
   const erreurs = [];
   const avertissements = [];
   if (schemas?.[C.ID_SCHEMA_CONFIGURATION]) {
@@ -2407,6 +2581,12 @@ export function controlesConfiguration(config, { schemas, outils = null, delaisH
     }
   }
   for (const a of avertissementsModeAttente({ mode: approval.mode, hold_timeout_ms: approval.hold_timeout_ms }, { delaisHotesMs })) avertissements.push(`/policy/approval/mode : ${a}`);
+  if (approval.mode === MODE_OBSERVATION && retenuesSansDecision > 0) erreurs.push(`/policy/approval/mode : mode observation refusé au démarrage : ${retenuesSansDecision} retenue(s) sans décision scellée (tickets_ouverts, CT-2 EX-15.8)`);
+  // Suffixe -observation et approbateurs de test (CT-2 EX-15.8, révision 0.6).
+  const pointeur = { version_observation_sans_suffixe: "/policy/version", suffixe_observation_hors_mode: "/policy/version", approbateurs_de_test: "/policy/approval/rules/approver_set" };
+  const mo = controlesModeObservation(policy, { environment: config?.recorder?.environment, adressesTest: adressesDeTest() });
+  for (const e of mo.erreurs) erreurs.push(`${pointeur[e]} : ${e} (CT-2 EX-15.8)`);
+  for (const a of mo.avertissements) avertissements.push(`${pointeur[a]} : ${a} (CT-2 EX-15.8)`);
   // Révision 0.5 de CT-2 : otel, policy.sdk, routes gemini, support WORM (EX-15.4 pas 3).
   const r05 = C.controlesConfigurationRevision05(config);
   erreurs.push(...r05.erreurs);

@@ -1,0 +1,6 @@
+{
+  "version": 0,
+  "period_hash": "0x8116da4117da565fc51a83487065b0e1305aba8e51de3511d5608cc3f0294658",
+  "recorder_key_id": "rec-test-01",
+  "sig": "0x07e9c9b64496078b79ab6e25a842959784d6a690fa6764a2925a3b52e26d9f3d84d46d49c4bb59ebadaeb88b2990d4998cbbe98d015ab5b4ae41abb651b94208"
+}

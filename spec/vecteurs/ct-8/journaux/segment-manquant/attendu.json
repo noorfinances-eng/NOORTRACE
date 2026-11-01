@@ -1,0 +1,57 @@
+{
+  "description": "Trois segments (1-2, 3-4, 5-7) dont celui de seq 3 et 4 manque : first_seq_discontinu (et C-1).",
+  "rapport": {
+    "version": 0,
+    "verdict": "invalide",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "segments": [
+      {
+        "name": "seg-0000000000000001-00000000000000000001.ndjson",
+        "first_seq": 1,
+        "epoch": 1,
+        "events": 2,
+        "length": 3143,
+        "sha256": "0x2455e12d6d2a2c67301da1e40be4b15e2bf7308f42712cea0ac5fc641721cb20"
+      },
+      {
+        "name": "seg-0000000000000005-00000000000000000003.ndjson",
+        "first_seq": 5,
+        "epoch": 3,
+        "events": 3,
+        "length": 4513,
+        "sha256": "0x1b1632c86dc48f3eac3d0aa5c5fb935741cca5f20d71ec3ee8da4641a9632981"
+      }
+    ],
+    "first_seq": 1,
+    "last_seq": 7,
+    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "manifests": [],
+    "errors": [
+      {
+        "check": "C-1",
+        "segment": "seg-0000000000000005-00000000000000000003.ndjson",
+        "seq": 5,
+        "detail": "trou entre seq 2 et seq 5 : 2 événement(s) supprimé(s)"
+      },
+      {
+        "check": "C-2",
+        "segment": "seg-0000000000000005-00000000000000000003.ndjson",
+        "seq": 5,
+        "detail": "seq 5 (position 2) : prev_hash 0x5dde5e1d9f126531cbc8ffb2d4df156f4db9ef3406bf174e33fbfac41e18b970 différent du hash recalculé de l'événement précédent dans le fichier, seq 2 (0xb8f666e5d7c656c5e673f6d9cf00700f5deeb831b7867fa46b0277b76708519c)"
+      },
+      {
+        "check": "first_seq_discontinu",
+        "segment": "seg-0000000000000005-00000000000000000003.ndjson",
+        "seq": 5,
+        "detail": "first_seq 5, attendu 3 (suite du segment précédent)"
+      },
+      {
+        "check": "prev_hash_entete",
+        "segment": "seg-0000000000000005-00000000000000000003.ndjson",
+        "seq": 5,
+        "detail": "prev_hash de l'en-tête 0x5dde5e1d9f126531cbc8ffb2d4df156f4db9ef3406bf174e33fbfac41e18b970, attendu 0xb8f666e5d7c656c5e673f6d9cf00700f5deeb831b7867fa46b0277b76708519c"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "description": "Le même journal en deux segments (seq 1 à 4 à l'époque 1, seq 5 à 7 à l'époque 2), en-tête du second chaîné au hash de seq 4.",
+  "rapport": {
+    "version": 0,
+    "verdict": "valide",
+    "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+    "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+    "segments": [
+      {
+        "name": "seg-0000000000000001-00000000000000000001.ndjson",
+        "first_seq": 1,
+        "epoch": 1,
+        "events": 4,
+        "length": 5993,
+        "sha256": "0x53f5d34581ffcdaa10eea5bd515c1410032595fd5163d3d6a6cf908c8581f857"
+      },
+      {
+        "name": "seg-0000000000000005-00000000000000000002.ndjson",
+        "first_seq": 5,
+        "epoch": 2,
+        "events": 3,
+        "length": 4513,
+        "sha256": "0x92dba35d6200045af137877042c9e715ca6c9e585087a0e0ef0a61e193ea9068"
+      }
+    ],
+    "first_seq": 1,
+    "last_seq": 7,
+    "last_hash": "0x30ebe8ce1b866c67c4b5e3b08f1742ad5981200bea7cfbf47561441d4f63abeb",
+    "manifests": [],
+    "errors": []
+  }
+}

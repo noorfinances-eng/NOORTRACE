@@ -1204,7 +1204,8 @@ describe("CT-2 révision 0.3 : configuration (15.3, EX-15.4 pas 2 à 4, EX-7.15)
     expect(AP.controlesConfiguration(contest, { schemas: SCHEMAS }).erreurs).to.deep.equal(["/policy/approval/rules/rules/3/contest_ms : contest_ms_trop_long (CT-3 EX-4.2, EX-8.2)"]);
     const statique = C.copieJSON(CONFIG);
     statique.policy.approval.rules.approver_set = { source: "statique", chain_id: null, registry: null, set: null, members: ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8"], threshold: { required: 1, size: 1 } };
-    expect(AP.controlesConfiguration(statique, { schemas: SCHEMAS }).erreurs).to.deep.equal(["/policy/approval/rules/approver_set/source : jeu_statique_en_production (CT-3 EX-4.2, EX-8.2)"]);
+    // CT-2 révision 0.6 (EX-15.8) : en production, un jeu statique qui contient une adresse de test publiée (CT-7 CLE-28) est aussi refusé.
+    expect(AP.controlesConfiguration(statique, { schemas: SCHEMAS }).erreurs).to.deep.equal(["/policy/approval/rules/approver_set/source : jeu_statique_en_production (CT-3 EX-4.2, EX-8.2)", "/policy/approval/rules/approver_set : approbateurs_de_test (CT-2 EX-15.8)"]);
     const extract = C.copieJSON(CONFIG);
     extract.policy.servers.sap.tools["payments.create"].effects[0].extract = "(a+)+$";
     expect(AP.controlesConfiguration(extract, { schemas: SCHEMAS }).erreurs.join(" ")).to.include("/policy/servers/sap/tools/payments.create/effects[0].extract").and.include("(EX-10.6 a)");

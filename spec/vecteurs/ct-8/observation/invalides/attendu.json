@@ -1,0 +1,131 @@
+{
+  "version": 0,
+  "description": "OB-1 à OB-4 (CT-8 EX-12.16) sur des suites d'événements re-scellées par rec-test-01 ; with_policies : les pièces de politique/ sont fournies (OB-3, OB-4 exécutées).",
+  "cases": [
+    {
+      "id": "marque-absente-en-observation",
+      "description": "L'appel seq 3 n'a pas de marque sous une version en mode observation (OB-3).",
+      "file": "marque-absente-en-observation.ndjson",
+      "with_policies": true,
+      "expected": {
+        "checks_run": [
+          "OB-1",
+          "OB-2",
+          "OB-3",
+          "OB-4"
+        ],
+        "anomalies": [
+          {
+            "seq": 3,
+            "check": "OB-3",
+            "detail": "marque_absente"
+          }
+        ]
+      }
+    },
+    {
+      "id": "marque-hors-observation",
+      "description": "Après l'annonce de la version 2026-11-05-erreur (seq 8), un appel marqué sous cette version (seq 9, OB-3).",
+      "file": "marque-hors-observation.ndjson",
+      "with_policies": true,
+      "expected": {
+        "checks_run": [
+          "OB-1",
+          "OB-2",
+          "OB-3",
+          "OB-4"
+        ],
+        "anomalies": [
+          {
+            "seq": 9,
+            "check": "OB-3",
+            "detail": "marque_hors_observation"
+          }
+        ]
+      }
+    },
+    {
+      "id": "retenue-en-observation",
+      "description": "Un appel retenu (status retenue, ticket) sous une version en mode observation (OB-4 ; OB-3, sans marque).",
+      "file": "retenue-en-observation.ndjson",
+      "with_policies": true,
+      "expected": {
+        "checks_run": [
+          "OB-1",
+          "OB-2",
+          "OB-3",
+          "OB-4"
+        ],
+        "anomalies": [
+          {
+            "seq": 3,
+            "check": "OB-3",
+            "detail": "marque_absente"
+          },
+          {
+            "seq": 3,
+            "check": "OB-4",
+            "detail": "approbation_en_observation"
+          }
+        ]
+      }
+    },
+    {
+      "id": "marque-avec-decision-a-approuver",
+      "description": "Appel marqué dont policy.decision vaut a_approuver avec un ticket (OB-2).",
+      "file": "marque-avec-decision-a-approuver.ndjson",
+      "with_policies": false,
+      "expected": {
+        "checks_run": [
+          "OB-1",
+          "OB-2"
+        ],
+        "anomalies": [
+          {
+            "seq": 3,
+            "check": "OB-2",
+            "detail": "incoherence_marque"
+          }
+        ]
+      }
+    },
+    {
+      "id": "marque-sur-outil-reserve",
+      "description": "Événement noortrace.journal.politique qui porte une marque (OB-2).",
+      "file": "marque-sur-outil-reserve.ndjson",
+      "with_policies": false,
+      "expected": {
+        "checks_run": [
+          "OB-1",
+          "OB-2"
+        ],
+        "anomalies": [
+          {
+            "seq": 1,
+            "check": "OB-2",
+            "detail": "incoherence_marque"
+          }
+        ]
+      }
+    },
+    {
+      "id": "marque-en-double",
+      "description": "Appel seq 2 dont policy.rule porte deux marques d'observation (OB-1, marque_en_double).",
+      "file": "marque-en-double.ndjson",
+      "with_policies": false,
+      "expected": {
+        "checks_run": [
+          "OB-1",
+          "OB-2"
+        ],
+        "anomalies": [
+          {
+            "seq": 2,
+            "check": "OB-1",
+            "detail": "marque_en_double"
+          }
+        ]
+      }
+    }
+  ]
+}

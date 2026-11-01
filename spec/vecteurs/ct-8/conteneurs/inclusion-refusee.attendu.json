@@ -1,0 +1,102 @@
+{
+  "description": "Clé include de premier niveau, qui chargerait un fichier non examiné (CO-1, cle_premier_niveau_non_admise) ; CO-2 à CO-14 non exécutées (prerequis_en_echec).",
+  "file": "inclusion-refusee.yaml",
+  "attendu": {
+    "version": 0,
+    "file": "inclusion-refusee.yaml",
+    "sha256": "6209f3aeb5014e7f719e2f97eb0628da5d5f8b9248d5a17b834cd05e04bfee9f",
+    "verdict": "non_conforme",
+    "all_images_by_digest": false,
+    "checks": [
+      {
+        "id": "CO-1",
+        "status": "echoue",
+        "reason": null,
+        "findings": [
+          {
+            "service": null,
+            "code": "cle_premier_niveau_non_admise"
+          }
+        ]
+      },
+      {
+        "id": "CO-2",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-3",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-4",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-5",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-6",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-7",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-8",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-9",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-10",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-11",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-12",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-13",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      },
+      {
+        "id": "CO-14",
+        "status": "non_execute",
+        "reason": "prerequis_en_echec",
+        "findings": []
+      }
+    ]
+  }
+}

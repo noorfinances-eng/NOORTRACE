@@ -1,9 +1,10 @@
 # NOORTRACE — architecture cible
 
-Version 0.10, 27 octobre 2026. Document de conception, pas d'implémentation. Les
-spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2 pour
-l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-5 pour
-l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité et la conformité.
+Version 0.11, 1er novembre 2026. Document de conception, pas d'implémentation.
+Les spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2
+pour l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-5
+pour l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité et la
+conformité, CT-8 pour le déploiement et l'exploitation.
 
 ## Principe
 
@@ -492,7 +493,20 @@ acceptés, nommés, bornés et attribués.
   périmètre (avec les révisions CT-1 0.4 et CT-6 0.3, qui l'ajoutent au dossier
   comme partie facultative et déclarative), matrice de conformité, modèles de
   clauses de droit d'audit ; références JavaScript, vecteurs, vérificateur Go
-  indépendant, confrontation à ethers et à eth-account.
+  indépendant, confrontation à ethers et à eth-account ;
+- la spécification CT-8 du déploiement et de l'exploitation et ses huit
+  schémas : topologies et paquets, fichiers Compose de référence vérifiés
+  statiquement, prérequis réseau, contrôle préalable de l'hôte, installation
+  rapide et installation complète pas à pas avec leur budget de temps,
+  dimensionnement calculé, observabilité et runbooks, sauvegarde et reprise
+  sans rupture de chaîne, mises à jour, journal des consultations et des
+  accès, mode observation (révisions minimales CT-2 0.6 et CT-3 0.4), paquet
+  réviseur déterministe vérifié hors ligne en une commande ; fichiers de
+  `deploiement/`, outils de `scripts/deploiement/` et
+  `scripts/paquet-reviseur/`, vecteurs, vérificateur Go indépendant,
+  confrontation à GNU tar, au module `tarfile` de Python et à `sha256sum`.
+  Les installations n'ont pas été exécutées et toute durée en est une cible :
+  l'enregistreur n'existe pas encore.
 
 La conception se fait sur l'instance de développement locale ; un VPS de
 développement n'est requis qu'à la construction de l'enregistreur, quand il

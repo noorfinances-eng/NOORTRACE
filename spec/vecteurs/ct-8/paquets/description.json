@@ -1,0 +1,31 @@
+{
+  "version": 0,
+  "label": "Paquet de démonstration des vecteurs CT-8 : journal sinistres, période du 2026-11-05 de 09:00 à 10:00",
+  "created_at": "2026-10-27T00:00:00.000Z",
+  "prepared_by": "exploitant de l'instance de démonstration (vecteurs CT-8)",
+  "dossiers": [
+    {
+      "source": "../../ct-6/dossiers/valide-seq-7-complet",
+      "anchors": "../../ct-6/ancres/ancres-test.json",
+      "bitcoin_headers": "../../ct-6/ots/entetes/chaine.json"
+    },
+    {
+      "source": "../../ct-6/dossiers/valide-seq-7-complet-attestation",
+      "anchors": "../../ct-6/ancres/ancres-test.json",
+      "bitcoin_headers": "../../ct-6/ots/entetes/chaine.json"
+    },
+    {
+      "source": "../../ct-6/dossiers/valide-point-de-controle-complet",
+      "anchors": "../../ct-6/ancres/ancres-test.json",
+      "bitcoin_headers": "../../ct-6/ots/entetes/chaine-points.json"
+    }
+  ],
+  "attestation": {
+    "signed": "../../ct-7/attestations/exemple/attestation-signee.json",
+    "approver_set": "../../ct-7/attestations/exemple/jeu.json"
+  },
+  "pieces": [
+    "../../ct-4/manifestes/valides/developpement/instance-r1.json"
+  ],
+  "include_verifier": false
+}

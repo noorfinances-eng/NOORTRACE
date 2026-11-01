@@ -1,0 +1,1150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/paquet-reviseur.schema.json",
+  "title": "Paquet réviseur NOORTRACE, version 0 (CT-8 §13)",
+  "description": "Le manifeste MANIFESTE.json d'un paquet réviseur (archive tar ustar déterministe), et dans ses $defs la description que lit l'outil de construction, le rapport de l'outil de vérification et le fichier de cas de la famille spec/vecteurs/ct-8/paquets/. Les chemins sont relatifs à la racine paquet-reviseur/ de l'archive.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "label",
+    "created_at",
+    "prepared_by",
+    "dossiers",
+    "attestation",
+    "verifier",
+    "instructions",
+    "files"
+  ],
+  "properties": {
+    "format": {
+      "const": "noortrace/paquet-reviseur"
+    },
+    "version": {
+      "const": 0
+    },
+    "label": {
+      "$ref": "#/$defs/texte"
+    },
+    "created_at": {
+      "$ref": "#/$defs/instant"
+    },
+    "prepared_by": {
+      "$ref": "#/$defs/texte"
+    },
+    "dossiers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/dossier"
+      }
+    },
+    "attestation": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/attestation"
+        }
+      ]
+    },
+    "verifier": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/verificateur"
+        }
+      ]
+    },
+    "instructions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fr",
+        "en"
+      ],
+      "properties": {
+        "fr": {
+          "const": "LISEZMOI.md"
+        },
+        "en": {
+          "const": "README.md"
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/fichier"
+      }
+    }
+  },
+  "$defs": {
+    "texte": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\u0000-\u001f\u007f-\u009f]*$",
+      "description": "Texte libre sans caractère de contrôle (C0, DEL, C1), pour qu'aucun ne parvienne au terminal du réviseur (CT-8 EX-13.27)."
+    },
+    "instant": {
+      "description": "Instant UTC à la seconde, millisecondes nulles (CT-1 §3) ; c'est aussi la date de modification de toutes les entrées de l'archive.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.000Z$"
+    },
+    "hex32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "chemin": {
+      "description": "Chemin relatif à la racine paquet-reviseur/ : composants de caractères [A-Za-z0-9._@+-], qui ne commencent pas par un point, séparés par une barre oblique ; 16 composants au plus ; 239 octets au plus (255 octets avec la racine).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 239,
+      "pattern": "^[A-Za-z0-9_@+-][A-Za-z0-9._@+-]{0,99}(/[A-Za-z0-9_@+-][A-Za-z0-9._@+-]{0,99}){0,15}$"
+    },
+    "chemin_dossier": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 239,
+      "pattern": "^dossiers/[A-Za-z0-9_@+-][A-Za-z0-9._@+-]{0,99}$"
+    },
+    "chemin_ancres": {
+      "type": "string",
+      "pattern": "^ancres/[A-Za-z0-9_@+-][A-Za-z0-9._@+-]{0,99}$"
+    },
+    "chemin_entetes": {
+      "type": "string",
+      "pattern": "^entetes/[A-Za-z0-9_@+-][A-Za-z0-9._@+-]{0,99}$"
+    },
+    "fichier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "size",
+        "sha256",
+        "role"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/chemin"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 67108864
+        },
+        "sha256": {
+          "$ref": "#/$defs/hex32"
+        },
+        "role": {
+          "enum": [
+            "dossier",
+            "ancres",
+            "entetes",
+            "attestation",
+            "pieces",
+            "verificateur",
+            "instructions"
+          ]
+        }
+      }
+    },
+    "dossier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "anchors",
+        "bitcoin_headers"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/chemin_dossier"
+        },
+        "anchors": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/chemin_ancres"
+            }
+          ]
+        },
+        "bitcoin_headers": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/chemin_entetes"
+            }
+          ]
+        }
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signed",
+        "approver_set"
+      ],
+      "properties": {
+        "signed": {
+          "const": "attestation/attestation-signee.json"
+        },
+        "approver_set": {
+          "const": "attestation/jeu-approbateurs.json"
+        }
+      }
+    },
+    "verificateur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool",
+        "dossier_verifier",
+        "version",
+        "runtime"
+      ],
+      "properties": {
+        "tool": {
+          "const": "verificateur/scripts/paquet-reviseur/verifier.mjs"
+        },
+        "dossier_verifier": {
+          "const": "verificateur/scripts/verify/dossier.mjs"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "runtime": {
+          "$ref": "#/$defs/texte"
+        }
+      }
+    },
+    "description_source": {
+      "description": "Entrée de l'outil de construction (scripts/paquet-reviseur/construire.mjs --description) : chemins locaux, résolus contre le répertoire du fichier de description.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "label",
+        "created_at",
+        "prepared_by",
+        "dossiers",
+        "attestation",
+        "pieces",
+        "include_verifier"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "label": {
+          "$ref": "#/$defs/texte"
+        },
+        "created_at": {
+          "$ref": "#/$defs/instant"
+        },
+        "prepared_by": {
+          "$ref": "#/$defs/texte"
+        },
+        "dossiers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "anchors",
+              "bitcoin_headers"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "anchors": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                ]
+              },
+              "bitcoin_headers": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "attestation": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "signed",
+                "approver_set"
+              ],
+              "properties": {
+                "signed": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "approver_set": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              }
+            }
+          ]
+        },
+        "pieces": {
+          "description": "Pièces publiées que le paquet joint pour le recoupement des ancres (CT-5 §10.2, CT-4 §4.8) ; jamais lues par l'outil de vérification.",
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "include_verifier": {
+          "type": "boolean"
+        }
+      }
+    },
+    "statut": {
+      "enum": [
+        "reussi",
+        "echoue",
+        "non_execute"
+      ]
+    },
+    "raison": {
+      "description": "Raison d'une vérification PR- non exécutée.",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "empreinte_non_fournie",
+            "prerequis_en_echec",
+            "sans_objet",
+            "auto_comparaison"
+          ]
+        }
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "reason",
+        "detail"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^PR-([1-9]|1[0-2])$"
+        },
+        "status": {
+          "$ref": "#/$defs/statut"
+        },
+        "reason": {
+          "$ref": "#/$defs/raison"
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      }
+    },
+    "avertissement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "detail"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "AV-PR-1",
+            "AV-PR-2",
+            "AV-PR-3",
+            "AV-PR-4"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      }
+    },
+    "statut_controle": {
+      "enum": [
+        "reussi",
+        "echoue",
+        "non_execute"
+      ]
+    },
+    "resultat_dossier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "anchors",
+        "bitcoin_headers",
+        "exit_code",
+        "verdict",
+        "index_sha256",
+        "failed_checks",
+        "control_statuses",
+        "observation",
+        "observation_mode",
+        "statement"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/chemin_dossier"
+        },
+        "anchors": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source",
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "source": {
+                  "enum": [
+                    "paquet",
+                    "ligne_de_commande"
+                  ]
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "sha256": {
+                  "$ref": "#/$defs/hex32"
+                }
+              }
+            }
+          ]
+        },
+        "bitcoin_headers": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/chemin_entetes"
+            }
+          ]
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "verdict": {
+          "enum": [
+            "valide",
+            "invalide",
+            "incomplet",
+            null
+          ]
+        },
+        "index_sha256": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hex32"
+            }
+          ]
+        },
+        "failed_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 16
+          }
+        },
+        "control_statuses": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 8,
+              "maxItems": 8,
+              "items": {
+                "$ref": "#/$defs/statut_controle"
+              }
+            }
+          ]
+        },
+        "observation": {
+          "description": "Décision que porte la marque d'observation de policy.rule de l'événement prouvé (CT-8 §12), quand l'événement est exploitable et que les contrôles 1 et 6 ont réussi ; null sinon.",
+          "enum": [
+            null,
+            "autorise",
+            "a_approuver",
+            "refuse",
+            "inconnu"
+          ]
+        },
+        "observation_mode": {
+          "description": "Vrai quand l'événement prouvé relève d'une version de politique en mode observation : code.policy_version finit par « -observation » (CT-2 EX-15.8) ou policy.rule porte une marque d'observation ; null quand l'événement n'est pas exploitable ou que les contrôles 1 et 6 n'ont pas réussi.",
+          "enum": [
+            null,
+            true,
+            false
+          ]
+        },
+        "statement": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fr",
+                "en"
+              ],
+              "properties": {
+                "fr": {
+                  "type": "string"
+                },
+                "en": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "comptes_observation": {
+      "description": "Dossiers dont l'événement relève du mode observation, et décompte par décision des marques d'observation (CT-8 EX-12.9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dossiers",
+        "autorise",
+        "a_approuver",
+        "refuse",
+        "inconnu"
+      ],
+      "properties": {
+        "dossiers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "autorise": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "a_approuver": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refuse": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inconnu": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "rapport": {
+      "description": "Sortie de scripts/paquet-reviseur/verifier.mjs --json (CT-8 §13.7).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "version",
+        "tool",
+        "language",
+        "inputs",
+        "manifest",
+        "checks",
+        "package_status",
+        "warnings",
+        "attestation",
+        "dossiers",
+        "summary",
+        "exit_code",
+        "error"
+      ],
+      "properties": {
+        "format": {
+          "const": "noortrace/rapport-paquet-reviseur"
+        },
+        "version": {
+          "const": 0
+        },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "version",
+            "runtime"
+          ],
+          "properties": {
+            "name": {
+              "const": "scripts/paquet-reviseur/verifier.mjs"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+            },
+            "runtime": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        },
+        "language": {
+          "enum": [
+            "fr",
+            "en"
+          ]
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "archive",
+            "expected_sha256",
+            "anchors_override",
+            "required_controls"
+          ],
+          "properties": {
+            "archive": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "size",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "maxLength": 4096
+                    },
+                    "size": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "sha256": {
+                      "$ref": "#/$defs/hex32"
+                    }
+                  }
+                }
+              ]
+            },
+            "expected_sha256": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/hex32"
+                }
+              ]
+            },
+            "anchors_override": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "maxLength": 4096
+                    },
+                    "sha256": {
+                      "$ref": "#/$defs/hex32"
+                    }
+                  }
+                }
+              ]
+            },
+            "required_controls": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              }
+            }
+          }
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sha256",
+                "label",
+                "created_at",
+                "prepared_by",
+                "files",
+                "bytes"
+              ],
+              "properties": {
+                "sha256": {
+                  "$ref": "#/$defs/hex32"
+                },
+                "label": {
+                  "$ref": "#/$defs/texte"
+                },
+                "created_at": {
+                  "$ref": "#/$defs/instant"
+                },
+                "prepared_by": {
+                  "$ref": "#/$defs/texte"
+                },
+                "files": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/verification"
+          }
+        },
+        "package_status": {
+          "enum": [
+            "intact",
+            "non_conforme",
+            null
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/avertissement"
+          }
+        },
+        "attestation": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "retained",
+                "checks"
+              ],
+              "properties": {
+                "retained": {
+                  "type": "boolean"
+                },
+                "checks": {
+                  "type": "array",
+                  "maxItems": 4,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "status"
+                    ],
+                    "properties": {
+                      "id": {
+                        "enum": [
+                          "AT-1",
+                          "AT-2",
+                          "AT-3",
+                          "AT-4"
+                        ]
+                      },
+                      "status": {
+                        "$ref": "#/$defs/statut"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "dossiers": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/resultat_dossier"
+          }
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dossiers",
+            "valid",
+            "invalid",
+            "incomplete",
+            "unusable",
+            "observation"
+          ],
+          "properties": {
+            "dossiers": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "valid": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "incomplete": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unusable": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "observation": {
+              "$ref": "#/$defs/comptes_observation"
+            }
+          }
+        },
+        "exit_code": {
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "message"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "usage",
+                    "archive_illisible",
+                    "extraction_impossible",
+                    "erreur_interne"
+                  ]
+                },
+                "message": {
+                  "type": "string",
+                  "maxLength": 4096
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "cas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "archive",
+        "archive_sha256",
+        "options",
+        "expected",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]{1,64}$"
+        },
+        "archive": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]{1,64}\\.tar$"
+        },
+        "archive_sha256": {
+          "$ref": "#/$defs/hex32"
+        },
+        "options": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "expected_sha256",
+            "anchors"
+          ],
+          "properties": {
+            "expected_sha256": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/hex32"
+                }
+              ]
+            },
+            "anchors": {
+              "description": "Fichier d'ancres passé par --ancres, relatif à la racine du dépôt, ou null.",
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                }
+              ]
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exit_code",
+            "package_status",
+            "checks",
+            "warnings",
+            "dossiers",
+            "observation"
+          ],
+          "properties": {
+            "exit_code": {
+              "enum": [
+                0,
+                1,
+                2,
+                3,
+                4
+              ]
+            },
+            "package_status": {
+              "enum": [
+                "intact",
+                "non_conforme"
+              ]
+            },
+            "checks": {
+              "type": "array",
+              "minItems": 12,
+              "maxItems": 12,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "status",
+                  "reason"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^PR-([1-9]|1[0-2])$"
+                  },
+                  "status": {
+                    "$ref": "#/$defs/statut"
+                  },
+                  "reason": {
+                    "$ref": "#/$defs/raison"
+                  }
+                }
+              }
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "AV-PR-1",
+                  "AV-PR-2",
+                  "AV-PR-3",
+                  "AV-PR-4"
+                ]
+              }
+            },
+            "dossiers": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "exit_code",
+                  "observation_mode",
+                  "observation"
+                ],
+                "properties": {
+                  "path": {
+                    "$ref": "#/$defs/chemin_dossier"
+                  },
+                  "exit_code": {
+                    "enum": [
+                      0,
+                      1,
+                      2,
+                      3
+                    ]
+                  },
+                  "observation_mode": {
+                    "enum": [
+                      null,
+                      true,
+                      false
+                    ]
+                  },
+                  "observation": {
+                    "enum": [
+                      null,
+                      "autorise",
+                      "a_approuver",
+                      "refuse",
+                      "inconnu"
+                    ]
+                  }
+                }
+              }
+            },
+            "observation": {
+              "$ref": "#/$defs/comptes_observation"
+            }
+          }
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      }
+    },
+    "fichier_cas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "family",
+        "description",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "family": {
+          "const": "paquets"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/cas"
+          }
+        }
+      }
+    }
+  }
+}

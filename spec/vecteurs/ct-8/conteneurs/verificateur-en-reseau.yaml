@@ -1,0 +1,147 @@
+# Installation rapide de NOORTRACE (CT-8 §7) : un hôte, mode observation,
+# classe de garde D, bail « file », sans copie WORM, ancrage de test
+# (OpenTimestamps seul), sans approbation bloquante.
+#
+# Fichier de RÉFÉRENCE : les images noortrace/* sont à construire (phase 2) ;
+# il est vérifié par analyse statique (CT-8 §4, vérifications CO-1 à CO-14),
+# jamais lancé dans le dépôt. Les secrets sont des fichiers de ./secrets/
+# créés au pas IR-2 (mode 0400), jamais une variable d'environnement.
+#
+# Depuis le répertoire deploiement/ (les chemins relatifs ./config et ./secrets
+# se résolvent alors contre lui) :
+#
+#   docker compose --project-directory . -f compose/rapide.yaml up -d
+#   docker compose --project-directory . -f compose/rapide.yaml ps
+
+name: noortrace-rapide
+
+services:
+  enregistreur:
+    image: noortrace/enregistreur:0.1.0
+    user: "10001:10001"
+    group_add:
+      - "10010"
+    command: ["--configuration", "/etc/noortrace/configuration.json"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=67108864,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8300:8300"
+      - "127.0.0.1:8400:8400"
+      - "127.0.0.1:8500:8500"
+    volumes:
+      - type: volume
+        source: journal
+        target: /var/lib/noortrace
+      - type: volume
+        source: exploitation
+        target: /var/log/noortrace
+      - type: volume
+        source: prises
+        target: /run/noortrace
+      - type: volume
+        source: exports
+        target: /var/lib/noortrace-exports
+      - type: bind
+        source: ./config/rapide/configuration.json
+        target: /etc/noortrace/configuration.json
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - cle-enregistreur
+      - cle-mac-relais
+      - jeton-hote
+      - jeton-passerelle
+    networks:
+      - hotes
+      - sortie
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-ctl", "sonde", "--url", "http://127.0.0.1:8500/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  approbation:
+    image: noortrace/approbation:0.1.0
+    user: "10002:10002"
+    group_add:
+      - "10010"
+    command: ["--prise", "/run/noortrace/approbation.sock", "--pair", "noortrace", "--etat", "/var/lib/noortrace-approbation"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=16777216,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    network_mode: none
+    volumes:
+      - type: volume
+        source: approbation-etat
+        target: /var/lib/noortrace-approbation
+      - type: volume
+        source: prises
+        target: /run/noortrace
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/noortrace-approbation", "sonde", "--url", "http://127.0.0.1:8601/v0/etat"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  verificateur:
+    image: noortrace/verificateur:0.1.0
+    user: "10005:10005"
+    profiles: ["outils"]
+    read_only: true
+    tmpfs:
+      - /run/temporaire:size=67108864,mode=1777
+    environment:
+      TMPDIR: /run/temporaire
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    networks:
+      - sortie
+    volumes:
+      - type: volume
+        source: exports
+        target: /var/lib/noortrace-exports
+        read_only: true
+    healthcheck:
+      disable: true
+
+networks:
+  hotes: {}
+  sortie: {}
+
+volumes:
+  journal: {}
+  exploitation: {}
+  prises: {}
+  exports: {}
+  approbation-etat: {}
+
+secrets:
+  cle-enregistreur:
+    file: ./secrets/cle-enregistreur
+  cle-mac-relais:
+    file: ./secrets/cle-mac-relais
+  jeton-hote:
+    file: ./secrets/jeton-hote
+  jeton-passerelle:
+    file: ./secrets/jeton-passerelle

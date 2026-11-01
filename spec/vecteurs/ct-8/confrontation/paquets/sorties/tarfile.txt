@@ -1,0 +1,842 @@
+# Confrontation des paquets réviseurs de CT-8 par Python 3.13.16, tarfile, extractall(filter="data"), hashlib
+# Archives : 13 ; cas.json : 17 cas
+
+== chemin-absolu.tar
+hashlib : 6f07e6e4cb1dc1e6ebeac41a546ab140be71dd974d08a54cbbd084a5b1251fe2 ; cas.json : concorde
+attendu (cas.json, cas chemin-absolu) : paquet non_conforme, PR-5 en échec
+-- membres lus (tarfile) : 51
+fichier '/paquet-reviseur/evasion.txt' taille=11 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : 1
+  paquet-reviseur/evasion.txt : extrait, absent du manifeste
+-- membres lus contre le manifeste (nom, type, taille) : 1
+  membre non déclaré : /paquet-reviseur/evasion.txt
+-- résultat : tarfile accepte ; écarts au manifeste 2 ; verdict limite_de_l_outil
+
+== chemin-hors-archive.tar
+hashlib : fc6446e02c04c10aea067a848c0fdc263d8f5a4a8242bec113475340dc678253 ; cas.json : concorde
+attendu (cas.json, cas chemin-hors-archive) : paquet non_conforme, PR-5 en échec
+-- membres lus (tarfile) : 51
+fichier 'paquet-reviseur/../../evasion.txt' taille=40 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : refusée, OutsideDestinationError
+message : 'paquet-reviseur/../../evasion.txt' would be extracted to '<travail>/extraits/chemin-hors-archive/evasion.txt', which is outside the destination
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : absent ou illisible ; manifeste non extrait
+-- résultat : tarfile refuse ; écarts au manifeste 1 ; verdict concorde
+
+== contrefacon-coherente.tar
+hashlib : d806d8e7af25c118d9f241ead0c8b51892e10e778a8f1a0238f831334e822344 ; cas.json : concorde
+attendu (cas.json, cas contrefacon-coherente) : paquet intact
+-- membres lus (tarfile) : 50
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : aucun
+-- membres lus contre le manifeste (nom, type, taille) : aucun
+-- résultat : tarfile accepte ; écarts au manifeste 0 ; verdict concorde
+
+== fichier-altere.tar
+hashlib : b41b49dbe9b529f90b4de5b1c73986406951af163e0f9ed2a8381481227e7d29 ; cas.json : concorde
+attendu (cas.json, cas fichier-altere) : paquet non_conforme, PR-8 en échec
+-- membres lus (tarfile) : 50
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : 1
+  dossiers/valide-seq-7-complet/evenement.json : SHA-256 différent
+-- membres lus contre le manifeste (nom, type, taille) : aucun
+-- résultat : tarfile accepte ; écarts au manifeste 1 ; verdict concorde
+
+== fichier-en-trop.tar
+hashlib : 40558d06651fd5f539942952a9d6ea0f2a1322f0262ec41d06e8b0e00fa4730d ; cas.json : concorde
+attendu (cas.json, cas fichier-en-trop) : paquet non_conforme, PR-8 en échec
+-- membres lus (tarfile) : 51
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/note.txt' taille=49 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : 1
+  paquet-reviseur/dossiers/valide-seq-7-complet/note.txt : extrait, absent du manifeste
+-- membres lus contre le manifeste (nom, type, taille) : 1
+  membre non déclaré : paquet-reviseur/dossiers/valide-seq-7-complet/note.txt
+-- résultat : tarfile accepte ; écarts au manifeste 2 ; verdict concorde
+
+== fichier-manquant.tar
+hashlib : 92dd0e6f2d3f76d8281925c73ae0d31fe8bfc80f6112b506e6cd39f794c8acbe ; cas.json : concorde
+attendu (cas.json, cas fichier-manquant) : paquet non_conforme, PR-8 en échec
+-- membres lus (tarfile) : 49
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : 1
+  dossiers/valide-seq-7-complet/voisins.json : absent
+-- membres lus contre le manifeste (nom, type, taille) : 1
+  déclaré, non lu : paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json
+-- résultat : tarfile accepte ; écarts au manifeste 2 ; verdict concorde
+
+== lien-physique.tar
+hashlib : e8c92cba21f5c6ada90b7e17a595923888056f51345fbfacd35402437c186735 ; cas.json : concorde
+attendu (cas.json, cas lien-physique) : paquet non_conforme, PR-4 en échec
+-- membres lus (tarfile) : 51
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+lien-physique 'paquet-reviseur/ancres/double' taille=0 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='paquet-reviseur/ancres/ancres-test.json' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : 1
+  paquet-reviseur/ancres/double : extrait, absent du manifeste
+-- membres lus contre le manifeste (nom, type, taille) : 1
+  membre d'un autre type (lien-physique) : paquet-reviseur/ancres/double
+-- résultat : tarfile accepte ; écarts au manifeste 2 ; verdict limite_de_l_outil
+
+== lien-symbolique.tar
+hashlib : f036a91c971e6fbd3c75da67ddc90f5e3f6522e8a7a3c250f7178bf644c25071 ; cas.json : concorde
+attendu (cas.json, cas lien-symbolique) : paquet non_conforme, PR-4 en échec
+-- membres lus (tarfile) : 51
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+lien-symbolique 'paquet-reviseur/ancres/raccourci' taille=0 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='../../../evasion' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : refusée, LinkOutsideDestinationError
+message : 'paquet-reviseur/ancres/raccourci' would link to '<travail>/extraits/lien-symbolique/evasion', which is outside the destination
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : 46
+  attestation/attestation-signee.json : absent
+  attestation/jeu-approbateurs.json : absent
+  dossiers/valide-point-de-controle-complet/approbations.json : absent
+  dossiers/valide-point-de-controle-complet/certificat-commit.json : absent
+  dossiers/valide-point-de-controle-complet/chemin.json : absent
+  dossiers/valide-point-de-controle-complet/cles.json : absent
+  dossiers/valide-point-de-controle-complet/dossier.json : absent
+  dossiers/valide-point-de-controle-complet/evenement.json : absent
+  dossiers/valide-point-de-controle-complet/jeton-rfc3161.der : absent
+  dossiers/valide-point-de-controle-complet/manifeste.json : absent
+  dossiers/valide-point-de-controle-complet/manifeste.sig : absent
+  dossiers/valide-point-de-controle-complet/points-de-controle.json : absent
+  dossiers/valide-point-de-controle-complet/preuve.ots : absent
+  dossiers/valide-point-de-controle-complet/registre.json : absent
+  dossiers/valide-point-de-controle-complet/validateurs.json : absent
+  dossiers/valide-point-de-controle-complet/voisins.json : absent
+  dossiers/valide-seq-7-complet-attestation/approbations.json : absent
+  dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json : absent
+  dossiers/valide-seq-7-complet-attestation/certificat-commit.json : absent
+  dossiers/valide-seq-7-complet-attestation/chemin.json : absent
+  dossiers/valide-seq-7-complet-attestation/cles.json : absent
+  dossiers/valide-seq-7-complet-attestation/dossier.json : absent
+  dossiers/valide-seq-7-complet-attestation/evenement.json : absent
+  dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der : absent
+  dossiers/valide-seq-7-complet-attestation/manifeste.json : absent
+  dossiers/valide-seq-7-complet-attestation/manifeste.sig : absent
+  dossiers/valide-seq-7-complet-attestation/preuve.ots : absent
+  dossiers/valide-seq-7-complet-attestation/registre.json : absent
+  dossiers/valide-seq-7-complet-attestation/validateurs.json : absent
+  dossiers/valide-seq-7-complet-attestation/voisins.json : absent
+  dossiers/valide-seq-7-complet/approbations.json : absent
+  dossiers/valide-seq-7-complet/certificat-commit.json : absent
+  dossiers/valide-seq-7-complet/chemin.json : absent
+  dossiers/valide-seq-7-complet/cles.json : absent
+  dossiers/valide-seq-7-complet/dossier.json : absent
+  dossiers/valide-seq-7-complet/evenement.json : absent
+  dossiers/valide-seq-7-complet/jeton-rfc3161.der : absent
+  dossiers/valide-seq-7-complet/manifeste.json : absent
+  dossiers/valide-seq-7-complet/manifeste.sig : absent
+  dossiers/valide-seq-7-complet/preuve.ots : absent
+  dossiers/valide-seq-7-complet/registre.json : absent
+  dossiers/valide-seq-7-complet/validateurs.json : absent
+  dossiers/valide-seq-7-complet/voisins.json : absent
+  entetes/chaine-points.json : absent
+  entetes/chaine.json : absent
+  pieces/instance-r1.json : absent
+-- membres lus contre le manifeste (nom, type, taille) : 1
+  membre d'un autre type (lien-symbolique) : paquet-reviseur/ancres/raccourci
+-- résultat : tarfile refuse ; écarts au manifeste 47 ; verdict concorde
+
+== manifeste-altere.tar
+hashlib : 32ba2c02676d40d5d25f42e90a235763c53c78cd8348f18e34ae82e51473b122 ; cas.json : concorde
+attendu (cas.json, cas manifeste-altere) : paquet non_conforme, PR-8 en échec
+-- membres lus (tarfile) : 50
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : 1
+  dossiers/valide-seq-7-complet/evenement.json : SHA-256 différent
+-- membres lus contre le manifeste (nom, type, taille) : aucun
+-- résultat : tarfile accepte ; écarts au manifeste 1 ; verdict concorde
+
+== metadonnees-non-fixees.tar
+hashlib : 275277ac3f74b02b8902301de1c5441b71803d2aace807511b87421af26410a3 ; cas.json : concorde
+attendu (cas.json, cas metadonnees-non-fixees) : paquet non_conforme, PR-6 en échec
+-- membres lus (tarfile) : 50
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0600 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : aucun
+-- membres lus contre le manifeste (nom, type, taille) : aucun
+-- résultat : tarfile accepte ; écarts au manifeste 0 ; verdict limite_de_l_outil
+
+== nom-en-double.tar
+hashlib : cfbc9d58c6e0174c3fdb86d10155ad642741166434522a94ca82b495398d2697 ; cas.json : concorde
+attendu (cas.json, cas nom-en-double) : paquet non_conforme, PR-5 en échec
+-- membres lus (tarfile) : 51
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/LISEZMOI.md' taille=67 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : 1
+  LISEZMOI.md : SHA-256 différent
+-- membres lus contre le manifeste (nom, type, taille) : 1
+  nom répété : paquet-reviseur/LISEZMOI.md
+-- résultat : tarfile accepte ; écarts au manifeste 2 ; verdict limite_de_l_outil
+
+== observation.tar
+hashlib : 127b257aebef28bb8436f7b07fe7a3c6d4e805ce7ca9c3f3e991c53b543f9ba5 ; cas.json : concorde
+attendu (cas.json, cas observation) : paquet intact
+-- membres lus (tarfile) : 18
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=3847 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-1/chemin.json' taille=459 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-1/cles.json' taille=563 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-1/dossier.json' taille=2657 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-1/evenement.json' taille=1703 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-1/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-1/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-1/voisins.json' taille=1719 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-3/chemin.json' taille=459 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-3/cles.json' taille=563 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-3/dossier.json' taille=2657 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-3/evenement.json' taille=1729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-3/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-3/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/seq-3/voisins.json' taille=3547 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/3d0e81832bce1e5b653040304a65dfdc0e3912ba24e10ae44b2b78431516da36.json' taille=6550 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 17 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : aucun
+-- membres lus contre le manifeste (nom, type, taille) : aucun
+-- résultat : tarfile accepte ; écarts au manifeste 0 ; verdict concorde
+
+== valide.tar
+hashlib : 8b977c10452e6a2c0b61319360834e3c06aa5e2a2b6208c9580c96b4dac33982 ; cas.json : concorde
+attendu (cas.json, cas valide) : paquet intact
+-- membres lus (tarfile) : 50
+fichier 'paquet-reviseur/LISEZMOI.md' taille=8340 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/MANIFESTE.json' taille=11274 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/README.md' taille=7729 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/ancres/ancres-test.json' taille=5924 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/attestation-signee.json' taille=4802 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/attestation/jeu-approbateurs.json' taille=281 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/certificat-commit.json' taille=40069 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/dossier.json' taille=3148 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/points-de-controle.json' taille=5099 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/registre.json' taille=8708 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-point-de-controle-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/attestation-perimetre.json' taille=5443 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/dossier.json' taille=3343 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet-attestation/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/approbations.json' taille=3345 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/certificat-commit.json' taille=31434 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/chemin.json' taille=533 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/cles.json' taille=857 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/dossier.json' taille=2918 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/evenement.json' taille=2938 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/jeton-rfc3161.der' taille=2103 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.json' taille=629 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/manifeste.sig' taille=285 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/preuve.ots' taille=316 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/registre.json' taille=7198 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/validateurs.json' taille=1021 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/dossiers/valide-seq-7-complet/voisins.json' taille=4718 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine-points.json' taille=5661 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/entetes/chaine.json' taille=5476 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+fichier 'paquet-reviseur/pieces/instance-r1.json' taille=6900 mode=0644 uid=0 gid=0 uname='' gname='' mtime=1793059200 lien='' pax={}
+-- extraction (extractall, filter="data", répertoire neuf et vide) : réussie
+-- liens extraits : aucun
+-- entrées hors de la destination : aucune
+-- manifeste extrait : 49 fichiers déclarés
+-- écarts au manifeste (hashlib, fichiers extraits) : aucun
+-- membres lus contre le manifeste (nom, type, taille) : aucun
+-- résultat : tarfile accepte ; écarts au manifeste 0 ; verdict concorde
+
+# bilan : 13 archives ; concorde 9, limite_de_l_outil 4, discordance 0
