@@ -35,6 +35,8 @@ exécutions dans des répertoires neufs donnent les mêmes octets.
 
 Versions des sorties publiées (lues par les programmes et imprimées en
 première ligne) : GNU tar 1.35, GNU coreutils 9.4, `jq` 1.7, Python 3.13.16.
+Une autre implémentation de `sha256sum` (uutils coreutils) est admise :
+seuls ses condensés comptent ; `tar` doit rester GNU tar (code 2 sinon).
 
 ## Règle de comparaison
 

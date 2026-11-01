@@ -734,7 +734,8 @@ describe("CT-8 : sorties publiées de la confrontation des paquets réviseurs pa
       expect(texte, nom).not.to.match(/\/home\/|\/tmp\/|\/root\/|\/Users\/|[A-Z]:\\/);
       expect(texte, nom).not.to.match(/DISCORDANCE/);
     }
-    expect(gnu.split("\n")[0]).to.match(/^# Confrontation des paquets réviseurs de CT-8 par tar \(GNU tar\) \S+, sha256sum \(GNU coreutils\) \S+, jq-\S+$/);
+    // EX-A.34 : l'implémentation de sha256sum des exécuteurs n'est pas figée (GNU coreutils ou uutils coreutils) ; seuls les condensés comptent.
+    expect(gnu.split("\n")[0]).to.match(/^# Confrontation des paquets réviseurs de CT-8 par tar \(GNU tar\) \S+, sha256sum \((GNU|uutils) coreutils\) \S+, jq-\S+$/);
     expect(tf.split("\n")[0]).to.match(/^# Confrontation des paquets réviseurs de CT-8 par Python 3\.\d+\.\d+\S*, tarfile, extractall\(filter="data"\), hashlib$/);
     const archives = archives8();
     expect(gnu).to.match(new RegExp(`^# bilan : ${archives.length} archives ; concorde ${archives.length - LIMITES.gnutar.length}, limite_de_l_outil ${LIMITES.gnutar.length}, discordance 0$`, "m"));

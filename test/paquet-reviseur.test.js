@@ -129,7 +129,7 @@ describe("CT-8 : paquet réviseur, vecteurs de la famille paquets (annexe A.10, 
     expect(r).to.deep.equal(exemple);
   });
 
-  it("résumés lisibles de 13.7 : valide.tar (fr), valide.tar en anglais avec --empreinte et --ancres, fichier-altere.tar, contrefacon-coherente.tar ; lignes égales au texte, chemins abrégés et lignes Énoncé omises par le texte exceptées", function () {
+  it("résumés lisibles de 13.7 : valide.tar (fr), valide.tar en anglais avec --empreinte et --ancres, fichier-altere.tar, contrefacon-coherente.tar ; lignes égales au texte, chemins abrégés, version de Node et lignes Énoncé omises par le texte exceptées", function () {
     const section = CT8.slice(CT8.indexOf("### 13.7 "), CT8.indexOf("### 13.8 "));
     const blocs = [...section.matchAll(/```text\n(\$ node scripts\/paquet-reviseur\/verifier\.mjs[\s\S]*?)\n```/g)].map((m) => m[1]);
     expect(blocs).to.have.length(4);
@@ -140,10 +140,11 @@ describe("CT-8 : paquet réviseur, vecteurs de la famille paquets (annexe A.10, 
       [path.join(VECT, "contrefacon-coherente.tar")],
     ];
     blocs.forEach((bloc, i) => {
-      const attendu = bloc.split("\n").filter((l) => !l.startsWith("$") && !l.startsWith("    --") && !/^[0-9]$/.test(l));
+      const sansVersionNode = (l) => l.replace(/\(node v[0-9.]+\)$/, "(node)");
+      const attendu = bloc.split("\n").filter((l) => !l.startsWith("$") && !l.startsWith("    --") && !/^[0-9]$/.test(l)).map(sansVersionNode);
       const avecEnonce = attendu.some((l) => /^ +(Énoncé|Statement) : /.test(l));
       const r = verifier(invocations[i]);
-      const lignes = r.stdout.replace(/\n$/, "").split("\n").map((l) => l.split(path.resolve(PROJECT_ROOT)).join("…")).filter((l) => avecEnonce || !/^ +(Énoncé|Statement) : /.test(l));
+      const lignes = r.stdout.replace(/\n$/, "").split("\n").map((l) => sansVersionNode(l.split(path.resolve(PROJECT_ROOT)).join("…"))).filter((l) => avecEnonce || !/^ +(Énoncé|Statement) : /.test(l));
       expect(lignes, `bloc ${i + 1}`).to.deep.equal(attendu);
       const derniere = bloc.split("\n").at(-1);
       const code = /^[0-9]$/.test(derniere) ? Number(derniere) : Number(/code ([0-9])$/.exec(attendu.at(-1))[1]);
