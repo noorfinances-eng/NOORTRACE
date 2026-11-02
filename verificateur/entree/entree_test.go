@@ -1,6 +1,7 @@
 package entree
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,8 +24,8 @@ func TestLimite(t *testing.T) {
 	if Lire(filepath.Join(rep, "absent"), 10).Etat != Absent {
 		t.Error("fichier absent")
 	}
-	if Lire(rep, 10).Etat != Illisible {
-		t.Error("un répertoire lu comme un fichier")
+	if l := Lire(rep, 10); l.Etat != Absent || !errors.Is(l.Err, ErrNonOrdinaire) {
+		t.Errorf("un répertoire lu comme un fichier : état %v, %v", l.Etat, l.Err)
 	}
 }
 

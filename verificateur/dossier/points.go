@@ -56,6 +56,11 @@ func (a *Analyse) verificationsK(p *Partie) {
 			return commun.Nouvelle("K-1", commun.Echoue, "", commun.T("points-de-controle.json n'est pas un objet JSON", "points-de-controle.json is not a JSON object"), 3)
 		}
 		v := p.Valeur
+		if jcs.Calculable(v) != nil {
+			// Sans forme canonique : E-2 porte l'échec (CT-1 §11.4), et rien
+			// n'est lu de la partie.
+			return prerequis("K-1", "points-de-controle.json sans forme canonique (E-2)", "points-de-controle.json without canonical form (E-2)", 3)
+		}
 		if err := schema.Valider(schema.Dossier+"#/$defs/points_de_controle", v); err != nil {
 			return commun.Nouvelle("K-1", commun.Echoue, "", commun.T("points-de-controle.json contraire à son schéma ("+err.Error()+")", "points-de-controle.json does not follow its schema ("+err.Error()+")"), 3)
 		}

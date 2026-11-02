@@ -19,6 +19,7 @@ import (
 	"github.com/noorfinances-eng/noortrace/verificateur/commun"
 	"github.com/noorfinances-eng/noortrace/verificateur/cryptographie"
 	"github.com/noorfinances-eng/noortrace/verificateur/entree"
+	"github.com/noorfinances-eng/noortrace/verificateur/jcs"
 	"github.com/noorfinances-eng/noortrace/verificateur/jsonv"
 	"github.com/noorfinances-eng/noortrace/verificateur/schema"
 )
@@ -189,6 +190,9 @@ func AnalyserAncres(octets []byte, der ControleurDER) (*Ancres, *Defaut) {
 	if !v.EstObjet() {
 		return nil, defautN1("ce n'est pas un objet JSON", "not a JSON object")
 	}
+	if m, ok := sansFormeCanonique(v); ok {
+		return nil, defautN1("sans forme canonique ("+m+")", "without canonical form ("+m+")")
+	}
 	if ver := v.Membre("version"); ver != nil {
 		if n, ok := ver.Entier(); ok && n != 0 {
 			return nil, defautN1(fmt.Sprintf("version %d, seule la version 0 est lue (EX-14.11)", n), fmt.Sprintf("version %d, only version 0 is read (EX-14.11)", n))
@@ -313,6 +317,22 @@ func AnalyserAncres(octets []byte, der ControleurDER) (*Ancres, *Defaut) {
 	return a, nil
 }
 
+// sansFormeCanonique dit si un document n'a pas de forme canonique JCS v0
+// (clé en double, nombre non entier ou hors de l'intervalle sûr, substitut
+// isolé, CT-1 §4) et rend le motif. Un tel fichier d'ancres ou d'en-têtes
+// est refusé (N-1, N-2) au lieu d'être lu en dernière occurrence ou par
+// arrondi (« Lectures », point 21 du LISEZMOI du module).
+func sansFormeCanonique(v *jsonv.Valeur) (string, bool) {
+	err := jcs.Calculable(v)
+	if err == nil {
+		return "", false
+	}
+	if e, ok := err.(*jcs.Erreur); ok {
+		return e.Motif, true
+	}
+	return err.Error(), true
+}
+
 func blocPEM(s, genre, ptr string) ([]byte, *Defaut) {
 	bloc, reste := pem.Decode([]byte(s))
 	if bloc == nil || bloc.Type != genre || len(bytes.TrimSpace(reste)) != 0 || len(bloc.Headers) != 0 {
@@ -385,7 +405,10 @@ func LireJeu(j *jsonv.Valeur, ptr string) (JeuValidateurs, *commun.Texte) {
 	ids := map[string]bool{}
 	cles := map[string]bool{}
 	for _, val := range j.Membre("validators").Elements {
-		id := val.Membre("id").S()
+		// Identifiant chargé comme le nœud le charge (EX-12.2) : espaces de
+		// tête et de queue retirés (strings.TrimSpace), puis non vide et
+		// distinct (« Lectures », point 22 du LISEZMOI du module).
+		id := strings.TrimSpace(val.Membre("id").S())
 		h := val.Membre("pubKeyHex").S()
 		if id == "" || ids[id] {
 			t := commun.T(ptr+" : identifiant de validateur vide ou en double ("+id+")", ptr+": empty or duplicate validator id ("+id+")")
@@ -499,6 +522,9 @@ func AnalyserEntetes(octets []byte) (*Entetes, *Defaut) {
 	v, err := jsonv.Analyser(octets)
 	if err != nil {
 		return nil, defautN2("entree_illisible", "ce n'est pas du JSON ("+err.Error()+")", "not JSON ("+err.Error()+")")
+	}
+	if m, ok := sansFormeCanonique(v); ok {
+		return nil, defautN2("entree_illisible", "sans forme canonique ("+m+")", "without canonical form ("+m+")")
 	}
 	if h := v.Membre("headers"); h.EstTableau() && len(h.Elements) > entree.MaxEntetes {
 		return nil, defautN2("taille_depassee", "plus de 200 000 en-têtes", "more than 200,000 headers")

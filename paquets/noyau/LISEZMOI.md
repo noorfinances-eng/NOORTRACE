@@ -358,7 +358,8 @@ un texte qui, lui, tranche.
   n'est pas du JSON.
 - **Partie déclarée présente mais absente** (§11.4 D-2, CT-6 EX-4.11). Échec
   de D-2 seul ; le contrôle qui porte la partie n'est pas exécuté (raison
-  `partie_manquante`, non admise) et ceux qui en dépendent non plus, pour
+  `prerequis_en_echec`, D-2 étant en échec, dans la liste fermée de CT-6 §6.2)
+  et ceux qui en dépendent non plus, pour
   toutes les parties (aligné : `cles.json`, `approbations.json` et
   `points-de-controle.json` manquants mettaient aussi en échec E-8, A-1 ou
   K-1). Une entrée qui n'est pas un fichier ordinaire (répertoire, lien) n'est

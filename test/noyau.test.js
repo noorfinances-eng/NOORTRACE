@@ -1252,15 +1252,15 @@ describe("Noyau : API publique et refus", function () {
       };
       const k = manquant("points-de-controle.json", { points: true });
       expect(k.controles_en_echec).to.deep.equal(["D-2"]);
-      expect(statut(k, "K-1")).to.include({ statut: "non_execute", raison: "partie_manquante" });
+      expect(statut(k, "K-1")).to.include({ statut: "non_execute", raison: "prerequis_en_echec" });
       expect(k.non_executes_bloquants.filter((id) => id.startsWith("K-"))).to.have.length(9);
       expect(manquant("evenement.json").controles_en_echec).to.deep.equal(["D-2"]);
       const c = manquant("cles.json");
       expect(c.controles_en_echec).to.deep.equal(["D-2"]);
-      expect(statut(c, "E-8")).to.include({ statut: "non_execute", raison: "partie_manquante" });
+      expect(statut(c, "E-8")).to.include({ statut: "non_execute", raison: "prerequis_en_echec" });
       const a = manquant("approbations.json");
       expect(a.controles_en_echec).to.deep.equal(["D-2"]);
-      expect(statut(a, "A-1")).to.include({ statut: "non_execute", raison: "partie_manquante" });
+      expect(statut(a, "A-1")).to.include({ statut: "non_execute", raison: "prerequis_en_echec" });
     });
 
     it("constat 7 : ecartsManifeste refuse un org_id ou un journal_id nul", function () {

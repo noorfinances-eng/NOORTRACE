@@ -376,6 +376,27 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends strace
           sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=vendor verificateur/scripts/verifier-sans-reseau.sh
+      # govulncheck sur le code et sur le binaire construit (CT-6 EX-14.11) :
+      # code de retour lu hors du mode -json, qui rend toujours 0 ; une
+      # vulnérabilité atteignable fait échouer l'étape.
+      - name: binaire vérificateur Go, govulncheck sur le code et sur le binaire (CT-6 EX-14.11)
+        run: |
+          set -euo pipefail
+          GOFLAGS= go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          (cd verificateur && govulncheck ./...)
+          verificateur/scripts/construire.sh -o "$RUNNER_TEMP/noortrace-verifier"
+          govulncheck -mode=binary "$RUNNER_TEMP/noortrace-verifier"
+      # Fuzzing borné de chaque analyseur (CT-6 EX-15.3) : go test rejoue déjà
+      # les graines ; chaque cible tourne ici 30 s.
+      - name: binaire vérificateur Go, fuzzing borné de chaque analyseur (CT-6 EX-15.3)
+        working-directory: verificateur
+        run: |
+          set -euo pipefail
+          for cible in horodatage:FuzzJeton horodatage:FuzzCertificat horodatage:FuzzCRL ots:FuzzAnalyser ancres:FuzzAncres ancres:FuzzEntetes jcs:FuzzCanonique jsonv:FuzzAnalyser registre:FuzzRegistre registre:FuzzLigne; do
+            paquet="${cible%%:*}"; fonction="${cible##*:}"
+            go test -run '^$' -fuzz "^${fonction}\$" -fuzztime 30s "./${paquet}"
+          done
 
   # Test de bout en bout de la console de référence de CT-3 dans Chromium
   # (spec/CT-3-approbations.md, EX-13.36, EX-A.11) : Playwright 1.56.1, la

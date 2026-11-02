@@ -94,6 +94,22 @@ func TestRefusIndex(t *testing.T) {
 	if res.Code != 1 || v["D-1"].Statut != commun.Echoue || v["E-1"].Raison != commun.PrerequisEnEchec {
 		t.Errorf("index version 1 : code %d, D-1 %s", res.Code, v["D-1"].Statut)
 	}
+	// Index sans forme canonique (membre « event » en double, version 0.0) :
+	// du JSON, donc pas de code 2 ; E-2 en échec, D-1 et le reste non
+	// exécutés, rapport conforme à son schéma, jamais valide (CT-1 §4,
+	// §11.4 ; LISEZMOI.md, « Lectures », point 20).
+	for _, c := range []string{
+		strings.Replace(string(idx), `"event": {`, `"event": {"seq": 99, "hash": "0x`+strings.Repeat("0", 64)+`"}, "event": {`, 1),
+		strings.Replace(string(idx), `"version": 0`, `"version": 0.0`, 1),
+	} {
+		rep = copier(t, racineCT1+"/valide-seq-7")
+		os.WriteFile(filepath.Join(rep, "dossier.json"), []byte(c), 0o644)
+		res = lancer(t, rep)
+		v = verifs(res)
+		if res.Code != 1 || v["E-2"].Statut != commun.Echoue || v["D-1"].Raison != commun.PrerequisEnEchec || len(res.Rapport.FailedChecks) != 1 {
+			t.Errorf("index sans forme canonique : code %d, E-2 %s, D-1 %s %s", res.Code, v["E-2"].Statut, v["D-1"].Statut, v["D-1"].Raison)
+		}
+	}
 	// Index de plus de 1 Mio : inexploitable, D-1 en échec (EX-4.11).
 	rep = copier(t, racineCT1+"/valide-seq-7")
 	os.WriteFile(filepath.Join(rep, "dossier.json"), append(idx, []byte(strings.Repeat(" ", entree.LimiteIndex))...), 0o644)

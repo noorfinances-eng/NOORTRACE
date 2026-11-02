@@ -89,7 +89,8 @@ verificateur/
                             (§8.5), énoncé F0 à F8, FK, FP, I0 à I2 (§6.5), borne (§6.6)
   dossier/                  index et parties (CT-1 §11), D-, E-, C-, M-, P-, A-, K-1 à K-6, AT-
   ancres/                   fichier d'ancres (N-1), fichier d'en-têtes (N-2), N-3
-  entree/                   lectures bornées d'EX-4.13, SHA-256 en flux (EX-4.15)
+  entree/                   lectures bornées d'EX-4.13, fichiers ordinaires seuls, sans
+                            suivre de lien ; SHA-256 en flux (EX-4.15)
   jsonv/                    JSON strict et borné (doublons, substituts, profondeur 128)
   jcs/                      forme canonique JCS v0 (CT-1 §4)
   schema/                   dix schémas embarqués, validateur JSON Schema 2020-12
@@ -148,7 +149,7 @@ CGO_ENABLED=0 GOAMD64=v1`, `go build -trimpath -buildvcs=false
 binaire. Deux constructions de la version 0.1.0 pour `linux/amd64`, depuis
 deux copies des sources à deux chemins différents, avec deux caches de
 construction et de modules différents et vides, ont donné les mêmes octets :
-`25c83d4b80a74e140b95c294606d64de4c1b0157412973004a8818a08fa3bd61`. Ce
+`80b790b0c581640ade9379710e2cff39ef9402ef5592355003a129bedd6dc79f`. Ce
 SHA-256 vaut pour l'état des sources à la date de l'essai ; il change avec
 le code.
 
@@ -203,7 +204,15 @@ GOFLAGS=-mod=vendor go test -run TestInventaireVecteurs -v ./moteur
   panique isolée ; déterminisme.
 - Tests unitaires de `jsonv`, `jcs` (cas limites de CT-1), `cryptographie`
   (Keccak-256, exemples de CT-1 §6.4, Merkle de CT-1), `schema` (copies
-  conformes à `spec/schemas`, motifs), `entree`, `ancres` (N-1, N-2, N-3).
+  conformes à `spec/schemas`, motifs), `entree` (tube nommé, liens
+  symboliques), `ancres` (N-1, N-2, N-3, forme canonique, identifiants de
+  validateurs, entrées qui ne sont pas des fichiers ordinaires).
+- `dossier/correctifs_test.go`, `dossier/ordinaire_unix_test.go` :
+  non-régression des correctifs de la relecture de l'étape 2 (E-3 sur une
+  décision voisine, données dans `dossier/testdata/e3-voisin-decision` ;
+  index, `points-de-controle.json` et `evenement.json` sans forme
+  canonique ; A-2 et A-3 sans A-1 ; E-9 sur des signatures nulles ; parties
+  en tube nommé ou en lien).
 - Cibles de fuzzing (EX-15.3) : `jsonv.FuzzAnalyser`, `jcs.FuzzCanonique`,
   `ancres.FuzzAncres`, `ancres.FuzzEntetes` ; `go test -fuzz` sur l'une
   d'elles avec `-fuzztime`.
@@ -271,13 +280,36 @@ réalité des outils, et lecture retenue.
 8. **A-1 et le schéma de `approbations.json`.** Les événements de `events`
    relèvent de E-1, comme ceux de `voisins.json` (CT-1 §11.4 le dit pour C-1
    seulement) : A-1 valide l'enveloppe. Vecteur `invalide-approbateur-double`
-   (E-1 et A-3, pas A-1).
+   (E-1 et A-3, pas A-1). A-2 et A-3 ne dépendent pas de A-1 (CT-1 §11.4 ne
+   leur donne pas A-1 pour prérequis ; EX-5.5) : elles s'exécutent quand A-1
+   échoue sur le `ticket` ou le `request_hash` (vecteur
+   `invalide-ticket-approbations` : A-1 seule en échec, A-2 et A-3
+   réussies). Elles ne sont pas exécutées (`prerequis_en_echec`) quand
+   `approbations.json` est absent, inexploitable ou contraire à son
+   enveloppe, défaut que A-1 porte : elles n'ont alors rien à lire.
 9. **E-2, « un fichier sans forme canonique ».** Appliqué à toutes les
-   parties JSON de CT-1 ; ses conséquences portent sur le hachage des
-   événements (E-7, E-8, C-2, M-1…) et sur `periodHash` (P-1, P-5).
+   parties JSON de CT-1, `points-de-controle.json` compris (CT-1 §11.4 ;
+   CT-6 EX-4.14) ; ses conséquences portent sur le hachage des événements
+   (E-7, E-8, C-2, M-1…) et sur `periodHash` (P-1, P-5). Un
+   `points-de-controle.json` sans forme canonique (nom en double, nombre
+   non entier) met E-2 en échec et laisse K-1 à K-9 non exécutées
+   (`prerequis_en_echec`) : rien n'en est lu, puisque la lecture d'un nom
+   en double serait arbitraire. `attestation-perimetre.json` reste hors de
+   E-2 : son défaut relève d'AT-1, sans effet sur le verdict (EX-5.11).
+   `dossier.json` : point 20 ; `evenement.json` : point 10 ; parties
+   réservées du contrôle 8 : `registre/LISEZMOI.md`, « Lectures », point 5.
 10. **D-1 quand `evenement.json` est inexploitable.** La comparaison
     d'`event.seq` et `event.hash` n'est pas possible ; D-1 est jugée sur le
     schéma (vecteur `invalide-partie-nulle` : E-1 seule en échec).
+    `evenement.json` sans forme canonique (vecteur
+    `invalide-nombre-non-entier`, `duration_ms` = 530.0) est inexploitable
+    au sens de CT-1 §11.4 : E-2 en échec, et l'événement prouvé n'est pas
+    lu ; E-1, E-3 à E-11 (sauf échec sur un voisin ou une décision jointe),
+    C-1 à C-3, M-1, M-3, P-1, P-2, P-5 et A-1 à A-4 ne sont pas exécutées
+    (`prerequis_en_echec`), comme pour un `evenement.json` qui n'est pas un
+    objet JSON ; rien n'en est repris dans le rapport (désignation `null`).
+    E-1 suit E-2 ici : la validation contre le schéma d'un objet à nom en
+    double dépendrait de l'occurrence lue.
 11. **Index contraire à son schéma.** CT-1 ne dit pas comment lire les
     parties d'un index non conforme. Lecture : D-1 `echoue`, toutes les
     autres vérifications de CT-1 `prerequis_en_echec`, contrôles 4, 5 et 8
@@ -295,7 +327,13 @@ réalité des outils, et lecture retenue.
     `status` ; échange avec le modèle : `sans_objet`, `executee`, réponse
     complète ; décision, rotation, politique : `sans_objet`, `intent` nul,
     `executee`, réponse nulle, `arguments.value` présente ; décision :
-    `approval` non nul ; rotation et politique : `approval` nul ; rotation :
+    `approval` non nul et `arguments.value` égale, clé pour clé, à l'objet
+    signé `A = { decision, journal_id, org_id, request_hash, ticket }` de son
+    `approval` et de son enveloppe (table 5.1 : « référence en ligne
+    (`value`) à l'objet signé par les approbateurs » ; §6.3), pour tout
+    événement que E-3 contrôle (événement prouvé, voisins, décisions de
+    `approbations.json`), et pas seulement par A-2 pour les décisions
+    jointes ; rotation et politique : `approval` nul ; rotation :
     `effects` égal à l'effet de la règle 4 de §8 ; politique :
     `arguments.value` = `{ policy_version, policy_sha256 }`. Rien n'est exigé
     de `approval` pour un échange ni des `effects` d'une décision ou d'une
@@ -320,6 +358,55 @@ réalité des outils, et lecture retenue.
 19. **`unshare -n`.** Essayé ici en superutilisateur, comme le rapporte
     §14.2 ; la forme sans privilège n'a pas été essayée par un utilisateur
     sans privilège (point non vérifié 4 du digest R4, toujours ouvert).
+
+20. **`dossier.json` sans forme canonique.** CT-1 §11.4 range
+    « un fichier sans forme canonique (nombre non entier, clé en double,
+    substitut isolé) » sous E-2, et ne réserve le code 2 qu'à un
+    `dossier.json` absent ou « qui n'est pas du JSON » (CT-6 EX-4.12). Un
+    index à nom en double ou à nombre non entier est du JSON (RFC 8259 ne
+    fait des noms uniques qu'une recommandation) : lecture retenue, pas de
+    code 2, mais E-2 en échec, et rien n'est lu de l'index, pas même son
+    schéma, puisque la lecture d'un nom en double serait arbitraire. D-1,
+    D-2 et les autres vérifications de CT-1 sont `non_execute`
+    (`prerequis_en_echec`), les contrôles 4, 5 et 8 aussi (même traitement
+    que le point 11). Le verdict est `invalide`, jamais `valide`. Le
+    contrôle de forme canonique précède celui du schéma.
+21. **Fichier d'ancres et fichier d'en-têtes sans forme canonique.** CT-6
+    EX-12.2 et EX-12.3 ne demandent que « lisible, conforme à son schéma ».
+    Le texte se tait sur un nom en double ou un nombre non entier
+    (`"height": 1000.0`, `"start_height": 990.0`), que le lecteur lirait en
+    dernière occurrence ou par sa valeur. Lecture retenue, pour ne jamais
+    employer un document ambigu : la forme canonique de CT-1 §4 est exigée,
+    et son défaut rend l'entrée inutilisable (code 2) : N-1, type
+    `ancres_inutilisables` ; N-2, type `entree_illisible`.
+22. **Identifiants de validateurs.** EX-12.2 : chaque jeu « se charge comme
+    le nœud le charge ». Le nœud applique `strings.TrimSpace` aux
+    identifiants : `ancres.LireJeu` en fait autant (fichier d'ancres et
+    `validateurs.json`), puis exige des identifiants non vides et distincts ;
+    le hachage du jeu (EX-11.8) porte sur l'identifiant ainsi chargé. Un
+    identifiant fait d'espaces est vide ; deux identifiants égaux après
+    retrait des espaces sont en double.
+23. **Entrées qui ne sont pas des fichiers ordinaires.** CT-6 EX-4.12 range
+    « pas un fichier » parmi les refus du système de fichiers, sans dire
+    comment le constater sans bloquer : ouvrir un tube nommé attend un
+    écrivain, sans fin (EX-15.2). Lecture retenue, pour toute entrée lue
+    (parties du dossier, `dossier.json`, `--ancres`, `--entetes-bitcoin`,
+    `--second-manifeste`, pièces de `--pieces`) : `Lstat` d'abord, et rien
+    n'est ouvert si le chemin n'est pas un fichier ordinaire ; ouverture
+    ensuite sans suivre de lien (`O_NOFOLLOW`) et sans attente
+    (`O_NONBLOCK`), puis `fstat` sur le descripteur, qui doit être un
+    fichier ordinaire et le même que celui que `Lstat` a vu. Un lien
+    symbolique n'est jamais suivi, même vers un fichier conforme. Une
+    partie déclarée présente qui n'est pas un fichier ordinaire compte comme
+    absente du répertoire : D-2 en échec, les vérifications qui en dépendent
+    `prerequis_en_echec`. `dossier.json`, un fichier d'ancres, d'en-têtes,
+    un second manifeste ou une pièce qui n'est pas un fichier ordinaire rend
+    l'entrée inutilisable (code 2). Les répertoires désignés (le dossier,
+    `--pieces`) peuvent être des liens.
+24. **E-9 sans tableau de signatures.** `approval.approvers` ou
+    `approval.signatures` qui n'est pas un tableau (`null` compris) : E-9
+    en échec, au lieu de réussir sur zéro signature recouvrée ; E-1 et E-5
+    portent aussi le défaut.
 
 ## Licences
 

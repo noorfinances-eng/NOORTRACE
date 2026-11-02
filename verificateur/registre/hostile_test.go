@@ -150,15 +150,85 @@ func TestEntreesHostiles(t *testing.T) {
 	}
 }
 
-// TestCleEnDouble : un nom en double dans registre.json est lu comme
-// JSON.parse le lit (dernière occurrence) ; CT-6 ne le refuse pas (voir
-// LISEZMOI.md, « Lectures »).
-func TestCleEnDouble(t *testing.T) {
+// TestFormeCanonique : une partie du contrôle 8 sans forme canonique (nom
+// en double, nombre non entier) est refusée comme une partie contraire à son
+// schéma : R-1 pour registre.json et certificat-commit.json, R-3 pour
+// validateurs.json, au lieu d'être lue en dernière occurrence (LISEZMOI.md,
+// « Lectures », point 5).
+func TestFormeCanonique(t *testing.T) {
+	cas := []struct {
+		nom, partie, id string
+		octets          func(b []byte) []byte
+	}{
+		{"registre, nom en double", "registre", "R-1", func(b []byte) []byte { return []byte(`{"version":1,` + string(b[1:])) }},
+		{"registre, nombre non entier", "registre", "R-1", func(b []byte) []byte {
+			return []byte(strings.Replace(string(b), `"transaction_index":0`, `"transaction_index":0.0`, 1))
+		}},
+		{"certificat, nombre non entier (quorum.required 3.0)", "certificat", "R-1", func(b []byte) []byte {
+			return []byte(strings.Replace(string(b), `"required":3`, `"required":3.0`, 1))
+		}},
+		{"certificat, nom en double", "certificat", "R-1", func(b []byte) []byte { return []byte(`{"version":0,` + string(b[1:])) }},
+		{"validateurs, nom en double", "validateurs", "R-3", func(b []byte) []byte { return []byte(`{"version":0,` + string(b[1:])) }},
+		{"validateurs, nombre non entier", "validateurs", "R-3", func(b []byte) []byte {
+			return []byte(strings.Replace(string(b), `"from_height":1`, `"from_height":1.0`, 1))
+		}},
+	}
+	for _, c := range cas {
+		t.Run(c.nom, func(t *testing.T) {
+			m := nouveauMonde()
+			e := m.entree()
+			p := &e.Registre
+			switch c.partie {
+			case "certificat":
+				p = &e.Certificat
+			case "validateurs":
+				p = &e.Validateurs
+			}
+			avant := string(p.Octets)
+			p.Octets = c.octets(p.Octets)
+			if string(p.Octets) == avant {
+				t.Fatal("modification sans effet")
+			}
+			r := Verifier(e)
+			v := etatDe(r, c.id)
+			if v.Statut != commun.Echoue || !strings.Contains(v.Detail.Fr, "sans forme canonique") {
+				t.Errorf("%s : %s %s (%s)", c.id, v.Statut, v.Raison, v.Detail.Fr)
+			}
+			if c.id == "R-1" && r.Statut != commun.Echoue {
+				t.Errorf("contrôle 8 : %s", r.Statut)
+			}
+		})
+	}
+	// Témoin : sans modification, le contrôle 8 réussit.
+	m := nouveauMonde()
+	if r := Verifier(m.entree()); r.Statut != commun.Reussi {
+		t.Errorf("témoin : %s", r.Statut)
+	}
+}
+
+// TestIdentifiantValidateurEspaces : validateurs.json se charge comme le
+// nœud le charge (EX-12.2) : un identifiant écrit avec des espaces de tête
+// ou de queue est lu sans eux (strings.TrimSpace), et le hachage du jeu
+// porte sur l'identifiant ainsi chargé (LISEZMOI.md, « Lectures », point 9).
+func TestIdentifiantValidateurEspaces(t *testing.T) {
 	m := nouveauMonde()
 	e := m.entree()
-	e.Registre.Octets = []byte(`{"version":1,` + string(e.Registre.Octets[1:]))
-	if r := Verifier(e); r.Statut != commun.Reussi {
-		t.Errorf("contrôle 8 : %s (%s)", r.Statut, etatDe(r, "R-1").Detail.Fr)
+	id := m.ids[0]
+	avant := string(e.Validateurs.Octets)
+	e.Validateurs.Octets = []byte(strings.Replace(avant, `"id":"`+id+`"`, `"id":" `+id+"\\t"+`"`, 1))
+	if string(e.Validateurs.Octets) == avant {
+		t.Fatal("modification sans effet")
+	}
+	r := Verifier(e)
+	if v := etatDe(r, "R-3"); v.Statut != commun.Reussi {
+		t.Errorf("R-3 : %s %s (%s)", v.Statut, v.Raison, v.Detail.Fr)
+	}
+	// Deux identifiants égaux une fois les espaces retirés : R-3 en échec.
+	e = m.entree()
+	autre := m.ids[1]
+	e.Validateurs.Octets = []byte(strings.Replace(string(e.Validateurs.Octets), `"id":"`+autre+`"`, `"id":"`+id+` "`, 1))
+	if v := etatDe(Verifier(e), "R-3"); v.Statut != commun.Echoue {
+		t.Errorf("identifiants égaux après TrimSpace : R-3 %s", v.Statut)
 	}
 }
 

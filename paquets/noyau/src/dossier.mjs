@@ -18,7 +18,8 @@
 // - une partie déclarée présente dont le fichier manque (ou n'est pas un
 //   fichier ordinaire) met D-2 en échec, et D-2 seul : le contrôle qui la
 //   porte et ceux qui en dépendent ne sont pas exécutés (raison
-//   partie_manquante pour le porteur, CT-6 EX-4.11) ;
+//   prerequis_en_echec, D-2 étant en échec : liste fermée de CT-6 §6.2,
+//   EX-4.11) ;
 // - une partie qui est un objet JSON mais enfreint son schéma met en échec le
 //   contrôle qui la porte, et les autres contrôles s'exécutent sur les champs
 //   bien typés qu'ils lisent (cascades publiées par les vecteurs : E-1 et E-3,
@@ -299,7 +300,7 @@ export function verifierDossier(fichiers, options = {}) {
     return null;
   };
   // Raison de non-exécution du porteur d'une partie qui n'a pas pu être lue.
-  const raisonPorteur = (lecture) => (lecture.etat === "manquante" ? "partie_manquante" : "prerequis_en_echec");
+  const raisonPorteur = () => "prerequis_en_echec";
 
   const lEvt = lirePartie("evenement");
   const lVoisins = lirePartie("voisins");
@@ -566,7 +567,7 @@ export function verifierDossier(fichiers, options = {}) {
       reussi("A-1");
       for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "partie_absente", ["aucune approbation liée"]);
     } else if (lApprob.etat === "manquante") {
-      nonExecute("A-1", "partie_manquante", ["approbations.json déclaré présent mais manquant (D-2)"]);
+      nonExecute("A-1", "prerequis_en_echec", ["approbations.json déclaré présent mais manquant (D-2)"]);
       for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "prerequis_en_echec");
     } else {
       echoue("A-1", ["approbations.json présent alors que approval est nul"]);
@@ -689,7 +690,7 @@ export function verifierDossier(fichiers, options = {}) {
       // Sans forme canonique : l'échec est porté par E-2 (ecartsE2) ; fichier
       // manquant : par D-2 ; non-JSON, non-objet, trop grand : par K-1.
       if (lPoints.etat === "canonique") nonExecute("K-1", "prerequis_en_echec", ["points-de-controle.json sans forme canonique (E-2)"]);
-      else if (lPoints.etat === "manquante") nonExecute("K-1", "partie_manquante", ["points-de-controle.json manquant (D-2)"]);
+      else if (lPoints.etat === "manquante") nonExecute("K-1", "prerequis_en_echec", ["points-de-controle.json manquant (D-2)"]);
       else echoue("K-1", [lPoints.message ?? "points-de-controle.json inexploitable"]);
       return prerequis(1);
     }

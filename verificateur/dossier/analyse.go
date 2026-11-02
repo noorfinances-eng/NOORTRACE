@@ -1,6 +1,7 @@
 package dossier
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -48,6 +49,9 @@ type Analyse struct {
 	Decisions  []*Evt
 	voisinsOK  bool
 	evenements []*Evt
+	// evenementSansForme : evenement.json est un objet JSON sans forme
+	// canonique (E-2) ; Evenement vaut alors nil.
+	evenementSansForme bool
 
 	// Cles : clés de cles.json par key_id ; ClesExploitables : première
 	// partie de E-8 réussie.
@@ -161,6 +165,22 @@ var ControlesDe = map[string][]int{
 }
 
 func (a *Analyse) indexInexploitable() {
+	if err := a.Dossier.ErrCanonique; err != nil {
+		// Index sans forme canonique : E-2 porte l'échec (CT-1 §11.4) ; D-1
+		// et tout ce qui dépend de l'index ne sont pas exécutés.
+		m := err.Error()
+		if e, ok := err.(*jcs.Erreur); ok {
+			m = e.Motif
+		}
+		for _, id := range IDsCT1 {
+			if id == "E-2" {
+				a.ajouter(commun.Nouvelle("E-2", commun.Echoue, "", commun.T("forme canonique non calculable : dossier.json ("+m+")", "canonical form not computable: dossier.json ("+m+")"), 1))
+				continue
+			}
+			a.ajouter(prerequis(id, "dossier.json sans forme canonique (E-2) : index inexploitable, parties inconnues", "dossier.json without canonical form (E-2): unusable index, parts unknown", ControlesDe[id]...))
+		}
+		return
+	}
 	motif := commun.T("dossier.json dépasse 1 Mio", "dossier.json exceeds 1 MiB")
 	if a.Dossier.ErrIndex != nil {
 		motif = commun.T("dossier.json contraire au schéma dossier-v0 ("+a.Dossier.ErrIndex.Error()+")", "dossier.json does not follow the dossier-v0 schema ("+a.Dossier.ErrIndex.Error()+")")
@@ -174,8 +194,15 @@ func (a *Analyse) indexInexploitable() {
 // preparer lit les événements et les clés.
 func (a *Analyse) preparer() {
 	if p := a.Dossier.Partie(PEvenement); p.Exploitable() {
-		a.Evenement = nouvelEvt(commun.T("evenement", "event"), p.Valeur)
-		a.evenements = append(a.evenements, a.Evenement)
+		// Un evenement.json sans forme canonique est inexploitable : E-2
+		// porte l'échec, et les vérifications qui dépendent de l'événement
+		// prouvé ne sont pas exécutées (CT-1 §11.4 ; « Lectures », point 10).
+		if err := jcs.Calculable(p.Valeur); err == nil {
+			a.Evenement = nouvelEvt(commun.T("evenement", "event"), p.Valeur)
+			a.evenements = append(a.evenements, a.Evenement)
+		} else {
+			a.evenementSansForme = true
+		}
 	}
 	if p := a.Dossier.Partie(PVoisins); p.Exploitable() {
 		v := p.Valeur
@@ -298,6 +325,13 @@ func (a *Analyse) d2() {
 			continue
 		}
 		if p.Lecture.Etat == entree.Absent {
+			if errors.Is(p.Lecture.Err, entree.ErrNonOrdinaire) {
+				// Lien symbolique, tube nommé… : jamais ouvert ni suivi, la
+				// partie compte comme absente du répertoire.
+				ecartsFr = append(ecartsFr, p.Fichier+" déclaré présent mais qui n'est pas un fichier ordinaire (lien symbolique, tube nommé…) : compté absent du répertoire")
+				ecartsEn = append(ecartsEn, p.Fichier+" declared present but not a regular file (symbolic link, named pipe…): counted as missing from the directory")
+				continue
+			}
 			ecartsFr = append(ecartsFr, p.Fichier+" déclaré présent mais absent du répertoire")
 			ecartsEn = append(ecartsEn, p.Fichier+" declared present but missing from the directory")
 			continue
@@ -351,6 +385,9 @@ func (a *Analyse) verificationsE() *Defaut {
 	}
 	v := agregerEvts("E-1", evts, res, 1)
 	switch {
+	case a.evenementSansForme && v.Statut != commun.Echoue:
+		v = prerequis("E-1", "evenement.json sans forme canonique (E-2)", "evenement.json without canonical form (E-2)", 1)
+	case a.evenementSansForme:
 	case inexEv:
 		v = commun.Nouvelle("E-1", commun.Echoue, "", commun.T("evenement.json n'est pas un objet JSON exploitable", "evenement.json is not a usable JSON object"), 1)
 	case absEv && v.Statut != commun.Echoue:
@@ -360,9 +397,12 @@ func (a *Analyse) verificationsE() *Defaut {
 		v.Detail = commun.Texte{}
 	}
 	a.ajouter(v)
-	// E-2 : forme canonique de chaque partie JSON de CT-1.
+	// E-2 : forme canonique de chaque partie JSON de CT-1, dont
+	// points-de-controle.json (CT-1 §11.4, CT-6 EX-4.14). L'index est traité
+	// à l'ouverture (indexInexploitable) ; attestation-perimetre.json relève
+	// d'AT-1, sans effet sur le verdict (EX-5.11).
 	var fautifs []string
-	for _, nom := range []string{PEvenement, PVoisins, PChemin, PManifeste, PManifesteSig, PCles, PApprobations} {
+	for _, nom := range []string{PEvenement, PVoisins, PChemin, PManifeste, PManifesteSig, PCles, PApprobations, PPoints} {
 		p := a.Dossier.Partie(nom)
 		if p.Exploitable() {
 			if err := jcs.Calculable(p.Valeur); err != nil {
@@ -995,9 +1035,12 @@ func (a *Analyse) verificationsA() {
 		}
 		return
 	}
-	if a1.Statut != commun.Reussi {
-		a.ajouter(prerequis("A-2", "A-1 en échec", "A-1 failed", 7))
-		a.ajouter(prerequis("A-3", "A-1 en échec", "A-1 failed", 7))
+	// A-2 et A-3 ne dépendent pas de A-1 (CT-1 §11.4, CT-6 EX-5.5) : elles
+	// ne demandent que approbations.json exploitable et conforme à son
+	// schéma, défaut que A-1 porte (« Lectures », point 8).
+	if !present || !pa.Exploitable() || !enveloppeApprobations(pa.Valeur) {
+		a.ajouter(prerequis("A-2", "approbations.json absent ou inexploitable (A-1)", "approbations.json missing or unusable (A-1)", 7))
+		a.ajouter(prerequis("A-3", "approbations.json absent ou inexploitable (A-1)", "approbations.json missing or unusable (A-1)", 7))
 	} else {
 		a.ajouter(a.a2(ap))
 		a.ajouter(a.a3(ap, pa.Valeur))

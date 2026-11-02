@@ -53,6 +53,14 @@ func TestRefusN1(t *testing.T) {
 		"clé de validateur":    strings.Replace(base, `"pubKeyHex": "0x0405de9b`, `"pubKeyHex": "0x0505de9b`, 1),
 		"validateur en double": strings.Replace(base, `"id": "v2"`, `"id": "v1"`, 1),
 		"PEM tronqué":          strings.Replace(base, `MII`, `MIJ`, 1),
+		// Sans forme canonique (« Lectures », point 21 du LISEZMOI du
+		// module) : refusé au lieu d'être lu par arrondi ou en dernière
+		// occurrence.
+		"nombre non entier":     strings.Replace(base, `"height": 1000,`, `"height": 1000.0,`, 1),
+		"exposant":              strings.Replace(base, `"height": 1000,`, `"height": 1e3,`, 1),
+		"nom en double":         strings.Replace(base, `"version": 0`, `"version": 0, "version": 0`, 1),
+		"identifiant vide":      strings.Replace(base, `"id": "v2"`, `"id": " \t"`, 1),
+		"doublon après espaces": strings.Replace(base, `"id": "v2"`, `"id": " v1 "`, 1),
 	}
 	for nom, c := range cas {
 		_, d := Lire(ecrire(t, c), nil)
@@ -82,6 +90,8 @@ func TestRefusN2(t *testing.T) {
 		"en-tête de 79 octets": strings.Replace(ok, `"0x`+strings.Repeat("00", 80), `"0x`+strings.Repeat("00", 79), 1),
 		"hauteur ≥ 2^32":       strings.Replace(ok, `"start_height":10`, `"start_height":4294967295`, 1) + "",
 	}
+	cas["nombre non entier"] = strings.Replace(ok, `"start_height":10`, `"start_height":10.0`, 1)
+	cas["nom en double"] = strings.Replace(ok, `"version":0`, `"version":0,"version":0`, 1)
 	cas["hauteur ≥ 2^32"] = strings.Replace(strings.Replace(ok, `"start_height":10`, `"start_height":4294967295`, 1), `"]}`, `","0x`+strings.Repeat("00", 80)+`"]}`, 1)
 	for nom, c := range cas {
 		_, d := LireEntetes(ecrire(t, c))
@@ -106,6 +116,37 @@ func TestRefusN2(t *testing.T) {
 	sb.WriteString("]}")
 	if _, d := LireEntetes(ecrire(t, sb.String())); d == nil || d.Genre != "taille_depassee" {
 		t.Errorf("200 001 en-têtes : %v", d)
+	}
+}
+
+// TestIdentifiantsEspaces : un jeu de validateurs se charge comme le nœud
+// le charge (EX-12.2) : identifiants lus après strings.TrimSpace.
+func TestIdentifiantsEspaces(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join(repAncres, "ancres-test.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := strings.Replace(string(b), `"id": "v4"`, `"id": " v4\n"`, 1)
+	if c == string(b) {
+		t.Fatal("modification sans effet")
+	}
+	a, d := Lire(ecrire(t, c), nil)
+	if d != nil {
+		t.Fatalf("identifiant entouré d'espaces refusé : %s", d.Message.Fr)
+	}
+	trouve := false
+	for _, j := range a.Registre.Jeux {
+		for _, v := range j.Validateurs {
+			if v.ID == "v4" {
+				trouve = true
+			}
+			if strings.TrimSpace(v.ID) != v.ID {
+				t.Errorf("identifiant non normalisé : %q", v.ID)
+			}
+		}
+	}
+	if !trouve {
+		t.Error("v4 absent du jeu chargé")
 	}
 }
 

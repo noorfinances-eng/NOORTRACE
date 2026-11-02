@@ -191,8 +191,15 @@ func regleE3(e *Evt) resultatEvt {
 				ajoute("arguments sans valeur en ligne")
 			}
 			if outil == OutilDecision {
-				if !e.V.Membre("approval").EstObjet() {
+				// arguments.value est la référence en ligne à l'objet signé A
+				// de la décision (CT-1 §5.1, table ; §5.3 ; §6.3), pour tout
+				// événement que E-3 contrôle, voisins compris.
+				ap := e.V.Membre("approval")
+				switch {
+				case !ap.EstObjet():
 					ajoute("approval nul pour une décision")
+				case !jsonv.Egales(exe.Chemin("arguments", "value"), objetA(ap, e.V.Membre("org_id").S(), e.V.Membre("journal_id").S())):
+					ajoute("arguments.value ≠ A = { decision, journal_id, org_id, request_hash, ticket } de la décision")
 				}
 			} else if !e.V.Membre("approval").EstNul() {
 				ajoute("approval non nul pour un événement du journal")
@@ -404,6 +411,12 @@ func regleE9(e *Evt) resultatEvt {
 	}
 	if !ap.EstObjet() {
 		return ko("approval illisible", "unreadable approval")
+	}
+	// approvers et signatures sont des tableaux (CT-1 §5.3) : un autre
+	// genre (null compris) ne porte aucune signature vérifiable, et E-9
+	// échoue au lieu de réussir sur zéro signature.
+	if !ap.Membre("approvers").EstTableau() || !ap.Membre("signatures").EstTableau() {
+		return ko("approval.approvers ou approval.signatures n'est pas un tableau", "approval.approvers or approval.signatures is not an array")
 	}
 	d, _, err := condenseApprobation(e, ap)
 	if err != nil {

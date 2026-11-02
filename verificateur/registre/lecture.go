@@ -17,6 +17,7 @@ import (
 	"github.com/noorfinances-eng/noortrace/verificateur/ancres"
 	"github.com/noorfinances-eng/noortrace/verificateur/commun"
 	"github.com/noorfinances-eng/noortrace/verificateur/cryptographie"
+	"github.com/noorfinances-eng/noortrace/verificateur/jcs"
 	"github.com/noorfinances-eng/noortrace/verificateur/jsonv"
 	"github.com/noorfinances-eng/noortrace/verificateur/schema"
 )
@@ -154,6 +155,17 @@ func analyser(octets []byte, uri, nom string) (*jsonv.Valeur, *commun.Texte) {
 	}
 	if !v.EstObjet() {
 		t := texte(nom+" n'est pas un objet JSON", nom+" is not a JSON object")
+		return nil, &t
+	}
+	// Forme canonique exigée (« Lectures », point 9) : une clé en double ou
+	// un nombre non entier rendrait la lecture ambiguë ; la partie est
+	// refusée comme une partie contraire à son schéma (R-1 ou R-3).
+	if err := jcs.Calculable(v); err != nil {
+		m := err.Error()
+		if e, ok := err.(*jcs.Erreur); ok {
+			m = e.Motif
+		}
+		t := texte(nom+" sans forme canonique ("+m+")", nom+" without canonical form ("+m+")")
 		return nil, &t
 	}
 	if err := schema.Valider(uri, v); err != nil {

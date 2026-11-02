@@ -34,7 +34,7 @@ les paquets `ancres`, `commun`, `cryptographie` (Keccak-256, SHA-256),
 | `dossiers_test.go` | les 73 dossiers de `spec/vecteurs/ct-6/dossiers`, entrée construite comme le moteur la construit : R-, N-4, K-8, statut du contrôle 8, AV-R-, AV-K-1, AV-K-3, fragment F6 dans l'énoncé attendu, inclusion du point |
 | `calcul_test.go` | préimage et hachage BFT des huit blocs capturés et de l'exemple d'EX-11.4, encodage des reçus, racines (capture et `trie.json`), journaux décodés, sujets et `docType`, quorum, hachage du jeu, lignes canoniques, signature `R ‖ S ‖ V` (S haut, V hors de {0, 1}, longueur) |
 | `scenarios_test.go`, `fabrique_test.go` | parties fabriquées (validateurs de clés connues) : chaque vérification en réussite et en échec, raisons de non-exécution, avertissements, faits, proposition à un et deux groupes |
-| `hostile_test.go` | JSON tronqué, trop profond, octets quelconques, bornes de §15.1 dépassées, longueurs absurdes, lignes hostiles : aucune panique, échec de R-1, R-3 ou R-5 |
+| `hostile_test.go` | JSON tronqué, trop profond, octets quelconques, bornes de §15.1 dépassées, longueurs absurdes, lignes hostiles : aucune panique, échec de R-1, R-3 ou R-5 ; parties sans forme canonique (R-1, R-3) ; identifiants de validateurs entourés d'espaces |
 | `fuzz_test.go` | `FuzzRegistre` (les deux parties et tout le contrôle derrière), `FuzzLigne` (lecture et vérification d'une ligne) |
 
 ```bash
@@ -109,10 +109,19 @@ retenue.
    AV-K-1 (le commentaire de `Resultat.FaitsPoint` dit « et AV-K-1 est
    levé » ; la table de §11.9 ne le lève pas : la table est suivie). Aucun
    vecteur ne porte ce cas.
-5. **Noms en double.** CT-6 ne refuse pas un nom en double dans
-   `registre.json`, `certificat-commit.json` ou `validateurs.json` : ils
-   sont lus comme `JSON.parse` les lit (dernière occurrence, lecteur
-   `jsonv`).
+5. **Forme canonique des trois parties.** CT-6 ne dit pas si
+   `registre.json`, `certificat-commit.json` et `validateurs.json` doivent
+   avoir une forme canonique. Le texte se taisant, la lecture retenue est
+   stricte, pour ne jamais accepter un document ambigu : une partie sans
+   forme canonique de CT-1 §4 (nom en double, nombre non entier ou hors de
+   l'intervalle sûr, substitut isolé ; par exemple `"required": 3.0`, champ
+   informatif du certificat) est refusée comme une partie contraire à son
+   schéma, au lieu d'être lue en dernière occurrence ou par sa valeur :
+   R-1 en échec pour `registre.json` et `certificat-commit.json` (R-2 à
+   R-10 et N-4 `prerequis_en_echec`), R-3 en échec pour `validateurs.json`
+   (EX-4.11). Test : `TestFormeCanonique` (`hostile_test.go`). Les lignes
+   de certificat, chaînes JSON, restent lues comme le nœud les lit
+   (point 2).
 6. **Entiers que le rapport ne peut pas écrire.** L'identifiant de
    `PeriodSubmitted` (`uint256`, `topics[1]`) et `publishedAt` sont rendus en
    `int64` par l'interface (`EvenementCloture`). Une valeur au-delà de
@@ -135,8 +144,11 @@ retenue.
    inscription de la clé du manifeste sous l'émetteur ; le bloc est celui de
    la première, dans l'ordre de `registre.json`.
 9. **R-3.** `validateurs.json` est chargé comme le nœud le charge
-   (`ancres.LireJeu` : identifiants non vides et distincts, clés exploitables
-   et distinctes, `from_height ≤ to_height`) ; un défaut fait échouer R-3. Le
+   (`ancres.LireJeu` : identifiants lus après `strings.TrimSpace`, comme le
+   nœud les lit, puis non vides et distincts ; clés exploitables et
+   distinctes ; `from_height ≤ to_height`) ; un défaut fait échouer R-3. Un
+   identifiant écrit « ` v4` » est le validateur `v4`, et le hachage du jeu
+   (EX-11.8) porte sur `v4` (test `TestIdentifiantValidateurEspaces`). Le
    recouvrement des intervalles n'est pas contrôlé (EX-11.12 ne le demande
    pas) : un jeu qui contient la hauteur et dont le hachage égale
    `valsetHash` suffit.

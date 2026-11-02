@@ -117,6 +117,24 @@
           "apres": "bd5dfdb2ed148a8dcfb93ae36b3c27379cbabfac4969d429d085d78a9919b0b3"
         }
       ]
+    },
+    {
+      "id": "MC-4",
+      "date": "2026-11-02",
+      "etape": 2,
+      "motif": "Relecture de l'étape 2 : tests de non-régression ajoutés à test/noyau.test.js (raison prerequis_en_echec au lieu d'une raison hors de la liste fermée de CT-6 §6.2) et deux étapes de CI du binaire (govulncheck, EX-14.11 ; fuzzing borné, EX-15.3) ; empreintes des fichiers de test dans couverture.json et comptes de la sortie publiée du recomptage Python mis à jour. Aucune exigence ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "9e2c105b8fb0713e3824847fa99fa71d140e9c164d5a074ba2f33808695a2b9f",
+          "apres": "f10b597c66658a8f66d23b1232343ce91ca1164acdb1580e06d143a4f525b688"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "81067b20faabc80e1df1a2b68f9bb47b635234fca330d36faa8129d62d036417",
+          "apres": "6772ef7c6d18b6ac092b0ad5e2887f4848d49b16792ec7551849df2399a026ba"
+        }
+      ]
     }
   ]
 }

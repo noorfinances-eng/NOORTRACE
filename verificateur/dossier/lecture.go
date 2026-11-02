@@ -9,12 +9,14 @@
 package dossier
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
 	"github.com/noorfinances-eng/noortrace/verificateur/commun"
 	"github.com/noorfinances-eng/noortrace/verificateur/cryptographie"
 	"github.com/noorfinances-eng/noortrace/verificateur/entree"
+	"github.com/noorfinances-eng/noortrace/verificateur/jcs"
 	"github.com/noorfinances-eng/noortrace/verificateur/jsonv"
 	"github.com/noorfinances-eng/noortrace/verificateur/schema"
 )
@@ -93,8 +95,10 @@ type Dossier struct {
 	IndexTropGrand bool
 	// ErrIndex : défaut de schéma de l'index (D-1), nil sinon.
 	ErrIndex error
-	Parties  []*Partie
-	parNom   map[string]*Partie
+	// ErrCanonique : l'index n'a pas de forme canonique (E-2), nil sinon.
+	ErrCanonique error
+	Parties      []*Partie
+	parNom       map[string]*Partie
 }
 
 // Partie rend la partie déclarée de ce nom, ou nil.
@@ -124,6 +128,9 @@ func Ouvrir(rep string) (*Dossier, *Defaut) {
 	l := entree.Lire(filepath.Join(rep, "dossier.json"), entree.LimiteIndex)
 	switch l.Etat {
 	case entree.Absent:
+		if errors.Is(l.Err, entree.ErrNonOrdinaire) {
+			return nil, &Defaut{"dossier_illisible", commun.T("dossier.json n'est pas un fichier ordinaire (lien symbolique, tube nommé…) : non ouvert", "dossier.json is not a regular file (symbolic link, named pipe…): not opened")}
+		}
 		return nil, &Defaut{"dossier_illisible", commun.T("dossier.json absent : le répertoire n'est pas un dossier de preuve", "dossier.json missing: the directory is not an evidence dossier")}
 	case entree.Illisible:
 		return nil, &Defaut{"dossier_illisible", commun.T(fmt.Sprintf("dossier.json illisible (%v)", l.Err), fmt.Sprintf("dossier.json unreadable (%v)", l.Err))}
@@ -139,6 +146,15 @@ func Ouvrir(rep string) (*Dossier, *Defaut) {
 		return nil, &Defaut{"dossier_illisible", commun.T("dossier.json n'est pas du JSON ("+err.Error()+")", "dossier.json is not JSON ("+err.Error()+")")}
 	}
 	d.Index = v
+	// Un index sans forme canonique (clé en double, nombre non entier,
+	// substitut isolé) est du JSON : pas de code 2 (EX-4.12), mais E-2 en
+	// échec (CT-1 §4, §11.4), et rien n'en est lu, pas même son schéma :
+	// la lecture d'un nom en double serait arbitraire (« Lectures », point
+	// 20).
+	if err := jcs.Calculable(v); err != nil {
+		d.ErrCanonique = err
+		return d, nil
+	}
 	if err := schema.Valider(schema.Dossier, v); err != nil {
 		d.ErrIndex = err
 		return d, nil
@@ -161,9 +177,10 @@ func Ouvrir(rep string) (*Dossier, *Defaut) {
 	return d, nil
 }
 
-// IndexConforme dit si l'index a été lu et suit son schéma.
+// IndexConforme dit si l'index a été lu, a une forme canonique et suit son
+// schéma.
 func (d *Dossier) IndexConforme() bool {
-	return d != nil && !d.IndexTropGrand && d.Index != nil && d.ErrIndex == nil
+	return d != nil && !d.IndexTropGrand && d.Index != nil && d.ErrIndex == nil && d.ErrCanonique == nil
 }
 
 // estJSON dit si la partie est un document JSON.
