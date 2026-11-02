@@ -328,6 +328,12 @@ jobs:
           go vet ./...
           go test ./...
           go run . ..
+      # Figeage de la conception v1.0 (spec/figeage/LISEZMOI.md) : le
+      # registre des modifications, rejoué depuis le manifeste, doit rendre
+      # exactement les fichiers de spec/ ; toute modification, tout ajout et
+      # toute suppression non consignés font échouer l'étape (code 0 exigé).
+      - name: figeage de la conception v1.0, chaque modification de spec/ consignée (code 0 exigé)
+        run: npm run conception:figeage
 
   # Test de bout en bout de la console de référence de CT-3 dans Chromium
   # (spec/CT-3-approbations.md, EX-13.36, EX-A.11) : Playwright 1.56.1, la

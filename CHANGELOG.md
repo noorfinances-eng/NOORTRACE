@@ -6,6 +6,15 @@ is tagged.
 
 ## Unreleased
 
+- Design frozen as version 1.0 (first gate of the project plan), 2 November
+  2026. A manifest records the SHA-256 of every file under `spec/`
+  (`spec/figeage/conception-v1.0.sha256`, `sha256sum` format); every later
+  change, addition or removal is recorded in a register of numbered entries
+  with the digest of each file before and after
+  (`spec/figeage/modifications.json`). `npm run conception:figeage` replays the
+  register against the manifest and fails on any unrecorded change; CI runs it.
+  The status of the nine specifications in `spec/README.md` now reads "frozen".
+
 - CT-9, the test plan, version 0.1, the last of the nine design
   specifications: eight test levels (unit and property tests on the core,
   conformance to the published vectors, interoperability of exports, APIs and

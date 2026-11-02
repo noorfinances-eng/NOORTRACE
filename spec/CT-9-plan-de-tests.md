@@ -249,8 +249,8 @@ les lignes.
 | TC-105 | CT-8 §B.2 (l. 8049) | Ordre des champs de `chronyc -c tracking` à relever. | TM-40 (ordre des champs de chronyc -c tracking relevé sur chrony 4.6). |
 | TC-106 | CT-8 §B.4 (l. 8104) | Latence en observation. | TM-38 (latence en observation). |
 | TC-107 | CT-8 §B.5 (l. 8152) | Temps du réviseur. | TM-25 (temps du réviseur). |
-| TC-108 | `spec/README.md` « Spécifications » (l. 23) | Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, revue pour la porte 1). | Ce document (en-tête) ; rien n'est délégué. |
-| TC-109 | `spec/README.md` « Spécifications » (l. 23) | Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, revue pour la porte 1). | Ce document (en-tête) ; rien n'est délégué. |
+| TC-108 | `spec/README.md` « Spécifications » (l. 23) | Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, figée en conception v1.0). | Ce document (en-tête) ; rien n'est délégué. |
+| TC-109 | `spec/README.md` « Spécifications » (l. 23) | Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, figée en conception v1.0). | Ce document (en-tête) ; rien n'est délégué. |
 | TC-110 | `spec/README.md` « Spécifications » (l. 26) | Ordre d'écriture des neuf spécifications : CT-9 en dernier. | Ce document, dernière spécification de la phase 1 ; rien n'est délégué. |
 | TC-111 | `spec/README.md` « Schémas (`schemas/`) » (l. 71) | Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation. | §4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2. |
 | TC-112 | `spec/README.md` « Schémas (`schemas/`) » (l. 71) | Description du schéma `plan-de-tests-v0` : catalogue, rapport de couverture, rapport de mesure, consignation. | §4.2 (schéma), §5.4 (rapport de couverture), §11.3 (rapport de mesure), §12.1 (consignation) ; annexe A.2. |

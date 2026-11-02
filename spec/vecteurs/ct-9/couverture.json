@@ -43,7 +43,7 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "abf508104d85a3fecdb45cacf3f8999f076c08f28524e90fe186ccbe15c2a4c6"
+      "sha256": "40ef3819e4b510fbb61242eaf96e64011d13fed614cea6b8875da24af42fe025"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -101,6 +101,10 @@
       {
         "file": "test/exploitation.test.js",
         "sha256": "15867456612b4eb0cbff32e85c36b956d61c5bd3a33a15b930bda73c95e15976"
+      },
+      {
+        "file": "test/figeage.test.js",
+        "sha256": "60f20f4ce3239e20472e0051ab0d102e744f3efbafefc2d0bb6437a1b38b4638"
       },
       {
         "file": "test/horodatage.test.js",

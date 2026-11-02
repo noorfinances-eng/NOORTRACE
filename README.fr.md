@@ -148,6 +148,8 @@ construction.
   vérification de CT-1 à CT-8 couverte par un test ou par une justification
   nommée, chaque menace de CT-7 par un test adversarial, chaque renvoi à CT-9
   par sa ligne) et contrôle des rapports de mesure.
+- `scripts/conception/` : contrôle du figeage de la conception v1.0 (chaque
+  modification de `spec/` consignée dans `spec/figeage/modifications.json`).
 - `console/` : console d'approbation de référence de CT-3, page statique sous
   une politique de sécurité du contenu stricte, testée de bout en bout dans
   Chromium ; voir [console/LISEZMOI.md](console/LISEZMOI.md).
@@ -163,12 +165,15 @@ construction.
 
 ## Statut
 
-2 novembre 2026 : les neuf spécifications de conception sont écrites, en
-revue pour la porte 1 : CT-1 des formats, CT-2 de l'enregistreur, CT-3 des
-approbations, CT-4 du registre, CT-5 de l'ancrage, CT-6 du vérificateur, CT-7
-de la sécurité et de la conformité, CT-8 du déploiement et de l'exploitation
-et CT-9 du plan de tests, avec leurs vecteurs, leur implémentation de référence
-et leur confrontation indépendante. Existent aussi : le vérificateur de
+2 novembre 2026 : les neuf spécifications de conception sont écrites et
+figées en conception v1.0 (porte 1) ; toute modification ultérieure de
+`spec/` est consignée dans un registre que l'intégration continue vérifie
+(`spec/figeage/`). La construction commence. Les spécifications : CT-1 des
+formats, CT-2 de l'enregistreur, CT-3 des approbations, CT-4 du registre, CT-5
+de l'ancrage, CT-6 du vérificateur, CT-7 de la sécurité et de la conformité,
+CT-8 du déploiement et de l'exploitation et CT-9 du plan de tests, avec leurs
+vecteurs, leur implémentation de référence et leur confrontation
+indépendante. Existent aussi : le vérificateur de
 dossier, avec les huit contrôles ; l'outil du paquet réviseur ; l'outil de
 couverture du plan de tests ; l'instance de développement, les contrats du
 registre avec leurs tests, le parcours complet exécuté sur le réseau de

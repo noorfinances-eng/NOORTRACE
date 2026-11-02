@@ -540,12 +540,12 @@ export const TC_REPONSES = [
   },
   {
     "key": "`spec/README.md` « Spécifications »",
-    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, revue pour la porte 1).",
+    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, figée en conception v1.0).",
     "response": "Ce document (en-tête) ; rien n'est délégué."
   },
   {
     "key": "`spec/README.md` « Spécifications »",
-    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, revue pour la porte 1).",
+    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, figée en conception v1.0).",
     "response": "Ce document (en-tête) ; rien n'est délégué."
   },
   {

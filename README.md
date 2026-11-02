@@ -49,7 +49,10 @@ verification proves and what the reviewer must still trust.
 ## Status
 
 Early. The nine design specifications are written, each with test vectors
-checked by implementations written separately from the reference.
+checked by implementations written separately from the reference. The design
+was frozen as version 1.0 on 2 November 2026: every later change to `spec/` is
+recorded in a change register checked by CI (`spec/figeage/`). The build has
+started.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
   period manifests, signed checkpoints with RFC 9162 consistency proofs, and
@@ -165,6 +168,7 @@ binary are specified, not built yet.
 | `scripts/deploiement/` | CT-8 tools: host pre-check, sizing, Compose checks, quick configuration, operations logs, minutes, consultations |
 | `scripts/paquet-reviseur/` | CT-8 reviewer package: build and offline verification in one command |
 | `scripts/tests/` | CT-9 coverage tool and measurement-report checker |
+| `scripts/conception/` | Design freeze check: every change to `spec/` after version 1.0 must be recorded |
 | `console/` | CT-3 reference approval console: a static page with a strict content security policy |
 | `contracts/` | Registry contracts (Solidity) |
 | `test/` | Tests and fixtures |

@@ -1,6 +1,8 @@
 # NOORTRACE — architecture cible
 
-Version 0.12, 2 novembre 2026. Document de conception, pas d'implémentation.
+Version 0.13, 2 novembre 2026. Document de conception, pas d'implémentation.
+La conception est figée en version 1.0 depuis le 2 novembre 2026 : toute
+modification de `spec/` est consignée dans `spec/figeage/`.
 Les spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2
 pour l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-5
 pour l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité et la
