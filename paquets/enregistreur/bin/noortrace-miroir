@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+// Adaptateur de capture du mode miroir (CT-2 §5.1.3, EX-5.6) : voir src/modele/miroir.mjs.
+//   noortrace-miroir --socket <prise du démon> --ecoute <hôte:port de la copie>
+import { lancerAdaptateur } from "../src/modele/miroir.mjs";
+
+const a = process.argv.slice(2);
+const val = (n) => {
+  const k = a.indexOf(n);
+  return k >= 0 ? a[k + 1] : undefined;
+};
+const socket = val("--socket");
+const ecoute = val("--ecoute");
+if (!socket || !ecoute || !/^[^\s]+:[0-9]{1,5}$/.test(ecoute)) {
+  process.stderr.write("usage : noortrace-miroir --socket <prise du démon> --ecoute <hôte:port>\n");
+  process.exitCode = 2;
+} else {
+  try {
+    const x = await lancerAdaptateur({ socket, ecoute, sortie: process.stdout });
+    const arreter = async () => {
+      await x.arreter();
+      process.exit(0);
+    };
+    process.on("SIGTERM", arreter);
+    process.on("SIGINT", arreter);
+  } catch (e) {
+    process.stderr.write(`noortrace-miroir : prise du démon injoignable (${e?.code ?? "erreur"})\n`);
+    process.exitCode = 1;
+  }
+}

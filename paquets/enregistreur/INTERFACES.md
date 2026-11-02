@@ -245,6 +245,79 @@ la référence de chaque pièce publiée et `prompt_version` ; la dérivation de
 pièces depuis la requête et la réponse est au frontal) ;
 `evenements/journal-demo` (seq 2, 4, 8).
 
+### Mise en œuvre (lot « frontal modèle », `src/modele/`)
+
+```js
+import { demarrerFrontalModele, MoteurEchanges, PasserelleModele, ServeurIcap, RecepteurMiroir,
+  lancerAdaptateur, RegistreCorrelation, controleModele, uriPasserelle } from "@noortrace/enregistreur";
+
+const modele = await demarrerFrontalModele(coeur, secrets, { redacteur, chargerJwks });  // cli.mjs, selon model.mode (EX-5.1)
+// → { correlateur, passerelle, icap, miroir, arreter } ; desactive : tout à null
+// = new RegistreCorrelation({ fenetreMs, monotone, ecrirePiece, origine, journal })
+//   + new MoteurEchanges({ coeur, redacteur, registre })          // commun aux trois modes
+//   + passerelle : new PasserelleModele({ coeur, secrets, moteur, chargerJwks }) ; await ecouter()  // model.listen, model.tls
+//     icap       : new ServeurIcap({ coeur, moteur }) ; await ecouter() ; adresses()              // model.icap.listen, tls_listen
+//     miroir     : new RecepteurMiroir({ coeur, moteur }) ; await ecouter()                     // model.mirror.socket
+const mcp = await demarrerFrontalMcp(coeur, secrets, { correlateur: modele.correlateur });   // crochet de 5.6
+await mcp.arreter(); await modele.arreter();                         // avant coeur.arreter() ; drain de 13.5
+validerConfiguration(octets, { reglesSupplementaires: [controleModele] })  // EX-15.4 pas 3 : routes, modes, hôtes, OAuth, ICAP, TLS
+uriPasserelle(config)                                                // audience d'un jeton oauth_subject (EX-5.8 point 2)
+await lancerAdaptateur({ socket, ecoute: "127.0.0.1:0", sortie })   // bin/noortrace-miroir : copie → couples (EX-5.6)
+```
+
+Moteur d'échanges (`src/modele/echange.mjs`), employé par la passerelle,
+le serveur ICAP et le récepteur du miroir :
+
+```js
+moteur.controlerQuota(hote, t, { echange })   // EX-4.47 : limit_* du quota atteint (call_blocked) ou null
+await moteur.preparer({ route, trouve, hote, entetes, valeur, t_recu, mode, identite })
+  // délégation, colonne M (sauf miroir), pièces « prompt système » et « requête » durables (EX-5.10)
+  // → { etat } ou { refus: "hote_inconnu" | "degrade", raison }
+const capture = moteur.capture(etat, { statut, entetes, notesReponse });  // capture.ecrire(octets) ; capture.terminer({ coupe })
+await moteur.sceller(etat, { genre: "reponse" | "delai" | "hote_parti" | "inactivite" | "coupure", … })
+  // pièces « réponse » et « intention », événement scellé, ou mis en attente (14.5, EX-14.12), ou perdu (exchange_lost)
+```
+
+Le frontal emploie le cœur sans le changer : `coeur.ecrirePiece` (pièces
+« prompt système » et « requête » avant l'envoi, « réponse » et
+« intention » après), `coeur.scellerEchange`, et, pour une panne après
+l'envoi, `partielEchange` (`capture.mjs`) puis `coeur.mettreEnAttente(partiel,
+pieces, { captured_at })` ; il lit `coeur.degrade`, `coeur.bailDetenu` et
+`coeur.intervention` pour la colonne M de 14.2. Il rédige par
+`redigerPiece` du rédacteur (section e) : `genre: "texte"` portée
+`prompt_systeme` (pièce et chaînes porteuses en `inline`), `genre: "json"`
+portée `requete` avec `origine` (requête reçue), portée `reponse`
+(`avecValeur`), `genre: "octets"` pour un corps non JSON ou un flux brut ;
+`admettreRunId`, `admettreNomPrompt`, `admettreValeurLigne` (segment de
+modèle, EX-5.36).
+
+Registre de corrélation, offert au frontal MCP (section a) et au SDK
+(section c) :
+
+```js
+const e = registre.inscrire({ host, host_group, run_id, format, formeClair, interpose: true | false });  // false : echangeModele
+registre.completer(e, { formeRedigee, code: { model, prompt_version } });   // quand la réponse rédigée est calculée
+registre.sceller(e, seq);                                                   // après scellement
+await registre.correler({ host, host_group, run_id, tool_announced, arguments, t_recu })
+  // → { intent, code: { model, prompt_version }, seq | "inscription:<n>", declaree } ou null
+```
+
+`host` est l'entrée de connexion d'hôte de l'appel (`tool_name_template`,
+`tool_name_sanitize`) ; `t_recu` et les instants d'inscription viennent de
+`coeur.horlogeBrute.monotone()`. Pour le SDK (EX-5.22, 6.2), `tool_announced`
+est le nom court déclaré ; seuls `code.model` et `code.prompt_version` du
+résultat s'appliquent. Fonctions de dérivation réutilisables par le SDK
+(EX-6.8) : `piecesRequete`, `pieceReponse`, `consoliderMorceauxGemini`,
+`modeleDe`, `intentionDe`, `intentionBornee`, `appelsDemandes`.
+
+Aucun changement du cœur n'a été nécessaire ; `src/cli.mjs` démarre le
+frontal modèle après le cœur (un échec : `demarrage_refuse : frontal_modele`,
+code 2, les fils de rédaction fermés pour que le processus sorte), remet son
+registre au frontal MCP, l'arrête avant le cœur, et ajoute `controleModele`
+aux règles du pas 3 d'EX-15.4. Le jeton OAuth de la passerelle est vérifié
+par `verifierJwt` du frontal MCP avec `mcp.http.oauth` (LISEZMOI, lecture
+72) ; les quotas emploient `QuotasHote` du frontal MCP (lecture 73).
+
 ## c) SDK et ingestion OpenTelemetry (§6)
 
 ### Signatures
@@ -336,6 +409,99 @@ d'approbation »), §14.6, EX-15.4 pas 3 et 6, EX-15.8, EX-18.8 ; CT-3 §7 à
 
 `spec/vecteurs/ct-3/*` (non rejoués par le cœur) ;
 `pieces-mcp/appels/approbation-*` ; `evenements/journal-demo` (seq 5 à 7).
+
+### Mise en œuvre (lot moteur de politique)
+
+Module `src/politique/` (exporté par `@noortrace/enregistreur`) :
+
+```js
+import { MoteurPolitique, controlePolitiqueApprobation, validerPolitiqueApprobation,
+         regleObservation, REGLE_EVALUATION_IMPOSSIBLE } from "@noortrace/enregistreur";
+
+coeur.politique                         // MoteurPolitique, créé par le constructeur du cœur
+await coeur.politique.evaluerAppel(requeteEvaluer, { nom, classe, alias, host, request_id })
+  // → { reponse, evaluee, defaut, observation: null | { would, bloquerait } }
+coeur.politique.mode                    // "erreur" | "retenir" | "observation" (version en vigueur)
+coeur.politique.classeEffective(reponse, classe)      // EX-14.1 (aucun appel soumis en observation)
+await coeur.politique.intentionEvaluer(intent)        // membre intent d'EX-7.4 : chaîne, ou texte d'une référence, ou null
+coeur.politique.bloquantSansService(nom, classe)      // ligne « service indisponible » de 14.2
+coeur.politique.consignerBlocageEvite({ would, raison, alias, nom, classe, seq, host, request_id })
+coeur.politique.consignerPerte(raison, nombre, contexte)   // event_lost (EX-14.16)
+coeur.politique.instantCapture()        // captured_at, horloge en mode dégradé comprise (EX-14.16)
+coeur.politique.ticketsOuverts(), refusEntreeObservation(politique, { depuisMode })   // EX-15.8
+coeur.politique.demarrerBoucle({ wait_ms }), arreter()     // boucle decisions (EX-7.19)
+validerPolitiqueApprobation(doc, { environment, expire_after_ms }) → [{ code, pointer }]  // CT-3 EX-4.2, EX-8.2
+validerConfiguration(octets, { reglesSupplementaires: [controleRedaction, controlePolitiqueApprobation] })
+```
+
+- **Pas 3 de 4.4** : `evaluerAppel` appelle `coeur.evaluer` ; hors observation,
+  il rend la réponse validée, ou, pour une indisponibilité du service (pas de
+  réponse dans `policy.approval.timeout_ms`, erreur de CT-3 §12.8, réponse hors
+  d'EX-7.16), la réponse par défaut d'une lecture passante (`autorise`, `rule:
+  null`, `approval_default_applied`) si l'outil n'est ni une écriture ni
+  susceptible d'approbation et que `policy.failure.approval_service.lecture`
+  vaut `passant` ; sinon il lève `ErreurEnregistreur("approbation")`
+  (`-31010`). Le frontal MCP applique ensuite les pas 5 et 6 comme avant
+  (refus, retenue, signal, rétention).
+- **Intention** : le frontal remet à `evaluerAppel` l'intention corrélée telle
+  quelle (chaîne, référence de pièce ou `null`) ; le moteur forme le membre
+  `intent` d'EX-7.4 (`$defs/requete_evaluer` : chaîne d'au plus 4 096
+  caractères ou `null`) : le texte de la pièce pour une référence, `null`
+  au-delà de la borne (`intent_not_sent`). Les autres frontaux (SDK) passent
+  de même par le moteur.
+- **Mode observation** (EX-4.51, EX-7.23, EX-14.13 à EX-14.17) : la réponse
+  appliquée est `autorise`, sans ticket, `rule` marquée ` [observation <x>]`
+  (ou `evaluation impossible [observation inconnu]`) ; jamais d'exception pour
+  le service. Le frontal ne bloque plus pour une panne (stockage, clé, bail
+  quand l'instance a été active, horloge, attente), le budget de rédaction ni
+  un quota d'hôte : l'appel est relayé, l'événement mis en attente (ou perdu
+  au-delà des bornes, `event_lost`) ; une panne après relais rend la réponse
+  reçue, jamais `-31017`. Chaque blocage évité donne `observation_would_block`
+  (composant `politique`, `seq` de l'événement ou `null`) ; métriques
+  `noortrace_observation_mode`, `noortrace_observation_marks_total`,
+  `noortrace_observation_would_block_total`, `noortrace_events_lost_total`.
+  `-31010 bail_non_detenu`, `-32602` et les autres refus d'EX-14.17 restent.
+- **Boucle `decisions`** : démarrée par `Coeur.demarrer({ minuteurs: true })` ;
+  relance dès la réponse, délai `wait_ms + timeout_ms`, indisponibilité
+  consignée une fois (`approval_service_unavailable`, puis
+  `approval_service_available`), nouvel essai à délai croissant (200 ms à
+  5 s) ; une réponse vide rendue en moins de 100 ms est relancée après 100 ms.
+- **Tic** : `expirerTickets` hors mode dégradé (inchangé) ;
+  en mode dégradé, `approval_expired_deferred` une fois par ticket échu.
+
+Changements du cœur faits par ce lot (les plus petits qui complètent le
+contrat, avec leurs tests dans `test/enregistreur-politique-exigences.test.js`) :
+
+- `coeur.politique` (constructeur) ; `_armerMinuteurs` démarre la boucle du
+  moteur au lieu de la boucle en ligne, `arreter` l'arrête ;
+- `coeur.evaluer` borne l'attente du service à `policy.approval.timeout_ms`
+  (EX-7.4 : un service muet est une indisponibilité, quel que soit le canal),
+  valide avec `{ observation: true }` sous une version en mode observation
+  (EX-7.23) et n'y refait pas `evaluer` après `politique_inconnue` (le `charger`
+  part sans être attendu, EX-14.15) ;
+- `Coeur.demarrer` refuse (`ErreurEnregistreur("politique")`, code 2) d'entrer en
+  mode observation avec un ticket ouvert ; `recharger` le refuse
+  (`config_reload_rejected`, raison `tickets_ouverts`) et met à jour la jauge
+  du mode (EX-15.8) ;
+- `tic` vide la file d'attente quand « attente » est la seule raison du mode
+  dégradé (elle ne se levait jamais : la file n'était vidée qu'hors de tout mode
+  dégradé) et consigne les expirations différées ;
+- `tic` constate la sortie du mode dégradé « horloge » (`_sortirHorloge`,
+  EX-7.9, EX-7.13, EX-14.11) : elle n'était constatée qu'au scellement
+  suivant, qu'aucun appel bloqué ne pouvait produire.
+
+Changements du frontal MCP (`src/mcp/frontal.mjs`), pour brancher le moteur
+et la rétention : pas 3 par `coeur.politique.evaluerAppel`, intention remise
+telle quelle (le frontal envoyait `null` pour une référence) ; branches du mode
+observation ci-dessus ; une ré-émission `en_attente` que le mode `retenir`
+retient écrit ses pièces (arguments, contexte) avant d'être retenue, puisque
+son relais ou son `refusee` les cite ; l'annulation par l'hôte d'une requête
+retenue (`notifications/cancelled`) met fin à la rétention sans réponse
+(EX-4.50 : la première ré-émission reconnue qui suit est retenue) ; lignes
+`approval_held` et `approval_hold_cancelled`.
+
+`src/cli.mjs` ajoute `controlePolitiqueApprobation` aux règles du pas 3
+(démarrage, rechargement, `validate-config`).
 
 ## e) Rédaction (§10)
 

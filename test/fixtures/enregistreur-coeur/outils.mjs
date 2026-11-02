@@ -89,6 +89,11 @@ export function configurationDev(dir, o = {}) {
   // d'outils de l'exemple de 15.3 ne sont pas joignables depuis les tests.
   c.mcp.enabled = o.mcp === true;
   c.mcp.socket = path.join(dir, "prise", "mcp.sock");
+  // Frontal modèle (lot du frontal modèle) : désactivé sauf demande ; activé,
+  // la passerelle écoute sur un port libre choisi par le système et garde la
+  // connexion d'hôte de l'exemple de 15.3 (aucun test ne dépend de 8400).
+  c.model.mode = o.modele === true ? "passerelle" : "desactive";
+  if (o.modele === true) c.model.listen = "127.0.0.1:0";
   c.storage.root = path.join(dir, "stockage");
   c.storage.min_free_bytes = 1024;
   c.storage.seal = { append_only_attribute: false, worm: null };

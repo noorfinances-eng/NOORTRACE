@@ -59,6 +59,22 @@
         "sha256": "2f16963d350a51474b4d9c4c950e00d86d8595131f22504c99d8fefaa885dd25"
       },
       {
+        "file": "test/approbation-service-exigences.test.js",
+        "sha256": "fce364c59ac9140ad854104ca862ba3908268b3e93d69fcb5f72e07eb48a23ee"
+      },
+      {
+        "file": "test/approbation-service-hostile.test.js",
+        "sha256": "b46f3affb828e9124deaa8e39c571b9c53d2c26e18ff457c178fe2d55fed1c9c"
+      },
+      {
+        "file": "test/approbation-service-parcours.test.js",
+        "sha256": "5bfc9e604091f7e660e57719a4a7770dbf68538ef7372182c222a39301fcfc3f"
+      },
+      {
+        "file": "test/approbation-service-vecteurs.test.js",
+        "sha256": "7c7a127c2e97952eb815ad0ebcc946d7b89ac902961fd157c079c52e314cdc20"
+      },
+      {
         "file": "test/approbation.test.js",
         "sha256": "3502d1ee3606f91dc495d4bed0f2399f719adceb0158877640848148c7ca6597"
       },
@@ -112,7 +128,7 @@
       },
       {
         "file": "test/enregistreur-coeur-vecteurs.test.js",
-        "sha256": "1e2ea4150dd76049385cf02374d588ae09bc0153f9bb18e6c6cdb8cf0f1c6a5b"
+        "sha256": "0d4d253e65ead31e9819cd2be7b02fcb991a7f71331cb32f6647fe8307254fa1"
       },
       {
         "file": "test/enregistreur-mcp-exigences.test.js",
@@ -125,6 +141,46 @@
       {
         "file": "test/enregistreur-mcp-vecteurs.test.js",
         "sha256": "74e92f4d5cdb36fa94fc45b74de85cd766f353e8720a537f4065f48ece338920"
+      },
+      {
+        "file": "test/enregistreur-modele-exigences.test.js",
+        "sha256": "609a4c73a1aa66be730d65a7c8486c124c3f3bdd6492cbe118c8771bd6d5e6f0"
+      },
+      {
+        "file": "test/enregistreur-modele-hostiles.test.js",
+        "sha256": "6db732a120a8cab5dbee949b278a8ae106aa580d0e0f36d3e8a2e6d8f18d7caf"
+      },
+      {
+        "file": "test/enregistreur-modele-icap.test.js",
+        "sha256": "f29dae0534a660beccfea0acb5c6f44985b121b5638fffc888811356d7902d66"
+      },
+      {
+        "file": "test/enregistreur-modele-miroir.test.js",
+        "sha256": "b3466091fea57deda0732e555f2b2dce4ac590f10ee5fbc54d3b9113bc813abd"
+      },
+      {
+        "file": "test/enregistreur-modele-parcours.test.js",
+        "sha256": "dc03249e4e50e03350db29b774d8a335e3c2255834322c5d7df6dc8096c62939"
+      },
+      {
+        "file": "test/enregistreur-modele-securite.test.js",
+        "sha256": "794f6212b948f7d00bff6848b6ce8079278b6112d03e7d33d48e51c6e34c6dc0"
+      },
+      {
+        "file": "test/enregistreur-modele-vecteurs.test.js",
+        "sha256": "c6c7aeefa6e66409b40910204d8d3d79107625951f6189357b8634f87a712ac5"
+      },
+      {
+        "file": "test/enregistreur-politique-exigences.test.js",
+        "sha256": "174ad8b760304e6dce42069a74a2279430af26581be49029934ef8be94651bb9"
+      },
+      {
+        "file": "test/enregistreur-politique-parcours.test.js",
+        "sha256": "61792500d095ba27c8860fa17d27e33c35446b09dbcfa3c56748e8fd75b10c1e"
+      },
+      {
+        "file": "test/enregistreur-politique-vecteurs.test.js",
+        "sha256": "734d6ca9ef1484ad5fedcfab83c7772821ec9d21c4a638fa6d96b11e75d9fb63"
       },
       {
         "file": "test/enregistreur-r05.test.js",

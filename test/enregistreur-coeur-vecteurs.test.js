@@ -14,7 +14,15 @@
 //     « rédaction » (§10), détail dans enregistreur-redaction.test.js.
 //   - pieces-mcp/agregation : rejoués par l'agrégation du lot « frontal MCP »
 //     (§4.3) ; les transcriptions de pieces-mcp/appels sont rejouées de bout
-//     en bout par le frontal dans enregistreur-mcp-vecteurs.test.js.
+//     en bout par le frontal dans enregistreur-mcp-vecteurs.test.js ;
+//   - pieces-mcp/appels/approbation-* et journal-demo (seq 5 à 7) : rejoués
+//     de bout en bout par le moteur de politique (section d d'INTERFACES.md)
+//     dans enregistreur-politique-vecteurs.test.js ;
+//   - pieces-modele : formes consolidées rejouées ici par le réassemblage du
+//     lot « frontal modèle » (§5.4) ; chaque cas, et les échanges de seq 2, 4
+//     et 8 de journal-demo, rejoués de bout en bout par la passerelle
+//     (dérivation des pièces depuis la requête et la réponse, section b)
+//     dans enregistreur-modele-vecteurs.test.js.
 // Le dernier bloc est l'inventaire : il dit, fichier par fichier, ce qui est
 // rejoué et ce qui relève d'un lot suivant, et échoue si un fichier de
 // vecteur n'est ni consommé ni attribué.
@@ -29,7 +37,7 @@ import {
   analyserJsonIntegral, pieceJson, pieceTexte, pieceNonJson, pieceDefinitionOutil, pieceListeAnnoncee,
   pieceErreurJsonRpc, piecePolitique, empreintePolitique, partielPolitique, partielEchange, partielAppelOutil,
   partielDecision, repriseDeRetenue, evaluerEffets, Piece, PolitiqueCompilee, produirePiece, validerPolitiqueRedaction,
-  controlerMotif, premiereCorrespondance, agreger, paginer,
+  controlerMotif, premiereCorrespondance, agreger, paginer, consoliderFlux,
 } from "@noortrace/enregistreur";
 import { VECTEURS_CT2, graine, repertoireTemporaire, lireVecteur } from "./fixtures/enregistreur-coeur/outils.mjs";
 
@@ -333,13 +341,18 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
     }
   });
 
-  describe("pieces-modele (B.5) : part de §8", function () {
+  describe("pieces-modele (B.5) : part de §8 ; formes consolidées par le frontal modèle (§5.4)", function () {
     const dirs = fs.readdirSync(path.join(VECTEURS_CT2, "pieces-modele")).sort();
     for (const cas of dirs) {
       it(cas, function () {
         const R = `pieces-modele/${cas}`;
         for (const f of fs.readdirSync(path.join(VECTEURS_CT2, R))) if (f !== "attendu.json") lire(`${R}/${f}`);
         const a = json(`${R}/attendu.json`);
+        // Réassemblage du flux publié (EX-5.14 à EX-5.17, EX-5.34, EX-5.35) ; le reste
+        // de la dérivation est rejoué de bout en bout par enregistreur-modele-vecteurs.test.js.
+        if (fs.existsSync(path.join(VECTEURS_CT2, R, "reponse.sse")) && json(`${R}/reponse-entetes.json`).status < 400) {
+          expect(jcsIntegral(consoliderFlux(a.format, new Uint8Array(lire(`${R}/reponse.sse`))).forme)).to.equal(jcsIntegral(a.consolidated));
+        }
         if (!a.pieces) return;
         for (const p of Object.values(a.pieces)) if (p) egalRef(pieceDepuisPubliee(p), p);
         // code.prompt_version = SHA-256 de la pièce « prompt système » (EX-8.6).
@@ -420,6 +433,33 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
       if (fs.statSync(p).isFile()) return [rel];
       return fs.readdirSync(p).sort().flatMap((n) => lister(rel ? `${rel}/${n}` : n));
     }
+
+    // Vecteurs que la part de §8 rejoue ici et qu'un lot rejoue aussi de bout
+    // en bout (frontal, moteur de politique, cœur) : fichier de test du lot.
+    const REJOUES_DE_BOUT_EN_BOUT = {
+      "pieces-mcp/appels/approbation-en-attente": "enregistreur-politique-vecteurs.test.js",
+      "pieces-mcp/appels/approbation-refus": "enregistreur-politique-vecteurs.test.js",
+      "evenements/journal-demo": "enregistreur-politique-vecteurs.test.js",
+    };
+
+    it("les vecteurs du moteur de politique (section d) sont rejoués de bout en bout par son test", function () {
+      for (const [rel, test] of Object.entries(REJOUES_DE_BOUT_EN_BOUT)) {
+        expect(lister(rel).every((f) => consommes.has(f) || f.startsWith("evenements/journal-demo/dossier-seq-7/")), rel).to.equal(true);
+        const source = fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), test), "utf8");
+        expect(source, `${test} rejoue ${rel}`).to.contain(rel.startsWith("pieces-mcp/appels/") ? rel.slice("pieces-mcp/appels/".length) : rel);
+      }
+    });
+
+    // Frontal modèle (section b) : vecteurs rejoués de bout en bout par la passerelle.
+    const REJOUES_PAR_LE_FRONTAL_MODELE = { "pieces-modele": "enregistreur-modele-vecteurs.test.js", "evenements/journal-demo": "enregistreur-modele-vecteurs.test.js" };
+
+    it("les vecteurs du frontal modèle (section b) sont rejoués de bout en bout par son test", function () {
+      for (const [rel, test] of Object.entries(REJOUES_PAR_LE_FRONTAL_MODELE)) {
+        expect(lister(rel).every((f) => consommes.has(f) || f.startsWith("evenements/journal-demo/dossier-seq-7/")), rel).to.equal(true);
+        const source = fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), test), "utf8");
+        expect(source, `${test} rejoue ${rel}`).to.contain(`"${rel}`);
+      }
+    });
 
     it("chaque fichier de vecteur est rejoué ou attribué à un lot suivant", function () {
       const fichiers = fs.readdirSync(VECTEURS_CT2).filter((n) => !IGNORES.has(n)).sort().flatMap((n) => lister(n));

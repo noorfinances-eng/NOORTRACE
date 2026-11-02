@@ -39,4 +39,6 @@ export * from "./redaction-moteur.mjs";
 export * from "./redaction.mjs";
 export * from "./coffre.mjs";
 export * from "./mcp/index.mjs";
+export * from "./modele/index.mjs";
+export * from "./politique/index.mjs";
 export { principal } from "./cli.mjs";

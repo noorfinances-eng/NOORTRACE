@@ -398,7 +398,10 @@ export class FrontalMcp {
     }
     const appel = m.methode === "tools/call";
     const q = quotas.depasse(t_recu, { appel });
-    if (q) {
+    if (q && this.coeur.politique?.observation) {
+      // Mode observation (EX-14.16) : un quota d'hôte ne bloque pas ; consigné et compté.
+      this.coeur.politique.consignerBlocageEvite({ would: "quota", raison: "quota", host: session.hote.id, request_id: idBrut });
+    } else if (q) {
       this.journal.consigner("warning", "frontal_mcp", "call_blocked", { code: CODES.TAILLE, reason: "quota", ...q }, { host: session.hote.id, request_id: idBrut });
       this._compterBlocage(CODES.TAILLE, "quota", null);
       return reponseErreur(idBrut, CODES.TAILLE, q);
@@ -831,60 +834,78 @@ export class FrontalMcp {
     const intent = herite ? herite.intent : correlation?.intent ?? null;
     const code = herite ? herite.code : { model: correlation?.code?.model ?? null, prompt_version: correlation?.code?.prompt_version ?? null };
 
-    // Pas 3 : politique (EX-7.4), matrice de 14.2 pour le service.
+    // Pas 3 : politique (EX-7.4) par le moteur de politique (INTERFACES.md,
+    // section d) : matrice de 14.2 pour le service, mode observation (EX-4.51).
     let reponse;
+    const moteur = this.coeur.politique;
+    ctx.blocagesEvites = [];
     if (herite) {
       reponse = { rule: herite.policy.rule, decision: herite.policy.decision, ticket: null, ticket_state: null, approval: null, approver_set: null };
     } else {
       try {
-        reponse = await this.coeur.evaluer({
+        const issue = await moteur.evaluerAppel({
           tool_announced: nom,
           tool_original: ctx.original,
           server_alias: ctx.alias,
           arguments: ctx.argumentsClair,
           class: ctx.classe,
           delegation,
-          intent: typeof intent === "string" ? intent : null,
+          intent,  // chaîne, référence ou null : le moteur forme le membre d'EX-7.4
           code: { model: code.model, prompt_version: code.prompt_version, policy_version: this.coeur.versionPolitique, recorder: VERSION_ENREGISTREUR },
           context: contexte.map(REFERENCES_SANS_KIND),
-        });
+        }, { nom, classe: ctx.classe, alias: ctx.alias, host: session.hote.id, request_id: m.idBrut });
+        reponse = issue.reponse;
+        ctx.observation = issue.observation;
+        if (issue.observation?.bloquerait) ctx.blocagesEvites.push(issue.observation.bloquerait);
       } catch (e) {
         if (!(e instanceof ErreurEnregistreur)) throw e;
-        const lecturePassante = ctx.classe === "lecture" && !this.coeur.susceptible(nom) && this.config.policy.failure?.approval_service?.lecture === "passant";
-        if (!lecturePassante) throw this._bloque(ctx, "approbation");
-        this.journal.consigner("warning", "politique", "approval_default_applied", { server: ctx.alias, tool_announced: nom }, { host: session.hote.id, request_id: m.idBrut });
-        reponse = { rule: null, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null };
+        throw this._bloque(ctx, e.raison ?? "approbation");
       }
     }
     ctx.reponse = reponse;
-    const soumis = reponse.decision === "a_approuver" || reponse.ticket_state === "approuve" || (reponse.ticket !== null && reponse.ticket !== undefined);
-    const classeEffective = ctx.classe === "ecriture" || soumis ? "ecriture" : "lecture";
+    const classeEffective = moteur.classeEffective(reponse, ctx.classe);
     ctx.classeEffective = classeEffective;
     const relaieOuRetient = reponse.decision === "autorise" || reponse.ticket_state === "nouveau";
     const susceptible = ctx.classe === "ecriture" || this.coeur.susceptible(nom);
 
     // Pas 7 (anticipé) : le stockage décide entre écriture des pièces et attente (14.5).
     const panne = this._etatPanne(ctx.alias, ctx.original, classeEffective);
-    if (panne.bloque && (relaieOuRetient || reponse.decision === "refuse" || reponse.ticket_state === "en_attente")) {
+    let passantObservation = false;
+    if (panne.bloque && ctx.observation && panne.bloque !== "bail_non_detenu") {
+      // Mode observation (EX-14.16) : relayé, événement mis en attente.
+      ctx.blocagesEvites.push(panne.bloque);
+      passantObservation = true;
+    } else if (panne.bloque && (relaieOuRetient || reponse.decision === "refuse" || reponse.ticket_state === "en_attente")) {
       if (reponse.ticket_state !== "en_attente") throw this._bloque(ctx, panne.bloque);
     }
-    const passant = panne.passant === true && reponse.decision === "autorise" && reponse.ticket_state === null;
+    let passant = passantObservation || (panne.passant === true && reponse.decision === "autorise" && reponse.ticket_state === null);
 
     // Pas 4 : pièce « arguments » rédigée (EX-10.23 pour la borne de temps).
     const t0 = this.monotone();
     const pa = await this._redigerPiece(ctx.argumentsClair, "arguments", ctx);
     this.quotas.get(session.hote.id).tempsCapture(this.monotone(), this.monotone() - t0);
     // EX-10.23 opération 1 : arguments non rédigeables d'une écriture ou d'un outil susceptible.
-    if (pa.nonRedigeable === "budget_redaction" && susceptible && relaieOuRetient) throw this._bloque(ctx, "redaction");
+    if (pa.nonRedigeable === "budget_redaction" && susceptible && relaieOuRetient) {
+      // Mode observation (EX-14.16) : la pièce non rédigeable est relayée comme pour une lecture.
+      if (!ctx.observation) throw this._bloque(ctx, "redaction");
+      ctx.blocagesEvites.push("redaction");
+    }
     ctx.pieceArguments = pa.piece;
     ctx.argumentsRediges = pa.valeurRedigee;
     ctx.sourceNonRedigeable = pa.nonRedigeable !== null;
-    if (!passant && reponse.ticket_state !== "en_attente") {
+    // Pièces du pas 4 ; une ré-émission en attente n'en écrit pas, sauf celle
+    // que le mode `retenir` retient (EX-4.50) : sa retenue peut finir en relais
+    // ou en événement `refusee`, qui les citent.
+    const retenueEnAttente = reponse.ticket_state === "en_attente" && moteur.mode === "retenir" && !this.retentions.has(reponse.ticket);
+    if (!passant && (reponse.ticket_state !== "en_attente" || retenueEnAttente)) {
       try {
         await this._ecrirePieces(ctx, [pa.piece, ...contexte]);
       } catch (e) {
-        if (e instanceof ErreurEnregistreur) throw this._bloque(ctx, e.raison);
-        throw e;
+        if (!(e instanceof ErreurEnregistreur)) throw e;
+        if (!ctx.observation) throw this._bloque(ctx, e.raison);
+        // Mode observation (EX-14.16) : pièces gardées avec l'événement en attente.
+        ctx.blocagesEvites.push(e.raison);
+        passant = true;
       }
     }
     const capture = {
@@ -914,8 +935,8 @@ export class FrontalMcp {
       return this._signal(ctx, reponse.ticket, reponse.ticket_state);
     }
 
-    // Pas 6 : ticket nouveau ou en attente.
-    const mode = this.config.policy.approval?.mode ?? "erreur";
+    // Pas 6 : ticket nouveau ou en attente (jamais en mode observation : aucun ticket).
+    const mode = moteur.mode;
     if (reponse.ticket_state === "nouveau") {
       try {
         await this.coeur.scellerRetenue(capture, reponse, ctx.argumentsClair);
@@ -969,7 +990,17 @@ export class FrontalMcp {
         this.retentions.delete(ticket);
         resoudre(this._signal(ctx, ticket, "en_attente"));
       });
+      // Annulation par l'hôte (EX-4.23) : la requête retenue prend fin, sans
+      // réponse ; la première ré-émission reconnue qui suit pourra être retenue.
+      ctx.annulerAmont = () => {
+        if (this.retentions.get(ticket) !== r) return;
+        this.retentions.delete(ticket);
+        this.annulerMinuteur(r.minuteur);
+        this.journal.consigner("info", "politique", "approval_hold_cancelled", {}, { host: ctx.session.hote.id, request_id: ctx.m.idBrut });
+        resoudre(null);
+      };
       this.retentions.set(ticket, r);
+      this.journal.consigner("info", "politique", "approval_held", { hold_timeout_ms: this.config.policy.approval.hold_timeout_ms }, { host: ctx.session.hote.id, request_id: ctx.m.idBrut });
     });
   }
 
@@ -978,6 +1009,7 @@ export class FrontalMcp {
     if (!r) return;
     this.retentions.delete(ticket);
     this.annulerMinuteur(r.minuteur);
+    r.ctx.annulerAmont = null;
     const d = evenement.approval.decision;
     try {
       if (d === "approuve") {
@@ -1022,10 +1054,14 @@ export class FrontalMcp {
       try {
         relais = await this.coeur.preparerRelais(ctx.capture, { reponse, argumentsEnClair: ctx.argumentsClair, upstream_id: idAmont, timeout_ms });
       } catch (e) {
-        if (e instanceof ErreurEnregistreur || e instanceof ErreurConstruction) throw this._bloque(ctx, e.raison ?? "stockage");
-        throw e;
+        if (!(e instanceof ErreurEnregistreur || e instanceof ErreurConstruction)) throw e;
+        if (!ctx.observation) throw this._bloque(ctx, e.raison ?? "stockage");
+        // Mode observation (EX-4.51, EX-14.16) : une précondition du pas 7 qui échoue rend l'appel passant.
+        ctx.blocagesEvites.push(e.raison ?? "stockage");
+        o.passant = true;
+        relais = null;
       }
-      if (ctx.herite) relais.fixe = { policy: ctx.herite.policy, approval: ctx.herite.approval };
+      if (relais && ctx.herite) relais.fixe = { policy: ctx.herite.policy, approval: ctx.herite.approval };
     }
     // Pas 9 : envoi.
     const texteAmont = this._messageAmont(ctx, connexion, idAmont);
@@ -1119,12 +1155,20 @@ export class FrontalMcp {
         evenement = await this.coeur.terminerRelais(relais, { resultat, resultatRedige, argumentsRediges: ctx.argumentsRediges, duration_ms, is_error, sourceNonRedigeable });
       } catch (e) {
         if (!(e instanceof ErreurEnregistreur)) throw e;
-        this.journal.consigner("error", "frontal_mcp", "call_blocked", { code: CODES.NON_DURABLE, reason: e.raison }, { host: session.hote.id, request_id: m.idBrut });
-        this._compterBlocage(CODES.NON_DURABLE, e.raison, ctx.classe);
-        return reponseErreur(m.idBrut, CODES.NON_DURABLE, { intent_id: relais?.intention?.intent_id ?? null, reason: e.raison });
+        if (ctx.observation) {
+          // Mode observation (EX-14.16) : la réponse reçue est rendue, jamais -31017 ;
+          // l'événement est en attente (14.5), ou perdu au-delà des bornes.
+          if (e.code !== CODES.NON_DURABLE) this.coeur.politique.consignerPerte(e.raison ?? "attente", 1, { host: session.hote.id, request_id: m.idBrut });
+          ctx.blocagesEvites.push(e.raison ?? "stockage");
+          evenement = null;
+        } else {
+          this.journal.consigner("error", "frontal_mcp", "call_blocked", { code: CODES.NON_DURABLE, reason: e.raison }, { host: session.hote.id, request_id: m.idBrut });
+          this._compterBlocage(CODES.NON_DURABLE, e.raison, ctx.classe);
+          return reponseErreur(m.idBrut, CODES.NON_DURABLE, { intent_id: relais?.intention?.intent_id ?? null, reason: e.raison });
+        }
       }
       // Continuation MRTR (EX-4.21) d'un appel sans ticket.
-      const rsNoeud = issue.issue === "reponse" ? membre(membre(issue.noeud, "result"), "requestState") : null;
+      const rsNoeud = issue.issue === "reponse" && evenement ? membre(membre(issue.noeud, "result"), "requestState") : null;
       if (rsNoeud && evenement.policy.ticket === null) {
         const sha = sha256Hex(utf8(compacter(issue.texte, rsNoeud)));
         this.continuations.set(sha, {
@@ -1162,6 +1206,16 @@ export class FrontalMcp {
     );
     const ajoute = Math.max(0, this.monotone() - m.t_recu - duration_ms);
     this.metriques.observer("noortrace_relay_latency_ms", { path: "mcp", class: ctx.classe }, ajoute);
+    // Mode observation (EX-14.14, EX-17.8) : marque comptée ; chaque blocage
+    // qu'un mode bloquant aurait opposé est consigné, avec le seq de
+    // l'événement (null s'il est en attente).
+    if (ctx.observation) {
+      const moteur = this.coeur.politique;
+      moteur.compterMarque(ctx.observation.would);
+      for (const raison of [...new Set(ctx.blocagesEvites ?? [])]) {
+        moteur.consignerBlocageEvite({ would: ctx.observation.would, raison, alias: ctx.alias, nom: ctx.nom, classe: ctx.classe, seq: evenement?.seq ?? null, host: session.hote.id, request_id: m.idBrut });
+      }
+    }
     // Pas 14 : réponse à l'hôte.
     if (annulationHote) return null;
     if (objetErreurHote !== null) return reponseErreurTexte(m.idBrut, objetErreurHote);
@@ -1198,11 +1252,13 @@ export class FrontalMcp {
       effects: effets,
     });
     try {
-      const id = this.coeur.mettreEnAttente(partiel, [ctx.pieceArguments, ...ctx.piecesContexte, r.resultat], { captured_at: this.murale() });
+      const captured_at = this.coeur.politique?.instantCapture() ?? this.murale();
+      const id = this.coeur.mettreEnAttente(partiel, [ctx.pieceArguments, ...ctx.piecesContexte, r.resultat], { captured_at });
       this.journal.consigner("warning", "frontal_mcp", "call_passthrough_pending", { pending_id: id, server: ctx.alias }, { host: ctx.session.hote.id, request_id: ctx.m.idBrut });
     } catch (e) {
       if (!(e instanceof ErreurEnregistreur)) throw e;
-      this.journal.consigner("error", "frontal_mcp", "event_lost", { reason: e.raison }, { host: ctx.session.hote.id, request_id: ctx.m.idBrut });
+      if (ctx.observation) this.coeur.politique.consignerPerte(e.raison ?? "attente", 1, { host: ctx.session.hote.id, request_id: ctx.m.idBrut });
+      else this.journal.consigner("error", "frontal_mcp", "event_lost", { reason: e.raison }, { host: ctx.session.hote.id, request_id: ctx.m.idBrut });
     }
   }
 

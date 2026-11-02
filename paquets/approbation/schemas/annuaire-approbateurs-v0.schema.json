@@ -1,0 +1,1737 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/annuaire-approbateurs.schema.json",
+  "title": "Annuaire des approbateurs v0 (CT-3 révision 0.3, section 13)",
+  "description": "Document tenu par le service d'approbation pour une organisation : il lie chaque personne nommée par le système d'identité du client (identité de session) aux adresses dont elle a prouvé la possession par un message d'inscription signé, validées par un administrateur. Déclaratif : il ne remplace jamais le jeu figé d'un ticket (CT-3 section 8). Les $defs fichier_* et trace_annuaire décrivent les vecteurs spec/vecteurs/ct-3/annuaire (annexe A).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "org",
+    "org_id",
+    "console_origin",
+    "registration_ttl_ms",
+    "administrators",
+    "revision",
+    "updated_at",
+    "entries",
+    "operations"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "org": {
+      "$ref": "#/$defs/organisation"
+    },
+    "org_id": {
+      "$ref": "#/$defs/hex32"
+    },
+    "console_origin": {
+      "$ref": "#/$defs/origine"
+    },
+    "registration_ttl_ms": {
+      "description": "Durée de validité d'un message d'inscription, de Emis le à Expire le (CT-3 table 10.3) : de 60 000 à 3 600 000, défaut 600 000.",
+      "type": "integer",
+      "minimum": 60000,
+      "maximum": 3600000
+    },
+    "administrators": {
+      "description": "Identités de session qui peuvent valider, révoquer, désactiver, réactiver et lier un demandeur : copie du réglage administrators de la configuration du service (CT-3 table 10.3, EX-7.15) ; chaque changement du réglage est recopié par une opération changer_administrateurs (EX-13.37).",
+      "$ref": "#/$defs/liste_administrateurs"
+    },
+    "revision": {
+      "description": "Nombre d'opérations acceptées : égal à la longueur de operations.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "updated_at": {
+      "description": "Instant de la dernière opération acceptée, null pour un annuaire vide.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/horodatage"
+        }
+      ]
+    },
+    "entries": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/entree"
+      }
+    },
+    "operations": {
+      "description": "Opérations acceptées, en ajout seul, dans l'ordre de seq ; leur rejeu depuis un annuaire vide redonne entries (vérification AN-9).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/operation"
+      }
+    }
+  },
+  "$defs": {
+    "hex32": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/hex32"
+    },
+    "adresse": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/adresse"
+    },
+    "horodatage": {
+      "$ref": "https://noortrace.example/schemas/v0/evenement.schema.json#/$defs/horodatage"
+    },
+    "signature": {
+      "description": "Signature EIP-191 de 65 octets r || s || v, forme normalisée d'EX-9.3 (v ∈ {27, 28}, s bas).",
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{130}$"
+    },
+    "signature_brute": {
+      "description": "Signature telle que le portefeuille la rend, avant normalisation (comme ticket-v0 $defs/signature_brute).",
+      "type": "string",
+      "pattern": "^0x([0-9a-f]{2})*$",
+      "maxLength": 1024
+    },
+    "organisation": {
+      "description": "Nom court de l'organisation, celui dont org_id est le keccak256 (CT-1 §3, §13).",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "origine": {
+      "description": "Origine HTTPS de la console : schéma https, hôte en minuscules, port facultatif, sans chemin, sans barre finale (CT-3 EX-13.14).",
+      "type": "string",
+      "maxLength": 270,
+      "pattern": "^https://[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?(:[1-9][0-9]{0,4})?$"
+    },
+    "identite_session": {
+      "description": "Forme canonique d'une identité de session (CT-3 EX-13.7) : « oidc <iss> <sub> » (émetteur https sans « ? » ni « # », sujet de 1 à 255 caractères ASCII imprimables sans espace) ou « utilisateur <domaine> <nom> » ; trois jetons séparés par une espace ; au plus 256 caractères en tout ; comparée octet pour octet.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(oidc https://[!-\"$->@-~]+ [!-~]{1,255}|utilisateur [!-~]{1,128} [!-~]{1,255})$"
+    },
+    "identifiant_entree": {
+      "description": "Identifiant d'une entrée, attribué par le service à sa création, jamais réattribué (CT-3 EX-13.9).",
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 128,
+      "pattern": "^apb-[0-9a-z]+(-[0-9a-z]+)*$"
+    },
+    "nonce": {
+      "description": "128 bits tirés par le service, en 32 chiffres hexadécimaux minuscules, à usage unique (CT-3 EX-13.13).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "message_inscription": {
+      "description": "Texte exact du message d'inscription (CT-3 EX-13.12) : ASCII imprimable et LF, première ligne noortrace/inscription/v0, sans LF final. La forme exacte est vérifiée par analyse, pas par ce motif.",
+      "type": "string",
+      "minLength": 26,
+      "maxLength": 2048,
+      "pattern": "^noortrace/inscription/v0\n[ -~\n]*$"
+    },
+    "launched_by": {
+      "description": "Une valeur de delegation.launched_by (CT-1 §5.3) qui désigne la même personne que l'entrée.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "texte_motif": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      ]
+    },
+    "preuve": {
+      "description": "Preuve de possession : le message d'inscription, sa signature normalisée par l'adresse, et les champs que le service a contrôlés (CT-3 EX-13.15).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message",
+        "signature",
+        "nonce",
+        "issued_at",
+        "expires_at",
+        "received_at"
+      ],
+      "properties": {
+        "message": {
+          "$ref": "#/$defs/message_inscription"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "received_at": {
+          "$ref": "#/$defs/horodatage"
+        }
+      }
+    },
+    "etat_adresse": {
+      "enum": [
+        "en_attente",
+        "active",
+        "revoquee"
+      ]
+    },
+    "cause_revocation": {
+      "description": "personne : révoquée par la personne de l'entrée ; administrateur : par un administrateur (y compris le refus d'une adresse en attente) ; remplacee : par la validation d'une autre adresse de la même entrée (une personne, une clé) ; desactivation : par la désactivation de l'entrée.",
+      "enum": [
+        "personne",
+        "administrateur",
+        "remplacee",
+        "desactivation"
+      ]
+    },
+    "adresse_entree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "address",
+        "state",
+        "proof",
+        "validated_at",
+        "validated_by",
+        "revoked_at",
+        "revoked_by",
+        "revocation_cause",
+        "revocation_reason",
+        "replaced_by"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/$defs/adresse"
+        },
+        "state": {
+          "$ref": "#/$defs/etat_adresse"
+        },
+        "proof": {
+          "$ref": "#/$defs/preuve"
+        },
+        "validated_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "validated_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identite_session"
+            }
+          ]
+        },
+        "revoked_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/horodatage"
+            }
+          ]
+        },
+        "revoked_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identite_session"
+            }
+          ]
+        },
+        "revocation_cause": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/cause_revocation"
+            }
+          ]
+        },
+        "revocation_reason": {
+          "$ref": "#/$defs/texte_motif"
+        },
+        "replaced_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/adresse"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "en_attente"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "validated_at": {
+                "type": "null"
+              },
+              "validated_by": {
+                "type": "null"
+              },
+              "revoked_at": {
+                "type": "null"
+              },
+              "revoked_by": {
+                "type": "null"
+              },
+              "revocation_cause": {
+                "type": "null"
+              },
+              "revocation_reason": {
+                "type": "null"
+              },
+              "replaced_by": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "active"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "validated_at": {
+                "$ref": "#/$defs/horodatage"
+              },
+              "validated_by": {
+                "$ref": "#/$defs/identite_session"
+              },
+              "revoked_at": {
+                "type": "null"
+              },
+              "revoked_by": {
+                "type": "null"
+              },
+              "revocation_cause": {
+                "type": "null"
+              },
+              "revocation_reason": {
+                "type": "null"
+              },
+              "replaced_by": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "revoquee"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "revoked_at": {
+                "$ref": "#/$defs/horodatage"
+              },
+              "revoked_by": {
+                "$ref": "#/$defs/identite_session"
+              },
+              "revocation_cause": {
+                "$ref": "#/$defs/cause_revocation"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "revocation_cause": {
+                "const": "remplacee"
+              }
+            },
+            "required": [
+              "revocation_cause"
+            ]
+          },
+          "then": {
+            "properties": {
+              "replaced_by": {
+                "$ref": "#/$defs/adresse"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "replaced_by": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "entree": {
+      "description": "Une personne nommée : son identité de session, ses alias de demandeur et toutes les adresses qu'elle a inscrites, y compris révoquées (CT-3 EX-13.9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "session_identity",
+        "external_id",
+        "display_name",
+        "active",
+        "requester_identities",
+        "created_at",
+        "addresses"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "session_identity": {
+          "$ref": "#/$defs/identite_session"
+        },
+        "external_id": {
+          "description": "Identifiant de la personne dans l'annuaire du client, s'il en a un (au sens de externalId de SCIM, R5-F28) ; null sinon.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          ]
+        },
+        "display_name": {
+          "description": "Nom affiché, donnée interne : jamais un identifiant, jamais dans un dossier ni un rapport (CT-3 EX-13.11).",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "requester_identities": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/launched_by"
+          }
+        },
+        "created_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "addresses": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/adresse_entree"
+          }
+        }
+      }
+    },
+    "type_operation": {
+      "description": "Opérations de l'annuaire : les méthodes d'EX-13.15 et d'EX-13.17, et changer_administrateurs, recopie d'un nouveau réglage administrators de la configuration du service (EX-13.37).",
+      "enum": [
+        "inscrire",
+        "valider",
+        "revoquer",
+        "desactiver",
+        "reactiver",
+        "lier_demandeur",
+        "delier_demandeur",
+        "changer_administrateurs"
+      ]
+    },
+    "operation": {
+      "description": "Opération acceptée (CT-3 EX-13.17, EX-13.37) : by est l'identité de session qui l'a faite, ou « configuration » pour changer_administrateurs ; entry est l'entrée visée, nulle pour changer_administrateurs ; address pour inscrire, valider et revoquer ; launched_by pour lier_demandeur et delier_demandeur ; reason pour revoquer, desactiver et reactiver ; administrators, pour changer_administrateurs seulement, la liste avant (before) et après (after) la recopie du réglage, null pour toute autre opération.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seq",
+        "at",
+        "op",
+        "by",
+        "entry",
+        "address",
+        "launched_by",
+        "reason",
+        "administrators"
+      ],
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "op": {
+          "$ref": "#/$defs/type_operation"
+        },
+        "by": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/identite_session"
+            },
+            {
+              "const": "configuration"
+            }
+          ]
+        },
+        "entry": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifiant_entree"
+            }
+          ]
+        },
+        "address": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/adresse"
+            }
+          ]
+        },
+        "launched_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/launched_by"
+            }
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/texte_motif"
+        },
+        "administrators": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "before",
+                "after"
+              ],
+              "properties": {
+                "before": {
+                  "$ref": "#/$defs/liste_administrateurs"
+                },
+                "after": {
+                  "$ref": "#/$defs/liste_administrateurs"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "enum": [
+                  "inscrire",
+                  "valider",
+                  "revoquer"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "address": {
+                "$ref": "#/$defs/adresse"
+              },
+              "launched_by": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "enum": [
+                  "lier_demandeur",
+                  "delier_demandeur"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "address": {
+                "type": "null"
+              },
+              "launched_by": {
+                "$ref": "#/$defs/launched_by"
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "enum": [
+                  "desactiver",
+                  "reactiver"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "address": {
+                "type": "null"
+              },
+              "launched_by": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "enum": [
+                  "inscrire",
+                  "valider"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "changer_administrateurs"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "by": {
+                "const": "configuration"
+              },
+              "entry": {
+                "type": "null"
+              },
+              "address": {
+                "type": "null"
+              },
+              "launched_by": {
+                "type": "null"
+              },
+              "reason": {
+                "type": "null"
+              },
+              "administrators": {
+                "type": "object"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "by": {
+                "$ref": "#/$defs/identite_session"
+              },
+              "entry": {
+                "$ref": "#/$defs/identifiant_entree"
+              },
+              "administrators": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "champs_inscription": {
+      "description": "Champs du message d'inscription, dans l'ordre de ses lignes (CT-3 EX-13.12).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "org",
+        "org_id",
+        "identity",
+        "address",
+        "issued_at",
+        "expires_at",
+        "nonce"
+      ],
+      "properties": {
+        "origin": {
+          "$ref": "#/$defs/origine"
+        },
+        "org": {
+          "$ref": "#/$defs/organisation"
+        },
+        "org_id": {
+          "$ref": "#/$defs/hex32"
+        },
+        "identity": {
+          "$ref": "#/$defs/identite_session"
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/horodatage"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        }
+      }
+    },
+    "defi": {
+      "description": "Défi d'inscription tiré par le service (réponse de preparer_inscription, CT-3 12.9) : champs et état d'usage.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fields",
+        "used"
+      ],
+      "properties": {
+        "fields": {
+          "$ref": "#/$defs/champs_inscription"
+        },
+        "used": {
+          "type": "boolean"
+        }
+      }
+    },
+    "code_erreur_annuaire": {
+      "description": "Raisons de refus des méthodes de l'annuaire (CT-3 12.8, révision 0.3), et des contrôles de la console avant un vote ou une récusation (EX-13.18) ; identite_inconnue, identite_desactivee, adresse_non_attribuee, session_du_demandeur, jeu_non_fige et hors_jeu ont le sens de $defs/code_console de console-approbation-v0. session_non_autorisee est le refus, par le service, d'une méthode du canal de la console dont l'identité de session n'a pas accès au ticket ou n'est pas celle de l'adresse ou du demandeur (EX-12.14, EX-12.16, EX-12.19).",
+      "enum": [
+        "requete_invalide",
+        "identite_invalide",
+        "non_administrateur",
+        "entree_inconnue",
+        "adresse_inconnue",
+        "message_invalide",
+        "nonce_inconnu",
+        "nonce_deja_utilise",
+        "inscription_expiree",
+        "origine_differente",
+        "organisation_differente",
+        "identite_differente",
+        "adresse_differente",
+        "signature_invalide",
+        "identite_desactivee",
+        "adresse_deja_attribuee",
+        "etat_incompatible",
+        "auto_validation",
+        "revocation_non_autorisee",
+        "demandeur_deja_lie",
+        "demandeur_inconnu",
+        "identite_inconnue",
+        "adresse_non_attribuee",
+        "session_du_demandeur",
+        "hors_jeu",
+        "jeu_non_fige",
+        "session_non_autorisee"
+      ]
+    },
+    "resume_entree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "active",
+        "requester_identities",
+        "addresses"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifiant_entree"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "requester_identities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/launched_by"
+          }
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "address",
+              "state"
+            ],
+            "properties": {
+              "address": {
+                "$ref": "#/$defs/adresse"
+              },
+              "state": {
+                "$ref": "#/$defs/etat_adresse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "verifications": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^AN-[1-9][0-9]?$"
+      }
+    },
+    "fichier_messages": {
+      "description": "Vecteurs annuaire/messages.json : champs → texte exact, octets passés à personal_sign, condensé EIP-191, longueur de la préimage (AN-2) ; et les mauvais textes que l'analyse refuse.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "fields",
+              "message",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "$ref": "#/$defs/verifications"
+              },
+              "fields": {
+                "description": "Champs du message construit ; null pour un cas d'analyse d'un texte donné.",
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/champs_inscription"
+                  }
+                ]
+              },
+              "message": {
+                "description": "Texte attendu pour fields, ou texte à analyser quand fields est null.",
+                "type": "string",
+                "maxLength": 4096
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "valid",
+                  "length",
+                  "personal_sign_data",
+                  "eip191_digest",
+                  "preimage_length",
+                  "fields"
+                ],
+                "properties": {
+                  "valid": {
+                    "type": "boolean"
+                  },
+                  "length": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "personal_sign_data": {
+                    "description": "Premier paramètre de personal_sign : 0x suivi des octets UTF-8 du texte en hexadécimal minuscule.",
+                    "type": "string",
+                    "pattern": "^0x([0-9a-f]{2})*$"
+                  },
+                  "eip191_digest": {
+                    "$ref": "#/$defs/hex32"
+                  },
+                  "preimage_length": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "fields": {
+                    "description": "Champs relus par l'analyse ; null si le texte est refusé (message_invalide).",
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/champs_inscription"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "requete_inscrire": {
+      "description": "Corps de la méthode inscrire (CT-3 12.9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_identity",
+        "address",
+        "message",
+        "signature"
+      ],
+      "properties": {
+        "session_identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "address": {
+          "$ref": "#/$defs/adresse"
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "signature": {
+          "$ref": "#/$defs/signature_brute"
+        }
+      }
+    },
+    "fichier_inscriptions": {
+      "description": "Vecteurs annuaire/inscriptions.json : vérification d'une inscription par le service, dans l'ordre d'EX-13.15 (AN-3 à AN-5, AN-7).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "annuaire",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "annuaire": {
+          "description": "Chemin, relatif à annuaire/, de l'annuaire sur lequel chaque cas est vérifié.",
+          "type": "string",
+          "pattern": "^[a-z0-9/-]+\\.json$"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "challenges",
+              "received_at",
+              "request",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "$ref": "#/$defs/verifications"
+              },
+              "challenges": {
+                "description": "Défis connus du service avant la requête.",
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/defi"
+                }
+              },
+              "received_at": {
+                "$ref": "#/$defs/horodatage"
+              },
+              "request": {
+                "$ref": "#/$defs/requete_inscrire"
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "accepted",
+                  "reason",
+                  "entry",
+                  "signature"
+                ],
+                "properties": {
+                  "accepted": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/code_erreur_annuaire"
+                      }
+                    ]
+                  },
+                  "entry": {
+                    "description": "Entrée qui reçoit l'adresse (existante ou créée), null si refusée.",
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/identifiant_entree"
+                      }
+                    ]
+                  },
+                  "signature": {
+                    "description": "Signature normalisée gardée dans la preuve, null si refusée.",
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/signature"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "trace_annuaire": {
+      "description": "Vecteurs annuaire/traces/<nom>.json : suite d'opérations sur un annuaire, chacune avec son sort et l'état résumé après elle (AN-6, AN-7).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "id",
+        "description",
+        "checks",
+        "initial",
+        "steps"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "$ref": "#/$defs/verifications"
+        },
+        "initial": {
+          "description": "Chemin, relatif à annuaire/, de l'annuaire de départ.",
+          "type": "string",
+          "pattern": "^[a-z0-9/-]+\\.json$"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "method",
+              "at",
+              "request",
+              "challenges",
+              "expected"
+            ],
+            "properties": {
+              "method": {
+                "enum": [
+                  "preparer_inscription",
+                  "inscrire",
+                  "valider",
+                  "revoquer",
+                  "desactiver",
+                  "reactiver",
+                  "lier_demandeur",
+                  "delier_demandeur"
+                ]
+              },
+              "at": {
+                "$ref": "#/$defs/horodatage"
+              },
+              "request": {
+                "type": "object"
+              },
+              "challenges": {
+                "description": "Pour preparer_inscription : le nonce que le service tire à ce pas (les vecteurs le fixent) ; [] sinon.",
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/nonce"
+                }
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "accepted",
+                  "reason",
+                  "response",
+                  "revision",
+                  "entries"
+                ],
+                "properties": {
+                  "accepted": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/code_erreur_annuaire"
+                      }
+                    ]
+                  },
+                  "response": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "entries": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/resume_entree"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fichier_controles_vote": {
+      "description": "Vecteurs annuaire/controles-vote.json : contrôles de la console avant de demander une signature de vote ou d'envoyer une récusation, première raison dans l'ordre d'EX-13.18 : jeu_non_fige, identite_inconnue, identite_desactivee, adresse_non_attribuee, hors_jeu, session_du_demandeur (AN-8).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "annuaire",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "annuaire": {
+          "type": "string",
+          "pattern": "^[a-z0-9/-]+\\.json$"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "session_identity",
+              "action",
+              "address",
+              "ticket",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "$ref": "#/$defs/verifications"
+              },
+              "session_identity": {
+                "$ref": "#/$defs/identite_session"
+              },
+              "action": {
+                "enum": [
+                  "voter",
+                  "recuser"
+                ]
+              },
+              "address": {
+                "$ref": "#/$defs/adresse"
+              },
+              "ticket": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "launched_by",
+                  "self_approval",
+                  "policy_requester_addresses",
+                  "directory_requester_addresses",
+                  "members"
+                ],
+                "properties": {
+                  "launched_by": {
+                    "$ref": "#/$defs/launched_by"
+                  },
+                  "self_approval": {
+                    "enum": [
+                      "interdite",
+                      "permise"
+                    ]
+                  },
+                  "policy_requester_addresses": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/adresse"
+                    }
+                  },
+                  "directory_requester_addresses": {
+                    "description": "separation.requester_directory_addresses de la vue du ticket (EX-12.15).",
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/adresse"
+                    }
+                  },
+                  "members": {
+                    "description": "Membres du jeu figé du ticket, null si le jeu n'est pas figé.",
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/$defs/adresse"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "allowed",
+                  "reason",
+                  "warnings"
+                ],
+                "properties": {
+                  "allowed": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/code_erreur_annuaire"
+                      }
+                    ]
+                  },
+                  "warnings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "code",
+                        "addresses"
+                      ],
+                      "properties": {
+                        "code": {
+                          "enum": [
+                            "separation_incomplete"
+                          ]
+                        },
+                        "addresses": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "$ref": "#/$defs/adresse"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fichier_controles_canal": {
+      "description": "Vecteurs annuaire/controles-canal.json : contrôle de l'identité de session par le service sur le canal de la console (AN-10 ; EX-12.13, EX-12.14, EX-12.16, EX-12.19), fait avant que l'entrée de 7.4 ne soit formée. La raison attendue est null si la méthode passe ce contrôle, sinon identite_invalide (identité hors de la forme canonique), session_non_autorisee ou ticket_inconnu, dans l'ordre d'EX-12.14 pour tickets et consulter et d'EX-12.19 pour les autres méthodes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "annuaire",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "annuaire": {
+          "description": "Chemin, relatif à annuaire/, de l'annuaire du service.",
+          "type": "string",
+          "pattern": "^[a-z0-9/-]+\\.json$"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "method",
+              "request",
+              "ticket",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "$ref": "#/$defs/verifications"
+              },
+              "method": {
+                "enum": [
+                  "tickets",
+                  "consulter",
+                  "voter",
+                  "recuser",
+                  "retirer"
+                ]
+              },
+              "request": {
+                "description": "Corps de la méthode : requete_consulter ou requete_voter de console-approbation-v0, requete_tickets, requete_recuser ou requete_retirer de console-service-v0.",
+                "type": "object"
+              },
+              "ticket": {
+                "description": "Ce que le service sait du ticket pour ce contrôle ; null pour un ticket inconnu dans l'organisation, et toujours pour tickets.",
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "launched_by",
+                      "eligible"
+                    ],
+                    "properties": {
+                      "launched_by": {
+                        "$ref": "#/$defs/launched_by"
+                      },
+                      "eligible": {
+                        "description": "Membres éligibles du jeu figé (10.1), ou, avant le gel, membres du jeu de repli (EX-12.14).",
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/$defs/adresse"
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "enum": [
+                          "identite_invalide",
+                          "session_non_autorisee",
+                          "ticket_inconnu"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "method": {
+                      "const": "tickets"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "ticket": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "code_erreur_export": {
+      "description": "Écarts qu'un réviseur constate sur un annuaire exporté (EX-13.19, AN-9).",
+      "enum": [
+        "schema",
+        "revision_incoherente",
+        "operations_incoherentes",
+        "identifiant_double",
+        "identite_double",
+        "adresse_double",
+        "deux_adresses_actives",
+        "preuve_invalide",
+        "preuve_discordante",
+        "auto_validation"
+      ]
+    },
+    "attendu_exports": {
+      "description": "Vecteurs annuaire/exports/attendu.json : sort de la vérification hors ligne de chaque annuaire exporté (AN-9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file",
+              "description",
+              "checks",
+              "errors"
+            ],
+            "properties": {
+              "file": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]+\\.json$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "$ref": "#/$defs/verifications"
+              },
+              "errors": {
+                "description": "Liste complète, triée par pointer puis par code (comme A.4) ; [] pour un annuaire sans écart ; exactement [ { schema, null } ] pour un document non conforme au schéma.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "code",
+                    "pointer"
+                  ],
+                  "properties": {
+                    "code": {
+                      "$ref": "#/$defs/code_erreur_export"
+                    },
+                    "pointer": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "fichier_domaines": {
+      "description": "Vecteurs annuaire/domaines.json : une signature d'inscription présentée comme vote, et une signature de vote présentée comme inscription, ne recouvrent pas l'adresse annoncée (EX-13.16, AN-5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "cases"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "checks",
+              "kind",
+              "A",
+              "message",
+              "signature",
+              "claimed_address",
+              "expected"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "checks": {
+                "$ref": "#/$defs/verifications"
+              },
+              "kind": {
+                "enum": [
+                  "inscription_comme_vote",
+                  "vote_comme_inscription"
+                ]
+              },
+              "A": {
+                "description": "Objet A de CT-1 §6.3 sur lequel le vote est vérifié (inscription_comme_vote), null sinon.",
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "decision",
+                      "journal_id",
+                      "org_id",
+                      "request_hash",
+                      "ticket"
+                    ],
+                    "properties": {
+                      "decision": {
+                        "enum": [
+                          "approuve",
+                          "refuse"
+                        ]
+                      },
+                      "journal_id": {
+                        "$ref": "#/$defs/hex32"
+                      },
+                      "org_id": {
+                        "$ref": "#/$defs/hex32"
+                      },
+                      "request_hash": {
+                        "$ref": "#/$defs/hex32"
+                      },
+                      "ticket": {
+                        "$ref": "https://noortrace.example/schemas/v0/ticket.schema.json#/$defs/identifiant_ticket"
+                      }
+                    }
+                  }
+                ]
+              },
+              "message": {
+                "description": "Texte d'inscription sur lequel la signature est vérifiée (vote_comme_inscription), null sinon.",
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/message_inscription"
+                  }
+                ]
+              },
+              "signature": {
+                "$ref": "#/$defs/signature"
+              },
+              "claimed_address": {
+                "$ref": "#/$defs/adresse"
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "recovered",
+                  "reason"
+                ],
+                "properties": {
+                  "recovered": {
+                    "$ref": "#/$defs/adresse"
+                  },
+                  "reason": {
+                    "const": "signature_invalide"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "liste_administrateurs": {
+      "description": "Liste des identités de session des administrateurs, telle que le réglage administrators la donne (EX-13.9, EX-13.37).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identite_session"
+      }
+    }
+  }
+}

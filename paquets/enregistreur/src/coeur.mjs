@@ -32,6 +32,7 @@ import { decisionPolitique, echeanceExpiration } from "./lui-meme.mjs";
 import { exporterDossier } from "./dossier.mjs";
 import { jcsIntegralOctets, analyserJsonIntegral } from "./jcs-integral.mjs";
 import { validerConfiguration, resoudreSecrets, differencesHorsPolitique } from "./configuration.mjs";
+import { MoteurPolitique } from "./politique/moteur.mjs";
 
 /** Version du logiciel (`code.recorder`, `serverInfo`). */
 export const VERSION_ENREGISTREUR = "0.1.0";
@@ -102,6 +103,9 @@ export class Coeur {
     this.bailDetenu = false;
     this.pret = false;
     this.politiquesParVersion = new Map();
+    // Moteur de politique (INTERFACES.md, section d) : matrice de 14.2 pour le
+    // service, modes d'attente et observation, boucle `decisions`.
+    this.politique = new MoteurPolitique(this);
     // Rédaction (INTERFACES.md, section e) : journal d'exploitation et métriques du cœur.
     o.redaction?.lier?.(this);
   }
@@ -212,6 +216,9 @@ export class Coeur {
     await this._reprendreIntentions(etat);
     // EX-9.8 (3) : événements en attente d'un arrêt précédent.
     await this._reprendreAttente(epoque);
+    // EX-15.8 : pas d'entrée en mode observation avec un ticket ouvert.
+    const refusObservation = this.politique.refusEntreeObservation(cfg.policy);
+    if (refusObservation) throw new ErreurEnregistreur("politique", `${refusObservation} (EX-15.8)`, { code: 2 });
     // EX-9.8 (4) : événement de politique.
     await this._annoncerPolitique(cfg.policy);
 
@@ -267,18 +274,8 @@ export class Coeur {
       this.minuteurs[0] = t;
     };
     planifier();
-    if (this.service) {
-      const boucle = async () => {
-        while (!this.arrete) {
-          try {
-            await this.traiterRemises({ wait_ms: 25000 });
-          } catch {
-            await new Promise((r) => setTimeout(r, 1000));
-          }
-        }
-      };
-      boucle();
-    }
+    // Boucle `decisions` (EX-7.19) : moteur de politique.
+    this.politique.demarrerBoucle();
   }
 
   /**
@@ -377,8 +374,12 @@ export class Coeur {
     const diff = differencesHorsPolitique(this.config, v.config);
     if (diff.length) return refus("redemarrage_requis", { pointeurs: diff });
     if (v.config.policy.version === this.config.policy.version) return refus("version_inchangee");
+    // EX-15.8 : entrée en mode observation refusée tant qu'un ticket est ouvert.
+    const refusObservation = this.politique.refusEntreeObservation(v.config.policy, { depuisMode: this.config.policy.approval?.mode ?? null });
+    if (refusObservation) return refus(refusObservation);
     const e = await this._annoncerPolitique(v.config.policy);
     this.config = { ...this.config, policy: v.config.policy };
+    this.politique.actualiser();
     this.o.redaction?.recharger?.(this.config, s.secrets);
     this.candidats = null;
     this.journal.consigner("info", "config", "config_reloaded", { policy_version: v.config.policy.version });
@@ -446,21 +447,38 @@ export class Coeur {
    */
   async evaluer(requete) {
     if (!this.service) throw new ErreurEnregistreur("approbation", "noortrace: service d'approbation indisponible");
+    // Mode observation (EX-7.23, EX-14.15) : réponse sans ticket, aucun nouvel essai qui retarde l'appel.
+    const observation = this.config.policy.approval?.mode === "observation";
+    const delai = this.config.policy.approval?.timeout_ms ?? 2000;
     let r;
     for (let essai = 0; essai < 2; essai++) {
+      let minuteur;
       try {
-        r = await this.service.evaluer(requete);
+        // EX-7.4 : réponse dans policy.approval.timeout_ms, sinon service indisponible.
+        r = await Promise.race([
+          this.service.evaluer(requete),
+          new Promise((_, rej) => {
+            minuteur = setTimeout(() => rej(new ErreurServiceApprobation("indisponible", { delai_ms: delai })), delai);
+            minuteur.unref?.();
+          }),
+        ]);
         break;
       } catch (e) {
         if (e instanceof ErreurServiceApprobation && e.code === "politique_inconnue" && essai === 0) {
-          await this._charger(true).catch(() => {});
-          continue;
+          if (observation) {
+            this._charger().catch(() => {});
+          } else {
+            await this._charger(true).catch(() => {});
+            continue;
+          }
         }
         this.journal.consigner("warning", "politique", "approval_service_unavailable", { code: e?.code ?? "indisponible" });
         throw new ErreurEnregistreur("approbation", "noortrace: service d'approbation indisponible", { cause: e });
+      } finally {
+        clearTimeout(minuteur);
       }
     }
-    const v = validerReponseEvaluer(r, { decisionScellee: (t) => this._decisionScellee(t) });
+    const v = validerReponseEvaluer(r, { decisionScellee: (t) => this._decisionScellee(t), observation });
     if (!v.valide) {
       this.journal.consigner("warning", "politique", "approval_response_invalid", { raison: v.raison });
       throw new ErreurEnregistreur("approbation", "noortrace: service d'approbation indisponible", { donnees: { raison: v.raison } });
@@ -880,6 +898,8 @@ export class Coeur {
    */
   async tic() {
     if (this.intervention || !this.ecrivain) return;
+    if (this.degrade.enModeDegrade) this.politique.noterExpirationsDifferees();
+    if (this.degrade.actif("horloge")) this._sortirHorloge();
     if (this.degrade.actif("cle")) {
       // Sortie du mode « clé » : health() réussi et signature de test vérifiée (EX-14.11).
       try {
@@ -899,9 +919,30 @@ export class Coeur {
       }
     }
     await this.ecrivain.tic().catch(() => {});
-    if (!this.degrade.enModeDegrade && this.attente.length) await this.viderAttente();
-    // Expirations par le noyau seul (EX-9.4), après les événements en attente (EX-9.8).
+    // La raison « attente » se lève en vidant la file (EX-14.9, EX-14.10) : elle n'empêche pas le scellement.
+    if (this.degrade.raisons().every((r) => r === "attente") && this.attente.length) await this.viderAttente();
+    // Expirations par le noyau seul (EX-9.4), après les événements en attente (EX-9.8) ;
+    // en mode dégradé, différées et consignées (approval_expired_deferred).
     if (!this.degrade.enModeDegrade) await this.expirerTickets().catch(() => {});
+  }
+
+  /**
+   * Sortie du mode dégradé « horloge » au tic (EX-7.9, EX-7.13, EX-14.11) :
+   * l'horloge murale a rejoint le `ts` précédent et, après un saut en avant,
+   * est revenue dans la tolérance de l'avance monotone. Sans ce contrôle, la
+   * sortie n'était constatée qu'au scellement suivant, qu'aucun appel bloqué,
+   * aucune remise (acquittée `temporaire`) et aucune expiration (différée)
+   * ne pouvait produire.
+   */
+  _sortirHorloge() {
+    const h = this.horloge;
+    const lu = this.horlogeBrute.murale();
+    const mono = this.horlogeBrute.monotone();
+    const precedent = this.ecrivain.lastTs ?? null;
+    if (precedent !== null && lu < precedent) return;
+    if (h.saut && h.dernierLu !== null && h.dernierMonotone !== null && lu - h.dernierLu > mono - h.dernierMonotone + h.reglages.max_forward_ms) return;
+    h.saut = false;
+    this.degrade.sortir("horloge");
   }
 
   // ------------------------------------------------------------ attente (14.5)
@@ -1143,6 +1184,7 @@ export class Coeur {
   /** Arrêt propre : file vidée, fichiers fermés, bail libéré, graines effacées. */
   async arreter() {
     this.arrete = true;
+    this.politique?.arreter();
     for (const t of this.minuteurs) clearInterval(t);
     if (this.serveur) await new Promise((r) => this.serveur.close(() => r()));
     if (this.ecrivain) await this.ecrivain.fermer().catch(() => {});

@@ -14,11 +14,12 @@ tout ce qu'elle fait (JCS v0, hachage, Ed25519, EIP-191, événement, rotation,
 Merkle, manifeste, point de contrôle, dossier, schémas de CT-1) et ne le
 réécrit pas. Les vecteurs de `spec/vecteurs/ct-2` et l'annexe A sont le juge.
 
-Les frontaux modèle, SDK et OpenTelemetry, le moteur de politique, le WORM,
-la haute disponibilité et l'ancrage sont des lots suivants :
-[INTERFACES.md](INTERFACES.md) est leur contrat. La rédaction avant hachage
-(§10) et le frontal MCP (§4) sont faits (sections « Rédaction avant
-hachage » et « Frontal MCP » ci-dessous).
+Les frontaux SDK et OpenTelemetry, le WORM, la haute disponibilité et
+l'ancrage sont des lots suivants : [INTERFACES.md](INTERFACES.md) est leur
+contrat. La rédaction avant hachage (§10), le frontal MCP (§4), le moteur
+de politique (§7.5, 14.2, 14.6) et le frontal modèle (§5) sont faits
+(sections « Rédaction avant hachage », « Frontal MCP », « Moteur de
+politique » et « Frontal modèle » ci-dessous).
 
 ## Ce que fait le cœur
 
@@ -183,6 +184,162 @@ par les crochets du cœur.
   `child_stderr`, `invalid_line`, `auth_failed`, `stdio_server_command` ;
   jamais un argument, un résultat, un jeton ou un `requestState`.
 
+## Moteur de politique (§7.5, 14.2, 14.6 ; CT-3 §11, §12)
+
+Lot « moteur de politique » (INTERFACES.md, section d) : `src/politique/`.
+C'est le point d'appel de CT-3 côté démon ; il ne scelle rien lui-même.
+
+- **Décision au pas 3** (EX-7.4, EX-7.16) : `evaluer` borné par
+  `policy.approval.timeout_ms` ; matrice de 14.2 pour le service
+  d'approbation (indisponible ou en défaut : bloquant pour une écriture et
+  pour tout outil susceptible d'approbation, liste du dernier `charger` réussi,
+  tous les outils avant le premier ; passant pour une autre lecture si
+  `policy.failure.approval_service.lecture` vaut `passant`, avec `decision:
+  "autorise"`, `rule: null` et le défaut consigné) ; classe effective
+  d'EX-14.1 ; modes d'attente `erreur` et `retenir` (EX-4.49, EX-4.50, CT-3
+  §11), dont l'annulation d'une requête retenue par l'hôte.
+- **Mode observation** (EX-4.51, EX-7.23, EX-14.13 à EX-14.17, EX-17.8) :
+  réponse sans ticket validée à part (règle réservée ou au-delà de 998
+  caractères : invalide), marque ` [observation <x>]` dans `policy.rule`
+  (CT-3 EX-6.8), `evaluation impossible [observation inconnu]` sans réponse
+  valide ; aucune panne, aucun budget de rédaction, aucun quota ne bloque un
+  appel relayable ; événement en attente, ou perdu au-delà des bornes de 14.5
+  (`event_lost`) ; jamais `-31017` ; `observation_would_block` et les quatre
+  métriques de la révision 0.6 ; entrée en observation refusée avec un ticket
+  ouvert (EX-15.8).
+- **Boucle `decisions`** (EX-7.19) avec les minuteurs du démon, et
+  expirations par le noyau seul à chaque tic hors mode dégradé (EX-9.4),
+  différées et consignées pendant un mode dégradé.
+- **Validation de `policy.approval.rules`** (EX-15.4 pas 3, CT-3 EX-4.2,
+  EX-8.2) : schéma puis points 1 à 7, codes et pointeurs de
+  `$defs/code_erreur_politique`, tri de CT-3 annexe A.4 ; avertissements
+  d'EX-4.14 qui ne dépendent pas de la liste des outils ; au démarrage, au
+  rechargement et par `validate-config`.
+
+## Frontal modèle (§5)
+
+Lot « frontal modèle » (INTERFACES.md, section b) : `src/modele/`. Le
+frontal sert les trois modes d'EX-5.1 — passerelle des API de modèle
+(5.1.1), serveur ICAP (5.1.2) et récepteur du miroir (5.1.3) — et le
+registre de corrélation de 5.6 ; les trois modes partagent un même moteur
+d'échanges (`MoteurEchanges` : délégation, colonne M de 14.2, quotas,
+pièces, capture de la réponse, scellement). Il ne scelle rien lui-même et
+passe par `coeur.ecrirePiece` et `coeur.scellerEchange`.
+
+- **Routes** (EX-5.2, EX-5.28) : chemin normalisé (`%2F`, `.`, `..`, `//`,
+  octet hors de l'ASCII imprimable : `400` ; non réservés décodés), comparé
+  par égalité ; route `gemini` sur la collection des modèles, segment de
+  modèle au motif d'EX-5.28 et méthode `generateContent` ou
+  `streamGenerateContent` ; couples `passthrough` relayés sans événement ;
+  tout autre couple : `404` (`model_route_not_found`, sans le chemin) ;
+  chemin de la route (et cible Gemini reconstruite) seul envoyé à l'amont ;
+  chaîne de requête relayée et consignée par son `sha256`, sauf Gemini
+  (EX-5.29 : `cle_dans_url`, `flux_sans_sse`, `parametre_non_admis`).
+- **Connexion d'hôte** (EX-5.8, EX-7.2, EX-7.3) : jeton statique de
+  `model.static_tokens` ou `mcp.http.static_tokens`, par `X-Noortrace-Token`
+  ou, en `credentials: "propre"`, par l'en-tête de la route, comparé en temps
+  constant ; jeton OAuth (`oauth_subject`, EX-5.8 point 2) d'audience l'URI
+  de la passerelle, vérifié par `mcp.http.oauth` (lecture 72) ; en ICAP et
+  en miroir, adresse source (`source_addresses`, entrée `"inconnu"`) ; clé du fournisseur de la route (`propre`) ou seul en-tête de la
+  route relayé (`relayer`) ; délégation déclarée par `X-Noortrace-Run-Id` et
+  `X-Noortrace-On-Behalf-Of`, bornée (motif, détecteurs, liste) ; aucun
+  `X-Noortrace-*` relayé.
+- **Refus avant relais, sans événement** (EX-5.7, EX-5.26, EX-5.30, EX-5.32,
+  EX-5.33) : cadrage `Content-Length` et `Transfer-Encoding`, en-têtes
+  d'authentification, de cadrage ou de délégation en double, hôte inconnu
+  (`401`), corps au-delà de `model_request_max_bytes` (`413`),
+  `Content-Encoding` (`415`), JSON non strict (`400`), serveurs MCP et
+  contenu en cache déclarés au fournisseur (`400`, ou relayés et consignés
+  sous `relayer`) ; corps d'erreur au format de chaque fournisseur (AIP-193
+  pour Gemini, `Content-Type` d'EX-5.30) ; mode dégradé bloquant pour les
+  échanges (colonne M de 14.2 : `503`, `call_blocked`), passant en mode
+  « stockage » avec `failure.modele: "passant"` et en mode observation
+  (EX-14.16 : jamais `noortrace_degrade`).
+- **Quotas de la connexion d'hôte** (EX-4.47 ; 14.2, ligne « Mémoire »,
+  colonne M) : requêtes en cours, octets reçus (requêtes refusées
+  comprises), octets de pièces et temps de capture par minute glissante ;
+  au-delà, `503` (`call_blocked`, `reason: "quota"`, `limit_*`), en
+  passerelle et en REQMOD, jamais en miroir (lecture 73).
+- **TLS** (`model.tls`, EX-5.2 ; ICAPS, EX-5.3) : TLS 1.2 au moins
+  (lecture 74) ; certificat ou clé illisible : le démon ne démarre pas.
+- **Mode ICAP** (EX-5.3 à EX-5.5, EX-14.12 ; RFC 3507) : services
+  `/noortrace/reqmod` et `/noortrace/respmod` sur `model.icap.listen` et
+  ICAPS sur `tls_listen` ; `OPTIONS` (`Methods`, `ISTag`,
+  `Encapsulated: null-body=0`, `Options-TTL`, aucun `Preview`), `ISTag` sur
+  toute réponse, `400`, `403`, `404`, `405`, `501`, `505` ; clients admis par
+  mTLS (`client_ca`) ou `allowed_sources` ; `Encapsulated` vérifié (ordre,
+  décalages croissants, corps en dernier), corps `chunked` avec `ieof`,
+  Preview et `100 Continue`. REQMOD : `X-Noortrace-*` retirés, pièces
+  durables, requête modifiée (`200`, jamais `204`) augmentée de
+  `X-Noortrace-Exchange: <i>.<m>` ; blocages encapsulés sans événement
+  (EX-5.7, colonne M, lectures 73 et 76). RESPMOD : échange retrouvé par
+  l'identifiant dont le MAC vérifie, sinon par (méthode, URI, en-têtes,
+  instant), sinon pièce `{"noortrace_requete_inconnue": true}` ; réponse
+  rendue inchangée chunk par chunk au fil de la réception, analysée en
+  parallèle, jamais `204` ; panne après le REQMOD : événement en attente
+  (EX-14.12).
+- **Mode miroir** (EX-5.6, EX-14.12) : récepteur sur la prise
+  `model.mirror.socket` (couples horodatés, lecture 78) et adaptateur de
+  capture `bin/noortrace-miroir` (réassemblage HTTP/1.1 de la copie,
+  lecture 79) ; connexion d'hôte par l'adresse source ; `is_error` selon le
+  statut observé, réponse tronquée : forme incomplète ; rien n'est bloqué ;
+  pendant un mode dégradé, l'échange est mis en attente dans les bornes de
+  14.5, puis perdu et consigné (`exchange_lost`).
+- **Pièces de la requête** (5.3.1 pas 3, 5.5, EX-8.5, EX-8.6) : prompt
+  système joint par `\n` format par format, pièce `text/plain` rédigée (ou
+  `[PROMPT:<nom>]` en `named`) ; pièce « requête » rédigée, prompt remplacé
+  par `[REDIGE:prompt-systeme]` (`reference`) ou rédigé chaîne par chaîne en
+  place (`inline`) ; forme inattendue (EX-5.7 point 3) relayée sans pièce
+  « prompt système » ; les deux pièces durables avant l'envoi (EX-5.10).
+- **Relais** (5.3, EX-5.9, EX-5.11, EX-5.12, EX-5.26) : en-têtes en liste
+  autorisée (plus `forward_headers`, moins `strip_headers` et les champs
+  saut par saut ; valeurs relayées et notées au journal d'exploitation, noms
+  retirés consignés), `Accept-Encoding: identity`, `Content-Length` calculé,
+  corps recopié ; réponse relayée octet pour octet dès réception, sans autre
+  tampon que la lecture réseau, contre-pression comprise ; réponse comprimée
+  quand même (`gzip`, `deflate`, `br`) décomprimée pour la pièce et relayée
+  comprimée.
+- **Réassemblage des flux** (5.4) : analyseur SSE du HTML Living Standard
+  (EX-5.14, `data` final de Gemini d'EX-5.34), formes consolidées
+  d'Anthropic, de Chat Completions, de Responses et de Gemini (EX-5.15 à
+  EX-5.17, EX-5.35), règles d'EX-5.27 (index, positions, types), événements
+  ignorés comptés ; flux incomplet (coupure, délai, hôte parti, borne) marqué
+  `noortrace_flux_incomplet`, `is_error` (EX-5.13).
+- **Pièce « réponse » et valeurs** (5.3.1 pas 5 et 7, 5.5, EX-5.19 à
+  EX-5.21, EX-5.23, EX-5.31, EX-5.33, EX-5.36, EX-8.7) : JSON rédigé, forme
+  consolidée, `noortrace_http_error` (Gemini : corps lu quel que soit le
+  `Content-Type`), pièce non JSON, non rédigeable (`non_utf8`,
+  `codage_inconnu`, `taille`) ou flux brut ; `code.model` tiré de la réponse
+  rédigée (repli : requête de forme attendue, ou segment Gemini admis par les
+  détecteurs) ; `intent` borné à 4096 caractères ou en pièce, `redacted` si
+  une règle l'a modifié.
+- **Délais, pas de relance** (EX-5.24, EX-5.25) : connexion, premier octet
+  (`504` au format de la route et pièce `noortrace_timeout`), inactivité
+  (flux clos, forme incomplète) ; aucune requête réémise.
+- **Corrélation** (5.6, EX-5.22) : forme en clair inscrite au registre avant
+  que l'hôte reçoive les derniers octets ; même groupe d'hôte, même `run_id`
+  si les deux sont déclarés, fenêtre, plus récent d'abord, échange interposé
+  préféré à un échange déclaré (`correlation_declaree`), nom par gabarit et
+  normalisation, arguments égaux en JCS intégral, appel du modèle consommé
+  une fois ; `intent` du texte qui précède l'appel dans la réponse rédigée.
+- **Événement** : `noortrace.modele.echange` scellé après la réponse ; une
+  panne après l'envoi met l'événement en attente (14.2, EX-14.8) ; arrêt
+  propre qui laisse finir les échanges en cours (13.5).
+- **Journal d'exploitation et métriques** (EX-17.2) : `model_exchange_relayed`,
+  `model_request_refused`, `model_route_not_found`, `model_passthrough`,
+  `provider_error`, `provider_mcp_bypass`, `provider_cache_reference`,
+  `model_segment_refused`, `model_response_truncated`,
+  `sse_data_final_sans_ligne_vide`, `host_disconnected`, `call_blocked`,
+  `auth_failed`, `delegation_refused`, `correlation_declaree`,
+  `observation_would_block`, `tls_refused`, `model_gateway_listening`,
+  `model_icap_listening`, `model_mirror_listening`, `icap_request_refused`,
+  `icap_exchange_refused`, `icap_correlation_heuristique`,
+  `icap_requete_inconnue`, `icap_respmod_non_capture`,
+  `mirror_line_refused`, `exchange_lost` ;
+  `noortrace_model_tokens_total`, `noortrace_upstream_latency_ms`,
+  `noortrace_upstream_errors_total`, `noortrace_relay_latency_ms` ; jamais
+  un corps, un prompt, un jeton ou une clé.
+
 ## Démarrer le démon
 
 ```sh
@@ -198,6 +355,26 @@ L'hôte lance le connecteur comme serveur MCP stdio (19.5.1) :
 ```sh
 noortrace-connecteur --socket /run/noortrace/mcp.sock
 ```
+
+Avec `model.mode: "passerelle"`, le démon écoute aussi sur `model.listen` :
+l'hôte y pose l'URL de base de son SDK (`ANTHROPIC_BASE_URL`,
+`OPENAI_BASE_URL`, `httpOptions.baseUrl`) et son jeton statique ou OAuth.
+Avec `model.mode: "icap"`, il sert les deux services ICAP sur
+`model.icap.listen` (et ICAPS sur `tls_listen`) ; le mandataire du client
+transmet l'adresse de l'hôte par l'en-tête `client_address_header`. Avec
+`model.mode: "miroir"`, il écoute sur la prise `model.mirror.socket`, où
+l'adaptateur de capture remet les couples :
+
+```sh
+noortrace-miroir --socket /run/noortrace/miroir.sock --ecoute 127.0.0.1:9100
+```
+
+L'adresse d'écoute effective de chaque mode est consignée au journal
+d'exploitation (`model_gateway_listening`, `model_icap_listening`,
+`model_mirror_listening`) ; le registre de corrélation est remis au frontal
+MCP. Un frontal qui ne peut pas écouter (adresse prise, certificat
+illisible) empêche le démarrage : `demarrage_refuse : frontal_modele :
+<cause>`, code 2.
 
 Une configuration invalide n'est jamais servie : une ligne par erreur sur
 stderr (`config_invalid : <pointeur JSON> : <règle> ; valeur : <valeur>`, sans
@@ -288,14 +465,29 @@ politiques, clés) se dérivent des segments à la reprise.
 | `mcp/hote-stdio.mjs`, `mcp/connecteur.mjs`, `bin/noortrace-connecteur` | prise des connecteurs, connecteur stdio | §4.7.1, EX-4.39 |
 | `mcp/hote-http.mjs` | Streamable HTTP des hôtes, OAuth | §4.7.2, §4.8 |
 | `mcp/demon.mjs` | frontal dans le démon | §3.4 |
+| `politique/moteur.mjs` | décision au pas 3, matrice de 14.2 (service), modes d'attente, mode observation, boucle `decisions`, EX-15.8 | §7.5, §14.2, §14.6, CT-3 §11, §12 |
+| `politique/regles.mjs` | validation de `policy.approval.rules`, avertissements | EX-15.4 pas 3, CT-3 EX-4.2, EX-4.14, EX-8.2 |
+| `modele/formats.mjs` | routes, normalisation, chaîne de requête Gemini, corps d'erreur, en-têtes, prompt système, règles de configuration | §5.1.1, §5.2, §5.3, EX-5.28 à EX-5.32, EX-8.5, EX-15.4 |
+| `modele/flux.mjs` | analyseur SSE, formes consolidées | §5.4 |
+| `modele/extraction.mjs` | pièces de la requête et de la réponse, `code.model`, `intent`, appels demandés | 5.3.1, §5.5, EX-5.21, EX-5.31, EX-5.33, EX-5.36, EX-8.7 |
+| `modele/correlation.mjs` | registre de corrélation | §5.6 |
+| `modele/echange.mjs` | moteur d'échanges commun aux trois modes : délégation, colonne M, quotas, pièces, capture de la réponse, scellement, attente | 5.3.1, §5.4, EX-4.47, §14.2 (colonne M), EX-14.12 |
+| `modele/passerelle.mjs` | passerelle HTTP(S) : réception, connexion d'hôte (jeton statique, OAuth), relais, délais | §5.1.1, §5.3, §5.7, EX-5.8, §13.5 |
+| `modele/icap.mjs` | serveur ICAP et ICAPS (RFC 3507) : OPTIONS, REQMOD, RESPMOD | §5.1.2, EX-5.3 à EX-5.5, EX-14.12 |
+| `modele/miroir.mjs`, `bin/noortrace-miroir` | récepteur de la prise du miroir, adaptateur de capture | §5.1.3, EX-5.6, EX-14.12 |
+| `modele/demon.mjs` | frontal modèle dans le démon, selon le mode | §3.4, EX-5.1 |
 | `coeur.mjs`, `cli.mjs`, `bin/noortrace` | assemblage, démarrage, démon | §3, §15.4, §15.6 |
 
 ## Ce qui relève des lots suivants
 
-Frontal modèle et passerelle (§5), dont le registre de corrélation de 5.6 ;
-SDK, adaptateurs et ingestion OpenTelemetry (§6) ; moteur de politique (mode
-observation, EX-4.51, 14.6) et vrai service d'approbation (CT-3) ;
-validation de `policy.approval.rules` (CT-3 EX-4.2, EX-8.2) ; part du
+Part du frontal modèle non faite : réassemblage HTTP/2 de la copie du
+miroir (EX-5.6 : non couvert par la version 0, section 21) ; traducteurs des
+formats de copie des équipements réels vers les trames de l'adaptateur
+(lecture 79) ; entrée `echangeModele` du SDK (lot suivant, qui reprend la
+dérivation et le registre de `src/modele/`) ;
+SDK, adaptateurs et ingestion OpenTelemetry (§6) ; vrai service
+d'approbation (CT-3, paquet `@noortrace/approbation`) ; notifications de
+progression pendant une rétention (EX-4.50, CT-3 EX-11.6, facultatives) ; part du
 frontal MCP non faite : relais hors chaîne de 4.5 (`resources/*`,
 `prompts/*`, `completion/complete` : `-32601`), requêtes du serveur vers le
 client et `sampling` en échange de modèle (4.6, EX-4.29 : refusées par
@@ -569,6 +761,281 @@ Lectures du lot « rédaction » (§10) :
     `meta_requis`, `arguments_non_objet` ou `curseur_invalide` ; `Unknown
     tool` reste sans `data` (forme de la page Tools).
 
+Lectures du lot « moteur de politique » (§7.5, 14.2, 14.6 ; CT-3 §11, §12) :
+
+43. **Raison d'`observation_would_block`** (EX-14.16, EX-17.8 : « chaque appel
+    qu'un mode bloquant aurait bloqué, retenu ou refusé »). La colonne
+    `reason` de 17.2 n'a pas de valeur « retenu ». Lecture : sortie
+    `a_approuver` → `approbation` (retenue et signal) ; `refuse` →
+    `politique` ; `inconnu` (service indisponible) → `approbation` pour une
+    écriture ou un outil susceptible, rien pour une lecture que 14.2 laisse
+    passer ; une panne → sa raison de 14.2 ; budget → `redaction` ; quota →
+    `quota`. Une ligne par raison et par appel, écrite après le scellement
+    (`seq`) ou la mise en attente (`seq: null`) ; `would` est la décision
+    évaluée, ou `quota` pour un quota refusé avant l'évaluation.
+44. **Délai d'`evaluer`** (EX-7.4 : « le service répond dans
+    `policy.timeout_ms` »). Le canal HTTP borne déjà chaque requête ; un
+    service joint autrement (en mémoire, tests) pourrait ne jamais répondre.
+    Lecture : le cœur borne l'attente lui-même ; au-delà, erreur
+    `indisponible`, traitée par 14.2.
+45. **Réponse vide immédiate à `decisions`** (EX-7.19 : « la relance dès
+    qu'elle répond »). Un service qui ne tient pas l'attente longue ferait
+    tourner la boucle à vide. Lecture : une réponse vide rendue en moins de
+    100 ms est relancée après 100 ms ; toute autre réponse est relancée
+    aussitôt. Sans réponse au terme de `wait_ms + timeout_ms`, le service est
+    indisponible (consigné une fois) et la requête est réessayée après 200 ms,
+    puis un délai doublé jusqu'à 5 s.
+46. **« Ticket ouvert » d'EX-15.8.** Lecture : une ligne `retenue` des
+    fichiers des approbations dont l'événement est dans la chaîne (son `hash`
+    y figure, 12.9) et dont le ticket n'a pas de décision scellée. Au
+    démarrage, le refus vaut quel que soit le mode de la version annoncée
+    avant l'arrêt (le même cas « est une erreur de validation », code 2) ; au
+    rechargement, seulement depuis un autre mode.
+47. **`noortrace_observation_marks_total`** (« événements scellés avec une
+    marque »). Lecture : compté au relais de l'appel marqué, que l'événement
+    soit scellé aussitôt ou mis en attente (il porte la même marque) ; un
+    événement perdu au-delà des bornes n'est pas compté.
+48. **Annulation d'une requête retenue** (EX-4.50 : « si elle a pris fin
+    (délai, annulation par l'hôte) » ; EX-4.23 : `-31012` « seulement si l'hôte
+    attend encore »). Lecture : `notifications/cancelled` d'une requête
+    retenue met fin à la rétention sans réponse (l'hôte n'attend plus) ; le
+    ticket continue, et la première ré-émission reconnue qui suit est retenue.
+    Une fermeture de la connexion de l'hôte n'est pas une annulation : la
+    rétention finit à `hold_timeout_ms`.
+49. **Pièces d'une ré-émission retenue.** Une ré-émission `en_attente`
+    n'écrit pas de pièce (aucun événement, CT-3 EX-7.19) ; retenue en mode
+    `retenir`, elle finit par un relais ou un `refusee` qui citent sa pièce
+    « arguments » et ses pièces de contexte. Lecture : elle les écrit avant
+    d'être retenue (la pièce « arguments » est celle de la `retenue`, RL-2).
+50. **Bail en mode observation** (EX-14.16 : « `bail` quand l'instance a été
+    active » ; EX-14.17 : `-31010` `bail_non_detenu` rendu par une instance
+    passive). Lecture : un bail perdu après avoir été détenu (raison `bail`)
+    laisse passer l'appel, événement en attente ; une instance qui n'a jamais
+    détenu le bail rend `bail_non_detenu`.
+51. **Avertissements d'EX-4.14 de CT-3** (« leur texte n'est pas fixé »).
+    Lecture : codes `pointeur_redige`, `liste_exclusion`,
+    `fenetre_plusieurs_outils`, `fenetre_sans_same_arguments`,
+    `fenetre_sans_condition`, `demandeur_sans_identite`, sous le pointeur du
+    membre ; un chemin rédigé est celui d'une règle de rédaction à détecteur
+    `champ` et `path` de portée `arguments`, comparé préfixe pour préfixe à
+    `/arguments<path>`. Les avertissements ne sont calculés que pour un
+    document sans erreur.
+52. **Substitut isolé dans une clé** (EX-4.2 point 4 : « toute chaîne du
+    document »). Lecture : clés et valeurs ; l'erreur porte le pointeur du
+    membre. Dans la configuration, le JSON strict du pas 1 refuse déjà un
+    substitut isolé : le point 4 ne s'atteint que par la validation du
+    document seul.
+53. **Quota en mode observation pour une autre méthode que `tools/call`**
+    (EX-14.17 : jamais `-31013` de direction `quota`). Lecture : aucune
+    méthode n'est refusée pour un quota en mode observation ; la ligne
+    `observation_would_block` est écrite quand même, `would: "quota"`.
+54. **Politique de `journal-demo` et validation** (B.6, CT-3 4.1 : `rules`
+    y est un tableau illustratif « opaque pour CT-2 »). Lecture : le rejeu de
+    seq 5 à 7 démarre le cœur sur cet ensemble sans le valider (un démon le
+    refuserait au pas 3), le service simulé décidant lui-même.
+Lectures du lot « frontal modèle » (§5) :
+
+55. **Corps des refus `401` et `415` hors Gemini.** EX-5.7 point 1 et EX-5.8
+    disent le statut sans fixer de corps (EX-5.30 ne le fait que pour
+    Gemini). Lecture : la forme du fournisseur, le message du tableau
+    d'EX-5.30 ; Messages : `{"type":"error","error":{"type":"authentication_error"
+    ou "invalid_request_error","message":…}}` ; Chat Completions et Responses :
+    `{"error":{"message":…,"type":"invalid_request_error","param":null,"code":"noortrace_hote_inconnu"
+    ou "noortrace_requete_comprimee"}}`.
+56. **Corps du `504` hors Gemini** (EX-5.24 ne donne qu'un corps, de la forme
+    de Messages, « sur une route gemini, le corps 504 d'EX-5.30 »). Lecture :
+    ce corps pour toute route qui n'est pas `gemini`, Chat Completions et
+    Responses compris.
+57. **Refus sans route** (EX-5.2 : `400` d'une normalisation ; EX-5.26 :
+    `400` d'un cadrage). Aucun format n'est encore connu. Lecture : `400` sans
+    corps ; de même pour un en-tête d'authentification, de cadrage ou de
+    délégation reçu deux fois (non nommé par CT-2 : la passerelle ne choisit
+    pas entre deux valeurs) ; `model_request_refused` porte alors les raisons
+    `chemin`, `cadrage` ou `entete_double`, ajoutées à celles d'EX-17.2.
+58. **Coupure avant le premier octet** (EX-5.24 et table de 5.3.3 :
+    « connexion au fournisseur impossible ou délai de connexion », « délai du
+    premier octet »). Une connexion refusée ou fermée avant la réponse n'est
+    pas un délai. Lecture : connexion impossible → phase `connexion`
+    (`timeout_ms` = `connect_timeout_ms`) ; fermée après l'envoi, avant les
+    en-têtes → phase `premier_octet` (`first_byte_timeout_ms`) ; `504` dans
+    les deux cas, rien n'ayant été relayé.
+59. **Inactivité d'un corps hors flux** (EX-5.24 : « silence entre deux
+    octets d'un flux »). Lecture : la borne vaut pour tout corps ; hors flux,
+    la pièce est l'objet `noortrace_http_error` de statut `504` et de phase
+    `inactivite` ; en flux, la forme consolidée incomplète.
+60. **« Flux clos vers l'hôte »** (EX-5.13, EX-5.24, table de 5.3.3). Lecture :
+    après une coupure amont, un délai d'inactivité ou la borne d'un corps, la
+    connexion de l'hôte est fermée sans fin de corps régulière, pour qu'un
+    SDK ne prenne pas une réponse tronquée pour complète.
+61. **L'hôte ferme avant toute réponse** (EX-5.13 : « donne la même marque » ;
+    il n'y a pas de forme où la poser). Lecture : la pièce « réponse » est le
+    corps reçu, vide (`application/octet-stream`, 0 octet), `is_error: true`,
+    échange incomplet, `host_disconnected`.
+62. **« Requête suivante de la même connexion d'hôte »** (5.3.1 pas 8).
+    Lecture : la connexion HTTP (prise TCP) ; la requête suivante sur la même
+    prise attend la durabilité de l'échange précédent ; des requêtes
+    parallèles d'un même hôte sur d'autres prises ne s'attendent pas.
+63. **`Content-Encoding` d'une réponse comprimée** (EX-5.9 : « relayée
+    comprimée à l'hôte » ; table de 5.3 qui ne nomme pas l'en-tête). Lecture :
+    il est rendu à l'hôte avec le corps comprimé, faute de quoi l'hôte ne
+    pourrait pas le lire.
+64. **Statut amont 1xx ou 3xx** (5.3.1 pas 7 ne nomme que `2xx` et `≥ 400`).
+    Lecture : traité comme un statut d'erreur (objet `noortrace_http_error`,
+    `is_error: true`) : la réponse n'est pas exploitable (CT-1 §5.3).
+65. **Intention vide.** 5.5 dit « texte vide → `null` » pour Gemini seulement.
+    Lecture : de même pour les autres formats ; et le texte qui précède un
+    appel (5.6) joint les blocs `text` (Anthropic) et les `output_text`
+    (Responses) par `\n`, comme la table de 5.5.
+66. **Événements après l'événement terminal** (`message_stop`, `[DONE]`,
+    `response.completed`, `failed`, `incomplete`). Lecture : ignorés et
+    comptés ; la forme close est celle qui a été inscrite au registre.
+67. **Prompt nommé** (EX-8.6 : la pièce est `[PROMPT:<nom>]`). Lecture : pièce
+    `text/plain` `redacted: true` (elle remplace le texte reçu) ; sans nom de
+    la connexion ni nom déclaré admis, la pièce est le texte rédigé (le
+    défaut). Un nom déclaré refusé est consigné `delegation_refused`, champ
+    `prompt_version`.
+68. **Passthrough d'une route Gemini** (EX-5.29 ne vise que les deux couples
+    servis). Lecture : la chaîne de requête est relayée telle quelle, sauf un
+    paramètre `key`, refusé (`cle_dans_url`) pour la même raison.
+69. **EX-3.6 et le frontal modèle.** L'analyse SSE est incrémentale, bornée
+    par `json_max_depth` et `json_max_members` par événement, et doit
+    précéder l'écriture de chaque fragment vers l'hôte (5.6) : elle se fait
+    dans le fil d'entrée-sortie, comme l'analyse d'un corps hors flux dans sa
+    borne ; la rédaction et la sérialisation des pièces, elles, passent par
+    les fils de calcul du rédacteur.
+
+Lectures du lot « moteur de politique » (reprise) :
+
+70. **Intention par référence dans `evaluer`** (EX-7.4 : « l'objet `{ …,
+    "intent", … }` (`$defs/requete_evaluer` de `ticket-v0`) », dont `intent`
+    est une chaîne d'au plus 4 096 caractères ou `null` ; 7.2 et EX-5.21 :
+    l'intention corrélée est une chaîne ou une référence de pièce
+    `text/plain`). Une référence telle quelle est refusée par le service
+    (`requete_invalide`), donc traitée comme une indisponibilité. Lecture : le
+    membre `intent` porte le texte de la pièce, déjà rédigé (c'est la
+    requête du cas CT-3 `console/modeles/intention-par-reference`, dont
+    l'événement retenu porte la référence et la requête le texte, que la
+    console affiche « non vérifiable », EX-9.15) ; au-delà de 4 096
+    caractères, ou pièce absente ou illisible, `null`, consigné
+    (`intent_not_sent`, sans la valeur). L'événement garde la référence.
+71. **Sortie du mode dégradé « horloge »** (EX-7.9 : « jusqu'à ce que
+    l'horloge murale ait rejoint `ts` précédent » ; EX-7.13 : « en sort quand
+    l'horloge murale est revenue dans la tolérance de l'avance monotone » ;
+    EX-14.11). Le contrôleur ne constatait la sortie qu'en fixant le `ts`
+    d'un nouvel événement, alors qu'en mode bloquant aucun événement ne peut
+    plus être scellé (appels bloqués, remises acquittées `temporaire`,
+    expirations différées) : le mode ne se levait jamais. Lecture : la sortie
+    est constatée au tic, aux mêmes conditions.
+
+Lectures du lot « frontal modèle » (§5), modes ICAP et miroir, jeton OAuth,
+quotas et TLS :
+
+72. **Jeton OAuth de la passerelle** (EX-5.8 point 2 : « `oauth_subject` :
+    jeton OAuth dont l'audience est l'URI de la passerelle, dans
+    `X-Noortrace-Token` (et dans `Authorization` en mode `propre`) »). CT-2
+    prévoit cette connexion d'hôte ; elle est servie. Ni le serveur
+    d'autorisation, ni les clés, ni les portées ne sont nommés pour
+    `model` : le schéma n'a pas de membre `model.oauth`. Lecture : le jeton
+    est vérifié comme celui du frontal MCP, par `mcp.http.oauth`
+    (`authorization_servers` pour l'émetteur, `jwks_uri`, `required_scopes`,
+    expiration, signature), l'audience attendue étant l'URI de la passerelle,
+    `http://<model.listen>`, ou `https://` avec `model.tls`. Une entrée
+    `oauth_subject` sans `mcp.http.oauth` est une erreur de configuration
+    (`config_invalid`, `/model/hosts/<i>/match/oauth_subject`, code 2 au
+    démarrage, EX-15.4 pas 3), comme une entrée `oauth_subject` hors du mode
+    `passerelle`. Un jeton refusé donne `401` sans relais, consigné
+    `auth_failed` (raison `oauth_<cause>`).
+73. **Quotas d'EX-4.47 sur `model.hosts`** (EX-4.47 : « Chaque entrée de
+    connexion d'hôte porte, toutes requises par le schéma, … ; au-delà, la
+    requête est refusée au pas 1 par `-31013` » ; 14.2, ligne « Mémoire » :
+    « `-31013` pour une taille de message dépassée ou un quota (EX-4.47) »
+    en colonnes E et L, « bloquant (`503`) » en colonne M). `-31013` est un
+    code JSON-RPC, que le frontal modèle n'a pas. Lecture : les quatre quotas
+    s'appliquent aux entrées de `model.hosts` ; un quota atteint bloque
+    l'échange par `503` avec le corps d'un échange bloqué (14.2 : « reçoit
+    `503` avec le corps d'erreur du format de la route » ; EX-5.30 pour
+    Gemini), sans relais ni pièce, consigné `call_blocked` (`reason: "quota"`,
+    `class: "modele"`, `limit_requests`, `limit_bytes` ou `limit_ms`), en
+    passerelle et en REQMOD (EX-14.12 : « la colonne M s'applique en
+    REQMOD ») ; jamais en miroir (EX-5.6 : « Rien n'est bloqué ») ; en mode
+    observation, `observation_would_block` (EX-14.16). Les octets reçus sont
+    comptés pour toute requête lue, refusée comprise ; le temps de capture
+    d'une requête (analyse JSON, rédaction, sérialisation des pièces) compte
+    pour les requêtes suivantes, ajouté après le contrôle de son propre
+    quota ; un couple `passthrough` ne compte que les octets reçus.
+74. **Version de TLS de `model.tls` et d'ICAPS** (EX-5.2 : « TLS par le client
+    ou par un mandataire inverse devant le démon » ; EX-5.3 : « ICAPS »).
+    CT-2 ne fixe pas de version. Lecture : plancher TLS 1.2, celui de Node.js
+    par défaut, écrit explicitement (`minVersion`) pour qu'un changement de
+    défaut ne l'abaisse pas ; un certificat ou une clé illisible empêche le
+    démarrage (`demarrage_refuse : frontal_modele`, code 2).
+75. **ICAP : requête hors des échanges capturés** (EX-5.4 ne vise que les
+    routes ; EX-5.2 : « Tout autre couple (méthode, chemin) reçoit `404` sans
+    relais » vaut pour la passerelle, qui sert elle-même la requête). Le
+    mandataire, lui, relaie ce qu'il veut, et EX-5.4 interdit `204`. Lecture :
+    une requête dont le couple (méthode, chemin) n'est pas une route
+    d'échange (`passthrough` compris) est rendue modifiée (`200`) sans en-tête
+    `X-Noortrace-*` et sans identifiant, consignée `model_route_not_found`
+    (`mode: "icap"`), sans pièce ni événement ; sa réponse, en RESPMOD, est
+    rendue inchangée, consignée `icap_respmod_non_capture` (de même pour une
+    réponse dont la requête encapsulée est absente, ou d'hôte inconnu).
+76. **Blocages en REQMOD au-delà des « deux cas seulement »** (EX-5.4 :
+    « une requête refusée par EX-5.7 … et un mode dégradé bloquant pour les
+    échanges de modèle (14.2) »). D'autres règles refusent « une requête »
+    sans viser la seule passerelle : EX-5.8 (« sinon bloquée en REQMOD
+    (ICAP) »), EX-5.29 (chaîne de requête Gemini, « refusé par `400` … sans
+    relais »), EX-5.32 (serveurs MCP et contenu en cache déclarés au
+    fournisseur, `refuser` par défaut), EX-5.33 (« Bornes de taille (tous
+    formats) ») et le quota (lecture 73). Lecture : en REQMOD, ces refus
+    donnent eux aussi une réponse HTTP encapsulée au statut et au corps de
+    leur règle, sans événement, consignée (`model_request_refused`,
+    `mode: "icap"`) ; relayer une requête que le texte interdit de relayer
+    (clé dans l'URL, serveurs MCP joints par le fournisseur hors du pare-feu)
+    serait l'écart. La requête admise est rendue avec sa cible d'origine
+    (`?alt=json` compris). En miroir, rien n'étant bloqué, les déclarations
+    d'EX-5.32 sont consignées (`provider_mcp_bypass`,
+    `provider_cache_reference`, `mode: "miroir"`) et l'échange donne son
+    événement.
+77. **ICAP : REQMOD sans RESPMOD** (EX-5.4 : la requête « modifiée » part
+    vers le fournisseur ; aucun délai n'est nommé pour la suite). Lecture :
+    si aucun RESPMOD n'est retrouvé dans `first_byte_timeout_ms` après le
+    REQMOD, l'échange est scellé `is_error: true` avec la pièce
+    `noortrace_timeout` de phase `premier_octet` (EX-5.24), comme une
+    réponse jamais reçue en passerelle (table de 5.3.3) : la requête a pu
+    atteindre le fournisseur ; un RESPMOD qui arrive ensuite ne retrouve plus
+    cet échange et donne celui à pièce « requête »
+    `{"noortrace_requete_inconnue": true}` d'EX-5.4.
+78. **Miroir : protocole de la prise du démon** (EX-5.6 : « les remet au démon
+    par la prise locale, sous la forme d'un couple (requête, réponse)
+    horodaté, avec l'adresse source du flux » ; la forme n'est pas fixée).
+    Lecture : une ligne JSON par couple, `{ "version": 0, "source",
+    "t_requete", "t_reponse", "request": { "method", "target", "headers",
+    "body" (base64) }, "response": { "status", "headers", "body",
+    "body_length", "complete" } | null }`, et une ligne de réponse par
+    couple (`{ "ok": true, "seq", "pending_id" }` ou `{ "ok": false,
+    "reason" }`) ; ligne bornée à
+    `⌈(model_request_max_bytes + model_response_max_bytes) × 4/3⌉ + 65 536`
+    octets, au-delà la connexion est fermée (`mirror_line_refused`) ; prise
+    créée en mode `0660`. `duration_ms` est `t_reponse − t_requete`.
+79. **Miroir : entrée de l'adaptateur de capture** (EX-5.6 : « reçoit la copie
+    déchiffrée fournie par l'équipement du client » ; le format de chaque
+    équipement est hors de la version 0). Lecture : l'adaptateur
+    `bin/noortrace-miroir` reçoit sur une prise TCP des trames — une ligne
+    JSON `{ "connexion", "sens": "client" | "serveur" | "fin", "source",
+    "longueur" }` suivie de `longueur` octets — et réassemble chaque sens en
+    HTTP/1.1 (`Content-Length`, `chunked`, corps jusqu'à la fermeture,
+    réponses `1xx` ignorées, `HEAD` sans corps) ; l'intégration d'un
+    équipement réel est un traducteur vers ces trames.
+80. **Miroir : couples sans événement et couples sans réponse** (EX-5.6 :
+    « Le démon construit l'événement comme en passerelle » ; EX-5.7 : un
+    corps non analysable « ne peut pas être rédigé »). Lecture : un couple
+    dont la requête serait refusée par EX-5.7 ou EX-5.33, d'hôte inconnu
+    sans entrée `"inconnu"` (EX-5.8 : « consignée sans événement
+    (miroir) ») ou hors des routes ne donne pas d'événement et est consigné ;
+    un couple sans réponse dans la copie (connexion close avant) donne un
+    échange `is_error: true` dont la réponse est vide, comme une fermeture
+    par l'hôte (lecture 61).
+
 ## Tests
 
 Depuis la racine du dépôt, après `npm ci` :
@@ -585,6 +1052,16 @@ NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.m
 npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-vecteurs.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-exigences.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-parcours.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-politique-vecteurs.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-politique-exigences.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-politique-parcours.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-vecteurs.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-exigences.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-hostiles.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-icap.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-miroir.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-securite.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-parcours.test.js
 ```
 
 - `enregistreur-coeur-vecteurs` : `jcs-integral`, `evenements/journal-demo`
@@ -630,7 +1107,76 @@ NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.m
   d'outils stdio moderne et hérité, hôtes moderne, hérité et HTTP), chaque
   appel scellé, période close, journal vérifié par le noyau, dossier de
   chaque appel vérifié par le noyau et par le binaire Go (en attente sans
-  go1.27.3) ; puis le démon réel `bin/noortrace --config` avec le frontal.
+  go1.27.3) ; puis le démon réel `bin/noortrace --config` avec le frontal ;
+- `enregistreur-politique-vecteurs` : `pieces-mcp/appels/approbation-*` et
+  `journal-demo` seq 5 à 7 rejoués de bout en bout (frontal, moteur de
+  politique, cœur, service simulé d'après CT-3 §12) ; politiques valides et
+  invalides de `spec/vecteurs/ct-3` (CT-3 EX-4.2, AP-1 à AP-4) ;
+- `enregistreur-politique-exigences` : EX-7.4, EX-7.14 à EX-7.23, EX-9.4,
+  EX-12.23, cases de 14.2 du service d'approbation, modes `erreur`,
+  `retenir` et observation, EX-15.4 pas 3 et 6, EX-15.8, EX-18.8, en réussite
+  et en échec ; entrées hostiles (service muet, réponse illisible, jeton
+  refusé, ticket inconnu, remise rejouée, horloge qui recule) ;
+- `enregistreur-politique-parcours` : un hôte réel (connecteur) traverse le
+  mandataire ; le vrai service d'approbation (`paquets/approbation`) tourne
+  en processus, évalue la politique et décide sur les votes EIP-191 des
+  comptes de test déposés par son canal de la console ; lecture relayée,
+  paiements retenus puis approuvé (intention par référence), refusé, expiré
+  (mode `retenir`), mode `erreur`, mode observation, chaque appel scellé,
+  période close, journal vérifié par le noyau, dossier de chaque appel
+  vérifié par le noyau et par le binaire Go (en attente sans go1.27.3) ;
+  puis le démon réel, joint au même service, tué (SIGKILL) pendant une
+  rétention, redémarré, la ré-émission retenue, approuvée et relayée ;
+- `enregistreur-modele-vecteurs` : chaque cas de `pieces-modele` à travers
+  la passerelle réelle vers un fournisseur simulé qui rend les octets
+  publiés : refus (statut, corps, `Content-Type`, rien relayé, aucun
+  événement), cible et corps reçus par le fournisseur, réponse rendue octet
+  pour octet, forme consolidée, appels demandés, pièces stockées, champs de
+  l'événement ; `gemini-sdk-*` par les fonctions de dérivation ; échanges de
+  seq 2, 4 et 8 de `journal-demo` et corrélation de seq 3 et 5 ;
+- `enregistreur-modele-exigences` : EX-5.1, EX-5.2, EX-5.7 à EX-5.13,
+  EX-5.19 à EX-5.26, EX-5.28 à EX-5.33, EX-5.36, EX-8.5 à EX-8.7, colonne M
+  de 14.2, EX-14.16, 13.5, EX-17.2 et EX-17.3 en réussite et en échec ;
+- `enregistreur-modele-hostiles` : analyseur SSE (fins de ligne, marque
+  d'ordre d'octets, UTF-8 invalide, chaque transcription découpée à
+  l'octet), événements mal formés et index hors bornes, imbrication et
+  tailles extrêmes, en-têtes en double, corps invalides, fournisseur qui
+  coupe ou répond autre chose que du HTTP, flux d'octets aléatoires, client
+  qui se déconnecte ;
+- `enregistreur-modele-parcours` : un agent réel (processus Node) parle aux
+  quatre formats à travers la passerelle (en flux puis hors flux) et appelle
+  l'outil demandé par le mandataire MCP (serveur d'outils stdio lancé par le
+  démon) ; chaque échange et chaque appel scellé, chaque appel corrélé,
+  période close, journal vérifié par le noyau, dossiers d'un échange et d'un
+  appel vérifiés par le noyau et par le binaire Go (en attente sans
+  go1.27.3) ; puis le démon réel `bin/noortrace --config` avec la
+  passerelle, arrêt propre, et démon tué pendant un échange en vol (13.5) ;
+  enfin le démon réel en mode `icap` (mandataire HTTP qui parle REQMOD et
+  RESPMOD) et en mode `miroir` (équipement de copie simulé, processus
+  `bin/noortrace-miroir`), quatre formats scellés, période close, journal
+  vérifié par le noyau, dossier d'un échange par le noyau et par le binaire
+  Go ;
+- `enregistreur-modele-icap` : client ICAP simulé d'après RFC 3507 (messages
+  construits octet par octet : `Encapsulated`, sections HTTP, `chunked`,
+  Preview, `ieof`) : OPTIONS, codes d'erreur et `ISTag`, adresses sources,
+  ICAPS avec certificat client généré à l'exécution, REQMOD et RESPMOD en
+  réussite, blocages (EX-5.7, EX-5.29, EX-5.32, EX-5.33, hôte inconnu,
+  colonne M, quota), identifiant au MAC faux, corrélation heuristique,
+  requête inconnue, délai sans RESPMOD, flux coupé, panne après le REQMOD
+  (EX-14.12), entrées hostiles, mandataire HTTP pour les quatre formats ;
+- `enregistreur-modele-miroir` : couples de la prise (réussite, `is_error`,
+  copie tronquée, borne, refus sans événement, entrée `"inconnu"`, EX-5.32),
+  mode dégradé (attente puis scellement, `exchange_lost`), quotas sans
+  effet, lignes hostiles, adaptateur (réassemblage HTTP/1.1 découpé à
+  l'octet, copie coupée, octets illisibles), processus
+  `bin/noortrace-miroir`, de bout en bout pour les quatre formats ;
+- `enregistreur-modele-securite` : quotas d'EX-4.47 sur la passerelle
+  (requêtes en cours, octets reçus, octets de pièces, temps de capture,
+  mode observation), jeton OAuth d'EX-5.8 point 2 (valide, refusé pour
+  chaque cause, configuration refusée au démarrage), TLS de `model.tls` avec
+  des certificats générés à l'exécution par `openssl` (poignée de main,
+  autorité inconnue, nom faux, TLS 1.1 refusé face à un témoin qui
+  l'accepte, certificat illisible : démarrage refusé).
 
 Les répertoires de test sont créés sous `os.tmpdir()`.
 
@@ -653,6 +1199,7 @@ cherchent ni n'importent `scripts/lib/**`, `scripts/vecteurs/**`,
 | `@noortrace/noyau` | 0.1.0 (espace de travail) | formats et cryptographie de CT-1 |
 | `node:crypto`, `node:fs`, `node:http` | Node.js ≥ 22 | PKCS#8, HMAC-SHA-256, AES-256-GCM (coffre), fichiers, supervision, canal du service |
 | `node:vm`, `node:worker_threads` | Node.js ≥ 22 | borne de temps des motifs (EX-10.23), fils de calcul (EX-3.6) |
-| `node:net`, `node:child_process`, `node:https` | Node.js ≥ 22 | prises des connecteurs, serveurs d'outils stdio, Streamable HTTP et JWKS (frontal MCP) |
+| `node:net`, `node:child_process`, `node:https`, `node:tls` | Node.js ≥ 22 | prises des connecteurs, serveurs d'outils stdio, Streamable HTTP et JWKS (frontal MCP) ; passerelle, connexions aux fournisseurs, serveur ICAP et ICAPS, prise du miroir (frontal modèle) |
+| `node:zlib` | Node.js ≥ 22 | réponse de fournisseur comprimée malgré `Accept-Encoding: identity` (EX-5.9) |
 
 Aucune autre dépendance d'exécution.

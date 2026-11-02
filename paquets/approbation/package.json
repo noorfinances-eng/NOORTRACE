@@ -1,0 +1,28 @@
+{
+  "name": "@noortrace/approbation",
+  "version": "0.1.0",
+  "description": "Service d'approbation NOORTRACE (CT-3 version 0.4) : validation et évaluation de la politique d'approbation, tickets et machine à états, jeux d'approbateurs, vérification des votes, décompte, remise des décisions, persistance et reprise, interface HTTP du noyau (CT-3 §12.1 à §12.8).",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "noortrace-approbation": "bin/noortrace-approbation"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schemas",
+    "LISEZMOI.md",
+    "INTERFACES.md"
+  ],
+  "dependencies": {
+    "@noortrace/noyau": "0.1.0"
+  }
+}

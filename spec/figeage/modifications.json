@@ -242,6 +242,24 @@
           "apres": "1d45c67898ba6433e12f39e8c1bcfe840f15583d9c056ae3f0e3f19588866d05"
         }
       ]
+    },
+    {
+      "id": "MC-9",
+      "date": "2026-11-02",
+      "etape": 4,
+      "motif": "Étape 4, lots frontal modèle, service d’approbation et moteur de politique : quatorze fichiers de test ajoutés (enregistreur-modele ×7, enregistreur-politique ×3, approbation-service ×4) ; empreintes de couverture CT-9 et recomptage régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "b646279b50b2b39850933c703dac55ed3c2162fdc89730ecf90db3a853527633",
+          "apres": "e970eeac9a295e5a3c2b64ee6375aba2745875f25f595216094ce32b590922af"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "1d45c67898ba6433e12f39e8c1bcfe840f15583d9c056ae3f0e3f19588866d05",
+          "apres": "4c1109b641f599c16007ecb7521bf469189a43f96f9fc7e9420f0df683c5abbc"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,11 @@
+#!/usr/bin/env node
+// Service d'approbation NOORTRACE (CT-3 §12).
+import { principal } from "../src/cli.mjs";
+
+principal(process.argv.slice(2)).then(
+  (code) => process.exit(code),
+  (e) => {
+    process.stderr.write(`noortrace-approbation : ${e.stack ?? e}\n`);
+    process.exit(1);
+  },
+);
