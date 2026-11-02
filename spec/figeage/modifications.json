@@ -3,5 +3,54 @@
   "date_figeage": "2026-11-02",
   "manifeste": "spec/figeage/conception-v1.0.sha256",
   "manifeste_sha256": "0f4a7d9fd3998e56cb72a0334bc262b3e5cf46eb469d91d8b59e2ade2fce6043",
-  "modifications": []
+  "modifications": [
+    {
+      "id": "MC-1",
+      "date": "2026-11-02",
+      "etape": 1,
+      "motif": "Étape 1 de la construction : TU-12 (propriétés aléatoires du noyau) passe exécutable sur test/noyau-proprietes.test.js (CT-9 EX-3.12) ; tables et chiffres de CT-9 (5.5, 6, 16) alignés, catalogue et couverture régénérés ; sortie publiée du recomptage Python et attente du vérificateur Go de CT-9 mises à jour (trois fichiers de test de plus, aucune TU- à écrire). Aucune exigence ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "3d9da3f64c9ae255a61feed3400f12ea106144771a70defdd824600c6179bd52",
+          "apres": "855bf77f439d8275cf90a8e60ec7b8d34bdd6e96b35a7083ab93f908a3a4be21"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "5b2efb40e561fd9beac164a82dae96729d91ae5aa9d2c29e5adc757ac9c41535",
+          "apres": "26d9cefda2fd1a777304a9ea10abdc3a567cfdc4bbc9c07fdfdaca914f68f867"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "40ef3819e4b510fbb61242eaf96e64011d13fed614cea6b8875da24af42fe025",
+          "apres": "66e2f36895c01d0811720113560be4453e4b07a0aa6dc2b9d9552a4aa840665e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "421923f7ed2784288ecc99431c5481341e105acf9957bfe36c777edc7b503b89",
+          "apres": "4c5669466edbf395278b2d837abc7bd6cf9b6dbf7dedc5a834653fdf8cf038bc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "a19ee255c268396e9eb34c90b86be4d89537ee3140c89173acf3725b8d0ba171",
+          "apres": "b109c57b4a83f9f941fc5ca0dff619bb3b9f58d88de4df79dc8c2cd648b423f9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "dcd9266f75b9c929739ca54c597ced4c143687b5379ec656db5685795a136851",
+          "apres": "65459694044e6c09cc583e25ad0ddc8bbffc7b0120c32c6f176b94cb03ef01e6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "fc4a247a2fe1d4f469c2c3ad9a1c3b0693297719f48dcf4afa14a355c30d0145",
+          "apres": "c83041382df24e80a92697af9ecb13ff0ea3897e08ec7bee8e23e154be44983e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/vecteurs.go",
+          "avant": "f77bf64dcad3cb2f89d9bf146c8c3bf3b41244a251661411f46cd7e21010eb36",
+          "apres": "0c35179832574be87f7422370fab80bd581ea60998bb0a9ce64f562b86eacf7b"
+        }
+      ]
+    }
+  ]
 }

@@ -148,6 +148,11 @@ construction.
   vérification de CT-1 à CT-8 couverte par un test ou par une justification
   nommée, chaque menace de CT-7 par un test adversarial, chaque renvoi à CT-9
   par sa ligne) et contrôle des rapports de mesure.
+- `paquets/noyau/` : bibliothèque noyau de production (`@noortrace/noyau`,
+  étape 1 de la construction) : forme canonique, hachage, signatures, chaînage,
+  Merkle, manifestes, points de contrôle et contrôles du dossier de CT-1, écrite
+  depuis le seul texte de CT-1 et éprouvée sur tous ses vecteurs ; voir
+  [paquets/noyau/LISEZMOI.md](paquets/noyau/LISEZMOI.md).
 - `scripts/conception/` : contrôle du figeage de la conception v1.0 (chaque
   modification de `spec/` consignée dans `spec/figeage/modifications.json`).
 - `console/` : console d'approbation de référence de CT-3, page statique sous

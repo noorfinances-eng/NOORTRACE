@@ -1,0 +1,24 @@
+{
+  "name": "@noortrace/noyau",
+  "version": "0.1.0",
+  "description": "Bibliothèque noyau de NOORTRACE : forme canonique JCS v0, hachage, signatures, chaînage, arbre de Merkle, manifeste, point de contrôle et dossier de preuve v0 (CT-1 version 0.4).",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./dossier-fichiers": "./src/dossier-fichiers.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "LISEZMOI.md"
+  ],
+  "dependencies": {
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0"
+  }
+}

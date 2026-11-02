@@ -6,6 +6,18 @@ is tagged.
 
 ## Unreleased
 
+- Build step 1, the production core library `@noortrace/noyau`
+  (`paquets/noyau/`, npm workspace): strict JSON and canonical form, hashing,
+  Ed25519 and EIP-191 signatures, chaining, RFC 6962 Merkle trees and RFC 9162
+  consistency proofs, period manifests, checkpoints, the perimeter attestation
+  and every evidence-folder check of CT-1. Written from the CT-1 text alone,
+  without reading the reference implementation, so that a defect of the oracle
+  cannot be copied into the product. It replays all 684 CT-1 vector files
+  (`test/noyau-vecteurs.test.js`, with an inventory test), and the CT-9
+  property tests TU-12 run on it with `fast-check` 4.10.2
+  (`test/noyau-proprietes.test.js`). Runtime dependencies: `@noble/curves` and
+  `@noble/hashes` 2.4.0, exact. The CT-9 change is recorded as MC-1 in the
+  design-freeze register.
 - Design frozen as version 1.0 (first gate of the project plan), 2 November
   2026. A manifest records the SHA-256 of every file under `spec/`
   (`spec/figeage/conception-v1.0.sha256`, `sha256sum` format); every later

@@ -652,7 +652,7 @@ func (d *Depot) verifierProse(rap *Rapport) {
 		}
 		return out
 	}
-	rap.Verdict(strings.Join(parEtat("TU", "a_ecrire"), ",") == "TU-12", "6", "TU- à écrire", "%v (texte : TU-12, étape 1)", parEtat("TU", "a_ecrire"))
+	rap.Verdict(len(parEtat("TU", "a_ecrire")) == 0, "6", "TU- à écrire", "%v (texte : les trente-neuf exécutables, TU-12 depuis l'étape 1)", parEtat("TU", "a_ecrire"))
 	s7 := Normaliser(SectionTexte(d.CT9.Texte, "7"))
 	m := regexp.MustCompile(`(TV-[0-9]+) \(vérificateur Go de CT-6, étape 2\) et (TV-[0-9]+) \(famille .supervision/., étape 7\) sont à écrire`).FindStringSubmatch(s7)
 	tvAE := parEtat("TV", "a_ecrire")

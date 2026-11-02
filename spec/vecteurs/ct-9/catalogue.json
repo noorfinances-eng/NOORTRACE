@@ -529,9 +529,14 @@
       ],
       "oracle": "Chaque propriété tient sur ses `numRuns` exécutions ; un échec est consigné par son couple `seed`/`path` et rejoué tel quel (R11-F18) avant toute correction.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 1,
-        "blocking": "`fast-check` n'est pas une dépendance du dépôt (R11-F7) ; l'ajout se fait avec la bibliothèque noyau de l'étape 1."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/noyau-proprietes.test.js",
+            "describe": "Noyau : propriétés (TU-12)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/noyau-proprietes.test.js"
       },
       "threats": [
         "MN-4",

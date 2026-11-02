@@ -34,7 +34,7 @@ par entrée : identifiant, niveau, état, titre.
 | TU-9 | TU- | exécutable | Dossier de preuve par la bibliothèque : assemblage, index, contrôles D-, P-, A- (CT-1 §11) |
 | TU-10 | TU- | exécutable | Partie `attestation-perimetre.json` par la bibliothèque, AT-1 à AT-7 (CT-1 révision 0.4) |
 | TU-11 | TU- | exécutable | Ligne de commande `scripts/verify/dossier.mjs` : codes 0, 1, 2 (CT-1 §11.4) |
-| TU-12 | TU- | à écrire (étape 1) | Propriétés aléatoires du noyau : canonicalisation, hachage, chaînage, Merkle, signature |
+| TU-12 | TU- | exécutable | Propriétés aléatoires du noyau : canonicalisation, hachage, chaînage, Merkle, signature |
 | TU-13 | TU- | exécutable | Primitives de la console confrontées à `node:crypto`, `@noble/*` et `ethers` (CT-3 EX-13.32) |
 | TU-14 | TU- | exécutable | Lecteur DER borné du vérificateur (CT-6 §9.3) |
 | TU-15 | TU- | exécutable | Jeton RFC 3161 construit en mémoire : T-1 à T-11, N-1, AV-T- (CT-6 §9, §12.2, §15.2) |
@@ -351,7 +351,7 @@ Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
 2332 identifiants définis par CT-1 à CT-8, 2193 couverts par une entrée, 139 par
 une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 117
-occurrences de « CT-9 » et 117 lignes TC- ; 189 entrées exécutables citant 359
+occurrences de « CT-9 » et 117 lignes TC- ; 190 entrées exécutables citant 360
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

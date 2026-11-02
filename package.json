@@ -4,6 +4,9 @@
   "description": "NOORTRACE : registre d'exploitation des périodes de journal et des clés d'enregistreur, sur une instance dédiée de noorcore. Contrats Hardhat, tests et scripts de déploiement.",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "paquets/*"
+  ],
   "scripts": {
     "compile": "npx hardhat --config hardhat.config.mjs compile",
     "test": "npx hardhat --config hardhat.config.mjs test",
@@ -48,6 +51,7 @@
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
     "chai": "^6.0.1",
     "ethers": "^6.16.0",
+    "fast-check": "4.10.2",
     "hardhat": "^3.20.0",
     "js-yaml": "4.3.2",
     "mocha": "^11.7.2"

@@ -43,7 +43,7 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "40ef3819e4b510fbb61242eaf96e64011d13fed614cea6b8875da24af42fe025"
+      "sha256": "66e2f36895c01d0811720113560be4453e4b07a0aa6dc2b9d9552a4aa840665e"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -113,6 +113,18 @@
       {
         "file": "test/journal.test.js",
         "sha256": "c00043d1d608b31d9698d63a53080b5a8b4108d5e61a58c067d7bfccc973621a"
+      },
+      {
+        "file": "test/noyau-proprietes.test.js",
+        "sha256": "598ae914b3a53fb85e33bc01db2c1df7c42683645aca7fd3585c16d0b4538e55"
+      },
+      {
+        "file": "test/noyau-vecteurs.test.js",
+        "sha256": "49768fbc363d5c46c12f0c59bc78ae8a6132f50d95a90abce9ebaf3d25b9afb8"
+      },
+      {
+        "file": "test/noyau.test.js",
+        "sha256": "5a56cb948a9d99d270cf38712761f275473a0a01b0e88045f6520ca6f942c059"
       },
       {
         "file": "test/observation.test.js",
@@ -415,8 +427,8 @@
     "orphans": []
   },
   "executable": {
-    "total": 189,
-    "titles_checked": 359,
+    "total": 190,
+    "titles_checked": 360,
     "titles_missing": []
   },
   "text_tables": {

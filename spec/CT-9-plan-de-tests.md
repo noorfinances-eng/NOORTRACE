@@ -905,7 +905,7 @@ jamais corrigé à la main) :
 - 98 menaces sur 98 avec un TA- (règle (b)) ;
 - 117 occurrences de « CT-9 » et 117 lignes TC-, sans manque ni orpheline
   (règle (c)) ;
-- 189 entrées exécutables citant 359 titres de tests ou étapes de CI, tous
+- 190 entrées exécutables citant 360 titres de tests ou étapes de CI, tous
   trouvés mot pour mot (règle (d)) ; verdict `reussi`.
 
 Par spécification (identifiants, couverts par une entrée, par une
@@ -917,7 +917,7 @@ depuis le catalogue) :
 <!-- table stats -->
 | Niveau | Entrées | Exécutables | dont avec complément à écrire | À écrire |
 |---|---|---|---|---|
-| TU- | 39 | 38 | 0 | 1 |
+| TU- | 39 | 39 | 0 | 0 |
 | TV- | 76 | 74 | 0 | 2 |
 | TI- | 20 | 3 | 0 | 17 |
 | TE- | 17 | 1 | 0 | 16 |
@@ -925,7 +925,7 @@ depuis le catalogue) :
 | TM- | 43 | 4 | 0 | 39 |
 | TR- | 15 | 0 | 0 | 15 |
 | TQ- | 8 | 0 | 0 | 8 |
-| Total | 321 | 189 | 13 | 132 |
+| Total | 321 | 190 | 13 | 131 |
 
 ## 6. Tests unitaires et de propriétés (TU-)
 
@@ -937,9 +937,9 @@ bibliothèques de CT-2 (`capture.mjs`, `otel.mjs`, `worm.mjs`,
 (`conventions-registre.mjs`, outil de référence, contrats), CT-5
 (`ancrage.mjs`), CT-6 (`horodatage.mjs`, `ots.mjs`, `registre.mjs`,
 `verificateur.mjs`), CT-7 (`securite.mjs`), CT-8 (`deploiement.mjs`,
-`exploitation.mjs`, `paquet.mjs`). Trente-huit des trente-neuf entrées sont
-exécutables aujourd'hui par `npm test` ; TU-12 (propriétés aléatoires) est
-à écrire à l'étape 1.
+`exploitation.mjs`, `paquet.mjs`). Les trente-neuf entrées sont exécutables
+par `npm test` ; TU-12 (propriétés aléatoires) porte depuis l'étape 1 sur la
+bibliothèque noyau de production `paquets/noyau`.
 
 **EX-6.1** Le TU-12 de propriétés fixe : bibliothèque `fast-check` à
 version exacte (4.10.2 au 2026-11-01, R11-F16), graine constante écrite
@@ -963,7 +963,7 @@ preuve altérée, aller-retour Ed25519) sont écrites dans son entrée.
 | TU-9 | Dossier de preuve par la bibliothèque : assemblage, index, contrôles D-, P-, A- (CT-1 §11) | CT-1 D- (1), CT-1 P- (2), CT-1 A- (4), CT-1 E- (1) | — | exécutable : `test/journal.test.js` |
 | TU-10 | Partie `attestation-perimetre.json` par la bibliothèque, AT-1 à AT-7 (CT-1 révision 0.4) | CT-1 AT- (7) | MN-79, MN-80, MN-82, MN-86, MN-89, MN-91 | exécutable : `test/journal.test.js` |
 | TU-11 | Ligne de commande `scripts/verify/dossier.mjs` : codes 0, 1, 2 (CT-1 §11.4) |  | — | exécutable : `test/journal.test.js` |
-| TU-12 | Propriétés aléatoires du noyau : canonicalisation, hachage, chaînage, Merkle, signature | CT-1 E- (2), CT-1 C- (1), CT-1 M- (1), CT-1 K- (1) | MN-4, MN-17 | à écrire (étape 1) |
+| TU-12 | Propriétés aléatoires du noyau : canonicalisation, hachage, chaînage, Merkle, signature | CT-1 E- (2), CT-1 C- (1), CT-1 M- (1), CT-1 K- (1) | MN-4, MN-17 | exécutable : `test/noyau-proprietes.test.js` |
 | TU-13 | Primitives de la console confrontées à `node:crypto`, `@noble/*` et `ethers` (CT-3 EX-13.32) | CT-3 EX-13- (1) | MN-52 | exécutable : `test/console-primitives.test.js`, `test/console.test.js` |
 | TU-14 | Lecteur DER borné du vérificateur (CT-6 §9.3) | CT-6 EX-9- (1) | MN-68 | exécutable : `test/horodatage.test.js` |
 | TU-15 | Jeton RFC 3161 construit en mémoire : T-1 à T-11, N-1, AV-T- (CT-6 §9, §12.2, §15.2) | CT-6 T- (11), CT-6 N- (1), CT-6 AV-T- (4), CT-6 EX-9- (22), CT-6 EX-12- (1), CT-6 EX-15- (1) | MN-61, MN-68 | exécutable : `test/horodatage.test.js` |
@@ -2477,11 +2477,11 @@ version.
 
 ## 16. Ce que cette version ne couvre pas
 
-- **Les résultats d'exécution des tests « à écrire »** : 132 entrées du
+- **Les résultats d'exécution des tests « à écrire »** : 131 entrées du
   catalogue (table de 5.5) et les compléments des treize TA- exécutables
   n'ont aucun résultat ; aucun n'est inventé.
-- **Les tests de propriétés** (TU-12) : `fast-check` n'est pas une
-  dépendance du dépôt (R11-F7) ; l'entrée fixe les réglages, pas le code.
+- **Les tests de propriétés** (TU-12) : écrits à l'étape 1 de la phase 2,
+  sur la bibliothèque noyau ; cette version n'en fixait que les réglages.
 - **Les tests de mutation automatisés** : CT-9 n'adopte aucun outil de
   mutation (StrykerJS, PIT, R11-F23 à R11-F27) ; chaque TA- retire sa
   réponse à la main, par une copie de l'implémentation ou une configuration
