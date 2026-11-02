@@ -85,6 +85,10 @@ export function configurationDev(dir, o = {}) {
     health_interval_ms: 10000,
     rotation: { planned_every_days: null, next_key_id: "rec-test-02" },
   };
+  // Frontal MCP (lot du frontal) : désactivé sauf demande ; les serveurs
+  // d'outils de l'exemple de 15.3 ne sont pas joignables depuis les tests.
+  c.mcp.enabled = o.mcp === true;
+  c.mcp.socket = path.join(dir, "prise", "mcp.sock");
   c.storage.root = path.join(dir, "stockage");
   c.storage.min_free_bytes = 1024;
   c.storage.seal = { append_only_attribute: false, worm: null };

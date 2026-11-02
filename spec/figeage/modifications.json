@@ -224,6 +224,24 @@
           "apres": "eb2167f11f5b2a941fcaf954e0c785603992f340c8107cf3c598d63db6bcc414"
         }
       ]
+    },
+    {
+      "id": "MC-8",
+      "date": "2026-11-02",
+      "etape": 4,
+      "motif": "Étape 4, lots rédaction et frontal MCP : cinq fichiers de test ajoutés (enregistreur-redaction, enregistreur-redaction-parcours, enregistreur-mcp-vecteurs, enregistreur-mcp-exigences, enregistreur-mcp-parcours) le test d’inventaire du cœur et son outillage de test modifiés ; empreintes de couverture CT-9 et recomptage régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "7a8f5c9d3bf24c5a139d2db1e974030d1953867391acb9dcbdfbba0aabaedee5",
+          "apres": "b646279b50b2b39850933c703dac55ed3c2162fdc89730ecf90db3a853527633"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "eb2167f11f5b2a941fcaf954e0c785603992f340c8107cf3c598d63db6bcc414",
+          "apres": "1d45c67898ba6433e12f39e8c1bcfe840f15583d9c056ae3f0e3f19588866d05"
+        }
+      ]
     }
   ]
 }

@@ -112,11 +112,31 @@
       },
       {
         "file": "test/enregistreur-coeur-vecteurs.test.js",
-        "sha256": "29f64fba7a71e59a2e0d1543a2dcc78bd2daba635b079720025898f5cdb18b52"
+        "sha256": "1e2ea4150dd76049385cf02374d588ae09bc0153f9bb18e6c6cdb8cf0f1c6a5b"
+      },
+      {
+        "file": "test/enregistreur-mcp-exigences.test.js",
+        "sha256": "15ccde72c9159535271d8efe8d84fd9c426d1dcdc994239684a28ff8fa1608da"
+      },
+      {
+        "file": "test/enregistreur-mcp-parcours.test.js",
+        "sha256": "0db5dc0311b52fc04dc0f94cc635977c9d86108691099a8e92914084012b56f6"
+      },
+      {
+        "file": "test/enregistreur-mcp-vecteurs.test.js",
+        "sha256": "74e92f4d5cdb36fa94fc45b74de85cd766f353e8720a537f4065f48ece338920"
       },
       {
         "file": "test/enregistreur-r05.test.js",
         "sha256": "55935ae269e77138f62aa8c968ca39322ff8453916329c9c43c004688df2ceb5"
+      },
+      {
+        "file": "test/enregistreur-redaction-parcours.test.js",
+        "sha256": "235cc633c41a909d218a3af763e92b53191077564ec660b36fcc3a0295da3800"
+      },
+      {
+        "file": "test/enregistreur-redaction.test.js",
+        "sha256": "f12d60ab7a7be1299829f60f0f5251dc738db4df7a1ca01b5206c4e712ff6472"
       },
       {
         "file": "test/enregistreur.test.js",

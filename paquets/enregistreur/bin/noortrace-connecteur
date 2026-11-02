@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+// Connecteur stdio noortrace (CT-2 §4.7.1) : voir src/mcp/connecteur.mjs.
+import { principalConnecteur } from "../src/mcp/connecteur.mjs";
+
+process.exitCode = await principalConnecteur(process.argv.slice(2));

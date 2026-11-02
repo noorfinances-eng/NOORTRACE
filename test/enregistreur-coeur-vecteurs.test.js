@@ -9,7 +9,12 @@
 //     (sérialisation et référence de chaque pièce publiée ; pièces de
 //     définition, de liste et d'arguments non rédigés dérivées des
 //     transcriptions) ; la dérivation des autres pièces relève des frontaux
-//     et de la rédaction (lots suivants).
+//     (lots suivants) ;
+//   - redaction/ (politiques, motifs, cas) : rejoués par le rédacteur du lot
+//     « rédaction » (§10), détail dans enregistreur-redaction.test.js.
+//   - pieces-mcp/agregation : rejoués par l'agrégation du lot « frontal MCP »
+//     (§4.3) ; les transcriptions de pieces-mcp/appels sont rejouées de bout
+//     en bout par le frontal dans enregistreur-mcp-vecteurs.test.js.
 // Le dernier bloc est l'inventaire : il dit, fichier par fichier, ce qui est
 // rejoué et ce qui relève d'un lot suivant, et échoue si un fichier de
 // vecteur n'est ni consommé ni attribué.
@@ -23,7 +28,8 @@ import {
   SignataireFichier, SignataireVerifie, MagasinBailMemoire, ZERO32, canoniserTexteIntegral, jcsIntegral,
   analyserJsonIntegral, pieceJson, pieceTexte, pieceNonJson, pieceDefinitionOutil, pieceListeAnnoncee,
   pieceErreurJsonRpc, piecePolitique, empreintePolitique, partielPolitique, partielEchange, partielAppelOutil,
-  partielDecision, repriseDeRetenue, evaluerEffets, Piece,
+  partielDecision, repriseDeRetenue, evaluerEffets, Piece, PolitiqueCompilee, produirePiece, validerPolitiqueRedaction,
+  controlerMotif, premiereCorrespondance, agreger, paginer,
 } from "@noortrace/enregistreur";
 import { VECTEURS_CT2, graine, repertoireTemporaire, lireVecteur } from "./fixtures/enregistreur-coeur/outils.mjs";
 
@@ -354,15 +360,54 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
     });
   });
 
+  describe("redaction/ (B.3) : rejeu par le rédacteur (lot « rédaction », §10)", function () {
+    it("politiques (schéma, EX-10.6) ; cas.json rédigé octet pour octet, comptes compris", function () {
+      const cle = N.sha256(N.utf8("noortrace/vecteurs/v0/cle-pseudonyme/test"));
+      const pol = {};
+      for (const f of ["politique-pii-v1.json", "politique-pseudonyme-test.json", "politique-regles-test.json"]) {
+        const d = json(`redaction/${f}`);
+        expect(validerPolitiqueRedaction(d).erreurs, f).to.deep.equal([]);
+        pol[d.name] = new PolitiqueCompilee(d, { cle: d.pseudonym_key ? cle : null });
+      }
+      for (const c of json("redaction/cas.json")) {
+        const d = typeof c.input === "string" ? { genre: "texte", portee: c.scope, outil: c.tool, texte: c.input } : { genre: "json", portee: c.scope, outil: c.tool, valeur: c.input };
+        const r = produirePiece(pol[c.policy], d, { budgetMs: 1000 });
+        expect(N.decoderUtf8(r.piece.octets), c.name).to.equal(c.expected.piece);
+        expect(r.piece.reference.sha256, c.name).to.equal(c.expected.sha256);
+        expect(r.redacted, c.name).to.equal(c.expected.redacted);
+        expect(r.comptes, c.name).to.deep.equal(c.expected.matches);
+      }
+    });
+
+    it("motifs.json : admis et refusés, première correspondance (EX-10.6)", function () {
+      for (const m of json("redaction/motifs.json")) {
+        const c = controlerMotif(m.pattern);
+        expect(c.admis, m.pattern).to.equal(m.admis);
+        for (const x of m.matches ?? []) expect(premiereCorrespondance(c.regexp, x.input, { entiere: true })).to.equal(x.first);
+      }
+    });
+  });
+
+  describe("pieces-mcp/agregation (B.4) : rejeu par l'agrégation du frontal MCP (§4.3)", function () {
+    it("noms annoncés, rejets d'EX-4.11, classes, empreintes, pages ; sans préfixe à deux serveurs : refus", function () {
+      for (const d of ["", "/normalisation", "/sans-prefixe-un-serveur"]) {
+        const s = json(`pieces-mcp/agregation${d}/serveurs.json`);
+        const a = json(`pieces-mcp/agregation${d}/attendu.json`);
+        const r = agreger({ serveurs: s, prefixe: a.prefix, normalisations: a.normalisations ?? [] });
+        expect(r.annonces.map((x) => ({ server_alias: x.server_alias, original: x.original, announced: x.announced, class: x.class, definition_sha256: x.definition_sha256 })), d).to.deep.equal(a.announced);
+        expect(r.rejets, d).to.deep.equal(a.rejected);
+        expect(paginer(r.annonces, a.page_size).map((p) => p.map((x) => x.announced)), d).to.deep.equal(a.pages);
+      }
+      // Refus de configuration (EX-4.10) : vérifié par enregistreur-mcp-vecteurs.test.js.
+      expect(json("pieces-mcp/agregation/sans-prefixe/serveurs.json").length).to.equal(2);
+      expect(json("pieces-mcp/agregation/sans-prefixe/attendu.json").configuration_refusee).to.equal(true);
+    });
+  });
+
   describe("inventaire", function () {
     // Familles et fichiers du générateur (B.1) ; verificateur-independant/ et
     // confrontation/ ne sont pas des données et ne sont pas ouverts.
     const LOTS_SUIVANTS = {
-      "pieces-mcp/agregation": "frontal MCP (§4.3, EX-4.11)",
-      "redaction/motifs.json": "rédaction (§10, EX-10.6)",
-      "redaction/politique-pii-v1.json": "rédaction (§10.9)",
-      "redaction/politique-pseudonyme-test.json": "rédaction (§10.3.9)",
-      "redaction/politique-regles-test.json": "rédaction (§10.2)",
       otel: "ingestion OpenTelemetry (§6.8)",
       worm: "WORM et gel juridique (§12.6, §12.11)",
       "cout-agent": "coût annuel par agent (§16.4)",

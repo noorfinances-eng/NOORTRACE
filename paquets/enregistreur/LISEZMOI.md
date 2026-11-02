@@ -14,9 +14,11 @@ tout ce qu'elle fait (JCS v0, hachage, Ed25519, EIP-191, événement, rotation,
 Merkle, manifeste, point de contrôle, dossier, schémas de CT-1) et ne le
 réécrit pas. Les vecteurs de `spec/vecteurs/ct-2` et l'annexe A sont le juge.
 
-Les frontaux (MCP, modèle, SDK, OpenTelemetry), le moteur de politique, la
-rédaction, le WORM, la haute disponibilité et l'ancrage sont des lots
-suivants : [INTERFACES.md](INTERFACES.md) est leur contrat.
+Les frontaux modèle, SDK et OpenTelemetry, le moteur de politique, le WORM,
+la haute disponibilité et l'ancrage sont des lots suivants :
+[INTERFACES.md](INTERFACES.md) est leur contrat. La rédaction avant hachage
+(§10) et le frontal MCP (§4) sont faits (sections « Rédaction avant
+hachage » et « Frontal MCP » ci-dessous).
 
 ## Ce que fait le cœur
 
@@ -76,11 +78,125 @@ suivants : [INTERFACES.md](INTERFACES.md) est leur contrat.
 - **Export d'un dossier minimal** (CT-1 §11) : douze parties v0 (réservées
   absentes, « hors périmètre CT-1 ») et la treizième, `points-de-controle.json`.
 
+## Rédaction avant hachage (§10)
+
+Lot « rédaction » (INTERFACES.md, section e) : `redaction*.mjs`, `coffre.mjs`.
+
+- **Politique** (10.2) : document `politique-redaction-v0` validé contre son
+  schéma, puis par EX-10.6 (champ et `path`, supprimer, pseudonyme et clé,
+  motif nommé existant, identifiants uniques), au démarrage, au rechargement
+  et par `validate-config` (`controleRedaction`, pas 3 d'EX-15.4) ; règles
+  changées sans changer `redaction.name` refusées (EX-10.21).
+- **Motifs** (EX-10.6) : sous-ensemble commun ECMAScript/RE2 par liste
+  autorisée (analyseur propre, arbre), règles a) à c), zéro non significatif,
+  réécriture des seules ouvertures `(?P<` reconnues, compilation avec le
+  drapeau `u` ; contrôle des jetons de la politique motif par motif sous la
+  borne (EX-10.23 opération 4) ; même contrôle pour `extract` (EX-7.6).
+- **Détecteurs exacts** (10.3) : `iban` (onze pays, MOD 97-10 par blocs),
+  `avs` (clé de l'ordonnance, séparateurs identiques), `carte` (Luhn, 12 à 19
+  chiffres), `email` (lecture bornée à 64 et 256 caractères autour de chaque
+  `@`), `telephone` (8 à 15 chiffres, groupe entre parenthèses), en temps
+  linéaire ; `regex` (EX-10.10) ; `champ` (EX-10.11) ; segments entre jetons
+  opaques, fin de correspondance frontière (EX-10.9).
+- **Application** (10.4) : règles retenues par portée et outil (`<alias>__*`),
+  passages jusqu'à stabilité (EX-10.14), idempotence (EX-10.15), `redacted`
+  par comparaison des JCS intégraux (EX-10.16), actions `remplacer`,
+  `pseudonyme` (HMAC-SHA-256 à clé, EX-10.12) et `supprimer` (10.2.3),
+  comptes au journal d'exploitation et aux métriques sans valeur ni position
+  (EX-10.17).
+- **Pièces** (§8, EX-8.7) : JSON, texte, corps non JSON (UTF-8 rédigé comme
+  texte, binaire et codage inconnu non rédigeables), document de contexte ;
+  `origine` pour le prompt remplacé dans la requête (EX-8.5) et l'intention
+  (EX-10.18).
+- **Coût borné** (EX-10.23) : chaque opération sous `node:vm` avec `timeout`
+  (`limits.redaction_budget_ms`) ; pièce non rédigeable `budget_redaction`
+  (opération 1) et refus `-31010`, raison `redaction`, des arguments d'une
+  écriture ou d'un outil susceptible (`bloquerArgumentsNonRedigeables`) ;
+  `extract` omis et effet par défaut (opération 2) ; valeur en ligne refusée,
+  motif `null` (opération 3).
+- **Fils de calcul** (EX-3.6) : groupe borné de `Worker` (au plus 4), garde
+  qui arrête et relance un fil ; le fil des entrées-sorties, de l'écrivain et
+  du bail reste libre.
+- **Valeurs en ligne** : `run_id` (EX-7.2), nom de prompt (EX-8.6), valeur
+  quelconque (EX-5.36), effets déclarés par le SDK (EX-6.6), motif d'une
+  décision (EX-10.24, crochet `redigerMotif` du cœur).
+- **Coffre** (EX-10.22, CT-7 EX-3.11) : désactivé par défaut ; activé,
+  homologue AES-256-GCM de chaque pièce rédigée, hors de `storage.root`,
+  déchiffrement à deux personnes avec registre des accès hors du coffre.
+
+## Frontal MCP (§4)
+
+Lot « frontal MCP » (INTERFACES.md, section a) : `src/mcp/`, le connecteur
+`bin/noortrace-connecteur`. Le frontal est le serveur MCP de l'hôte et le
+client MCP de chaque serveur d'outils ; il ne scelle rien lui-même et passe
+par les crochets du cœur.
+
+- **Agrégation** (4.3) : nom annoncé `<alias>__<nom d'origine>` ou nom
+  d'origine sans préfixe (EX-4.10) ; rejets d'EX-4.11 (`nom_reserve`,
+  `nom_invalide`, `collision` y compris sous le gabarit et la normalisation
+  de chaque connexion d'hôte, `x_mcp_header` pour un hôte HTTP), consignés
+  (`tool_rejected`) ; classe d'EX-14.1 ; empreinte de chaque définition
+  annoncée et `tool_definition_changed` (EX-4.16) ; pages de
+  `tools.page_size`, curseur opaque, instantané par parcours, liste servie
+  par connexion d'hôte (EX-4.13, EX-4.45) ; `ttlMs`, `cacheScope`
+  (EX-4.14) ; serveur injoignable omis, santé `serveur:<alias>`, résolution
+  sur la dernière liste reçue avec succès (EX-4.18) ; `list_changed` du
+  serveur relu au plus une fois par intervalle, `charger`, notification à
+  l'hôte qui écoute (EX-4.15).
+- **Relais de `tools/call`** (4.4, pas 1 à 14 dans l'ordre d'EX-4.19) :
+  lecture JSON stricte à positions (clé en double, substitut isolé, BOM,
+  UTF-8 invalide, profondeur et membres bornés), CR rejeté sur une ligne
+  (EX-4.43), lot refusé (EX-4.3), nombres d'EX-4.44 ; quotas par connexion
+  d'hôte (EX-4.47) ; résolution, pièces de contexte (EX-4.45, EX-7.7) ;
+  délégation de 7.2 bornée (EX-7.2) ; corrélation (crochet du frontal
+  modèle) ; `evaluer` et matrice de 14.2 pour le service ; pièce
+  « arguments » rédigée et durable avant tout relais ; refus, retenue, signal
+  d'approbation (EX-4.49), mode `retenir` (EX-4.50) ; RL-1 à RL-4 et
+  intention par le cœur ; message amont recopié depuis les octets reçus,
+  blancs retirés, `_meta` réécrit (EX-4.7, EX-4.20) ; notifications de
+  progression relayées avec le jeton de l'hôte ; délai, annulation, taille,
+  perte (EX-4.22, EX-4.23, EX-4.48) ; pièce « résultat » ; événement durable
+  avant la réponse, `-31017` après relais (EX-4.46) ; réponse à l'hôte
+  recopiée avec `serverInfo` et `resultType` (pas 14) ; continuation MRTR
+  sans ticket (EX-4.21) ; codes de la table de 4.4 seulement (EX-4.24).
+- **Négociation** (4.2) : hôtes modernes (`_meta` par requête,
+  `server/discover`) et hérités (`initialize`, `ping`) ; vers chaque serveur,
+  sonde `server/discover` puis repli `initialize`, ou ère épinglée (EX-4.6),
+  `subscriptions/listen` vers un serveur moderne.
+- **Transports** (4.7) : serveurs stdio lancés par le démon (utilisateur,
+  bac à sable, commande épinglée par `sha256` ou paquet, EX-3.4, EX-3.5),
+  cadrage par LF, sortie d'erreur consignée par empreinte et débit borné
+  (EX-4.32), relance (EX-4.33), arrêt par fermeture de l'entrée, SIGTERM,
+  SIGKILL (4.2) ; serveurs Streamable HTTP (en-têtes construits, EX-4.35,
+  EX-4.41 ; session héritée, EX-4.38 ; réponse JSON ou SSE) ; prise des
+  connecteurs (Unix, TCP à jeton) ; Streamable HTTP vers les hôtes (EX-4.34
+  à EX-4.37).
+- **Authentification** (4.8) : utilisateur du pair d'une prise Unix (lecture
+  31), jeton statique comparé en temps constant, jeton OAuth 2.1 vérifié
+  (signature RS256, ES256 ou EdDSA d'une clé du JWKS, audience, émetteur,
+  expiration, portées ; métadonnées de ressource protégée, `401` avec
+  `WWW-Authenticate`, `403`), aucun relais de jeton (EX-4.41).
+- **Journal d'exploitation** (EX-17.2) : `tool_call_relayed`,
+  `tool_rejected`, `tool_definition_changed`, `call_blocked`,
+  `call_passthrough_pending`, `approval_pending`, `delegation_refused`,
+  `definition_non_servie`, `upstream_unreachable`, `upstream_timeout`,
+  `child_stderr`, `invalid_line`, `auth_failed`, `stdio_server_command` ;
+  jamais un argument, un résultat, un jeton ou un `requestState`.
+
 ## Démarrer le démon
 
 ```sh
 noortrace validate-config configuration.json    # pas 1 à 3 d'EX-15.4 ; code 0 ou 2
 noortrace --config configuration.json           # démarre ; SIGTERM, SIGINT : arrêt propre ; SIGHUP : rechargement
+```
+
+Avec `mcp.enabled`, le démon démarre ensuite le frontal MCP : serveurs
+d'outils stdio lancés et listés, prise `mcp.socket` des connecteurs, prise
+`mcp.connector_tcp` et Streamable HTTP `mcp.http` s'ils sont configurés.
+L'hôte lance le connecteur comme serveur MCP stdio (19.5.1) :
+
+```sh
+noortrace-connecteur --socket /run/noortrace/mcp.sock
 ```
 
 Une configuration invalide n'est jamais servie : une ligne par erreur sur
@@ -132,7 +248,11 @@ Sous `storage.root/<org_id>/<journal_id>/` (hexadécimal sans `0x`, EX-12.1) :
 
 Hors du répertoire du journal : le verrou du bail (`lease.store.path`) et
 son époque (`<path>.epoch`), le journal d'exploitation
-(`supervision.ops_log.path`, rotation par taille). Il n'y a aucun fichier
+(`supervision.ops_log.path`, rotation par taille), le coffre des originaux
+s'il est activé (`storage.vault.path/<sha256 de la pièce rédigée>` : nonce
+de 12 octets, chiffré AES-256-GCM, étiquette de 16 octets) et le registre
+des accès au coffre (un fichier NDJSON choisi par l'exploitant, hors du
+coffre). Il n'y a aucun fichier
 d'état mutable : l'état de l'écrivain et les index (tickets, décisions,
 politiques, clés) se dérivent des segments à la reprise.
 
@@ -156,17 +276,35 @@ politiques, clés) se dérivent des segments à la reprise.
 | `approbations.mjs`, `service-approbation-http.mjs`, `service-approbation-factice.mjs` | interface du service d'approbation | §7.5, §12.9, CT-3 §12 |
 | `ancrage.mjs`, `worm.mjs` | remise à l'ancrage, copies WORM (interfaces) | §12.10, §12.6 |
 | `dossier.mjs` | export d'un dossier minimal | CT-1 §11 |
+| `redaction-motifs.mjs` | sous-ensemble des motifs, règles a) à c), borne de temps | EX-10.6, EX-10.23 |
+| `redaction-detecteurs.mjs` | détecteurs exacts | §10.3 |
+| `redaction-moteur.mjs`, `redaction-fil.mjs` | application des règles, pièces, valeurs en ligne ; fil de calcul | §10.4, §8, EX-3.6 |
+| `redaction.mjs` | rédacteur, crochets du cœur, contrôles de configuration, groupe de fils | §10, EX-15.4 |
+| `coffre.mjs` | coffre des originaux | EX-10.22, CT-7 EX-3.11 |
+| `mcp/json-texte.mjs` | lecture JSON stricte à positions, recopie sans blancs, nombres d'EX-4.44 | 4.4 pas 1, EX-4.20, EX-4.43, EX-4.44 |
+| `mcp/agregation.mjs` | noms annoncés, rejets, classes, pages | §4.3, EX-14.1 |
+| `mcp/amont.mjs` | connexions aux serveurs d'outils (stdio, Streamable HTTP) | §4.2, §4.7, EX-3.4, EX-3.5, EX-4.6 |
+| `mcp/frontal.mjs`, `mcp/messages.mjs`, `mcp/quotas.mjs`, `mcp/delegation.mjs` | sessions d'hôte, `tools/list`, `tools/call`, erreurs, quotas, délégation | §4.4, §7.2, §14.1 à §14.3 |
+| `mcp/hote-stdio.mjs`, `mcp/connecteur.mjs`, `bin/noortrace-connecteur` | prise des connecteurs, connecteur stdio | §4.7.1, EX-4.39 |
+| `mcp/hote-http.mjs` | Streamable HTTP des hôtes, OAuth | §4.7.2, §4.8 |
+| `mcp/demon.mjs` | frontal dans le démon | §3.4 |
 | `coeur.mjs`, `cli.mjs`, `bin/noortrace` | assemblage, démarrage, démon | §3, §15.4, §15.6 |
 
 ## Ce qui relève des lots suivants
 
-Frontal MCP (§4) ; frontal modèle et passerelle (§5) ; SDK, adaptateurs et
-ingestion OpenTelemetry (§6) ; moteur de politique (classification, matrice
-de 14.2 par classe, mode d'attente `retenir`, mode observation, candidats) et
-vrai service d'approbation (CT-3) ; rédaction (§10 : détecteurs, motifs,
-budget, coffre) et ses contrôles de configuration (EX-10.6, EX-10.23) ;
-validation de `policy.approval.rules` (CT-3 EX-4.2, EX-8.2) ; collisions de
-noms annoncés (EX-4.11) ; signataires des classes A, B et C ; magasins de
+Frontal modèle et passerelle (§5), dont le registre de corrélation de 5.6 ;
+SDK, adaptateurs et ingestion OpenTelemetry (§6) ; moteur de politique (mode
+observation, EX-4.51, 14.6) et vrai service d'approbation (CT-3) ;
+validation de `policy.approval.rules` (CT-3 EX-4.2, EX-8.2) ; part du
+frontal MCP non faite : relais hors chaîne de 4.5 (`resources/*`,
+`prompts/*`, `completion/complete` : `-32601`), requêtes du serveur vers le
+client et `sampling` en échange de modèle (4.6, EX-4.29 : refusées par
+`-32601` côté serveur hérité, `inputRequests` non déclarées refusées par
+`-31016`), continuation MRTR d'un appel approuvé (EX-4.21 : la ré-émission
+repasse par le pas 3, échec fermé), client OAuth vers un serveur d'outils
+(EX-4.40, EX-4.42 : refusé à la connexion), mTLS et TLS de la prise TCP des
+connecteurs, `prctl(PR_SET_DUMPABLE)` (EX-3.5, sans module natif) ;
+signataires des classes A, B et C ; magasins de
 bail `postgresql` et `etcd`, attente du bail, bascule (§13) ; copies WORM,
 registre des copies, contrôle du verrou, relevé, gel juridique (§12.6,
 §12.11) ; purge des pièces (EX-12.20) ; attribut append-only (EX-12.18) ;
@@ -273,6 +411,164 @@ le vecteur ; l'implémentation de référence n'a pas été consultée.
     borne : le cœur réessaie cinq fois (200 ms, 400 ms…) puis au prochain
     démarrage (EX-7.20).
 
+Lectures du lot « rédaction » (§10) :
+
+19. **Types de jetons « employés »** (EX-10.6, EX-10.9 : « chaque nom de motif
+    nommé et chaque étiquette `champ` employés »). `pii-v1` déclare
+    `numero-sinistre` sans l'employer dans une règle. Lecture : les types de
+    jetons sont les cinq détecteurs nommés, `prompt-systeme`, **tous** les
+    motifs nommés déclarés et les étiquettes `champ` des règles ; un jeton
+    d'un motif déclaré reste opaque. Aucun vecteur ne dépend de ce choix.
+20. **« Faire correspondre un jeton »** (EX-10.6). Lecture : le motif trouve
+    une correspondance non vide n'importe où dans la chaîne du jeton
+    (`REDIGE` ou `0{12}` sont refusés), pas seulement sur le jeton entier :
+    c'est ce qui protège un jeton d'une réécriture partielle.
+21. **Motif nommé après une correspondance remplacée** (EX-10.9 : « la fin
+    d'une correspondance remplacée vaut frontière […] comme le `]` du
+    jeton »). Lecture : la recherche reprend sur le reste du segment comme
+    sur une chaîne nouvelle (`\b` y voit une frontière, `^` y correspond),
+    ce que voit de toute façon le passage suivant, où ce reste est un segment
+    (bord de segment = début de chaîne) ; le résultat après passages est le
+    même.
+22. **IBAN groupé** (10.3.2 pas 1 : « en admettant entre deux d'entre eux un
+    SEP isolé », caractères lus « à partir de `p+4` »). Le vecteur
+    `iban-groupes-valide` (`CH93 0076 …`) exige un SEP entre `KK` et le
+    premier caractère du BBAN. Lecture : un SEP isolé est admis entre deux
+    alphanumériques quelconques du candidat après `CC KK`, jamais entre `CC`
+    et `KK`.
+23. **Dernier label d'un domaine** (10.3.5 : « le dernier fait d'au moins deux
+    lettres ASCII »). Lecture : fait uniquement de lettres ASCII, au moins
+    deux (`x@exemple.c1` n'est pas rédigé).
+24. **Comptes de `supprimer`** (EX-10.17, B.3 `matches`). Le vecteur
+    `supprimer-membre` compte `{ detector: "champ", count: 1 }`. Lecture :
+    une suppression compte un `champ` ; un élément de tableau déjà égal au
+    jeton n'est ni remplacé ni compté. Les comptes sont rendus dans l'ordre
+    de leur première apparition, passages compris (vecteur
+    `passages-multiples`).
+25. **Note d'un pointeur qui ne résout pas** (10.2.1 : « une note dans le
+    journal d'exploitation »). EX-17.2 ne la nomme pas. Lecture : ligne
+    `redaction_path_unresolved` (portée, règle), une par règle et par pièce.
+26. **Coffre** (EX-10.22). Le format du fichier et la forme des données
+    associées ne sont pas fixés. Lecture : fichier = nonce ‖ chiffré ‖
+    étiquette ; données associées = les 32 octets du `sha256` de la pièce
+    rédigée ; l'original est le JCS intégral de la valeur reçue (le texte
+    UTF-8 d'une pièce texte, les octets d'un corps non JSON). Deux originaux
+    qui donnent la même pièce rédigée (même nom de fichier) : le premier est
+    gardé, jamais réécrit (`vault_original_kept`). CT-7 EX-3.11 ne dit pas
+    comment les deux personnes sont authentifiées : `dechiffrer` reçoit les
+    identités de l'outil d'exploitation, exige une approbation de la même
+    pièce et du même motif par une autre personne de la liste autorisée,
+    consigne chaque tentative (accordée ou refusée) hors du coffre et force
+    la ligne sur disque avant de rendre l'original.
+27. **EX-3.6 et la validation au rechargement.** `validerConfiguration` est
+    synchrone (contrat du cœur) : le contrôle des jetons (EX-10.23
+    opération 4) d'un rechargement s'exécute dans le fil qui l'appelle, borné
+    par `redaction_budget_ms` par motif nommé ; toutes les autres opérations
+    de la rédaction (pièces, motif d'une décision, valeurs en ligne, effets et
+    leurs `extract`) passent par les fils de calcul. Le crochet synchrone
+    `executerExtract` reste offert ; le cœur emploie `evaluerEffets`, qui
+    évalue le gabarit entier dans un fil.
+28. **Groupes imbriqués et noms en double** (EX-10.6 ne les borne pas). Le
+    paquet `regexp` de Go refuse une imbrication au-delà de 1 000 ; ECMAScript
+    (Node.js 22) refuse un nom de groupe en double. Lecture : les deux sont
+    refusés ; un motif de 1 024 caractères au plus (schéma) n'atteint pas la
+    première borne.
+29. **Clé de pseudonymisation et EX-10.21.** Le contrôle « règles changées
+    sans changer `redaction.name` » compare les documents, référence de la
+    clé comprise, jamais sa valeur : une nouvelle valeur sous la même
+    référence n'est pas vue (EX-10.13 (4) demande un nouveau `name`).
+30. **Garde des fils de calcul.** Une opération qui ne rend pas la main
+    (sérialisation démesurée) est arrêtée par `terminate()` après
+    max(10 × `redaction_budget_ms`, 30 s) ; la pièce est alors la pièce non
+    rédigeable `budget_redaction` dont `length` est celle que le fil a
+    annoncée avant la rédaction (EX-8.7).
+
+31. **Frontal MCP : utilisateur du pair d'une prise Unix** (EX-4.39 :
+    « identifiant d'utilisateur du pair »). Node.js n'expose pas
+    `SO_PEERCRED` sans module natif. Lecture : le démon envoie un défi
+    aléatoire ; le connecteur crée en exclusion
+    `<répertoire de mcp.socket>/.noortrace-defi-<défi>` (mode 0600) ; le
+    démon lit son propriétaire (`lstat` : fichier ordinaire, un seul lien,
+    contre un lien dur vers le fichier d'un autre), le supprime, puis cherche
+    l'entrée `match.peer_user` du nom de ce compte (`/etc/passwd`). Le
+    répertoire de la prise doit être inscriptible par les utilisateurs des
+    connecteurs (bit collant recommandé).
+
+32. **Frontal MCP : borne de `taille-depassee`.** Le vecteur fixe
+    `limits.response_max_bytes = 512`, sous le minimum de 1024 de
+    `$defs/bytes` du schéma de configuration. Lecture : le rejeu applique la
+    borne du cas après la validation de la configuration ; le schéma n'est
+    pas changé.
+
+33. **Frontal MCP : `[<alias>] ` devant le message d'une elicitation**
+    (EX-4.28) contre « le résultat intermédiaire est relayé tel quel »
+    (EX-4.21) et le vecteur `input-required` (message rendu sans préfixe).
+    Lecture : un `InputRequiredResult` de l'ère moderne est relayé tel quel ;
+    le préfixe vise une requête `elicitation/create` de l'ère héritée, que la
+    version 0 de ce lot ne relaie pas (`-32601`).
+
+34. **Frontal MCP : `cacheScope`** (EX-4.14 : « si l'hôte est authentifié par
+    un jeton porteur d'une identité »). Lecture : jeton statique ou OAuth ;
+    l'utilisateur du pair d'une prise stdio n'est pas un jeton, et la valeur
+    vient alors des serveurs de la page (`private` dans les vecteurs, rendu
+    par le serveur `demo`).
+
+35. **Frontal MCP : `serverInfo` d'une liste rendue à un hôte hérité.** EX-4.4
+    (ère moderne) : « chaque résultat rendu porte serverInfo ». Les vecteurs
+    `hote-herite-serveur-moderne` et `approbation-en-attente` rendent à un
+    hôte hérité `tools/list` sans `_meta` et `tools/call` avec `serverInfo`.
+    Lecture : `tools/list` d'un hôte hérité est `{"tools": […]}` (avec
+    `nextCursor`) ; un résultat d'outil porte toujours `serverInfo` (pas 14).
+
+36. **Frontal MCP : réponse au-delà de la borne sur un serveur stdio** (4.4
+    pas 11 : « la connexion amont est fermée »). Fermer l'entrée d'un serveur
+    stdio arrêterait aussi les appels des autres hôtes. Lecture : en stdio,
+    l'appel finit par `-31013` à l'instant où la borne est atteinte et le
+    reste de la ligne est lu sans être gardé (le vecteur ne montre aucune
+    ligne de plus) ; en HTTP, la requête est fermée.
+
+37. **Frontal MCP : `-31017` d'une lecture passante.** EX-4.46 et la ligne
+    « Panne après relais » de 14.2 (« L : idem ») contre EX-14.6 et EX-14.8.
+    Lecture : une lecture relayée en mode normal puis frappée d'une panne
+    reçoit `-31017` ; une lecture relayée comme passante parce que le mode
+    dégradé « stockage » était déjà actif au pas 7 reçoit sa réponse normale,
+    son événement étant mis en attente.
+
+38. **Frontal MCP : forme de `-32022` et de `server/discover`.** CT-2 renvoie à
+    la page « Versioning and Compatibility » et à `server/discover` sans les
+    citer. Lecture : `{"code":-32022,"message":"Unsupported protocol
+    version","data":{"supported":[…],"requested":…}}` ; `server/discover`
+    rend `resultType`, `supportedVersions`, `capabilities`, `serverInfo` et
+    `_meta.serverInfo` ; `subscriptions/listen` part avec
+    `{"toolsListChanged":true,"_meta":…}`.
+
+39. **Frontal MCP : contraintes `x-mcp-header`** (EX-4.11 règle 4, renvoi à la
+    page Streamable HTTP). Lecture : valeur chaîne au motif d'un jeton
+    d'en-tête (1 à 64 caractères), sans doublon à la casse près, propriété de
+    type primitif ; `Mcp-Param-*` vers le serveur : texte ASCII visible tel
+    quel, sinon `=?base64?…?=`.
+
+40. **Frontal MCP : identifiants amont des vecteurs.** 4.4 pas 9 : compteur
+    « unique par connexion amont ». Les transcriptions portent des
+    identifiants d'un même compteur d'un cas à l'autre (`e-000000000004` à
+    `e-000000000019`). Lecture : le compteur est propre à chaque connexion ;
+    le rejeu fixe sa valeur initiale d'après la première ligne `out`.
+
+41. **Frontal MCP : ordre de `_meta` vers le serveur** (EX-4.7, pas 9). Lecture :
+    les clés reçues gardent leur place, les trois clés
+    `io.modelcontextprotocol/*` réécrites à la leur, les manquantes ajoutées
+    à la fin dans l'ordre `protocolVersion`, `clientCapabilities`,
+    `clientInfo` ; la sonde `server/discover` porte l'ordre du vecteur
+    `hote-moderne-serveur-herite` (`protocolVersion`, `clientInfo`,
+    `clientCapabilities`).
+
+42. **Frontal MCP : `data` des erreurs de lecture** (4.4 pas 1). Seul
+    `cr_dans_la_ligne` est nommé. Lecture : `-32700` porte `data.reason`
+    parmi `json_invalide`, `utf8`, `bom`, `cle_double`, `substitut_isole`,
+    `profondeur`, `membres`, `cadrage_non_admis` ; `-32602` porte
+    `meta_requis`, `arguments_non_objet` ou `curseur_invalide` ; `Unknown
+    tool` reste sans `data` (forme de la page Tools).
+
 ## Tests
 
 Depuis la racine du dépôt, après `npm ci` :
@@ -284,6 +580,11 @@ NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.m
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-reprise.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-config.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-approbations.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-redaction.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-redaction-parcours.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-vecteurs.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-exigences.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-parcours.test.js
 ```
 
 - `enregistreur-coeur-vecteurs` : `jcs-integral`, `evenements/journal-demo`
@@ -303,7 +604,33 @@ npx hardhat --config hardhat.config.mjs test test/enregistreur-coeur-approbation
 - `enregistreur-coeur-config` : `validate-config`, refus de démarrer, classe D
   en production, horloge qui recule ou saute, rechargement ;
 - `enregistreur-coeur-approbations` : EX-7.16, SG-, mode dégradé, expiration
-  par le noyau seul, canal HTTP.
+  par le noyau seul, canal HTTP ;
+- `enregistreur-redaction` : vecteurs `redaction/` (politiques, motifs, cas,
+  dans le fil appelant et par les fils de calcul), pièces rédigées de
+  `pieces-mcp/appels` et de `journal-demo`, EX-10.1 à EX-10.24 en réussite et
+  en échec, détecteurs sur entrées hostiles, budget, fils de calcul, coffre,
+  `validate-config`, rechargement ;
+- `enregistreur-redaction-parcours` : un frontal simulé fait traverser le cœur
+  à des captures sensibles ; pièces rédigées par `pii-v1` avant hachage, aucun
+  clair dans le stockage, le journal d'exploitation et les métriques ;
+  journal vérifié par le noyau ; dossier de l'appel relayé, pièces fournies à
+  part, vérifié par le noyau et par le binaire Go (en attente sans
+  go1.27.3).
+- `enregistreur-mcp-vecteurs` : chaque transcription de
+  `pieces-mcp/appels` rejouée de bout en bout par le frontal (hôte simulé,
+  serveur stdio factice, horloge des horodatages) : lignes envoyées au
+  serveur et rendues à l'hôte octet pour octet, événement, pièces stockées,
+  journal vérifié par le noyau ; `pieces-mcp/agregation` ; appels de seq 3
+  et 5 de `journal-demo` (champs des événements publiés) ;
+- `enregistreur-mcp-exigences` : EX-4.3 à EX-4.50, EX-7.2, EX-7.3, 14.1 à
+  14.3, EX-17.2 en réussite et en échec ; entrées hostiles ; prise Unix
+  (preuve d'identité, refus), prise TCP à jeton, Streamable HTTP, OAuth,
+  serveur HTTP en amont ;
+- `enregistreur-mcp-parcours` : de vrais processus (connecteur, serveurs
+  d'outils stdio moderne et hérité, hôtes moderne, hérité et HTTP), chaque
+  appel scellé, période close, journal vérifié par le noyau, dossier de
+  chaque appel vérifié par le noyau et par le binaire Go (en attente sans
+  go1.27.3) ; puis le démon réel `bin/noortrace --config` avec le frontal.
 
 Les répertoires de test sont créés sous `os.tmpdir()`.
 
@@ -324,6 +651,8 @@ cherchent ni n'importent `scripts/lib/**`, `scripts/vecteurs/**`,
 | Dépendance | Version | Usage |
 |---|---|---|
 | `@noortrace/noyau` | 0.1.0 (espace de travail) | formats et cryptographie de CT-1 |
-| `node:crypto`, `node:fs`, `node:http` | Node.js ≥ 22 | PKCS#8, HMAC-SHA-256, fichiers, supervision, canal du service |
+| `node:crypto`, `node:fs`, `node:http` | Node.js ≥ 22 | PKCS#8, HMAC-SHA-256, AES-256-GCM (coffre), fichiers, supervision, canal du service |
+| `node:vm`, `node:worker_threads` | Node.js ≥ 22 | borne de temps des motifs (EX-10.23), fils de calcul (EX-3.6) |
+| `node:net`, `node:child_process`, `node:https` | Node.js ≥ 22 | prises des connecteurs, serveurs d'outils stdio, Streamable HTTP et JWKS (frontal MCP) |
 
 Aucune autre dépendance d'exécution.

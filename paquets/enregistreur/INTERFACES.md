@@ -52,7 +52,8 @@ const coeur = await Coeur.demarrer({
   service,             // ServiceApprobation (client HTTP d'EX-7.14) ou null
   ancrage, worm,       // ComposantAncrage, SupportWorm (sections g et f)
   bail, signataire,    // MagasinBail, Signataire (sections f ; classes A à C)
-  redaction,           // { redigerMotif, executerExtract } (section e)
+  redaction,           // Redacteur, ou ses crochets (section e)
+  reglesSupplementaires, // règles du pas 3 d'EX-15.4 des lots, rejouées au rechargement (section e)
   minuteurs, supervision,
 });
 ```
@@ -155,6 +156,60 @@ le reste — lignes rendues, signal d'EX-4.49, formes d'erreur `-31011`,
 `-31013`, `-31014`, réécritures de `_meta` — est au frontal) ;
 `pieces-mcp/agregation/*` (EX-4.11) ; `evenements/journal-demo/entrees.json`
 (appels de seq 3, 5, 7 et corrélation) ; annexe A.
+
+### Mise en œuvre (lot « frontal MCP », `src/mcp/`)
+
+```js
+import { FrontalMcp, ServeurConnecteurs, ServeurHttpMcp, demarrerFrontalMcp } from "@noortrace/enregistreur";
+
+const mcp = await demarrerFrontalMcp(coeur, secrets, { redacteur, correlateur });  // cli.mjs, si mcp.enabled
+// = new FrontalMcp({ coeur, secrets, redacteur, correlateur }) ; await frontal.demarrer()
+//   + new ServeurConnecteurs({ frontal, socket: mcp.socket, tcp: mcp.connector_tcp, jetons })
+//   + new ServeurHttpMcp({ frontal, jetons })                     // si mcp.http
+await mcp.arreter();                                               // avant coeur.arreter()
+
+const s = frontal.ouvrirSession({ hote, identite: { peer_user | jeton | oauth_subject }, transport: "stdio" | "http", emettre });
+const texte = await frontal.recevoir(s, octets, { cadre: "ligne" | "corps", canal: { notifier, annulation } }); // réponse ou null
+frontal.chargerListe(alias, tools, { ttlMs, cacheScope, ere });   // dernière liste reçue avec succès (EX-4.18)
+```
+
+`bin/noortrace-connecteur --socket <chemin>` (ou `--tcp <hôte:port>`, jeton
+dans `NOORTRACE_CONNECTEUR_JETON`) est le connecteur stdio de 19.5.
+
+Ce que le frontal attend des autres lots, par des crochets facultatifs :
+
+- **rédaction (e)** : le `Redacteur` passé au frontal ou, à défaut, celui
+  donné au cœur (`Coeur.demarrer({ redaction })`) : `redigerArguments(valeur,
+  { outil, alias, id, host })` et `redigerResultat(...)` (pièce, valeur
+  rédigée, `non_redigeable`), `admettreRunId(v)` (EX-7.2). Une erreur JSON-RPC
+  du serveur est remise à `redigerResultat` sous sa forme
+  `{"noortrace_jsonrpc_error": …}`. Sans rédacteur, les pièces sont écrites
+  telles quelles et `redaction_absente` est consigné une fois ;
+- **frontal modèle (b)**, corrélation de 5.6 : `correlateur.correler({ host,
+  host_group, run_id, tool_announced, arguments, t_recu })` →
+  `{ intent, code: { model, prompt_version }, seq }` ou `null` ; une intention
+  en référence est une pièce déjà écrite ;
+- **moteur de politique (d)** : le mode observation (EX-4.51, 14.6) n'est pas
+  appliqué par le frontal ; les autres réponses suivent EX-7.16 et la matrice
+  de 14.2 (service indisponible : bloquant pour une écriture et pour
+  `coeur.susceptible(nom)`, sinon `policy.failure.approval_service.lecture`).
+
+Changements du cœur faits par ce lot (les plus petits qui complètent le
+contrat, avec leurs tests dans `test/enregistreur-mcp-exigences.test.js`) :
+
+```js
+coeur.brancherRetention({ retient(ticket) → booléen, decidee(ticket, evenement) })  // mode retenir (EX-4.50)
+coeur.brancherSante(() => ["serveur:<alias>", …])                                  // EX-4.18, EX-17.1
+```
+
+`traiterRemises` passe `held: retient(ticket)` à `traiterRemise`
+(`acquitter.held`, EX-7.19) ; après une décision scellée (remise, ou
+expiration par le noyau seul), `decidee` est appelé sans être attendu ;
+`etatSante()` ajoute les raisons du frontal sans faire entrer le cœur en mode
+dégradé. `test/fixtures/enregistreur-coeur/outils.mjs` : `configurationDev`
+désactive `mcp.enabled` sauf `{ mcp: true }` (les serveurs de l'exemple de
+15.3 sont injoignables depuis les tests) et place `mcp.socket` sous le
+répertoire du test.
 
 ## b) Frontal modèle (§5)
 
@@ -286,27 +341,81 @@ d'approbation »), §14.6, EX-15.4 pas 3 et 6, EX-15.8, EX-18.8 ; CT-3 §7 à
 
 ### Où elle s'insère
 
-Avant toute pièce : le frontal remet au rédacteur la valeur analysée et la
-portée (`arguments`, `resultat`, `requete`, `reponse`, `prompt_systeme`,
-`contexte`), reçoit la valeur rédigée et le drapeau « une règle a joué », puis
-construit la pièce par `pieceJson(valeur, { redacted })`, `pieceTexte(texte,
-{ redacted })`, `pieceNonJson(octets, { content_type, redacted })` ou
-`pieceNonRedigeable({ content_type, length, reason })` (EX-8.7). Le cœur ne
-rédige rien et ne voit jamais une pièce non rédigée ; il pose
-`policy.redaction` (EX-10.20) d'après les références.
+Avant toute pièce : le frontal remet au rédacteur (`Redacteur`,
+`src/redaction.mjs`) la valeur analysée (ou les octets reçus) et la portée
+(`arguments`, `resultat`, `requete`, `reponse`, `prompt_systeme`,
+`contexte`) ; il reçoit la pièce rédigée de §8, déjà sérialisée et hachée
+dans un fil de calcul (`pieceJson`, `pieceTexte`, `pieceNonJson` ou
+`pieceNonRedigeable`, EX-8.7), le drapeau `redacted` d'EX-10.16 et, s'il la
+demande, la valeur rédigée (gabarits d'effets, intention). Il l'écrit par
+`coeur.ecrirePiece`. Le cœur ne rédige rien et ne voit jamais une pièce non
+rédigée ; il pose `policy.redaction` (EX-10.20) d'après les références.
 
 ### Crochets du cœur
 
 ```js
-Coeur.demarrer({ ..., redaction: {
-  redigerMotif(motif) → motif rédigé ou null,                 // EX-10.24, motif d'une décision
-  executerExtract(motif, texte) → correspondance ou null,     // EX-7.6 pas 3 sous EX-10.23
-}})
-validerConfiguration(octets, { reglesSupplementaires: [controleRedaction] })  // EX-10.6, EX-10.23 op. 4
+const redaction = Redacteur.depuisConfiguration(config, secrets);   // fils de calcul (EX-3.6), coffre (EX-10.22)
+Coeur.demarrer({ ..., redaction, reglesSupplementaires: [controleRedaction] });
+// crochets lus par le cœur sur `redaction` (tous facultatifs) :
+//   lier(coeur)                                → journal d'exploitation et métriques du cœur
+//   redigerMotif(motif) → motif rédigé ou null  // EX-10.24 ; une promesse est attendue
+//   executerExtract(motif, texte) → chaîne ou null       // EX-7.6 pas 3 sous EX-10.23, fil appelant
+//   evaluerEffets(p) → Promise<{ effets, omis }>          // EX-7.6 entier dans un fil de calcul (EX-3.6)
+//   verifierPolitique(politique, politiquesParVersion) → raison ou null   // EX-10.21
+//   recharger(config, secrets)                 → après le scellement de l'événement de politique (EX-15.5)
+validerConfiguration(octets, { reglesSupplementaires: [controleRedaction] })  // EX-10.6, EX-10.23 op. 4, EX-7.6, EX-10.22
+controleSecretsRedaction(config, secrets) → erreurs                          // pas 4 : clé du coffre, 32 octets
 ```
 
-`evaluerEffets({ ..., sourceNonRedigeable: true })` applique EX-10.23 point 2
-(effet par défaut d'une écriture dont une pièce source est non rédigeable).
+Changements du cœur faits par ce lot (les plus petits qui complètent le
+contrat) : `redigerMotif` est attendu (`await`), ce qui laisse le motif
+d'une décision se rédiger dans un fil de calcul ; `terminerRelais` emploie
+`redaction.evaluerEffets` s'il existe (l'exécution des `extract` sort du fil
+de l'écrivain, EX-3.6), sinon `evaluerEffets` avec `executerExtract` ;
+`recharger` passe `reglesSupplementaires` (option de `Coeur.demarrer`) à
+`validerConfiguration`, puis appelle `redaction.recharger` ; l'annonce d'une
+politique appelle `redaction.verifierPolitique` et lève
+`ErreurEnregistreur("politique")` sur refus ; le constructeur appelle
+`redaction.lier(coeur)`. Dans `evaluerEffets`, un exécuteur qui lève une
+erreur marquée `budget: true` fait omettre l'effet (`budget_redaction`) et,
+pour une écriture restée sans effet, déclarer l'effet par défaut (EX-10.23
+point 2).
+
+### Rédacteur offert aux frontaux
+
+```js
+const r = await redaction.redigerPiece(demande, { id, seq, host });  // EX-10.14, EX-10.16, EX-8.7, EX-10.23 op. 1
+// demande :
+//   { genre: "json",  portee, outil?, alias?, valeur, origine?, media_type?, content_type?, avecValeur? }
+//   { genre: "texte", portee, outil?, alias?, texte, origine? }          // prompt système, intention : text/plain
+//   { genre: "octets", portee, outil?, alias?, octets, content_type?, codage_inconnu? }   // corps non JSON (8.3)
+//   { genre: "contexte", outil?, alias?, octets, media_type? }           // document de declarerContexte (8.2)
+// r : { piece (Piece, référence calculée), valeur? (rédigée), redacted, non_redigeable, comptes }
+redaction.redigerArguments(valeur, { outil, alias, id })   // portée arguments, avec la valeur rédigée
+redaction.redigerResultat(valeur, { outil, alias, id })    // portée resultat, avec la valeur rédigée
+redaction.redigerPromptSysteme(texte)                      // portée prompt_systeme ; prompt_version = r.piece.sha256
+redaction.bloquerArgumentsNonRedigeables(r, { classe, susceptible })   // EX-10.23 op. 1 : -31010, raison redaction
+await redaction.admettreRunId(v); await redaction.admettreNomPrompt(v); await redaction.admettreValeurLigne(v)
+await redaction.redigerEffetsDeclares(effets, { outil, alias })        // EX-6.6
+JETON_PROMPT_SYSTEME   // "[REDIGE:prompt-systeme]" (EX-8.5, EX-10.7)
+```
+
+- `origine` est la valeur (ou le texte) que la comparaison d'EX-10.16
+  emploie quand elle diffère de l'entrée : la requête reçue quand le frontal
+  a remplacé le prompt par `JETON_PROMPT_SYSTEME` (mode `reference`, EX-8.5,
+  qui compte alors comme une rédaction), le texte d'intention qu'aurait donné
+  la réponse en clair (EX-5.21, EX-10.18). Les chaînes porteuses du prompt
+  propres à chaque format (EX-8.5, mode `inline`) sont désignées par le
+  frontal modèle, qui les rédige par `genre: "texte"`, portée
+  `prompt_systeme`, avant la portée `requete`.
+- Le rédacteur consigne `redaction_applied` (portée, règles, comptes, l'`id`
+  de l'appel avant scellement), `redaction_path_unresolved`,
+  `redaction_budget_exceeded` et compte `noortrace_redactions_total`,
+  `noortrace_redaction_budget_exceeded_total` ; le frontal consigne
+  `delegation_refused` et le refus `-31010` qu'il rend.
+- Avec le coffre activé, chaque pièce rédigée a son homologue chiffré avant
+  que la promesse soit résolue ; `CoffreOriginaux.dechiffrer` exige deux
+  personnes et consigne l'accès (CT-7 EX-3.11).
 
 ### Sections de CT-2 à couvrir
 
@@ -316,7 +425,12 @@ EX-8.6, EX-8.7, EX-3.6 (fils de calcul).
 ### Vecteurs qui l'exercent
 
 `spec/vecteurs/ct-2/redaction/*` (le cœur en rejoue la sérialisation de §8
-des pièces publiées) ; `pieces-mcp/appels/*` (arguments rédigés).
+des pièces publiées ; le rédacteur, politiques, motifs et cas entiers) ;
+`pieces-mcp/appels/*` (arguments et résultats rédigés) ;
+`evenements/journal-demo` (arguments de seq 3, 5, 7 ; prompt système,
+requête en mode `reference` et réponse hors flux de seq 2). Rejoués par
+`test/enregistreur-redaction.test.js` et, pour l'inventaire,
+`test/enregistreur-coeur-vecteurs.test.js`.
 
 ## f) WORM (§12.6, §12.11) et haute disponibilité (§13)
 

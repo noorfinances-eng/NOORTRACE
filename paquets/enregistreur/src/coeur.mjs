@@ -102,6 +102,8 @@ export class Coeur {
     this.bailDetenu = false;
     this.pret = false;
     this.politiquesParVersion = new Map();
+    // Rédaction (INTERFACES.md, section e) : journal d'exploitation et métriques du cœur.
+    o.redaction?.lier?.(this);
   }
 
   // ------------------------------------------------------------ démarrage
@@ -279,12 +281,37 @@ export class Coeur {
     }
   }
 
+  /**
+   * Raisons de santé d'un frontal (EX-4.18, EX-17.1 : `serveur:<alias>`),
+   * hors mode dégradé du cœur : elles ne bloquent ni appel ni remise.
+   * @param {() => string[]} f
+   */
+  brancherSante(f) {
+    this.raisonsFrontal = f;
+  }
+
+  /**
+   * Rétention d'une requête par le frontal (mode `retenir`, EX-4.50) :
+   * `retient(ticket)` dit si une requête de ce ticket est retenue (membre
+   * `held` d'`acquitter`, EX-7.19) ; `decidee(ticket, evenement)` est appelé,
+   * sans être attendu, après le scellement durable d'une décision.
+   * @param {{retient: (ticket: string) => boolean, decidee: (ticket: string, evenement: object) => void}} r
+   */
+  brancherRetention(r) {
+    this.retention = r;
+  }
+
+  _decidee(ticket, e) {
+    const r = this.retention;
+    if (r?.decidee) setImmediate(() => Promise.resolve(r.decidee(ticket, e)).catch(() => {}));
+  }
+
   /** État de santé (EX-17.1). */
   etatSante() {
     const d = this.degrade.depuis();
     return {
       bailDetenu: this.bailDetenu && this.bail?.valide?.() !== false,
-      raisons: this.degrade.raisons(),
+      raisons: [...this.degrade.raisons(), ...(this.raisonsFrontal?.() ?? [])],
       depuis: d === null ? null : ecrireHorodatage(d),
       cleIndisponible: this.degrade.actif("cle"),
     };
@@ -314,6 +341,9 @@ export class Coeur {
   }
 
   async _annoncerPolitique(politique) {
+    // EX-10.21 : des règles de rédaction changées changent redaction.name.
+    const refusRedaction = this.o.redaction?.verifierPolitique?.(politique, this.politiquesParVersion) ?? null;
+    if (refusRedaction) throw new ErreurEnregistreur("politique", refusRedaction, { code: 2 });
     const emp = empreintePolitique(politique);
     const d = decisionPolitique(this.index, emp);
     if (d.refus) throw new ErreurEnregistreur("politique", d.refus, { code: 2 });
@@ -339,7 +369,7 @@ export class Coeur {
       this.journal.consigner("warning", "config", "config_reload_rejected", { raison, ...extra });
       return { accepte: false, raison, ...extra };
     };
-    const v = validerConfiguration(octets);
+    const v = validerConfiguration(octets, { reglesSupplementaires: this.o.reglesSupplementaires ?? [] });
     if (v.pas) return refus("configuration_invalide", { erreurs: v.erreurs.length });
     const s = resoudreSecrets(v.config, contexte);
     if (s.erreurs.length) return refus("secrets", { erreurs: s.erreurs.length });
@@ -349,6 +379,7 @@ export class Coeur {
     if (v.config.policy.version === this.config.policy.version) return refus("version_inchangee");
     const e = await this._annoncerPolitique(v.config.policy);
     this.config = { ...this.config, policy: v.config.policy };
+    this.o.redaction?.recharger?.(this.config, s.secrets);
     this.candidats = null;
     this.journal.consigner("info", "config", "config_reloaded", { policy_version: v.config.policy.version });
     if (this.service) this._charger();
@@ -654,7 +685,7 @@ export class Coeur {
     // par le point d'entrée), à défaut gabarit de la configuration.
     const { effets, omis } = r.effetsDeclares
       ? { effets: r.effetsDeclares, omis: [] }
-      : evaluerEffets({
+      : await (this.o.redaction?.evaluerEffets ?? evaluerEffets)({
           gabarit: this._gabarit(a.server_alias, a.tool_original),
           classe: a.class,
           alias: a.server_alias,
@@ -721,7 +752,7 @@ export class Coeur {
     if (!this.service) return [];
     const r = await this.service.decisions({ wait_ms: o.wait_ms ?? 0 });
     const sortie = [];
-    for (const remise of r.remises ?? []) sortie.push(await this.traiterRemise(remise));
+    for (const remise of r.remises ?? []) sortie.push(await this.traiterRemise(remise, { held: this.retention?.retient?.(remise?.ticket) === true }));
     return sortie;
   }
 
@@ -762,7 +793,7 @@ export class Coeur {
     };
     if (!v.ok) return refuser(v.verification, v.raison, v.decision);
     const E = delaiExpiration(politique(v.retenue.code.policy_version));
-    const motif = this.o.redaction?.redigerMotif ? this.o.redaction.redigerMotif(remise.approval.reason) : remise.approval.reason;
+    const motif = this.o.redaction?.redigerMotif ? await this.o.redaction.redigerMotif(remise.approval.reason) : remise.approval.reason;
     let e;
     try {
       e = await this.ecrivain.sceller(
@@ -783,7 +814,9 @@ export class Coeur {
       if (err instanceof ErreurConstruction && err.message === "echeance_depassee") return refuser("SG-4", "echeance_depassee");
       return envoyer({ ...acq, result: "temporaire", reason: "mode_degrade" });
     }
-    return envoyer({ ...acq, result: "scelle", seq: e.seq, hash: e.hash, at: e.approval.at, decision: e.approval.decision, held: o.held === true, approval: e.approval });
+    const x = await envoyer({ ...acq, result: "scelle", seq: e.seq, hash: e.hash, at: e.approval.at, decision: e.approval.decision, held: o.held === true, approval: e.approval });
+    this._decidee(remise.ticket, e);
+    return x;
   }
 
   /**
@@ -817,6 +850,7 @@ export class Coeur {
         },
       );
       scellees.push(e);
+      this._decidee(ticket, e);
       this.service?.expiration({ ticket, seq: e.seq, hash: e.hash, at: e.approval.at, approval: e.approval }).catch(() => {});
     }
     return scellees;

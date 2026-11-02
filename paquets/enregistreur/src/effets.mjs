@@ -7,7 +7,11 @@
 // L'exécution de `extract` sous la borne de temps d'EX-10.23 et le contrôle du
 // sous-ensemble RE2 commun (EX-10.6) relèvent du lot de la rédaction : ce
 // module reçoit un exécuteur (`executerExtract`) et emploie par défaut une
-// expression ECMAScript en mode Unicode, sans borne de temps.
+// expression ECMAScript en mode Unicode, sans borne de temps. Un exécuteur
+// qui lève une erreur marquée `budget: true` (dépassement de la borne,
+// EX-10.23 opération 2) fait omettre l'effet avec la raison
+// `budget_redaction` ; une écriture restée sans effet reçoit alors l'effet
+// par défaut.
 
 import { jcsIntegral } from "./jcs-integral.mjs";
 
@@ -74,6 +78,7 @@ export function effetParDefaut(alias, nomOrigine) {
  */
 export function evaluerEffets(p) {
   const omis = [];
+  let budgetDepasse = false;
   if (!p.gabarit) {
     return { effets: p.classe === "ecriture" ? [effetParDefaut(p.alias, p.nomOrigine)] : [], omis };
   }
@@ -96,7 +101,15 @@ export function evaluerEffets(p) {
       }
       let texteObjet = objet.valeur;
       if (g.extract !== null && g.extract !== undefined) {
-        const extrait = executer(g.extract, texteObjet);
+        let extrait;
+        try {
+          extrait = executer(g.extract, texteObjet);
+        } catch (e) {
+          if (e?.budget !== true) throw e;
+          budgetDepasse = true;
+          omis.push({ index, raison: "budget_redaction" });
+          return;
+        }
         if (extrait === null) {
           omis.push({ index, raison: "non_resolu" });
           return;
@@ -132,8 +145,9 @@ export function evaluerEffets(p) {
     }
   });
   // EX-10.23 point 2 : une écriture dont aucun effet n'est produit parce
-  // qu'une pièce source est non rédigeable reçoit l'effet par défaut.
-  if (effets.length === 0 && p.classe === "ecriture" && p.sourceNonRedigeable) {
+  // qu'une pièce source est non rédigeable, ou parce qu'un `extract` a
+  // dépassé la borne, reçoit l'effet par défaut.
+  if (effets.length === 0 && p.classe === "ecriture" && (p.sourceNonRedigeable || budgetDepasse)) {
     effets.push(effetParDefaut(p.alias, p.nomOrigine));
   }
   return { effets, omis };

@@ -14,8 +14,13 @@ import { validerConfiguration, resoudreSecrets, ligneRapport } from "./configura
 import { Coeur } from "./coeur.mjs";
 import { ClientServiceApprobation } from "./service-approbation-http.mjs";
 import { ErreurEnregistreur } from "./erreurs.mjs";
+import { Redacteur, controleRedaction, controleSecretsRedaction } from "./redaction.mjs";
+import { demarrerFrontalMcp } from "./mcp/demon.mjs";
 
 const USAGE = "usage : noortrace --config <fichier> | noortrace validate-config <fichier>";
+
+/** Règles du pas 3 d'EX-15.4 des lots branchés ici (rédaction : EX-10.6, EX-10.23). */
+const REGLES_SUPPLEMENTAIRES = [controleRedaction];
 
 function rapporter(flux, titre, liste) {
   for (const e of liste) flux.write(`${titre} ${ligneRapport(e)}\n`);
@@ -42,7 +47,7 @@ export async function principal(argv, io = {}) {
       stderr.write(`/ : fichier de configuration illisible\n`);
       return 2;
     }
-    const v = validerConfiguration(new Uint8Array(octets));
+    const v = validerConfiguration(new Uint8Array(octets), { reglesSupplementaires: REGLES_SUPPLEMENTAIRES });
     rapporter(stdout, "erreur :", v.erreurs);
     rapporter(stdout, "avertissement :", v.avertissements);
     return v.erreurs.length ? 2 : 0;
@@ -59,13 +64,14 @@ export async function principal(argv, io = {}) {
     stderr.write(`/ : fichier de configuration illisible\n`);
     return 2;
   }
-  const v = validerConfiguration(octets);
+  const v = validerConfiguration(octets, { reglesSupplementaires: REGLES_SUPPLEMENTAIRES });
   if (v.erreurs.length) {
     rapporter(stderr, "config_invalid :", v.erreurs);
     return 2;
   }
   rapporter(stderr, "avertissement :", v.avertissements);
   const s = resoudreSecrets(v.config, { env: io.env ?? process.env });
+  s.erreurs.push(...controleSecretsRedaction(v.config, s.secrets));
   if (s.erreurs.length) {
     rapporter(stderr, "config_invalid :", s.erreurs);
     return 2;
@@ -83,16 +89,28 @@ export async function principal(argv, io = {}) {
   }
   let coeur;
   try {
-    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, minuteurs: true, supervision: true });
+    const redaction = Redacteur.depuisConfiguration(v.config, s.secrets);
+    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
   } catch (e) {
     const raison = e instanceof ErreurEnregistreur ? e.raison : "demarrage";
     stderr.write(`demarrage_refuse : ${raison} : ${e.message}\n`);
     return 2;
   }
+  // Frontal MCP (CT-2 §4) : après le cœur, avant l'annonce du démarrage.
+  let mcp = null;
+  if (v.config.mcp.enabled) {
+    try {
+      mcp = await demarrerFrontalMcp(coeur, s.secrets);
+    } catch (e) {
+      stderr.write(`demarrage_refuse : frontal_mcp : ${e.message}\n`);
+      await coeur.arreter();
+      return 2;
+    }
+  }
   const a = coeur.serveur?.address();
   const supervision = a ? `${a.address}:${a.port}` : "-";
   stdout.write(`noortrace: demon demarre (journal ${v.config.recorder.journal_id}, epoque ${coeur.ecrivain?.epoque ?? "-"}, supervision ${supervision})\n`);
-  return { coeur };
+  return { coeur, mcp };
 }
 
 /** Lance le démon comme processus : signaux d'arrêt et de rechargement. */
@@ -102,11 +120,12 @@ export async function lancer() {
     process.exitCode = r;
     return;
   }
-  const { coeur } = r;
+  const { coeur, mcp } = r;
   let arret = false;
   const arreter = async () => {
     if (arret) return;
     arret = true;
+    await mcp?.arreter().catch(() => {});
     await coeur.arreter();
     process.exit(0);
   };
