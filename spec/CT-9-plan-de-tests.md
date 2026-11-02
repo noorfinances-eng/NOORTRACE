@@ -905,7 +905,7 @@ jamais corrigé à la main) :
 - 98 menaces sur 98 avec un TA- (règle (b)) ;
 - 117 occurrences de « CT-9 » et 117 lignes TC-, sans manque ni orpheline
   (règle (c)) ;
-- 191 entrées exécutables citant 365 titres de tests ou étapes de CI, tous
+- 193 entrées exécutables citant 367 titres de tests ou étapes de CI, tous
   trouvés mot pour mot (règle (d)) ; verdict `reussi`.
 
 Par spécification (identifiants, couverts par une entrée, par une
@@ -920,12 +920,12 @@ depuis le catalogue) :
 | TU- | 39 | 39 | 0 | 0 |
 | TV- | 76 | 75 | 1 | 1 |
 | TI- | 20 | 3 | 0 | 17 |
-| TE- | 17 | 1 | 0 | 16 |
+| TE- | 17 | 2 | 0 | 15 |
 | TA- | 103 | 69 | 13 | 34 |
-| TM- | 43 | 4 | 0 | 39 |
+| TM- | 43 | 5 | 0 | 38 |
 | TR- | 15 | 0 | 0 | 15 |
 | TQ- | 8 | 0 | 0 | 8 |
-| Total | 321 | 191 | 14 | 130 |
+| Total | 321 | 193 | 14 | 128 |
 
 ## 6. Tests unitaires et de propriétés (TU-)
 
@@ -1143,15 +1143,15 @@ plan ; ils traversent la chaîne de la capture au dossier vérifié avec des
 données fictives seulement, sur le système de référence de 11.1, et leur
 oracle est le verdict des deux vérificateurs de CT-6 sur les dossiers et le
 paquet produits. TE-3 est la démonstration de référence en une commande
-(CT-2 §19). Seule TE-5 (de l'événement au dossier vérifié sur les vecteurs)
-est exécutable aujourd'hui.
+(CT-2 §19). TE-4 (depuis l'étape 3) et TE-5 (de l'événement au dossier
+vérifié sur les vecteurs) sont exécutables.
 
 **EX-9.2** TE-4 (parcours CT-4 §7 sur le réseau de développement noorcore)
-s'exécute hors de `npm test`, par `chain/scripts/dev-net.sh start`, un
-script d'épreuve rejouable de `scripts/e2e/` à écrire (étape 3) et
-`chain/scripts/dev-net.sh stop` ; aucune étape de la CI n'exécute noorcore
-(CT-5 EX-A.7) ; les deux relectures déjà réussies de CT-4 §7.12 n'ont pas
-de compte rendu dans le dépôt (R10-NV4) et ne valent pas ce test.
+s'exécute par le script d'épreuve `scripts/e2e/parcours-registre.mjs`
+(étape 3), qui démarre et arrête le réseau et rend un verdict JSON ; le test
+qui le lance se met en attente sans binaire noorcore ; aucune étape de la CI
+n'exécute noorcore (CT-5 EX-A.7) ; les deux relectures de CT-4 §7.12 sans
+compte rendu dans le dépôt (R10-NV4) ne valent pas ce test.
 
 <!-- table TE -->
 | Id | Objet | Identifiants couverts (famille : nombre) | Menaces | État |
@@ -1159,7 +1159,7 @@ de compte rendu dans le dépôt (R10-NV4) et ne valent pas ce test.
 | TE-1 | Cas de démonstration « assurance » : agent de souscription et de tarification, de la capture au dossier vérifié | CT-2 EX-19- (3), CT-3 EX-14- (1), CT-6 EX-14- (1), CT-8 EX-13- (1) | MN-1, MN-18, MN-22 | à écrire (étape 8) |
 | TE-2 | Cas de démonstration « administration » : agent qui instruit des demandes de prestations publiques | CT-2 EX-19- (1), CT-3 EX-14- (1), CT-6 EX-14- (1), CT-8 EX-13- (1) | MN-1, MN-44 | à écrire (étape 8) |
 | TE-3 | Démonstration de référence en une commande : `docker compose up`, moins de deux minutes, verdict imprimé (CT-2 §19) | CT-2 EX-19- (5) | MN-1, MN-22 | à écrire (étape 8) |
-| TE-4 | Parcours CT-4 §7 sur le réseau de développement noorcore : client inscrit, racine ancrée, période close, certificats capturés | CT-4 EX-4- (18), CT-4 EX-6- (23), CT-4 EX-10- (9), CT-4 EX-11- (1), CT-4 EX-3- (2), CT-4 EX-5- (6), CT-4 EX-A- (1) | MN-55, MN-58 | à écrire (étape 3) |
+| TE-4 | Parcours CT-4 §7 sur le réseau de développement noorcore : client inscrit, racine ancrée, période close, certificats capturés | CT-4 EX-4- (18), CT-4 EX-6- (23), CT-4 EX-10- (9), CT-4 EX-11- (1), CT-4 EX-3- (2), CT-4 EX-5- (6), CT-4 EX-A- (1) | MN-55, MN-58 | exécutable : `test/registre-dev.test.js` |
 | TE-5 | De l'événement au dossier vérifié sur les vecteurs : `journal-demo` de CT-2, export des parties du registre, vérificateur de CT-6 | CT-2 EX-12- (1), CT-4 EX-9- (1), CT-6 EX-6- (1), CT-6 EX-8- (1) | MN-23 | exécutable : `test/enregistreur.test.js`, `test/registreCt4.test.js`, `test/verificateur.test.js` |
 | TE-6 | Installation rapide IR-1 à IR-8 sur un hôte neuf, premier dossier vérifié | CT-8 IR- (8), CT-8 EX-7- (4), CT-8 EX-3- (1) | MN-14 | à écrire (étape 7) |
 | TE-7 | Installation complète IC-1 à IC-18 sur une machine vierge, en moins d'une journée, avec le seul document | CT-8 IC- (18), CT-8 EX-8- (6), CT-8 EX-3- (14), CT-8 TP- (8), CT-7 EX-5- (9), CT-7 EX-7- (8) | MN-14, MN-33, MN-88 | à écrire (étape 7) |
@@ -1953,9 +1953,10 @@ compare au rapport de référence et rend 1 sur une régression.
 **EX-11.16** En version 0.1, le membre `measured` de chaque entrée TM- est
 `null` et la colonne « Mesure » de la table 11.5 est vide : aucune mesure de
 l'enregistreur, du service d'approbation, du composant d'ancrage ni des
-installations n'existe ; parmi les quatre entrées exécutables, TM-6 et
-TM-10 ont leur résultat dans le rapport sur les vecteurs, TM-15 et TM-20
-dans les tests et les étapes de CI qu'elles citent (`scripts/tests/
+installations n'existe ; parmi les cinq entrées exécutables, TM-6 et
+TM-10 ont leur résultat dans le rapport sur les vecteurs, TM-31 dans le
+rapport de sa campagne sur le réseau de développement (étape 3), TM-15 et
+TM-20 dans les tests et les étapes de CI qu'elles citent (`scripts/tests/
 mesures.mjs` le signale comme lacune nommée, MES-7), jamais dans le
 catalogue.
 
@@ -1999,7 +2000,7 @@ sont dans le catalogue.
 | TM-28 | artefacts dont deux constructions indépendantes diffèrent | 0 nombre | `egalite` | CT-8 EX-3.13 | un condensé différent | `comparaison_octets` | à écrire (étape 7) | — |
 | TM-29 | consommation observée de processeurs, de mémoire et d'espace sous charge | 2 processeurs et 4 Gio (rapide) ; 4 et 8 Gio (production) ; 10 Gio d'espace (rapide) | `au_plus` | CT-8 EX-6.2 | une consommation observée au-dessus du plancher du profil | `releve` | à écrire (étape 7) | — |
 | TM-30 | octets d'une preuve OpenTimestamps mise à niveau | — | `aucune_cible` | CT-8 EX-9.1 | aucun : mesure publiée | `comparaison_octets` | à écrire (étape 5) | — |
-| TM-31 | octets de la capture d'une transaction d'un bloc plein | — | `aucune_cible` | CT-8 EX-9.1 | aucun : mesure publiée | `comparaison_octets` | à écrire (étape 3) | — |
+| TM-31 | octets de la capture d'une transaction d'un bloc plein | — | `aucune_cible` | CT-8 EX-9.1 | aucun : mesure publiée | `comparaison_octets` | exécutable : `test/registre-dev.test.js` | — |
 | TM-32 | blocs par seconde de l'instance de production | — | `aucune_cible` | CT-8 EX-9.1 | aucun : mesure publiée | `releve` | à écrire (étape 3) | — |
 | TM-33 | coefficients f_pic, b_o, b_acq, b_crl, n_crl | — | `aucune_cible` | CT-8 EX-9.1 | aucun : mesure publiée ; IC-1 refait après mesure | `releve` | à écrire (étape 7) | — |
 | TM-34 | faux positifs et faux négatifs des alertes à seuil cible | 0 nombre | `egalite` | CT-8 EX-10.11 | une alerte levée en nominal ou absente dans son scénario | `comptage` | à écrire (étape 7) | — |
@@ -2477,7 +2478,7 @@ version.
 
 ## 16. Ce que cette version ne couvre pas
 
-- **Les résultats d'exécution des tests « à écrire »** : 130 entrées du
+- **Les résultats d'exécution des tests « à écrire »** : 128 entrées du
   catalogue (table de 5.5), les compléments des treize TA- exécutables et
   celui de TV-55 n'ont aucun résultat ; aucun n'est inventé.
 - **Les tests de propriétés** (TU-12) : écrits à l'étape 1 de la phase 2,
@@ -2538,7 +2539,7 @@ version.
   reste vide pour elles (EX-10.10), les TM- sont à créer à la révision
   suivante.
 - **Toute valeur mesurée de l'enregistreur, du service d'approbation, du
-  composant d'ancrage, des installations et des runbooks** : les 39 entrées
+  composant d'ancrage, des installations et des runbooks** : les 38 entrées
   TM- « à écrire » ont une cible et un seuil, aucune valeur ; le rapport
   vide de la version 0.1 le dit ligne par ligne (EX-11.13).
 - **Le système de référence comme instance** : la classe est fixée

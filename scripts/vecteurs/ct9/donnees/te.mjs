@@ -183,16 +183,22 @@ export const TE = [
       "CT-4 EX-A.8"
     ],
     "preconditions": [
-      "Binaire `chain/runtime/bin/noorcore` ; `chain/scripts/dev-net.sh start` ; `deployments/noorcore.json` ; slug neuf ; hors CI (aucune étape de la CI n'exécute noorcore, CT-5 EX-A.7)."
+      "Binaire `chain/runtime/bin/noorcore` portant `noor_getCommitCertificate` (construit avec le correctif, hors dépôt public) et binaire `noortrace-verifier` de l'étape 2 ; hors CI (aucune étape de la CI n'exécute noorcore, CT-5 EX-A.7) : sans eux, le cas est mis en attente et son titre nomme la condition (EX-3.11)."
     ],
     "steps": [
-      "Exécuter 7.4 à 7.9 avec l'outil de référence ; capturer chaque certificat ; `verifier` ; `certificat-commit.mjs` sur chaque certificat ; `chain/scripts/dev-net.sh stop`."
+      "`npm run e2e:registre` (`scripts/e2e/parcours-registre.mjs`) : démarrer le réseau de développement s'il ne tourne pas, déployer les contrats, exécuter 7.4 à 7.9 avec l'outil de référence pour un client fictif au slug neuf ; capturer chaque certificat ; `verifier` ; `certificat-commit.mjs` sur chaque certificat ; exporter `registre.json`, `certificat-commit.json`, `validateurs.json` et le fichier d'ancres ; faire rendre le contrôle 8 par `scripts/verify/dossier.mjs` et par `noortrace-verifier` ; arrêter ce qui a été démarré ; verdict JSON."
     ],
     "oracle": "`exit_code` 0 partout ; étapes `capturee` ou `faite` ; R-1 à R-10 `reussi` ; code 0 de `certificat-commit.mjs` sur les six certificats (CT-4 EX-7.15). L'épreuve humaine à l'aveugle est un TR-.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 3,
-      "blocking": "Exécuté hors de `npm test` ; aucun describe/it ni étape de CI ne le porte (R10-NV4) : à écrire comme script d'épreuve `scripts/e2e/` rejouable, verdict JSON."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/registre-dev.test.js",
+          "describe": "TE-4 — parcours du registre sur le réseau de développement noorcore (CT-4 §7 ; contrôle 8 par les deux vérificateurs)",
+          "it": "client fictif inscrit, racine ancrée, période close, six certificats capturés et valides ; contrôle 8 réussi par scripts/verify/dossier.mjs et par le binaire Go"
+        }
+      ],
+      "command": "npm run e2e:registre"
     },
     "threats": [
       "MN-55",

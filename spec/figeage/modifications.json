@@ -135,6 +135,77 @@
           "apres": "6772ef7c6d18b6ac092b0ad5e2887f4848d49b16792ec7551849df2399a026ba"
         }
       ]
+    },
+    {
+      "id": "MC-5",
+      "date": "2026-11-02",
+      "etape": 3,
+      "motif": "Étape 3 de la construction (registre de développement) : TE-4 exécutable sur test/registre-dev.test.js (parcours scripts/e2e/parcours-registre.mjs), TM-31 exécutable et son rapport de campagne publié sous mesures/ (EX-11.11), TM-32 motivé (instance de production inexistante, décision ouverte 6) ; textes de CT-9 (9, 11.16, 5.5, 16) alignés ; vérificateur Go de CT-9 adapté ; CT-4 §13 : images de base épinglées par condensé et image reconstruite avec le correctif, faites. Aucune exigence ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "2a0ec877fe493f51c06e1196604dc6dd3b5f57f5567900272cdd83df6ea7e3f6",
+          "apres": "de1ba090c505ad4908f24087abcba78a6b12a459b23163f49ecdd7f210d15fd6"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "46cedc3c639dfee19aa87b8ee4fbd084215445a9ea453acd6ab1370a84a78fb5",
+          "apres": "4fcbb489162fa9f003700b5a9f36068e06ddaac83105bef5ff717da6af49e084"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "5638ad183e583a288488ca915cd58e6bc62be61c23ad613e6ea244b6f75747a6",
+          "apres": "de509745371d97b8585c83ee47a1e060d5a70a0c72013f2c4db8b0d42d47707a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "fd5b7606aadd70d0561b0e3c74ab8e17b2cd23b7dfc677d2e56ddcaa64b3754c",
+          "apres": "57b41864d9dc1b97c7097252f15f48cb8f3d9159efab2de0295c6d51cab2b5fc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "f10b597c66658a8f66d23b1232343ce91ca1164acdb1580e06d143a4f525b688",
+          "apres": "cc7c01c5c019fa3dae8d1b7bc4405c5335146e242e18c9d4a2ddfc83a91e86e5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "6772ef7c6d18b6ac092b0ad5e2887f4848d49b16792ec7551849df2399a026ba",
+          "apres": "f1187cab6107574d629c6c8f904434956523747a5ed28a628a6ffcd7e70e849e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "c2cf3a8026093e65adcd83c06ebd08ec71bd5ad12a03eca791c0af87f10e1910",
+          "apres": "bb722a391bb4165edfa67372d28dcfcc6b34a185a7fc252a24018524de480201"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "dec572acec766facc78891c056bd16b5d46fea113eac830f19b777512ee2e5a0",
+          "apres": "7aebf50facf047c1957e5e151ed0022f6bea54cb6b158e8c84848334e4487eff"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-02-capture-bloc-plein.json",
+          "avant": null,
+          "apres": "e598371d52af8c585426df7e3cb3054afee0e6a4ddb2364377d06aaa871e6940"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/couverture.go",
+          "avant": "7ae684b1029f7227b10bd57db64ebb16885e411d7cce6dbfb34d21637d23d8b8",
+          "apres": "e0d59ddecd3090cf80ad245f83ba61a1f93daa1ac77568d8c62e00bdc2d7d6a1"
+        }
+      ]
+    },
+    {
+      "id": "MC-6",
+      "date": "2026-11-02",
+      "etape": 3,
+      "motif": "Étape 3, suite : test/plan-de-tests.test.js adapté (rapports de campagne de mesures/ exclus de la comparaison à une génération dans un répertoire vide, EX-11.11 ; TM-31 parmi les TM- exécutables) ; empreinte du fichier de test dans couverture.json et sortie du recomptage mises à jour. Aucune exigence ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "f1187cab6107574d629c6c8f904434956523747a5ed28a628a6ffcd7e70e849e",
+          "apres": "96359117bfb306b595c02b8f6b7e71d53d12508db5c06727699c052170fa5fd8"
+        }
+      ]
     }
   ]
 }

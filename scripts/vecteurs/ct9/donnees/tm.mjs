@@ -1540,9 +1540,15 @@ export const TM = [
     ],
     "oracle": "Ligne présente, `met` null ; la valeur remplace 11 096 dans les entrées du calculateur si elle est supérieure.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 3,
-      "blocking": "Outillage de remplissage d'un bloc à écrire ; le réseau de développement existe."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/registre-dev.test.js",
+          "describe": "TE-4 — parcours du registre sur le réseau de développement noorcore (CT-4 §7 ; contrôle 8 par les deux vérificateurs)",
+          "it": "TM-31 : un bloc de 64 transactions d'ancre, capture d'une transaction mesurée trois fois ; rapport conforme à plan-de-tests-v0#/$defs/rapport_mesure, ligne b_cap_bloc_plein aux trois échantillons égaux"
+        }
+      ],
+      "command": "node scripts/e2e/mesure-capture-bloc-plein.mjs --rapport <fichier>"
     },
     "threats": [],
     "measure": {
@@ -1588,7 +1594,7 @@ export const TM = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 3,
-      "blocking": "Instance de production du registre non déployée (hors du déploiement chez un client, CT-8 §15)."
+      "blocking": "Instance de production du registre non déployée (hors du déploiement chez un client, CT-8 §15) ; elle n'existe pas à la livraison de l'étape 3 et attend la décision ouverte 6 (identifiant de production, validateurs partenaires) : la mesure se fera sur son manifeste publié."
     },
     "threats": [],
     "measure": {

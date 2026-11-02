@@ -11,7 +11,8 @@ de la chaîne.
 
 | Fichier | Rôle |
 |---|---|
-| `Dockerfile` | construction multi-étapes : Go épinglé → binaire → image distroless |
+| `Dockerfile` | construction multi-étapes : Go épinglé → binaire → image distroless, images de base épinglées par condensé |
+| `Dockerfile.dockerignore` | contexte de construction réduit à `chain/patches/` |
 | `docker-compose.yml` | exemple d'un suiveur en conteneur |
 | `README.md` | ce document |
 
@@ -26,6 +27,12 @@ est un emballage du même binaire, pas une autre chaîne.
 # de construction est chain/ pour que l'image les voie
 docker build -f chain/docker/Dockerfile -t noortrace/noorcore:618fcef-noortrace chain
 
+# construction reproductible (celle de l'image livrée, voir « Construction vérifiée le 2 novembre 2026 ») :
+# horodatages ramenés à la date du commit épinglé, sans attestation de provenance
+docker build --provenance=false --build-arg SOURCE_DATE_EPOCH=1792404337 \
+  --output type=image,name=noortrace/noorcore:618fcef-noortrace,rewrite-timestamp=true,unpack=false \
+  -f chain/docker/Dockerfile chain
+
 # un autre commit de noorchain-core
 docker build -f chain/docker/Dockerfile --build-arg NOORCORE_COMMIT=<sha complet> -t noortrace/noorcore:<étiquette> chain
 
@@ -33,23 +40,41 @@ docker build -f chain/docker/Dockerfile --build-arg NOORCORE_COMMIT=<sha complet
 docker build --check -f chain/docker/Dockerfile chain
 ```
 
+Le correctif n'entre jamais dans le dépôt public : `chain/patches/.gitignore` ignore
+tout fichier de ce répertoire hors du LISEZMOI et de lui-même, et le correctif n'y est
+déposé que le temps de la construction (`git check-ignore -v chain/patches/<nom>.patch`
+le confirme ; `git status` ne le montre pas). `Dockerfile.dockerignore` limite le
+contexte envoyé au constructeur à `chain/patches/` : ni `chain/runtime/` (clés de
+validateur, données, journaux) ni le reste de `chain/` n'en sortent (contexte transféré
+lors de la construction du 2 novembre : 122 Ko).
+
 Ce que fait le `Dockerfile` :
 
-1. **Étape `build`**, depuis `golang:1.26.9-bookworm` : la version de Go est celle
-   qu'impose le `go.mod` de noorchain-core (`go 1.26.9`) ; `GOTOOLCHAIN=local`
-   interdit tout téléchargement d'une autre chaîne de compilation, un `go.mod` qui
-   demanderait plus récent fait échouer la construction. Clone à profondeur 1 du
-   commit `NOORCORE_COMMIT` (un commit, pas une branche), vérification que la tête
-   est bien ce commit, puis `go build -trimpath -o … ./core` avec cgo (comme le
-   binaire de `chain/runtime/bin/`). Les caches de modules et de compilation sont
-   des montages BuildKit, jamais copiés dans l'image.
-2. **Image finale** `gcr.io/distroless/base-debian12:nonroot` : Debian 12 comme
-   l'étape de construction (même glibc, le binaire y est lié parce que la
-   cryptographie secp256k1 de go-ethereum passe par cgo), autorités TLS et tzdata,
-   ni shell ni gestionnaire de paquets. Binaire en `/usr/local/bin/noorcore`,
-   volume `/var/lib/noorcore` (créé vide, propriété de 65532:65532), utilisateur
+1. **Étape `build`**, depuis `golang:1.26.9-bookworm`, **épinglée par condensé**
+   (`@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c`,
+   index multi-plateforme) : la version de Go est celle qu'impose le `go.mod` de
+   noorchain-core (`go 1.26.9`) ; `GOTOOLCHAIN=local` interdit tout téléchargement
+   d'une autre chaîne de compilation, un `go.mod` qui demanderait plus récent fait
+   échouer la construction. Clone à profondeur 1 du commit `NOORCORE_COMMIT` (un
+   commit, pas une branche), vérification que la tête est bien ce commit, application
+   des correctifs de `chain/patches/` après `git apply --check`, puis
+   `go build -trimpath -o … ./core` avec cgo (comme le binaire de `chain/runtime/bin/`).
+   Les caches de modules et de compilation sont des montages BuildKit, jamais copiés
+   dans l'image.
+2. **Image finale** `gcr.io/distroless/base-debian12:nonroot`, **épinglée par
+   condensé** (`@sha256:7f0c72cd138b442ae0deeb69c08b1acf5525439ba251a49ad93c320a061567e5`) :
+   Debian 12 comme l'étape de construction (même glibc, le binaire y est lié parce que
+   la cryptographie secp256k1 de go-ethereum passe par cgo), autorités TLS et tzdata,
+   ni shell ni gestionnaire de paquets. Binaire en `/usr/local/bin/noorcore`, volume
+   `/var/lib/noorcore` (créé vide, propriété de 65532:65532), utilisateur
    `65532:65532` (`nonroot`), `ENTRYPOINT ["/usr/local/bin/noorcore"]`, **pas de
    `CMD`**.
+
+Les deux condensés sont ceux que les registres servaient le 21 octobre 2026 pour ces
+étiquettes (relevés alors, section « 21 octobre ») ; celui de l'image Go a de nouveau
+été servi le 2 novembre. Changer de version
+de Go, c'est changer la ligne `FROM` entière, étiquette **et** condensé ; l'étiquette
+seule n'est plus qu'une indication lisible.
 
 Pourquoi aucun mode par défaut : noorcore lancé sans drapeaux démarre une chaîne
 locale de banc d'essai (rôle `follower` sans `-follow-rpc`, chaîne 2121, données
@@ -61,9 +86,9 @@ Arguments de construction :
 
 | Argument | Défaut | Rôle |
 |---|---|---|
-| `GO_VERSION` | `1.26.9` | étiquette de l'image Go ; à ne changer qu'avec le `go.mod` |
 | `NOORCORE_REPO` | `https://github.com/noorfinances-eng/noorchain-core.git` | dépôt cloné |
 | `NOORCORE_COMMIT` | `618fcef8805ef5b4cb9291a3dd97be710e489297` | commit de noorchain-core construit, après application des correctifs de `chain/patches/` |
+| `SOURCE_DATE_EPOCH` | — (argument reconnu par BuildKit) | horodatages de l'image ; `1792404337`, date du commit épinglé, pour la construction reproductible |
 
 Secrets BuildKit facultatifs, jamais écrits dans une couche :
 
@@ -77,7 +102,81 @@ Secrets BuildKit facultatifs, jamais écrits dans une couche :
   mandataire, passer aussi `--build-arg HTTPS_PROXY=… --build-arg NO_PROXY=…` et,
   s'il écoute sur la boucle locale de l'hôte, `--network host`.
 
-### Construction vérifiée le 21 octobre 2026
+### Construction vérifiée le 2 novembre 2026 (avec le correctif)
+
+Docker 29.8.2 (BuildKit, magasin d'images containerd), derrière le mandataire
+d'entreprise de l'environnement (`--network host --build-arg HTTPS_PROXY=…
+--build-arg NO_PROXY=… --secret id=ca_bundle,src=…`, dépôt privé cloné sans jeton,
+le mandataire portant l'authentification GitHub).
+
+- Correctif appliqué : `0001-noor_getCommitCertificate.patch`, SHA-256
+  `04d4a48b28568bb6859abdfb1778985841fc547ea47649742b3b2763dd83ae82` (nom et
+  empreinte seulement, CT-4 EX-10.1 c ; le fichier vient de hors du dépôt public et a
+  été retiré de `chain/patches/` après la construction).
+- Images de base : Docker Hub a de nouveau répondu `429 Too Many Requests` pour
+  `golang:1.26.9-bookworm` ; l'image a été tirée d'un miroir de Docker Hub, au **même
+  condensé** `sha256:d9c68c2c…0641453c` (celui relevé le 21 octobre), puis étiquetée
+  localement : l'épinglage par condensé garantit que c'est la même image, d'où
+  qu'elle vienne. Distroless : `sha256:7f0c72cd…061567e5`, présente localement depuis
+  le 21 octobre (non résolue de nouveau).
+- Journal de construction : `noorchain-core au commit 618fcef8805ef5b4cb9291a3dd97be710e489297, go 1.26.9`,
+  `correctif appliqué : 0001-noor_getCommitCertificate.patch`, `go version go1.26.9
+  linux/amd64`, `go build` en 54 à 82 s selon l'état du cache de compilation.
+- Binaire de l'image : `/usr/local/bin/noorcore`, 22 389 560 octets, SHA-256
+  `759df4c7a7f087bdb92c63633cf817e613272b2b36d7966869e1c21a77a7d350`, porte
+  `noor_getCommitCertificate` ; **identique à l'octet** sur les quatre constructions du
+  jour (avec et sans cache).
+- **Image livrée** : `noortrace/noorcore:618fcef-noortrace`, condensé
+  **`sha256:4e6cb6795d49d1f39a69bd2b9ce097ede675f36fa842ebb07ef88c8e3fd50d52`**
+  (manifeste d'image linux/amd64, sans attestation), **67 606 152 octets sur disque**
+  (67,6 Mo ; 20,3 Mo de contenu compressé, 20 310 016 octets en `docker save`),
+  17 couches, `User=65532:65532`, `Entrypoint=["/usr/local/bin/noorcore"]`,
+  `Cmd=null`, volume `/var/lib/noorcore`, `Created=2026-10-19T10:05:37Z` (date du
+  commit épinglé, `SOURCE_DATE_EPOCH`). À employer par son condensé :
+  `noortrace/noorcore@sha256:4e6cb6795d49d1f39a69bd2b9ce097ede675f36fa842ebb07ef88c8e3fd50d52`.
+- **Reconstruction à l'identique** (CT-4 EX-10.1 b) : la commande reproductible
+  ci-dessus, une fois avec le cache et une fois avec `--no-cache` (clone, correctif et
+  `go build` refaits), rend le **même condensé** `sha256:4e6cb679…fd50d52`. Sans
+  `SOURCE_DATE_EPOCH` ni `rewrite-timestamp`, deux constructions donnent le même binaire
+  mais deux condensés d'image différents (horodatages des couches et de la
+  configuration, attestation de provenance) : `sha256:971e3a65…cf75c73cccf` et
+  `sha256:d2efd2a1…c961831b2`. `rewrite-timestamp=true` exige `unpack=false` ;
+  l'image est décompressée au premier `docker run`.
+
+Essai réel du conteneur, le même jour, par son condensé :
+
+- **Quatre validateurs en conteneur** sur une chaîne jetable (clés neuves, volumes
+  nommés, même genèse `chain/config/alloc-dev.json` montée en lecture seule, ports
+  127.0.0.1 : RPC 8665 à 8668, p2p 31420 à 31423, santé 8765 à 8768, métriques 9665
+  à 9668, `--network host`), lancés comme dans « Exécution en validateur » avec
+  `--read-only --cap-drop ALL --security-opt no-new-privileges:true` : ligne
+  `genesis rules: verified against /etc/noorcore/alloc.json` puis
+  `emission params: anchored`, la chaîne avance (hauteur 0x17 après 20 s) ;
+  `noor_getCommitCertificate(["0x31"])` servi localement par v1 et par v3 (même
+  `blockHash 0x7c0ba723…`), 3 precommits, `quorum = {validators: 4,
+  required: 3, precommits: 3}`, `canonical.matchesCertificate = true` ;
+  `node scripts/verify/certificat-commit.mjs` sur cette réponse avec le
+  `validators.json` de la chaîne jetable : code 0, « VALIDE — un quorum du jeu fourni
+  a signé ce bloc » (signataires v1, v2, v3, proposant v2).
+- **Lecture seule et sans capacités** : `docker inspect` → `ReadonlyRootfs=true`,
+  `CapDrop=["ALL"]`, `CapAdd=null`, `SecurityOpt=["no-new-privileges:true"]`,
+  `User=65532:65532` ; dans `/proc/<pid>/status` du processus noorcore :
+  `Uid 65532`, `CapInh`, `CapPrm`, `CapEff`, `CapBnd`, `CapAmb` tous à
+  `0000000000000000`, `NoNewPrivs 1`.
+- **`docker compose`** : `docker compose -f chain/docker/docker-compose.yml config`
+  rend `read_only: true`, `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]`,
+  ports publiés sur `127.0.0.1` seulement, image `noortrace/noorcore:618fcef-noortrace`.
+  Essai réel du service avec une surcharge d'essai (`network_mode: host`,
+  `ports: !reset []`, `-follow-rpc=http://127.0.0.1:8665`, RPC `127.0.0.1:8655`) :
+  le conteneur du service a `ReadonlyRootfs=true`, `CapDrop=["ALL"]`, `CapEff`
+  nul, `NoNewPrivs 1` ; `eth_chainId` → `0x84c`, `eth_blockNumber` relayé,
+  `noor_getCommitCertificate(["0x31"])` relayé, identique au certificat du meneur
+  (lignes signées et `blockHash`), `/healthz` → 200.
+- Arrêt : `docker stop` → `bft: engine loop stopped`, `node stopped`,
+  `NOORCHAIN 2.1 — shutdown clean` ; `docker compose … down -v` ; conteneurs et volumes
+  supprimés ensuite.
+
+### Construction vérifiée le 21 octobre 2026 (sans le correctif)
 
 - `docker build --check chain/docker` : `Check complete, no warnings found.`
 - Variante avec correctifs (contexte `chain/`, `COPY patches/`, `git apply`), le soir du
@@ -95,7 +194,8 @@ Secrets BuildKit facultatifs, jamais écrits dans une couche :
   `Entrypoint=["/usr/local/bin/noorcore"]`, `Cmd=null`, volume `/var/lib/noorcore`.
 - Images de base résolues à cette date : `golang:1.26.9-bookworm@sha256:d9c68c2c…641453c`,
   `gcr.io/distroless/base-debian12:nonroot@sha256:7f0c72cd…061567e5` (étiquettes
-  épinglées dans le `Dockerfile`, condensés notés ici pour la reproductibilité).
+  épinglées alors dans le `Dockerfile`, condensés notés ici pour la reproductibilité ;
+  le `Dockerfile` les épingle désormais par ces condensés).
 - L'environnement de construction passait par un mandataire d'entreprise : la
   construction a utilisé `--network host --build-arg HTTPS_PROXY=… --build-arg
   NO_PROXY=… --secret id=ca_bundle,src=…` ; le dépôt privé a été cloné sans jeton

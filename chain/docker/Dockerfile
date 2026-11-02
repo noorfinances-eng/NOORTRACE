@@ -21,15 +21,18 @@
 # volumes, les ports et les variables.
 
 # --- versions épinglées -------------------------------------------------------
-# GO_VERSION est la version imposée par le go.mod de noorchain-core (« go 1.26.9 ») ;
-# avec GOTOOLCHAIN=local plus bas, un go.mod qui demanderait plus récent fait
-# échouer la construction au lieu de télécharger une autre chaîne en silence.
-ARG GO_VERSION=1.26.9
+# Les deux images de base sont épinglées par condensé (CT-4 EX-10.1) : l'étiquette
+# n'est plus qu'une indication lisible, c'est le condensé qui désigne l'image
+# (index multi-plateforme, tel que le registre le sert). Go 1.26.9 est la version
+# imposée par le go.mod de noorchain-core (« go 1.26.9 ») ; avec GOTOOLCHAIN=local
+# plus bas, un go.mod qui demanderait plus récent fait échouer la construction au
+# lieu de télécharger une autre chaîne en silence. Changer de version de Go, c'est
+# changer la ligne FROM entière, étiquette et condensé (chain/docker/README.md).
 ARG NOORCORE_REPO=https://github.com/noorfinances-eng/noorchain-core.git
 ARG NOORCORE_COMMIT=618fcef8805ef5b4cb9291a3dd97be710e489297
 
 # --- étape 1 : construction ----------------------------------------------------
-FROM golang:${GO_VERSION}-bookworm AS build
+FROM golang:1.26.9-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c AS build
 ARG NOORCORE_REPO
 ARG NOORCORE_COMMIT
 ENV GOTOOLCHAIN=local \
@@ -93,7 +96,7 @@ RUN --mount=type=secret,id=ca_bundle \
 # de go-ethereum passe par cgo ; alpine (musl) exigerait une couche de
 # compatibilité, debian 12 des deux côtés garantit la même libc. L'étiquette
 # `nonroot` fournit l'utilisateur 65532:65532.
-FROM gcr.io/distroless/base-debian12:nonroot
+FROM gcr.io/distroless/base-debian12:nonroot@sha256:7f0c72cd138b442ae0deeb69c08b1acf5525439ba251a49ad93c320a061567e5
 ARG NOORCORE_REPO
 ARG NOORCORE_COMMIT
 LABEL org.opencontainers.image.title="noorcore" \

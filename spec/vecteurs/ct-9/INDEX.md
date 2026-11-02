@@ -161,7 +161,7 @@ par entrée : identifiant, niveau, état, titre.
 | TE-1 | TE- | à écrire (étape 8) | Cas de démonstration « assurance » : agent de souscription et de tarification, de la capture au dossier vérifié |
 | TE-2 | TE- | à écrire (étape 8) | Cas de démonstration « administration » : agent qui instruit des demandes de prestations publiques |
 | TE-3 | TE- | à écrire (étape 8) | Démonstration de référence en une commande : `docker compose up`, moins de deux minutes, verdict imprimé (CT-2 §19) |
-| TE-4 | TE- | à écrire (étape 3) | Parcours CT-4 §7 sur le réseau de développement noorcore : client inscrit, racine ancrée, période close, certificats capturés |
+| TE-4 | TE- | exécutable | Parcours CT-4 §7 sur le réseau de développement noorcore : client inscrit, racine ancrée, période close, certificats capturés |
 | TE-5 | TE- | exécutable | De l'événement au dossier vérifié sur les vecteurs : `journal-demo` de CT-2, export des parties du registre, vérificateur de CT-6 |
 | TE-6 | TE- | à écrire (étape 7) | Installation rapide IR-1 à IR-8 sur un hôte neuf, premier dossier vérifié |
 | TE-7 | TE- | à écrire (étape 7) | Installation complète IC-1 à IC-18 sur une machine vierge, en moins d'une journée, avec le seul document |
@@ -308,7 +308,7 @@ par entrée : identifiant, niveau, état, titre.
 | TM-28 | TM- | à écrire (étape 7) | EX-3.13 de CT-8 : égalité des condensés de deux constructions indépendantes de chaque image, du binaire du vérificateur et de la console |
 | TM-29 | TM- | à écrire (étape 7) | EX-6.2 de CT-8 : seuils « cible » du contrôle préalable (IP-2 processeurs et mémoire, IP-3 espace libre) confrontés à la consommation observée |
 | TM-30 | TM- | à écrire (étape 5) | Coefficient `b_ots` de CT-8 §9.2 : octets d'une preuve OpenTimestamps mise à niveau (défaut 233 en attente) |
-| TM-31 | TM- | à écrire (étape 3) | Coefficient `b_cap` de CT-8 §9.2 : octets de la capture d'une transaction dans un bloc plein (CT-4 §9.2 : non mesuré) |
+| TM-31 | TM- | exécutable | Coefficient `b_cap` de CT-8 §9.2 : octets de la capture d'une transaction dans un bloc plein (CT-4 §9.2 : non mesuré) |
 | TM-32 | TM- | à écrire (étape 3) | Coefficient `blocs_par_s` de CT-8 §9.2 sur l'instance de production du registre (réseau de développement : 1,10 le 2026-10-25) |
 | TM-33 | TM- | à écrire (étape 7) | Coefficients sans valeur par défaut de CT-8 §9.2 : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl` (hypothèses de 9.5 jusqu'à la mesure) |
 | TM-34 | TM- | à écrire (étape 7) | Seuils d'alerte « cible » de la supervision de CT-8 §10 : distribution des métriques en fonctionnement nominal et dans chaque scénario de runbook |
@@ -351,7 +351,7 @@ Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
 2332 identifiants définis par CT-1 à CT-8, 2193 couverts par une entrée, 139 par
 une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 117
-occurrences de « CT-9 » et 117 lignes TC- ; 191 entrées exécutables citant 365
+occurrences de « CT-9 » et 117 lignes TC- ; 193 entrées exécutables citant 367
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

@@ -322,7 +322,11 @@ describe("CT-9 : génération déterministe et INDEX.md (EX-A.1, EX-A.2, EX-4.5)
     generer(g2, { racine: R });
     const l1 = fichiers(g1);
     expect(l1).to.deep.equal(fichiers(g2));
-    expect(l1).to.deep.equal(fichiers(CT9, [...ENTREES_ETRANGERES_ADMISES]));
+    // Les rapports de campagne de mesures/ (EX-11.11) sont écrits par
+    // l'ingénieur, jamais par le générateur : exclus de la comparaison, et
+    // conservés tels quels par une régénération du dépôt (rapportsDeCampagne).
+    const campagne = (f) => /^mesures\/rapport-.*\.json$/.test(f) && !l1.includes(f);
+    expect(l1).to.deep.equal(fichiers(CT9, [...ENTREES_ETRANGERES_ADMISES]).filter((f) => !campagne(f)));
     for (const f of l1) {
       expect(fs.readFileSync(path.join(g1, f)).equals(fs.readFileSync(path.join(g2, f))), f).to.equal(true);
       expect(fs.readFileSync(path.join(g1, f)).equals(fs.readFileSync(path.join(CT9, f))), `${f} diffère du dépôt`).to.equal(true);
@@ -451,9 +455,10 @@ describe("CT-9 : mesures TM- (section 11, EX-11.14, EX-11.16, annexe A.7, EX-A.9
       expect(m.failure_threshold.length, t.id).to.be.greaterThan(0);
       expect(m.percentiles, t.id).to.be.an("array");
     }
-    // EX-11.16 : quatre entrées exécutables, résultat dans le rapport sur les
-    // vecteurs et les tests cités.
-    expect(TM.filter((t) => t.status.state === "executable").map((t) => t.id)).to.deep.equal(["TM-6", "TM-10", "TM-15", "TM-20"]);
+    // EX-11.16 : cinq entrées exécutables, résultat dans le rapport sur les
+    // vecteurs, dans le rapport de campagne de TM-31 (étape 3) et dans les
+    // tests cités.
+    expect(TM.filter((t) => t.status.state === "executable").map((t) => t.id)).to.deep.equal(["TM-6", "TM-10", "TM-15", "TM-20", "TM-31"]);
     // EX-11.14 : TM-22 a pour cible 450 min et un seuil d'échec à 480 min ;
     // les sources en « moins de » (TM-25, TM-35, TM-43) emploient
     // strictement_inferieur.

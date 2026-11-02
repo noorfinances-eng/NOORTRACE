@@ -6,6 +6,20 @@ is tagged.
 
 ## Unreleased
 
+- Build step 3, the development registry. `npm run e2e:registre`
+  (`scripts/e2e/parcours-registre.mjs`) replays the CT-4 §7 walkthrough on the
+  local noorcore network for a fictitious client: onboarding, key
+  registration, root anchoring, period closure, capture of blocks, receipts,
+  commit certificates and validator sets, export of the registry parts, and
+  control 8 of CT-6 run by both the JavaScript reference and the Go verifier,
+  which agree exactly. `test/registre-dev.test.js` runs it when a noorcore
+  binary with `noor_getCommitCertificate` is present and is pending otherwise.
+  The registry node image is rebuilt with that method, its two base images
+  pinned by digest, and it rebuilds to the same digest. A block of 64 anchor
+  transactions was filled and the capture of one transaction measured
+  (CT-9 TM-31, report under `spec/vecteurs/ct-9/mesures/`). The CT-9 vector
+  generator now keeps campaign reports under `mesures/`, as EX-11.11 requires.
+  Recorded as MC-5 in the design-freeze register.
 - Build step 2, the offline verifier binary `noortrace-verifier`, written in
   Go from the CT-6 text alone (`verificateur/`): the eight checks, including
   RFC 3161 timestamp tokens, OpenTimestamps proofs with their Bitcoin header

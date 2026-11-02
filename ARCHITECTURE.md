@@ -524,8 +524,10 @@ développement n'est requis qu'à la construction de l'enregistreur, quand il
 ancre pour de vrai.
 
 Construit en phase 2 : la bibliothèque noyau de production (`paquets/noyau`,
-étape 1) et le binaire Go du vérificateur, `noortrace-verifier`
-(`verificateur/`, étape 2).
+étape 1), le binaire Go du vérificateur, `noortrace-verifier`
+(`verificateur/`, étape 2), et le registre de développement (étape 3) : parcours
+d'un client fictif rejouable (`npm run e2e:registre`), image du nœud avec la
+méthode du certificat de commit, images de base épinglées par condensé.
 
 À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
 le service d'approbation et la console d'exploitation, le composant d'ancrage avec ses clients

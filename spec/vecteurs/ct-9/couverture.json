@@ -22,7 +22,7 @@
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "2a0ec877fe493f51c06e1196604dc6dd3b5f57f5567900272cdd83df6ea7e3f6"
+        "sha256": "de1ba090c505ad4908f24087abcba78a6b12a459b23163f49ecdd7f210d15fd6"
       },
       {
         "file": "spec/CT-5-ancrage.md",
@@ -43,7 +43,7 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "fd5b7606aadd70d0561b0e3c74ab8e17b2cd23b7dfc677d2e56ddcaa64b3754c"
+      "sha256": "57b41864d9dc1b97c7097252f15f48cb8f3d9159efab2de0295c6d51cab2b5fc"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -144,11 +144,15 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "6f277a2c358c66c889b990d0301ca31c6405ec19b69b67df5e99edf8cb61cfcb"
+        "sha256": "95d3b70ee3856ca743c63fd446ed98469f67918b60e9378bdbd5dab4139fa10a"
       },
       {
         "file": "test/recorderRegistry.test.js",
         "sha256": "031e6d4ca6dd609e00b083e47962437a00398fe19308797281981cb3349667bf"
+      },
+      {
+        "file": "test/registre-dev.test.js",
+        "sha256": "3216b6c489eb6f16fc16e14ad4963acb900d7f1c7c44d2ec6023059f89c13d67"
       },
       {
         "file": "test/registre.test.js",
@@ -427,8 +431,8 @@
     "orphans": []
   },
   "executable": {
-    "total": 191,
-    "titles_checked": 365,
+    "total": 193,
+    "titles_checked": 367,
     "titles_missing": []
   },
   "text_tables": {

@@ -1,0 +1,6 @@
+# Les correctifs reçus hors du dépôt public (LISEZMOI.md) ne sont jamais suivis :
+# ils contiennent des extraits de noorchain-core. Seuls ce fichier et le
+# LISEZMOI le sont ; tout fichier déposé ici pour une construction est ignoré.
+*
+!.gitignore
+!LISEZMOI.md

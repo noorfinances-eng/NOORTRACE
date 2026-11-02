@@ -203,6 +203,20 @@ const DESCRIPTION_EXTRAITS = Object.freeze({
 // Génération
 // ---------------------------------------------------------------------------
 
+/**
+ * Rapports de campagne déjà présents sous mesures/ (EX-11.11) : tout
+ * `rapport-*.json` que le générateur ne produit pas. Rend [nom, octets].
+ */
+function rapportsDeCampagne(sortie, familles) {
+  const rep = path.join(sortie, "mesures");
+  if (!fs.existsSync(rep)) return [];
+  const generes = new Set(Object.keys(familles.mesures.rapports));
+  return fs.readdirSync(rep)
+    .filter((n) => /^rapport-.*\.json$/.test(n) && !generes.has(n))
+    .sort()
+    .map((n) => [n, fs.readFileSync(path.join(rep, n))]);
+}
+
 /** Vérifie la racine (EX-A.1) puis efface les seules entrées générées. */
 function preparerRacine(sortie) {
   if (fs.existsSync(sortie)) {
@@ -264,6 +278,9 @@ export function generer(sortie = REPERTOIRE_CT9, { racine = RACINE, tables = nul
   if (bloquantes.length) throw new Error(`couverture :\n - ${bloquantes.join("\n - ")}`);
   const cas = construireCas(C);
   const familles = construireFamilles(C, racine);
+  // Rapports de campagne (EX-11.11) : écrits par l'ingénieur de la campagne
+  // sous mesures/, jamais par le générateur ; conservés octet pour octet.
+  const campagnes = rapportsDeCampagne(sortie, familles);
 
   preparerRacine(sortie);
   fs.writeFileSync(path.join(sortie, "catalogue.json"), octets);
@@ -277,6 +294,7 @@ export function generer(sortie = REPERTOIRE_CT9, { racine = RACINE, tables = nul
     cases: cas.map(({ file, def, expected, keyword }) => ({ file, def, expected, keyword })),
   }));
   ecrireFamilles(sortie, familles);
+  for (const [n, octetsRapport] of campagnes) fs.writeFileSync(path.join(sortie, "mesures", n), octetsRapport);
   fs.writeFileSync(path.join(sortie, "INDEX.md"), construireIndex(C, rapport, cas, familles));
   if (tables) {
     const t = path.resolve(tables);

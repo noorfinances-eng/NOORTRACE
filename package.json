@@ -14,6 +14,7 @@
     "deploy:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/deploy/deploy-noortrace.mjs",
     "e2e:dev": "npx hardhat --config hardhat.config.mjs run --network hardhat scripts/e2e/dev-roundtrip.mjs",
     "e2e:noorcore": "npx hardhat --config hardhat.config.mjs run --network noorcore scripts/e2e/dev-roundtrip.mjs",
+    "e2e:registre": "node scripts/e2e/parcours-registre.mjs",
     "verify:certificat": "node scripts/verify/certificat-commit.mjs",
     "verify:dossier": "node scripts/verify/dossier.mjs",
     "verify:ceremonie": "node scripts/verify/ceremonie.mjs",

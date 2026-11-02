@@ -1,0 +1,69 @@
+{
+  "version": 0,
+  "kind": "rapport-mesure",
+  "date": "2026-11-02",
+  "measured_at": "2026-11-02T16:03:58Z",
+  "commit": "e94aa9bb7fd7d2d61d5ac8861c0aef6066e31665",
+  "spec_version": "0.1",
+  "system": {
+    "reference": false,
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+    "cores": 4,
+    "memory_bytes": 16872808448,
+    "disk": {
+      "type": "virtuel",
+      "fsync": null
+    },
+    "os": "Ubuntu 24.04.5 LTS",
+    "kernel": "6.18.44-fc-v185",
+    "node": "v22.22.0",
+    "go": "go1.24.7",
+    "python": "3.13.16",
+    "cpu_scaling": "inconnu",
+    "aslr": "actif",
+    "load_avg_1m": 1.61,
+    "virtualized": true
+  },
+  "method": {
+    "warmup": 0,
+    "repetitions": 3,
+    "percentile_method": "plus_proche_rang",
+    "clock": "sans_objet",
+    "pair_with_without": false,
+    "samples_published": true
+  },
+  "configuration_sha256": "75c51ca3028cdb100a8a92534822ef21045b62ab99d9be4d384bd7598fc6273a",
+  "counts_for_targets": false,
+  "results": [
+    {
+      "name": "b_cap_bloc_plein",
+      "test_id": "TM-31",
+      "unit": "octets",
+      "n": 3,
+      "connections": null,
+      "samples": [
+        109479,
+        109479,
+        109479
+      ],
+      "samples_sha256": null,
+      "value": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": 109479,
+      "max": 109479,
+      "mean": 109479,
+      "text_value": null,
+      "target": null,
+      "met": null,
+      "conditions": [
+        "bloc de 64 transactions sur le réseau de développement (noortrace-2124-dev, quatre validateurs BFT en boucle locale, binaire noorcore du répertoire d'exécution avec noor_getCommitCertificate, SHA-256 b02a011a2fddd77b7ca6a00b8f376320dc7a419c6a5f47dcaca2a35a56ef33c6)",
+        "capture d'une transaction d'ancre (AttestationRegistry.anchor) par noortrace-registre capturer --role ancre : bloc-<h>.json, recu-<hachage>.json de chacune des 64 transactions du bloc et certificat-<h>.json, réponses JSON-RPC telles que reçues (CT-4 CP-6) ; index de capture exclu",
+        "64 expéditeurs de test publiés (clé SHA-256(UTF-8(\"noortrace/tm-31/v0/expediteur/<i>\"))), une transaction chacun, soumises au validateur v1 après un bloc qu'il a proposé ; limite de gaz 150000 par transaction"
+      ],
+      "excluded_reason": "hors_systeme_de_reference"
+    }
+  ],
+  "notes": "TM-31 (CT-8 EX-9.1, coefficient b_cap de CT-8 §9.2 ; CT-4 §9.2 : bloc plein non mesuré). Relevé de tailles, une exécution par répétition, 3 répétitions sans échauffement (EX-11.3, catalogue de TM-31), max 109479 octets (ligne b_cap_bloc_plein). répétition 1 : bloc 19088 (64 transactions, 6206108 gaz), capture de la transaction d'indice 63 = 109479 octets = en-tête 5846 + certificat 32587 + 64 reçus 71046 (1107 à 1111 par reçu) ; index de capture 14282 octets en plus ; en-tête + certificat + un seul reçu (forme de CT-8 §9.2) : au plus 39544 octets ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. répétition 2 : bloc 19096 (64 transactions, 6206036 gaz), capture de la transaction d'indice 63 = 109479 octets = en-tête 5846 + certificat 32587 + 64 reçus 71046 (1107 à 1111 par reçu) ; index de capture 14282 octets en plus ; en-tête + certificat + un seul reçu (forme de CT-8 §9.2) : au plus 39544 octets ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. répétition 3 : bloc 19104 (64 transactions, 6206144 gaz), capture de la transaction d'indice 63 = 109479 octets = en-tête 5846 + certificat 32587 + 64 reçus 71046 (1107 à 1111 par reçu) ; index de capture 14282 octets en plus ; en-tête + certificat + un seul reçu (forme de CT-8 §9.2) : au plus 39544 octets ; CP-1 à CP-6 : CP-1:reussi CP-2:reussi CP-3:reussi CP-4:reussi CP-5:reussi CP-6:reussi. Ce que la ligne compte : la capture que CT-4 §9.4 écrit pour une transaction d'un bloc plein, qui contient le reçu de chaque transaction du bloc (CP-3, EX-9.5) ; CT-8 §9.2 mesurait 11 096 octets (en-tête 1 498, certificat 7 782, reçu 1 816) sur des blocs d'une transaction. Aucun essai repris. Mesure faite du 2026-11-02T16:03:58.375Z au 2026-11-02T16:04:21.905Z hors du système de référence de CT-9 §11.1 (machine virtuelle, disque virtuel) : elle ne compte pour aucune cible ; TM-31 n'a pas de cible (aucune_cible). Configuration (configuration_sha256) : {\"outil\":\"scripts/e2e/mesure-capture-bloc-plein.mjs\",\"expediteurs\":64,\"graines\":\"noortrace/tm-31/v0/expediteur/<i>\",\"gas_limit_ancre\":150000,\"frais\":\"type 2, maxFeePerGas = max(baseFee, 1), maxPriorityFeePerGas 1 wei\",\"soumission\":\"validateur v1 (127.0.0.1:8645), juste après un bloc qu'il a proposé\",\"capture\":\"noortrace-registre capturer --role ancre (CT-4 §9.4)\",\"repetitions\":3,\"reseau\":\"noortrace-2124-dev, 4 validateurs BFT en boucle locale (chain/scripts/dev-net.sh)\"}. Commit : tête du dépôt au moment de la mesure, arbre de travail modifié (outillage de l'étape 3 non encore commité)."
+}
