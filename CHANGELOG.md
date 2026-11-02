@@ -6,6 +6,17 @@ is tagged.
 
 ## Unreleased
 
+- Build step 2, the offline verifier binary `noortrace-verifier`, written in
+  Go from the CT-6 text alone (`verificateur/`): the eight checks, including
+  RFC 3161 timestamp tokens, OpenTimestamps proofs with their Bitcoin header
+  chain, and registry blocks with their commit certificates; the trust-anchor
+  file, the JSON and readable reports, the bilingual statement. Go 1.27.3,
+  vendored dependencies (`golang.org/x/crypto`, decred `secp256k1`), no cgo.
+  Every evidence folder of the CT-1 and CT-6 vectors is replayed against its
+  expected result with no discrepancy; two builds in different directories
+  and caches give the same bytes; the four no-network proofs of CT-6 EX-14.5
+  pass. A CI job runs all three. CT-9: TV-55 is now runnable; recorded as
+  MC-3 in the design-freeze register.
 - Build step 1, the production core library `@noortrace/noyau`
   (`paquets/noyau/`, npm workspace): strict JSON and canonical form, hashing,
   Ed25519 and EIP-191 signatures, chaining, RFC 6962 Merkle trees and RFC 9162

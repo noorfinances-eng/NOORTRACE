@@ -116,7 +116,7 @@ par entrée : identifiant, niveau, état, titre.
 | TV-52 | TV- | exécutable | `ct-6/dossiers/` : dossiers complets, verdicts, énoncés, V-1 à V-10 (rapport comparé à `attendu.json`) |
 | TV-53 | TV- | exécutable | Génération déterministe de `spec/vecteurs/ct-6` (dossiers, rfc3161, ots, registre) |
 | TV-54 | TV- | exécutable | Confrontation tierce de `ct-6` : openssl, python-opentimestamps, go-ethereum et noorcore |
-| TV-55 | TV- | à écrire (étape 2) | Vérificateur Go indépendant de CT-6 (binaire de CT-6 §14) : zéro discordance sur `ct-6/dossiers` |
+| TV-55 | TV- | exécutable, complément à écrire | Vérificateur Go indépendant de CT-6 (binaire de CT-6 §14) : zéro discordance sur `ct-6/dossiers` |
 | TV-56 | TV- | exécutable | `ct-7/menaces.json`, tables 3.2 à 3.5 et vérificateur de renvois : RV-1 à RV-9, table TR- de CT-7 |
 | TV-57 | TV- | exécutable | `ct-7/ceremonies/` : procès-verbaux valides et invalides, CR-1 à CR-12, commande `ceremonie.mjs` |
 | TV-58 | TV- | exécutable | `ct-7/attestations/` : exemple, 18 cas hors dossier, signatures croisées, outil de référence |
@@ -351,7 +351,7 @@ Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
 2332 identifiants définis par CT-1 à CT-8, 2193 couverts par une entrée, 139 par
 une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 117
-occurrences de « CT-9 » et 117 lignes TC- ; 190 entrées exécutables citant 360
+occurrences de « CT-9 » et 117 lignes TC- ; 191 entrées exécutables citant 365
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

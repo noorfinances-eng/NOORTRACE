@@ -13,3 +13,10 @@ ThresholdSignatures follows the one in PoSSRegistry.
 A complete reviewer package built by scripts/paquet-reviseur/construire.mjs
 (CT-8 §13) redistributes dist/ethers.js from the npm distribution of ethers,
 under the MIT license, together with its LICENSE.md.
+
+The noortrace-verifier binary built from verificateur/ (CT-6 §14) contains
+code from the Go standard library and runtime (BSD-3-Clause, with PATENTS),
+golang.org/x/crypto (BSD-3-Clause, with PATENTS) and
+github.com/decred/dcrd/dcrec/secp256k1/v4 (ISC). Their license notices are
+reproduced in verificateur/LICENCES-TIERCES, which is distributed with every
+published binary.

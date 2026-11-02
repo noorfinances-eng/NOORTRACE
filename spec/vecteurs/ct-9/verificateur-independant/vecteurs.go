@@ -654,20 +654,20 @@ func (d *Depot) verifierProse(rap *Rapport) {
 	}
 	rap.Verdict(len(parEtat("TU", "a_ecrire")) == 0, "6", "TU- à écrire", "%v (texte : les trente-neuf exécutables, TU-12 depuis l'étape 1)", parEtat("TU", "a_ecrire"))
 	s7 := Normaliser(SectionTexte(d.CT9.Texte, "7"))
-	m := regexp.MustCompile(`(TV-[0-9]+) \(vérificateur Go de CT-6, étape 2\) et (TV-[0-9]+) \(famille .supervision/., étape 7\) sont à écrire`).FindStringSubmatch(s7)
+	m := regexp.MustCompile(`(TV-[0-9]+) \(vérificateur Go de CT-6\) l'est depuis l'étape 2, et (TV-[0-9]+) \(famille .supervision/., étape 7\) est à écrire`).FindStringSubmatch(s7)
 	tvAE := parEtat("TV", "a_ecrire")
 	if m == nil {
-		rap.Discorde("7", "TV- à écrire", "phrase « TV-n (vérificateur Go de CT-6, étape 2) et TV-m … sont à écrire » non lue")
+		rap.Discorde("7", "TV- à écrire", "phrase « TV-n (vérificateur Go de CT-6) l'est depuis l'étape 2, et TV-m … est à écrire » non lue")
 	} else {
-		rap.Verdict(strings.Join(tvAE, ",") == m[1]+","+m[2], "7", "TV- à écrire", "texte : %s et %s ; catalogue : %v", m[1], m[2], tvAE)
-		for _, id := range []string{m[1], m[2]} {
+		rap.Verdict(strings.Join(tvAE, ",") == m[2], "7", "TV- à écrire", "texte : %s ; catalogue : %v", m[2], tvAE)
+		for id, etat := range map[string]string{m[1]: "executable", m[2]: "a_ecrire"} {
 			t := d.ParID[id]
 			titre := ""
 			if t != nil {
 				titre = t.Title
 			}
 			attendu := map[string]string{m[1]: "CT-6", m[2]: "supervision"}[id]
-			rap.Verdict(t != nil && t.Status.State == "a_ecrire" && strings.Contains(titre, attendu), "7", id, "texte : à écrire, objet « %s » ; catalogue : état %s, titre « %s »", attendu, etatDe(t), titre)
+			rap.Verdict(t != nil && t.Status.State == etat && strings.Contains(titre, attendu), "7", id, "texte : %s, objet « %s » ; catalogue : état %s, titre « %s »", etat, attendu, etatDe(t), titre)
 		}
 	}
 	rap.Verdict(len(parEtat("TR", "executable")) == 0 && len(parEtat("TR", "a_ecrire")) == 15, "12.2", "TR- à écrire", "%d à écrire, %d exécutables (texte : quinze épreuves, toutes à écrire)", len(parEtat("TR", "a_ecrire")), len(parEtat("TR", "executable")))
@@ -694,7 +694,11 @@ func (d *Depot) verifierProse(rap *Rapport) {
 			}
 		}
 		if t.Status.Complement != nil {
-			compl++
+			// Section 16 : « les compléments des n TA- exécutables » ;
+			// le complément de TV-55 (publication, étape 7) est nommé à part.
+			if t.Level == "TA" {
+				compl++
+			}
 			if t.Status.Complement.Phase2Step == 4 {
 				compl4++
 			}

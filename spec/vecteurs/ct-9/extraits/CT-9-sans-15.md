@@ -425,7 +425,7 @@ code de retour, les contrôles réussis et l'observation propre au parcours. Les
 deux cas de démonstration du plan sont TE-1 et TE-2. Un composant, au sens de
 cette règle, est l'un de ceux de CT-7 §3.2 ou l'objet d'une étape de la table
 3.4 ; « le vérificateur de CT-6 » désigne ses deux implémentations (table 3.1),
-le binaire Go étant dû à l'étape 2 (TV-55).
+le binaire Go livré à l'étape 2 (TV-55).
 
 **EX-3.6 (TA-)** Un TA- nomme la réponse retirée (comment on la retire dans
 une copie de l'implémentation de référence ou dans la configuration),
@@ -905,7 +905,7 @@ jamais corrigé à la main) :
 - 98 menaces sur 98 avec un TA- (règle (b)) ;
 - 117 occurrences de « CT-9 » et 117 lignes TC-, sans manque ni orpheline
   (règle (c)) ;
-- 190 entrées exécutables citant 360 titres de tests ou étapes de CI, tous
+- 191 entrées exécutables citant 365 titres de tests ou étapes de CI, tous
   trouvés mot pour mot (règle (d)) ; verdict `reussi`.
 
 Par spécification (identifiants, couverts par une entrée, par une
@@ -918,14 +918,14 @@ depuis le catalogue) :
 | Niveau | Entrées | Exécutables | dont avec complément à écrire | À écrire |
 |---|---|---|---|---|
 | TU- | 39 | 39 | 0 | 0 |
-| TV- | 76 | 74 | 0 | 2 |
+| TV- | 76 | 75 | 1 | 1 |
 | TI- | 20 | 3 | 0 | 17 |
 | TE- | 17 | 1 | 0 | 16 |
 | TA- | 103 | 69 | 13 | 34 |
 | TM- | 43 | 4 | 0 | 39 |
 | TR- | 15 | 0 | 0 | 15 |
 | TQ- | 8 | 0 | 0 | 8 |
-| Total | 321 | 190 | 13 | 131 |
+| Total | 321 | 191 | 14 | 130 |
 
 ## 6. Tests unitaires et de propriétés (TU-)
 
@@ -997,9 +997,9 @@ preuve altérée, aller-retour Ed25519) sont écrites dans son entrée.
 Une entrée par famille de `spec/vecteurs/ct-1` à `ct-8` et par mode de
 rejeu : implémentation de référence, vérificateur Go indépendant (étape de
 `ci.yml` : `go run . ..`), confrontation tierce, génération déterministe.
-Soixante-quatorze des soixante-seize entrées sont exécutables ; TV-55
-(vérificateur Go de CT-6, étape 2) et TV-76 (famille `supervision/`, étape
-7) sont à écrire.
+Soixante-quinze des soixante-seize entrées sont exécutables ; TV-55
+(vérificateur Go de CT-6) l'est depuis l'étape 2, et TV-76 (famille
+`supervision/`, étape 7) est à écrire.
 
 **EX-7.1** Les vérifications V-1 à V-10 de CT-6 §6.9 sont exécutées par
 comparaison du rapport du vérificateur à l'`attendu.json` de chaque
@@ -1067,7 +1067,7 @@ TV- de génération déterministe de chaque répertoire le garantit.
 | TV-52 | `ct-6/dossiers/` : dossiers complets, verdicts, énoncés, V-1 à V-10 (rapport comparé à `attendu.json`) | CT-6 V- (10), CT-1 K- (3), CT-6 AT- (7), CT-6 AV-AT- (3), CT-6 AV-K- (4), CT-6 EX-5- (12), CT-6 EX-6- (21), CT-6 EX-7- (3), CT-6 EX-8- (11), CT-6 EX-4- (6), CT-6 EX-3- (2), CT-7 EX-8- (2), CT-6 EX-13- (2), CT-6 EX-15- (2), CT-6 EX-A- (9), CT-6 K- (2) | MN-17, MN-61, MN-68, MN-69, MN-78, MN-85, MN-98 | exécutable : `test/verificateur.test.js` |
 | TV-53 | Génération déterministe de `spec/vecteurs/ct-6` (dossiers, rfc3161, ots, registre) | CT-6 EX-A- (3) | — | exécutable : `test/verificateur.test.js`, `test/horodatage.test.js`, `test/ots.test.js`, `test/registre.test.js` |
 | TV-54 | Confrontation tierce de `ct-6` : openssl, python-opentimestamps, go-ethereum et noorcore | CT-6 EX-A- (4) | — | exécutable : `test/confrontation.test.js` |
-| TV-55 | Vérificateur Go indépendant de CT-6 (binaire de CT-6 §14) : zéro discordance sur `ct-6/dossiers` | CT-6 EX-14- (11) | MN-66 | à écrire (étape 2) |
+| TV-55 | Vérificateur Go indépendant de CT-6 (binaire de CT-6 §14) : zéro discordance sur `ct-6/dossiers` | CT-6 EX-14- (11) | MN-66 | exécutable : étape de `ci.yml` ; complément à écrire (étape 7) |
 | TV-56 | `ct-7/menaces.json`, tables 3.2 à 3.5 et vérificateur de renvois : RV-1 à RV-9, table TR- de CT-7 | CT-7 RV- (9), CT-7 TR- (101), CT-7 EX-0- (1), CT-7 EX-3- (2), CT-7 EX-A- (4) | — | exécutable : `test/securite.test.js` |
 | TV-57 | `ct-7/ceremonies/` : procès-verbaux valides et invalides, CR-1 à CR-12, commande `ceremonie.mjs` | CT-7 CR- (12), CT-7 EX-5- (2), CT-7 EX-A- (3) | MN-32, MN-36, MN-37, MN-39, MN-92, MN-94 | exécutable : `test/securite.test.js` |
 | TV-58 | `ct-7/attestations/` : exemple, 18 cas hors dossier, signatures croisées, outil de référence | CT-7 EX-A- (3), CT-7 EX-7- (9) | MN-81, MN-83, MN-87, MN-89 | exécutable : `test/securite.test.js` |
@@ -1427,7 +1427,7 @@ catalogue.
 | TA-63 | MN-63 | `ancrage` | exécutable | scripts/lib/ancrage.mjs | `test/adversarial.test.js`, `test/ancrage.test.js` |
 | TA-64 | MN-64 | `ancrage` | exécutable | scripts/lib/ancrage.mjs (reconstruire) | `test/adversarial.test.js`, `test/ancrage.test.js` |
 | TA-65 | MN-65 | `ancrage` | exécutable | scripts/lib/ancrage.mjs (verifierConfiguration) | `test/adversarial.test.js` |
-| TA-66 | MN-66 | `verificateur` | exécutable ; complément à écrire (étape 2) | .github/workflows/ci.yml, job vecteurs | `test/confrontation.test.js` |
+| TA-66 | MN-66 | `verificateur` | exécutable ; complément à écrire (étape 8) | .github/workflows/ci.yml, job vecteurs | `test/confrontation.test.js` |
 | TA-67 | MN-67 | `verificateur` | exécutable | scripts/lib/verificateur.mjs | `test/adversarial.test.js`, `test/verificateur.test.js` |
 | TA-68 | MN-68 | `verificateur` | exécutable ; complément à écrire (étape 8) | scripts/lib/horodatage.mjs (lireDER) | `test/adversarial.test.js`, `test/verificateur.test.js` |
 | TA-69 | MN-69 | `verificateur` | exécutable | scripts/lib/registre.mjs, scripts/lib/verificateur.mjs | `test/adversarial.test.js`, `test/verificateur.test.js` |
@@ -1699,7 +1699,7 @@ sont ceux de l'intégration continue du dépôt au commit éprouvé
 Node.js 22, Go et Python aux versions que la CI installe au commit éprouvé
 (relevé du 2026-11-01 : `setup-go` 1.24.7 dans le travail des vecteurs,
 `setup-python` 3.13 ; quand le binaire de CT-6 §14 entre dans `ci.yml`,
-étape 2, TV-55, la CI installe la version que son `go.mod` fixe, go1.27.3,
+étape 2, TV-55, la CI y installe la version que son `go.mod` fixe, go1.27.3,
 CT-6 EX-14.3, et le système de référence suit), GNU tar, OpenSSL de la
 distribution ; la mise à l'échelle de fréquence du processeur désactivée ou
 déclarée, l'état de l'ASLR déclaré, aucune autre charge pendant la mesure.
@@ -2394,9 +2394,9 @@ indépendant (TQ- interne seulement, étape 8).
 
 ## 16. Ce que cette version ne couvre pas
 
-- **Les résultats d'exécution des tests « à écrire »** : 131 entrées du
-  catalogue (table de 5.5) et les compléments des treize TA- exécutables
-  n'ont aucun résultat ; aucun n'est inventé.
+- **Les résultats d'exécution des tests « à écrire »** : 130 entrées du
+  catalogue (table de 5.5), les compléments des treize TA- exécutables et
+  celui de TV-55 n'ont aucun résultat ; aucun n'est inventé.
 - **Les tests de propriétés** (TU-12) : écrits à l'étape 1 de la phase 2,
   sur la bibliothèque noyau ; cette version n'en fixait que les réglages.
 - **Les tests de mutation automatisés** : CT-9 n'adopte aucun outil de
@@ -2412,8 +2412,8 @@ indépendant (TQ- interne seulement, étape 8).
 - **Docker et les images** : aucune image construite, aucun conteneur lancé
   ; TE-3, TE-6, TE-7, TE-15 attendent une machine de test avec un moteur de
   conteneurs.
-- **Le vérificateur Go de CT-6** (binaire de CT-6 §14) : TV-55 à écrire,
-  étape 2.
+- **Le vérificateur Go de CT-6** (binaire de CT-6 §14) : sa publication
+  (EX-14.7, EX-14.9), complément de TV-55, étape 7.
 - **La famille `supervision/` et SV-1 à SV-7** : TV-76 à écrire, lot
   suivant de CT-8.
 - **Le rejeu réel du registre dans la confrontation** (go-ethereum et

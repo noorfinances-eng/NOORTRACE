@@ -1,6 +1,6 @@
 # NOORTRACE — architecture cible
 
-Version 0.13, 2 novembre 2026. Document de conception, pas d'implémentation.
+Version 0.14, 2 novembre 2026. Document de conception, pas d'implémentation.
 La conception est figée en version 1.0 depuis le 2 novembre 2026 : toute
 modification de `spec/` est consignée dans `spec/figeage/`.
 Les spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2
@@ -523,10 +523,13 @@ La conception se fait sur l'instance de développement locale ; un VPS de
 développement n'est requis qu'à la construction de l'enregistreur, quand il
 ancre pour de vrai.
 
+Construit en phase 2 : la bibliothèque noyau de production (`paquets/noyau`,
+étape 1) et le binaire Go du vérificateur, `noortrace-verifier`
+(`verificateur/`, étape 2).
+
 À construire : l'enregistreur lui-même (frontal MCP, passerelle, stockage, bail),
 le service d'approbation et la console d'exploitation, le composant d'ancrage avec ses clients
-RFC 3161 et OpenTimestamps, le
-binaire Go du vérificateur, la garde d'admission devant le RPC des validateurs de
+RFC 3161 et OpenTimestamps, la garde d'admission devant le RPC des validateurs de
 production (CT-4 EX-10.8), la démonstration en une commande.
 
 ## Décisions ouvertes

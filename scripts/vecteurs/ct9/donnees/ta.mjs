@@ -2165,11 +2165,13 @@ export const TA = [
         "vérificateur Go indépendant contre les vecteurs CT-4",
         "vérificateur Go indépendant contre les vecteurs CT-5",
         "vérificateur Go indépendant contre les vecteurs CT-7",
-        "vérificateur Go indépendant contre les vecteurs CT-8"
+        "vérificateur Go indépendant contre les vecteurs CT-8",
+        "binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)",
+        "binaire vérificateur Go, deux constructions reproductibles aux mêmes octets (CT-6 EX-14.6, EX-14.8)"
       ],
       "complement": {
-        "phase2_step": 2,
-        "blocking": "Binaire reproductible du vérificateur (CT-6 EX-14.6, EX-14.8) et module Go de CT-6 (TV-55) : phase 2, étape 2 (RA-57) ; un mutant JavaScript confronté à un module Go existant est à ajouter à test/adversarial.test.js (en attente sans go)."
+        "phase2_step": 8,
+        "blocking": "Binaire reproductible et module Go de CT-6 livrés à l'étape 2 (TV-55, deux étapes de CI citées) ; reste un mutant JavaScript confronté au binaire, à ajouter à test/adversarial.test.js avec les tests adversariaux de l'étape 8."
       }
     },
     "response_removed": {

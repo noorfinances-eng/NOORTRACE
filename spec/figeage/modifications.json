@@ -69,6 +69,54 @@
           "apres": "cef1c0e9b4de79647c03d9b02883bac926a18d1b496103abb4d9b939445af68d"
         }
       ]
+    },
+    {
+      "id": "MC-3",
+      "date": "2026-11-02",
+      "etape": 2,
+      "motif": "Étape 2 de la construction (binaire noortrace-verifier, verificateur/) : TV-55 passe exécutable sur trois étapes de CI (rejeu des dossiers CT-1 et CT-6, construction reproductible, absence de réseau), sa publication (EX-14.7, EX-14.9, EX-14.10) en complément à l'étape 7 ; le complément de TA-66 passe à l'étape 8 (mutant JavaScript confronté au binaire) ; tables, chiffres et sections 3, 7, 11 et 16 de CT-9 alignés ; catalogue, couverture et recomptage régénérés ; vérificateur Go de CT-9 adapté (TV- à écrire, compléments comptés sur les seuls TA-). Aucune exigence ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "855bf77f439d8275cf90a8e60ec7b8d34bdd6e96b35a7083ab93f908a3a4be21",
+          "apres": "46cedc3c639dfee19aa87b8ee4fbd084215445a9ea453acd6ab1370a84a78fb5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "26d9cefda2fd1a777304a9ea10abdc3a567cfdc4bbc9c07fdfdaca914f68f867",
+          "apres": "5638ad183e583a288488ca915cd58e6bc62be61c23ad613e6ea244b6f75747a6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "66e2f36895c01d0811720113560be4453e4b07a0aa6dc2b9d9552a4aa840665e",
+          "apres": "fd5b7606aadd70d0561b0e3c74ab8e17b2cd23b7dfc677d2e56ddcaa64b3754c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "edd6b254a8585a74f0cab24d264d81918e0fe235fad80d3a5994f9e777119ef2",
+          "apres": "9e2c105b8fb0713e3824847fa99fa71d140e9c164d5a074ba2f33808695a2b9f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "cef1c0e9b4de79647c03d9b02883bac926a18d1b496103abb4d9b939445af68d",
+          "apres": "81067b20faabc80e1df1a2b68f9bb47b635234fca330d36faa8129d62d036417"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "65459694044e6c09cc583e25ad0ddc8bbffc7b0120c32c6f176b94cb03ef01e6",
+          "apres": "c2cf3a8026093e65adcd83c06ebd08ec71bd5ad12a03eca791c0af87f10e1910"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "c83041382df24e80a92697af9ecb13ff0ea3897e08ec7bee8e23e154be44983e",
+          "apres": "dec572acec766facc78891c056bd16b5d46fea113eac830f19b777512ee2e5a0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/vecteurs.go",
+          "avant": "0c35179832574be87f7422370fab80bd581ea60998bb0a9ce64f562b86eacf7b",
+          "apres": "bd5dfdb2ed148a8dcfb93ae36b3c27379cbabfac4969d429d085d78a9919b0b3"
+        }
+      ]
     }
   ]
 }

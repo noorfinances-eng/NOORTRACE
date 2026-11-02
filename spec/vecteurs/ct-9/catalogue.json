@@ -4962,16 +4962,26 @@
         "CT-6 EX-14.11"
       ],
       "preconditions": [
-        "Module Go écrit depuis le seul texte de CT-6, étape 2 du plan (CT-6 §14 : « le binaire est construit en phase 2 »)."
+        "Module Go `verificateur/` (binaire `noortrace-verifier`), écrit depuis le seul texte de CT-6, étape 2 du plan (CT-6 §14 : « le binaire est construit en phase 2 ») ; Go 1.27.3, dépendances vendorisées."
       ],
       "steps": [
-        "`go run . ..` sur `spec/vecteurs/ct-6` ; comparer code, `failed_checks`, statuts, énoncé et borne à chaque `attendu.json`."
+        "`go test ./...` dans `verificateur/` : chaque dossier de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers` rejoué ; code, `failed_checks`, statuts, raisons, avertissements, énoncé et borne comparés à son `attendu.json`.",
+        "Construire deux fois par la recette d'EX-14.6 dans des répertoires et des caches différents ; comparer les SHA-256.",
+        "Appliquer les quatre preuves d'absence de réseau d'EX-14.5 (`verificateur/scripts/verifier-sans-reseau.sh`)."
       ],
-      "oracle": "Zéro discordance ; mêmes verdicts que l'implémentation JavaScript sur les mêmes entrées.",
+      "oracle": "Zéro discordance ; mêmes verdicts que l'implémentation JavaScript sur les mêmes entrées ; deux binaires aux mêmes octets ; les quatre preuves réussies.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 2,
-        "blocking": "Aucun module `spec/vecteurs/ct-6/verificateur-independant` n'existe (R10-F35)."
+        "state": "executable",
+        "ci_steps": [
+          "binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)",
+          "binaire vérificateur Go, deux constructions reproductibles aux mêmes octets (CT-6 EX-14.6, EX-14.8)",
+          "binaire vérificateur Go, preuves d'absence de réseau (CT-6 EX-14.5)"
+        ],
+        "command": "cd verificateur && go test ./...",
+        "complement": {
+          "phase2_step": 7,
+          "blocking": "Publication d'une version du binaire (CT-6 EX-14.7 : image de construction et actions épinglées par empreinte ; EX-14.9 : binaires linux/amd64 et linux/arm64, SHA256SUMS signé, sortie de go version -m ; EX-14.10 : NOTICE du binaire diffusé) : étape 7, paquets."
+        }
       },
       "threats": [
         "MN-66"
@@ -11498,12 +11508,14 @@
           "vérificateur Go indépendant contre les vecteurs CT-4",
           "vérificateur Go indépendant contre les vecteurs CT-5",
           "vérificateur Go indépendant contre les vecteurs CT-7",
-          "vérificateur Go indépendant contre les vecteurs CT-8"
+          "vérificateur Go indépendant contre les vecteurs CT-8",
+          "binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)",
+          "binaire vérificateur Go, deux constructions reproductibles aux mêmes octets (CT-6 EX-14.6, EX-14.8)"
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/confrontation.test.js",
         "complement": {
-          "phase2_step": 2,
-          "blocking": "Binaire reproductible du vérificateur (CT-6 EX-14.6, EX-14.8) et module Go de CT-6 (TV-55) : phase 2, étape 2 (RA-57) ; un mutant JavaScript confronté à un module Go existant est à ajouter à test/adversarial.test.js (en attente sans go)."
+          "phase2_step": 8,
+          "blocking": "Binaire reproductible et module Go de CT-6 livrés à l'étape 2 (TV-55, deux étapes de CI citées) ; reste un mutant JavaScript confronté au binaire, à ajouter à test/adversarial.test.js avec les tests adversariaux de l'étape 8."
         }
       },
       "threats": [

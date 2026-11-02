@@ -43,7 +43,7 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "66e2f36895c01d0811720113560be4453e4b07a0aa6dc2b9d9552a4aa840665e"
+      "sha256": "fd5b7606aadd70d0561b0e3c74ab8e17b2cd23b7dfc677d2e56ddcaa64b3754c"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -427,8 +427,8 @@
     "orphans": []
   },
   "executable": {
-    "total": 190,
-    "titles_checked": 360,
+    "total": 191,
+    "titles_checked": 365,
     "titles_missing": []
   },
   "text_tables": {

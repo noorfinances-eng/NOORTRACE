@@ -52,7 +52,8 @@ Early. The nine design specifications are written, each with test vectors
 checked by implementations written separately from the reference. The design
 was frozen as version 1.0 on 2 November 2026: every later change to `spec/` is
 recorded in a change register checked by CI (`spec/figeage/`). The build has
-started: the core library, the first of its eight steps, is in `paquets/noyau/`.
+started: the core library, the first of its eight steps, is in `paquets/noyau/`,
+and the offline verifier binary written in Go, the second, is in `verificateur/`.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
   period manifests, signed checkpoints with RFC 9162 consistency proofs, and
@@ -162,6 +163,7 @@ binary are specified, not built yet.
 |---|---|
 | `spec/` | Normative specifications, JSON schemas, test vectors |
 | `scripts/lib/` | JavaScript reference implementation |
+| `verificateur/` | `noortrace-verifier`, the offline verifier binary in Go (CT-6 §14): reproducible build, no network code |
 | `paquets/noyau/` | Production core library (`@noortrace/noyau`), written from the CT-1 text alone and checked against every CT-1 vector |
 | `scripts/verify/` | Offline verifiers (evidence folder, commit certificate) |
 | `scripts/registre/` | CT-4 reference tool: client onboarding, anchoring, period closure, capture |

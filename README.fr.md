@@ -148,6 +148,10 @@ construction.
   vérification de CT-1 à CT-8 couverte par un test ou par une justification
   nommée, chaque menace de CT-7 par un test adversarial, chaque renvoi à CT-9
   par sa ligne) et contrôle des rapports de mesure.
+- `verificateur/` : binaire vérificateur hors ligne `noortrace-verifier`, en
+  Go (étape 2 de la construction, CT-6 §14) : les huit contrôles, écrit
+  depuis le seul texte de CT-6, construction reproductible, aucun code réseau ;
+  voir [verificateur/LISEZMOI.md](verificateur/LISEZMOI.md).
 - `paquets/noyau/` : bibliothèque noyau de production (`@noortrace/noyau`,
   étape 1 de la construction) : forme canonique, hachage, signatures, chaînage,
   Merkle, manifestes, points de contrôle et contrôles du dossier de CT-1, écrite

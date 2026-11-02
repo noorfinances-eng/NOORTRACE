@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/entetes-bitcoin.schema.json",
+  "title": "Chaîne d'en-têtes Bitcoin, version 0 (CT-6 §10.3)",
+  "description": "Entrée distincte du dossier, désignée sur la ligne de commande. Ce n'est pas une ancre : la chaîne n'est crue qu'au travers de la vérification O-5, qui la rattache au point de contrôle du fichier d'ancres par le hachage et par le travail.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [ "version", "network", "start_height", "source", "headers" ],
+  "properties": {
+    "version": { "const": 0 },
+    "network": { "type": "string", "enum": [ "mainnet", "regtest" ] },
+    "start_height": { "type": "integer", "minimum": 0, "maximum": 4294967295, "description": "Hauteur du premier en-tête de la liste." },
+    "source": { "type": "string", "minLength": 1, "maxLength": 512, "description": "D'où viennent les en-têtes ; déclaratif." },
+    "headers": {
+      "description": "En-têtes bruts de 80 octets, dans l'ordre de sérialisation de Bitcoin, hauteurs contiguës à partir de start_height.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200000,
+      "items": { "type": "string", "pattern": "^0x[0-9a-f]{160}$" }
+    }
+  }
+}

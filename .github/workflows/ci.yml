@@ -335,6 +335,48 @@ jobs:
       - name: figeage de la conception v1.0, chaque modification de spec/ consignée (code 0 exigé)
         run: npm run conception:figeage
 
+  # Binaire vérificateur noortrace-verifier (CT-6 §14, étape 2 de la
+  # construction) : Go 1.27.3 exactement (EX-14.3), dépendances vendorisées
+  # (EX-14.1), rejeu de chaque dossier de spec/vecteurs/ct-1 et ct-6 contre son
+  # attendu.json par go test (zéro discordance), deux constructions par la
+  # recette d'EX-14.6 dans des répertoires et des caches différents, mêmes
+  # octets exigés (EX-14.8), et les quatre preuves d'absence de réseau
+  # d'EX-14.5 ; unshare -n demande les droits du superutilisateur, d'où sudo.
+  verificateur:
+    name: binaire vérificateur Go de CT-6 §14, vecteurs CT-1 et CT-6, construction reproductible, absence de réseau
+    runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=vendor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.27.3
+          cache: false
+      - name: binaire vérificateur Go, gofmt, vet et rejeu des dossiers CT-1 et CT-6 (zéro discordance)
+        working-directory: verificateur
+        run: |
+          test "$(go env GOVERSION)" = go1.27.3
+          test -z "$(gofmt -l $(go list -f '{{.Dir}}' ./...))"
+          go vet ./...
+          go test -count=1 ./...
+      - name: binaire vérificateur Go, deux constructions reproductibles aux mêmes octets (CT-6 EX-14.6, EX-14.8)
+        run: |
+          set -euo pipefail
+          a="$RUNNER_TEMP/a"; b="$RUNNER_TEMP/b"
+          mkdir -p "$a/src" "$b/src"
+          cp -a verificateur "$a/src/verificateur"
+          cp -a verificateur "$b/src/verificateur"
+          GOCACHE="$a/cache" GOMODCACHE="$a/mod" "$a/src/verificateur/scripts/construire.sh" -o "$a/noortrace-verifier"
+          GOCACHE="$b/cache" GOMODCACHE="$b/mod" "$b/src/verificateur/scripts/construire.sh" -o "$b/noortrace-verifier"
+          sha256sum "$a/noortrace-verifier" "$b/noortrace-verifier"
+          cmp "$a/noortrace-verifier" "$b/noortrace-verifier"
+      - name: binaire vérificateur Go, preuves d'absence de réseau (CT-6 EX-14.5)
+        run: |
+          sudo apt-get install -y --no-install-recommends strace
+          sudo env "PATH=$PATH" GOTOOLCHAIN=local GOFLAGS=-mod=vendor verificateur/scripts/verifier-sans-reseau.sh
+
   # Test de bout en bout de la console de référence de CT-3 dans Chromium
   # (spec/CT-3-approbations.md, EX-13.36, EX-A.11) : Playwright 1.56.1, la
   # version mesurée de console/LISEZMOI.md, est installé sans être ajouté à
