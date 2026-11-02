@@ -20,7 +20,7 @@ les décisions ouvertes qu'elle nomme.
 | CT-6 | [Vérificateur](CT-6-verificateur.md) | version 0.3 (révision 0.3 : vérification de la partie `attestation-perimetre.json`, sans effet sur le verdict ; révision 0.2 : vérification de la partie `points-de-controle.json`), en revue pour la porte 1 | — |
 | CT-7 | [Sécurité et conformité](CT-7-securite-et-conformite.md) | version 0.1 (modèle de menace par composant, clés et secrets, cérémonie des clés et procès-verbal vérifiable hors ligne, journal de l'enregistreur sur lui-même, attestation de périmètre, matrice de conformité et modèles de clauses), en revue pour la porte 1 | — |
 | CT-8 | [Déploiement et exploitation](CT-8-deploiement-et-exploitation.md) | version 0.1 (topologies et paquets, fichiers de conteneur de référence vérifiés statiquement, prérequis réseau, contrôle préalable, installation rapide en 15 minutes et installation complète en moins d'une journée, dimensionnement, observabilité et runbooks, sauvegarde, reprise et mises à jour, journal des consultations et des accès, mode observation, paquet réviseur vérifiable en une commande), en revue pour la porte 1 | — |
-| CT-9 | Plan de tests | à écrire | — |
+| CT-9 | [Plan de tests](CT-9-plan-de-tests.md) | version 0.1 (huit niveaux de tests, TU-, TV-, TI-, TE-, TA-, TM-, TR- et TQ-, chacun avec ses règles ; catalogue lisible par machine `vecteurs/ct-9/catalogue.json`, source unique des tests dont le texte imprime les tables ; règles de couverture vérifiées par un outil : chaque identifiant des huit spécifications précédentes couvert ou justifié, un test adversarial par menace du modèle de menace qui échoue si la réponse est retirée, chaque renvoi tracé ; mesures et système de référence, rejeux à l'aveugle, revue de code ; correspondance de chaque critère de la porte 2 à des tests et à un verdict calculable), en revue pour la porte 1 | — |
 
 Ordre d'écriture : CT-1, puis CT-6 et CT-2 en parallèle, puis CT-3, CT-4, CT-5,
 puis CT-7, CT-8, CT-9.
@@ -68,6 +68,7 @@ schémas ; ils ne sont pas résolus en ligne.
 | [`verification-journal-v0.schema.json`](schemas/verification-journal-v0.schema.json) | Le rapport de vérification d'un répertoire de journal sans réseau (CT-8 EX-11.7) | — |
 | [`rapport-observation-v0.schema.json`](schemas/rapport-observation-v0.schema.json) | Le rapport d'observation : ce que la politique aurait exigé, règle par règle, d'après les marques des événements (CT-8 §12.5) ; dans ses `$defs`, les fichiers de cas `observation/` des vecteurs | `ticket-v0` (`reponse_evaluer`), `evenement-v0` (`policy`) |
 | [`paquet-reviseur-v0.schema.json`](schemas/paquet-reviseur-v0.schema.json) | Le manifeste `MANIFESTE.json` d'un paquet réviseur (CT-8 §13.3) ; dans ses `$defs`, la description lue par l'outil de construction, le rapport de l'outil de vérification et le fichier de cas de la famille `ct-8/paquets/` | — |
+| [`plan-de-tests-v0.schema.json`](schemas/plan-de-tests-v0.schema.json) | Le catalogue du plan de tests (CT-9 §4) : racine `vecteurs/ct-9/catalogue.json` ; dans ses `$defs`, une entrée de test et ses blocs propres à un niveau (adversarial, mesure, rejeu, revue), une justification de non-test NC-, une ligne de traçabilité TC-, un risque accepté relié à son test, le rapport de l'outil de couverture (CT-9 §5.4), le rapport d'exécution, le rapport de mesure (CT-9 §11.3), la consignation d'une épreuve à l'aveugle (CT-9 §12.1) et la grille d'une épreuve que le plan de tests dote lui-même (annexe A.9 du plan) ; aucune référence croisée, compilé en mode strict | — |
 
 Validation d'un fichier avec ajv (les schémas de CT-1 doivent être chargés
 ensemble à cause des références croisées ; depuis CT-1 révision 0.3, le schéma
@@ -217,6 +218,23 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
   -r spec/schemas/evenement-v0.schema.json -r spec/schemas/politique-approbation-v0.schema.json \
   -d rapport-observation.json
 ```
+
+Le schéma du plan de tests n'a aucune référence croisée et se compile en
+mode strict ; le catalogue se valide contre sa racine, et un rapport de
+couverture, un rapport de mesure ou une consignation d'épreuve par un schéma
+enveloppe qui désigne la définition voulue :
+
+```bash
+npx --yes ajv-cli@5 compile --spec=draft2020 --strict=true \
+  -s spec/schemas/plan-de-tests-v0.schema.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s spec/schemas/plan-de-tests-v0.schema.json -d spec/vecteurs/ct-9/catalogue.json
+echo '{"$schema":"https://json-schema.org/draft/2020-12/schema","$ref":"https://noortrace.example/schemas/v0/plan-de-tests.schema.json#/$defs/rapport_mesure"}' > rapport-mesure.schema.json
+npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
+  -s rapport-mesure.schema.json -r spec/schemas/plan-de-tests-v0.schema.json \
+  -d spec/vecteurs/ct-9/mesures/rapport-2026-11-01-vide.json
+```
+
 ## Vecteurs de test (`vecteurs/`)
 
 ### CT-1 (`vecteurs/ct-1/`)
@@ -430,3 +448,27 @@ les copier.
 | `ct-8/acceptation-exploitation/`, `ct-8/acceptation-observation/` | Consignes des épreuves à l'aveugle (a) et (c) ; les grilles dans des fichiers à part | chaque réponse contient tous ses éléments |
 | `ct-8/confrontation/` | Programmes et sorties publiées de GNU tar, de `tarfile` de Python (`paquets/`), de `sha256sum` et de `json` et `hashlib` de Python (`exploitation/`) | mêmes membres et mêmes écarts que l'outil de référence ; aucune discordance |
 | `ct-8/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification | zéro discordance (`go run . ..`) |
+
+### CT-9 (`vecteurs/ct-9/`)
+
+Disposition fixée par l'annexe A de [CT-9](CT-9-plan-de-tests.md) (A.1) ;
+ils sont produits par `scripts/vecteurs/generer-ct9.mjs`
+(`npm run vecteurs:ct9`), deux générations donnant les mêmes octets, et
+rejoués par `test/plan-de-tests.test.js` et `test/adversarial.test.js`. Le
+générateur lit les spécifications, `ct-7/menaces.json`, les fichiers
+`test/*.test.js` et `.github/workflows/ci.yml` sans jamais les écrire ; les
+vecteurs des huit autres spécifications et leurs générateurs ne changent
+pas. Aucun vecteur de ce répertoire n'est une valeur cryptographique : ce
+sont le catalogue des tests et ce qui s'en déduit.
+
+| Répertoire ou fichier | Contenu | Résultat attendu |
+|---|---|---|
+| `ct-9/catalogue.json` | Le catalogue des tests, source unique (schéma `plan-de-tests-v0`) : niveaux, étapes de la phase 2, entrées TU- à TQ-, justifications NC-, risques acceptés, table de traçabilité TC- | `valid` en mode strict ; égalité cellule par cellule avec les tables du texte |
+| `ct-9/couverture.json` | Sortie de l'outil de couverture `scripts/tests/couverture.mjs` sur le dépôt au commit éprouvé | verdict `reussi`, code 0 ; régénéré et comparé par l'intégration continue |
+| `ct-9/index-ta-par-menace.json` | Pour chaque menace MN-1 à MN-98, son test TA-, son état et les scénarios qui le composent | chaque menace a un test adversarial |
+| `ct-9/cas/` | Exemples valides et invalides de catalogue (chacun réduit à une entrée), avec `attendu.json` | verdict `valide` ou `invalide` d'ajv, mot-clé fautif nommé |
+| `ct-9/mesures/` | Rapport de mesure vide de la version 0.1, rapport sur les vecteurs, cas valides et invalides (`cas/cas.json`) | `valid` ou `invalid` contre `$defs/rapport_mesure` ; valeurs recalculées depuis les vecteurs |
+| `ct-9/consignations/` | Gabarit d'une consignation d'épreuve à l'aveugle et ses cas | `valid` ou `invalid` contre `$defs/consignation_rejeu` |
+| `ct-9/acceptation-ancrage/`, `ct-9/acceptation-verdict-point/`, `ct-9/acceptation-plan/`, `ct-9/acceptation-porte-2/`, `ct-9/extraits/` | Consignes des épreuves à l'aveugle qu'aucune autre spécification ne dote d'une grille, extraits des spécifications remis aux participants ; les grilles dans des fichiers à part | aucune consigne ne contient un élément de sa grille ; extraits égaux au texte du commit |
+| `ct-9/confrontation/` | Recomptage indépendant en Python (`python3 -I`, bibliothèque standard) des identifiants, des menaces, des titres de tests, des renvois et des tables, programme et sortie publiée (`sorties/recompte.txt`) ; jamais écrit par le générateur | aucune discordance avec `couverture.json` ni avec le catalogue |
+| `ct-9/verificateur-independant/` | Vérificateur Go écrit depuis la seule spécification | zéro discordance (`go run . ..`) |

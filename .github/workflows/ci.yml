@@ -22,7 +22,7 @@ jobs:
       - run: npm test
 
   vecteurs:
-    name: vecteurs CT-1 à CT-8, régénération déterministe et implémentations indépendantes
+    name: vecteurs CT-1 à CT-9, régénération déterministe et implémentations indépendantes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -288,6 +288,46 @@ jobs:
           mkdir "$T/x" && tar -xkf "$T/a.tar" -C "$T/x"
           sudo unshare -n env -i TMPDIR="$T" "$(command -v node)" \
             "$T/x/paquet-reviseur/verificateur/scripts/paquet-reviseur/verifier.mjs" "$T/a.tar" --empreinte "$H"
+      # Vecteurs de CT-9 (spec/CT-9-plan-de-tests.md, annexe A, EX-A.1,
+      # EX-A.6, EX-A.10) : le générateur écrit catalogue.json, couverture.json
+      # (sortie de l'outil de couverture, condensés des spécifications, du
+      # catalogue, de menaces.json et de test/*.test.js), l'index TA- par
+      # menace, cas/, mesures/, consignations/, les consignes, grilles et
+      # extraits des épreuves et INDEX.md ; il n'efface et ne réécrit que ses
+      # propres entrées, jamais confrontation/ ni verificateur-independant/,
+      # et ne touche aucun fichier de ct-1 à ct-8. Deux exécutions : mêmes
+      # octets que le dépôt, sans fichier de plus.
+      - name: régénérer les vecteurs CT-9 deux fois et exiger les mêmes octets, sans fichier de plus
+        run: |
+          npm run vecteurs:ct9
+          git diff --exit-code -- spec/vecteurs/ct-9
+          test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs/ct-9)"
+          npm run vecteurs:ct9
+          git diff --exit-code -- spec/vecteurs
+          test -z "$(git status --porcelain --untracked-files=all -- spec/vecteurs)"
+      # Outil de couverture de CT-9 (section 5.4, EX-5.8, EX-A.5) : règles (a)
+      # à (d), EX-5.5 et égalité des tables du texte avec le catalogue
+      # (EX-4.4) ; code 0 exigé, avertissements compris (--strict).
+      - name: outil de couverture de CT-9 (code 0 exigé)
+        run: |
+          node scripts/tests/couverture.mjs
+          node scripts/tests/couverture.mjs --strict > /dev/null
+      # Rapports de mesure et consignations publiés (CT-9 §11.3, §12.1,
+      # EX-A.10) : conformes au schéma et au catalogue ; en phase 2, le
+      # rapport de campagne sera comparé au rapport de référence (EX-11.15).
+      - name: rapports de mesure et consignations de CT-9 (code 0 exigé)
+        run: npm run mesures:ct9
+      # Vérificateur Go indépendant de CT-9 (EX-A.17) : écrit depuis le seul
+      # texte de CT-9 et les schémas ; recompte la couverture, les menaces,
+      # les renvois et les titres, réimprime les tables et compare à
+      # couverture.json membre par membre. Zéro discordance exigée.
+      - name: vérificateur Go indépendant contre les vecteurs CT-9
+        working-directory: spec/vecteurs/ct-9/verificateur-independant
+        run: |
+          gofmt -l . && test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          go run . ..
 
   # Test de bout en bout de la console de référence de CT-3 dans Chromium
   # (spec/CT-3-approbations.md, EX-13.36, EX-A.11) : Playwright 1.56.1, la
@@ -517,3 +557,13 @@ jobs:
           done
           NOORTRACE_CT8_SORTIES="$S" NOORTRACE_PYTHON_CONFRONTATION="${{ steps.python-ct8.outputs.python-path }}" \
             npx mocha test/confrontation.test.js --grep "CT-8"
+      # CT-9 (annexe A.11, EX-A.18) : recomptage indépendant en Python
+      # (bibliothèque standard) des identifiants de spec/*.md, des menaces,
+      # des titres de tests, des it TA-, des lignes TM- et TR-, comparé à
+      # couverture.json et au catalogue ; code 0 et sortie égale, octet pour
+      # octet, à la sortie publiée.
+      - name: CT-9 recomptage indépendant en Python (python3 -I, bibliothèque standard)
+        run: |
+          set -o pipefail
+          python3 -I spec/vecteurs/ct-9/confrontation/recompter.py . | tee "$RUNNER_TEMP/ct9-recompte.txt" | tail -1
+          diff spec/vecteurs/ct-9/confrontation/sorties/recompte.txt "$RUNNER_TEMP/ct9-recompte.txt"

@@ -1,0 +1,2484 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noortrace.example/schemas/v0/plan-de-tests.schema.json",
+  "title": "Plan de tests de NOORTRACE (CT-9, version 0) : catalogue, test, bloc adversarial, mesure, rejeu, revue, justification de non-test, risque accepté, table de traçabilité, rapport de couverture, rapport d'exécution, rapport de mesure, consignation d'épreuve",
+  "description": "Racine : le catalogue spec/vecteurs/ct-9/catalogue.json (CT-9 §4). Les $defs décrivent une entrée du catalogue (test) et ses blocs propres à un niveau (adversarial, mesure, rejeu, revue), une justification NC- (justification_nc), un risque accepté relié à son test (risque_accepte), une ligne TC- (ligne_tc), le rapport de l'outil de couverture (rapport_couverture, CT-9 §5.4), le rapport d'exécution (rapport_execution, annexe A), le rapport de mesure (rapport_mesure, CT-9 §11.3) et la consignation d'une épreuve à l'aveugle (consignation_rejeu, CT-9 §12.1). Aucune référence croisée ; compilé en mode strict. Clés en anglais, valeurs énumérées en français sans accent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "kind",
+    "spec",
+    "spec_version",
+    "date",
+    "levels",
+    "phase2_steps",
+    "tests",
+    "non_tests",
+    "accepted_risks",
+    "traceability"
+  ],
+  "properties": {
+    "version": {
+      "const": 0
+    },
+    "kind": {
+      "const": "plan-de-tests"
+    },
+    "spec": {
+      "const": "CT-9"
+    },
+    "spec_version": {
+      "type": "string",
+      "pattern": "^0\\.[0-9]+$"
+    },
+    "date": {
+      "$ref": "#/$defs/date"
+    },
+    "levels": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/niveau"
+      }
+    },
+    "phase2_steps": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "step",
+          "component",
+          "delivered_when"
+        ],
+        "properties": {
+          "step": {
+            "$ref": "#/$defs/etape"
+          },
+          "component": {
+            "type": "string",
+            "minLength": 1
+          },
+          "delivered_when": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/test"
+      }
+    },
+    "non_tests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/justification_nc"
+      }
+    },
+    "accepted_risks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/risque_accepte"
+      },
+      "description": "Un élément par risque accepté RA- de CT-7 §3.5 : la menace, le test TA- de cette menace, son état, ce que le test éprouve et ce qu'il ne teste pas (CT-9 §10.6)."
+    },
+    "traceability": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ligne_tc"
+      }
+    }
+  },
+  "$defs": {
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "instant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{3})?Z$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "etape": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8
+    },
+    "niveau_id": {
+      "type": "string",
+      "enum": [
+        "TU",
+        "TV",
+        "TI",
+        "TE",
+        "TA",
+        "TM",
+        "TR",
+        "TQ"
+      ]
+    },
+    "spec_id": {
+      "type": "string",
+      "pattern": "^CT-[1-9]$"
+    },
+    "identifiant": {
+      "description": "Identifiant d'une autre spécification, toujours précédé d'elle : « CT-2 EX-16.1 », « CT-6 T-7 », « CT-7 MN-17 » ; une section « CT-1 §12.1 » est admise pour situer l'objet mais n'est pas comptée par la couverture.",
+      "type": "string",
+      "pattern": "^CT-[1-8] (EX-[0-9A-Z]+\\.[0-9]+|[A-Z]{1,3}(-[A-Z]{1,3})?-[0-9]+|§[0-9A-Z]+(\\.[0-9]+)*)$"
+    },
+    "menace": {
+      "type": "string",
+      "pattern": "^MN-[1-9][0-9]*$"
+    },
+    "identifiant_ta": {
+      "type": "string",
+      "pattern": "^TA-[1-9][0-9]*$"
+    },
+    "identifiant_ra": {
+      "type": "string",
+      "pattern": "^RA-[1-9][0-9]*$"
+    },
+    "composant": {
+      "enum": [
+        "hote_agent",
+        "mandataire_mcp",
+        "passerelle_modele",
+        "sdk_otel",
+        "ecrivain_stockage",
+        "worm_gel",
+        "cles",
+        "approbation_console",
+        "registre",
+        "ancrage",
+        "verificateur",
+        "exploitant",
+        "administrateur_client",
+        "reseau"
+      ],
+      "description": "Composant de CT-7 §3.2, valeur du membre component de menaces.json."
+    },
+    "titre_test": {
+      "description": "Texte source du premier argument d'un describe ou d'un it, tel qu'il figure dans le fichier, avant toute interpolation.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400
+    },
+    "test_existant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "describe"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "pattern": "^test/[A-Za-z0-9-]+\\.test\\.js$"
+        },
+        "describe": {
+          "$ref": "#/$defs/titre_test"
+        },
+        "it": {
+          "$ref": "#/$defs/titre_test"
+        }
+      }
+    },
+    "niveau": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "object",
+        "oracle",
+        "section"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/niveau_id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object": {
+          "type": "string",
+          "minLength": 1
+        },
+        "oracle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "section": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)*$"
+        }
+      }
+    },
+    "etat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "executable",
+            "a_ecrire"
+          ]
+        },
+        "tests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/test_existant"
+          }
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phase2_step": {
+          "$ref": "#/$defs/etape"
+        },
+        "blocking": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ci_steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Noms exacts (membre name:) d'étapes de .github/workflows/ci.yml qui exécutent le test, quand aucun describe/it de test/*.test.js ne le porte (vérificateurs Go, étapes d'intégration continue)."
+        },
+        "complement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "phase2_step",
+            "blocking"
+          ],
+          "description": "Partie de l'oracle qui attend un composant de la phase 2, pour une entrée dont la partie citée s'exécute aujourd'hui (CT-9 EX-3.10) ; admis avec l'état executable seulement.",
+          "properties": {
+            "phase2_step": {
+              "$ref": "#/$defs/etape"
+            },
+            "blocking": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "depends_on": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^P[AD]-[1-9][0-9]*$"
+          },
+          "description": "Propositions PA- (CT-7) ou PD- non adoptées dont l'entrée dépend en tout ou partie (CT-9 §14, ligne 4) ; la partie conditionnée est comptée non applicable tant que la proposition n'est pas adoptée."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "executable"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "command"
+            ],
+            "properties": {
+              "command": true,
+              "tests": true,
+              "ci_steps": true,
+              "complement": true,
+              "depends_on": true
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "tests"
+                ],
+                "properties": {
+                  "tests": true
+                }
+              },
+              {
+                "required": [
+                  "ci_steps"
+                ],
+                "properties": {
+                  "ci_steps": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "a_ecrire"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "phase2_step",
+              "blocking"
+            ],
+            "properties": {
+              "phase2_step": true,
+              "blocking": true,
+              "complement": false,
+              "depends_on": true
+            }
+          }
+        }
+      ]
+    },
+    "adversarial": {
+      "description": "Bloc d'un test adversarial TA- (CT-9 §10) : la menace et son composant (null pour un scénario du plan, qui porte alors composition), la réponse retirée (ce qu'elle est, comment et où on la retire), l'attaque, l'observation attendue avec et sans la réponse, le niveau d'exécution, le risque accepté et la cellule « Test de CT-9 » de CT-7 §3.4.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threat",
+        "component",
+        "response_removed",
+        "attack",
+        "expected_with_response",
+        "expected_without_response",
+        "execution",
+        "accepted_risk",
+        "threat_test_text"
+      ],
+      "properties": {
+        "threat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/menace"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "component": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/composant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "response_removed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "what",
+            "how",
+            "where"
+          ],
+          "properties": {
+            "what": {
+              "type": "string",
+              "minLength": 1
+            },
+            "how": {
+              "type": "string",
+              "minLength": 1
+            },
+            "where": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "attack": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_with_response": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_without_response": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution": {
+          "type": "string",
+          "enum": [
+            "vecteurs_et_depot",
+            "phase_2"
+          ],
+          "description": "vecteurs_et_depot : jouable sur les vecteurs et les bibliothèques du dépôt ; phase_2 : attend un composant."
+        },
+        "accepted_risk": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/identifiant_ra"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threat_test_text": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^Le test échoue si la réponse est retirée : "
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Valeur du membre test de la menace dans menaces.json, préfixe fixe compris ; null pour un scénario."
+        },
+        "composition": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifiant_ta"
+          },
+          "description": "Tests TA- composés par un scénario du plan (TA-99 à TA-103)."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "threat": {
+                "type": "null"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "composition"
+            ],
+            "properties": {
+              "composition": true,
+              "component": {
+                "type": "null"
+              },
+              "threat_test_text": {
+                "type": "null"
+              },
+              "accepted_risk": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "threat": {
+                "type": "string"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "composition": false,
+              "component": {
+                "$ref": "#/$defs/composant"
+              },
+              "threat_test_text": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "unite": {
+      "description": "Unité native de la grandeur ; aucune conversion dans un rapport.",
+      "type": "string",
+      "enum": [
+        "ms",
+        "s",
+        "min",
+        "octets",
+        "evenements_par_s",
+        "blocs_par_s",
+        "nombre",
+        "booleen",
+        "ratio",
+        "texte"
+      ]
+    },
+    "cible_composee": {
+      "description": "Cible à plusieurs percentiles (« p50 ≤ 5 ms, p99 ≤ 50 ms »), chaque membre dans l'unité du test.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "p50": {
+          "type": "number"
+        },
+        "p95": {
+          "type": "number"
+        },
+        "p99": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "min": {
+          "type": "number"
+        }
+      }
+    },
+    "mesure": {
+      "description": "Bloc `measure` d'une entrée TM- du catalogue (remplace la définition du même nom de la partie A : `comparison` étendue, `target` composée, méthode et répétitions).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quantity",
+        "unit",
+        "target",
+        "comparison",
+        "source",
+        "failure_threshold",
+        "method",
+        "measured"
+      ],
+      "properties": {
+        "quantity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "$ref": "#/$defs/unite"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/cible_composee"
+            }
+          ]
+        },
+        "comparison": {
+          "type": "string",
+          "enum": [
+            "au_plus",
+            "strictement_inferieur",
+            "au_moins",
+            "p50_au_plus",
+            "p95_au_plus",
+            "p99_au_plus",
+            "p50_et_p99_au_plus",
+            "somme_au_plus",
+            "egalite",
+            "aucune_cible"
+          ],
+          "description": "Mode de comparaison de la valeur mesurée à la cible (CT-9 EX-11.14) ; `strictement_inferieur` quand la source dit « moins de » : une valeur égale à la cible est un échec."
+        },
+        "source": {
+          "$ref": "#/$defs/identifiant"
+        },
+        "failure_threshold": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "description": "Méthode de la section 11.2 : harnais publié (`harnais`), chronomètre d'une procédure humaine (`chronometre`), paire avec et sans le composant (`paire_avec_sans`), lecture d'une API ou d'un outil (`lecture_api`), comparaison d'octets ou de condensés (`comparaison_octets`), comptage (`comptage`), relevé d'un journal ou d'une sortie (`releve`).",
+          "type": "string",
+          "enum": [
+            "harnais",
+            "chronometre",
+            "paire_avec_sans",
+            "lecture_api",
+            "comparaison_octets",
+            "comptage",
+            "releve"
+          ]
+        },
+        "percentiles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "p50",
+              "p95",
+              "p99",
+              "max",
+              "min",
+              "mean"
+            ]
+          }
+        },
+        "warmup": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repetitions": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "result_name": {
+          "description": "Nom de la ligne `results[].name` qui porte cette mesure dans un rapport de mesure.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "measured": {
+          "type": "null",
+          "description": "Toujours null en version 0.1 : la valeur mesurée vit dans le rapport de mesure, jamais dans le catalogue."
+        }
+      }
+    },
+    "rejeu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "participant",
+        "material",
+        "forbidden_sections",
+        "grid",
+        "judge",
+        "verdict_rule"
+      ],
+      "properties": {
+        "participant": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "forbidden_sections": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "grid": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Chemin du fichier de grille des vecteurs (acceptation-*-attendu.json), jamais recopié ; null quand la grille est le verdict d'un outil."
+        },
+        "judge": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verdict_rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "revue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "components",
+        "scope",
+        "grid"
+      ],
+      "properties": {
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "grid": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "level",
+        "title",
+        "specs",
+        "covers",
+        "preconditions",
+        "steps",
+        "oracle",
+        "status",
+        "threats"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(TU|TV|TI|TE|TA|TM|TR|TQ)-[1-9][0-9]*$"
+        },
+        "level": {
+          "$ref": "#/$defs/niveau_id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "specs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/spec_id"
+          }
+        },
+        "covers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifiant"
+          }
+        },
+        "preconditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "oracle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/etat"
+        },
+        "threats": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/menace"
+          }
+        },
+        "adversarial": {
+          "$ref": "#/$defs/adversarial"
+        },
+        "measure": {
+          "$ref": "#/$defs/mesure"
+        },
+        "replay": {
+          "$ref": "#/$defs/rejeu"
+        },
+        "review": {
+          "$ref": "#/$defs/revue"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": "TA"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "adversarial"
+            ],
+            "properties": {
+              "adversarial": true,
+              "threats": {
+                "type": "array",
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": "TM"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "measure"
+            ],
+            "properties": {
+              "measure": true
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": "TR"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "replay"
+            ],
+            "properties": {
+              "replay": true
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "const": "TQ"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "review"
+            ],
+            "properties": {
+              "review": true
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "level": {
+                "enum": [
+                  "TU",
+                  "TV",
+                  "TI",
+                  "TE"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "adversarial": false,
+              "measure": false,
+              "replay": false,
+              "review": false
+            }
+          }
+        }
+      ]
+    },
+    "justification_nc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "covers",
+        "justification"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^NC-[1-9][0-9]*$"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "definition",
+            "convention",
+            "texte_descriptif",
+            "delegue",
+            "hors_version_0",
+            "renvoi",
+            "proposition",
+            "ligne_de_modele",
+            "non_verifie"
+          ]
+        },
+        "covers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifiant"
+          }
+        },
+        "justification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delegated_to": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "if": {
+        "properties": {
+          "category": {
+            "const": "delegue"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "delegated_to"
+        ],
+        "properties": {
+          "delegated_to": true
+        }
+      }
+    },
+    "risque_accepte": {
+      "description": "Un risque accepté RA- de CT-7 §3.5 : le test de sa menace, ce que CT-9 en teste (la borne) et ce qu'il ne teste pas.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "bound",
+        "owner",
+        "threat",
+        "test",
+        "test_state",
+        "tested",
+        "not_tested"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifiant_ra"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bound": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "enum": [
+            "client",
+            "exploitant_noortrace",
+            "reviseur",
+            "operateur_validateur"
+          ],
+          "description": "Porteur du risque, valeurs de menaces.json (CT-7 §3.8, table PORTEURS de scripts/lib/securite.mjs)."
+        },
+        "threat": {
+          "$ref": "#/$defs/menace"
+        },
+        "test": {
+          "$ref": "#/$defs/identifiant_ta"
+        },
+        "test_state": {
+          "type": "string",
+          "enum": [
+            "executable",
+            "a_ecrire"
+          ]
+        },
+        "tested": {
+          "type": "string",
+          "minLength": 1
+        },
+        "not_tested": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measured_by": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^TM-[1-9][0-9]*$"
+          },
+          "description": "Entrées TM- qui mesurent la grandeur chiffrée de la borne (CT-9 EX-10.10) ; la borne est mesurée, non réduite : la bijection RA- vers MN- est inchangée. Facultatif ; l'outil de couverture l'exige pour les RA- que CT-9 EX-10.10 nomme."
+        }
+      }
+    },
+    "ligne_tc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "key",
+        "line",
+        "delegated",
+        "response"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^TC-[1-9][0-9]*$"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^(CT-[1-8]|`spec/README.md`) (§[0-9A-Z]+(\\.[0-9]+)*|« .+ »)$"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "delegated": {
+          "type": "string",
+          "minLength": 1
+        },
+        "response": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "fichier_condense": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "sha256"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "rapport_couverture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "kind",
+        "date",
+        "tool",
+        "inputs",
+        "identifiers",
+        "threats",
+        "traceability",
+        "executable",
+        "text_tables",
+        "verdict",
+        "errors"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "kind": {
+          "const": "rapport-couverture"
+        },
+        "date": {
+          "$ref": "#/$defs/date"
+        },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "command"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "command": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "specs",
+            "catalogue",
+            "threats",
+            "tests"
+          ],
+          "properties": {
+            "specs": {
+              "type": "array",
+              "minItems": 8,
+              "maxItems": 8,
+              "items": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/fichier_condense"
+                  }
+                ]
+              }
+            },
+            "catalogue": {
+              "$ref": "#/$defs/fichier_condense"
+            },
+            "threats": {
+              "$ref": "#/$defs/fichier_condense"
+            },
+            "tests": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/fichier_condense"
+              }
+            }
+          }
+        },
+        "identifiers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "covered_by_tests",
+            "covered_by_nc",
+            "uncovered",
+            "unknown_cited",
+            "per_spec"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "covered_by_tests": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "covered_by_nc": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "uncovered": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown_cited": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "per_spec": {
+              "type": "array",
+              "minItems": 8,
+              "maxItems": 8,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "spec",
+                  "total",
+                  "covered_by_tests",
+                  "covered_by_nc",
+                  "uncovered",
+                  "uncovered_ids",
+                  "families"
+                ],
+                "properties": {
+                  "spec": {
+                    "$ref": "#/$defs/spec_id"
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "covered_by_tests": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "covered_by_nc": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "uncovered": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "uncovered_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "families": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "threats": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "with_ta",
+            "without_ta"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "with_ta": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "without_ta": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/menace"
+              }
+            }
+          }
+        },
+        "traceability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "occurrences",
+            "rows",
+            "missing",
+            "orphans"
+          ],
+          "properties": {
+            "occurrences": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rows": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "orphans": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "executable": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "titles_checked",
+            "titles_missing"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "titles_checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "titles_missing": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "test_id",
+                  "file",
+                  "title"
+                ],
+                "properties": {
+                  "test_id": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "text_tables": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "compared",
+            "differences"
+          ],
+          "properties": {
+            "compared": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "reussi",
+            "echec"
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rapport_execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "kind",
+        "date",
+        "commit",
+        "environment",
+        "results"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "kind": {
+          "const": "rapport-execution"
+        },
+        "date": {
+          "$ref": "#/$defs/date"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "os",
+            "node",
+            "go",
+            "python"
+          ],
+          "properties": {
+            "os": {
+              "type": "string",
+              "minLength": 1
+            },
+            "node": {
+              "type": "string",
+              "minLength": 1
+            },
+            "go": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "python": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "test_id",
+              "status",
+              "command"
+            ],
+            "properties": {
+              "test_id": {
+                "type": "string",
+                "pattern": "^(TU|TV|TI|TE|TA|TM|TR|TQ)-[1-9][0-9]*$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "reussi",
+                  "echec",
+                  "en_attente",
+                  "non_applicable"
+                ]
+              },
+              "command": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reason": {
+                "type": "string"
+              },
+              "output_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "systeme": {
+      "description": "Machine d'une mesure. `reference` dit si c'est le système de référence de la porte 2 (section 11.1) ; une mesure faite ailleurs est publiée mais ne compte pas pour les cibles.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "cpu",
+        "cores",
+        "memory_bytes",
+        "disk",
+        "os",
+        "kernel",
+        "node",
+        "go",
+        "python",
+        "cpu_scaling",
+        "aslr",
+        "virtualized"
+      ],
+      "properties": {
+        "reference": {
+          "type": "boolean"
+        },
+        "cpu": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cores": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "disk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "fsync"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "nvme",
+                "ssd",
+                "hdd",
+                "virtuel",
+                "memoire",
+                "inconnu"
+              ]
+            },
+            "fsync": {
+              "description": "Vrai si `fdatasync` est actif et honoré par le support ; null si la mesure n'écrit rien.",
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kernel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node": {
+          "type": "string",
+          "minLength": 1
+        },
+        "go": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "python": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cpu_scaling": {
+          "type": "string",
+          "enum": [
+            "actif",
+            "inactif",
+            "inconnu"
+          ]
+        },
+        "aslr": {
+          "type": "string",
+          "enum": [
+            "actif",
+            "inactif",
+            "inconnu"
+          ]
+        },
+        "load_avg_1m": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "virtualized": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "resultat_mesure": {
+      "description": "Une ligne de résultat. Les valeurs absentes sont `null`, jamais omises ni inventées ; `met` n'est un booléen que si une valeur est présente.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "test_id",
+        "unit",
+        "n",
+        "value",
+        "p50",
+        "p95",
+        "p99",
+        "min",
+        "max",
+        "mean",
+        "text_value",
+        "target",
+        "met",
+        "conditions",
+        "excluded_reason"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "test_id": {
+          "type": "string",
+          "pattern": "^TM-[1-9][0-9]*$"
+        },
+        "unit": {
+          "$ref": "#/$defs/unite"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connections": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "samples": {
+          "description": "Échantillons bruts dans l'unité, dans l'ordre de collecte, échauffement exclu ; ou null si publiés à part (`samples_sha256`).",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "samples_sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "p50": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "p95": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "p99": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text_value": {
+          "description": "Valeur d'un relevé non numérique (unité `texte` ou `booleen` rendue en toutes lettres), sinon null.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/cible_composee"
+            }
+          ]
+        },
+        "met": {
+          "description": "Vrai ou faux quand la ligne compte pour sa cible ; null sans cible, sans valeur, ou quand le rapport ne compte pas pour les cibles.",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excluded_reason": {
+          "description": "Pourquoi la ligne ne compte pas pour sa cible (`hors_systeme_de_reference`, `fsync_desactive`, `disque_memoire`, `vecteurs_seulement`, `echantillon_insuffisant`), sinon null.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "hors_systeme_de_reference",
+                "fsync_desactive",
+                "disque_memoire",
+                "vecteurs_seulement",
+                "echantillon_insuffisant",
+                "aucune_cible"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "met": {
+                "type": "boolean"
+              }
+            }
+          },
+          "then": {
+            "anyOf": [
+              {
+                "properties": {
+                  "value": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "p50": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "p99": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "max": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "text_value": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "met": {
+                "type": "boolean"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "excluded_reason": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "rapport_mesure": {
+      "description": "Rapport d'une campagne de mesure (CT-9 §11.3) : la machine, la méthode, la configuration et une ligne par grandeur. `counts_for_targets` est faux hors du système de référence, avec `fdatasync` désactivé ou sur disque mémoire : toutes les lignes portent alors `met` null (CT-2 EX-16.3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "kind",
+        "date",
+        "measured_at",
+        "commit",
+        "spec_version",
+        "system",
+        "method",
+        "configuration_sha256",
+        "counts_for_targets",
+        "results"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "kind": {
+          "const": "rapport-mesure"
+        },
+        "date": {
+          "$ref": "#/$defs/date"
+        },
+        "measured_at": {
+          "$ref": "#/$defs/instant"
+        },
+        "commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "spec_version": {
+          "type": "string",
+          "pattern": "^0\\.[0-9]+$"
+        },
+        "system": {
+          "$ref": "#/$defs/systeme"
+        },
+        "method": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "warmup",
+            "repetitions",
+            "percentile_method",
+            "clock",
+            "pair_with_without",
+            "samples_published"
+          ],
+          "properties": {
+            "warmup": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "repetitions": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "percentile_method": {
+              "const": "plus_proche_rang"
+            },
+            "clock": {
+              "type": "string",
+              "enum": [
+                "monotone",
+                "murale",
+                "manuelle",
+                "sans_objet"
+              ]
+            },
+            "pair_with_without": {
+              "type": "boolean"
+            },
+            "samples_published": {
+              "type": "boolean"
+            }
+          }
+        },
+        "configuration_sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "counts_for_targets": {
+          "type": "boolean"
+        },
+        "results": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/resultat_mesure"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "counts_for_targets": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "results": {
+                "items": {
+                  "properties": {
+                    "met": {
+                      "type": "null"
+                    },
+                    "excluded_reason": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "system": {
+                "properties": {
+                  "reference": {
+                    "const": false
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "counts_for_targets": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "system": {
+                "properties": {
+                  "disk": {
+                    "properties": {
+                      "fsync": {
+                        "const": false
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "counts_for_targets": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "system": {
+                "properties": {
+                  "disk": {
+                    "properties": {
+                      "type": {
+                        "const": "memoire"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "counts_for_targets": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "consignation_rejeu": {
+      "description": "Consignation d'une épreuve à l'aveugle (CT-9 §12.1, CT-8 EX-14.10 généralisée) : participant et juge sous pseudonyme, matériel remis avec son SHA-256, sections interdites, grille, durée, demandes d'information, verdict élément par élément. Aucune donnée personnelle ; jamais la réponse elle-même.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "kind",
+        "test_id",
+        "date",
+        "commit",
+        "participant",
+        "judge",
+        "material",
+        "forbidden_sections",
+        "grid",
+        "duration_s",
+        "information_requests",
+        "verdict"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "kind": {
+          "const": "consignation-rejeu"
+        },
+        "test_id": {
+          "type": "string",
+          "pattern": "^TR-[1-9][0-9]*$"
+        },
+        "date": {
+          "$ref": "#/$defs/date"
+        },
+        "commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "participant": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pseudonym",
+            "role",
+            "external"
+          ],
+          "properties": {
+            "pseudonym": {
+              "type": "string",
+              "pattern": "^P-[0-9]{2}$"
+            },
+            "role": {
+              "type": "string",
+              "minLength": 1
+            },
+            "external": {
+              "description": "Vrai si la personne n'a pris part ni au projet ni à la rédaction de la spécification visée.",
+              "type": "boolean"
+            }
+          }
+        },
+        "judge": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pseudonym",
+            "independent"
+          ],
+          "properties": {
+            "pseudonym": {
+              "type": "string",
+              "pattern": "^J-[0-9]{2}$"
+            },
+            "independent": {
+              "description": "Toujours vrai : le juge n'a pas aidé le participant.",
+              "const": true
+            }
+          }
+        },
+        "material": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item",
+              "sha256"
+            ],
+            "properties": {
+              "item": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "forbidden_sections": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "grid": {
+          "description": "Chemin de la grille des vecteurs, ou null quand le verdict est celui d'un outil.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "duration_s": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "information_requests": {
+          "description": "Nombre de fois où le participant a demandé une information absente du matériel remis (cible : zéro pour un rejeu sur la seule documentation).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "verdict": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "disqualifying_statement",
+            "elements"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "reussi",
+                "echec"
+              ]
+            },
+            "disqualifying_statement": {
+              "description": "Vrai si la réponse contient une affirmation que l'épreuve déclare disqualifiante (« preuve du périmètre », « conforme », réécriture d'un fichier du journal…).",
+              "type": "boolean"
+            },
+            "elements": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "element",
+                  "present"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "present": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "status": {
+                "const": "reussi"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "disqualifying_statement": {
+                "const": false
+              },
+              "elements": {
+                "items": {
+                  "properties": {
+                    "present": {
+                      "const": true
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            }
+          }
+        },
+        "output_sha256": {
+          "description": "SHA-256 de la sortie jointe (sortie d'un outil exécuté par le participant), sinon null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "grille_acceptation": {
+      "description": "Grille d'une épreuve à l'aveugle que CT-9 dote lui-même (TR-4, TR-5, TR-14 ; annexe A.9, EX-A.16) : pour chaque question, les éléments que la réponse doit contenir, chacun avec la règle qui le fonde, et les affirmations disqualifiantes (EX-12.6). Jamais remise au participant.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "kind",
+        "test_id",
+        "description",
+        "questions",
+        "disqualifying"
+      ],
+      "properties": {
+        "version": {
+          "const": 0
+        },
+        "kind": {
+          "const": "grille-acceptation"
+        },
+        "test_id": {
+          "type": "string",
+          "pattern": "^TR-[1-9][0-9]*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "question",
+              "elements"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^q[0-9]+$"
+              },
+              "question": {
+                "type": "string",
+                "minLength": 1
+              },
+              "elements": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "element",
+                    "rules"
+                  ],
+                  "properties": {
+                    "element": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "rules": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "disqualifying": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "version": 0,
+  "family": "ct-9/cas",
+  "description": "Cas de la famille cas/ : chaque fichier est un catalogue réduit à une entrée ; def nomme la définition du schéma plan-de-tests-v0 (racine), expected le verdict d'ajv et keyword le mot-clé fautif attendu dans la première erreur.",
+  "cases": [
+    {
+      "file": "valide-minimal.json",
+      "def": "racine",
+      "expected": "valide",
+      "keyword": null
+    },
+    {
+      "file": "valide-ta.json",
+      "def": "racine",
+      "expected": "valide",
+      "keyword": null
+    },
+    {
+      "file": "invalide-executable-sans-titre.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "anyOf"
+    },
+    {
+      "file": "invalide-a-ecrire-sans-etape.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "required"
+    },
+    {
+      "file": "invalide-ta-sans-adversarial.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "required"
+    },
+    {
+      "file": "invalide-identifiant-sans-specification.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "pattern"
+    },
+    {
+      "file": "invalide-tm-mesure-inventee.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "type"
+    },
+    {
+      "file": "invalide-ta-titre-vide.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "minLength"
+    },
+    {
+      "file": "invalide-ta-complement-sans-etape.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "required"
+    },
+    {
+      "file": "invalide-ta-prefixe-test.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "pattern"
+    },
+    {
+      "file": "invalide-ta-scenario-sans-composition.json",
+      "def": "racine",
+      "expected": "invalide",
+      "keyword": "required"
+    }
+  ]
+}

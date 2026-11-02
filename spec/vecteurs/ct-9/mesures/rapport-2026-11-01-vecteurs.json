@@ -1,0 +1,136 @@
+{
+  "version": 0,
+  "kind": "rapport-mesure",
+  "date": "2026-11-01",
+  "measured_at": "2026-11-01T18:40:00Z",
+  "commit": "dfc8dc7388f51fca7a67ea41b11ff82dffaaf5cb",
+  "spec_version": "0.1",
+  "system": {
+    "reference": false,
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+    "cores": 4,
+    "memory_bytes": 16872808448,
+    "disk": {
+      "type": "virtuel",
+      "fsync": null
+    },
+    "os": "Ubuntu 24.04.5 LTS",
+    "kernel": "6.18.44-fc-v185",
+    "node": "v22.22.0",
+    "go": "go1.24.7",
+    "python": "3.13.16",
+    "cpu_scaling": "inconnu",
+    "aslr": "inconnu",
+    "load_avg_1m": null,
+    "virtualized": true
+  },
+  "method": {
+    "warmup": 0,
+    "repetitions": 1,
+    "percentile_method": "plus_proche_rang",
+    "clock": "sans_objet",
+    "pair_with_without": false,
+    "samples_published": true
+  },
+  "configuration_sha256": null,
+  "counts_for_targets": false,
+  "results": [
+    {
+      "name": "octets_par_evenement",
+      "test_id": "TM-6",
+      "unit": "octets",
+      "n": 9,
+      "connections": null,
+      "samples": [
+        413,
+        1367,
+        1413,
+        1804,
+        1468,
+        1698,
+        2174,
+        2530,
+        1426
+      ],
+      "samples_sha256": null,
+      "value": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": 413,
+      "max": 2530,
+      "mean": 1588.11,
+      "text_value": null,
+      "target": null,
+      "met": null,
+      "conditions": [
+        "spec/vecteurs/ct-2/evenements/journal-demo/segment.ndjson, saut de ligne compris",
+        "SHA-256 du segment : 8005e09ac381f1756db5a4b03db2986c35e693fc32ba75819f9a5299753dafc1"
+      ],
+      "excluded_reason": "vecteurs_seulement"
+    },
+    {
+      "name": "octets_ligne_annexe_a",
+      "test_id": "TM-6",
+      "unit": "octets",
+      "n": 1,
+      "connections": null,
+      "samples": [
+        2465
+      ],
+      "samples_sha256": null,
+      "value": 2465,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null,
+      "mean": null,
+      "text_value": null,
+      "target": null,
+      "met": null,
+      "conditions": [
+        "ligne de segment de seq 4 de l'annexe A de CT-2, rescellée par test/enregistreur.test.js"
+      ],
+      "excluded_reason": "vecteurs_seulement"
+    },
+    {
+      "name": "p1_cadence_vecteurs",
+      "test_id": "TM-10",
+      "unit": "s",
+      "n": 12,
+      "connections": null,
+      "samples": [
+        56.583,
+        55.898,
+        54.12,
+        50.689,
+        50.096,
+        12.75,
+        11.994,
+        10.88,
+        2,
+        47.445,
+        46.96,
+        0
+      ],
+      "samples_sha256": null,
+      "value": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": 0,
+      "max": 56.583,
+      "mean": null,
+      "text_value": "aucun écart de cadence sur la série publiée ; 3 540 s sur la série creuse",
+      "target": 61,
+      "met": null,
+      "conditions": [
+        "spec/vecteurs/ct-1/points-de-controle/periode-*.json et journal-valide/evenements.json, c_K = 60 s : délai en s de ts(i) au checkpoint_ts du premier point dont last_seq ≥ i et checkpoint_ts ≥ ts(i), recalculé à la génération",
+        "constaterCadence (AN-2)"
+      ],
+      "excluded_reason": "vecteurs_seulement"
+    }
+  ],
+  "notes": "Mesures sur les vecteurs publiés, pas sur l'enregistreur : le rapport ne compte pour aucune cible (`counts_for_targets` faux, `excluded_reason` `vecteurs_seulement`). La machine n'est pas le système de référence."
+}

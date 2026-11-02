@@ -1,0 +1,43 @@
+{
+  "version": 0,
+  "family": "ct-9/consignations/cas",
+  "description": "Cas valides et invalides de la consignation d'une épreuve à l'aveugle (plan-de-tests-v0, #/$defs/consignation_rejeu) ; `expected` est le verdict d'ajv (`valid` ou `invalid`) et `reason` ce que le cas éprouve (CT-9 EX-12.4, EX-A.15).",
+  "cases": [
+    {
+      "file": "valide-gabarit.json",
+      "def": "consignation_rejeu",
+      "expected": "valid",
+      "reason": "Gabarit de TR-10 : pseudonymes, juge indépendant, matériel avec SHA-256 de gabarit, verdict réussi avec chaque élément présent."
+    },
+    {
+      "file": "invalide-reussi-element-absent.json",
+      "def": "consignation_rejeu",
+      "expected": "invalid",
+      "reason": "Verdict `reussi` avec un élément de grille absent : refusé (EX-12.6)."
+    },
+    {
+      "file": "invalide-reussi-disqualifiant.json",
+      "def": "consignation_rejeu",
+      "expected": "invalid",
+      "reason": "Verdict `reussi` avec une affirmation disqualifiante : refusé (EX-12.6)."
+    },
+    {
+      "file": "invalide-juge-non-independant.json",
+      "def": "consignation_rejeu",
+      "expected": "invalid",
+      "reason": "Juge qui a aidé le participant (`independent` faux) : refusé (EX-12.5)."
+    },
+    {
+      "file": "invalide-nom-de-personne.json",
+      "def": "consignation_rejeu",
+      "expected": "invalid",
+      "reason": "Participant désigné par un nom au lieu d'un pseudonyme `P-nn` : refusé (EX-12.1)."
+    },
+    {
+      "file": "invalide-sans-materiel.json",
+      "def": "consignation_rejeu",
+      "expected": "invalid",
+      "reason": "Aucun matériel remis consigné : refusé (EX-12.2)."
+    }
+  ]
+}

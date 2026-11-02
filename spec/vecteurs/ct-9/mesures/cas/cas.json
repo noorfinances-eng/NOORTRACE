@@ -1,0 +1,73 @@
+{
+  "version": 0,
+  "family": "ct-9/mesures/cas",
+  "description": "Cas valides et invalides du rapport de mesure (plan-de-tests-v0, #/$defs/rapport_mesure) ; `expected` est le verdict d'ajv (`valid` ou `invalid`) et `reason` ce que le cas éprouve (CT-9 EX-11.11, EX-A.14).",
+  "cases": [
+    {
+      "file": "valide-vide.json",
+      "def": "rapport_mesure",
+      "expected": "valid",
+      "reason": "Rapport vide de la version 0.1 : cibles présentes, null partout ailleurs, `counts_for_targets` vrai sur le système de référence."
+    },
+    {
+      "file": "valide-vecteurs.json",
+      "def": "rapport_mesure",
+      "expected": "valid",
+      "reason": "Relevés sur les vecteurs publiés : hors système de référence, `counts_for_targets` faux, chaque ligne exclue par `vecteurs_seulement`."
+    },
+    {
+      "file": "invalide-met-sans-valeur.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "`met` booléen sans aucune valeur (`value`, `p50`, `p99`, `max`, `text_value`) : refusé."
+    },
+    {
+      "file": "invalide-compte-hors-reference.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "`system.reference` faux avec `counts_for_targets` vrai : une mesure hors du système de référence ne compte pas pour les cibles."
+    },
+    {
+      "file": "invalide-fsync-desactive-compte.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "`disk.fsync` faux avec `counts_for_targets` vrai : refusé (CT-2 EX-16.3)."
+    },
+    {
+      "file": "invalide-disque-memoire-compte.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "`disk.type` `memoire` avec `counts_for_targets` vrai : refusé."
+    },
+    {
+      "file": "invalide-met-sans-compter.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "Rapport qui ne compte pas pour les cibles avec une ligne `met` booléenne et sans `excluded_reason` : refusé."
+    },
+    {
+      "file": "invalide-unite-inconnue.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "Unité hors de l'énumération (`secondes` au lieu de `s`) : aucune conversion dans un rapport."
+    },
+    {
+      "file": "invalide-percentile-autre-methode.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "`percentile_method` autre que `plus_proche_rang` : refusé (EX-11.3)."
+    },
+    {
+      "file": "invalide-machine-incomplete.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "Membre `kernel` absent de `system` : la machine est décrite en entier ou le rapport est refusé."
+    },
+    {
+      "file": "invalide-test-id-autre-famille.json",
+      "def": "rapport_mesure",
+      "expected": "invalid",
+      "reason": "`test_id` d'une autre famille (TU-1) : une ligne de mesure se rattache à un TM-."
+    }
+  ]
+}

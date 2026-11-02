@@ -1,0 +1,193 @@
+{
+  "version": 0,
+  "kind": "grille-acceptation",
+  "test_id": "TR-14",
+  "description": "Grille de l'épreuve (b) de CT-9 (TR-14), produite depuis la section 14 (critères, entrées, verdict calculable, ce que la porte 2 ne mesure pas) et la table des niveaux ; jamais remise au participant.",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "Que prouve le passage de la porte 2 ? Pour chaque critère « continuer si », les entrées qui le servent et le verdict calculable.",
+      "elements": [
+        {
+          "element": "Les deux cas traversent la chaîne de la capture au dossier : Rapport d'exécution (EX-A.19) : `reussi` pour TE-1, TE-2, TE-12 et TE-13 ; chaque dossier exporté par ces quatre entrées : code 0 des deux vérificateurs de CT-6 (JavaScript et Go), énoncé identique (CT-6 §6.5) ; TA-99 à TA-103 `reussi` selon EX-10.9, chaque dossier qu'un scénario exporte portant le code et l'énoncé que son oracle attend, identiques entre les deux vérificateurs (TA-100 attend CT-1 K-7 ou K-8 en échec, exécutées par CT-6 §9.9 et §11.9) ; un scénario dont un test composé échoue tombe sous la ligne 4 ; un scénario qui n'exporte aucun dossier compte pour cette ligne par la seule réussite de ses tests composés et de son oracle de bout en bout (EX-10.9), l'exigence du code 0 des deux vérificateurs ne s'appliquant qu'aux dossiers effectivement exportés ; un dossier non vérifié par les deux vérificateurs rend la ligne `faux` ; répartition entre les lignes 1 et 4 : pour un scénario, la ligne 1 lit son oracle de bout en bout (EX-10.9) et les dossiers qu'il exporte, la ligne 4 lit chacun de ses tests composés avec son mutant",
+          "rules": [
+            "CT-9 §14 (entrées : TE-1, TE-2 ; TE-12 (ancrage complet), TE-13 (console) ; TA-99 à TA-103 joués sur la même démonstration)",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "La vérification est reproduite sans aide, à partir de la seule documentation : sur une machine vierge (TR-12) et sur le poste sans réseau d'un réviseur (TR-10) : Consignation `TR-12-<AAAA-MM-JJ>-<P-nn>-depot.json` (partie dépôt de TR-12, EX-12.12) : `reussi` selon EX-12.10 (codes égaux à ceux de la CI au même commit, `information_requests` = 0, durée consignée) ; la partie phase 2 (`…-phase-2.json`) est lue par la ligne 7 ; TR-10 `reussi` selon CT-8 EX-14.8 (codes et états des deux paquets égaux à `cas.json`, sortie jointe, phrase de CT-8 §13.10 (ce que le résultat prouve) ; demandes d'information comptées et publiées, sans cible) ; sinon `faux`",
+          "rules": [
+            "CT-9 §14 (entrées : TR-12 (rejeu complet, 12.3), TR-10 (CT-8 épreuve (b)))",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "La latence ajoutée mesurée respecte l'objectif de CT-2 : Rapport de mesure (11.3) : lignes `latence_appel_relaye` (TM-1) et `latence_echange_modele` (TM-4) : `p50 ≤ 5 ms` et `p99 ≤ 50 ms` ; ligne `latence_premier_octet_sse` (TM-2) : `max ≤ 10 ms` (malgré son nom, cette ligne porte le maximum de la latence ajoutée sur tous les octets du flux, oracle de TM-2) ; soit `met` vrai des trois lignes (EX-11.14 : le seuil d'échec de TM-1, TM-2 et TM-4 égale leur cible) ; `system.reference` vrai, `system.disk.fsync` vrai, `counts_for_targets` vrai ; un `p50` hors cible rend la ligne `faux` sans reprise nommée, la ligne d'arrêt 2 ne lisant que `p99` et `max` (cas générique d'EX-14.1)",
+          "rules": [
+            "CT-9 §14 (entrées : TM-1, TM-2, TM-4 (CT-2 §16.1 : latence par appel relayé, premier octet SSE, échange de modèle hors flux))",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "Les tests adversariaux passent : Rapport d'exécution : chaque TA- `reussi` avec la réponse, et son mutant tué (échec sans la réponse) ; TA-26 (PA-1) et TA-88 (PA-10) `non_applicable` pour leur partie conditionnée tant que la proposition n'est pas adoptée (EX-14.1) ; TA-2, TA-30, TA-93 `reussi` exigé (réponses codées à l'étape 4, PD-12, PD-13) ; `threats.without_ta` vide dans `couverture.json`",
+          "rules": [
+            "CT-9 §14 (entrées : TA-1 à TA-98 (un par menace) et TA-99 à TA-103 (scénarios du plan), section 10)",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "La démonstration en une commande tourne : TE-3 `reussi` ; rapport de mesure : `max` de la ligne `demonstration_duree` < 120 s (TM-43, `strictement_inferieur`, CT-2 EX-19.1), `met` vrai, `counts_for_targets` vrai sur le système de référence",
+          "rules": [
+            "CT-9 §14 (entrées : TE-3, TM-43)",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "Fenêtre de réécriture mesurée au plus égale à 5 min : Rapport de mesure : `vrai` si et seulement si la ligne `w_date_porte_2` (TM-42) rend `met` vrai (`W_date` p99 ≤ 300 s avec la configuration de la porte 2 : `c_T` = 60 s, points chez le principal) et si la ligne `w_ordre` (TM-41) figure dans le même rapport (une ligne `results[]` de nom `w_ordre` y est présente), quelle que soit sa valeur (`met`, valeur mesurée et `excluded_reason`, `null` compris) (son seuil de 120 s est une exigence de supervision dérivée de CT-5 §3.3, pas un critère de porte) ; `faux` dans tout autre cas ; lecture provisoire du critère (11.6, 16, `blocking` de TM-42) : tant que le plan n'a pas confirmé la configuration, la ligne se calcule avec la lecture de TM-42 (`W_date` p99 ≤ 300 s, `c_T` = 60 s, points chez le principal) et le rapport de mesure nomme cette lecture dans `conditions` ; la confirmation du plan ne suspend pas le calcul, elle peut seulement en changer la configuration à la révision suivante de CT-9 (section 16) ; la ligne rend donc toujours `vrai` ou `faux`",
+          "rules": [
+            "CT-9 §14 (entrées : TM-42 (`W_date`, P-3 de CT-5), TM-41 (`W_ordre`))",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "Installation par une personne extérieure en 15 min : Pour l'exécution d'un participant extérieur : rapport de mesure, ligne `ir_total` (`result_name` de TM-21) `met` vrai (≤ 900 s) ; consignation de TR-12, partie phase 2 : `participant.external` vrai (extériorité d'EX-12.4) et dossier de CT-8 IR-8 au code 0 des deux vérificateurs ; TE-6 est l'entrée qui décrit ce parcours, son verdict `reussi` n'est pas exigé par cette ligne ; TM-21 a deux exécutions possibles : celle de l'ingénieur du lot, qui joue le parcours de TE-6 à l'étape 7 et publie sa ligne `ir_total` (publiée, non comptée : aucune consignation de TR-12 ne la porte avec `participant.external` vrai), et celle du participant extérieur de TR-12, partie phase 2, seule comptée par cette ligne ; plusieurs participants sont jugés un par un (EX-11.3) et la ligne rend `vrai` dès qu'une exécution extérieure satisfait le critère",
+          "rules": [
+            "CT-9 §14 (entrées : TE-6 ; TM-21 (IR-1 à IR-8), exécuté dans la partie phase 2 de TR-12)",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "Paquet réviseur produit : Rapport d'exécution : TV-71 `reussi` (étape de CI « paquet réviseur complet, construit deux fois, vérifié par le dépôt puis par sa copie jointe hors réseau » : mêmes octets, code 0 de la copie jointe), TU-39 et TI-20 `reussi` ; consignation de TR-10 : verdict `reussi` ; rapport de mesure : chaque ligne `reviseur_temps` (TM-25) publiée pour un réviseur extérieur (une par participant, EX-11.3) a `met` vrai (< 30 min ; l'oracle de TM-25 fait foi : `value < 1800` s pour chaque participant ; la règle « dès qu'une exécution » de la ligne 7 ne vaut pas ici) ; la vérification hors réseau par la copie jointe est celle de TR-12 (EX-12.9) et du poste sans réseau de TR-10",
+          "rules": [
+            "CT-9 §14 (entrées : TU-39, TV-71, TI-20 ; TR-10 (CT-8 épreuve (b)) ; TM-25 (EX-13.1 point 7))",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "Intégrations OpenAI, Anthropic, Gemini, LangGraph, CrewAI, LlamaIndex, LiteLLM et OpenTelemetry exercées : Rapport d'exécution : huit `reussi`",
+          "rules": [
+            "CT-9 §14 (entrées : TI-4 à TI-11)",
+            "CT-9 EX-14.1"
+          ]
+        },
+        {
+          "element": "Un prestataire accepte l'horodatage horaire par lots à un prix compatible : Part calculable : fiche de prestataire (CT-5 §11) au statut `qualified` (CT-5 EX-5.9), jeton acquis et vérifié (TI-16 `reussi`) ; la compatibilité du prix est une décision du plan de projet, consignée hors du dépôt, que CT-9 enregistre sans la recalculer ; le prix n'entre jamais dans le dépôt : le verdict est `vrai`/`faux` sans montant, écrit par l'examinateur de la porte 2 dans le rapport d'exécution (EX-A.19), `result` de TI-16, membre `reason` : « prix : décision du plan du <date>, compatible » ou « … incompatible » ; un prestataire qualifié à prix incompatible rend la ligne `faux`, cas générique d'EX-14.1 (blocage sans reprise nommée)",
+          "rules": [
+            "CT-9 §14 (entrées : TI-16 (prestataires réels))",
+            "CT-9 EX-14.1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "question": "Que ne mesure pas la porte 2 ?",
+      "elements": [
+        {
+          "element": "les critères SU-1 à SU-7 de la règle de substitution (CT-4 §11.2, relevés sur trente jours de pilote, NC- `hors_version_0`)",
+          "rules": [
+            "CT-9 EX-14.2"
+          ]
+        },
+        {
+          "element": "la conformité d'un client à un texte (CT-7 §8 : correspondances techniques, jamais un avis)",
+          "rules": [
+            "CT-9 EX-14.2"
+          ]
+        },
+        {
+          "element": "la preuve du périmètre de capture (CT-7 §7.8 : l'attestation est déclarative)",
+          "rules": [
+            "CT-9 EX-14.2"
+          ]
+        },
+        {
+          "element": "les durées des sections 10 à 12 de CT-8 qui n'ont pas de TM- avec seuil d'échec (cibles publiées, non critères)",
+          "rules": [
+            "CT-9 EX-14.2"
+          ]
+        },
+        {
+          "element": "la robustesse des composants face à un attaquant hors du modèle de menace de CT-7 §3.4",
+          "rules": [
+            "CT-9 EX-14.2"
+          ]
+        },
+        {
+          "element": "la revue de code par un tiers indépendant (TQ- interne seulement, étape 8)",
+          "rules": [
+            "CT-9 EX-14.2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "question": "Quel critère du plan chaque famille de tests TU- à TQ- sert-elle ?",
+      "elements": [
+        {
+          "element": "TU- (Unitaires et propriétés) : continuer si : Paquet réviseur produit",
+          "rules": [
+            "CT-9 §3.1",
+            "CT-9 §14"
+          ]
+        },
+        {
+          "element": "TV- (Conformité aux vecteurs) : continuer si : Paquet réviseur produit",
+          "rules": [
+            "CT-9 §3.1",
+            "CT-9 §14"
+          ]
+        },
+        {
+          "element": "TI- (Interopérabilité) : continuer si : Paquet réviseur produit ; Intégrations OpenAI, Anthropic, Gemini, LangGraph, CrewAI, LlamaIndex, LiteLLM et OpenTelemetry exercées ; Un prestataire accepte l'horodatage horaire par lots à un prix compatible — arrêter ou reprendre si : Aucun prestataire n'accepte le lot horaire à un prix compatible",
+          "rules": [
+            "CT-9 §3.1",
+            "CT-9 §14"
+          ]
+        },
+        {
+          "element": "TE- (Bout en bout) : continuer si : Les deux cas traversent la chaîne de la capture au dossier ; La démonstration en une commande tourne ; Installation par une personne extérieure en 15 min",
+          "rules": [
+            "CT-9 §3.1",
+            "CT-9 §14"
+          ]
+        },
+        {
+          "element": "TA- (Adversariaux) : continuer si : Les deux cas traversent la chaîne de la capture au dossier ; Les tests adversariaux passent — arrêter ou reprendre si : Une menace du modèle n'a pas de réponse qui tienne",
+          "rules": [
+            "CT-9 §3.1",
+            "CT-9 §14"
+          ]
+        },
+        {
+          "element": "TM- (Mesures) : continuer si : La latence ajoutée mesurée respecte l'objectif de CT-2 ; La démonstration en une commande tourne ; Fenêtre de réécriture mesurée au plus égale à 5 min ; Installation par une personne extérieure en 15 min ; Paquet réviseur produit — arrêter ou reprendre si : La latence est inacceptable pour un agent réel",
+          "rules": [
+            "CT-9 §3.1",
+            "CT-9 §14"
+          ]
+        },
+        {
+          "element": "TR- (Rejeu à l'aveugle) : continuer si : La vérification est reproduite sans aide, à partir de la seule documentation : sur une machine vierge (TR-12) et sur le poste sans réseau d'un réviseur (TR-10) ; Installation par une personne extérieure en 15 min ; Paquet réviseur produit — arrêter ou reprendre si : La reproduction échoue",
+          "rules": [
+            "CT-9 §3.1",
+            "CT-9 §14"
+          ]
+        },
+        {
+          "element": "TQ- (Revue de code) : arrêter ou reprendre si : Une menace du modèle n'a pas de réponse qui tienne",
+          "rules": [
+            "CT-9 §3.1",
+            "CT-9 §14"
+          ]
+        }
+      ]
+    }
+  ],
+  "disqualifying": [
+    "dit que la porte 2 prouve la conformité d'un client à un texte",
+    "dit que la porte 2 prouve le périmètre de capture",
+    "dit que la porte 2 prouve la robustesse face à un attaquant hors du modèle de menace de CT-7 §3.4"
+  ]
+}

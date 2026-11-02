@@ -6,6 +6,40 @@ is tagged.
 
 ## Unreleased
 
+- CT-9, the test plan, version 0.1, the last of the nine design
+  specifications: eight test levels (unit and property tests on the core,
+  conformance to the published vectors, interoperability of exports, APIs and
+  integrations, end-to-end runs of the two demonstration cases, adversarial
+  tests, measurements, blind replays, code review), each with its rules and
+  the build step that makes it runnable. A machine-readable catalogue
+  (`spec/vecteurs/ct-9/catalogue.json`, schema `plan-de-tests-v0`) is the
+  single source of 321 tests, each with its preconditions, steps and oracle:
+  189 are runnable today and cite 359 existing tests or CI steps word for
+  word, 132 are to be written at a named step of the build. One adversarial
+  test per threat of CT-7 (98) and five plan scenarios state which answer is
+  removed and what then fails; 58 of them run today against copies of the
+  reference code with the answer removed (62 copies, all detected). Three
+  answers of CT-7 are not yet coded in the reference implementation (bounded
+  read of the MCP delegation, refusal of custody class D in production, the
+  "dated by declaration only" reserve of a minutes record); their tests are
+  written and will fail until the recorder is built. Every target of CT-2,
+  CT-5 and CT-8 is listed with its source and failure threshold; no
+  measurement is invented. A common protocol for blind replays, a full replay
+  on a blank machine, and the mapping of each criterion of the second gate to
+  tests and a computable verdict complete the plan.
+- CT-9 coverage tool (`scripts/tests/couverture.mjs`, `npm run
+  tests:couverture`) run by the tests and continuous integration: 2,332
+  requirements and checks of CT-1 to CT-8, 2,193 covered by a test, 139 by a
+  named justification, none uncovered; 98 of 98 threats with an adversarial
+  test; 117 of 117 references to CT-9 answered; the tables of the text equal
+  the catalogue. Measurement-report checker (`scripts/tests/mesures.mjs`).
+  Vectors `spec/vecteurs/ct-9` (`npm run vecteurs:ct9`), regenerated twice to
+  the same bytes, a Go verifier written from the specification alone and an
+  independent Python recount, both without discrepancy. New tests
+  `test/plan-de-tests.test.js` and `test/adversarial.test.js`; no existing
+  test changed. No CT-1 to CT-8 specification or vector changes.
+- `README.md`, `README.fr.md`, `ARCHITECTURE.md` (version 0.12) and
+  `spec/README.md` mention CT-9.
 - CT-8, deployment and operations, version 0.1: topologies and packages (what
   runs at the client, in a cloud tenant or at a Swiss host, and what stays
   with the NOORTRACE operator); reference Compose files for the quick install

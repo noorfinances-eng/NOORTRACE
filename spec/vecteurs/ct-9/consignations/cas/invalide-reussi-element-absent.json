@@ -1,0 +1,67 @@
+{
+  "version": 0,
+  "kind": "consignation-rejeu",
+  "test_id": "TR-10",
+  "date": "2027-01-15",
+  "commit": "dfc8dc7388f51fca7a67ea41b11ff82dffaaf5cb",
+  "participant": {
+    "pseudonym": "P-01",
+    "role": "reviseur externe",
+    "external": true
+  },
+  "judge": {
+    "pseudonym": "J-01",
+    "independent": true
+  },
+  "material": [
+    {
+      "item": "CT-8 section 13 (extrait)",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "item": "paquet.tar (cas valide-empreinte)",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "item": "paquet.tar (cas tiré au sort : fichier-altere)",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "item": "répertoire verificateur/ d'un paquet complet construit par la CI",
+      "sha256": null
+    }
+  ],
+  "forbidden_sections": [
+    "CT-8 hors section 13",
+    "le dépôt",
+    "spec/vecteurs/ct-8/paquets/cas.json",
+    "toute personne à interroger"
+  ],
+  "grid": "spec/vecteurs/ct-8/paquets/cas.json",
+  "duration_s": null,
+  "information_requests": 0,
+  "verdict": {
+    "status": "reussi",
+    "disqualifying_statement": false,
+    "elements": [
+      {
+        "element": "valide-empreinte : code 0, intact, commande avec --empreinte",
+        "present": true
+      },
+      {
+        "element": "fichier-altere : code 4, non_conforme, PR- en échec de cas.json",
+        "present": true
+      },
+      {
+        "element": "sortie jointe : SHA-256 égal à celle de l'outil sur ce paquet",
+        "present": true
+      },
+      {
+        "element": "phrase : ni auteur, ni complétude, ni ancres du réviseur",
+        "present": false
+      }
+    ]
+  },
+  "output_sha256": null,
+  "notes": "Gabarit : les SHA-256 à zéro et `duration_s` null sont des valeurs de gabarit ; une consignation réelle les remplit (EX-12.4). Aucune épreuve n'a été conduite en version 0.1."
+}

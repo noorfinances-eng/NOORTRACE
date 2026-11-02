@@ -1,0 +1,167 @@
+{
+  "version": 0,
+  "kind": "grille-acceptation",
+  "test_id": "TR-4",
+  "description": "Grille de l'épreuve d'acceptation de CT-5 (TR-4) : les éléments que chaque réponse doit contenir, chacun avec la règle qui le fonde ; jamais remise au participant.",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "Quelle est la cadence des points de contrôle, des échéances de contresignature et des clôtures ?",
+      "elements": [
+        {
+          "element": "un point de contrôle du journal toutes les 60 s (c_K)",
+          "rules": [
+            "CT-5 §4.1",
+            "CT-5 EX-3.3"
+          ]
+        },
+        {
+          "element": "une échéance de contresignature RFC 3161 toutes les 300 s (c_T)",
+          "rules": [
+            "CT-5 §4.2",
+            "CT-5 EX-3.3"
+          ]
+        },
+        {
+          "element": "une clôture de période toutes les heures (3 600 s), avec jeton qualifié et preuve OpenTimestamps",
+          "rules": [
+            "CT-5 §4.1",
+            "CT-5 §4.5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "question": "Pour chacune des quatre ancres d'un point, que prouve-t-elle quand sa vérification réussit, et que ne prouve-t-elle pas ?",
+      "elements": [
+        {
+          "element": "jeton RFC 3161 : l'empreinte existait au plus tard à genTime augmenté de la précision, selon l'autorité qui l'a signé ; ni une borne « pas avant », ni la date de l'événement (ts déclaratif)",
+          "rules": [
+            "CT-5 §3.2",
+            "CT-6 EX-9.20"
+          ]
+        },
+        {
+          "element": "ancre au registre : l'ordre entre les blocs et l'unicité de l'empreinte sur la chaîne (H6, H7) ; aucune date",
+          "rules": [
+            "CT-5 §3.2",
+            "CT-4 §3.4"
+          ]
+        },
+        {
+          "element": "attestation Bitcoin (OpenTimestamps) : l'empreinte existait avant la création d'un bloc Bitcoin sous k confirmations, sans autorité ; rien avant l'inclusion",
+          "rules": [
+            "CT-5 §3.2",
+            "CT-6 §10"
+          ]
+        },
+        {
+          "element": "signature du point par l'enregistreur : une attribution à la clé key_id ; rien contre qui détient cette clé",
+          "rules": [
+            "CT-5 §3.2",
+            "CT-1 §10.9"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "question": "Quelle fenêtre de réécriture la conception laisse-t-elle, avec les points de contrôle en service et avec les seules ancres horaires ?",
+      "elements": [
+        {
+          "element": "W_date ≤ 300 s + d_jeton pour la date (premier point contresigné après l'échéance)",
+          "rules": [
+            "CT-5 §3.3",
+            "CT-5 EX-3.3"
+          ]
+        },
+        {
+          "element": "W_ordre ≤ 60 s + d_registre pour l'ordre : durée de conception, pas une borne de réécriture qu'un dossier prouve",
+          "rules": [
+            "CT-5 §3.3",
+            "CT-5 EX-3.3"
+          ]
+        },
+        {
+          "element": "3 600 s + d_clôture + d_jeton avec les seules ancres horaires (sans points)",
+          "rules": [
+            "CT-5 §3.3",
+            "CT-6 §3.4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q4",
+      "question": "Pour les prix unitaires symboliques donnés dans la consigne, quel est le coût annuel d'ancrage d'un journal dans le cas nommé ?",
+      "elements": [
+        {
+          "element": "C_j = 28 032 p pour le cas defaut-second-rang-a1 : 8 760 jetons qualifiés × 1 p + 96 360 jetons de second rang × 0,2 p",
+          "rules": [
+            "CT-5 §12.2",
+            "spec/vecteurs/ct-5/cout/cout.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q5",
+      "question": "Que fait le composant d'ancrage quand le prestataire d'horodatage est injoignable, et que voit le réviseur ?",
+      "elements": [
+        {
+          "element": "les demandes restent dans la file durable et sont reprises au redémarrage ; rien ne bloque l'enregistreur",
+          "rules": [
+            "CT-5 §8.5",
+            "CT-5 §4.7"
+          ]
+        },
+        {
+          "element": "l'attente est plafonnée (squat_wait_s pour le registre, fallback_after_s pour la relève)",
+          "rules": [
+            "CT-5 EX-4.7",
+            "CT-5 §8.6"
+          ]
+        },
+        {
+          "element": "le prestataire de secours relève le principal pour la clôture après fallback_after_s (300 s pour le manifeste)",
+          "rules": [
+            "CT-5 §5.3",
+            "CT-5 §4.4"
+          ]
+        },
+        {
+          "element": "pour les points, rfc3161.checkpoints.fallback_after_s vaut 120 s par défaut",
+          "rules": [
+            "CT-5 §4.4",
+            "CT-5 EX-5.7"
+          ]
+        },
+        {
+          "element": "aucune bascule automatique vers le serveur interne non qualifié",
+          "rules": [
+            "CT-5 §7.3",
+            "CT-5 §5.3"
+          ]
+        },
+        {
+          "element": "une alerte prestataire_injoignable est levée au bout de 15 min",
+          "rules": [
+            "CT-5 §3.3",
+            "CT-5 §8.9"
+          ]
+        },
+        {
+          "element": "le réviseur voit la fenêtre dégradée 3 600 s + d sur les événements dont le point n'a pas été contresigné",
+          "rules": [
+            "CT-5 §3.3",
+            "CT-6 §7.9"
+          ]
+        }
+      ]
+    }
+  ],
+  "disqualifying": [
+    "affirme qu'une date portée par un objet ancré (ts, generated_at, checkpoint_ts) est prouvée par le composant d'ancrage (CT-5 EX-3.2)"
+  ]
+}

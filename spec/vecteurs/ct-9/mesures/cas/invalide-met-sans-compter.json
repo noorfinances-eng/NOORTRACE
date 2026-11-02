@@ -1,0 +1,65 @@
+{
+  "version": 0,
+  "kind": "rapport-mesure",
+  "date": "2026-11-01",
+  "measured_at": "2026-11-01T18:40:00Z",
+  "commit": "dfc8dc7388f51fca7a67ea41b11ff82dffaaf5cb",
+  "spec_version": "0.1",
+  "system": {
+    "reference": false,
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+    "cores": 4,
+    "memory_bytes": 16872808448,
+    "disk": {
+      "type": "virtuel",
+      "fsync": null
+    },
+    "os": "Ubuntu 24.04.5 LTS",
+    "kernel": "6.18.44-fc-v185",
+    "node": "v22.22.0",
+    "go": "go1.24.7",
+    "python": "3.13.16",
+    "cpu_scaling": "inconnu",
+    "aslr": "inconnu",
+    "load_avg_1m": null,
+    "virtualized": true
+  },
+  "method": {
+    "warmup": 0,
+    "repetitions": 1,
+    "percentile_method": "plus_proche_rang",
+    "clock": "sans_objet",
+    "pair_with_without": false,
+    "samples_published": true
+  },
+  "configuration_sha256": null,
+  "counts_for_targets": false,
+  "results": [
+    {
+      "name": "octets_ligne_annexe_a",
+      "test_id": "TM-6",
+      "unit": "octets",
+      "n": 1,
+      "connections": null,
+      "samples": [
+        2465
+      ],
+      "samples_sha256": null,
+      "value": 2465,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null,
+      "mean": null,
+      "text_value": null,
+      "target": null,
+      "met": true,
+      "conditions": [
+        "ligne de segment de seq 4 de l'annexe A de CT-2, rescellée par test/enregistreur.test.js"
+      ],
+      "excluded_reason": null
+    }
+  ],
+  "notes": "Mesures sur les vecteurs publiés, pas sur l'enregistreur : le rapport ne compte pour aucune cible (`counts_for_targets` faux, `excluded_reason` `vecteurs_seulement`). La machine n'est pas le système de référence."
+}

@@ -48,8 +48,8 @@ verification proves and what the reviewer must still trust.
 
 ## Status
 
-Early. Seven specifications are written, each with test vectors checked by
-implementations written separately from the reference.
+Early. The nine design specifications are written, each with test vectors
+checked by implementations written separately from the reference.
 
 - **CT-1, formats**: event model, canonical form, hashing, signing, Merkle periods,
   period manifests, signed checkpoints with RFC 9162 consistency proofs, and
@@ -130,9 +130,23 @@ implementations written separately from the reference.
   capacity is a target to be measured by CT-9 once the recorder exists; the
   install procedures themselves have not been run. Package archives are
   confronted with GNU tar, Python's `tarfile` and `sha256sum`.
+- **CT-9, the test plan**: eight test levels (unit and property, vectors,
+  interoperability, end to end, adversarial, measurements, blind replays, code
+  review) and a machine-readable catalogue of 321 tests, each with its
+  preconditions, steps and oracle, either runnable today (it names an existing
+  test of this repository word for word) or to be written at a named step of
+  the build. One adversarial test per threat of CT-7 states which answer is
+  removed and what then fails; the ones already possible are run against copies
+  of the reference code with the answer removed. A coverage tool checks, in the
+  tests and in continuous integration, that every requirement and check of CT-1
+  to CT-8 is covered by a test or by a named justification, that every threat
+  has its adversarial test and that every reference to CT-9 has its answer. No
+  measurement is invented: every target is listed with its source and failure
+  threshold, to be measured at the second gate.
 
-CT-1, CT-2, CT-3, CT-4, CT-5, CT-7 and CT-8 vectors are also recomputed by Go
-verifiers written from the specification alone, without reading the JavaScript.
+CT-1, CT-2, CT-3, CT-4, CT-5, CT-7, CT-8 and CT-9 vectors are also recomputed by
+Go verifiers written from the specification alone, without reading the
+JavaScript.
 
 The registry contracts, the commit-certificate verifier and the reference approval
 console exist and are tested. The recorder, the approval service and the operating
@@ -150,6 +164,7 @@ binary are specified, not built yet.
 | `deploiement/` | CT-8 reference deployment files: Compose files, image descriptions, quick-install configuration |
 | `scripts/deploiement/` | CT-8 tools: host pre-check, sizing, Compose checks, quick configuration, operations logs, minutes, consultations |
 | `scripts/paquet-reviseur/` | CT-8 reviewer package: build and offline verification in one command |
+| `scripts/tests/` | CT-9 coverage tool and measurement-report checker |
 | `console/` | CT-3 reference approval console: a static page with a strict content security policy |
 | `contracts/` | Registry contracts (Solidity) |
 | `test/` | Tests and fixtures |

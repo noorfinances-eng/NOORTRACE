@@ -102,9 +102,9 @@ construction.
 - `spec/` : spécifications normatives, schémas JSON et vecteurs de test ; CT-1 pour
   les formats, CT-2 pour l'enregistreur, CT-3 pour les approbations, CT-4 pour le
   registre, CT-5 pour l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité
-  et la conformité, CT-8 pour le déploiement et l'exploitation. Les vecteurs de
-  CT-1 à CT-5, de CT-7 et de CT-8 sont recalculés par des vérificateurs Go
-  écrits depuis la seule spécification ; ceux de CT-5 et de CT-6 aussi par
+  et la conformité, CT-8 pour le déploiement et l'exploitation, CT-9 pour le
+  plan de tests. Les vecteurs de CT-1 à CT-5 et de CT-7 à CT-9 sont recalculés
+  par des vérificateurs Go écrits depuis la seule spécification ; ceux de CT-5 et de CT-6 aussi par
   OpenSSL et la bibliothèque officielle d'OpenTimestamps, ceux de CT-6 par
   go-ethereum, les preuves de cohérence par une implémentation publique de la
   RFC 9162, les échanges Gemini et les traces OpenTelemetry de CT-2 par les
@@ -144,6 +144,10 @@ construction.
   et sa vérification hors ligne en une commande, avec les instructions
   remises au réviseur ; voir
   [scripts/paquet-reviseur/instructions/LISEZMOI.md](scripts/paquet-reviseur/instructions/LISEZMOI.md).
+- `scripts/tests/` : outil de couverture de CT-9 (chaque exigence et chaque
+  vérification de CT-1 à CT-8 couverte par un test ou par une justification
+  nommée, chaque menace de CT-7 par un test adversarial, chaque renvoi à CT-9
+  par sa ligne) et contrôle des rapports de mesure.
 - `console/` : console d'approbation de référence de CT-3, page statique sous
   une politique de sécurité du contenu stricte, testée de bout en bout dans
   Chromium ; voir [console/LISEZMOI.md](console/LISEZMOI.md).
@@ -159,20 +163,21 @@ construction.
 
 ## Statut
 
-1er novembre 2026 : conception technique en cours. Écrites : les spécifications
-CT-1 des formats, CT-2 de l'enregistreur, CT-3 des approbations, CT-4 du
-registre, CT-5 de l'ancrage, CT-6 du vérificateur, CT-7 de la sécurité et de la
-conformité et CT-8 du déploiement et de l'exploitation, avec leurs vecteurs,
-leur implémentation de référence et leur confrontation indépendante ; le
-vérificateur de dossier, avec les huit contrôles ; l'outil du paquet réviseur ;
-l'instance de développement, les contrats du registre avec leurs tests, le
-parcours complet exécuté sur le réseau de développement ; la méthode RPC du
-certificat de commit, portée comme correctif sur noorcore fourni hors dépôt, et
-son vérificateur hors ligne ; la console d'approbation de référence. À
-construire : l'enregistreur lui-même, le service d'approbation, le composant
-d'ancrage et ses clients réseau, le binaire Go du vérificateur et la console
-d'exploitation (approbations, inscription des organisations, export des
-dossiers, page de vérification).
+2 novembre 2026 : les neuf spécifications de conception sont écrites, en
+revue pour la porte 1 : CT-1 des formats, CT-2 de l'enregistreur, CT-3 des
+approbations, CT-4 du registre, CT-5 de l'ancrage, CT-6 du vérificateur, CT-7
+de la sécurité et de la conformité, CT-8 du déploiement et de l'exploitation
+et CT-9 du plan de tests, avec leurs vecteurs, leur implémentation de référence
+et leur confrontation indépendante. Existent aussi : le vérificateur de
+dossier, avec les huit contrôles ; l'outil du paquet réviseur ; l'outil de
+couverture du plan de tests ; l'instance de développement, les contrats du
+registre avec leurs tests, le parcours complet exécuté sur le réseau de
+développement ; la méthode RPC du certificat de commit, portée comme correctif
+sur noorcore fourni hors dépôt, et son vérificateur hors ligne ; la console
+d'approbation de référence. À construire : l'enregistreur lui-même, le service
+d'approbation, le composant d'ancrage et ses clients réseau, le binaire Go du
+vérificateur et la console d'exploitation (approbations, inscription des
+organisations, export des dossiers, page de vérification).
 
 ## Licence
 

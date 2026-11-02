@@ -1,10 +1,11 @@
 # NOORTRACE — architecture cible
 
-Version 0.11, 1er novembre 2026. Document de conception, pas d'implémentation.
+Version 0.12, 2 novembre 2026. Document de conception, pas d'implémentation.
 Les spécifications normatives sont dans `spec/` : CT-1 pour les formats, CT-2
 pour l'enregistreur, CT-3 pour les approbations, CT-4 pour le registre, CT-5
 pour l'ancrage, CT-6 pour le vérificateur, CT-7 pour la sécurité et la
-conformité, CT-8 pour le déploiement et l'exploitation.
+conformité, CT-8 pour le déploiement et l'exploitation, CT-9 pour le plan de
+tests.
 
 ## Principe
 
@@ -506,7 +507,15 @@ acceptés, nommés, bornés et attribués.
   `scripts/paquet-reviseur/`, vecteurs, vérificateur Go indépendant,
   confrontation à GNU tar, au module `tarfile` de Python et à `sha256sum`.
   Les installations n'ont pas été exécutées et toute durée en est une cible :
-  l'enregistreur n'existe pas encore.
+  l'enregistreur n'existe pas encore ;
+- la spécification CT-9 du plan de tests et son schéma : huit niveaux de
+  tests, catalogue lisible par machine de 321 tests (préconditions, étapes,
+  oracle, état « exécutable » ou « à écrire » avec l'étape de la construction),
+  un test adversarial par menace de CT-7, méthode de mesure et cibles avec
+  leur seuil d'échec, protocole commun des rejeux à l'aveugle, correspondance
+  de chaque critère de la porte 2 à des tests et à un verdict calculable ;
+  outil de couverture exécuté par les tests et l'intégration continue,
+  vecteurs, vérificateur Go indépendant, recomptage indépendant en Python.
 
 La conception se fait sur l'instance de développement locale ; un VPS de
 développement n'est requis qu'à la construction de l'enregistreur, quand il

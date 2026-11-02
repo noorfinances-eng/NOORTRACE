@@ -1,0 +1,424 @@
+{
+  "version": 0,
+  "kind": "rapport-couverture",
+  "date": "2026-11-01",
+  "tool": {
+    "name": "scripts/tests/couverture.mjs",
+    "command": "node scripts/tests/couverture.mjs --json"
+  },
+  "inputs": {
+    "specs": [
+      {
+        "file": "spec/CT-1-evenements-et-formats.md",
+        "sha256": "ced2d62f7610407fa4c4ec8dcbb0eb9f74b098ce7efa875b43d4970c356e3489"
+      },
+      {
+        "file": "spec/CT-2-enregistreur.md",
+        "sha256": "05e521f65269d2dd26cac167867f219f60d932b748b3eb1d030c25252b752b44"
+      },
+      {
+        "file": "spec/CT-3-approbations.md",
+        "sha256": "2cd1563a1508ee0a0665384c2bbf185840618235fff9edcb99a7e2a832034b42"
+      },
+      {
+        "file": "spec/CT-4-registre.md",
+        "sha256": "2a0ec877fe493f51c06e1196604dc6dd3b5f57f5567900272cdd83df6ea7e3f6"
+      },
+      {
+        "file": "spec/CT-5-ancrage.md",
+        "sha256": "3d407c8a2e928972bf090bba4ae3bb3fa4a413dcd08c5f59dfb1bdf94ba051b2"
+      },
+      {
+        "file": "spec/CT-6-verificateur.md",
+        "sha256": "c3b7b8a7ca79c2446ab42e4e83698d7870fd3ebe387df4615ed40830eca4fb9c"
+      },
+      {
+        "file": "spec/CT-7-securite-et-conformite.md",
+        "sha256": "4fa7e72d7b94995686eb55ca30b038076ed0ca5c489e8f11c5214c13a4707f9f"
+      },
+      {
+        "file": "spec/CT-8-deploiement-et-exploitation.md",
+        "sha256": "9a4c1f236cb68d0cdfa6488739157f6f5319b291f6d3b098c07d3a6af84ecb0b"
+      }
+    ],
+    "catalogue": {
+      "file": "spec/vecteurs/ct-9/catalogue.json",
+      "sha256": "abf508104d85a3fecdb45cacf3f8999f076c08f28524e90fe186ccbe15c2a4c6"
+    },
+    "threats": {
+      "file": "spec/vecteurs/ct-7/menaces.json",
+      "sha256": "dca593f7dfa88421397318ea9f108dd925a935bf3c4b63236d271a37abed1dc8"
+    },
+    "tests": [
+      {
+        "file": "test/adversarial.test.js",
+        "sha256": "ee1b834f3903f4190079dac7a19f8b94c963af9b5a15314eea32af1aafabccca"
+      },
+      {
+        "file": "test/ancrage.test.js",
+        "sha256": "2f16963d350a51474b4d9c4c950e00d86d8595131f22504c99d8fefaa885dd25"
+      },
+      {
+        "file": "test/approbation.test.js",
+        "sha256": "db5dbb9d6201db142129fdcb9c4341243e657a69eb6633878d6f0541871663ac"
+      },
+      {
+        "file": "test/certificatCommit.test.js",
+        "sha256": "e4e8e3a824fa9e8eda49a0428a183e6b38059a17b9ab7489440175816d016dd5"
+      },
+      {
+        "file": "test/conformite.test.js",
+        "sha256": "ddc5af306522c0c012fbf574e8b9e44060d061f14a412e224d2eec14506f4de7"
+      },
+      {
+        "file": "test/confrontation.test.js",
+        "sha256": "c703a0a57a800eb83fb70b27c99ac611e13e74738d8746da94cc1cb10a071f57"
+      },
+      {
+        "file": "test/console-primitives.test.js",
+        "sha256": "4e1cac7b2bca28c97e3bcfcf0dd4105d82cb2d79f8f96901f922faa7c2884a88"
+      },
+      {
+        "file": "test/console.test.js",
+        "sha256": "2e8f8338082f0b68b1421eb53d8c3a5812288eae84229259bf22511ce96164db"
+      },
+      {
+        "file": "test/deploiement.test.js",
+        "sha256": "6f3590df7fbf0d86198f50c938c687b387d4032baf7de5a75e8c661a78662f17"
+      },
+      {
+        "file": "test/deploy.test.js",
+        "sha256": "a6dc6b4150c05861b95931a5f069156f67ef0cf5d9e9aab2ddce998c6732c7bd"
+      },
+      {
+        "file": "test/enregistreur-r05.test.js",
+        "sha256": "55935ae269e77138f62aa8c968ca39322ff8453916329c9c43c004688df2ceb5"
+      },
+      {
+        "file": "test/enregistreur.test.js",
+        "sha256": "b765e81ae586f6f636457e11f6bf8c7424616c9cfcf6d68ff5f3b8b3c4905304"
+      },
+      {
+        "file": "test/exploitation.test.js",
+        "sha256": "15867456612b4eb0cbff32e85c36b956d61c5bd3a33a15b930bda73c95e15976"
+      },
+      {
+        "file": "test/horodatage.test.js",
+        "sha256": "4cddc16ad1eef9961031077bdc61c6eb6d05c64a996747c27f6d05b36f5a8d62"
+      },
+      {
+        "file": "test/journal.test.js",
+        "sha256": "c00043d1d608b31d9698d63a53080b5a8b4108d5e61a58c067d7bfccc973621a"
+      },
+      {
+        "file": "test/observation.test.js",
+        "sha256": "7d54fbb52a05b5ff44f683d535d352b2e305a038bb8131a83db70a4dfa684ac0"
+      },
+      {
+        "file": "test/ots.test.js",
+        "sha256": "98138bfeb5961e899ef9497ada15aa63229a532c206e9738c6a568cd466e4a8e"
+      },
+      {
+        "file": "test/paquet-reviseur.test.js",
+        "sha256": "fcb6738df1641b9c979bd570c2afd574fd5d921d978fac68d937cf2f09130547"
+      },
+      {
+        "file": "test/periodRegistry.test.js",
+        "sha256": "200b9aa730bbbd413f819ece0f0b236f349405f97b842454b6867f1f50a63086"
+      },
+      {
+        "file": "test/plan-de-tests.test.js",
+        "sha256": "6f277a2c358c66c889b990d0301ca31c6405ec19b69b67df5e99edf8cb61cfcb"
+      },
+      {
+        "file": "test/recorderRegistry.test.js",
+        "sha256": "031e6d4ca6dd609e00b083e47962437a00398fe19308797281981cb3349667bf"
+      },
+      {
+        "file": "test/registre.test.js",
+        "sha256": "8c17e50dfa2f043bb277624086d4bde0865aac8130254d1bf96e6850d0907dae"
+      },
+      {
+        "file": "test/registreCt4.test.js",
+        "sha256": "050d4048e85a56d2b074c492389f8f5e03c90857a78f828f58c7b6a366126fed"
+      },
+      {
+        "file": "test/securite.test.js",
+        "sha256": "d8c81749e3ffd4b400522f252ce5a178dfd8ac15dfa1f28f25d7483382c866b0"
+      },
+      {
+        "file": "test/thresholdSignatures.test.js",
+        "sha256": "1577bf530b2ba19d1aad32906fc9caf9e8618a82b375b278f7165d3356392c19"
+      },
+      {
+        "file": "test/verificateur.test.js",
+        "sha256": "865c973462a7e603a75e95ecc7d23597896296295037326df077cc2f5187f480"
+      }
+    ]
+  },
+  "identifiers": {
+    "total": 2332,
+    "covered_by_tests": 2193,
+    "covered_by_nc": 139,
+    "uncovered": 0,
+    "unknown_cited": [],
+    "per_spec": [
+      {
+        "spec": "CT-1",
+        "total": 44,
+        "covered_by_tests": 44,
+        "covered_by_nc": 0,
+        "uncovered": 0,
+        "uncovered_ids": [],
+        "families": {
+          "D": 2,
+          "E": 11,
+          "C": 3,
+          "M": 3,
+          "P": 5,
+          "A": 4,
+          "K": 9,
+          "AT": 7
+        }
+      },
+      {
+        "spec": "CT-2",
+        "total": 335,
+        "covered_by_tests": 335,
+        "covered_by_nc": 0,
+        "uncovered": 0,
+        "uncovered_ids": [],
+        "families": {
+          "EX-3": 6,
+          "EX-4": 51,
+          "EX-5": 36,
+          "EX-6": 41,
+          "EX-7": 23,
+          "EX-8": 11,
+          "EX-9": 8,
+          "EX-10": 24,
+          "EX-11": 19,
+          "EX-12": 41,
+          "EX-13": 10,
+          "EX-14": 17,
+          "EX-15": 8,
+          "EX-16": 6,
+          "EX-17": 8,
+          "EX-18": 9,
+          "EX-19": 6,
+          "SG": 7,
+          "RL": 4
+        }
+      },
+      {
+        "spec": "CT-3",
+        "total": 259,
+        "covered_by_tests": 259,
+        "covered_by_nc": 0,
+        "uncovered": 0,
+        "uncovered_ids": [],
+        "families": {
+          "EX-3": 5,
+          "EX-4": 14,
+          "EX-5": 10,
+          "EX-6": 8,
+          "EX-7": 29,
+          "EX-8": 11,
+          "EX-9": 22,
+          "EX-10": 11,
+          "EX-11": 15,
+          "EX-12": 20,
+          "EX-13": 37,
+          "EX-14": 2,
+          "EX-A": 19,
+          "AP": 17,
+          "TK": 13,
+          "SG": 7,
+          "AN": 10,
+          "CS": 9
+        }
+      },
+      {
+        "spec": "CT-4",
+        "total": 181,
+        "covered_by_tests": 174,
+        "covered_by_nc": 7,
+        "uncovered": 0,
+        "uncovered_ids": [],
+        "families": {
+          "EX-3": 3,
+          "EX-4": 28,
+          "EX-5": 12,
+          "EX-6": 23,
+          "EX-7": 17,
+          "EX-8": 21,
+          "EX-9": 14,
+          "EX-10": 9,
+          "EX-11": 1,
+          "EX-A": 8,
+          "RG": 20,
+          "OP": 12,
+          "CP": 6,
+          "SU": 7
+        }
+      },
+      {
+        "spec": "CT-5",
+        "total": 174,
+        "covered_by_tests": 162,
+        "covered_by_nc": 12,
+        "uncovered": 0,
+        "uncovered_ids": [],
+        "families": {
+          "EX-3": 5,
+          "EX-4": 13,
+          "EX-5": 16,
+          "EX-6": 10,
+          "EX-7": 4,
+          "EX-8": 16,
+          "EX-9": 9,
+          "EX-10": 7,
+          "EX-11": 5,
+          "EX-12": 2,
+          "EX-13": 1,
+          "EX-A": 7,
+          "P": 6,
+          "AN": 61,
+          "NV": 12
+        }
+      },
+      {
+        "spec": "CT-6",
+        "total": 262,
+        "covered_by_tests": 262,
+        "covered_by_nc": 0,
+        "uncovered": 0,
+        "uncovered_ids": [],
+        "families": {
+          "EX-3": 8,
+          "EX-4": 15,
+          "EX-5": 12,
+          "EX-6": 21,
+          "EX-7": 3,
+          "EX-8": 11,
+          "EX-9": 22,
+          "EX-10": 16,
+          "EX-11": 25,
+          "EX-12": 6,
+          "EX-13": 19,
+          "EX-14": 11,
+          "EX-15": 3,
+          "EX-A": 21,
+          "K": 2,
+          "AT": 7,
+          "AV-AT": 3,
+          "V": 10,
+          "T": 11,
+          "AV-T": 4,
+          "AV-K": 4,
+          "O": 7,
+          "AV-O": 3,
+          "R": 11,
+          "AV-R": 3,
+          "N": 4
+        }
+      },
+      {
+        "spec": "CT-7",
+        "total": 580,
+        "covered_by_tests": 476,
+        "covered_by_nc": 104,
+        "uncovered": 0,
+        "uncovered_ids": [],
+        "families": {
+          "EX-0": 1,
+          "EX-3": 15,
+          "EX-4": 10,
+          "EX-5": 12,
+          "EX-6": 3,
+          "EX-7": 18,
+          "EX-8": 20,
+          "EX-9": 5,
+          "EX-A": 31,
+          "EX-C": 2,
+          "TR": 101,
+          "MN": 98,
+          "RA": 82,
+          "CLE": 29,
+          "CR": 12,
+          "JS": 12,
+          "PA": 20,
+          "AT": 7,
+          "T": 10,
+          "MC": 58,
+          "L": 10,
+          "MX": 9,
+          "RV": 9,
+          "CL": 6
+        }
+      },
+      {
+        "spec": "CT-8",
+        "total": 497,
+        "covered_by_tests": 481,
+        "covered_by_nc": 16,
+        "uncovered": 0,
+        "uncovered_ids": [],
+        "families": {
+          "EX-0": 2,
+          "EX-3": 15,
+          "EX-4": 4,
+          "EX-5": 7,
+          "EX-6": 6,
+          "EX-7": 4,
+          "EX-8": 7,
+          "EX-9": 4,
+          "EX-10": 23,
+          "EX-11": 24,
+          "EX-12": 16,
+          "EX-13": 38,
+          "EX-14": 12,
+          "EX-A": 36,
+          "TC": 115,
+          "CO": 14,
+          "FL": 31,
+          "IP": 13,
+          "IR": 8,
+          "IC": 18,
+          "TP": 8,
+          "SV": 8,
+          "PD": 16,
+          "PV": 10,
+          "CA": 6,
+          "OB": 6,
+          "PR": 12,
+          "AV-PR": 4,
+          "DM": 22,
+          "RB": 8
+        }
+      }
+    ]
+  },
+  "threats": {
+    "total": 98,
+    "with_ta": 98,
+    "without_ta": []
+  },
+  "traceability": {
+    "occurrences": 117,
+    "rows": 117,
+    "missing": [],
+    "orphans": []
+  },
+  "executable": {
+    "total": 189,
+    "titles_checked": 359,
+    "titles_missing": []
+  },
+  "text_tables": {
+    "compared": 15,
+    "differences": []
+  },
+  "verdict": "reussi",
+  "errors": []
+}

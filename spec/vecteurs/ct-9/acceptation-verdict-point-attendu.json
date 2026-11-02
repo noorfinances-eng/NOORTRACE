@@ -1,0 +1,92 @@
+{
+  "version": 0,
+  "kind": "grille-acceptation",
+  "test_id": "TR-5",
+  "description": "Grille de l'épreuve de lecture de CT-6 §7 révisée (TR-5) : les éléments que chaque réponse doit contenir, chacun avec la règle qui le fonde ; jamais remise au participant.",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "Qu'engage le point de contrôle que porte le dossier ?",
+      "elements": [
+        {
+          "element": "les tree_size premiers événements du journal de la période (racine des tree_size premières feuilles)",
+          "rules": [
+            "CT-6 §7.9",
+            "CT-1 §10.5"
+          ]
+        },
+        {
+          "element": "un préfixe prouvé de l'arbre du manifeste (preuve de cohérence, K-5)",
+          "rules": [
+            "CT-6 §7.9",
+            "CT-6 EX-6.16"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "question": "Que prouve la clause jeton du point, et qu'est-ce que rewrite_window_ms ?",
+      "elements": [
+        {
+          "element": "l'empreinte du point existait au plus tard à rewrite_window_end (jeton du point, K-7), selon l'autorité du fichier d'ancres",
+          "rules": [
+            "CT-6 §7.9",
+            "CT-6 EX-6.17"
+          ]
+        },
+        {
+          "element": "rewrite_window_ms est une valeur rapportée, calculée depuis le ts déclaré de l'événement ; ce n'est pas une preuve",
+          "rules": [
+            "CT-6 §7.9",
+            "CT-5 §3.3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "question": "Que changerait une réécriture postérieure au point, et qui la détecte ?",
+      "elements": [
+        {
+          "element": "une réécriture changerait la racine engagée : l'événement réécrit ne serait plus couvert par le point contresigné, ou le point ne serait plus un préfixe du manifeste",
+          "rules": [
+            "CT-6 §7.9",
+            "CT-6 §3.4"
+          ]
+        },
+        {
+          "element": "la détecte quiconque détient ce dossier et le vérifie ; personne ne veille",
+          "rules": [
+            "CT-6 §7.9",
+            "CT-6 §7.8"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q4",
+      "question": "Que ne prouve pas la signature du point, et que reste-t-il sans la clause jeton (K-7) ?",
+      "elements": [
+        {
+          "element": "la signature du point ne prouve rien contre qui détient la clé de l'enregistreur",
+          "rules": [
+            "CT-5 §3.2",
+            "CT-6 §7.9"
+          ]
+        },
+        {
+          "element": "sans K-7 réussie, rien de daté : le verdict n'énonce aucun instant pour le point (EX-7.2)",
+          "rules": [
+            "CT-6 EX-7.2",
+            "CT-6 §7.9"
+          ]
+        }
+      ]
+    }
+  ],
+  "disqualifying": [
+    "présente rewrite_window_ms comme prouvé",
+    "présente la détection d'une réécriture comme active (quelqu'un veille)"
+  ]
+}

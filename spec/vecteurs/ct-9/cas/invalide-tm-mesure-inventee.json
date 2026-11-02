@@ -1,0 +1,172 @@
+{
+  "version": 0,
+  "kind": "plan-de-tests",
+  "spec": "CT-9",
+  "spec_version": "0.1",
+  "date": "2026-11-01",
+  "levels": [
+    {
+      "id": "TU",
+      "name": "Unitaires et propriétés",
+      "object": "Bibliothèques de référence (`scripts/lib/*`, `console/`, contrats), noyau de CT-1 compris : canonicalisation, hachage, chaînage, Merkle, signatures, formats, et leurs règles en bibliothèque.",
+      "oracle": "Valeur calculée dans le test, source primaire (vecteurs de RFC) ou bibliothèque tierce ; jamais un fichier des vecteurs publiés.",
+      "section": "6"
+    },
+    {
+      "id": "TV",
+      "name": "Conformité aux vecteurs",
+      "object": "Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant et, quand elle existe, par la confrontation tierce ; génération déterministe.",
+      "oracle": "Le fichier attendu de la famille (`attendu.json`, `cas.json`, `expected`), à l'égalité octet pour octet ou au verdict près.",
+      "section": "7"
+    },
+    {
+      "id": "TI",
+      "name": "Interopérabilité",
+      "object": "Exports de CT-1 §12, formats d'API et transports de CT-2, SDK et adaptateurs de cadres, OpenTelemetry, canal du service d'approbation, supports WORM, prestataires d'horodatage, registre, ICAP, paquets lus par des outils tiers.",
+      "oracle": "L'implémentation tierce ou l'outil officiel du format accepte ce que NOORTRACE produit, et NOORTRACE accepte ce qu'il produit ; écarts connus consignés.",
+      "section": "8"
+    },
+    {
+      "id": "TE",
+      "name": "Bout en bout",
+      "object": "Les deux cas de démonstration du plan et la démonstration de référence, de la capture au dossier vérifié ; installations, runbooks, sauvegarde, observation, haute disponibilité, ancrage complet, console, journal sur soi, construction des images, supervision.",
+      "oracle": "Verdict du vérificateur de CT-6 (deux implémentations) sur les dossiers produits, plus l'observation nommée par chaque entrée.",
+      "section": "9"
+    },
+    {
+      "id": "TA",
+      "name": "Adversariaux",
+      "object": "Une entrée par menace MN-1 à MN-98 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
+      "oracle": "Le test passe avec la réponse et échoue sans elle (CT-7 EX-3.2).",
+      "section": "10"
+    },
+    {
+      "id": "TM",
+      "name": "Mesures",
+      "object": "Cibles de CT-2 §16, CT-5 P-1 à P-6, CT-7 EX-7.18, CT-8 (budgets, cibles, EX-8.1, EX-13.1), fenêtre de réécriture, latence ajoutée.",
+      "oracle": "Rapport de mesure au schéma, sur le système de référence, comparé à la cible et au seuil d'échec ; aucune valeur inventée.",
+      "section": "11"
+    },
+    {
+      "id": "TR",
+      "name": "Rejeu à l'aveugle",
+      "object": "Épreuves déléguées par CT-3, CT-4, CT-5, CT-6, CT-7 §9, CT-8 §14, les trois épreuves de CT-9 et le rejeu complet sur machine vierge.",
+      "oracle": "Grille à part ou verdict d'un outil, jugé par une personne qui n'a pas aidé le participant ; consignation CT-8 EX-14.10.",
+      "section": "12"
+    },
+    {
+      "id": "TQ",
+      "name": "Revue de code",
+      "object": "Périmètre fixé par CT-7 (composants de §3.2, menaces de §3.4), inventaire des clés, chaîne de construction, indépendance des vérificateurs Go.",
+      "oracle": "Grille remplie : chaque menace du composant a sa réponse localisée et son TA- ; écarts tracés.",
+      "section": "13"
+    }
+  ],
+  "phase2_steps": [
+    {
+      "step": 1,
+      "component": "Bibliothèque noyau : canonicalisation, hachage, chaînage, arbre de Merkle, signatures, formats",
+      "delivered_when": "Tous les vecteurs de test passent"
+    },
+    {
+      "step": 2,
+      "component": "Vérificateur, construit en premier pour servir d'oracle à tout le reste",
+      "delivered_when": "Rejette chaque dossier invalide des vecteurs, accepte chaque dossier valide"
+    },
+    {
+      "step": 3,
+      "component": "Registre de développement : instance noorcore, contrats, méthode du certificat de commit, image conteneur",
+      "delivered_when": "Un client fictif ancre et clôt une période"
+    },
+    {
+      "step": 4,
+      "component": "Enregistreur : mandataire MCP, stockage et clôture de période, passerelle du modèle, moteur de politique et rétention des appels",
+      "delivered_when": "Un agent de test traverse le mandataire ; chaque appel produit un événement que le vérificateur accepte"
+    },
+    {
+      "step": 5,
+      "component": "Ancrage : clients RFC 3161 et OpenTimestamps, serveur interne optionnel, planificateur",
+      "delivered_when": "Une racine reçoit ses trois ancres et le vérificateur les valide"
+    },
+    {
+      "step": 6,
+      "component": "Console : tickets et approbations, onboarding, export du dossier, page de vérification",
+      "delivered_when": "Un approbateur signe une décision depuis la console et le dossier exporté passe le vérificateur"
+    },
+    {
+      "step": 7,
+      "component": "Paquets, observabilité, runbooks",
+      "delivered_when": "Installation complète chez un client fictif en une journée"
+    },
+    {
+      "step": 8,
+      "component": "Tests de bout en bout, adversariaux et de performance ; revue de sécurité interne du code",
+      "delivered_when": "Chaque test adversarial échoue quand la réponse est retirée et passe sinon"
+    }
+  ],
+  "tests": [
+    {
+      "id": "TM-1",
+      "level": "TM",
+      "title": "Latence ajoutée par appel relayé (CT-2 §16.1) : p50 ≤ 5 ms, p99 ≤ 50 ms",
+      "specs": [
+        "CT-2"
+      ],
+      "covers": [
+        "CT-2 §16.1",
+        "CT-2 EX-16.1",
+        "CT-2 EX-16.2",
+        "CT-2 EX-16.3"
+      ],
+      "preconditions": [
+        "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
+        "Harnais `scripts/mesures/ct-2-perf.mjs` (CT-2 EX-16.2, phase 2) et configuration `spec/vecteurs/ct-2/mesures/configuration-mesure.json` (classe D, bail `file`, politique `pii-v1`).",
+        "Serveur d'outils nul et hôte de test sur la même machine que l'enregistreur (EX-16.1) ; arguments ≤ 4 KiB, résultat ≤ 16 KiB ; signataire de classe D."
+      ],
+      "steps": [
+        "Échauffement de 2 000 appels, puis N = 20 000 appels avec 1 connexion d'hôte, instants `t_recu_hote` et `t_reponse_hote` sur l'horloge monotone de l'hôte.",
+        "Lire dans le journal d'exploitation `t_recu`, `t_envoi`, `t_reponse` par `id` JSON-RPC ; latence ajoutée = `(t_reponse_hote − t_recu) − (t_reponse − t_envoi)`.",
+        "Percentiles au plus proche rang sur N ; rapport de mesure (11.3), ligne `latence_appel_relaye`."
+      ],
+      "oracle": "`p50 ≤ 5` et `p99 ≤ 50` (ms) sur le système de référence, `counts_for_targets` vrai ; sinon la ligne porte `met` faux et la porte 2 le dit.",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 4,
+        "blocking": "Enregistreur et harnais de mesure non construits (CT-2 EX-16.2 : phase 2)."
+      },
+      "threats": [],
+      "measure": {
+        "measured": 4.2,
+        "quantity": "latence ajoutée par appel relayé",
+        "unit": "ms",
+        "target": {
+          "p50": 5,
+          "p99": 50
+        },
+        "comparison": "p50_et_p99_au_plus",
+        "source": "CT-2 §16.1",
+        "failure_threshold": "p50 > 5 ms ou p99 > 50 ms, `fsync` actif, sur le système de référence",
+        "method": "harnais",
+        "percentiles": [
+          "p50",
+          "p95",
+          "p99",
+          "max"
+        ],
+        "warmup": 2000,
+        "repetitions": 20000,
+        "result_name": "latence_appel_relaye",
+        "conditions": [
+          "fdatasync sur disque local NVMe ou SSD",
+          "signataire de classe D ou C",
+          "arguments ≤ 4 KiB, résultat ≤ 16 KiB",
+          "politique pii-v1",
+          "une connexion d'hôte"
+        ]
+      }
+    }
+  ],
+  "non_tests": [],
+  "accepted_risks": [],
+  "traceability": []
+}

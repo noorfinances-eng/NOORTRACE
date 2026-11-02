@@ -1,0 +1,209 @@
+{
+  "version": 0,
+  "kind": "plan-de-tests",
+  "spec": "CT-9",
+  "spec_version": "0.1",
+  "date": "2026-11-01",
+  "levels": [
+    {
+      "id": "TU",
+      "name": "Unitaires et propriétés",
+      "object": "Bibliothèques de référence (`scripts/lib/*`, `console/`, contrats), noyau de CT-1 compris : canonicalisation, hachage, chaînage, Merkle, signatures, formats, et leurs règles en bibliothèque.",
+      "oracle": "Valeur calculée dans le test, source primaire (vecteurs de RFC) ou bibliothèque tierce ; jamais un fichier des vecteurs publiés.",
+      "section": "6"
+    },
+    {
+      "id": "TV",
+      "name": "Conformité aux vecteurs",
+      "object": "Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant et, quand elle existe, par la confrontation tierce ; génération déterministe.",
+      "oracle": "Le fichier attendu de la famille (`attendu.json`, `cas.json`, `expected`), à l'égalité octet pour octet ou au verdict près.",
+      "section": "7"
+    },
+    {
+      "id": "TI",
+      "name": "Interopérabilité",
+      "object": "Exports de CT-1 §12, formats d'API et transports de CT-2, SDK et adaptateurs de cadres, OpenTelemetry, canal du service d'approbation, supports WORM, prestataires d'horodatage, registre, ICAP, paquets lus par des outils tiers.",
+      "oracle": "L'implémentation tierce ou l'outil officiel du format accepte ce que NOORTRACE produit, et NOORTRACE accepte ce qu'il produit ; écarts connus consignés.",
+      "section": "8"
+    },
+    {
+      "id": "TE",
+      "name": "Bout en bout",
+      "object": "Les deux cas de démonstration du plan et la démonstration de référence, de la capture au dossier vérifié ; installations, runbooks, sauvegarde, observation, haute disponibilité, ancrage complet, console, journal sur soi, construction des images, supervision.",
+      "oracle": "Verdict du vérificateur de CT-6 (deux implémentations) sur les dossiers produits, plus l'observation nommée par chaque entrée.",
+      "section": "9"
+    },
+    {
+      "id": "TA",
+      "name": "Adversariaux",
+      "object": "Une entrée par menace MN-1 à MN-98 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
+      "oracle": "Le test passe avec la réponse et échoue sans elle (CT-7 EX-3.2).",
+      "section": "10"
+    },
+    {
+      "id": "TM",
+      "name": "Mesures",
+      "object": "Cibles de CT-2 §16, CT-5 P-1 à P-6, CT-7 EX-7.18, CT-8 (budgets, cibles, EX-8.1, EX-13.1), fenêtre de réécriture, latence ajoutée.",
+      "oracle": "Rapport de mesure au schéma, sur le système de référence, comparé à la cible et au seuil d'échec ; aucune valeur inventée.",
+      "section": "11"
+    },
+    {
+      "id": "TR",
+      "name": "Rejeu à l'aveugle",
+      "object": "Épreuves déléguées par CT-3, CT-4, CT-5, CT-6, CT-7 §9, CT-8 §14, les trois épreuves de CT-9 et le rejeu complet sur machine vierge.",
+      "oracle": "Grille à part ou verdict d'un outil, jugé par une personne qui n'a pas aidé le participant ; consignation CT-8 EX-14.10.",
+      "section": "12"
+    },
+    {
+      "id": "TQ",
+      "name": "Revue de code",
+      "object": "Périmètre fixé par CT-7 (composants de §3.2, menaces de §3.4), inventaire des clés, chaîne de construction, indépendance des vérificateurs Go.",
+      "oracle": "Grille remplie : chaque menace du composant a sa réponse localisée et son TA- ; écarts tracés.",
+      "section": "13"
+    }
+  ],
+  "phase2_steps": [
+    {
+      "step": 1,
+      "component": "Bibliothèque noyau : canonicalisation, hachage, chaînage, arbre de Merkle, signatures, formats",
+      "delivered_when": "Tous les vecteurs de test passent"
+    },
+    {
+      "step": 2,
+      "component": "Vérificateur, construit en premier pour servir d'oracle à tout le reste",
+      "delivered_when": "Rejette chaque dossier invalide des vecteurs, accepte chaque dossier valide"
+    },
+    {
+      "step": 3,
+      "component": "Registre de développement : instance noorcore, contrats, méthode du certificat de commit, image conteneur",
+      "delivered_when": "Un client fictif ancre et clôt une période"
+    },
+    {
+      "step": 4,
+      "component": "Enregistreur : mandataire MCP, stockage et clôture de période, passerelle du modèle, moteur de politique et rétention des appels",
+      "delivered_when": "Un agent de test traverse le mandataire ; chaque appel produit un événement que le vérificateur accepte"
+    },
+    {
+      "step": 5,
+      "component": "Ancrage : clients RFC 3161 et OpenTimestamps, serveur interne optionnel, planificateur",
+      "delivered_when": "Une racine reçoit ses trois ancres et le vérificateur les valide"
+    },
+    {
+      "step": 6,
+      "component": "Console : tickets et approbations, onboarding, export du dossier, page de vérification",
+      "delivered_when": "Un approbateur signe une décision depuis la console et le dossier exporté passe le vérificateur"
+    },
+    {
+      "step": 7,
+      "component": "Paquets, observabilité, runbooks",
+      "delivered_when": "Installation complète chez un client fictif en une journée"
+    },
+    {
+      "step": 8,
+      "component": "Tests de bout en bout, adversariaux et de performance ; revue de sécurité interne du code",
+      "delivered_when": "Chaque test adversarial échoue quand la réponse est retirée et passe sinon"
+    }
+  ],
+  "tests": [
+    {
+      "id": "TA-99",
+      "level": "TA",
+      "title": "Scénario du plan : l'agent supprime ou réécrit (TA-1, TA-2, TA-3, TA-4, TA-5, TA-6, TA-7, TA-9, TA-15, TA-22)",
+      "specs": [
+        "CT-1",
+        "CT-2",
+        "CT-3",
+        "CT-7"
+      ],
+      "covers": [
+        "CT-2 EX-4.1",
+        "CT-2 EX-3.4",
+        "CT-2 §4.9",
+        "CT-2 EX-4.40",
+        "CT-2 EX-4.41",
+        "CT-7 §7",
+        "CT-7 EX-3.13",
+        "CT-2 EX-7.2",
+        "CT-2 EX-7.3",
+        "CT-3 EX-3.5",
+        "CT-3 EX-5.2",
+        "CT-3 EX-11.8",
+        "CT-3 EX-5.5",
+        "CT-3 §14.1",
+        "CT-2 EX-4.43",
+        "CT-2 EX-4.44",
+        "CT-1 §3",
+        "CT-3 EX-9.4",
+        "CT-3 §14.5",
+        "CT-3 EX-7.17",
+        "CT-3 EX-7.18",
+        "CT-2 EX-7.21",
+        "CT-2 EX-7.22",
+        "CT-2 EX-4.21",
+        "CT-1 §6.3",
+        "CT-3 EX-14.1",
+        "CT-3 EX-14.2",
+        "CT-2 EX-4.47",
+        "CT-2 EX-4.16",
+        "CT-2 EX-4.45",
+        "CT-2 EX-4.2",
+        "CT-1 E-3",
+        "CT-2 EX-3.5",
+        "CT-2 EX-18.4",
+        "CT-2 EX-15.3",
+        "CT-2 EX-6.2",
+        "CT-2 §6.7",
+        "CT-2 EX-6.24",
+        "CT-2 EX-6.1",
+        "CT-2 EX-3.2",
+        "CT-2 EX-18.5",
+        "CT-2 EX-10.2",
+        "CT-2 EX-9.6",
+        "CT-2 EX-17.3"
+      ],
+      "preconditions": [
+        "Démonstration de référence de CT-2 §19 (docker compose : agent, enregistreur, serveur d'outils HTTP, simulateur de modèle) construite et lancée ; phase 2, étape 8."
+      ],
+      "steps": [
+        "Jouer les attaques de TA-1, TA-2, TA-3, TA-4, TA-5, TA-6, TA-7, TA-9, TA-15 et TA-22 dans la démonstration.",
+        "Exporter le dossier de chaque appel retenu ; vérifier hors ligne."
+      ],
+      "oracle": "Chaque tentative est refusée ou journalisée comme le dit son TA- ; aucun événement n'est absent ni réécrit : le vérificateur accepte les dossiers et la série des points est continue. Borne (risques acceptés des tests composés) : RA-1, RA-2, RA-3, RA-4, RA-5, RA-6, RA-8, RA-13, RA-19.",
+      "status": {
+        "state": "a_ecrire",
+        "phase2_step": 8,
+        "blocking": "Démonstration de référence et tests de bout en bout : phase 2, étape 8."
+      },
+      "threats": [
+        "MN-1",
+        "MN-2",
+        "MN-3",
+        "MN-4",
+        "MN-5",
+        "MN-6",
+        "MN-7",
+        "MN-9",
+        "MN-15",
+        "MN-22"
+      ],
+      "adversarial": {
+        "threat": null,
+        "component": null,
+        "response_removed": {
+          "what": "Les réponses des menaces composées (MN-1, MN-2, MN-3, MN-4, MN-5, MN-6, MN-7, MN-9, MN-15, MN-22), telles que les tests TA-1, TA-2, TA-3, TA-4, TA-5, TA-6, TA-7, TA-9, TA-15, TA-22 les nomment",
+          "how": "Rejouer, une à la fois, la réponse retirée de chaque test composé dans la démonstration de référence ; le scénario se joue aussi avec toutes les réponses en place",
+          "where": "démonstration de référence de CT-2 §19 (phase 2, étape 8) et bibliothèques de référence des tests composés"
+        },
+        "attack": "L'agent (ou l'hôte) tente d'agir hors du mandataire, de se faire passer pour un autre demandeur, de fractionner, de faire lire une valeur et exécuter une autre, de rejouer une approbation, d'inonder les approbateurs, d'annoncer un outil réservé, et d'atteindre le journal.",
+        "expected_with_response": "Chaque tentative est refusée ou journalisée comme le dit son TA- ; aucun événement n'est absent ni réécrit : le vérificateur accepte les dossiers et la série des points est continue. Borne (risques acceptés des tests composés) : RA-1, RA-2, RA-3, RA-4, RA-5, RA-6, RA-8, RA-13, RA-19.",
+        "expected_without_response": "Une tentative de l'agent aboutit sans refus ni journalisation (connexion directe au serveur d'outils, fractionnement sous le plafond, approbation rejouée, outil réservé annoncé) : le test composé concerné et le scénario échouent.",
+        "execution": "phase_2",
+        "accepted_risk": null,
+        "threat_test_text": null
+      }
+    }
+  ],
+  "non_tests": [],
+  "accepted_risks": [],
+  "traceability": []
+}

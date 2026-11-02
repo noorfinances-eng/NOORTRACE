@@ -1,0 +1,138 @@
+{
+  "version": 0,
+  "kind": "plan-de-tests",
+  "spec": "CT-9",
+  "spec_version": "0.1",
+  "date": "2026-11-01",
+  "levels": [
+    {
+      "id": "TU",
+      "name": "Unitaires et propriétés",
+      "object": "Bibliothèques de référence (`scripts/lib/*`, `console/`, contrats), noyau de CT-1 compris : canonicalisation, hachage, chaînage, Merkle, signatures, formats, et leurs règles en bibliothèque.",
+      "oracle": "Valeur calculée dans le test, source primaire (vecteurs de RFC) ou bibliothèque tierce ; jamais un fichier des vecteurs publiés.",
+      "section": "6"
+    },
+    {
+      "id": "TV",
+      "name": "Conformité aux vecteurs",
+      "object": "Chaque famille de `spec/vecteurs/ct-1` à `ct-8`, rejouée par l'implémentation de référence, par le vérificateur Go indépendant et, quand elle existe, par la confrontation tierce ; génération déterministe.",
+      "oracle": "Le fichier attendu de la famille (`attendu.json`, `cas.json`, `expected`), à l'égalité octet pour octet ou au verdict près.",
+      "section": "7"
+    },
+    {
+      "id": "TI",
+      "name": "Interopérabilité",
+      "object": "Exports de CT-1 §12, formats d'API et transports de CT-2, SDK et adaptateurs de cadres, OpenTelemetry, canal du service d'approbation, supports WORM, prestataires d'horodatage, registre, ICAP, paquets lus par des outils tiers.",
+      "oracle": "L'implémentation tierce ou l'outil officiel du format accepte ce que NOORTRACE produit, et NOORTRACE accepte ce qu'il produit ; écarts connus consignés.",
+      "section": "8"
+    },
+    {
+      "id": "TE",
+      "name": "Bout en bout",
+      "object": "Les deux cas de démonstration du plan et la démonstration de référence, de la capture au dossier vérifié ; installations, runbooks, sauvegarde, observation, haute disponibilité, ancrage complet, console, journal sur soi, construction des images, supervision.",
+      "oracle": "Verdict du vérificateur de CT-6 (deux implémentations) sur les dossiers produits, plus l'observation nommée par chaque entrée.",
+      "section": "9"
+    },
+    {
+      "id": "TA",
+      "name": "Adversariaux",
+      "object": "Une entrée par menace MN-1 à MN-98 de CT-7 et les cinq scénarios du plan : la réponse retirée, l'attaque, l'observation avec et sans la réponse.",
+      "oracle": "Le test passe avec la réponse et échoue sans elle (CT-7 EX-3.2).",
+      "section": "10"
+    },
+    {
+      "id": "TM",
+      "name": "Mesures",
+      "object": "Cibles de CT-2 §16, CT-5 P-1 à P-6, CT-7 EX-7.18, CT-8 (budgets, cibles, EX-8.1, EX-13.1), fenêtre de réécriture, latence ajoutée.",
+      "oracle": "Rapport de mesure au schéma, sur le système de référence, comparé à la cible et au seuil d'échec ; aucune valeur inventée.",
+      "section": "11"
+    },
+    {
+      "id": "TR",
+      "name": "Rejeu à l'aveugle",
+      "object": "Épreuves déléguées par CT-3, CT-4, CT-5, CT-6, CT-7 §9, CT-8 §14, les trois épreuves de CT-9 et le rejeu complet sur machine vierge.",
+      "oracle": "Grille à part ou verdict d'un outil, jugé par une personne qui n'a pas aidé le participant ; consignation CT-8 EX-14.10.",
+      "section": "12"
+    },
+    {
+      "id": "TQ",
+      "name": "Revue de code",
+      "object": "Périmètre fixé par CT-7 (composants de §3.2, menaces de §3.4), inventaire des clés, chaîne de construction, indépendance des vérificateurs Go.",
+      "oracle": "Grille remplie : chaque menace du composant a sa réponse localisée et son TA- ; écarts tracés.",
+      "section": "13"
+    }
+  ],
+  "phase2_steps": [
+    {
+      "step": 1,
+      "component": "Bibliothèque noyau : canonicalisation, hachage, chaînage, arbre de Merkle, signatures, formats",
+      "delivered_when": "Tous les vecteurs de test passent"
+    },
+    {
+      "step": 2,
+      "component": "Vérificateur, construit en premier pour servir d'oracle à tout le reste",
+      "delivered_when": "Rejette chaque dossier invalide des vecteurs, accepte chaque dossier valide"
+    },
+    {
+      "step": 3,
+      "component": "Registre de développement : instance noorcore, contrats, méthode du certificat de commit, image conteneur",
+      "delivered_when": "Un client fictif ancre et clôt une période"
+    },
+    {
+      "step": 4,
+      "component": "Enregistreur : mandataire MCP, stockage et clôture de période, passerelle du modèle, moteur de politique et rétention des appels",
+      "delivered_when": "Un agent de test traverse le mandataire ; chaque appel produit un événement que le vérificateur accepte"
+    },
+    {
+      "step": 5,
+      "component": "Ancrage : clients RFC 3161 et OpenTimestamps, serveur interne optionnel, planificateur",
+      "delivered_when": "Une racine reçoit ses trois ancres et le vérificateur les valide"
+    },
+    {
+      "step": 6,
+      "component": "Console : tickets et approbations, onboarding, export du dossier, page de vérification",
+      "delivered_when": "Un approbateur signe une décision depuis la console et le dossier exporté passe le vérificateur"
+    },
+    {
+      "step": 7,
+      "component": "Paquets, observabilité, runbooks",
+      "delivered_when": "Installation complète chez un client fictif en une journée"
+    },
+    {
+      "step": 8,
+      "component": "Tests de bout en bout, adversariaux et de performance ; revue de sécurité interne du code",
+      "delivered_when": "Chaque test adversarial échoue quand la réponse est retirée et passe sinon"
+    }
+  ],
+  "tests": [
+    {
+      "id": "TV-2",
+      "level": "TV",
+      "title": "`ct-1/jcs/cas-limites.json` : forme canonique ou refus",
+      "specs": [
+        "CT-1"
+      ],
+      "covers": [
+        "CT-1 E-2"
+      ],
+      "preconditions": [
+        "Vecteurs `ct-1/jcs` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
+        "`npm ci` fait ; aucun réseau."
+      ],
+      "steps": [
+        "Canonicaliser chaque entrée du fichier."
+      ],
+      "oracle": "Octets égaux à la forme attendue, ou refus quand l'attendu est `null`.",
+      "status": {
+        "state": "executable",
+        "command": "npm test"
+      },
+      "threats": [
+        "MN-4"
+      ]
+    }
+  ],
+  "non_tests": [],
+  "accepted_risks": [],
+  "traceability": []
+}
