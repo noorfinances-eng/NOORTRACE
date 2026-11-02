@@ -107,6 +107,10 @@ export function ecartsManifeste(manifeste) {
   if (!s.valide) ecarts.push(...s.erreurs.map((e) => `schéma : ${e}`));
   if (manifeste === null || typeof manifeste !== "object") return ecarts;
   const m = manifeste;
+  // org_id et journal_id : n'importe quels 32 octets non nuls (CT-1 §3, §5.2,
+  // §10.1 « ceux des événements ») ; le schéma ne l'exprime pas.
+  if (m.org_id === ZERO32) ecarts.push("org_id nul");
+  if (m.journal_id === ZERO32) ecarts.push("journal_id nul");
   if (Number.isSafeInteger(m.period_start) && m.period_end !== m.period_start + DUREE_PERIODE) {
     ecarts.push(`period_end ${m.period_end} différent de period_start + 3600 (${m.period_start + DUREE_PERIODE})`);
   }

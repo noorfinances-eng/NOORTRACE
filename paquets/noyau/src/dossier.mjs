@@ -5,11 +5,20 @@
 // (nom → octets) ; la lecture d'un répertoire est dans dossier-fichiers.mjs.
 //
 // Règles de lecture appliquées (CT-1 §11.4 et vecteurs de §11.5) :
-// - une partie présente qui n'est pas du JSON, ou dont le JSON n'est pas un
-//   objet, met en échec le contrôle qui porte la partie ; un fichier sans
-//   forme canonique (clé en double, substitut isolé, nombre non entier ou hors
-//   de l'intervalle sûr) met en échec E-2 ; dans ces deux cas, les contrôles
-//   qui dépendent de la partie ne sont pas exécutés, sans raison admise ;
+// - une partie présente qui n'est pas du JSON, dont le JSON n'est pas un
+//   objet, ou qui dépasse sa limite de taille (CT-6 EX-4.13, TAILLES_MAX),
+//   met en échec le contrôle qui porte la partie ; un fichier sans forme
+//   canonique (clé en double, substitut isolé, nombre non entier ou hors de
+//   l'intervalle sûr) met en échec E-2, quelle que soit la partie, la
+//   treizième comprise ; dans ces cas, les contrôles qui dépendent de la
+//   partie ne sont pas exécutés, sans raison admise. Seule exception, la
+//   quatorzième partie : tout défaut d'attestation-perimetre.json, forme
+//   canonique comprise, est porté par AT-1 et ne change aucun autre contrôle
+//   (CT-1 §11.4, révision 0.4) ;
+// - une partie déclarée présente dont le fichier manque (ou n'est pas un
+//   fichier ordinaire) met D-2 en échec, et D-2 seul : le contrôle qui la
+//   porte et ceux qui en dépendent ne sont pas exécutés (raison
+//   partie_manquante pour le porteur, CT-6 EX-4.11) ;
 // - une partie qui est un objet JSON mais enfreint son schéma met en échec le
 //   contrôle qui la porte, et les autres contrôles s'exécutent sur les champs
 //   bien typés qu'ils lisent (cascades publiées par les vecteurs : E-1 et E-3,
@@ -65,6 +74,43 @@ export const FICHIERS_DOSSIER = Object.freeze([
   PARTIE_ATTESTATION_PERIMETRE.file,
 ]);
 
+const KIO = 1024;
+const MIO = 1024 * 1024;
+
+/**
+ * Limite de taille de chaque fichier d'un dossier, en octets (CT-6 EX-4.13) :
+ * `dossier.json` 1 Mio ; les parties JSON v0 de CT-1 16 Mio ;
+ * `jeton-rfc3161.der` 64 Kio ; `preuve.ots` 256 Kio ; `registre.json` et
+ * `certificat-commit.json` 64 Mio ; `validateurs.json` 1 Mio ;
+ * `points-de-controle.json` 1 Mio (EX-4.14) ; `attestation-perimetre.json`
+ * 4 Mio (EX-4.15). Un fichier plus grand n'est pas analysé : il est
+ * inexploitable et met en échec le contrôle qui le porte (EX-4.11).
+ */
+export const TAILLES_MAX = Object.freeze({
+  "dossier.json": 1 * MIO,
+  "evenement.json": 16 * MIO,
+  "voisins.json": 16 * MIO,
+  "chemin.json": 16 * MIO,
+  "manifeste.json": 16 * MIO,
+  "manifeste.sig": 16 * MIO,
+  "cles.json": 16 * MIO,
+  "approbations.json": 16 * MIO,
+  "jeton-rfc3161.der": 64 * KIO,
+  "preuve.ots": 256 * KIO,
+  "registre.json": 64 * MIO,
+  "certificat-commit.json": 64 * MIO,
+  "validateurs.json": 1 * MIO,
+  "points-de-controle.json": 1 * MIO,
+  "attestation-perimetre.json": 4 * MIO,
+});
+
+/**
+ * Plafond absolu de lecture de `attestation-perimetre.json` (CT-6 EX-4.15) :
+ * au-delà de 4 Mio, la partie n'est lue que pour son SHA-256 (D-2), en flux,
+ * jusqu'à 64 Mio ; au-delà, l'entrée est inutilisable (`taille_depassee`).
+ */
+export const PLAFOND_LECTURE = 64 * MIO;
+
 /** Raisons de non-exécution admises (CT-1 §11.4) : le dossier reste valide. */
 export const RAISONS_ADMISES = Object.freeze(["partie_absente", "piece_hors_dossier"]);
 
@@ -105,8 +151,18 @@ const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
  */
 
 /**
+ * @typedef {object} FichierNonLu
+ * Fichier présent dans le répertoire mais non lu, parce qu'il dépasse sa
+ * limite (TAILLES_MAX) : sa taille, et son SHA-256 calculé en flux pour la
+ * seule partie attestation-perimetre.json jusqu'au plafond (null sinon).
+ * @property {number} taille
+ * @property {string|null} sha256
+ */
+
+/**
  * Vérifie un dossier de preuve v0.
- * @param {Map<string, Uint8Array>|Record<string, Uint8Array>} fichiers fichiers du répertoire, par nom
+ * @param {Map<string, Uint8Array|FichierNonLu>|Record<string, Uint8Array|FichierNonLu>} fichiers
+ *   fichiers du répertoire, par nom : leurs octets, ou un FichierNonLu pour un fichier au-delà de sa limite
  * @param {object} [options]
  * @param {object} [options.manifestePrecedent] manifeste de la période précédente, fourni à part (continuité, P-5)
  * @param {object} [options.manifesteSuivant] manifeste de la période suivante, fourni à part (continuité, P-5)
@@ -114,11 +170,34 @@ const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
  * @param {{rfc3161?: Function, registry?: Function, ots?: Function}} [options.verificateursAncres]
  *   vérifications des ancres d'un point (K-7, K-8, K-9) déléguées à CT-6 ; chaque fonction reçoit
  *   (ancre, { checkpoint_hash, partie }) et rend { statut, raison?, details? }
+ * @param {number} [options.profondeurMax] borne d'imbrication des JSON lus (aucune par défaut, CT-1 §4 n'en
+ *   fixe pas ; PROFONDEUR_CT6 = 128 applique celle de CT-6 EX-4.13) ; une partie au-delà est inexploitable
  * @returns {RapportDossier}
  */
 export function verifierDossier(fichiers, options = {}) {
-  const lireFichier = (nom) => (fichiers instanceof Map ? fichiers.get(nom) : fichiers[nom]);
+  const brut = (nom) => (fichiers instanceof Map ? fichiers.get(nom) : fichiers[nom]);
   const aFichier = (nom) => (fichiers instanceof Map ? fichiers.has(nom) : Object.prototype.hasOwnProperty.call(fichiers, nom));
+  const optionsJson = { profondeurMax: options.profondeurMax };
+  const limiteDe = (nom) => TAILLES_MAX[nom] ?? Infinity;
+  /**
+   * Entrée d'un fichier : null s'il est absent du répertoire ; { octets } s'il
+   * est lu dans sa limite ; { tropGrand, taille, sha256 } au-delà ;
+   * { manquant } pour toute autre valeur (fichier non ordinaire).
+   */
+  const entree = (nom) => {
+    if (!aFichier(nom)) return null;
+    const v = brut(nom);
+    if (v instanceof Uint8Array) {
+      if (v.length <= limiteDe(nom)) return { octets: v };
+      const empreinte = nom === PARTIE_ATTESTATION_PERIMETRE.file && v.length <= PLAFOND_LECTURE ? sha256Hex(v) : null;
+      return { tropGrand: true, taille: v.length, sha256: empreinte };
+    }
+    if (v !== null && typeof v === "object" && Number.isSafeInteger(v.taille) && v.taille > limiteDe(nom)) {
+      return { tropGrand: true, taille: v.taille, sha256: typeof v.sha256 === "string" ? v.sha256 : null };
+    }
+    return { manquant: true };
+  };
+  const tropGrand = (nom, x) => `${nom} : ${x.taille} octets, au-delà de sa limite de ${limiteDe(nom)} octets (CT-6 EX-4.13) : non analysé`;
 
   /** @type {Map<string, ResultatControle>} */
   const R = new Map();
@@ -132,11 +211,15 @@ export function verifierDossier(fichiers, options = {}) {
   const statutDe = (id) => R.get(id)?.statut;
 
   // ------------------------------------------------------------ index
-  const octetsIndex = lireFichier("dossier.json");
-  if (!(octetsIndex instanceof Uint8Array)) return inutilisable("dossier.json absent");
+  const xIndex = entree("dossier.json");
+  if (xIndex?.tropGrand) {
+    echoue("D-1", [tropGrand("dossier.json", xIndex)]);
+    return conclure(null, false, false, [], null);
+  }
+  if (!xIndex?.octets) return inutilisable("dossier.json absent");
   let index;
   try {
-    index = analyserJson(octetsIndex);
+    index = analyserJson(xIndex.octets, optionsJson);
   } catch (e) {
     if (!(e instanceof ErreurJson)) throw e;
     if (!e.formeCanonique) return inutilisable(`dossier.json n'est pas du JSON : ${e.message}`);
@@ -157,29 +240,47 @@ export function verifierDossier(fichiers, options = {}) {
   const avecAttestation = parties.get(PARTIE_ATTESTATION_PERIMETRE.name)?.present === true;
   const partiesAbsentes = index.parts.filter((p) => !p.present).map((p) => ({ name: p.name, reason: p.reason_if_absent }));
 
+  // Partie attestation au-delà du plafond absolu de lecture : entrée
+  // inutilisable (CT-6 EX-4.15, code 2, taille_depassee).
+  if (avecAttestation) {
+    const x = entree(PARTIE_ATTESTATION_PERIMETRE.file);
+    if (x?.tropGrand && x.taille > PLAFOND_LECTURE) {
+      return inutilisable(`taille_depassee : ${PARTIE_ATTESTATION_PERIMETRE.file} de ${x.taille} octets, au-delà du plafond de lecture de ${PLAFOND_LECTURE} octets (CT-6 EX-4.15)`);
+    }
+  }
+
   // ------------------------------------------------------------ D-2
   const ecartsD2 = [];
+  const notesD2 = [];
   for (const p of index.parts) {
+    const x = entree(p.file);
     if (p.present) {
-      const o = lireFichier(p.file);
-      if (!(o instanceof Uint8Array)) ecartsD2.push(`${p.file} déclaré présent, absent du répertoire`);
-      else if (sha256Hex(o) !== p.sha256) ecartsD2.push(`${p.file} : SHA-256 ${sha256Hex(o)} différent de celui de l'index ${p.sha256}`);
-    } else if (aFichier(p.file)) {
+      if (!x || x.manquant) ecartsD2.push(`${p.file} déclaré présent, absent du répertoire (ou pas un fichier ordinaire)`);
+      else {
+        const empreinte = x.octets ? sha256Hex(x.octets) : x.sha256;
+        if (empreinte === null) notesD2.push(`${tropGrand(p.file, x)} ; SHA-256 non calculé, la limite interdisant de lire au-delà`);
+        else if (empreinte !== p.sha256) ecartsD2.push(`${p.file} : SHA-256 ${empreinte} différent de celui de l'index ${p.sha256}`);
+      }
+    } else if (x) {
       ecartsD2.push(`${p.file} déclaré absent, présent dans le répertoire`);
     }
   }
-  selon("D-2", ecartsD2);
+  selon("D-2", ecartsD2, notesD2);
 
   // ------------------------------------------------------------ lecture des parties
   const ecartsE2 = [];
-  /** Lit une partie JSON : { etat, valeur, message } ; etat : absente, manquante, syntaxe, canonique, non_objet, objet. */
+  /**
+   * Lit une partie JSON : { etat, valeur, message } ; etat : absente,
+   * manquante, trop_grande, syntaxe, canonique, non_objet, objet.
+   */
   const lirePartie = (nom) => {
     const p = parties.get(nom);
     if (!p || !p.present) return { etat: "absente" };
-    const o = lireFichier(p.file);
-    if (!(o instanceof Uint8Array)) return { etat: "manquante", message: `${p.file} manquant` };
+    const x = entree(p.file);
+    if (!x || x.manquant) return { etat: "manquante", message: `${p.file} manquant` };
+    if (x.tropGrand) return { etat: "trop_grande", message: tropGrand(p.file, x) };
     try {
-      const valeur = analyserJson(o);
+      const valeur = analyserJson(x.octets, optionsJson);
       return estObjet(valeur) ? { etat: "objet", valeur } : { etat: "non_objet", valeur, message: `${p.file} n'est pas un objet JSON` };
     } catch (e) {
       if (!(e instanceof ErreurJson)) throw e;
@@ -190,12 +291,15 @@ export function verifierDossier(fichiers, options = {}) {
       return { etat: "syntaxe", message: `${p.file} n'est pas du JSON : ${e.message}` };
     }
   };
-  // Contrôle qui porte une partie inexploitable : échec pour du non-JSON ou un
-  // non-objet ; pour une partie sans forme canonique, l'échec est porté par E-2.
+  // Contrôle qui porte une partie inexploitable : échec pour du non-JSON, un
+  // non-objet ou un fichier au-delà de sa limite ; pour une partie sans forme
+  // canonique, l'échec est porté par E-2 ; pour une partie manquante, par D-2.
   const porteur = (id, lecture) => {
-    if (lecture.etat === "syntaxe" || lecture.etat === "non_objet") return { id, ecart: lecture.message };
+    if (lecture.etat === "syntaxe" || lecture.etat === "non_objet" || lecture.etat === "trop_grande") return { id, ecart: lecture.message };
     return null;
   };
+  // Raison de non-exécution du porteur d'une partie qui n'a pas pu être lue.
+  const raisonPorteur = (lecture) => (lecture.etat === "manquante" ? "partie_manquante" : "prerequis_en_echec");
 
   const lEvt = lirePartie("evenement");
   const lVoisins = lirePartie("voisins");
@@ -204,6 +308,9 @@ export function verifierDossier(fichiers, options = {}) {
   const lSig = lirePartie("manifeste_sig");
   const lCles = lirePartie("cles");
   const lApprob = lirePartie("approbations");
+  // La treizième partie est lue ici, avec les autres, pour que sa forme
+  // canonique soit portée par E-2 comme pour toute partie.
+  const lPoints = avecPoints ? lirePartie(PARTIE_POINTS_DE_CONTROLE.name) : null;
 
   const evt = lEvt.etat === "objet" ? lEvt.valeur : null;
   const voisins = lVoisins.etat === "objet" ? lVoisins.valeur : null;
@@ -221,8 +328,8 @@ export function verifierDossier(fichiers, options = {}) {
   if (lCles.etat === "objet") {
     indexCles = indexerCles(lCles.valeur, evt ? { org_id: evt.org_id, journal_id: evt.journal_id } : {});
     ecartsE8.push(...indexCles.erreurs);
-  } else if (lCles.etat === "syntaxe" || lCles.etat === "non_objet" || lCles.etat === "manquante") {
-    ecartsE8.push(lCles.message ?? "cles.json inexploitable");
+  } else if (porteur("E-8", lCles)) {
+    ecartsE8.push(lCles.message);
   }
   const clesExploitables = indexCles?.exploitable === true;
 
@@ -271,8 +378,8 @@ export function verifierDossier(fichiers, options = {}) {
   }
   // L'événement prouvé n'a pas été lu (fichier manquant ou sans forme
   // canonique) : E-1 ne peut pas l'avoir validé.
-  if (!evt && statutDe("E-1") === "reussi") nonExecute("E-1", lEvt.etat === "manquante" ? "partie_manquante" : "prerequis_en_echec");
-  if (!indexCles && ecartsE8.length === 0) nonExecute("E-8", "prerequis_en_echec", ["cles.json inexploitable"]);
+  if (!evt && statutDe("E-1") === "reussi") nonExecute("E-1", raisonPorteur(lEvt));
+  if (!indexCles && ecartsE8.length === 0) nonExecute("E-8", raisonPorteur(lCles), [lCles.etat === "manquante" ? "cles.json manquant" : "cles.json inexploitable"]);
 
   // E-6 : pièces fournies à part.
   if (Array.isArray(options.pieces) && options.pieces.length) {
@@ -299,7 +406,7 @@ export function verifierDossier(fichiers, options = {}) {
   if (!evt || !voisinsUtilisables) {
     const pc = porteur("C-1", lVoisins);
     if (pc) echoue("C-1", [pc.ecart]);
-    else nonExecute("C-1", "prerequis_en_echec");
+    else nonExecute("C-1", evt ? raisonPorteur(lVoisins) : "prerequis_en_echec");
     nonExecute("C-2", "prerequis_en_echec");
     nonExecute("C-3", "prerequis_en_echec");
   } else {
@@ -354,7 +461,7 @@ export function verifierDossier(fichiers, options = {}) {
   if (!chemin) {
     nonExecute("M-1", "prerequis_en_echec");
     if (pm) echoue("M-2", [pm.ecart]);
-    else nonExecute("M-2", "prerequis_en_echec");
+    else nonExecute("M-2", raisonPorteur(lChemin));
     nonExecute("M-3", "prerequis_en_echec");
   } else {
     if (!evt || hashEvt === null || !estHex(chemin.leaf_hash, 32)) nonExecute("M-1", "prerequis_en_echec");
@@ -379,7 +486,7 @@ export function verifierDossier(fichiers, options = {}) {
   if (!manifeste) {
     const pp = porteur("P-1", lManifeste);
     if (pp) echoue("P-1", [pp.ecart]);
-    else nonExecute("P-1", "prerequis_en_echec");
+    else nonExecute("P-1", raisonPorteur(lManifeste));
     for (const id of ["P-2", "P-3", "P-4", "P-5"]) nonExecute(id, "prerequis_en_echec");
   } else {
     const ecartsP1 = ecartsManifeste(manifeste);
@@ -425,7 +532,7 @@ export function verifierDossier(fichiers, options = {}) {
     if (!msig) {
       const ps = porteur("P-5", lSig);
       if (ps) echoue("P-5", [ps.ecart]);
-      else nonExecute("P-5", "prerequis_en_echec");
+      else nonExecute("P-5", raisonPorteur(lSig));
     } else if (!clesExploitables) {
       nonExecute("P-5", "prerequis_en_echec", ["cles.json inexploitable"]);
     } else {
@@ -458,6 +565,9 @@ export function verifierDossier(fichiers, options = {}) {
     if (lApprob.etat === "absente") {
       reussi("A-1");
       for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "partie_absente", ["aucune approbation liée"]);
+    } else if (lApprob.etat === "manquante") {
+      nonExecute("A-1", "partie_manquante", ["approbations.json déclaré présent mais manquant (D-2)"]);
+      for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "prerequis_en_echec");
     } else {
       echoue("A-1", ["approbations.json présent alors que approval est nul"]);
       for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "prerequis_en_echec");
@@ -469,7 +579,7 @@ export function verifierDossier(fichiers, options = {}) {
     else if (!approbations) {
       const pa = porteur("A-1", lApprob);
       if (pa) echoue("A-1", [pa.ecart]);
-      else nonExecute("A-1", "prerequis_en_echec");
+      else nonExecute("A-1", raisonPorteur(lApprob));
     } else {
       const ecarts = validerSchema("enveloppe-approbations", approbations).erreurs.map((e) => `approbations.json : ${e}`);
       if (approbations.ticket !== approbation.ticket) ecarts.push(`ticket ${approbations.ticket} différent de approval.ticket ${approbation.ticket}`);
@@ -544,11 +654,12 @@ export function verifierDossier(fichiers, options = {}) {
   let perimetre = null;
   if (avecAttestation) {
     const p = parties.get(PARTIE_ATTESTATION_PERIMETRE.name);
-    const o = lireFichier(p.file);
-    if (!(o instanceof Uint8Array)) {
+    const x = entree(p.file);
+    if (!x?.octets) {
+      const motif = x?.tropGrand ? `${p.file} : ${x.taille} octets, au-delà de 4 Mio (CT-6 EX-4.15) : non analysé` : `${p.file} manquant`;
       perimetre = {
         verifications: [
-          { id: "AT-1", status: "echoue", reason: null, details: [`${p.file} manquant`] },
+          { id: "AT-1", status: "echoue", reason: null, details: [motif] },
           ...["AT-2", "AT-3", "AT-4", "AT-5", "AT-6", "AT-7"].map((id) => ({ id, status: "non_execute", reason: "prerequis_en_echec", details: [] })),
         ],
         retenue: false,
@@ -556,7 +667,8 @@ export function verifierDossier(fichiers, options = {}) {
         digest: null,
       };
     } else {
-      perimetre = verifierPartieAttestation(o, {
+      perimetre = verifierPartieAttestation(x.octets, {
+        profondeurMax: options.profondeurMax,
         evenement: evtExploitable ? evt : null,
         indexCles: clesExploitables ? indexCles : null,
         approbations: R.get("A-1")?.statut === "reussi" ? approbations : null,
@@ -570,21 +682,27 @@ export function verifierDossier(fichiers, options = {}) {
   return conclure(evt && hashEvt !== null ? { seq: evt.seq, hash: hashEvt } : null, avecPoints, true, partiesAbsentes, perimetre, reserveesPresentes);
 
   function verifierPoints() {
-    const lPoints = lirePartie(PARTIE_POINTS_DE_CONTROLE.name);
     const prerequis = (depuis) => {
       for (const id of CONTROLES_K.slice(depuis)) nonExecute(id, "prerequis_en_echec");
     };
     if (lPoints.etat !== "objet") {
-      if (lPoints.etat === "canonique") echoue("K-1", [`points-de-controle.json sans forme canonique : ${lPoints.message}`]);
+      // Sans forme canonique : l'échec est porté par E-2 (ecartsE2) ; fichier
+      // manquant : par D-2 ; non-JSON, non-objet, trop grand : par K-1.
+      if (lPoints.etat === "canonique") nonExecute("K-1", "prerequis_en_echec", ["points-de-controle.json sans forme canonique (E-2)"]);
+      else if (lPoints.etat === "manquante") nonExecute("K-1", "partie_manquante", ["points-de-controle.json manquant (D-2)"]);
       else echoue("K-1", [lPoints.message ?? "points-de-controle.json inexploitable"]);
-      return prerequis(1);
-    }
-    if (statutDe("P-1") !== "reussi" || !evt || !manifeste) {
-      nonExecute("K-1", "prerequis_en_echec", ["P-1 n'a pas réussi"]);
       return prerequis(1);
     }
     const partie = lPoints.valeur;
     const ecarts1 = validerSchema("points_de_controle", partie).erreurs.map((e) => `points-de-controle.json : ${e}`);
+    // Sans manifeste exploitable (P-1 non réussie) ni événement, les relations
+    // ne peuvent pas se comparer ; le schéma de la partie est contrôlé quand
+    // même, et un défaut de schéma met K-1 en échec (CT-6 EX-5.9).
+    if (statutDe("P-1") !== "reussi" || !evt || !manifeste) {
+      if (ecarts1.length) echoue("K-1", ecarts1);
+      else nonExecute("K-1", "prerequis_en_echec", ["P-1 n'a pas réussi : relations au manifeste non comparées"]);
+      return prerequis(1);
+    }
     if (ecarts1.length === 0) {
       const k = partie.checkpoint;
       if (k.org_id !== evt.org_id || k.journal_id !== evt.journal_id) ecarts1.push("checkpoint : org_id ou journal_id différent de celui de l'événement");

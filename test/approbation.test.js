@@ -967,6 +967,10 @@ describe("CT-2 §7.5 : échanges du noyau avec le service, partie calculable (EX
     const m = A.messageCharger({ org_id: ORG_ID, journal_id: JOURNAL_ID, environment: "developpement", policy_version: "v-ok", policy_sha256: "0x" + "ab".repeat(32), approval, tools: outils, hotes });
     expect(Object.keys(m)).to.deep.equal(["org_id", "journal_id", "environment", "policy_version", "policy_sha256", "approval", "tools", "requesters"]);
     expect(Object.keys(m.approval)).to.deep.equal(["rules", "mode", "hold_timeout_ms", "expire_after_ms", "timeout_ms"]);
+    // Un membre __proto__ reçu (propriété propre après JSON.parse) reste un membre de approval, pas un prototype.
+    const avecProto = A.messageCharger({ org_id: ORG_ID, journal_id: JOURNAL_ID, environment: "developpement", policy_version: "v-ok", policy_sha256: "0x" + "ab".repeat(32), approval: JSON.parse('{"__proto__":{"mode":"x"},"mode":"erreur","service":{}}'), tools: [], hotes: [] });
+    expect(Object.keys(avecProto.approval)).to.deep.equal(["__proto__", "mode"]);
+    expect(Object.getPrototypeOf(avecProto.approval)).to.equal(Object.prototype);
     expect(m.tools.map((t) => t.tool_announced)).to.deep.equal(["Zeta", "crm.claims.get", "sap.payments.create"]);
     expect(m.tools[1].effects).to.equal(null);
     expect(m.requesters).to.deep.equal(["Zorro", "agent-nuit", "u.martin@assureur-demo.example"]);

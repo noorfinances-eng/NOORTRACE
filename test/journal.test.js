@@ -245,6 +245,112 @@ describe("CT-1 : Ed25519 (RFC 8032)", function () {
 });
 
 // ---------------------------------------------------------------------------
+describe("CT-1 §6.2 : clé publique Ed25519 de petit ordre ou non canonique refusée avant toute vérification (signature universelle R = B, S = 1)", function () {
+  // R = B (encodage du point de base), S = 1 : [S]B = R + [k]A tient pour tout message quand A est le neutre,
+  // et pour tout k pair quand A est le point d'ordre 2. Une bibliothèque qui décode A sans le pas 4 de la
+  // RFC 8032 §5.1.3 (x = 0 avec bit de signe 1) l'accepte sous les encodages 01 00…00 80 et ec ff…ff.
+  const SIG_UNIVERSELLE = "0x" + "58" + "66".repeat(31) + "01" + "00".repeat(31);
+  const CANONIQUES = [
+    "01" + "00".repeat(31),
+    "ec" + "ff".repeat(30) + "7f",
+    "00".repeat(32),
+    "00".repeat(31) + "80",
+    "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+    "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa",
+    "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+    "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc85",
+  ];
+  const signeInverse = (h) => h.slice(0, 62) + (parseInt(h.slice(62), 16) ^ 0x80).toString(16).padStart(2, "0");
+  // Les huit points, leurs encodages au bit de signe inversé (deux nouveaux : 01 00…00 80 et ec ff…ff, les
+  // six autres sont déjà dans la liste), et y = p, y = p + 1 (≡ 0 et ≡ 1, non réduits) sous les deux signes.
+  const REFUSEES = [...new Set([...CANONIQUES, ...CANONIQUES.map(signeInverse), "ed" + "ff".repeat(30) + "7f", "ee" + "ff".repeat(30) + "7f", "ed" + "ff".repeat(31), "ee" + "ff".repeat(31)])].map((h) => "0x" + h);
+  const NEUTRE_SIGNE = "0x01" + "00".repeat(30) + "80";
+  const ORDRE2_SIGNE = "0xec" + "ff".repeat(31);
+
+  it("clePubliqueEd25519Admise refuse les huit points de petit ordre sous tous leurs encodages, admet les clés réelles", function () {
+    expect(REFUSEES).to.have.length(14);
+    for (const h of REFUSEES) expect(J.clePubliqueEd25519Admise(h), h).to.equal(false);
+    for (const k of [CLE_01.clePublique, CLE_02.clePublique, "0xd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"]) expect(J.clePubliqueEd25519Admise(k), k).to.equal(true);
+    // Encodage hors de la courbe (x² sans racine) : refusé au décodage (RFC 8032 §5.1.3, pas 3).
+    expect(J.clePubliqueEd25519Admise("0x02" + "00".repeat(31))).to.equal(false);
+  });
+
+  it("verifierEd25519 refuse la signature forgée R = B, S = 1 sous chacune de ces clés, quel que soit le message", function () {
+    for (const h of REFUSEES) for (const m of ["0x", "0x00", "0x72", "n'importe quel message", "autre message"]) expect(J.verifierEd25519(h, m, SIG_UNIVERSELLE), `${h} / ${m}`).to.equal(false);
+  });
+
+  it("aucune vérification de signature ne l'accepte : événement (E-8, cles.json), contresignature de rotation, manifeste, point de contrôle", function () {
+    const e4 = EXEMPLE.evenements[3];
+    for (const cle of [NEUTRE_SIGNE, ORDRE2_SIGNE]) {
+      // Événement : la clé de cles.json est de petit ordre, sig forgée.
+      const ev = { ...e4, sig: SIG_UNIVERSELLE };
+      expect(J.verifierSignatureEvenement(ev, cle), `événement sous ${cle}`).to.equal(false);
+      const cles = { ...EXEMPLE.cles, keys: EXEMPLE.cles.keys.map((k) => (k.key_id === e4.recorder_key_id ? { ...k, public_key: cle } : k)) };
+      expect(J.controlesEvenement(ev, { schemas: SCHEMAS, cles })["E-8"].ok, `E-8 sous ${cle}`).to.equal(false);
+      expect(J.verifierChaine([ev], { clesPubliques: { [e4.recorder_key_id]: cle } }).diagnostics.some((d) => d.controle === "E-8"), `verifierChaine sous ${cle}`).to.equal(true);
+      // Rotation : new_public_key de petit ordre, counter_sig forgée.
+      const value = { ...EXEMPLE.evenements[4].execution.arguments.value, new_public_key: cle, counter_sig: SIG_UNIVERSELLE };
+      expect(J.verifierContresignatureRotation(value), `rotation sous ${cle}`).to.equal(false);
+      // Manifeste et point de contrôle.
+      const [m1] = EXEMPLE.manifestes;
+      expect(J.verifierSignatureManifeste(m1, { ...EXEMPLE.manifesteSig, sig: SIG_UNIVERSELLE }, cle), `manifeste sous ${cle}`).to.equal(false);
+      const [point] = blocsSpec("point-de-controle");
+      expect(J.verifierSignaturePointDeControle({ ...point, sig: SIG_UNIVERSELLE }, cle), `point sous ${cle}`).to.equal(false);
+    }
+    // Témoin : les signatures authentiques restent valides sous leurs clés.
+    expect(J.verifierSignatureEvenement(e4, PUBS[e4.recorder_key_id])).to.equal(true);
+    expect(J.verifierContresignatureRotation(EXEMPLE.evenements[4].execution.arguments.value)).to.equal(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("CT-1 §6.1 : membre __proto__ de premier niveau couvert par le hachage et la signature (copie par affectation)", function () {
+  // Valeurs des cas de la relecture : chaîne, entier extrême, tableau vide, caractère de contrôle, objet, booléen.
+  const VALEURS = ['"z/"', "-9007199254740991", "[]", '"\\u001f"', '{"z":"é"}', "true"];
+  /** Texte JSON de `objet` avec un membre "__proto__" ajouté en tête (JSON.parse en fait une propriété propre). */
+  const avecProto = (objet, valeur) => '{"__proto__":' + valeur + "," + JSON.stringify(objet).slice(1);
+
+  it("corpsEvenement garde le membre : le hachage, la signature et E-1, E-7, E-8 rejettent l'événement ainsi complété", function () {
+    const e2 = EXEMPLE.evenements[1];
+    for (const v of VALEURS) {
+      for (const lire of [J.analyserJSONStrict, JSON.parse]) {
+        const ev = lire(avecProto(e2, v));
+        expect(Object.hasOwn(ev, "__proto__"), v).to.equal(true);
+        const corps = J.corpsEvenement(ev);
+        expect(Object.hasOwn(corps, "__proto__"), `E' garde __proto__ (${v})`).to.equal(true);
+        expect(Object.getPrototypeOf(corps), `prototype inchangé (${v})`).to.equal(Object.prototype);
+        expect(J.canonicaliserJCS(corps), v).to.contain('"__proto__":');
+        expect(J.hachageEvenement(ev), `hash (${v})`).to.not.equal(e2.hash);
+        expect(J.verifierHachageEvenement(ev), `E-7 (${v})`).to.equal(false);
+        expect(J.verifierSignatureEvenement(ev, CLE_01.clePublique), `E-8 (${v})`).to.equal(false);
+        const res = J.controlesEvenement(ev, { schemas: SCHEMAS, cles: EXEMPLE.cles });
+        expect([res["E-1"].ok, res["E-7"].ok, res["E-8"].ok], v).to.deep.equal([false, false, false]);
+      }
+    }
+  });
+
+  it("scellerEvenement, objetRotation et corpsPointDeControle gardent le membre", function () {
+    const e2 = EXEMPLE.evenements[1];
+    const corps = J.corpsEvenement(JSON.parse(avecProto(e2, '"z/"')));
+    const scelle = J.scellerEvenement(corps, CLE_01.clePrivee);
+    expect(Object.hasOwn(scelle, "__proto__")).to.equal(true);
+    expect(scelle.hash).to.not.equal(e2.hash);
+    expect(J.verifierHachageEvenement(scelle)).to.equal(true);
+    expect(J.verifierSignatureEvenement(scelle, CLE_01.clePublique)).to.equal(true);
+    const value = EXEMPLE.evenements[4].execution.arguments.value;
+    const rotation = JSON.parse(avecProto(value, '"z/"'));
+    expect(Object.hasOwn(J.objetRotation(rotation), "__proto__")).to.equal(true);
+    expect(J.verifierContresignatureRotation(rotation), "counter_sig ne couvre pas le membre ajouté").to.equal(false);
+    const [point] = blocsSpec("point-de-controle");
+    const pointProto = JSON.parse(avecProto(point, '"z/"'));
+    expect(Object.hasOwn(J.corpsPointDeControle(pointProto), "__proto__")).to.equal(true);
+    expect(J.hachagePointDeControle(pointProto)).to.not.equal(J.hachagePointDeControle(point));
+    expect(J.verifierSignaturePointDeControle(point, PUBS[point.key_id])).to.equal(true);
+    expect(J.verifierSignaturePointDeControle(pointProto, PUBS[point.key_id]), "sig ne couvre pas le membre ajouté").to.equal(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe("CT-1 : événements, hachage, signature, approbation, rotation", function () {
   it("l'exemple de référence de la spécification (annexe A) est reproduit valeur par valeur", function () {
     expect(EXEMPLE.evenements.map((e) => e.seq)).to.deep.equal([1, 2, 3, 4, 5]);

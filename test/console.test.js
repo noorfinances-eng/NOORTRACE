@@ -498,6 +498,10 @@ describe("CT-3 0.3 : primitives de console.mjs contre node:crypto, ethers et jou
       for (const ev of JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-1", d, "evenements.json"), "utf8"))) {
         expect(K.hachageEvenement(ev), `seq ${ev.seq}`).to.equal(J.hachageEvenement(ev));
         expect(K.jcs(ev)).to.equal(J.canonicaliserJCS(ev));
+        // Membre __proto__ de premier niveau (propriété propre après JSON.parse) : couvert par le hachage, comme dans journal.mjs.
+        const avecProto = JSON.parse('{"__proto__":"z/",' + JSON.stringify(ev).slice(1));
+        expect(K.hachageEvenement(avecProto), `seq ${ev.seq} avec __proto__`).to.equal(J.hachageEvenement(avecProto));
+        expect(K.hachageEvenement(avecProto), `seq ${ev.seq} avec __proto__`).to.not.equal(ev.hash);
       }
     }
     expect(() => K.jcs({ a: 1.5 })).to.throw(K.ErreurConsole);

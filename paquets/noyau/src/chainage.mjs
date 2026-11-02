@@ -10,6 +10,12 @@
 // Les trous de seq se lisent sur l'ensemble des seq présents, non couple par
 // couple : un réordonnancement (seq 6 avant seq 5) n'est pas aussi rapporté
 // comme deux trous, puisqu'aucun seq ne manque.
+//
+// cles.json est lu sans référence à un événement (schéma, unicité, ordre des
+// validités) ; son org_id et son journal_id sont comparés à ceux de chaque
+// événement, et un écart est un symptôme E-8 de cet événement : un premier
+// événement altéré ne fait donc pas disparaître les E-8 des autres (CT-1 §7.2 :
+// le vérificateur de chaîne rapporte tous les symptômes).
 
 import { ZERO32, decoderHorodatage } from "./conventions.mjs";
 import { CONTROLES_EVENEMENT, controlerEvenement, nouvelleCle } from "./controles-evenement.mjs";
@@ -70,8 +76,7 @@ export function trierControles(ids) {
 export function verifierJournal(evenements, cles) {
   if (!Array.isArray(evenements)) throw new TypeError("tableau d'événements attendu");
   const diagnostics = [];
-  const premier = evenements.find((e) => e && typeof e === "object");
-  const indexCles = indexerCles(cles, premier ? { org_id: premier.org_id, journal_id: premier.journal_id } : {});
+  const indexCles = indexerCles(cles);
   if (!indexCles.exploitable) {
     diagnostics.push({ type: "cles", controle: "E-8", seq: null, message: `cles.json inexploitable : ${indexCles.erreurs.join(" ; ")}` });
   }
@@ -82,18 +87,25 @@ export function verifierJournal(evenements, cles) {
     const { controles, hash } = controlerEvenement(e, { indexCles });
     hashes.push(hash);
     const seq = e && typeof e === "object" ? e.seq : null;
+    // Première partie de E-8 pour cet événement : org_id et journal_id de cles.json.
+    const identite = [];
+    if (indexCles.exploitable && e && typeof e === "object") {
+      if (cles.org_id !== e.org_id) identite.push(`cles.json : org_id ${cles.org_id} différent de celui de l'événement ${e.org_id}`);
+      if (cles.journal_id !== e.journal_id) identite.push(`cles.json : journal_id ${cles.journal_id} différent de celui de l'événement ${e.journal_id}`);
+    }
     for (const id of CONTROLES_EVENEMENT) {
       const r = controles[id];
-      if (r.statut !== "echoue") continue;
+      const details = id === "E-8" ? [...identite, ...(r.statut === "echoue" ? r.details : [])] : r.statut === "echoue" ? r.details : [];
+      if (details.length === 0) continue;
       if (id === "E-8" && !indexCles.exploitable) continue;
       let message;
       if (id === "E-7") {
         message = `seq ${seq} : hash recalculé ${hash} différent de hash ${e.hash} (contenu modifié après scellement)`;
       } else if (id === "E-8") {
         const modifie = controles["E-7"].statut === "echoue";
-        message = `seq ${seq} : ${r.details.join(" ; ")}${modifie ? " (contenu modifié)" : ""}`;
+        message = `seq ${seq} : ${details.join(" ; ")}${modifie ? " (contenu modifié)" : ""}`;
       } else {
-        message = `seq ${seq} (position ${position}) : ${r.details.join(" ; ")}`;
+        message = `seq ${seq} (position ${position}) : ${details.join(" ; ")}`;
       }
       diagnostics.push({ type: TYPE_DIAGNOSTIC[id], controle: id, seq, message });
     }

@@ -779,8 +779,9 @@ export const horodatage = (ms) => new Date(ms).toISOString();
 /** Hachage d'un événement : SHA-256(« noortrace/evenement/v0\n » ‖ JCS(E')), E' sans hash ni sig (CT-1 §6.1). */
 export function hachageEvenement(evenement) {
   if (!estObjet(evenement)) throw new ErreurConsole("evenement_invalide");
+  // Membre par membre en propriétés propres : une affectation corps[k] perdrait un membre « __proto__ », hors du hachage.
   const corps = {};
-  for (const k of Object.keys(evenement)) if (k !== "hash" && k !== "sig") corps[k] = evenement[k];
+  for (const k of Object.keys(evenement)) if (k !== "hash" && k !== "sig") Object.defineProperty(corps, k, { value: evenement[k], enumerable: true, writable: true, configurable: true });
   return enHex(sha256(concat(utf8(PREFIXE_EVENEMENT), utf8(jcs(corps)))));
 }
 

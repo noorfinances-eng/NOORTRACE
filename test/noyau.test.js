@@ -338,10 +338,16 @@ describe("Noyau : API publique et refus", function () {
       expect(code('{"a":1} x')).to.equal("syntaxe");
       expect(code('"a\u0001"')).to.equal("syntaxe");
       expect(code("NaN")).to.equal("syntaxe");
-      expect(code("[".repeat(300) + "]".repeat(300))).to.equal("profondeur");
+      expect(code("[".repeat(300) + "]".repeat(300))).to.equal("ok"); // CT-1 §4 ne fixe aucune profondeur
+      expect(code("[".repeat(300) + "]".repeat(300), { profondeurMax: N.PROFONDEUR_CT6 })).to.equal("profondeur");
       expect(code(Uint8Array.of(0xef, 0xbb, 0xbf, 0x31))).to.equal("utf8");
       expect(code(Uint8Array.of(0x22, 0xff, 0x22))).to.equal("utf8");
-      expect(code(Uint8Array.of(0x22, 0xed, 0xa0, 0x80, 0x22))).to.equal("utf8"); // substitut encodé en UTF-8 : invalide
+      // Substitut encodé en UTF-8 (CESU-8) : substitut isolé de §4 (E-2), sauf
+      // si le texte a aussi un autre défaut d'UTF-8.
+      expect(code(Uint8Array.of(0x22, 0xed, 0xa0, 0x80, 0x22))).to.equal("substitut_isole");
+      expect(code(Uint8Array.of(0x22, 0xed, 0xbf, 0xbf, 0x22))).to.equal("substitut_isole");
+      expect(code(Uint8Array.of(0x22, 0xed, 0xa0, 0x80, 0xff, 0x22))).to.equal("utf8");
+      expect(code(Uint8Array.of(0x22, 0xed, 0x9f, 0xbf, 0x22))).to.equal("ok"); // U+D7FF, dernier caractère avant les substituts
       expect(code("1.5", { nombres: "libres" })).to.equal("ok");
       expect(code('"\\ud800"', { substituts: "admis" })).to.equal("ok");
       expect(N.analyserJson("-0")).to.equal(0);
@@ -663,7 +669,13 @@ describe("Noyau : API publique et refus", function () {
       expect(() => N.verifierSeriePointsDeControle(points, { ...MANIFESTE_1, last_seq: 2 ** 53 - 1 }, evs, CLES_EXEMPLE)).to.throw(TypeError, /manifeste non conforme/);
       expect(N.verifierSeriePointsDeControle(points.slice(0, 4), MANIFESTE_1, evs.slice(0, 3), CLES_EXEMPLE).rules_failed).to.include.members(["root", "last_hash"]);
       expect(N.cleEnVigueur(new Map(evs.map((e) => [e.seq, e])), 5)).to.equal("rec-test-02");
-      expect(N.cleEnVigueur(new Map(evs.map((e) => [e.seq, e])), 0)).to.equal("rec-test-01");
+      // Sans l'événement last_seq : règle de §10.1 sur cles.json, à l'instant du point.
+      expect(N.cleEnVigueur(new Map(evs.map((e) => [e.seq, e])), 0)).to.equal(null);
+      const indexCles = N.indexerCles(CLES_EXEMPLE);
+      const a = (t) => N.cleEnVigueur(new Map(), 0, { indexCles, instant: N.decoderHorodatage(t) });
+      expect(a("2026-11-03T13:00:00.000Z")).to.equal("rec-test-01");
+      expect(a("2026-11-03T13:59:59.999Z")).to.equal("rec-test-02"); // valid_from de rec-test-02, borne incluse
+      expect(a("2026-10-31T23:59:59.999Z")).to.equal(null);
     });
   });
 
@@ -997,6 +1009,288 @@ describe("Noyau : API publique et refus", function () {
       const seul = { ...signed, signatures: [signed.signatures[0]] };
       expect(N.verifierAttestationSignee(seul, approver_set).checks[3].status).to.equal("echoue");
       expect(N.verifierAttestationSignee(signed, { ...approver_set, threshold: { required: 4, size: 3 } }).retained).to.equal(false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Non-régression des constats de la relecture de l'étape 1. Chaque cas est
+  // reconstruit ici depuis l'exemple de référence de CT-1 ou les vecteurs de
+  // spec/vecteurs/ct-1 ; aucune donnée n'est lue hors du dépôt.
+  describe("corrections de la relecture (non-régression)", function () {
+    /**
+     * Dossier de référence dont l'événement prouvé seq 4 est remplacé : seq 4
+     * et seq 5 rescellés (rec-test-01), racine, chemin, manifeste et sa
+     * signature (rec-test-02) recalculés. `ecrire` donne les octets d'une
+     * partie (JSON indenté par défaut).
+     */
+    function dossierSeq4(modifier, ecrire = enFichier) {
+      const e4 = N.scellerEvenement(modifier(ev(4)), G1);
+      const e5 = N.scellerEvenement({ ...ev(5), prev_hash: e4.hash }, G1);
+      const hashes = [D5[0], D5[1], D5[2], e4.hash, e5.hash];
+      const manifeste = { ...MANIFESTE_1, root: N.racineMerkle(hashes) };
+      const fichiers = dossierDeReference();
+      fichiers.set("evenement.json", ecrire(e4));
+      fichiers.set("voisins.json", enFichier({ version: 0, previous: ev(3), next: e5 }));
+      fichiers.set("chemin.json", enFichier(N.preuveInclusion(3, hashes)));
+      fichiers.set("manifeste.json", enFichier(manifeste));
+      fichiers.set("manifeste.sig", enFichier(N.signerManifeste(manifeste, G2)));
+      const index = N.analyserJson(fichiers.get("dossier.json"));
+      fichiers.set("dossier.json", enFichier({ ...index, event: { seq: 4, hash: e4.hash } }));
+      return reindexer(fichiers);
+    }
+    // Arguments de seq 4 remplacés par une référence en ligne de valeur v.
+    const argumentsEnLigne = (v) => (e) => {
+      const octets = N.jcsOctets(v);
+      return { ...e, execution: { ...e.execution, arguments: { sha256: N.sha256Hex(octets), length: octets.length, redacted: false, value: v } } };
+    };
+    const imbrique = (n) => N.analyserJson("[".repeat(n) + "]".repeat(n));
+
+    it("constat 1 : série de points d'une période sans événement, journal encore vide (last_seq = 0) : valide", function () {
+      // Première période d'un journal, aucun événement : count = 0, deux points
+      // tree_size = 0, last_hash nul, signés par rec-test-01, seule clé dont
+      // valid_from précède les points (CT-1 §10.5 règles 2 et 5, §10.1).
+      const ORG = EXEMPLE.get(4).org_id;
+      const JOURNAL = "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164";
+      const manifeste = {
+        version: 0, org_id: ORG, journal_id: JOURNAL, period_start: 1793865600, period_end: 1793869200,
+        first_seq: 1, last_seq: 0, count: 0, root: N.ZERO32, prev_period_hash: N.ZERO32, recorder_key_id: "rec-test-01",
+        nonce: "0x" + "42".repeat(32), generated_at: "2026-11-05T09:00:00.100Z",
+      };
+      const cles = {
+        version: 0, org_id: ORG, journal_id: JOURNAL,
+        keys: [
+          { ...CLES_EXEMPLE.keys[0], valid_to: "2026-11-05T09:59:58.000Z" },
+          { ...CLES_EXEMPLE.keys[1], valid_from: "2026-11-05T09:59:58.000Z" },
+        ],
+      };
+      const serie = (cle, graineCle) => {
+        const points = [];
+        for (const ts of ["2026-11-05T08:00:00.000Z", "2026-11-05T09:00:00.100Z"]) {
+          const prev = points.length ? N.hacherPoint(points[points.length - 1]) : N.ZERO32;
+          points.push(N.signerPoint({
+            version: 0, org_id: ORG, journal_id: JOURNAL, period_start: 1793865600, tree_size: 0, root: N.ZERO32,
+            last_seq: 0, last_hash: N.ZERO32, checkpoint_ts: ts, prev_checkpoint_hash: prev, key_id: cle,
+          }, graineCle));
+        }
+        return points;
+      };
+      expect(N.ecartsManifeste(manifeste)).to.deep.equal([]);
+      expect(N.verifierSeriePointsDeControle(serie("rec-test-01", G1), manifeste, [], cles)).to.deep.equal({ valide: true, rules_failed: [], errors: [] });
+      // Une autre clé que celle en vigueur reste refusée.
+      expect(N.verifierSeriePointsDeControle(serie("rec-test-02", G2), manifeste, [], cles).rules_failed).to.deep.equal(["cle_en_vigueur", "validite_cle"]);
+    });
+
+    it("constat 2 : fichier creux de 3 Gio déclaré absent : D-2 en échec, jamais lu ni d'exception ; bornes de CT-6 EX-4.13", function () {
+      expect(N.TAILLES_MAX["jeton-rfc3161.der"]).to.equal(65536);
+      expect(N.TAILLES_MAX["dossier.json"]).to.equal(1048576);
+      expect(N.TAILLES_MAX["evenement.json"]).to.equal(16 * 1048576);
+      expect(N.TAILLES_MAX["points-de-controle.json"]).to.equal(1048576);
+      expect(N.TAILLES_MAX["attestation-perimetre.json"]).to.equal(4 * 1048576);
+      expect(N.PLAFOND_LECTURE).to.equal(64 * 1048576);
+      expect(Object.keys(N.TAILLES_MAX).sort()).to.deep.equal([...N.FICHIERS_DOSSIER].sort());
+      const rep = fs.mkdtempSync(path.join(os.tmpdir(), "noyau-enorme-"));
+      try {
+        for (const [nom, o] of dossierDeReference()) fs.writeFileSync(path.join(rep, nom), o);
+        const enorme = path.join(rep, "jeton-rfc3161.der");
+        fs.writeFileSync(enorme, "");
+        fs.truncateSync(enorme, 3 * 1024 ** 3);
+        const lus = lireRepertoireDossier(rep);
+        expect(lus.get("jeton-rfc3161.der")).to.deep.equal({ taille: 3 * 1024 ** 3, sha256: null });
+        const r = verifierRepertoireDossier(rep);
+        expect(r.verdict).to.equal("invalide");
+        expect(r.controles_en_echec).to.deep.equal(["D-2"]);
+        expect(statut(r, "D-2").details[0]).to.match(/jeton-rfc3161\.der déclaré absent, présent/);
+      } finally {
+        fs.rmSync(rep, { recursive: true, force: true });
+      }
+    });
+
+    it("constat 2 : partie déclarée présente au-delà de sa limite : échec du contrôle porteur, SHA-256 non lu", function () {
+      const f = dossierDeReference();
+      f.set("evenement.json", new Uint8Array(N.TAILLES_MAX["evenement.json"] + 1));
+      const r = N.verifierDossier(f);
+      expect(r.controles_en_echec).to.deep.equal(["E-1"]);
+      expect(statut(r, "E-1").details[0]).to.match(/au-delà de sa limite/);
+      expect(statut(r, "D-2").statut).to.equal("reussi");
+      expect(statut(r, "D-2").details[0]).to.match(/SHA-256 non calculé/);
+      // Même lecture pour un fichier non lu rendu par lireRepertoireDossier.
+      const g = dossierDeReference();
+      g.set("chemin.json", { taille: 17 * 1048576, sha256: null });
+      expect(N.verifierDossier(g).controles_en_echec).to.deep.equal(["M-2"]);
+      const h = dossierDeReference();
+      h.set("dossier.json", new Uint8Array(1048577));
+      expect(N.verifierDossier(h)).to.include({ utilisable: true, verdict: "invalide" });
+      expect(N.verifierDossier(h).controles_en_echec).to.deep.equal(["D-1"]);
+    });
+
+    it("constat 2 : attestation-perimetre.json creuse au-delà de 4 Mio (SHA-256 en flux, AT-1) et au-delà de 64 Mio (inutilisable)", function () {
+      const rep = fs.mkdtempSync(path.join(os.tmpdir(), "noyau-attestation-"));
+      try {
+        const fichiers = dossierDeReference({ attestation: true });
+        const partie = structuredClone(blocs("points_de_controle")[0]);
+        partie.anchors.rfc3161 = null;
+        fichiers.set("points-de-controle.json", enFichier(partie));
+        for (const [nom, o] of reindexer(fichiers)) fs.writeFileSync(path.join(rep, nom), o);
+        expect(verifierRepertoireDossier(rep).verdict).to.equal("valide");
+        const chemin = path.join(rep, "attestation-perimetre.json");
+        fs.truncateSync(chemin, 5 * 1048576); // 5 Mio : octets d'origine puis zéros
+        const lu = lireRepertoireDossier(rep).get("attestation-perimetre.json");
+        const attendu = createHash("sha256");
+        attendu.update(fs.readFileSync(chemin));
+        expect(lu).to.deep.equal({ taille: 5 * 1048576, sha256: "0x" + attendu.digest("hex") });
+        const r = verifierRepertoireDossier(rep);
+        expect(r.controles_en_echec).to.deep.equal(["D-2"]);
+        expect(r.perimetre.verifications[0].status).to.equal("echoue");
+        fs.truncateSync(chemin, 64 * 1048576 + 1);
+        const r2 = verifierRepertoireDossier(rep);
+        expect(r2).to.include({ utilisable: false, verdict: null });
+        expect(r2.erreur).to.match(/^taille_depassee/);
+      } finally {
+        fs.rmSync(rep, { recursive: true, force: true });
+      }
+    });
+
+    it("constat 3 : aucune profondeur maximale par défaut ; option profondeurMax ; 100 000 niveaux sans débordement de pile", function () {
+      // 128 niveaux admis et 129 refusés avec la borne de CT-6 ; 260 admis sans borne.
+      expect(() => N.analyserJson("[".repeat(128) + "]".repeat(128), { profondeurMax: N.PROFONDEUR_CT6 })).not.to.throw();
+      expect(() => N.analyserJson("[".repeat(129) + "]".repeat(129), { profondeurMax: N.PROFONDEUR_CT6 })).to.throw(N.ErreurJson, /imbrication/);
+      expect(N.jcs(imbrique(260))).to.equal("[".repeat(260) + "]".repeat(260));
+      expect(() => N.jcs(imbrique(129), { profondeurMax: 128 })).to.throw(N.ErreurJson);
+      expect(() => N.analyserJson("[]", { profondeurMax: -1 })).to.throw(TypeError);
+      const cycle = { a: 1 };
+      cycle.b = cycle;
+      expect(() => N.jcs(cycle)).to.throw(N.ErreurJson, /cyclique/);
+      // 100 000 niveaux : lecture, forme canonique et égalité itératives.
+      const texte = '{"a":'.repeat(50000) + "[".repeat(50000) + "]".repeat(50000) + "}".repeat(50000);
+      const profond = N.analyserJson(texte);
+      expect(N.jcs(profond)).to.equal(texte);
+      expect(N.canoniserTexte(texte)).to.equal(texte);
+      expect(N.egaliteJson(profond, N.analyserJson(texte))).to.equal(true);
+      expect(N.egaliteJson(profond, imbrique(100000))).to.equal(false);
+      expect(N.canoniserTexte(texte, { profondeurMax: N.PROFONDEUR_CT6 })).to.equal(null);
+    });
+
+    it("constat 3 : événement conforme dont une valeur est imbriquée sur 260 niveaux, puis sur 100 000 : valide ; refusé (E-1) sous la borne de CT-6", function () {
+      const f260 = dossierSeq4(argumentsEnLigne(imbrique(260)));
+      const r = N.verifierDossier(f260);
+      expect(r.verdict, JSON.stringify(r.controles_en_echec)).to.equal("valide");
+      expect(N.verifierDossier(f260, { profondeurMax: N.PROFONDEUR_CT6 }).controles_en_echec).to.deep.equal(["E-1"]);
+      // JSON.stringify ne sait pas écrire 100 000 niveaux : la partie est écrite par jcs.
+      const f100k = dossierSeq4(argumentsEnLigne(imbrique(100000)), (o) => N.utf8(N.jcs(o)));
+      let r100k;
+      expect(() => (r100k = N.verifierDossier(f100k))).not.to.throw();
+      expect(r100k.verdict, JSON.stringify(r100k.controles_en_echec)).to.equal("valide");
+    });
+
+    it("constat 3 : document de politique imbriqué sur 300 niveaux (valide-seq-13-at7-autre-version) : AT-6 réussie ; refusée sous la borne de CT-6", function () {
+      const rep = path.join(RACINE, "spec", "vecteurs", "ct-1", "dossiers", "valide-seq-13-at7-autre-version");
+      const fichiers = new Map(fs.readdirSync(rep).filter((n) => n !== "attendu.json").map((n) => [n, Uint8Array.from(fs.readFileSync(path.join(rep, n)))]));
+      const partie = N.analyserJson(fichiers.get("attestation-perimetre.json"));
+      const ancien = N.analyserJson(Buffer.from(partie.inscription.policy_document, "base64").toString("utf8"));
+      const document = N.utf8(`{"perimeter":${N.jcs(ancien.perimeter)},"profond":${"[".repeat(300)}${"]".repeat(300)},"version":${JSON.stringify(ancien.version)}}`);
+      const ins = structuredClone(partie.inscription.event);
+      const valeur = { ...ins.execution.arguments.value, policy_sha256: N.sha256Hex(document) };
+      const octets = N.jcsOctets(valeur);
+      ins.execution.arguments = { sha256: N.sha256Hex(octets), length: octets.length, redacted: false, value: valeur };
+      expect(ins.recorder_key_id).to.equal("rec-test-02");
+      partie.inscription = { event: N.scellerEvenement(ins, G2), policy_document: N.encoderBase64(document) };
+      fichiers.set("attestation-perimetre.json", enFichier(partie));
+      const r = N.verifierDossier(reindexer(fichiers));
+      expect(r.verdict).to.equal("valide");
+      expect(r.perimetre.verifications.find((v) => v.id === "AT-6").status).to.equal("reussi");
+      const borne = N.verifierDossier(fichiers, { profondeurMax: N.PROFONDEUR_CT6 });
+      expect(borne.verdict).to.equal("valide");
+      expect(borne.perimetre.verifications.find((v) => v.id === "AT-6").status).to.equal("echoue");
+    });
+
+    it("constat 4 : K-1 contrôle le schéma de la partie même quand P-1 échoue", function () {
+      const essai = (modifierPoint) => {
+        const fichiers = dossierDeReference({ points: true });
+        const partie = structuredClone(blocs("points_de_controle")[0]);
+        modifierPoint(partie);
+        fichiers.set("points-de-controle.json", enFichier(partie));
+        fichiers.set("manifeste.json", N.utf8("42"));
+        return N.verifierDossier(reindexer(fichiers));
+      };
+      const defaut = essai((p) => (p.checkpoint.tree_size = "4"));
+      expect(defaut.controles_en_echec).to.deep.equal(["P-1", "K-1"]);
+      expect(defaut.non_executes_bloquants.filter((id) => id.startsWith("K-"))).to.deep.equal(["K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"]);
+      const temoin = essai(() => {});
+      expect(temoin.controles_en_echec).to.deep.equal(["P-1"]);
+      expect(statut(temoin, "K-1")).to.include({ statut: "non_execute", raison: "prerequis_en_echec" });
+    });
+
+    it("constat 5 : un premier événement altéré ne fait pas disparaître les E-8 des autres événements", function () {
+      const j = [1, 2, 3, 4, 5].map(ev);
+      j[0] = { ...j[0], org_id: "0x" + "ab".repeat(32) };
+      j[2] = N.scellerEvenement(j[2], G2); // seq 3 signée par une autre clé que rec-test-01
+      const r = N.verifierJournal(j, CLES_EXEMPLE);
+      const vus = r.diagnostics.map((d) => `${d.controle}:${d.seq}`);
+      expect(vus).to.include.members(["E-7:1", "E-8:1", "E-8:3", "C-1:2", "C-2:2"]);
+      expect(vus.filter((v) => v.startsWith("E-8"))).to.deep.equal(["E-8:1", "E-8:3"]);
+      expect(r.diagnostics.find((d) => d.controle === "E-8" && d.seq === 1).message).to.match(/cles\.json : org_id .* différent de celui de l'événement/);
+      expect(r.controles_en_echec).to.deep.equal(["E-7", "E-8", "C-1", "C-2"]);
+    });
+
+    it("constat 6 : treizième partie sans forme canonique (E-2) ou déclarée présente mais manquante (D-2 seul)", function () {
+      const fichiers = dossierDeReference({ points: true });
+      const texte = new TextDecoder().decode(fichiers.get("points-de-controle.json")).replace('"version": 0,', '"version": 0,\n  "version": 0,');
+      fichiers.set("points-de-controle.json", N.utf8(texte));
+      const r = N.verifierDossier(reindexer(fichiers));
+      expect(r.controles_en_echec).to.deep.equal(["E-2"]);
+      expect(statut(r, "E-2").details[0]).to.match(/points-de-controle\.json sans forme canonique/);
+      expect(r.non_executes_bloquants).to.deep.equal(["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"]);
+      // La même règle pour toute partie : chemin.json sans forme canonique → E-2.
+      const g = dossierDeReference();
+      g.set("chemin.json", N.utf8('{"version":0,"version":0}'));
+      expect(N.verifierDossier(reindexer(g)).controles_en_echec).to.deep.equal(["E-2"]);
+      // Partie déclarée présente, fichier absent : D-2 seul, comme evenement.json manquant.
+      const manquant = (nom, options) => {
+        const f = dossierDeReference(options);
+        f.delete(nom);
+        return N.verifierDossier(f);
+      };
+      const k = manquant("points-de-controle.json", { points: true });
+      expect(k.controles_en_echec).to.deep.equal(["D-2"]);
+      expect(statut(k, "K-1")).to.include({ statut: "non_execute", raison: "partie_manquante" });
+      expect(k.non_executes_bloquants.filter((id) => id.startsWith("K-"))).to.have.length(9);
+      expect(manquant("evenement.json").controles_en_echec).to.deep.equal(["D-2"]);
+      const c = manquant("cles.json");
+      expect(c.controles_en_echec).to.deep.equal(["D-2"]);
+      expect(statut(c, "E-8")).to.include({ statut: "non_execute", raison: "partie_manquante" });
+      const a = manquant("approbations.json");
+      expect(a.controles_en_echec).to.deep.equal(["D-2"]);
+      expect(statut(a, "A-1")).to.include({ statut: "non_execute", raison: "partie_manquante" });
+    });
+
+    it("constat 7 : ecartsManifeste refuse un org_id ou un journal_id nul", function () {
+      expect(N.ecartsManifeste({ ...MANIFESTE_1, journal_id: N.ZERO32 })).to.deep.equal(["journal_id nul"]);
+      expect(N.ecartsManifeste({ ...MANIFESTE_1, org_id: N.ZERO32 })).to.deep.equal(["org_id nul"]);
+    });
+
+    it("lectures alignées sur le texte : substitut CESU-8 → E-2 (BOM, octet invalide → E-1) ; signature sans approbateur → E-5 et E-9", function () {
+      const avecOctets = (avant, octets) => {
+        const f = dossierDeReference();
+        const texte = new TextDecoder().decode(f.get("evenement.json")).replace('"service-sinistres"', '"service-sinistres@@"');
+        const [a, b] = texte.split("@@");
+        f.set("evenement.json", N.concatener(avant, N.utf8(a), octets, N.utf8(b)));
+        return N.verifierDossier(reindexer(f));
+      };
+      expect(avecOctets(new Uint8Array(0), Uint8Array.of(0xed, 0xa0, 0x80)).controles_en_echec).to.deep.equal(["E-2"]);
+      expect(avecOctets(new Uint8Array(0), Uint8Array.of(0xff)).controles_en_echec).to.deep.equal(["E-1"]);
+      expect(avecOctets(Uint8Array.of(0xef, 0xbb, 0xbf), new Uint8Array(0)).controles_en_echec).to.deep.equal(["E-1"]);
+      // Pour chaque i de signatures : une signature de trop échoue aussi à E-9.
+      const e = ev(4);
+      e.approval.signatures.push(e.approval.signatures[0]);
+      const r = N.controlerEvenement(e, {}).controles;
+      expect(r["E-5"].statut).to.equal("echoue");
+      expect(r["E-9"].statut).to.equal("echoue");
+      expect(r["E-9"].details).to.deep.equal([`signatures[2] recouvre ${e.approval.approvers[0]}, sans approvers[2]`]);
+      // Un approbateur sans signature relève de E-5 seul.
+      const f = ev(4);
+      f.approval.signatures.pop();
+      const r2 = N.controlerEvenement(f, {}).controles;
+      expect([r2["E-5"].statut, r2["E-9"].statut]).to.deep.equal(["echoue", "reussi"]);
     });
   });
 

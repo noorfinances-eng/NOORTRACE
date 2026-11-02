@@ -51,6 +51,24 @@
           "apres": "0c35179832574be87f7422370fab80bd581ea60998bb0a9ce64f562b86eacf7b"
         }
       ]
+    },
+    {
+      "id": "MC-2",
+      "date": "2026-11-02",
+      "etape": 1,
+      "motif": "Corrections de la relecture de l'étape 1 : tests de non-régression ajoutés à test/journal.test.js, test/approbation.test.js, test/console.test.js et test/noyau.test.js ; empreintes des fichiers de test dans couverture.json et comptes de la sortie publiée du recomptage Python mis à jour. Aucune exigence ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "4c5669466edbf395278b2d837abc7bd6cf9b6dbf7dedc5a834653fdf8cf038bc",
+          "apres": "edd6b254a8585a74f0cab24d264d81918e0fe235fad80d3a5994f9e777119ef2"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "b109c57b4a83f9f941fc5ca0dff619bb3b9f58d88de4df79dc8c2cd648b423f9",
+          "apres": "cef1c0e9b4de79647c03d9b02883bac926a18d1b496103abb4d9b939445af68d"
+        }
+      ]
     }
   ]
 }

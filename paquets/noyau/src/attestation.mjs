@@ -150,6 +150,8 @@ export function verifierAttestationSignee(signee, jeu) {
  * @property {object|null} evenement l'événement prouvé, s'il est exploitable (E-1 et E-2 réussies sur evenement.json)
  * @property {{exploitable: boolean, cles: Map<string, object>}|null} indexCles cles.json lu
  * @property {object|null} approbations approbations.json exploitable, ou null
+ * @property {number} [profondeurMax] borne d'imbrication des JSON lus (partie et document de politique) ;
+ *   aucune par défaut (CT-1 §4 n'en fixe pas)
  */
 
 /**
@@ -174,7 +176,7 @@ export function verifierPartieAttestation(octets, contexte) {
     ecarts1.push(`partie de ${octets.length} octets, au-delà de 4 Mio`);
   } else {
     try {
-      partie = analyserJson(octets);
+      partie = analyserJson(octets, { profondeurMax: contexte.profondeurMax });
     } catch (e) {
       if (!(e instanceof ErreurJson)) throw e;
       ecarts1.push(`partie illisible : ${e.message}`);
@@ -234,7 +236,7 @@ export function verifierPartieAttestation(octets, contexte) {
   } else if (v.at2.status !== "reussi" || !evenement || !indexCles?.exploitable) {
     poser(statut("AT-6", "non_execute", "prerequis_en_echec"));
   } else {
-    poser(verifierInscription(partie.inscription, evenement, indexCles, v.digest));
+    poser(verifierInscription(partie.inscription, evenement, indexCles, v.digest, contexte.profondeurMax));
   }
 
   // AT-7 : version de politique.
@@ -251,7 +253,7 @@ export function verifierPartieAttestation(octets, contexte) {
   return conclure(res, partie, contexte, v.digest);
 }
 
-function verifierInscription(inscription, evenement, indexCles, digest) {
+function verifierInscription(inscription, evenement, indexCles, digest, profondeurMax) {
   const ins = inscription.event;
   const ecarts = [];
   const { controles, hash } = controlerEvenement(ins, { indexCles });
@@ -271,7 +273,7 @@ function verifierInscription(inscription, evenement, indexCles, digest) {
     if (!valeur || sha256Hex(document) !== valeur.policy_sha256) ecarts.push("SHA-256 du document de politique différent de policy_sha256");
     let doc = null;
     try {
-      doc = analyserJson(decoderUtf8(document), { nombres: "libres", substituts: "admis" });
+      doc = analyserJson(decoderUtf8(document), { nombres: "libres", substituts: "admis", profondeurMax });
     } catch (e) {
       if (!(e instanceof ErreurJson)) throw e;
       ecarts.push(`document de politique : ${e.message}`);

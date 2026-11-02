@@ -111,18 +111,29 @@ export function coherencePoint(treeSize, hashesPeriode) {
 }
 
 /**
- * Clé en vigueur après l'événement de seq `lastSeq` (CT-1 §10.5, règle 5) :
- * la clé de cet événement, ou new_key_id s'il est une rotation. Sans
- * événement (lastSeq = 0), la clé du premier événement du journal.
+ * Clé en vigueur d'un point (CT-1 §10.5, règle 5, qui renvoie à la règle de
+ * `recorder_key_id` du manifeste, §10.1) : la clé de l'événement `lastSeq`,
+ * ou son new_key_id s'il est une rotation. Sans cet événement (journal encore
+ * vide, last_seq = 0, ou événement non fourni), la règle de §10.1 telle
+ * qu'écrite : la dernière clé annoncée dont valid_from ≤ l'instant du point,
+ * c'est-à-dire, dans cles.json, la clé de plus grand valid_from ≤ instant (à
+ * valid_from égal, la dernière du fichier).
  * @param {Map<number, object>} parSeq événements indexés par seq
  * @param {number} lastSeq
- * @returns {string|null}
+ * @param {{indexCles?: {exploitable: boolean, cles: Map<string, import("./cles.mjs").CleIndexee>}|null, instant?: number|null}} [contexte]
+ *   cles.json lu par indexerCles et instant du point (checkpoint_ts, en millisecondes), pour la règle de §10.1
+ * @returns {string|null} null si aucune clé ne se déduit
  */
-export function cleEnVigueur(parSeq, lastSeq) {
+export function cleEnVigueur(parSeq, lastSeq, contexte = {}) {
   const e = parSeq.get(lastSeq);
   if (e) return nouvelleCle(e) ?? e.recorder_key_id;
-  if (lastSeq === 0) return parSeq.get(1)?.recorder_key_id ?? null;
-  return null;
+  const { indexCles, instant } = contexte;
+  if (!indexCles?.exploitable || typeof instant !== "number") return null;
+  let retenue = null;
+  for (const cle of indexCles.cles.values()) {
+    if (cle.debut !== null && cle.debut <= instant && (retenue === null || cle.debut >= retenue.debut)) retenue = cle;
+  }
+  return retenue?.key_id ?? null;
 }
 
 /**
@@ -197,7 +208,7 @@ export function verifierSeriePointsDeControle(points, manifeste, evenements, cle
     if (lastHash === null) ecart("last_hash", `${ici} : événement ${p.last_seq} inconnu, last_hash invérifiable`);
     else if (p.last_hash !== lastHash) ecart("last_hash", `${ici} : last_hash ${p.last_hash} différent du hash de l'événement ${p.last_seq} (${lastHash})`);
 
-    const attendue = cleEnVigueur(parSeq, p.last_seq);
+    const attendue = cleEnVigueur(parSeq, p.last_seq, { indexCles: index, instant: ts });
     if (p.key_id !== attendue) ecart("cle_en_vigueur", `${ici} : key_id ${p.key_id}, clé en vigueur attendue ${attendue}`);
     const cle = index.exploitable ? index.cles.get(p.key_id) : undefined;
     if (!cle || !verifierSignaturePoint(p, cle.octets)) ecart("signature", `${ici} : signature invalide sous ${p.key_id}`);

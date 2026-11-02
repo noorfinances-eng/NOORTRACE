@@ -158,6 +158,18 @@ const PETIT_ORDRE_ED25519 = new Set([
   "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
   "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc85",
 ]);
+/** d = -121665/121666 mod p (RFC 8032 §5.1). */
+const D_ED25519 = 37095705934669439343138083508754565189542113879843219016388785533085940283555n;
+/** Racine carrée de -1 modulo p : 2^((p-1)/4) (RFC 8032 §5.1.3, pas 3). */
+const RACINE_MOINS_UN_ED25519 = 19681161376707505956807079304988542015446066515923890162744021073123829784752n;
+/**
+ * Coordonnées y des huit points de petit ordre, tirées de leurs encodages
+ * canoniques (bit de signe effacé) : y = 1 (neutre), p - 1 (ordre 2), 0 (ordre 4)
+ * et les deux valeurs des points d'ordre 8. Comparer y, et non les 32 octets,
+ * couvre aussi les encodages au bit de signe inversé (x = 0 avec bit de signe 1
+ * pour y = 1 et y = p - 1, refusés par ailleurs au décodage).
+ */
+const Y_PETIT_ORDRE_ED25519 = new Set([...PETIT_ORDRE_ED25519].map((h) => BigInt("0x" + Buffer.from(h, "hex").reverse().toString("hex")) & ((1n << 255n) - 1n)));
 const PKCS8_ED25519 = Buffer.from("302e020100300506032b657004220420", "hex");
 const SPKI_ED25519 = Buffer.from("302a300506032b6570032100", "hex");
 
@@ -603,18 +615,61 @@ export function signerEd25519(cle, message) {
   return hex(signerCrypto(null, enOctets(message), privee));
 }
 
+/** a^e mod p (exponentiation rapide, entiers BigInt positifs). */
+function puissanceModP(a, e) {
+  let r = 1n;
+  let b = a % P_ED25519;
+  while (e > 0n) {
+    if (e & 1n) r = (r * b) % P_ED25519;
+    b = (b * b) % P_ED25519;
+    e >>= 1n;
+  }
+  return r;
+}
+
 /**
- * Vérification Ed25519 : signature de 64 octets dont S est réduit modulo l'ordre
- * du groupe, clé publique canonique (y < p) qui n'est pas de petit ordre, puis
- * vérification RFC 8032 §5.1.7. Rend false sur toute entrée malformée.
+ * Vrai si les 32 octets (hex 0x minuscule) sont une clé publique Ed25519
+ * admise : encodage canonique décodable selon la RFC 8032 §5.1.3 (y < p, x
+ * existe, et non « x = 0 avec bit de signe 1 », pas 4) et point qui n'est pas
+ * l'un des huit points de petit ordre de CT-1 §6.2 et annexe B, quel que soit
+ * le bit de signe de son encodage. Une clé d'ordre mixte reste admise (CT-1
+ * §6.2 ne l'exclut pas). Ce contrôle précède toute vérification : une
+ * bibliothèque qui décode sans le pas 4 accepte sinon, sous l'encodage
+ * 01 00…00 80 du point neutre, la signature R = B, S = 1 pour tout message.
+ */
+export function clePubliqueEd25519Admise(clePubliqueHex) {
+  if (!estHex32(clePubliqueHex)) return false;
+  const pub = octets(clePubliqueHex);
+  const signe = pub[31] >> 7;
+  const y = BigInt("0x" + Buffer.from(pub).reverse().toString("hex")) & ((1n << 255n) - 1n);
+  // RFC 8032 §5.1.3, pas 1 : y >= p fait échouer le décodage (pas de réduction).
+  if (y >= P_ED25519) return false;
+  // CT-1 §6.2 : A ne doit pas être de petit ordre (8·A = 0), encodage canonique ou non.
+  if (Y_PETIT_ORDRE_ED25519.has(y)) return false;
+  // RFC 8032 §5.1.3, pas 2 et 3 : x² = (y² - 1) / (d·y² + 1) doit avoir une racine.
+  const y2 = (y * y) % P_ED25519;
+  const u = (y2 - 1n + P_ED25519) % P_ED25519;
+  const v = (D_ED25519 * y2 + 1n) % P_ED25519;
+  const x2 = (u * puissanceModP(v, P_ED25519 - 2n)) % P_ED25519;
+  let x = puissanceModP(x2, (P_ED25519 + 3n) / 8n);
+  if ((x * x) % P_ED25519 !== x2) x = (x * RACINE_MOINS_UN_ED25519) % P_ED25519;
+  if ((x * x) % P_ED25519 !== x2) return false;
+  // RFC 8032 §5.1.3, pas 4 : x = 0 avec bit de signe 1 fait échouer le décodage.
+  if (x === 0n && signe === 1) return false;
+  return true;
+}
+
+/**
+ * Vérification Ed25519 : clé publique admise (clePubliqueEd25519Admise :
+ * encodage canonique décodable, point qui n'est pas de petit ordre), signature
+ * de 64 octets dont S est réduit modulo l'ordre du groupe, puis vérification
+ * RFC 8032 §5.1.7. Rend false sur toute entrée malformée.
  */
 export function verifierEd25519(clePubliqueHex, message, signatureHex) {
   if (!estHex32(clePubliqueHex) || typeof signatureHex !== "string" || !/^0x[0-9a-f]{128}$/.test(signatureHex)) return false;
+  if (!clePubliqueEd25519Admise(clePubliqueHex)) return false;
   const pub = octets(clePubliqueHex);
   const sig = octets(signatureHex);
-  const y = BigInt("0x" + Buffer.from(pub).reverse().toString("hex")) & ((1n << 255n) - 1n);
-  if (y >= P_ED25519) return false;
-  if (PETIT_ORDRE_ED25519.has(pub.toString("hex"))) return false;
   const s = BigInt("0x" + Buffer.from(sig.subarray(32)).reverse().toString("hex"));
   if (s >= L_ED25519) return false;
   try {
@@ -629,11 +684,21 @@ export function verifierEd25519(clePubliqueHex, message, signatureHex) {
 // Événement : corps, hachage, signature
 // ---------------------------------------------------------------------------
 
-/** E' : l'événement privé de hash et sig (CT-1 §6.1). */
+/**
+ * Pose `valeur` comme propriété propre `cle` de `objet`, y compris pour un
+ * membre « __proto__ » : l'affectation `objet[cle] = valeur` appellerait
+ * l'accesseur hérité d'Object.prototype, changerait le prototype et perdrait le
+ * membre, qui échapperait alors au hachage et à la signature.
+ */
+function poserMembre(objet, cle, valeur) {
+  Object.defineProperty(objet, cle, { value: valeur, enumerable: true, writable: true, configurable: true });
+}
+
+/** E' : l'événement privé de hash et sig (CT-1 §6.1), tous ses autres membres compris (« __proto__ » aussi). */
 export function corpsEvenement(evenement) {
   if (!evenement || typeof evenement !== "object" || Array.isArray(evenement)) throw new ErreurFormat("événement : objet attendu", "E-1");
   const corps = {};
-  for (const k of Object.keys(evenement)) if (k !== "hash" && k !== "sig") corps[k] = evenement[k];
+  for (const k of Object.keys(evenement)) if (k !== "hash" && k !== "sig") poserMembre(corps, k, evenement[k]);
   return corps;
 }
 
@@ -668,8 +733,8 @@ export function verifierSignatureEvenement(evenement, clePubliqueHex) {
  */
 export function scellerEvenement(corps, cle) {
   const ordonne = {};
-  for (const k of CLES_EVENEMENT) if (k !== "hash" && k !== "sig") ordonne[k] = corps[k];
-  for (const k of Object.keys(corps)) if (!(k in ordonne) && k !== "hash" && k !== "sig") ordonne[k] = corps[k];
+  for (const k of CLES_EVENEMENT) if (k !== "hash" && k !== "sig") poserMembre(ordonne, k, corps[k]);
+  for (const k of Object.keys(corps)) if (!Object.hasOwn(ordonne, k) && k !== "hash" && k !== "sig") poserMembre(ordonne, k, corps[k]);
   ordonne.hash = hachageEvenement(ordonne);
   ordonne.sig = signerEvenement(ordonne, cle);
   return ordonne;
@@ -815,7 +880,7 @@ export function verifierSignatureApprobation(A, signatureHex, adresseAttendue) {
 /** R : l'annonce de rotation sans counter_sig. */
 export function objetRotation(value) {
   const R = {};
-  for (const k of Object.keys(value)) if (k !== "counter_sig") R[k] = value[k];
+  for (const k of Object.keys(value)) if (k !== "counter_sig") poserMembre(R, k, value[k]);
   return R;
 }
 
@@ -1325,8 +1390,8 @@ export function construirePointDeControle({ org_id, journal_id, period_start, fi
 /** K' : le point privé de sa clé sig (onze clés), dans l'ordre de présentation. */
 export function corpsPointDeControle(point) {
   const corps = {};
-  for (const k of CLES_POINT_DE_CONTROLE) if (k !== "sig" && point[k] !== undefined) corps[k] = point[k];
-  for (const k of Object.keys(point ?? {})) if (k !== "sig" && !(k in corps)) corps[k] = point[k];
+  for (const k of CLES_POINT_DE_CONTROLE) if (k !== "sig" && point[k] !== undefined) poserMembre(corps, k, point[k]);
+  for (const k of Object.keys(point ?? {})) if (k !== "sig" && !Object.hasOwn(corps, k)) poserMembre(corps, k, point[k]);
   return corps;
 }
 

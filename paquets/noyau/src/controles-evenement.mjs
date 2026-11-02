@@ -223,8 +223,10 @@ export function controlerEvenement(e, contexte = {}) {
       ecarts9.push(`objet signé A incalculable (${err.message})`);
     }
     if (DA) {
-      const n = Math.min(e.approval.signatures.length, e.approval.approvers.length);
-      for (let i = 0; i < n; i++) {
+      // « Pour chaque i, l'adresse recouvrée de signatures[i] = approvers[i] » :
+      // i parcourt les signatures ; une signature sans approvers[i] échoue
+      // (E-9, en plus de E-5) ; un approbateur sans signature relève de E-5.
+      for (let i = 0; i < e.approval.signatures.length; i++) {
         const sig = e.approval.signatures[i];
         if (!estHex(sig, 65)) {
           ecarts9.push(`signatures[${i}] : 65 octets en hexadécimal minuscule attendus`);
@@ -232,6 +234,7 @@ export function controlerEvenement(e, contexte = {}) {
         }
         const { adresse, canonique: canon, raison } = recouvrerAdresseEip191(DA, hexVersOctets(sig));
         if (!canon) ecarts9.push(`signatures[${i}] non canonique : ${raison}`);
+        else if (i >= e.approval.approvers.length) ecarts9.push(`signatures[${i}] recouvre ${adresse}, sans approvers[${i}]`);
         else if (adresse !== e.approval.approvers[i]) ecarts9.push(`signatures[${i}] recouvre ${adresse}, approvers[${i}] vaut ${e.approval.approvers[i]}`);
       }
     }

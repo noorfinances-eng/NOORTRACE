@@ -2112,8 +2112,8 @@ export function demandeursFixes(hotes) {
  */
 export function messageCharger({ org_id, journal_id, environment, policy_version, policy_sha256, approval, tools, hotes = [] }) {
   exiger(estObjet(approval), "approval : /policy/approval attendu");
-  const sansService = {};
-  for (const [k, v] of Object.entries(approval)) if (k !== "service") sansService[k] = copie(v);
+  // Object.fromEntries pose chaque membre en propriété propre, « __proto__ » compris (une affectation le perdrait).
+  const sansService = Object.fromEntries(Object.entries(approval).filter(([k]) => k !== "service").map(([k, v]) => [k, copie(v)]));
   const outils = (tools ?? []).map((t) => ({ tool_announced: t.tool_announced, tool_original: t.tool_original, server_alias: t.server_alias, class: t.class, effects: t.effects === undefined ? null : copie(t.effects) }));
   outils.sort((a, b) => comparerUtf16(a.tool_announced, b.tool_announced));
   return { org_id, journal_id, environment, policy_version, policy_sha256, approval: sansService, tools: outils, requesters: demandeursFixes(hotes) };
