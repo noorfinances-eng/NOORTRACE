@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+// Démon noortrace (CT-2) : voir src/cli.mjs.
+import { lancer } from "../src/cli.mjs";
+
+lancer();

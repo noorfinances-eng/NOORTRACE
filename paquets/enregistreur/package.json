@@ -1,0 +1,29 @@
+{
+  "name": "@noortrace/enregistreur",
+  "version": "0.1.0",
+  "description": "Cœur de l'enregistreur NOORTRACE (démon noortrace, CT-2 version 0.6) : construction et scellement des événements CT-1, sérialisation des pièces, écrivain unique, segments en ajout seul, journal d'intention et reprise, clôture des périodes et points de contrôle, signataires, configuration, supervision.",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "noortrace": "bin/noortrace"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./factice": "./src/service-approbation-factice.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schemas",
+    "LISEZMOI.md",
+    "INTERFACES.md"
+  ],
+  "dependencies": {
+    "@noortrace/noyau": "0.1.0"
+  }
+}

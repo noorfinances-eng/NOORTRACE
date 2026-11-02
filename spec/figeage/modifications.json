@@ -206,6 +206,24 @@
           "apres": "96359117bfb306b595c02b8f6b7e71d53d12508db5c06727699c052170fa5fd8"
         }
       ]
+    },
+    {
+      "id": "MC-7",
+      "date": "2026-11-02",
+      "etape": 4,
+      "motif": "Étape 4, premier lot (cœur de l'enregistreur, paquets/enregistreur) : six fichiers de test ajoutés ; empreintes des fichiers de test dans couverture.json et comptes de la sortie publiée du recomptage Python mis à jour. Aucune exigence ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "cc7c01c5c019fa3dae8d1b7bc4405c5335146e242e18c9d4a2ddfc83a91e86e5",
+          "apres": "7a8f5c9d3bf24c5a139d2db1e974030d1953867391acb9dcbdfbba0aabaedee5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "96359117bfb306b595c02b8f6b7e71d53d12508db5c06727699c052170fa5fd8",
+          "apres": "eb2167f11f5b2a941fcaf954e0c785603992f340c8107cf3c598d63db6bcc414"
+        }
+      ]
     }
   ]
 }

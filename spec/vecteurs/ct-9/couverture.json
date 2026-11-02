@@ -91,6 +91,30 @@
         "sha256": "a6dc6b4150c05861b95931a5f069156f67ef0cf5d9e9aab2ddce998c6732c7bd"
       },
       {
+        "file": "test/enregistreur-coeur-annexe-a.test.js",
+        "sha256": "70b8318fdb359fc05c692b4ed9c3a16ce35694a5dc78cb12d87122c4428911f0"
+      },
+      {
+        "file": "test/enregistreur-coeur-approbations.test.js",
+        "sha256": "98e380a854b6cdda67ab19e47b1d68e740e21c616b5e339613ddd7a1ff4ff146"
+      },
+      {
+        "file": "test/enregistreur-coeur-config.test.js",
+        "sha256": "0e5e6034b41b29f58a2f4dd68b0c6573bf3812ccddb6f0d5548e3dbb347083e1"
+      },
+      {
+        "file": "test/enregistreur-coeur-journal.test.js",
+        "sha256": "9cae33968ab3269cbf872e0d92709ecac68e05dfd118ce8eedad301e102355cb"
+      },
+      {
+        "file": "test/enregistreur-coeur-reprise.test.js",
+        "sha256": "ed8be7d97bd0fd7763d6d44c8316956312ca1207901ceaed62b0a0cf167448f5"
+      },
+      {
+        "file": "test/enregistreur-coeur-vecteurs.test.js",
+        "sha256": "29f64fba7a71e59a2e0d1543a2dcc78bd2daba635b079720025898f5cdb18b52"
+      },
+      {
         "file": "test/enregistreur-r05.test.js",
         "sha256": "55935ae269e77138f62aa8c968ca39322ff8453916329c9c43c004688df2ceb5"
       },
