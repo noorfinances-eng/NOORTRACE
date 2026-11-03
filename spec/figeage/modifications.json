@@ -546,6 +546,164 @@
           "apres": "f04a3bcc9fe67b2af1fdc2da628c867441db1a7d81944ce7506212beb1d41d64"
         }
       ]
+    },
+    {
+      "id": "MC-17",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "Identifiants de commit mis à jour après la réécriture des messages de l'historique (contenu de chaque commit inchangé, même arbre) : CT-3 (d3ac808 → 390eb24), CT-4 (3c6e896 → 752c48c), CT-9 et ses vecteurs de mesures et de consignations (commit de référence dfc8dc7… → 3a8e961…), rapports de mesure (e94aa9b… → 5ed252a…, 71630fa… → bf8fc81…), capture de CT-6 (f013646… → 48e2eff…, 7c18de1… → 5508cad…) ; couverture.json et SHA256SUMS des extraits régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "2cd1563a1508ee0a0665384c2bbf185840618235fff9edcb99a7e2a832034b42",
+          "apres": "90f1bb427f93847a11993c7ded36cec5ce91eb74eaa32f1666e71814d64780cd"
+        },
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "de1ba090c505ad4908f24087abcba78a6b12a459b23163f49ecdd7f210d15fd6",
+          "apres": "616b8d66adcbf8a37a313a5a0f16abe95a8e79e5bcf29c8730a7bf2ab0ad3190"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "db9f9b0c8eafe08b3a83de88b6176c5cfd55a792a8694b3daed3d3eb27a69b78",
+          "apres": "8957540c24824fb66e56201308f99394edd335e3a7975481fd05bc6c195fe662"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/registre/capture/CAPTURE.md",
+          "avant": "3f1542cc1a6c92488d3ad4fd064c1060a7e67b2a5ac63a2ed2e6d40fd44a8db7",
+          "apres": "253cd7d4ae58f38f5792686adf98a944aaa4b89f21a3100de6e86efb50479cf1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/registre/capture/capture.json",
+          "avant": "041a604be6942b46bf740a17c576e7ab423e7817d8b81d28dcdc7231a116aaf2",
+          "apres": "e408a5c4abf083f2003b2df768ccf7d4901c1e7ce63b3599aed6bfd3f03f4ccf"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/consignations/cas/invalide-juge-non-independant.json",
+          "avant": "c8e7f70439d05f36666d990fed2b38ee220808e09491f6d538ca37fbd5cbcdd2",
+          "apres": "53a7c01c069e731a4926f703d6796a3ccc4f0e569c91c4b2b1d58fbfb269a0ac"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/consignations/cas/invalide-nom-de-personne.json",
+          "avant": "c0c1bfb196f9bd9ca6ddad1c378cb8c7aa94abb6f97ce4358866c4ecb20c3a21",
+          "apres": "b20c52cbe74fde9708a9b5644ecc8c9f23099e164b98c5d8b237c04bd1978364"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/consignations/cas/invalide-reussi-disqualifiant.json",
+          "avant": "17c9dd597d4a65b57e542ad6780cffed3b2506a77a89fa171bce347407d977dc",
+          "apres": "94fa07ce6be9d5a69dae71a7a10c7b5841b8c7e45c6bdf6872a5a3286899e251"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/consignations/cas/invalide-reussi-element-absent.json",
+          "avant": "33bf8b721fc5010cfb19ae14c65f56f8692963e5928da5019fe9ec88ab6c8a1b",
+          "apres": "3ee58a8f5389121f5e432b579669dd1aaaf1417664f83f51c79501b0fbf414f1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/consignations/cas/invalide-sans-materiel.json",
+          "avant": "cc13b0d4d58bbe0647fb0154a3f390f57776335a0482313e9e8dcb77e456b737",
+          "apres": "d06d0f1b782ac65dd5dcbe52ff25919223bb04938b4fc6fd6d7ea7a50cc53615"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/consignations/cas/valide-gabarit.json",
+          "avant": "e80f835e888c09bfb6189b5776738cd3eb28eb57c19b94cc46202e49948bb6b2",
+          "apres": "cd6ddcd4da029681d81fb6d5293c4a4679ea14c892827ef0728999a556147424"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/consignations/gabarit-TR-10.json",
+          "avant": "e80f835e888c09bfb6189b5776738cd3eb28eb57c19b94cc46202e49948bb6b2",
+          "apres": "cd6ddcd4da029681d81fb6d5293c4a4679ea14c892827ef0728999a556147424"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "f04a3bcc9fe67b2af1fdc2da628c867441db1a7d81944ce7506212beb1d41d64",
+          "apres": "f8c52ba07ba710de616117ccc8da37f957a167ab573716b7249e79d7c3b505dc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "335e0d81081ecb006fe53bce8b1516a8c884edb0be9fd9bb14290f005776d346",
+          "apres": "2df591b180c71e3bd1ad9251b021b55df9ddad662bf04eafa25f1b100c2e3013"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "724bbb1f7ae97e548cde0de2953ace6d444c7e4d96a6d83eeff30ab8e91966d6",
+          "apres": "23e751b22286dbe490a269aebcf5317c50976d88ab0546c722323f844c1c630d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-compte-hors-reference.json",
+          "avant": "4dd713f2e29674b701ca2dffca02939d70d0e82c0ac49196e595c25a41fb10e2",
+          "apres": "3a032eea838dbc0f5e2329451f0da2b14201460a5d184a295719e1f69c5c0b03"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-disque-memoire-compte.json",
+          "avant": "451c0e1bac0185e779609eb94b5a7b60788ed008097e213d4fd3c637934e184a",
+          "apres": "d60345837152980f2beb36f72e10a3c32ef144b6fb8b176cfe17dcbfe065464c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-fsync-desactive-compte.json",
+          "avant": "a4b8b4cfa6ce74eb6486c6d3312de3a20d3f000bd6f31a67276ec7c680bacb22",
+          "apres": "3ff1f501b064d623bb07919e9484e9dbd60b73f12cc27570adde322b6b54def4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-machine-incomplete.json",
+          "avant": "542d18f8a27f71e2bcb4af60cb1acddc507a6718e0b334eb0153dd4685a0b67d",
+          "apres": "e3bf6968a10c1d49f6db8ef53d9d8f0f06fcc8c1014bfa58af00307f7c4aaff7"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-met-sans-compter.json",
+          "avant": "40802b5a369cc76aaa9c1f10b1e87df929f369d3a4a26b241e8a08f604bf95d9",
+          "apres": "69568cf1b04e8cc7a5f7de1a8aa4921919aa5787ae9b31d19d8dfb196b2d717b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-met-sans-valeur.json",
+          "avant": "12681048f2f1605ea01845fbf228503f4c306f229681f0b5f5f2b04f389582ef",
+          "apres": "cb9682f3ea9d653f46593a9ea2250b98b799b4022141d0966db274008959a36e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-percentile-autre-methode.json",
+          "avant": "f42325a4c1d763c0eeeaae1e1adf8e69cb41eeb00139b3ea4e7e9c48ad564f8f",
+          "apres": "ee3e2d27c5ab938972c30163eb04568e5267bf5379cc2b6a7b920d8ea5d25a2c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-test-id-autre-famille.json",
+          "avant": "a0a3c1a41b054537ca1440ac2bd0b9f9a944edf7845e1124aff25b4a6bdc7f18",
+          "apres": "709c87327c887b5182182c846227687c6ffdc83ec4fc8a04f75b6d3050497c00"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/invalide-unite-inconnue.json",
+          "avant": "3d42d45b11e9f52b1ddba3e3d6eb5813e3eb3ced7ab792931bc5c23723387c69",
+          "apres": "083610ba6dfb5e457c361990229dfcdf28ded30759da61256046694d2b86faac"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/valide-vecteurs.json",
+          "avant": "048a1a7223cc5eac60040d0e82a29ab614af8422197381cfc242ae57e88fc8d8",
+          "apres": "36349295f2cf1cc8ef48e677761aa3f1dfd2d70d4377184536e25bbd12ded7a1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/cas/valide-vide.json",
+          "avant": "2a2affc167d34baf878a766b2c57958b112740afe3d535ec67da08cdd68041d8",
+          "apres": "ab436ceef9b9f81e0ae904b4cbf5ae1caafcdcaef10be98d000c17005fb75baa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-01-vecteurs.json",
+          "avant": "048a1a7223cc5eac60040d0e82a29ab614af8422197381cfc242ae57e88fc8d8",
+          "apres": "36349295f2cf1cc8ef48e677761aa3f1dfd2d70d4377184536e25bbd12ded7a1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-01-vide.json",
+          "avant": "2a2affc167d34baf878a766b2c57958b112740afe3d535ec67da08cdd68041d8",
+          "apres": "ab436ceef9b9f81e0ae904b4cbf5ae1caafcdcaef10be98d000c17005fb75baa"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-02-capture-bloc-plein.json",
+          "avant": "e598371d52af8c585426df7e3cb3054afee0e6a4ddb2364377d06aaa871e6940",
+          "apres": "6ebc60a8ccc50ea39d9f5465de0d637c758b9c26aeffb15d9e1c8484c1527687"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-03-p6-worm.json",
+          "avant": "2fc75bf6632b8bc3a4cccda35ac63c8c5f8f51a9470a3d2a61ee9536a6892897",
+          "apres": "fd2fb59d2ad8ed33f3ee829763a060f71807c59bfe36905ae54edbcfda496108"
+        }
+      ]
     }
   ]
 }

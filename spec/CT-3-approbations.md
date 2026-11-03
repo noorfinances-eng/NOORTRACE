@@ -7756,7 +7756,7 @@ Conventions, reprises de CT-6 annexe B :
 - un renvoi s'écrit comme dans le texte (« R2-F30 », « R1-NV4 », « R2 NV-4 »
   pour un point non vérifié, « R1-C23 » pour une conséquence de la note) ;
 - « présent dépôt » désigne un fichier de ce dépôt public, cité par son
-  chemin et ses lignes au commit `d3ac808` : source publique, recoupable ;
+  chemin et ses lignes au commit `390eb24` : source publique, recoupable ;
   les lignes de CT-2 y sont celles de sa version 0.2, que la version 0.3 a
   déplacées et, pour les codes d'erreur et l'attente, remplacées ;
 - « noorchain-core » désigne le dépôt de référence, privé, au commit

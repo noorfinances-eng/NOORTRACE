@@ -16,7 +16,7 @@ dérive `periode-1/`, `periode-2/`, `variantes/`, `trie.json` et
 | Réseau | `noortrace-2124-dev` (identifiant EVM 2124), quatre validateurs BFT lancés par `bash chain/scripts/dev-net.sh start` |
 | Nœud interrogé | node1, validateur `v1`, JSON-RPC en boucle locale (port 8645) : un validateur, jamais un suiveur (EX-13.8) |
 | noorcore | commit `618fcef8805ef5b4cb9291a3dd97be710e489297` de noorchain-core, plus le correctif `0001-noor_getCommitCertificate.patch` (chain/README.md, « Source de noorcore ») ; binaire `chain/runtime/bin/noorcore` de SHA-256 `0xb02a011a2fddd77b7ca6a00b8f376320dc7a419c6a5f47dcaca2a35a56ef33c6` |
-| Dépôt NOORTRACE | commit `f01364684c937370da7827c0fbd54257034465b0`, avec `scripts/vecteurs/capturer-ct6.mjs` dans l'arbre de travail |
+| Dépôt NOORTRACE | commit `48e2effdfcfcb6a2d603e18c31eb4ae84eeded11`, avec `scripts/vecteurs/capturer-ct6.mjs` dans l'arbre de travail |
 | Contrats | ceux de `deployments/noorcore.json` (blocs 8316 à 8328) : `PeriodRegistry` `0x4ee6ecad1c2dae9f525404de8555724e3c35d07b`, `AttestationRegistry` `0xf4b146fba71f41e0592668ffbf264f1d186b2ca8`, `RecorderRegistry` `0xbec49fa140acaa83533fb00a2bb19bddd0290f25`, `CuratorSetRegistry` `0x172076e0166d1f9cc711c77adf8488051744980c` |
 | Jeu de validateurs | `validators.json`, copie octet pour octet de `chain/runtime/validators.json` (clés publiques seulement), hachage `0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751` |
 

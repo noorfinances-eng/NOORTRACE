@@ -96,7 +96,7 @@ annexe B.3) ; quelques faits de ce code ont été lus pour cette spécification
 et portent leur fichier et leurs lignes au commit `618fcef` (annexes B.3 et
 B.4). Un fait du dépôt
 public porte son fichier et ses lignes à l'état de la branche `main` au
-commit `3c6e896` ; pour les quatre fichiers que ce lot modifie hors de la
+commit `752c48c` ; pour les quatre fichiers que ce lot modifie hors de la
 spécification (section 13), les lignes sont celles de l'arbre de travail du
 lot, et les fonctions sont nommées. Ce qui n'a pas pu être vérifié est écrit
 « non vérifié ».
@@ -4115,7 +4115,7 @@ Conventions, reprises de CT-6 et CT-3 annexe B :
   de la section 3.3 » pour un groupe de conséquences désigné par la section de
   la note qui les porte ;
 - « présent dépôt » désigne un fichier de ce dépôt public, avec ses lignes au
-  commit `3c6e896` : source publique, recoupable ;
+  commit `752c48c` : source publique, recoupable ;
 - « noorcore » désigne le code de noorchain-core au commit `618fcef`, dépôt
   privé, non publiable : un fait qui en est tiré n'est pas recoupable
   publiquement ; le correctif de `chain/patches/` n'est ni copié ni cité ;

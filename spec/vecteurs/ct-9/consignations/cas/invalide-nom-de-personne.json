@@ -3,7 +3,7 @@
   "kind": "consignation-rejeu",
   "test_id": "TR-10",
   "date": "2027-01-15",
-  "commit": "dfc8dc7388f51fca7a67ea41b11ff82dffaaf5cb",
+  "commit": "3a8e9619205e3928610990479121ffa4c0ace1d5",
   "participant": {
     "pseudonym": "Jean Dupont",
     "role": "reviseur externe",

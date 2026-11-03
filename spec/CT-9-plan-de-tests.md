@@ -1914,7 +1914,7 @@ dans le fichier) :
   "kind": "rapport-mesure",
   "date": "2026-11-01",
   "measured_at": "2026-11-01T18:40:00Z",
-  "commit": "dfc8dc7388f51fca7a67ea41b11ff82dffaaf5cb",
+  "commit": "3a8e9619205e3928610990479121ffa4c0ace1d5",
   "spec_version": "0.1",
   "system": {
     "reference": false,

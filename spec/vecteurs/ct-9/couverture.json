@@ -18,11 +18,11 @@
       },
       {
         "file": "spec/CT-3-approbations.md",
-        "sha256": "2cd1563a1508ee0a0665384c2bbf185840618235fff9edcb99a7e2a832034b42"
+        "sha256": "90f1bb427f93847a11993c7ded36cec5ce91eb74eaa32f1666e71814d64780cd"
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "de1ba090c505ad4908f24087abcba78a6b12a459b23163f49ecdd7f210d15fd6"
+        "sha256": "616b8d66adcbf8a37a313a5a0f16abe95a8e79e5bcf29c8730a7bf2ab0ad3190"
       },
       {
         "file": "spec/CT-5-ancrage.md",

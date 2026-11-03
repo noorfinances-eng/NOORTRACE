@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 /** Commit éprouvé de la version 0.1 (CT-9 §11.3, rapport imprimé). */
-export const COMMIT = "dfc8dc7388f51fca7a67ea41b11ff82dffaaf5cb";
+export const COMMIT = "3a8e9619205e3928610990479121ffa4c0ace1d5";
 export const DATE = "2026-11-01";
 
 const sha256 = (o) => crypto.createHash("sha256").update(o).digest("hex");

@@ -2,7 +2,7 @@
   "version": 0,
   "description": "Capture unique du registre pour les vecteurs CT-6 (annexe A.5) : réponses JSON-RPC brutes du réseau de développement, clés publiques seulement.",
   "date": "2026-10-22T22:21:03.442Z",
-  "depot_noortrace_commit": "f01364684c937370da7827c0fbd54257034465b0",
+  "depot_noortrace_commit": "48e2effdfcfcb6a2d603e18c31eb4ae84eeded11",
   "noorcore": {
     "commit": "618fcef8805ef5b4cb9291a3dd97be710e489297",
     "correctif": "0001-noor_getCommitCertificate.patch",
@@ -229,7 +229,7 @@
     {
       "objet": "ancre du point de contrôle couvrant seq 7 (CT-6 révision 0.2, EX-A.15)",
       "date": "2026-10-26T01:25:36.634Z",
-      "depot_noortrace_commit": "7c18de12546c9e1b74b2740f0284a0ed9dd3347a",
+      "depot_noortrace_commit": "5508cad7e4f77a654cf005135d0a0c7fa96a16b3",
       "transactions": [
         "0xcaacb0feed55717561dfe8ee9732636038cd667192ccba8c412e7586af641135"
       ]

@@ -3,7 +3,7 @@
   "kind": "rapport-mesure",
   "date": "2026-11-02",
   "measured_at": "2026-11-02T16:03:58Z",
-  "commit": "e94aa9bb7fd7d2d61d5ac8861c0aef6066e31665",
+  "commit": "5ed252ac3f09098d93f6bb6510c3b68cb861099e",
   "spec_version": "0.1",
   "system": {
     "reference": false,

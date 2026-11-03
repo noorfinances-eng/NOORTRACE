@@ -3,7 +3,7 @@
   "kind": "rapport-mesure",
   "date": "2026-11-03",
   "measured_at": "2026-11-03T03:36:09Z",
-  "commit": "71630fae39d72ee0a61437ba2d4e9e333efae6c6",
+  "commit": "bf8fc819126f81f5d930d8f7863f8ad60f082540",
   "spec_version": "0.2",
   "system": {
     "reference": false,
@@ -62,5 +62,5 @@
       "excluded_reason": "hors_systeme_de_reference"
     }
   ],
-  "notes": "TM-16 (CT-5 P-6, §5.5 ; CT-2 EX-12.16, EX-12.17). Relevé par l'API du support, une exécution (EX-11.10). points/periode-1793674800.ndjson : conforme, version wPvUsEOC4apHSyIHQSMeQKPxMPzhh9nr, sha256 0x61dfbf444d4529da1ecf75884d07b29f2d569d61f854acd92c46e7eddcabc138, mode COMPLIANCE, échéance 2037-11-03T03:36:10.000Z. manifestes/periode-1793674800.json : conforme, version oKzqxZnW7ZM4YVI0tQo5kfT7UNZM60yS, sha256 0xaed78cb6c06a25dbb3c24e595bc8decb99c76e1dbab47013865a3b67a0dc52f8, mode COMPLIANCE, échéance 2037-11-03T03:36:10.000Z. manifestes/periode-1793674800.sig : conforme, version xJBc2cUGYp6t8.hg4NV_1w9yoQnuiNnm, sha256 0x847a76ac43d23e44f6c08824ddf80af84f4eb68a0ba9f59f7971e95ea3828b85, mode COMPLIANCE, échéance 2037-11-03T03:36:10.000Z. Mesure faite hors du système de référence de CT-9 §11.1 (machine virtuelle, disque virtuel, support émulé en conteneur) : elle ne compte pour aucune cible. Commit : 71630fae39d72ee0a61437ba2d4e9e333efae6c6, arbre de travail modifié (lot non encore commité)."
+  "notes": "TM-16 (CT-5 P-6, §5.5 ; CT-2 EX-12.16, EX-12.17). Relevé par l'API du support, une exécution (EX-11.10). points/periode-1793674800.ndjson : conforme, version wPvUsEOC4apHSyIHQSMeQKPxMPzhh9nr, sha256 0x61dfbf444d4529da1ecf75884d07b29f2d569d61f854acd92c46e7eddcabc138, mode COMPLIANCE, échéance 2037-11-03T03:36:10.000Z. manifestes/periode-1793674800.json : conforme, version oKzqxZnW7ZM4YVI0tQo5kfT7UNZM60yS, sha256 0xaed78cb6c06a25dbb3c24e595bc8decb99c76e1dbab47013865a3b67a0dc52f8, mode COMPLIANCE, échéance 2037-11-03T03:36:10.000Z. manifestes/periode-1793674800.sig : conforme, version xJBc2cUGYp6t8.hg4NV_1w9yoQnuiNnm, sha256 0x847a76ac43d23e44f6c08824ddf80af84f4eb68a0ba9f59f7971e95ea3828b85, mode COMPLIANCE, échéance 2037-11-03T03:36:10.000Z. Mesure faite hors du système de référence de CT-9 §11.1 (machine virtuelle, disque virtuel, support émulé en conteneur) : elle ne compte pour aucune cible. Commit : bf8fc819126f81f5d930d8f7863f8ad60f082540, arbre de travail modifié (lot non encore commité)."
 }
