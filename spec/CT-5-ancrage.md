@@ -1,8 +1,8 @@
 # CT-5 — Ancrage
 
-Version 0.2, 2026-10-26 (la version 0.1 est du 2026-10-25). Spécification
-normative, soumise à la revue de la porte 1 du plan de projet (document
-interne). Elle met en œuvre les points 2
+Version 0.3, 2026-11-03 (la version 0.2 est du 2026-10-26, la version 0.1 du
+2026-10-25). Spécification normative, soumise à la revue de la porte 1 du
+plan de projet (document interne). Elle met en œuvre les points 2
 et 3 de la section « Ancrage » de l'[architecture cible](../ARCHITECTURE.md)
 (horodatage qualifié RFC 3161, ancrage public OpenTimestamps) et son option
 « serveur RFC 3161 interne, non qualifié », et elle fixe la cadence à laquelle
@@ -37,6 +37,19 @@ vecteurs portés à vingt et une traces et à la famille `completude` (annexe A)
 Elle s'accompagne de CT-1 révision 0.3 précisée (alignement, choix du point
 couvrant), de CT-2 révision 0.4 (production des points), de notes de CT-4
 révision 0.3 et de précisions de CT-6 révision 0.2 (§7.9, AV-K-4).
+
+**Révision 0.3** (2026-11-03), minimale et textuelle. La croissance des
+captures du registre, donnée « d'environ 10 Mo par jour » à 7,5 Ko le
+certificat d'un bloc d'une transaction et « à mesurer », est remplacée par la
+mesure du 2026-11-02 sur le réseau de développement
+(`spec/vecteurs/ct-9/mesures/rapport-2026-11-02-capture-bloc-plein.json`) :
+la capture d'une transaction d'un bloc plein de 64 ancres, index compris, fait
+123 761 octets ; à 63 transactions par heure (62 ancres et une clôture, 4.3),
+les captures d'un journal croissent de 187,1 Mo par jour, près de dix-neuf
+fois l'ancien ordre de grandeur. Sections touchées : en-tête et cette note ;
+9.3 (EX-9.9) ; 12.4 ; 15 (mesures en charge). Aucune règle n'est ajoutée ni
+retirée, EX-9.9 garde son effet normatif ; aucun schéma, aucun vecteur de
+`spec/vecteurs/ct-5`, aucun outil ne change.
 
 La spécification a deux parties. La **partie A** (sections 0 à 6) dit ce que
 l'ancrage prouve et ne prouve pas, quelle fenêtre de réécriture il laisse,
@@ -3889,10 +3902,16 @@ devient « au plus 63 par période et par journal à la cadence par défaut » :
 62 `anchor` et un `submitPeriod`) ; CT-4 0.3 en porte la note (section 14).
 
 **EX-9.9** Capture. Chaque ancre de point capturée pèse un en-tête, tous les
-reçus de son bloc et un certificat de commit (environ 7,5 Ko par certificat
-d'un bloc d'une transaction, CT-4 §9.7) : à soixante ancres par heure,
-l'archive des captures d'un journal croît d'environ 10 Mo par jour (ordre de
-grandeur, à mesurer en phase 2, CT-2 §16). La capture est idempotente (CT-4
+reçus de son bloc, un certificat de commit et l'index de capture (CT-4
+EX-9.2) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres
+(mesure TM-31 de CT-9 du 2026-11-02,
+`spec/vecteurs/ct-9/mesures/rapport-2026-11-02-capture-bloc-plein.json` :
+109 479 octets de réponses JSON-RPC et 14 282 octets d'index), moins dans un
+bloc moins plein. À 63 transactions par heure (62 ancres, dont celle du
+manifeste, et une clôture, 4.3), l'archive des captures d'un journal croît de
+187,1 Mo par jour (1 512 × 123 761 = 187 126 632 octets) quand chaque
+transaction est dans un bloc plein d'ancres, de moins dans des blocs moins
+pleins (réserves : 12.4). La capture est idempotente (CT-4
 EX-9.3) et DOIT être faite dans la fenêtre de rétention du validateur (CT-4
 §9.5) ; une capture manquée n'arrête pas l'ancrage des points suivants et est
 reprise par `capturer --transaction` tant que la fenêtre le permet.
@@ -4307,9 +4326,15 @@ une réponse d'erreur 50 à 57 octets (R1-F16) ; une preuve `.ots` en attente de
 deux calendriers 195 à 233 octets (EX-6.4 ; annexe A.4). À `N_q + N_s =
 105 120` jetons par an et 3,1 Ko le jeton, avec sa requête et sa réponse
 conservées (EX-5.14), le répertoire d'ancres d'un journal croît d'environ
-650 Mo par an, 6,5 Go sur dix ans ; les captures d'ancres de points (9.3)
-d'environ 10 Mo par jour. Ces chiffres entrent dans le dimensionnement de
-CT-8, pas dans la formule de coût.
+650 Mo par an, 6,5 Go sur dix ans ; les captures des 63 transactions par
+heure du registre (ancres de points, ancre du manifeste et clôture ; 9.3,
+EX-9.9) de 187,1 Mo par jour quand chaque transaction est dans un bloc plein
+d'ancres (123 761 octets par capture, index compris, mesure du 2026-11-02),
+de moins dans des blocs moins pleins ; un bloc plein qui mêle des clôtures,
+plus grand, n'est pas mesuré, et la hauteur, écrite dans chaque fichier de la
+capture, l'allonge de l'ordre de 0,5 % en dix ans (estimation non mesurée).
+Ces chiffres et ces réserves entrent dans le dimensionnement de CT-8 (§9.2,
+coefficient `b_cap` ; §9.5, exemple calculé), pas dans la formule de coût.
 
 ### 12.5 Vérifications
 
@@ -4425,8 +4450,9 @@ sont pas modifiés par ce lot : la dernière ligne dit ce qui doit y changer.
   client n'emploie que POST.
 - **Les mesures en charge** du planificateur (débit de points, nombre de
   journaux par instance, taille de la file en régime de panne) : CT-2 §16, à
-  mesurer en phase 2 ; les ordres de grandeur de 12.4 et 9.3 ne sont pas des
-  mesures.
+  mesurer en phase 2 ; les ordres de grandeur de 12.4 et 9.3 sont calculés,
+  non mesurés en charge (seule la taille de la capture d'une transaction d'un
+  bloc plein, EX-9.9, est mesurée).
 - **Les points de contrôle de plusieurs enregistreurs** d'un même journal
   (bascule de CT-2 §13) : la série d'une période est produite par l'écrivain
   en titre ; le point du nouvel écrivain chaîne le dernier point copié du

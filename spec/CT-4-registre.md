@@ -1,10 +1,13 @@
 # CT-4 — Registre
 
-Version 0.4, 2026-10-26 (révision 0.4 minimale, textuelle : les condensés du
-registre ne se signent pas dans la console de CT-3, qui ne fait signer que
-l'objet `A` des tickets et le texte d'inscription d'une adresse ; l'outil de
-signature des approbateurs est nommé, EX-7.3, 8.1, EX-8.5, EX-8.19, 8.3 et
-sections 12 à 14 ; version 0.3 du 2026-10-25). Spécification normative,
+Version 0.5, 2026-11-03 (révision 0.5 minimale, textuelle : la taille du
+certificat de commit d'un bloc plein, mesurée le 2026-11-02, remplace la
+mention « non mesurée », 9.2, EX-9.7 et annexe B.1 ; version 0.4 du
+2026-10-26, révision minimale et textuelle : les condensés du registre ne se
+signent pas dans la console de CT-3, qui ne fait signer que l'objet `A` des
+tickets et le texte d'inscription d'une adresse ; l'outil de signature des
+approbateurs est nommé, EX-7.3, 8.1, EX-8.5, EX-8.19, 8.3 et sections 12 à
+14 ; version 0.3 du 2026-10-25). Spécification normative,
 soumise à la revue de la porte 1 du plan de projet (document interne). Elle met
 en œuvre le point 1 de la section « Ancrage » et la section « Instance dédiée »
 de l'[architecture cible](../ARCHITECTURE.md). Elle s'appuie sur les formats v0
@@ -154,6 +157,20 @@ console de CT-3 pour cette signature sont corrigés : EX-7.3, la table de 8.1,
 EX-8.5, EX-8.19 (point 3), 8.3, les menaces « Demande signée rejouée » et
 « Empreinte prise » de la section 12, les lignes de la section 13 adressées à CT-3 et la section 14.
 Aucune règle n'est ajoutée ni retirée ; aucun schéma, aucun vecteur de
+`spec/vecteurs/ct-4`, aucun outil ne change.
+La version 0.5, du 2026-11-03, est minimale et textuelle : la taille du
+certificat de commit d'un bloc plein (64 transactions), donnée pour « non
+mesurée », l'est depuis le 2026-11-02 sur le réseau de développement
+(`spec/vecteurs/ct-9/mesures/rapport-2026-11-02-capture-bloc-plein.json`) :
+32 587 octets pour un bloc de 64 ancres ; la capture d'une transaction de ce
+bloc (9.4) fait 109 479 octets, 123 761 avec son index. La plage des
+certificats d'un bloc à une transaction est complétée par le certificat de
+7 782 octets des captures publiées, au-delà de celle de R1-F61. Sections
+touchées : en-tête et cette note ; 9.2 (paragraphe qui suit la table) ; 9.5
+(EX-9.7 : volume de 3 000 000 hauteurs de certificats, environ 23 Go pour des
+blocs d'une transaction et 98 Go pour des blocs pleins d'ancres) ; annexe B.1
+(ligne « R1, point non vérifié 14 »). Aucune règle n'est ajoutée ni retirée,
+EX-9.7 garde son effet normatif ; aucun schéma, aucun vecteur de
 `spec/vecteurs/ct-4`, aucun outil ne change.
 
 ## 1. Objet, périmètre et relations
@@ -3185,10 +3202,20 @@ Paramètre : **exactement un**, une chaîne.
 | `canonical.{blockHash, matchesCertificate}`, `quorum.{validators, required, precommits}`, `validatorSet[]`, `validatorSetHash`, `validatorSetMatchesCertificate`, `signing.{domain, digestPrefix, scheme}` | avis du nœud et jeu qu'il emploie **maintenant** | non |
 | `retention.{heights, pruned}` | fenêtre du nœud, hauteur élaguée ou non | seulement pour l'alerte de 9.5 |
 
-Un certificat d'un bloc à une transaction fait 6 548 à 7 520 octets ; la
-taille pour un bloc plein (64 transactions) n'est pas mesurée (R1-F61 ; R1,
-point non vérifié 14). Le nœud ne revérifie pas les signatures en servant
-(R1-F60) : tout se vérifie hors ligne contre le jeu du manifeste (4.8, 9.7).
+Un certificat d'un bloc à une transaction fait 6 548 à 7 520 octets dans les
+réponses mesurées de R1-F61, et jusqu'à 7 782 octets dans les captures
+publiées (`spec/vecteurs/ct-6/registre/capture/certificat-18928.json`, ancre
+d'un point de contrôle certifiée par quatre precommits au lieu de trois). La
+réponse du certificat d'un bloc plein de 64 transactions d'ancre fait 32 587
+octets (R1, point non vérifié 14, mesuré depuis : mesure TM-31 de CT-9 du
+2026-11-02, `spec/vecteurs/ct-9/mesures/rapport-2026-11-02-capture-bloc-plein.json`,
+trois répétitions égales) ; la capture de 9.4 d'une de ses transactions, les
+64 reçus compris, y fait 109 479 octets, et 123 761 avec son index. Un bloc
+plein qui mêle des clôtures, dont le certificat est plus grand (7 419 octets
+pour un bloc d'une clôture contre 6 818 pour un bloc d'une ancre au même
+quorum, mêmes captures publiées), n'est pas mesuré. Le nœud ne revérifie pas
+les signatures en servant (R1-F60) : tout se vérifie hors ligne contre le jeu
+du manifeste (4.8, 9.7).
 
 **EX-9.1** Les outils de CT-4 ne tirent du certificat que les champs que lit
 CT-6 EX-11.3 ; ils ne prennent jamais `validatorSet` pour le jeu de
@@ -3352,11 +3379,14 @@ lève une alerte.
 **EX-9.7** Les validateurs partenaires et ceux auxquels les clients
 s'adressent pour leurs captures DEVRAIENT porter
 `NOOR_BFT_CERT_RETENTION_HEIGHTS` à au moins 3 000 000 hauteurs (CT-6
-EX-13.11), soit environ 31,6 jours à 1,10 bloc par seconde et environ 23 Go à
-7,5 Ko par certificat (calcul de cette spécification ; la taille d'un
-certificat de bloc plein n'est pas mesurée), et la déclarer dans
-`operators[].retention_heights` du manifeste (4.8). La valeur effective se lit
-dans `retention.heights` de chaque réponse.
+EX-13.11) et la déclarer dans `operators[].retention_heights` du manifeste
+(4.8). Ces hauteurs couvrent environ 31,6 jours à 1,10 bloc par seconde ;
+leurs certificats occupent environ 23 Go si chaque bloc porte une transaction
+(7,5 Ko par certificat) et environ 98 Go si chaque bloc est plein de 64
+ancres (32 587 octets par certificat, 9.2) (calcul de cette spécification :
+3 000 000 × 7 500 et 3 000 000 × 32 587 octets ; un bloc plein qui mêle des
+clôtures, plus grand, n'est pas mesuré). La valeur effective se lit dans
+`retention.heights` de chaque réponse.
 
 ### 9.6 Export des parties du dossier
 
@@ -4216,7 +4246,7 @@ Conventions, reprises de CT-6 et CT-3 annexe B :
 | R1, point non vérifié 11 | destruction de la part de base des frais | point non vérifié de la note | 2026-10-25 |
 | R1, point non vérifié 12 | correction ultérieure de `effectiveGasPrice` | point non vérifié de la note | 2026-10-25 |
 | R1, point non vérifié 13 | `eth_estimateGas` qui propage un échec d'exécution | point non vérifié de la note ; noorcore, `core/rpc/jsonrpc_dispatch.go` | 2026-10-25 |
-| R1, point non vérifié 14 | taille d'un certificat de bloc plein | point non vérifié de la note | 2026-10-25 |
+| R1, point non vérifié 14 | taille d'un certificat de bloc plein ; mesurée depuis : 32 587 octets pour 64 transactions d'ancre (9.2) | point non vérifié de la note ; mesure TM-31 de CT-9, `spec/vecteurs/ct-9/mesures/rapport-2026-11-02-capture-bloc-plein.json` | 2026-10-25 ; 2026-11-02 |
 | R1, conséquence C5 | une transaction acceptée peut ne jamais être incluse, puis revenir : remplacement au même nonce, relevé de 10 % | R1-F30 à R1-F32 ; noorcore, `core/txpool/txpool.go` (B.3) | 2026-10-25 |
 | R1, conséquence C7 | certificats des blocs de déploiement du réseau de développement dans la fenêtre jusqu'à une tête d'environ 308 316 | calcul de la note sur R1-F16 et R1-F48 | 2026-10-25 |
 | R1, conséquences C12 à C14 | contrats figés en version 0 ; clé unique de réassignation ; empreinte unique pour toute la chaîne | présent dépôt, `contracts/` ; R1-F43, R1-F45, R1-F46 | 2026-10-25 |

@@ -190,7 +190,32 @@ func (c *calcul) o3() {
 		fr = fmt.Sprintf("%d opération(s) du profil f0, f1, 08 rejouée(s) sans défaut ; %d opération(s) hors profil non exécutée(s), ni rien sous elle(s)", x.Operations, x.HorsProfil)
 		en = fmt.Sprintf("%d operation(s) of the f0, f1, 08 profile replayed without defect; %d out-of-profile operation(s) not run, nor anything under them", x.Operations, x.HorsProfil)
 	}
+	if c.horsProfilSeul() {
+		// EX-10.12 (révision 0.4) : aucune attestation Bitcoin n'est
+		// atteinte par les seules opérations du profil ; textes imposés pour
+		// que personne ne croie la date établie.
+		fr = "attestation sous une opération hors du profil de la version 0 : non vérifiée ; aucune date n'est établie"
+		en = "attestation under an operation outside the version 0 profile: not verified; no time is established"
+	}
 	c.poser(o3, commun.Reussi, "", fr, en)
+}
+
+// horsProfilSeul dit si la preuve porte au moins une attestation Bitcoin
+// et qu'aucune n'est atteinte par les seules opérations du profil (toutes
+// sous une opération hors profil, EX-10.7, EX-10.12).
+func (c *calcul) horsProfilSeul() bool {
+	hors := false
+	for i := range c.x.Attestations {
+		a := &c.x.Attestations[i]
+		if a.Genre != GenreBitcoin {
+			continue
+		}
+		if a.OpHorsProfil == 0 {
+			return false
+		}
+		hors = true
+	}
+	return hors
 }
 
 // nombre écrit « aucune », « une » ou n devant un nom féminin.
@@ -403,6 +428,9 @@ func (c *calcul) resultat() Resultat {
 	}
 	if c.ancreUtile {
 		r.AncresEmployees = append(r.AncresEmployees, "/bitcoin")
+	}
+	if r.Statut == commun.NonExecute && r.Raison == commun.HorsPerimetreVersion && c.x.Defaut == nil && c.horsProfilSeul() {
+		r.Resume = commun.T("preuve hors du profil de la version 0, non vérifiée : aucune date établie", "proof outside the version 0 profile, not verified: no time established")
 	}
 	if r.Statut != commun.Reussi {
 		return r

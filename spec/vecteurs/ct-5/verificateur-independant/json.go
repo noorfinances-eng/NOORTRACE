@@ -7,6 +7,22 @@
 // (CT-1 §4) déclare invalide : clé en double, substitut UTF-16 isolé, octets
 // UTF-8 mal formés, marque d'ordre d'octets.
 //
+// Révision 0.5 de CT-1 (§3, §4 règle 7), dans l'ordre de CT-6 EX-4.16 :
+//  1. codage : des octets qui ne sont pas de l'UTF-8 bien formé, ou qui
+//     commencent par la marque d'ordre d'octets EF BB BF, ne sont pas un texte
+//     JSON (erreur non canonique : le contrôle qui porte la partie échoue) ;
+//     seule exception, un substitut écrit en octets (ED A0 80 à ED BF BF),
+//     défaut de forme canonique (E-2), comme l'échappement \ud800 ;
+//  2. syntaxe de la RFC 8259 ;
+//  3. profondeur : objets et tableaux imbriqués, la racine comprise ([[1]]
+//     vaut 2), au plus ProfondeurV0 = 128 pour un document du format v0
+//     (ParseJSONV0) ; la lecture s'arrête au-delà, sans récursion dont la
+//     hauteur dépende de l'entrée ;
+//  4. forme canonique : un défaut (clé en double, substitut isolé) n'arrête
+//     pas l'analyse, pour qu'une erreur de syntaxe ou de profondeur plus loin
+//     l'emporte ; il est rendu à la fin. Les nombres non entiers ou hors de
+//     l'intervalle sûr relèvent de Canonique (jcs.go).
+//
 // encoding/json n'est pas utilisé pour l'analyse : il accepte les clés en
 // double (la dernière gagne), remplace les substituts isolés et les octets
 // invalides par U+FFFD, et ne distingue pas 1 de 1.0 sans UseNumber.
@@ -119,17 +135,40 @@ func (e *ErreurJSON) Error() string {
 type analyseur struct {
 	src []byte
 	pos int
+	// max est la profondeur admise (objets et tableaux imbriqués, la racine
+	// comprise).
+	max int
+	// canon est le premier défaut de forme canonique rencontré (clé en
+	// double, substitut isolé), rendu une fois l'analyse finie.
+	canon *ErreurJSON
 }
 
-// ParseJSON analyse un document JSON complet.
-func ParseJSON(src []byte) (*Value, error) {
+// ProfondeurV0 est la profondeur d'au plus 128 d'un texte JSON du format v0
+// (CT-1 §4, règle 7, révision 0.5 ; CT-6 EX-4.13).
+const ProfondeurV0 = 128
+
+// profondeurGenerique borne les autres documents (vecteurs, cas de tests) :
+// une borne fixe, que l'entrée ne choisit pas.
+const profondeurGenerique = 512
+
+// ParseJSON analyse un document JSON complet (profondeur bornée à 512).
+func ParseJSON(src []byte) (*Value, error) { return ParseJSONProfondeur(src, profondeurGenerique) }
+
+// ParseJSONV0 analyse un document du format v0 (événement, manifeste,
+// signature de manifeste, point de contrôle, partie JSON d'un dossier,
+// cles.json) : profondeur d'au plus 128 (CT-1 §4, règle 7).
+func ParseJSONV0(src []byte) (*Value, error) { return ParseJSONProfondeur(src, ProfondeurV0) }
+
+// ParseJSONProfondeur analyse un document JSON complet dont la profondeur
+// (objets et tableaux imbriqués, la racine comprise) est au plus max.
+func ParseJSONProfondeur(src []byte, max int) (*Value, error) {
 	if len(src) >= 3 && src[0] == 0xEF && src[1] == 0xBB && src[2] == 0xBF {
-		return nil, &ErreurJSON{Pos: 0, Msg: "marque d'ordre d'octets interdite"}
+		return nil, &ErreurJSON{Pos: 0, Msg: "marque d'ordre d'octets : pas un texte JSON (CT-1 §3)"}
 	}
-	if !utf8.Valid(src) {
-		return nil, &ErreurJSON{Pos: 0, Msg: "octets UTF-8 mal formés", Canonique: true}
+	if pos, ok := codageAdmis(src); !ok {
+		return nil, &ErreurJSON{Pos: pos, Msg: "octets UTF-8 mal formés : pas un texte JSON (CT-1 §3)"}
 	}
-	a := &analyseur{src: src}
+	a := &analyseur{src: src, max: max}
 	a.blancs()
 	v, err := a.valeur(0)
 	if err != nil {
@@ -139,7 +178,76 @@ func ParseJSON(src []byte) (*Value, error) {
 	if a.pos != len(a.src) {
 		return nil, a.erreur("contenu après la valeur")
 	}
+	if a.canon != nil {
+		return nil, a.canon
+	}
 	return v, nil
+}
+
+// estSubstitutEnOctets reconnaît ED A0 80 à ED BF BF : un point de code de
+// U+D800 à U+DFFF écrit en octets (forme dite CESU-8), que Go tient pour de
+// l'UTF-8 mal formé et que CT-1 §3 (révision 0.5) range parmi les substituts
+// isolés (E-2).
+func estSubstitutEnOctets(b []byte) bool {
+	return len(b) >= 3 && b[0] == 0xED && b[1] >= 0xA0 && b[1] <= 0xBF && b[2] >= 0x80 && b[2] <= 0xBF
+}
+
+// codageAdmis dit si les octets sont de l'UTF-8 bien formé aux substituts
+// écrits en octets près ; sinon, rend la position du premier octet fautif.
+func codageAdmis(src []byte) (int, bool) {
+	for i := 0; i < len(src); {
+		if src[i] < utf8.RuneSelf {
+			i++
+			continue
+		}
+		r, n := utf8.DecodeRune(src[i:])
+		if r == utf8.RuneError && n == 1 {
+			if estSubstitutEnOctets(src[i:]) {
+				i += 3
+				continue
+			}
+			return i, false
+		}
+		i += n
+	}
+	return 0, true
+}
+
+// defautCanonique consigne le premier défaut de forme canonique.
+func (a *analyseur) defautCanonique(pos int, msg string) {
+	if a.canon == nil {
+		a.canon = &ErreurJSON{Pos: pos, Msg: msg, Canonique: true}
+	}
+}
+
+// Profondeur rend la profondeur d'une valeur analysée (CT-1 §4, règle 7) :
+// 0 pour un scalaire, 1 pour un objet ou un tableau vide, 1 + la plus grande
+// profondeur de ses valeurs sinon. Parcours itératif, sans récursion.
+func Profondeur(v *Value) int {
+	type cadre struct {
+		v *Value
+		p int
+	}
+	max := 0
+	pile := []cadre{{v, 0}}
+	for len(pile) > 0 {
+		c := pile[len(pile)-1]
+		pile = pile[:len(pile)-1]
+		if c.v == nil || (c.v.Kind != KindObject && c.v.Kind != KindArray) {
+			continue
+		}
+		p := c.p + 1
+		if p > max {
+			max = p
+		}
+		for _, x := range c.v.Arr {
+			pile = append(pile, cadre{x, p})
+		}
+		for _, m := range c.v.Obj {
+			pile = append(pile, cadre{m.Val, p})
+		}
+	}
+	return max
 }
 
 func (a *analyseur) erreur(msg string) error {
@@ -157,19 +265,21 @@ func (a *analyseur) blancs() {
 	}
 }
 
-const profondeurMax = 512
-
+// valeur analyse une valeur ; prof est le nombre de conteneurs qui
+// l'entourent.
 func (a *analyseur) valeur(prof int) (*Value, error) {
-	if prof > profondeurMax {
-		return nil, a.erreur("imbrication trop profonde")
-	}
 	if a.pos >= len(a.src) {
 		return nil, a.erreur("fin inattendue")
 	}
 	switch c := a.src[a.pos]; {
-	case c == '{':
-		return a.objet(prof)
-	case c == '[':
+	case c == '{' || c == '[':
+		// Un conteneur entouré de prof conteneurs est de niveau prof + 1.
+		if prof+1 > a.max {
+			return nil, a.erreur(fmt.Sprintf("profondeur au-delà de %d (objets et tableaux imbriqués, la racine comprise)", a.max))
+		}
+		if c == '{' {
+			return a.objet(prof)
+		}
 		return a.tableau(prof)
 	case c == '"':
 		s, err := a.chaine()
@@ -217,7 +327,7 @@ func (a *analyseur) objet(prof int) (*Value, error) {
 			return nil, err
 		}
 		if vus[k] {
-			return nil, &ErreurJSON{Pos: debut, Msg: fmt.Sprintf("clé en double %q", k), Canonique: true}
+			a.defautCanonique(debut, fmt.Sprintf("clé en double %q", k))
 		}
 		vus[k] = true
 		a.blancs()
@@ -408,10 +518,14 @@ func (a *analyseur) chaine() (string, error) {
 						}
 						a.pos = sauv
 					}
-					return "", &ErreurJSON{Pos: debut, Msg: "substitut UTF-16 isolé", Canonique: true}
+					a.defautCanonique(debut, "substitut UTF-16 isolé")
+					sb.WriteRune(utf8.RuneError)
+					continue
 				}
 				if u >= 0xDC00 && u <= 0xDFFF {
-					return "", &ErreurJSON{Pos: debut, Msg: "substitut UTF-16 isolé", Canonique: true}
+					a.defautCanonique(debut, "substitut UTF-16 isolé")
+					sb.WriteRune(utf8.RuneError)
+					continue
 				}
 				sb.WriteRune(rune(u))
 			default:
@@ -422,7 +536,15 @@ func (a *analyseur) chaine() (string, error) {
 		default:
 			r, taille := utf8.DecodeRune(a.src[a.pos:])
 			if r == utf8.RuneError && taille == 1 {
-				return "", &ErreurJSON{Pos: a.pos, Msg: "octets UTF-8 mal formés", Canonique: true}
+				if !estSubstitutEnOctets(a.src[a.pos:]) {
+					return "", &ErreurJSON{Pos: a.pos, Msg: "octets UTF-8 mal formés : pas un texte JSON (CT-1 §3)"}
+				}
+				// CT-1 §3 et §4 règle 3 (révision 0.5) : substitut écrit en
+				// octets, apparié ou non, défaut de forme canonique.
+				a.defautCanonique(a.pos, "substitut UTF-16 écrit en octets (ED A0 80 à ED BF BF)")
+				sb.WriteRune(utf8.RuneError)
+				a.pos += 3
+				continue
 			}
 			sb.Write(a.src[a.pos : a.pos+taille])
 			a.pos += taille

@@ -19,6 +19,7 @@ import (
 	"github.com/noorfinances-eng/noortrace/verificateur/dossier"
 	"github.com/noorfinances-eng/noortrace/verificateur/entree"
 	"github.com/noorfinances-eng/noortrace/verificateur/horodatage"
+	"github.com/noorfinances-eng/noortrace/verificateur/jcs"
 	"github.com/noorfinances-eng/noortrace/verificateur/jsonv"
 	"github.com/noorfinances-eng/noortrace/verificateur/ots"
 	"github.com/noorfinances-eng/noortrace/verificateur/rapport"
@@ -152,8 +153,15 @@ func Verifier(o Options) (res *Resultat) {
 		case entree.TropGrand:
 			return echec(&Erreur{Genre: "taille_depassee", Message: commun.T("second manifeste de plus de 1 Mio", "second manifest larger than 1 MiB")})
 		}
+		// EX-4.12, point 3, et EX-4.16 (révision 0.4) : un second manifeste
+		// qui n'est pas du JSON, ou du JSON sans forme canonique, rend
+		// l'entrée inutilisable (code 2, entree_illisible) ; la forme
+		// canonique se contrôle avant le schéma.
 		v, err := jsonv.Analyser(l.Octets)
 		if err == nil {
+			if e := jcs.Calculable(v); e != nil {
+				return echec(&Erreur{Genre: "entree_illisible", Message: commun.T("second manifeste sans forme canonique de CT-1 §4 ("+e.Error()+")", "second manifest without CT-1 §4 canonical form ("+e.Error()+")")})
+			}
 			err = schema.Valider(schema.Manifeste, v)
 		}
 		if err == nil {

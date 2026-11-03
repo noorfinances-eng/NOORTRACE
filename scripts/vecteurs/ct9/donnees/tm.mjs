@@ -1530,7 +1530,7 @@ export const TM = [
   {
     "id": "TM-31",
     "level": "TM",
-    "title": "Coefficient `b_cap` de CT-8 §9.2 : octets de la capture d'une transaction dans un bloc plein (CT-4 §9.2 : non mesuré)",
+    "title": "Coefficient `b_cap` de CT-8 §9.2 : octets de la capture d'une transaction d'un bloc plein de 64 ancres (mesure du 2026-11-02 reprise par CT-8 révision 0.2)",
     "specs": [
       "CT-8",
       "CT-4"
@@ -1541,13 +1541,13 @@ export const TM = [
       "CT-4 §4.4"
     ],
     "preconditions": [
-      "Réseau de développement lancé par `chain/scripts/dev-net.sh start` ; outil de référence de CT-4 ; 64 expéditeurs pour remplir un bloc."
+      "Réseau de développement lancé par `chain/scripts/dev-net.sh start` (ou lancé par l'outil) ; outil de référence de CT-4 ; 64 expéditeurs de test publiés pour remplir un bloc."
     ],
     "steps": [
-      "Émettre 64 transactions d'ancre dans le même bloc ; capturer l'une d'elles (en-tête, certificat de commit, reçu) ; mesurer les octets de la capture.",
-      "Rapport : ligne `b_cap_bloc_plein`, `max`."
+      "Émettre 64 transactions d'ancre dans le même bloc ; capturer l'une d'elles par l'outil de référence (`capturer --role ancre` : en-tête du bloc, reçu de chacune des 64 transactions, certificat de commit, CP-1 à CP-6, CT-4 §9.4) ; mesurer les octets des réponses JSON-RPC conservées, index de capture exclu ; relever à part, dans `notes`, l'index de capture et la somme en-tête, certificat et un seul reçu.",
+      "Trois répétitions ; rapport : ligne `b_cap_bloc_plein`, `max`."
     ],
-    "oracle": "Ligne présente, `met` null ; la valeur remplace 11 096 dans les entrées du calculateur si elle est supérieure.",
+    "oracle": "Ligne présente, `met` null, trois échantillons ; `b_cap` de CT-8 §9.2 est la valeur de la ligne plus l'index relevé dans `notes` : 109 479 + 14 282 = 123 761 octets à la mesure du 2026-11-02 (`mesures/rapport-2026-11-02-capture-bloc-plein.json`), valeur reprise par CT-8 révision 0.2 ; une campagne qui trouve plus remplace 123 761 dans les entrées du calculateur (membre `coefficients`, CT-8 EX-9.1). Le bloc mesuré ne porte que des ancres ; un bloc plein qui mêle des clôtures est TM-44.",
     "status": {
       "state": "executable",
       "tests": [
@@ -1562,7 +1562,7 @@ export const TM = [
     "threats": [],
     "measure": {
       "measured": null,
-      "quantity": "octets de la capture d'une transaction d'un bloc plein",
+      "quantity": "octets de la capture d'une transaction d'un bloc plein de 64 ancres (réponses JSON-RPC ; index relevé à part)",
       "unit": "octets",
       "target": null,
       "comparison": "aucune_cible",
@@ -1576,7 +1576,8 @@ export const TM = [
       "repetitions": 3,
       "result_name": "b_cap_bloc_plein",
       "conditions": [
-        "bloc de 64 transactions sur le réseau de développement"
+        "bloc de 64 transactions d'ancre sur le réseau de développement",
+        "index de capture exclu de la ligne, relevé dans `notes`"
       ]
     }
   },
@@ -2172,6 +2173,58 @@ export const TM = [
         "sans clé d'API ni accès à Internet",
         "durée imprimée par `verificateur` : origine au démarrage de ce processus, fin à l'impression, horloge monotone (PD-25 à CT-2 pour la définition exacte)",
         "recoupement : durée murale du lancement de la commande unique à la fin de `verificateur`, publiée, non comparée à la cible ; moyen de terminer la commande et écart avec la durée imprimée consignés (PD-25)"
+      ]
+    }
+  },
+  {
+    "id": "TM-44",
+    "level": "TM",
+    "title": "Capture d'une transaction d'un bloc plein qui mêle des clôtures : octets (réserve de CT-8 §9.2, que TM-31, mesuré sur un bloc d'ancres seules, ne lève pas)",
+    "specs": [
+      "CT-8",
+      "CT-4"
+    ],
+    "covers": [
+      "CT-8 EX-9.1",
+      "CT-8 §9.2",
+      "CT-4 §9.2",
+      "CT-4 §4.4"
+    ],
+    "preconditions": [
+      "Réseau de développement lancé par `chain/scripts/dev-net.sh start` ; outil de référence de CT-4 ; expéditeurs de test publiés, une transaction chacun par bloc (CT-4 §4.4).",
+      "Journaux de test inscrits au registre, chacun avec une période prête à clore par `submitPeriod`, au seuil de deux approbateurs (celui de `spec/vecteurs/ct-6/registre/capture/`, où un reçu de clôture fait 1 816 octets et le certificat d'un bloc d'une clôture 7 419 octets)."
+    ],
+    "steps": [
+      "Émettre dans un même bloc de 64 transactions des clôtures de journaux distincts et des ancres ; au moins deux compositions : une clôture et 63 ancres, puis autant de clôtures que de journaux préparés, le reste en ancres ; la composition de chaque bloc est écrite dans `conditions`.",
+      "Capturer une transaction de clôture et une transaction d'ancre de chaque bloc par l'outil de référence (`capturer`, CT-4 §9.4 : en-tête, reçu de chacune des 64 transactions, certificat de commit, CP-1 à CP-6 réussies) ; mesurer les octets des réponses JSON-RPC conservées, index de capture exclu, et relever l'index à part dans `notes`, comme TM-31.",
+      "Trois répétitions par composition ; rapport : ligne `b_cap_bloc_plein_clotures`, `max`."
+    ],
+    "oracle": "Ligne présente, `met` null ; la plus grande capture, index compris, est comparée à `b_cap` = 123 761 octets de CT-8 §9.2 (TM-31, bloc d'ancres seules) : plus grande, elle remplace `b_cap` dans les entrées du calculateur (membre `coefficients`, CT-8 EX-9.1) et lève la réserve de CT-8 §9.2 ; plus petite ou égale, la réserve est levée sans changer `b_cap`.",
+    "status": {
+      "state": "a_ecrire",
+      "phase2_step": 8,
+      "blocking": "Mesure non écrite, possible dès maintenant sur le réseau de développement avec l'outil de référence de CT-4 (méthode et outil de TM-31, `scripts/e2e/mesure-capture-bloc-plein.mjs`, à étendre aux clôtures de journaux distincts) ; due au plus tard à l'étape 8."
+    },
+    "threats": [],
+    "measure": {
+      "measured": null,
+      "quantity": "octets de la capture d'une transaction d'un bloc plein qui mêle des clôtures (réponses JSON-RPC ; index relevé à part)",
+      "unit": "octets",
+      "target": null,
+      "comparison": "aucune_cible",
+      "source": "CT-8 EX-9.1",
+      "failure_threshold": "aucun : mesure publiée ; au-delà de 123 761 octets index compris, elle remplace `b_cap`",
+      "method": "comparaison_octets",
+      "percentiles": [
+        "max"
+      ],
+      "warmup": 0,
+      "repetitions": 3,
+      "result_name": "b_cap_bloc_plein_clotures",
+      "conditions": [
+        "bloc de 64 transactions sur le réseau de développement, clôtures et ancres mêlées",
+        "seuil de deux approbateurs par clôture",
+        "index de capture exclu de la ligne, relevé dans `notes`"
       ]
     }
   }

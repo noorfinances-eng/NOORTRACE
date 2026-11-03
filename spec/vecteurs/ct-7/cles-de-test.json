@@ -259,6 +259,54 @@
     },
     {
       "source": "ct-6",
+      "label": "rfc3161/cles/intermediaire-8200.cle.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x0cfe2f3ff3ca02ac0ad46c7a5f9ab32690778926572fc9d3dd039c3042d69ab3"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/intermediaire-8200.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x0cfe2f3ff3ca02ac0ad46c7a5f9ab32690778926572fc9d3dd039c3042d69ab3"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-8192.cle.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x37d3d93164750eb5f80b9b2bae1ab0d2798f91d740eae9de919de1dfa08b9583"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-8192.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x37d3d93164750eb5f80b9b2bae1ab0d2798f91d740eae9de919de1dfa08b9583"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-8200.cle.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x6188710b60418bb324051a3cd7f1d16c5dc74c2599b918bf34744b57988973dd"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-8200.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x6188710b60418bb324051a3cd7f1d16c5dc74c2599b918bf34744b57988973dd"
+    },
+    {
+      "source": "ct-6",
       "label": "rfc3161/cles/tsa-cn-utf8-invalide.pem",
       "algorithm": "rsa",
       "public_key": null,
@@ -275,6 +323,30 @@
     },
     {
       "source": "ct-6",
+      "label": "rfc3161/cles/tsa-ed25519-auto-signe.pem",
+      "algorithm": "ed25519",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0xc5e61aae7238db33624657781b28e07dc684e6fd42fe4ba8d47ad8646b22077a"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-ed25519.cle.pem",
+      "algorithm": "ed25519",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0xc5e61aae7238db33624657781b28e07dc684e6fd42fe4ba8d47ad8646b22077a"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-ed25519.pem",
+      "algorithm": "ed25519",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0xc5e61aae7238db33624657781b28e07dc684e6fd42fe4ba8d47ad8646b22077a"
+    },
+    {
+      "source": "ct-6",
       "label": "rfc3161/cles/tsa-eku-non-critique.pem",
       "algorithm": "rsa",
       "public_key": null,
@@ -284,6 +356,30 @@
     {
       "source": "ct-6",
       "label": "rfc3161/cles/tsa-expiree.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0x921ae23a6266d6b8b9bc23b73ca9113bc858a7cd5f368b1ee9cfe41d5196a3d4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-exposant.cle.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0xa3cfdccaa39200b68d9ce981156cb2a6f461e3808e93bd4b68a4600775f863e4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-exposant.pem",
+      "algorithm": "rsa",
+      "public_key": null,
+      "address": null,
+      "spki_sha256": "0xa3cfdccaa39200b68d9ce981156cb2a6f461e3808e93bd4b68a4600775f863e4"
+    },
+    {
+      "source": "ct-6",
+      "label": "rfc3161/cles/tsa-par-intermediaire-8200.pem",
       "algorithm": "rsa",
       "public_key": null,
       "address": null,

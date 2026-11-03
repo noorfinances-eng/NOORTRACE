@@ -62,11 +62,15 @@ import {
 // (« lignes »), et des fichiers validators.json avec ce que LoadValidatorSetFile
 // en fait (« fichiers »). Régénération et recopie telles quelles, depuis la
 // copie de travail de noorchain-core (le fichier de validateurs donné est celui
-// du fixture, d'où valsetHash.fichier) :
+// du fixture, d'où valsetHash.fichier ; NOORTRACE désigne le chemin absolu de
+// la copie de ce dépôt, et la sortie va dans un fichier créé par mktemp) :
 //
-//   NOOR_SIGNING_VECTORS_OUT=/tmp/vectors.json \
-//   NOOR_SIGNING_VECTORS_VALIDATORS_FILE=$PWD/test/fixtures/certificat-commit/validators.json \
+//   sortie=$(mktemp)
+//   NOOR_SIGNING_VECTORS_OUT="$sortie" \
+//   NOOR_SIGNING_VECTORS_VALIDATORS_FILE="$NOORTRACE/test/fixtures/certificat-commit/validators.json" \
 //     go test ./core/consensus/ -run TestSigningVectors -count=1
+//
+// puis recopier le contenu du fichier "$sortie" tel quel.
 //
 // Un vecteur qui change signale un changement du schéma de signature ou de la
 // tolérance du décodeur : la cause est à chercher côté Go avant de recopier.

@@ -1,10 +1,15 @@
 # CT-1 — Modèle d'événement et formats
 
-Version 0.4, 26 octobre 2026 (révision 0.4 : partie facultative
-`attestation-perimetre.json` du dossier, quatorzième partie, et
+Version 0.5, 3 novembre 2026 (révision 0.5 : passages que la version 0.4
+laissait ouverts et contradictions relevés par la construction, tranchés
+dans le texte, sections 3, 4, 5.3, 7.2, 10.5, 11.1, 11.4, 11.5, 13 et 17 ;
+aucun format v0 n'est retiré ni modifié, aucun dossier ni journal publié ne
+change de verdict ni de liste de contrôles en échec. La version 0.4 du
+26 octobre 2026 avait ajouté la partie facultative
+`attestation-perimetre.json` du dossier, quatorzième partie, et les
 vérifications AT-1 à AT-7, sections 1, 2, 3, 11.1 à 11.5, 13, 15, 17 et
 annexe B ; l'attestation de périmètre elle-même est définie par CT-7
-section 7 ; rien du format v0 n'est retiré ni modifié. La version 0.3 du
+section 7 ; rien du format v0 n'avait été retiré ni modifié. La version 0.3 du
 25 octobre 2026 avait ajouté le point de contrôle de la période en cours, la
 preuve de cohérence RFC 9162 et la partie facultative
 `points-de-controle.json`, sections 10.5 à 10.9, 11.2, 11.4 et 17. La
@@ -90,14 +95,26 @@ liste de ce que cette version ne couvre pas.
 | Entiers | Nombres JSON entiers dans `[-(2^53-1), 2^53-1]`. Au-delà, chaîne décimale. | `412` |
 | Montants | Chaîne décimale `^-?(0|[1-9][0-9]*)(\.[0-9]{1,8})?$`, jamais un nombre JSON (section 4). | `"7400.00"` |
 | Identifiants de clés | Chaîne `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`. | `rec-test-01` |
-| `org_id`, `journal_id` | 32 octets, ceux que `RecorderRegistry` et `PeriodRegistry` connaissent (`keccak256(slug)` et `keccak256(nom)` dans `scripts/lib/noortrace.mjs`, mais opaques pour CT-1 : n'importe quels 32 octets non nuls). | `0xa581bb78…daab` |
+| `org_id`, `journal_id` | 32 octets, ceux que `RecorderRegistry` et `PeriodRegistry` connaissent (`keccak256(slug)` et `keccak256(nom)` dans `scripts/lib/noortrace.mjs`, mais opaques pour CT-1 : n'importe quels 32 octets non nuls). Le schéma admet 32 octets nuls ; le vérificateur les refuse (révision 0.5) : E-1 pour un événement, P-1 pour un manifeste. | `0xa581bb78…daab` |
 | Valeur nulle | `null` JSON. Une clé optionnelle par le sens est toujours présente, à `null` : la forme d'un objet est fixe. Deux exceptions, et deux seulement : `media_type` et `value` d'une référence (section 5.4) sont **absentes** quand elles ne s'appliquent pas, jamais `null` (le schéma refuse `"media_type": null`, E-1). | `"on_behalf_of": null` |
 | Octets en base64 (révision 0.3) | Réservé aux deux fichiers binaires embarqués dans `points-de-controle.json` (jeton RFC 3161 en DER, preuve `.ots`) : base64 de la RFC 4648 §4, alphabet standard, remplissage `=`, sans saut de ligne ; les octets décodés sont le fichier tel qu'il a été produit, jamais réencodé (CT-6 EX-13.3). Partout ailleurs, les octets restent en hexadécimal `0x`. Révision 0.4 : la même convention vaut pour le document de politique embarqué dans `attestation-perimetre.json` (`inscription.policy_document`, section 11.2) ; les octets décodés sont la pièce de l'ensemble de politique telle qu'elle est stockée (CT-2 EX-8.11), jamais réencodée. | `MIIINAYJ…RYkA==` |
+| Chaîne non vide (révision 0.5) | Chaîne qui contient au moins un caractère qui n'est pas un blanc. Les blancs sont les points de code de la propriété Unicode `White_Space` (U+0009 à U+000D, U+0020, U+0085, U+00A0, U+1680, U+2000 à U+200A, U+2028, U+2029, U+202F, U+205F, U+3000) et U+FEFF. La chaîne vide et une chaîne de blancs ne sont pas des chaînes non vides. S'applique à la raison d'absence d'une partie du dossier (section 11.1, D-2) et à `policy.redaction` d'un événement qui porte une référence rédigée (section 5.3, E-4). | `"aucune approbation liée"` ; `" "` n'en est pas une |
 
 Les fichiers JSON sont en UTF-8 sans marque d'ordre d'octets. Leur mise en forme
 (indentation, ordre des clés) est libre : seule la forme canonique compte pour les
 hachages et les signatures. Le SHA-256 d'un fichier du dossier (section 11)
 porte, lui, sur les octets du fichier tel qu'il est écrit.
+
+Révision 0.5 : une suite d'octets qui n'est pas de l'UTF-8 bien formé
+(RFC 3629), ou qui commence par la marque d'ordre d'octets `EF BB BF`, n'est
+pas un texte JSON : le document est refusé avant toute analyse, et, dans un
+dossier, la partie est inexploitable et le contrôle qui la porte échoue
+(section 11.4 ; E-1 pour `evenement.json`). Seule exception : une séquence
+de trois octets qui code un point de code de U+D800 à U+DFFF (`ED A0 80` à
+`ED BF BF`), seule ou suivie d'une autre comme dans une paire encodée à la
+manière de CESU-8, est un substitut isolé au sens de la section 4 (règle 3) :
+le document n'a pas de forme canonique (E-2), comme avec l'échappement
+`\ud800`.
 
 ## 4. Forme canonique : JCS v0
 
@@ -119,7 +136,10 @@ implémenteur qui ne lit pas la RFC :
    tout autre caractère, y compris `/`, les caractères non ASCII, U+007F, U+2028
    et U+2029, en clair, encodé en UTF-8. Les chaînes DOIVENT être des suites de
    points de code Unicode bien formées : un substitut isolé (U+D800–U+DFFF non
-   apparié) est invalide (E-2). Aucune normalisation Unicode (NFC, NFD) n'est
+   apparié) est invalide (E-2) ; un substitut écrit directement en octets
+   (`ED A0 80` à `ED BF BF`, apparié ou non) en est un aussi (section 3,
+   révision 0.5), seule une paire écrite par échappements (`\ud83d\ude00`)
+   est appariée. Aucune normalisation Unicode (NFC, NFD) n'est
    appliquée : `é` précomposé et `e` + U+0301 sont deux chaînes différentes.
 4. **Nombres.** Seuls les entiers de `[-(2^53-1), 2^53-1]` sont admis.
    Sérialisation : signe `-` si négatif, puis chiffres décimaux sans zéro de
@@ -133,6 +153,31 @@ implémenteur qui ne lit pas la RFC :
 6. **Rien d'autre.** Aucun espace, aucune indentation, aucun saut de ligne, pas
    de marque d'ordre d'octets. La sortie est une chaîne, encodée en UTF-8 pour le
    hachage.
+7. **Profondeur (révision 0.5).** Un texte JSON du format v0 (événement,
+   manifeste, signature de manifeste, point de contrôle, chaque fichier JSON
+   d'un dossier, `cles.json` d'un journal) a une profondeur d'au plus
+   **128**. La profondeur d'un texte est le plus grand nombre d'objets et de
+   tableaux imbriqués les uns dans les autres, la racine comprise quand elle
+   en est un : `1` et `"a"` sont de profondeur 0, `[]` et `{}` de profondeur
+   1, `[[1]]` et `{"a":[]}` de profondeur 2. Un texte plus profond est refusé
+   pendant la lecture, sans récursion dont la hauteur dépende de l'entrée :
+   dans un dossier, la partie est inexploitable et le contrôle qui la porte
+   échoue (section 11.4, comme pour une limite de taille) ; un événement d'un
+   journal vérifié hors dossier (section 7.2), de profondeur comptée depuis
+   l'objet de l'événement, échoue à E-1. La borne est celle de CT-6 EX-4.13 :
+   un document que CT-1 admet n'est jamais refusé par le vérificateur de CT-6
+   pour sa profondeur. Un événement de profondeur 127 ou 128, admis seul, rend
+   `voisins.json` ou `approbations.json` qui le contient plus profond que la
+   borne : l'enregistreur (CT-2) n'a aucune raison d'en produire. Révision
+   0.5, compléments : la même borne et le même comptage valent pour le
+   document de politique décodé d'une attestation (AT-6), lu sans contrainte
+   sur ses nombres (il n'est pas un texte du format v0 et sa forme canonique
+   n'est pas exigée) : au-delà, il n'est pas un objet JSON lisible et AT-6
+   échoue ; et, dans CT-6, pour le fichier d'ancres, le fichier d'en-têtes et
+   le second manifeste (CT-6 EX-4.16). Il n'y a pas d'autre borne ni d'autre
+   comptage : CT-6 EX-4.13 et EX-4.16 disent la même chose, un document de
+   profondeur 128 est admis partout, un document de profondeur 129 nulle
+   part.
 
 Cas limites, avec le résultat attendu :
 
@@ -212,7 +257,7 @@ compte de qui, avec quels droits.
 
 | Sous-champ | Type | Contraintes | Exemple |
 |---|---|---|---|
-| `launched_by` | chaîne 1–256 | Identité de la personne ou du service qui a lancé l'agent, telle que le système d'identité du client la nomme. Pour un événement du journal sur lui-même : `"noortrace-enregistreur"`. | `"u.martin@assureur-demo.example"` |
+| `launched_by` | chaîne 1–256 | Identité de la personne ou du service qui a lancé l'agent, telle que le système d'identité du client la nomme. Pour un événement du journal sur lui-même (rotation de clé, changement de politique) : `"noortrace-enregistreur"` (E-3, révision 0.5). | `"u.martin@assureur-demo.example"` |
 | `on_behalf_of` | chaîne ≤ 256, nullable | Pour le compte de qui (service, client final, dossier). | `"service-sinistres"` |
 | `scope` | chaîne 1–1024 | Droits accordés à l'agent, dans le vocabulaire du client. | `"sinistres:lecture,paiement"` |
 | `run_id` | chaîne ≤ 128, nullable | Identifiant de l'exécution de l'agent, pour regrouper ses événements. | `"run-2026-11-03-0142"` |
@@ -239,7 +284,7 @@ décisions d'approbation et les événements du journal.
 | `rule` | chaîne ≤ 1024, nullable | Règle appliquée, dans la syntaxe de CT-3. Obligatoire (non nulle) quand `decision` vaut `a_approuver` ; `null` quand `decision` vaut `sans_objet`. | `"paiement > 5000 CHF"` |
 | `decision` | énumération | `autorise`, `a_approuver`, `refuse` : les trois sorties de l'architecture, pour un appel d'outil. `sans_objet` : l'événement n'est pas soumis à la politique (échange avec le modèle, décision d'approbation, événement du journal). | `"a_approuver"` |
 | `ticket` | chaîne ≤ 128, nullable | Identifiant du ticket d'approbation. Obligatoire quand `decision` vaut `a_approuver` ; repris par la décision d'approbation et par l'appel relayé. | `"apr-1192"` |
-| `redaction` | chaîne ≤ 128, nullable | Nom et version de la règle de rédaction appliquée aux pièces de l'événement avant hachage (CT-2). `null` si aucune pièce n'a été rédigée. Toute référence avec `redacted: true` dans l'événement exige une valeur non nulle ici (E-4). | `"pii-v1"` |
+| `redaction` | chaîne ≤ 128, nullable | Nom et version de la règle de rédaction appliquée aux pièces de l'événement avant hachage (CT-2). `null` si aucune pièce n'a été rédigée. Toute référence avec `redacted: true` dans l'événement exige ici une chaîne non vide au sens de la section 3 : `null`, `""` et une chaîne de blancs mettent E-4 en échec (révision 0.5). | `"pii-v1"` |
 
 **`approval` — approbation humaine.** `null` si aucune approbation n'est liée.
 Sinon un objet, identique dans l'événement de décision et dans l'appel relayé
@@ -290,8 +335,62 @@ référence à ce qui a été reçu (corps d'erreur, ou pièce vide de longueur 
 échange sans `result`, sans `duration_ms` ou sans `is_error` est invalide (E-1,
 E-3) : l'événement seq 1 de l'annexe A porte les trois.
 
+**Cohérence avec la sorte : règle exacte de E-3 (révision 0.5).** La sorte
+se lit sur `execution.tool` (table de la section 5.1). Un nom qui commence
+par `noortrace.` sans être l'un des quatre noms réservés met E-3 en échec, et
+aucune autre règle de E-3 ne s'applique à cet événement. Sinon, E-3 échoue
+dès qu'une règle ci-dessous n'est pas tenue ; une valeur absente, ou d'un
+autre type que celui que la règle nomme, ne la tient pas.
+
+1. Appel d'outil (nom hors de l'espace `noortrace.`). `policy.decision` vaut
+   `autorise`, `a_approuver` ou `refuse` (jamais `sans_objet`) ; `approval`
+   n'est non nul qu'avec `a_approuver`. Selon `execution.status` :
+   `retenue` exige `a_approuver` et `approval` nul ; `executee` exige
+   `autorise`, ou `a_approuver` avec `approval.decision = "approuve"` ;
+   `refusee` exige `refuse`, ou `a_approuver` avec `approval.decision` égal
+   à `refuse` ou `expire`. `result`, `duration_ms` et `is_error` suivent la
+   table ci-dessus : référence, entier ≥ 0 et booléen pour `executee` ;
+   `null` pour `retenue` et `refusee`. `effects` est vide pour `retenue` et
+   `refusee` : un appel qui n'a pas été relayé n'a pas d'effet.
+2. Échange avec le modèle. `policy.decision = "sans_objet"`, `approval` nul,
+   `execution.status = "executee"`, `result` référence, `duration_ms` entier
+   ≥ 0, `is_error` booléen. `intent` et `effects` ne sont pas contraints par
+   E-3.
+3. Décision d'approbation, rotation de clé, changement de politique.
+   `policy.decision = "sans_objet"`, `execution.status = "executee"`,
+   `result`, `duration_ms` et `is_error` nuls, `intent` nul,
+   `execution.arguments` porte un membre `value` (référence en ligne). En
+   plus :
+   - décision : `approval` est un objet ; `execution.arguments.value` a la
+     même forme canonique que l'objet `A` construit depuis l'événement
+     (section 6.3) ; `effects` est vide (les effets de l'appel approuvé sont
+     déclarés par l'appel relayé, non par la décision) ;
+   - rotation : `approval` nul ; `delegation.launched_by =
+     "noortrace-enregistreur"` ; `effects` est exactement
+     `[{ "system": "noortrace", "action": "ecriture", "object":
+     "cle:<new_key_id>", "amount": null, "currency": null }]`, `new_key_id`
+     étant lu dans `execution.arguments.value` (section 8, règle 4) ; le
+     contenu de l'annonce relève de E-10 ;
+   - changement de politique : `approval` nul ; `delegation.launched_by =
+     "noortrace-enregistreur"` ; `execution.arguments.value` est un objet de
+     deux membres exactement, `policy_version`, chaîne de 1 à 128
+     caractères comme `code.policy_version`, et `policy_sha256`, 32 octets
+     en hexadécimal (section 3) ; `effects` n'est pas contraint par E-3 (CT-2
+     EX-15.6 fixe l'effet que l'enregistreur écrit ; l'événement de
+     politique des vecteurs publiés a des effets vides).
+
+`policy.rule` et `policy.ticket` selon `policy.decision` relèvent du schéma
+(E-1) ; `approval.ticket = policy.ticket` relève de E-5 seule. Une même
+défaillance peut mettre en échec E-1 et E-3, quand le schéma porte aussi la
+règle (table ci-dessus, dans l'`allOf` de `execution`) : les deux sont alors
+rapportées (vecteur `invalide-echange-sans-reponse`).
+
 **`effects` — effets.** Tableau, vide si aucun effet (appel retenu, refusé,
-lecture pure sans objet nommé). Chaque élément :
+lecture pure sans objet nommé). E-3 exige un tableau vide pour un appel
+retenu ou refusé et pour une décision d'approbation, et l'effet unique de la
+section 8 pour une rotation ; il ne contraint pas les effets d'un appel
+exécuté, d'un échange avec le modèle ni d'un changement de politique
+(révision 0.5, règle exacte de E-3 plus haut). Chaque élément :
 
 | Sous-champ | Type | Contraintes | Exemple |
 |---|---|---|---|
@@ -588,15 +687,76 @@ a.seq + 1`) et recalcule leurs hachages et signatures.
 
 La colonne « Contrôle » liste **tous** les symptômes observables, et un
 vérificateur de chaîne les rapporte tous, pas seulement le premier : il
-contrôle chaque événement pour lui-même (E-1 à E-11), puis chaque couple
-d'événements consécutifs **dans l'ordre du fichier** (C-1 : `seq`, `ts`,
-`org_id`, `journal_id` ; C-2 : `prev_hash` contre le hachage recalculé du
-précédent ; C-3 : clé). Une suppression se voit donc à la fois par le trou de
-`seq` (C-1) et par le `prev_hash` qui ne correspond plus (C-2) ; une
+contrôle chaque événement pour lui-même (E-1 à E-11), puis la suite des
+`seq` sur tout le fichier (C-1 : doublons, trous, retours en arrière), puis
+chaque couple d'événements consécutifs **dans l'ordre du fichier** (C-1 :
+`ts`, `org_id`, `journal_id` ; C-2 : `prev_hash` contre le hachage recalculé
+du précédent ; C-3 : clé), selon la règle exacte ci-dessous (révision 0.5,
+qui retire `seq` de la lecture couple par couple). Une suppression se voit
+donc à la fois par le trou de `seq` (C-1) et par le `prev_hash` qui ne
+correspond plus (C-2) ; une
 modification, par E-7 et E-8 sur l'événement et C-2 sur le suivant. Pour
 l'insertion, E-8 n'apparaît que si l'attaquant n'a pas la clé de
 l'enregistreur ; les vecteurs publient les deux cas (`journal-insere`, événement
 forgé signé avec la clé : C-1, C-2 ; `journal-insere-sans-cle` : C-1, C-2, E-8).
+
+**Vérification d'un journal : règle exacte (révision 0.5).** Le vérificateur
+de chaîne reçoit les événements dans l'ordre du fichier et le `cles.json` du
+journal, de la forme de la section 11.2. Chaque symptôme qu'il rapporte porte
+un type, un contrôle et le `seq` de l'événement qu'il désigne (`null` quand
+aucun) ; les contrôles en échec sont ceux qu'au moins un symptôme nomme. Il
+procède en trois temps, et rapporte les symptômes dans cet ordre :
+
+1. **Chaque événement pour lui-même**, dans l'ordre du fichier : E-1 à E-11
+   (section 11.4), puis l'origine : `prev_hash` nul si et seulement si
+   `seq = 1` (C-2, type `origine`), évaluée seulement pour un événement dont
+   `seq` est un entier (révision 0.5, règle de la section 11.4 : un `seq` qui
+   n'est pas un entier ne donne aucun symptôme `origine`, le défaut étant
+   porté par E-1). `cles.json` est lu d'abord, sans
+   référence à un événement (schéma, dates existantes, `key_id` et
+   `public_key` uniques, `valid_to ≥ valid_from`) : s'il ne passe pas, un
+   symptôme E-8 de type `cles` et de `seq` nul est rapporté en tête, et E-8
+   n'est rapporté pour aucun événement. S'il passe, son `org_id` et son
+   `journal_id` sont comparés à ceux de **chaque** événement : un écart est
+   un symptôme E-8 de cet événement, si bien qu'un premier événement altéré
+   ne masque pas les E-8 des autres.
+2. **La suite des `seq` sur tout le fichier** (C-1), parmi les événements
+   dont `seq` est un entier : un symptôme `insertion` pour chaque `seq`
+   présent plus d'une fois, dans l'ordre de première apparition ; puis un
+   symptôme `suppression` pour chaque trou entre deux valeurs consécutives
+   de l'ensemble trié des `seq` distincts, désignant le `seq` qui suit le
+   trou, dans l'ordre croissant ; puis un symptôme `reordonnancement` pour
+   chaque événement dont le `seq` est inférieur à celui de l'événement qui le
+   précède dans le fichier, dans l'ordre du fichier. Révision 0.5 :
+   « l'événement qui le précède » se lit parmi les seuls événements dont
+   `seq` est un entier : c'est le dernier événement à `seq` entier qui le
+   précède dans le fichier ; un événement dont `seq` n'est pas un entier
+   (relevé par E-1) n'entre pas dans ce temps et n'interrompt pas la
+   comparaison. Les trous se lisent sur
+   l'ensemble des `seq`, non couple par couple : un réordonnancement (seq 6
+   avant seq 5) n'est pas aussi rapporté comme deux trous, puisqu'aucun `seq`
+   ne manque (vecteur `journal-reordonne`).
+3. **Chaque couple d'événements consécutifs** dans l'ordre du fichier, le
+   précédent `a` et le suivant `b` : `b.prev_hash` égal au hash recalculé de
+   `a` (C-2, type `rupture`) ; `ts` de `b` non antérieur à celui de `a`
+   (C-1, type `horodatage`) ; `org_id` et `journal_id` égaux (C-1, type
+   `journal`) ; `recorder_key_id` de `b` égal au `new_key_id` de `a` si `a`
+   est une rotation, sinon à son `recorder_key_id` (C-3, type `cle`).
+   Révision 0.5 : la règle des termes incalculables de la section 11.4
+   s'applique à chaque couple ; un terme qui ne se calcule pas ne tient pas la
+   relation, qui est rapportée. Hash de `a` incalculable (`a` sans forme
+   canonique, ou qui n'est pas un objet) : symptôme `rupture` (C-2) ; `ts` de
+   `a` ou de `b` qui n'est pas une date existante : symptôme `horodatage`
+   (C-1), en plus de E-1 pour l'événement fautif ; `org_id`, `journal_id` ou
+   `recorder_key_id` absent ou mal typé : symptôme `journal` (C-1) ou `cle`
+   (C-3).
+
+Types des symptômes de E-1 à E-11 : `schema`, `format` (E-2), `sorte`,
+`redaction`, `approbation` (E-5), `reference` (E-6), `modification` (E-7),
+`signature` (E-8, écart d'`org_id` ou de `journal_id` compris),
+`approbateur` (E-9), `rotation`, `validite_cle` (E-11). Les vecteurs
+`journal-*` publient les types, contrôles et `seq` de leurs symptômes et le
+texte de leurs messages ; ce texte n'est pas normatif.
 
 Le dossier de preuve n'emporte que les voisins immédiats (section 11) : le
 vérificateur contrôle donc C-1 et C-2 sur trois événements, et s'en remet au
@@ -1016,7 +1176,19 @@ Règles :
    Cette phrase dit ce que l'exportateur doit fournir ; quand la clé du point
    manque dans un `cles.json` exploitable, l'échec est porté par K-3, non par
    E-8 (section 11.4), et le dossier est invalide, puisque K-3 échoue dans le
-   contrôle 6.
+   contrôle 6. Règle exacte de la clé en vigueur (révision 0.5), pour la
+   vérification d'une série (règle `cle_en_vigueur` ci-dessous) : quand
+   l'événement de `seq = last_seq` est fourni au vérificateur, c'est son
+   `new_key_id` s'il est une rotation, sinon son `recorder_key_id` ; sinon
+   (`last_seq = 0`, journal encore vide, ou événement non fourni), c'est la
+   règle de la section 10.1 appliquée à `cles.json` : la clé de plus grand
+   `valid_from` inférieur ou égal à `checkpoint_ts` (instants décodés,
+   section 3), la dernière dans l'ordre de `keys` en cas d'égalité ; si
+   aucune clé ne remplit la condition, `key_id` n'est la clé en vigueur
+   d'aucun point et la règle est violée. Un événement de `seq` inférieur à
+   `last_seq` ne remplace jamais l'événement `last_seq` manquant. Les points
+   de `last_seq = 0` de la période 1 des vecteurs (`points-de-controle/`,
+   clé `rec-test-01`) suivent cette règle.
 6. **Ce que le point ne porte pas.** Ni nonce ni `first_seq` : `first_seq` se
    déduit de `last_seq − tree_size + 1`, et l'unicité de deux points de même
    contenu est donnée par `checkpoint_ts` et par le chaînage. Ni signature de
@@ -1034,7 +1206,91 @@ n'est pas la clé en vigueur), `signature` (signature invalide sous la clé
 désignée), `validite_cle` (règle 5 : `checkpoint_ts` hors de l'intervalle
 `valid_from`, `valid_to` de la clé dans `cles.json`, comme E-8 pour un
 événement). La cadence (règle 1) n'a pas de nom de règle : c'est un constat
-de CT-5, non un écart de validité.
+de CT-5, non un écart de validité. Révision 0.5 : la liste est fermée, et
+aucun autre nom n'est employé. Un point contraire à son schéma ou à sa forme
+(en-tête, champ mal formé), ou dont `org_id`, `journal_id` ou `period_start`
+diffère du manifeste, viole `period_start` (« en-tête du point ») ; une
+racine nulle pour `tree_size ≥ 1`, ou non nulle pour `tree_size = 0`, viole
+`root` ; `tree_size` supérieur à `count` viole `last_seq` (puisque
+`last_seq` dépasse alors celui du manifeste) ; une clé `key_id` absente de
+`cles.json` viole `signature` (la signature ne se vérifie sous aucune clé
+désignée), et `cle_en_vigueur` si la clé en vigueur est une autre. Les noms
+`format`, `journal`, `tree_size` et `cle_absente` ne sont pas des noms de
+règle.
+
+Règles `root` et `last_hash` quand des événements manquent (révision 0.5).
+La vérification d'une série reçoit les points, le manifeste, les événements
+qu'on lui fournit et `cles.json`. Elle évalue chaque règle point par point,
+et distingue deux issues :
+
+- **violée** : les données fournies contredisent la règle. La règle figure
+  dans `rules_failed` ;
+- **non évaluée** : il manque, pour ce point, une donnée sans laquelle la
+  règle ne se décide pas. La règle figure dans `rules_not_evaluated`, liste
+  de `{ "rule", "reason" }`, avec l'une de deux raisons :
+  `piece_hors_dossier` (l'événement nécessaire n'est pas fourni) ou
+  `prerequis_en_echec` (il est fourni mais son hash ne se recalcule pas,
+  faute de forme canonique, E-2). Une règle violée pour un point n'est pas
+  aussi rapportée non évaluée pour ce point. Révision 0.5 : quand, pour un
+  même point et une même règle, un événement nécessaire manque et un autre
+  est fourni sans forme canonique, la raison est `prerequis_en_echec` (la
+  première dans l'ordre de CT-6 EX-6.5) : une donnée fournie et défectueuse
+  ne passe pas pour une absence. `rules_not_evaluated` porte une entrée par
+  couple (règle, raison) distinct sur toute la série, sans doublon ;
+  `rules_failed` porte chaque règle violée une fois ; les deux listes suivent
+  l'ordre des noms de règle donné ci-dessus (`chainage` d'abord,
+  `validite_cle` en dernier), puis, pour une même règle, `prerequis_en_echec`
+  avant `piece_hors_dossier`.
+
+Pour un point de taille `n` :
+
+- `root` : `n = 0` exige 32 octets nuls (section 9.2), sans aucun événement ;
+  pour `n ≥ 1`, la règle se décide si les événements `first_seq` à
+  `first_seq + n − 1` sont tous fournis et que leur hash se recalcule :
+  `root` doit égaler la racine RFC 6962 de ces hash recalculés (section 9.1),
+  sinon elle est violée ; s'il en manque un, la règle n'est pas évaluée pour
+  ce point (`piece_hors_dossier`), ou `prerequis_en_echec` si l'un d'eux est
+  fourni sans forme canonique ;
+- `last_hash` : `last_seq = 0` exige 32 octets nuls, sans aucun événement ;
+  sinon la règle se décide si l'événement `seq = last_seq` est fourni et que
+  son hash se recalcule : `last_hash` doit égaler ce hash recalculé, sinon
+  elle est violée ; événement non fourni : non évaluée
+  (`piece_hors_dossier`) ; fourni sans forme canonique : non évaluée
+  (`prerequis_en_echec`). Pour `n = 0` et `last_seq ≥ 1`, l'événement
+  `last_seq` appartient à la période précédente : il doit être fourni, et
+  32 octets nuls ne le remplacent jamais.
+
+Un événement manquant ne rend donc jamais une règle violée, et une valeur
+par défaut ne remplace jamais un événement manquant. Les points dont les
+événements sont fournis sont évalués même si d'autres ne le sont pas. Une
+série n'est déclarée valide que si `rules_failed` et `rules_not_evaluated`
+sont vides : sans les événements de la période, elle n'est ni valide ni
+invalide sur ces deux règles, et le rapport le dit. Les autres règles
+(`chainage`, `tree_size_decroissant`, `checkpoint_ts_decroissant`,
+`period_start`, `last_seq`, `dernier_point`, `signature`, `validite_cle`) se
+décident sans événement ; `cle_en_vigueur` suit la règle 5 ci-dessus.
+Révision 0.5 : `signature`, `validite_cle` et, quand l'événement `last_seq`
+n'est pas fourni, `cle_en_vigueur` lisent `cles.json` ; sans `cles.json`, ces
+règles ne sont pas évaluées (`piece_hors_dossier`), et avec un `cles.json`
+qui ne passe pas la première partie de E-8 sans référence à un événement
+(schéma, dates, unicité, `valid_to ≥ valid_from`), elles ne sont pas
+évaluées (`prerequis_en_echec`) ; aucune n'est alors violée. Dans
+`attendu.json` de la famille `points-de-controle/`, un
+`rules_not_evaluated` absent vaut liste vide : les séries publiées, vérifiées
+avec tout le journal, n'en ont aucune.
+
+Dans un dossier, où le vérificateur ne tient qu'un point, ces deux contenus
+sont portés par des vérifications K- qui ne demandent pas les événements de
+la période : `root` est liée à la racine du manifeste par la preuve de
+cohérence (K-5 : réussie ou en échec, jamais non exécutée faute
+d'événements) ; `last_hash` par K-6 : l'événement `last_seq` est l'événement
+prouvé ou un voisin et son hash recalculé diffère, échec ; il ne l'est pas,
+non exécutée, `piece_hors_dossier`, raison admise ; `voisins.json`
+inexploitable alors que `last_seq` n'est pas le `seq` de l'événement prouvé,
+ou hash de cet événement incalculable (E-2), non exécutée,
+`prerequis_en_echec`, sans raison admise (CT-6 EX-5.9). Révision 0.5 : quand
+`last_seq` est le `seq` de l'événement prouvé, K-6 se juge sur lui seul,
+quel que soit l'état de `voisins.json`.
 
 <!-- schema: point-de-controle -->
 ```json
@@ -1383,13 +1639,17 @@ fige le dossier : la mise en forme des fichiers JSON du dossier est libre, mais
 elle ne doit plus changer une fois l'index écrit. Les SHA-256 ci-dessus sont ceux
 des fichiers écrits par `JSON.stringify(objet, null, 2)` suivi d'un saut de
 ligne, l'implémentation de référence des vecteurs. Une partie absente a
-`sha256: null`, `present: false` et une raison non vide. Les cinq dernières
+`sha256: null`, `present: false` et une raison qui est une chaîne non vide
+au sens de la section 3 (révision 0.5 : une raison faite de blancs met D-2
+en échec, la chaîne vide met D-1 en échec par le schéma). Les cinq dernières
 parties sont réservées à CT-5 (jeton RFC 3161, preuve OpenTimestamps) et CT-4
 (reçu de la transaction du registre, certificat de commit du bloc, jeu de
 validateurs) ; dans les vecteurs de CT-1 elles sont absentes avec la raison
 « hors périmètre CT-1 ». Les six premières sont toujours présentes ;
 `approbations.json` est absent, avec la raison « aucune approbation liée »,
-quand `approval` de l'événement prouvé vaut `null`.
+quand `approval` de l'événement prouvé vaut `null`. Révision 0.5 : cette
+raison est exigée à l'identique (A-1) ; `approval` nul avec la partie
+présente, ou absente sous une autre raison, met A-1 en échec.
 
 Révision 0.3 : une **treizième partie facultative**, `points_de_controle`
 (`points-de-controle.json`, section 11.2), peut suivre les douze, toujours en
@@ -1906,7 +2166,8 @@ attestation ne prouve jamais le périmètre (CT-7 section 7.8).
 Ce qu'un réviseur peut attendre, contrôle par contrôle. Un dossier est valide si
 tous les contrôles exécutés passent **et** si chaque contrôle non exécuté l'est
 pour une raison admise : partie absente avec raison dans l'index (A-2, A-3 et
-A-4 quand `approval` est `null` ; contrôles des parties réservées), ou événement
+A-4 quand `approval` est `null` et la partie déclarée absente avec la raison
+« aucune approbation liée », révision 0.5 ; contrôles des parties réservées), ou événement
 de demande hors du dossier (A-4). Un seul échec rend le dossier invalide ; un
 contrôle non exécuté pour toute autre raison le rend invalide aussi, et le
 vérificateur le dit à part des échecs. Un contrôle dont la pièce est absente
@@ -1923,17 +2184,175 @@ l'attestation qui est jugée.
 
 Une partie déclarée présente dont le fichier n'est pas un objet JSON (texte qui
 n'est pas du JSON, littéral `null`, tableau, nombre) ou qui ne respecte pas son
-schéma met en échec le contrôle qui porte la partie : `dossier.json` → D-1
-(sauf un `dossier.json` absent ou qui n'est pas du JSON : l'entrée est alors
-inutilisable, code 2, sans verdict, CT-6 EX-4.12),
-`evenement.json` → E-1, l'enveloppe de `voisins.json` → C-1 (ses événements →
-E-1), `chemin.json` → M-2, `manifeste.json` → P-1, `manifeste.sig` → P-5,
-`cles.json` → E-8, `approbations.json` → A-1 ; un fichier sans forme canonique
-(nombre non entier, clé en double, substitut isolé) → E-2. Les contrôles qui
-dépendent de la partie sont alors non exécutés, sans raison admise, et le
-dossier est invalide. Le vérificateur ne reprend rien d'une partie inexploitable
-dans son rapport (pas de `seq` ni de `hash` lus dans l'index à la place de
-`evenement.json`).
+schéma met en échec le contrôle qui porte la partie. La révision 0.5 remplace
+la suite de ce paragraphe des versions 0.2 à 0.4, qui disait non exécutés
+les contrôles dépendant d'une partie contraire à son schéma, alors que les
+vecteurs de la section 11.5 publient des cascades où ils s'exécutent : les
+règles qui suivent disent exactement ce que font les vecteurs, partie par
+partie.
+
+**Contrôle porteur.** Chaque partie a un contrôle porteur : `dossier.json`
+→ D-1 ; `evenement.json` → E-1 ; `voisins.json` → C-1 pour son enveloppe
+(ses deux événements sont des événements du dossier, soumis à E-1 à E-11) ;
+`chemin.json` → M-2 ; `manifeste.json` → P-1 ; `manifeste.sig` → P-5 ;
+`cles.json` → E-8 ; `approbations.json` → A-1 pour son enveloppe (les
+événements de `events` sont soumis à E-1 à E-11) ;
+`points-de-controle.json` → K-1 ; `attestation-perimetre.json` → AT-1.
+
+**Partie inexploitable (révision 0.5).** Une partie déclarée présente est
+inexploitable dans cinq cas :
+
+- (a) le répertoire n'a pas de fichier ordinaire de ce nom : fichier absent,
+  ou entrée qui est un répertoire, un lien symbolique ou tout autre objet que
+  le vérificateur n'ouvre jamais. D-2 échoue, et le contrôle porteur n'est
+  pas exécuté. Une telle entrée compte aussi comme absente pour une partie
+  déclarée absente. Exception (révision 0.5) : A-1, qui juge aussi la
+  déclaration de la partie dans l'index, échoue quand `approval` de
+  l'événement prouvé est nul et que `approbations.json` est déclarée
+  présente, que son fichier existe ou non (règle d'A-1 de la table) ; D-2
+  échoue en plus ;
+- (b) le fichier a plus d'octets que sa limite (ci-dessous) : il n'est pas
+  lu, le contrôle porteur échoue, et D-2 ne compare pas son SHA-256, que la
+  limite interdit de calculer (sauf `attestation-perimetre.json`, CT-6
+  EX-4.15) ;
+- (c) ses octets ne sont pas un texte JSON (section 3 : UTF-8 mal formé,
+  marque d'ordre d'octets, syntaxe), ou le texte est plus profond que la
+  borne de la section 4 (règle 7) : le contrôle porteur échoue ;
+- (d) le texte JSON n'a pas de forme canonique (nombre non entier ou hors de
+  l'intervalle sûr, clé en double, substitut isolé, section 4) : E-2 échoue,
+  et le contrôle porteur n'est pas exécuté ;
+- (e) le texte JSON n'est pas un objet (littéral `null`, tableau, nombre,
+  chaîne, booléen) : le contrôle porteur échoue.
+
+Dans ces cinq cas, tout contrôle qui lit la partie (table des lectures
+ci-dessous) n'est pas exécuté, sans raison admise (`prerequis_en_echec` dans
+le rapport de CT-6), sauf s'il échoue sur ce qu'il lit des autres parties :
+l'échec l'emporte. Révision 0.5 : « ce qu'il lit des autres parties » est la
+part de sa règle qui ne lit pas la partie inexploitable ; elle est évaluée,
+et le contrôle échoue si elle ne tient pas ; sinon il n'est pas exécuté,
+jamais réussi. Exemple : `evenement.json` réduit à `null`, manifeste d'une
+période de 7 200 s et `cles.json` à `key_id` en double mettent en échec E-1,
+E-8 (unicité des `key_id`, lue sans l'événement), P-1 (`period_end =
+period_start + 3600`) et P-5 (`periodHash` recalculé différent de
+`manifeste.sig.period_hash`) ; les autres contrôles qui lisent
+`evenement.json` ne sont pas exécutés. CT-6 EX-5.15 applique la même règle. Le dossier est invalide. Le vérificateur ne reprend rien
+d'une partie inexploitable dans son rapport (pas de `seq` ni de `hash` lus
+dans l'index à la place de `evenement.json`). Exception :
+`attestation-perimetre.json`, dont tout défaut des cas (b) à (e), forme
+canonique comprise, est porté par AT-1 seule, sans changer aucun autre
+contrôle ni le verdict (révision 0.4) ; au cas (a), D-2 échoue (le dossier
+est invalide) et AT-1 échoue aussi, AT-1 n'ayant pas de raison de
+non-exécution (CT-6 EX-5.12).
+
+**Partie contraire à son schéma (révision 0.5).** Une partie qui est un
+objet JSON mais ne respecte pas son schéma, ou les relations que son
+contrôle porteur ajoute au schéma (par exemple `period_end = period_start +
+3600` pour P-1), met le contrôle porteur en échec et **reste exploitable** :
+tous les autres contrôles s'exécutent sur elle telle qu'elle est. Cascades
+publiées : `invalide-e1-attestation-non-executee` (membre hors schéma dans
+`evenement.json` : E-1, E-7, E-8, C-2, M-1), `invalide-echange-sans-reponse`
+(E-1, E-3), `invalide-approbateur-double` (E-1, A-3), `invalide-racine-nulle`
+(M-3, P-1, P-4), `invalide-hex-majuscules` (E-1 seul) et, dans les vecteurs
+de CT-6, `invalide-p1-manifeste-membre-en-trop` (P-1, P-5, aucun contrôle
+de CT-1 non exécuté hors A-4). Le hash d'un événement contraire à son schéma
+est recalculé sur l'objet tel qu'il est, tous ses membres sauf `hash` et
+`sig` (section 6.1), dès que sa forme canonique se calcule. Chaque relation
+qu'un contrôle évalue (égalité, ordre, appartenance, recalcul) porte sur les
+valeurs JSON lues ; une relation dont un terme est absent, n'a pas le type
+JSON que le schéma lui donne (un `seq` qui est une chaîne, un `previous` qui
+est un nombre) ou ne se calcule pas (le hash d'un voisin qui n'est pas un
+objet, un horodatage qui n'est pas une date existante) n'est pas tenue, et
+le contrôle qui l'évalue échoue. Une relation existentielle (« le voisin dont
+le hash recalculé égale… ») n'est pas une égalité à tenir : un terme
+incalculable fait seulement que l'objet n'est pas trouvé. Exemple : `evenement.json` dont `seq` est
+la chaîne `"7"`, sans autre changement, met en échec D-1, E-1, E-7, E-8,
+C-1, C-2, M-1, M-3, P-2 et A-2. Un `previous` ou un `next` qui n'est ni un
+objet ni `null`, un élément de `events` qui n'est pas un objet, est un
+événement qui n'est pas un objet : E-1 échoue pour lui, et E-2 à E-11 ne
+s'y exécutent pas. Trois exceptions :
+
+- `dossier.json` contraire à son schéma, ou dont `generated_at` n'est pas
+  une date existante : D-1 échoue et aucun autre contrôle n'est exécuté ;
+- `cles.json` est exploitable si et seulement si la première partie de E-8
+  réussit (schéma, `org_id` et `journal_id` égaux à ceux de l'événement
+  prouvé, dates existantes, `key_id` et `public_key` uniques, `valid_to ≥
+  valid_from`), ce qu'elle ne peut faire sans `evenement.json` exploitable ;
+  sinon E-8 échoue, et `cles.json` est inexploitable pour les autres
+  contrôles qui le lisent (E-10 pour ses comparaisons à `cles.json`, E-11,
+  P-5, K-3, AT-6) ;
+- `points-de-controle.json` : K-1 en échec rend K-2 à K-9 non exécutées
+  (paragraphe de la révision 0.3 ci-dessous).
+
+**Voisin qui n'est pas un objet (révision 0.5, règle unique).** Un membre
+`previous` ou `next` de `voisins.json` absent, ou dont la valeur n'est ni
+un objet ni `null`, est un voisin qui n'est pas un objet. Alors : C-1
+échoue (enveloppe contraire à son schéma, et relation de `seq` non tenue) ;
+E-1 échoue pour ce voisin s'il est présent, E-2 à E-11 ne s'y exécutent pas
+(un membre absent n'est pas un événement : E-1 ne le concerne pas) ; C-2, C-3 et
+P-3, dont une relation a ce voisin pour terme (son hash recalculé, son
+`seq`, son `ts`, son `recorder_key_id`, ou, pour `next`, son `prev_hash`),
+échouent ; il n'est candidat ni à la demande d'A-4 ni à l'événement
+`last_seq` de K-6, son hash ne se recalculant pas : A-4 et K-6 se jugent sans
+lui (`piece_hors_dossier` si aucun autre événement du dossier ne convient),
+et n'échouent pas à cause de lui. `voisins.json` reste exploitable (c'est
+un objet) : l'autre voisin est contrôlé normalement. Un élément de `events`
+qui n'est pas un objet met en échec E-1 et A-2.
+
+**Autres termes mal typés (révision 0.5).** `approval` de l'événement prouvé
+qui n'est ni nul ni un objet : E-1 échoue, et A-1 à A-4, dont les relations
+lisent `approval`, échouent (pour A-4, `request_hash` est un terme de sa
+propre règle, qui ne se lit pas : la règle n'est pas tenue ; un voisin
+candidat qui n'est pas un objet, lui, n'est seulement pas trouvé), en plus
+des cascades que la règle des relations donne (E-3, E-5, E-9…). `execution.tool` qui n'est pas une chaîne : E-1
+échoue, et E-3 échoue (la sorte ne se lit pas). La règle d'origine de C-2
+(`prev_hash` nul si et seulement si `seq = 1`) s'applique à chaque événement
+du dossier, voisins compris. Elle n'est évaluée que pour un événement dont `seq` est un entier : quand `seq` n'en est pas un (absent, chaîne, nombre non entier), la règle d'origine n'est ni tenue ni violée, elle n'est pas évaluée, et le défaut est porté par E-1 seule ; c'est la seule exception à la règle des relations à terme mal typé, et elle vaut à l'identique dans un journal (section 7.2, temps 1) et dans un dossier (section 11.4). Motif : « `seq = 1` » ne se décide pas sans `seq` entier, et un échec de l'origine ne dirait rien de plus que E-1 ; rien n'est caché, puisque E-1 échoue et que le `prev_hash` de l'événement reste comparé au hash recalculé de son précédent (temps 3, `rupture` ; C-2 dans un dossier). Vecteur : `journal-seq-chaine` (seq 11 écrit en chaîne : `schema`/E-1 puis `suppression`/C-1, aucun symptôme `origine`).
+
+**`dossier.json` (révision 0.5).** Absent, ou dont les octets ne sont pas un
+texte JSON (cas (a) et (c) ; profondeur au-delà de la borne comprise) :
+l'entrée est inutilisable, code 2, sans verdict (CT-6 EX-4.12). Au-delà de
+sa limite (cas (b)), sans forme canonique (cas (d), E-2), qui n'est pas un
+objet (cas (e)) ou contraire à son schéma : D-1 échoue, ou E-2 pour le cas
+(d) avec D-1 non exécuté, et aucun autre contrôle n'est exécuté. Un index à
+clé en double est donc un échec de E-2, non une entrée inutilisable.
+
+**Lectures.** Les contrôles qui lisent chaque partie, pour l'application
+des règles ci-dessus (`dossier.json`, que tous supposent, relève de sa règle
+propre) :
+
+| Partie | Contrôles qui la lisent |
+|---|---|
+| `evenement.json` | D-1 (`seq`, `hash`, `org_id`, `journal_id`) ; E-1 à E-11 ; C-1 à C-3 ; M-1, M-3 ; P-1, P-2 ; A-1 à A-4 ; K-1, K-4, K-6 ; AT-5, AT-6 ; la première partie de E-8 (`org_id`, `journal_id`) |
+| `voisins.json` | E-1 à E-11 (`previous`, `next`) ; C-1 à C-3 ; P-3 ; A-4 ; K-6 |
+| `chemin.json` | M-1 à M-3 ; K-4 |
+| `manifeste.json` | M-3 ; P-1 à P-5 ; K-1, K-5 |
+| `manifeste.sig` | P-5 |
+| `cles.json` | E-8 ; E-10 (comparaisons à `cles.json`) ; E-11 ; P-5 ; K-3 ; AT-6 |
+| `approbations.json` | E-1 à E-11 (`events`) ; A-1 à A-3 (A-1 lit aussi la déclaration de la partie dans l'index) |
+| `points-de-controle.json` | K-1 à K-9 |
+| `attestation-perimetre.json` | AT-1 à AT-7 |
+| entrées à part (CT-6 EX-4.6, EX-4.7) | E-6 (pièces), P-5 (second manifeste) |
+
+E-1 à E-11 s'appliquent à chaque événement lu dans une partie exploitable ;
+`voisins.json` ou `approbations.json` inexploitable n'apporte aucun événement
+et ne rend, à lui seul, aucune d'elles non exécutée. Le statut au rapport de
+chacune est : en échec si elle échoue pour au moins un événement ; sinon non
+exécutée si `evenement.json` est inexploitable, ou si elle n'est pas
+exécutée pour au moins un événement (raison du premier dans l'ordre :
+événement prouvé, `previous`, `next`, puis `events` dans l'ordre) ; sinon
+réussie.
+
+**Limites de taille (révision 0.5).** Ce sont celles de CT-6 EX-4.13, qu'un
+dossier conforme n'approche pas : `dossier.json` 1 Mio (1 048 576 octets) ;
+chacune des **sept** parties JSON v0 autres que l'index (`evenement.json`,
+`voisins.json`, `chemin.json`, `manifeste.json`, `manifeste.sig`,
+`cles.json`, `approbations.json`) 16 Mio ; `points-de-controle.json` 1 Mio
+(CT-6 EX-4.14) ; `attestation-perimetre.json` 4 Mio, au-delà de quoi seul
+son SHA-256 est calculé, en flux, jusqu'au plafond de 64 Mio (CT-6 EX-4.15),
+au-delà duquel l'entrée est inutilisable : code 2, type `taille_depassee`,
+sans verdict (révision 0.5, comme CT-6 EX-4.15) ;
+les parties réservées, les limites de CT-6. Un fichier de taille égale à sa
+limite est lu ; un fichier plus grand ne l'est pas (cas (b)).
 
 Révision 0.3 : `points-de-controle.json` présent mais inexploitable, ou
 contraire à son schéma ou à ses relations au manifeste → K-1 ; quand K-1
@@ -1945,6 +2364,23 @@ dossier est invalide, et seul K-1 est en échec (dossiers
 `invalide-k1-double-defaut` de CT-1 et de CT-6). K-4 n'est pas exécutée,
 sans raison admise, quand M-3 n'a pas réussi.
 
+Révision 0.5, précisions de ce paragraphe. « Inexploitable » s'entend des
+cas (a) à (e) ci-dessus, avec la même règle que pour toute partie : cas
+(a), D-2 échoue et K-1 n'est pas exécutée ; cas (d), la partie sans forme
+canonique met E-2 en échec et K-1 n'est pas exécutée (la version 0.4
+pouvait se lire comme imputant ce cas à K-1) ; cas (b), (c) et (e), K-1
+échoue. Dans tous ces cas, K-2 à K-9 ne sont pas exécutées, sans raison
+admise. Quand P-1 n'a pas réussi, ou quand `evenement.json` est
+inexploitable, K-1 contrôle quand même la partie contre son schéma : un
+défaut met K-1 en échec ; sinon K-1 n'est pas exécutée, sans raison admise
+(`prerequis_en_echec`, CT-6 EX-5.9), les relations au manifeste et à
+l'événement ne pouvant se comparer. K-1 ne lie au manifeste que
+`checkpoint.tree_size` (`1 ≤ tree_size ≤ count`) ; `consistency.first_size`,
+`second_size`, `first_root` et `second_root` ne sont liés au point et au
+manifeste que par K-5, et `chemin.tree_size` au manifeste que par M-3 (M-2
+l'emploie dans l'algorithme de la section 9.3) : un écart n'est imputé qu'au
+contrôle qui porte la relation.
+
 Révision 0.4 : `attestation-perimetre.json` présent mais inexploitable
 (qui n'est pas un objet JSON, qui dépasse 4 Mio, CT-6 EX-4.15), ou contraire
 à son schéma ou aux relations d'AT-1 → AT-1 en échec ; AT-2 à AT-7 ne sont
@@ -1952,7 +2388,13 @@ alors pas exécutées (`prerequis_en_echec`), et le dossier garde son
 verdict. Prérequis : AT-2 et AT-3 exigent AT-1 réussie ; AT-4 exige AT-3
 réussie ; AT-5 exige AT-1 réussie et `evenement.json` exploitable (E-1,
 E-2) ; AT-6 exige AT-2 réussie, `evenement.json` et `cles.json`
-exploitables (première partie de E-8). Quand `inscription` vaut `null`,
+exploitables (première partie de E-8). Révision 0.5 : « `evenement.json`
+exploitable (E-1, E-2) » veut dire ici E-1 et E-2 réussies pour l'événement
+prouvé, condition plus forte que l'exploitabilité des paragraphes
+précédents : un `evenement.json` contraire à son schéma reste exploitable
+pour D-1 à A-4, mais AT-5 et AT-6 ne s'exécutent pas sur lui (vecteur
+`invalide-e1-attestation-non-executee`) ; `cles.json` exploitable est la
+première partie de E-8 réussie. Quand `inscription` vaut `null`,
 AT-6 et AT-7 ne sont pas exécutées, partie absente, quels que soient AT-2,
 `evenement.json` et `cles.json` : seul l'échec d'AT-1 l'emporte
 (`prerequis_en_echec`). AT-6 n'est pas exécutée, ancre absente
@@ -1966,17 +2408,17 @@ est en échec ou non exécutée pour une autre raison.
 
 | Id | Contrôle | Contrôle de l'architecture |
 |---|---|---|
-| D-1 | `dossier.json` valide contre son schéma ; `event.seq` et `event.hash` égaux à ceux de `evenement.json`. | — |
-| D-2 | Pour chaque partie présente, SHA-256 du fichier = `sha256` déclaré ; pour chaque partie absente, fichier absent du répertoire et raison non vide. | — |
-| E-1 | Chaque événement du dossier valide contre `evenement-v0.schema.json`. | 1 |
+| D-1 | `dossier.json` valide contre son schéma, `generated_at` date existante ; `event.seq` et `event.hash` égaux à `seq` et `hash` de `evenement.json` ; révision 0.5 : `org_id` et `journal_id` de l'index égaux à ceux de `evenement.json`. | — |
+| D-2 | Pour chaque partie présente, un fichier ordinaire de ce nom dans le répertoire et son SHA-256 = `sha256` déclaré (fichier au-delà de sa limite : SHA-256 non comparé, l'échec étant porté par le contrôle de la partie) ; pour chaque partie absente, aucun fichier ordinaire de ce nom dans le répertoire et une raison qui est une chaîne non vide (section 3). | — |
+| E-1 | Chaque événement du dossier valide contre `evenement-v0.schema.json` ; `ts` et, si `approval` n'est pas nul, `approval.at` dates existantes (section 3) ; `org_id` et `journal_id` non nuls (section 3, révision 0.5). | 1 |
 | E-2 | Forme canonique calculable : aucun nombre non entier ou hors intervalle, aucun substitut isolé, aucune clé en double. | 1 |
-| E-3 | `execution.tool` en `noortrace.` est l'un des quatre noms réservés ; les champs de l'événement sont cohérents avec sa sorte (tables 5.1 et 5.3 : `policy.decision`, `approval`, `intent`, `status`, `result`, `duration_ms`, `is_error`, `arguments.value`, `effects`). | 1 |
-| E-4 | Toute référence `redacted: true` est accompagnée d'un `policy.redaction` non nul. | 1 |
+| E-3 | `execution.tool` en `noortrace.` est l'un des quatre noms réservés ; les champs de l'événement sont cohérents avec sa sorte (tables 5.1 et 5.3 : `policy.decision`, `approval`, `intent`, `status`, `result`, `duration_ms`, `is_error`, `arguments.value`, `effects`, `delegation.launched_by`), selon la règle exacte de la section 5.3 (révision 0.5). | 1 |
+| E-4 | Toute référence `redacted: true` (`intent`, `execution.arguments`, `execution.result`, éléments de `context`) est accompagnée d'un `policy.redaction` qui est une chaîne non vide (section 3 ; révision 0.5 : `""` et une chaîne de blancs ne suffisent pas). | 1 |
 | E-5 | `approval.approvers` et `approval.signatures` ont la même longueur ; `approval.ticket = policy.ticket`. | 7 |
 | E-6 | Toute référence avec `value` vérifie `sha256 = SHA-256(JCS(value))` et `length` ; toute pièce fournie à part vérifie son `sha256` et sa `length`. | 1 |
 | E-7 | `hash` recalculé depuis l'objet (section 6.1) égal à `hash`. | 1 |
 | E-8 | `cles.json` conforme à son schéma, `org_id` et `journal_id` égaux à ceux de l'événement, `key_id` et `public_key` uniques, `valid_to ≥ valid_from` ; `sig` valide sous la clé publique `recorder_key_id` de `cles.json`, sur `P_S ‖ C` (section 6.2) ; clé absente de `cles.json` : échec. | 6 |
-| E-9 | Pour chaque `i`, l'adresse recouvrée de `signatures[i]` sur `D_A` (section 6.3) = `approvers[i]` ; signature canonique. | 7 |
+| E-9 | Pour chaque indice `i` de `signatures`, `signatures[i]` est une signature canonique (65 octets, `s` dans la moitié basse, `v` ∈ {27, 28}) et l'adresse recouvrée sur `D_A` (section 6.3) = `approvers[i]` ; révision 0.5 : une signature sans `approvers[i]` met E-9 en échec, en plus de E-5 ; un approbateur sans signature relève de E-5 seule (vecteur `invalide-signature-manquante`). | 7 |
 | E-10 | Événement de rotation : `old_key_id`, `valid_from`, `org_id`, `journal_id` cohérents avec l'enveloppe ; `new_key_id ≠ old_key_id` ; `counter_sig` valide sous `new_public_key` ; dans `cles.json`, `new_public_key` = clé de `new_key_id`, `valid_from` de `new_key_id` = `ts` et `valid_to` de `old_key_id` = `ts` (section 8, règle 3). | 6 |
 | E-11 | `ts` de chaque événement dans `[valid_from, valid_to]` (bornes incluses, instants à la milliseconde) de la clé qui le signe ; `valid_to` nul : pas de borne haute. Clé absente de `cles.json` : non exécuté, l'échec est porté par E-8. | 6 |
 | C-1 | `voisins.json` : objet `{ "version": 0, "previous", "next" }` ; `previous.seq = seq − 1` (ou `previous = null` et `seq = 1`), `next.seq = seq + 1` (ou `next = null`) ; `ts` non décroissants ; `org_id`, `journal_id` identiques. | 2 |
@@ -1985,25 +2427,25 @@ est en échec ou non exécutée pour une autre raison.
 | M-1 | `chemin.leaf_hash = SHA-256(0x00 ‖ hash)` avec `hash` recalculé (E-7). | 3 |
 | M-2 | Algorithme de la section 9.3 sur `(leaf_hash, leaf_index, tree_size, path)` donne `chemin.root`. | 3 |
 | M-3 | `chemin.root = manifeste.root` ; `chemin.tree_size = manifeste.count` ; `chemin.leaf_index = seq − manifeste.first_seq`. | 3 |
-| P-1 | `manifeste.json` valide contre son schéma ; `period_end = period_start + 3600` ; `count = last_seq − first_seq + 1` ; `org_id`, `journal_id` égaux à ceux de l'événement. | 3 |
+| P-1 | `manifeste.json` valide contre son schéma ; `generated_at` date existante ; `period_end = period_start + 3600` ; `count = last_seq − first_seq + 1` ; `org_id`, `journal_id` non nuls (révision 0.5) et égaux à ceux de l'événement. | 3 |
 | P-2 | `first_seq ≤ seq ≤ last_seq` et `period_start ≤ ts < period_end` pour l'événement prouvé (instants : `ts` décodé à la milliseconde, bornes en secondes). | 3 |
 | P-3 | Pour chaque voisin de la même période (`first_seq ≤ voisin.seq ≤ last_seq`), `period_start ≤ voisin.ts < period_end` ; un voisin hors période a `seq = first_seq − 1` **et** `ts < period_start`, ou `seq = last_seq + 1` **et** `ts ≥ period_end`. Un voisin hors période par `seq` mais horodaté dans la période prouve que le manifeste a tronqué sa période (section 7.2). | 2, 3 |
 | P-4 | `root` nulle si et seulement si `count = 0` ; `count ≥ 1` dans un dossier (il contient un événement). | 3 |
 | P-5 | `periodHash` recalculé (section 10.2) = `manifeste.sig.period_hash` ; `sig` valide sous la clé `manifeste.sig.recorder_key_id` de `cles.json` ; `manifeste.recorder_key_id` = `manifeste.sig.recorder_key_id` ; `generated_at` dans `[valid_from, valid_to]` (bornes incluses) de cette clé ; `cles.json` inexploitable (E-8) : non exécuté. Avec un second manifeste fourni à part : continuité de la section 10.3. | 3, 6 |
-| A-1 | `approbations.json` présent si et seulement si `approval ≠ null` ; `ticket` et `request_hash` égaux à ceux de `approval`. | 7 |
+| A-1 | `approbations.json` présent si et seulement si `approval ≠ null` ; `ticket` et `request_hash` égaux à ceux de `approval` ; révision 0.5 : `approval` nul exige la partie déclarée absente avec la raison exacte « aucune approbation liée » (section 11.1), et A-2, A-3, A-4 sont alors non exécutées, partie absente ; partie présente, ou absente sous une autre raison : A-1 en échec, A-2 à A-4 non exécutées sans raison admise ; `approval` non nul et partie déclarée absente : A-1 en échec, A-2 et A-3 non exécutées, A-4 exécutée. `approval` nul et partie déclarée présente : A-1 en échec, que le fichier existe ou non (D-2 échoue en plus quand il manque). | 7 |
 | A-2 | Chaque événement de `events` passe E-1 à E-11 ; `execution.tool = "noortrace.approbation.decision"` ; `approval` égal, clé pour clé, à celui de l'événement prouvé ; `execution.arguments.value = A` (section 6.3). Si l'événement prouvé n'est pas une décision : chaque décision a `seq` < `seq` de l'événement prouvé et `approval.at ≤ ts` de l'événement prouvé (la décision précède l'appel relayé qui en découle). Si l'événement prouvé est une décision : il figure dans `events` (hash recalculé égal). | 7 |
 | A-3 | Approbateurs distincts, tous membres de `approver_set.members`, en nombre ≥ `threshold.required` ; `threshold` de l'événement = `approver_set.threshold` ; `required ≤ size = longueur de members`. Pour `decision = "refuse"`, mêmes règles ; pour `expire`, aucune signature. | 7 |
-| A-4 | `request_hash` : si l'événement de demande est dans le dossier (voisin), son `hash` recalculé = `request_hash` et son `execution.status = "retenue"` ; sinon, non vérifiable, signalé. | 7 |
+| A-4 | `request_hash` : la demande est le voisin (`previous` ou `next`) dont le `hash` recalculé égale `request_hash` ; s'il y en a un, son `execution.status = "retenue"`. Aucun voisin ne l'étant, même si un voisin est un appel retenu d'un autre hash : non exécuté, raison admise (événement de demande hors du dossier). Révision 0.5 : `voisins.json` inexploitable : non exécuté, sans raison admise ; un voisin qui n'est pas un objet n'est pas candidat (règle du voisin qui n'est pas un objet ci-dessus). | 7 |
 | K-1 | (révision 0.3) `points-de-controle.json` valide contre `#/$defs/points_de_controle` (le point contre `point-de-controle-v0.schema.json`) ; `checkpoint.org_id` et `journal_id` égaux à ceux de l'événement ; `checkpoint.period_start = manifeste.period_start` ; `1 ≤ tree_size ≤ manifeste.count` ; `last_seq = manifeste.first_seq + tree_size − 1` ; `root` non nulle ; `checkpoint_ts ≥ period_start` (instants, section 3). | 3 |
 | K-2 | (révision 0.3) `checkpointHash` recalculé (section 10.6) = `checkpoint_hash` déclaré. | 3 |
 | K-3 | (révision 0.3) `checkpoint.sig` valide sous la clé publique `key_id` de `cles.json`, sur `P_SK ‖ C_K` ; `checkpoint_ts` dans `[valid_from, valid_to]` (bornes incluses) de cette clé ; `cles.json` inexploitable (E-8) : non exécuté, l'échec étant porté par E-8 ; clé `key_id` absente d'un `cles.json` exploitable : échec (CT-6 §5.4 ; la section 11.2 n'exige pas que `cles.json` porte la clé du point, E-8 ne porte donc pas cet échec). | 6 |
 | K-4 | (révision 0.3) Couverture : `chemin.leaf_index < tree_size` (soit `seq ≤ last_seq`) et `ts` de l'événement prouvé ≤ `checkpoint_ts` (instants à la milliseconde). | 3 |
 | K-5 | (révision 0.3) `consistency.first_size = tree_size`, `second_size = manifeste.count`, `first_root = checkpoint.root`, `second_root = manifeste.root` ; l'algorithme de la section 10.7 sur `(first_size, second_size, first_root, second_root, path)` accepte (preuve vide et racines égales si `tree_size = count`). | 3 |
-| K-6 | (révision 0.3) `last_hash` : si l'événement de `seq = last_seq` est dans le dossier (événement prouvé ou voisin), son `hash` recalculé (E-7) = `last_hash` ; sinon, non vérifiable, signalé (comme A-4). | 2 |
+| K-6 | (révision 0.3) `last_hash` : si l'événement de `seq = last_seq` est dans le dossier (événement prouvé ou voisin), son `hash` recalculé (E-7) = `last_hash` ; sinon, non vérifiable, signalé (comme A-4). Révision 0.5 : `voisins.json` inexploitable alors que `last_seq` n'est pas le `seq` de l'événement prouvé : non exécuté, sans raison admise, comme A-4 ; `last_seq` égal au `seq` de l'événement prouvé : jugé sur lui, quel que soit `voisins.json`. | 2 |
 | K-7 | (révision 0.3) `anchors.rfc3161` non nul : `token` décodé (base64 canonique, remplissage exact), puis vérifications T-1 à T-11 de CT-6 §9 avec `checkpoint_hash` recalculé pour empreinte attendue à la place de `periodHash` ; `null` : non exécuté, partie absente. | 4 |
 | K-8 | (révision 0.3) `anchors.registry` non nul : `fingerprint = keccak256(org_id ‖ journal_id ‖ checkpoint_hash)` recalculée ; `doc_type` égal à la valeur de la table CT-4 §6.4 pour `noortrace/point-de-controle/v0` ; `contract` égal à celui du fichier d'ancres (CT-6 §12) et `chain_id` (identifiant EVM) rapporté sans être comparé, le fichier d'ancres n'en portant pas (CT-6 EX-11.25) ; inclusion de la transaction par les vérifications R- de CT-6 §11 quand `registre.json` et `certificat-commit.json` en portent l'entrée (CT-6, révision 0.2), sinon référence déclarative, signalée ; `null` : non exécuté, partie absente. | 8 |
 | K-9 | (révision 0.3) `anchors.ots` non nul : `proof` décodé (base64 canonique), puis vérifications O-1 à O-7 de CT-6 §10 avec `checkpoint_hash` pour empreinte de fichier (fichier horodaté : `P_K ‖ C_K`) ; `null` : non exécuté, partie absente. | 5 |
-| AT-1 | (révision 0.4) `attestation-perimetre.json` valide contre `#/$defs/attestation_perimetre` (l'attestation contre `attestation-perimetre-v0.schema.json`, l'événement d'inscription contre `evenement-v0.schema.json`) ; forme canonique JCS v0 de `signed.attestation` calculable (aucun nombre non entier, aucune clé en double, aucun substitut isolé, section 4) ; dates existantes (section 3) ; `validity.from ≤ validity.until` ; `validity.until − validity.from` d'au plus 366 jours (366 × 86 400 000 ms) ; `journal_id` distincts dans `journals` et `journal_id` de chaque agent présent dans `journals` ; `agent_id` distincts ; adresses de `signatories` distinctes ; `inscription.policy_document`, s'il existe, en base64 canonique (remplissage exact, réencodage identique) d'au plus 2 097 152 octets. | — (7, sans effet, CT-6) |
+| AT-1 | (révision 0.4) `attestation-perimetre.json` valide contre `#/$defs/attestation_perimetre` (l'attestation contre `attestation-perimetre-v0.schema.json`, l'événement d'inscription contre `evenement-v0.schema.json`) ; forme canonique JCS v0 de `signed.attestation` calculable (aucun nombre non entier, aucune clé en double, aucun substitut isolé, section 4) ; dates existantes (section 3) : `validity.from`, `validity.until` et `issued_at` de l'attestation, `ts` de l'événement d'inscription et son `approval.at` s'il n'est pas nul (révision 0.5 : une date inexistante de l'inscription relève d'AT-1, non d'AT-6) ; `validity.from ≤ validity.until` ; `validity.until − validity.from` d'au plus 366 jours (366 × 86 400 000 ms) ; `journal_id` distincts dans `journals` et `journal_id` de chaque agent présent dans `journals` ; `agent_id` distincts ; adresses de `signatories` distinctes ; `inscription.policy_document`, s'il existe, en base64 canonique (remplissage exact, réencodage identique) d'au plus 2 097 152 octets. | — (7, sans effet, CT-6) |
 | AT-2 | (révision 0.4) `signed.digest` = `D_P` recalculé, `keccak256(P_P ‖ JCS(signed.attestation))` (section 11.2). | — (7, sans effet, CT-6) |
 | AT-3 | (révision 0.4) Pour chaque `i`, `signed.signatures[i].signature` fait 65 octets, `s` est dans la moitié basse de l'ordre de secp256k1 et `v` vaut 27 ou 28 ; l'adresse recouvrée de `(M, r, s, v)`, `M = keccak256("\x19Ethereum Signed Message:\n32" ‖ D_P)` avec `D_P` recalculé, est `signed.signatures[i].address` (comme E-9, section 6.3). | — (7, sans effet, CT-6) |
 | AT-4 | (révision 0.4) Les adresses de `signed.signatures` sont distinctes, toutes présentes dans `signed.attestation.signatories` et dans `approver_set.members`, en nombre au moins `approver_set.threshold.required` ; `required ≤ size` et `size` = nombre de `members`. | — (7, sans effet, CT-6) |
@@ -2014,6 +2456,28 @@ est en échec ou non exécutée pour une autre raison.
 Les contrôles des parties réservées (4, 5, 8) sont spécifiés par CT-6
 (vérifications `T-`, `O-`, `R-` et `N-`) ; CT-5 et CT-4 produisent les
 parties.
+
+Révision 0.5 : un vérificateur qui n'exécute pas ces vérifications de CT-6
+(bibliothèque ou vérificateur de CT-1 seul) ne rend jamais « valide » un
+dossier qui déclare présente une partie réservée : il rapporte la partie
+comme non vérifiée, sans raison admise, et le dossier est invalide pour lui
+(CT-6 EX-4.2 : une partie présente n'est jamais ignorée). Il en va de même
+d'une ancre non nulle de `points-de-controle.json` : K-7 et K-9 ne sont pas
+exécutées, sans raison admise ; K-8 recalcule `fingerprint` et compare
+`doc_type` (un écart la met en échec) et, sinon, n'est pas exécutée, sans
+raison admise, faute du fichier d'ancres et des vérifications R-. Le
+vérificateur de CT-6 exécute ces vérifications et rend le verdict de CT-6 ;
+le seul effet de cette règle est qu'un vérificateur de CT-1 seul ne dit pas
+valide ce qu'il n'a pas vérifié. Précisions (révision 0.5) : la raison
+rapportée par un tel vérificateur est `prerequis_en_echec`, seule raison non
+admise de la liste fermée de CT-6 §6.2, avec un détail qui dit
+« vérification de CT-6 non exécutée par ce vérificateur » ; aucune autre
+valeur (`verification_ct6_requise` par exemple) n'est employée. Il ne juge
+pas la taille d'une partie réservée : présente, elle est non vérifiée, quelle
+que soit sa taille ; le vérificateur de CT-6, lui, fait échouer T-1, O-1, R-1
+ou R-3 au-delà de la limite (CT-6 EX-4.11, point 2). Cette règle ne
+s'applique pas à un vérificateur conforme à CT-6, qui exécute ces
+vérifications ou rend le code 2 (CT-6 EX-4.2).
 
 Les vérifications K-1 à K-9 (révision 0.3) ne s'exécutent que si la partie
 `points_de_controle` est déclarée présente. Partie absente avec raison, ou
@@ -2064,6 +2528,22 @@ change un hachage dont dépendent C-2 et M-1, d'où les cascades ; « journal
 rejoué » désigne une altération faite à la source, chaîne et manifestes
 recalculés, de sorte que le dossier est cohérent et que seul le contrôle visé
 tombe.
+
+Forme de `attendu.json` (révision 0.5) : `valide` (booléen), `controle`
+(contrôle visé, ou `null`), `controles_en_echec` (liste exacte, dans l'ordre
+de la table 11.4), `description` ; pour un dossier qui porte la partie
+`attestation-perimetre.json`, `perimeter_target`, `perimeter_checks`,
+`perimeter_retained` et `warnings`. Une entrée qui doit rendre le code 2
+(entrée inutilisable, sans verdict) porte `valide` = `null`, `controle` =
+`null`, `controles_en_echec` = `[]`, `exit_code` = 2 et `error_kind`, le type
+d'erreur de CT-6 §8 (`dossier_illisible`, `taille_depassee`…) ; aucun autre
+nom (`code`, `code_retour`) n'est employé.
+
+Révision 0.5 : les listes exactes de cette table, et celles des dossiers des
+révisions 0.3 et 0.4, sont celles que donnent les règles de la section 11.4
+(partie inexploitable, partie contraire à son schéma, lectures, exceptions) ;
+aucun attendu publié ne change. Les journaux altérés suivent la règle exacte
+de la section 7.2.
 
 | Dossier | Visé | En échec | Altération |
 |---|---|---|---|
@@ -2153,6 +2633,43 @@ quand la partie est déclarée absente ; `perimeter_retained`, l'attestation
 retenue au sens de CT-6 EX-6.19 (booléen), `null` quand la partie est déclarée
 absente ; `warnings`, les identifiants AV-AT- dans l'ordre de CT-6 EX-6.15. CT-7
 annexe A.7 en donne la liste ; `INDEX.md` les décrit.
+
+Révision 0.5 : vingt-sept dossiers s'ajoutent, un par règle tranchée qu'aucun
+vecteur ne fixait, sans changer aucun dossier publié : dix-huit avec la
+révision, neuf avec ses compléments (les neuf derniers de la table
+ci-dessous, dont une entrée en code 2). `dossiers/` compte ainsi
+quatre-vingt-dix-sept dossiers : les quarante de la première table, dix de la
+révision 0.3, vingt de la révision 0.4 et ces vingt-sept.
+
+| Dossier | Visé | En échec | Altération |
+|---|---|---|---|
+| `invalide-a1-autre-raison/` | A-1 | A-1 | Dossier de seq 8 (`mail.send`, `approval` nul) dont l'index déclare `approbations.json` absent avec la raison « approbations non exportées », et non « aucune approbation liée » ; A-2 à A-4 non exécutés, sans raison admise. |
+| `invalide-appel-sans-approbation/` | E-3 | E-3 | Journal rejoué : l'appel relayé (seq 7) porte `policy.decision = a_approuver` et `execution.status = executee` avec `approval` nul (section 5.3, règle 1) ; `approbations.json` déclaré absent, « aucune approbation liée ». |
+| `invalide-decision-effets/` | E-3 | E-3 | Journal rejoué : la décision (seq 6) déclare l'effet du paiement ; dossier de seq 7 (section 5.3, règle 3 : une décision a des effets vides). |
+| `invalide-demande-effets/` | E-3 | E-3 | Journal rejoué : l'appel retenu pour approbation (seq 5) déclare un effet ; dossier de seq 6, A-4 exécuté et réussi. |
+| `invalide-index-autre-journal/` | D-1 | D-1 | `journal_id` de `dossier.json` d'un autre journal que celui de `evenement.json`, index conforme à son schéma. |
+| `invalide-marque-ordre-octets/` | E-1 | E-1 | `evenement.json` précédé de `EF BB BF`, SHA-256 de l'index reporté : pas un texte JSON (section 3), partie inexploitable ; E-1 échoue, non E-2. |
+| `invalide-partie-manquante/` | D-2 | D-2 | `approbations.json` retiré du répertoire, index inchangé : D-2 seule ; A-1 à A-3 non exécutés, A-4 non exécuté pour sa raison admise. |
+| `invalide-partie-trop-grande/` | K-1 | K-1 | `points-de-controle.json` de `valide-seq-7-point-de-controle` complété d'espaces jusqu'à 1 048 577 octets, SHA-256 exact : au-delà de sa limite, la partie n'est pas lue et D-2 ne compare pas son SHA-256 ; K-2 à K-9 non exécutés. |
+| `invalide-profondeur-129/` | C-1 | C-1 | Comme `valide-profondeur-128` avec 125 tableaux : `voisins.json` de profondeur 129 (section 4, règle 7), inexploitable ; C-2, C-3, P-3 et A-4 non exécutés, sans raison admise. |
+| `invalide-raison-blancs/` | D-2 | D-2 | `jeton-rfc3161.der` déclaré absent avec la raison « U+0085 U+FEFF U+3000 », trois blancs (section 3) : pas une chaîne non vide. |
+| `invalide-redaction-blancs/` | E-4 | E-4 | `policy.redaction` = « U+00A0 U+FEFF » sur le voisin suivant (seq 8), dont une référence est rédigée, rescellé. |
+| `invalide-redaction-vide/` | E-4 | E-4 | `policy.redaction` = chaîne vide sur le voisin suivant, rescellé. |
+| `invalide-seq-chaine/` | E-1 | D-1, E-1, E-7, E-8, C-1, C-2, M-1, M-3, P-2, A-2 | `seq` de `evenement.json` écrit `"7"`, SHA-256 de l'index reporté : partie contraire à son schéma mais exploitable ; chaque relation dont un terme est mal typé n'est pas tenue (section 11.4). |
+| `invalide-signature-en-trop/` | E-9 | E-5, E-9 | Journal rejoué : deux approbateurs et trois signatures valides ; A-3 réussit. |
+| `invalide-substitut-octets/` | E-2 | E-2 | `intent` de `evenement.json` commençant par les octets `ED A0 80` (substitut isolé écrit en octets, sections 3 et 4) ; E-1 non exécuté. |
+| `invalide-utf8-voisins/` | C-1 | C-1 | Octet `C3` d'un « é » de `voisins.json` remplacé par `FF` : UTF-8 mal formé, pas un texte JSON ; C-1 échoue, non E-2 ; C-2, C-3, P-3 et A-4 non exécutés. |
+| `valide-at1-inscription-date-inexistante/` | — | aucun | `valide-seq-12-attestation-inscrite` dont l'événement d'inscription porte `ts = 2026-11-31T10:05:00.000Z` : AT-1 échoue, AT-2 à AT-7 non exécutées, AV-AT-1 ; le dossier reste valide. |
+| `valide-profondeur-128/` | — | aucun | Voisin suivant (seq 8, rescellé) portant en argument 124 tableaux imbriqués : `voisins.json` a la profondeur 128, admise ; A-4 non exécuté comme dans `valide-seq-7`. |
+| `illisible-index-non-json/` | — | — (code 2) | `dossier.json` de `valide-seq-7` réduit au texte « { » : entrée inutilisable, code 2, `error_kind = dossier_illisible`, sans verdict. |
+| `invalide-approbations-declaree-manquante/` | A-1 | D-2, A-1 | `invalide-a1-autre-raison` dont l'index déclare `approbations.json` présente, sans fichier dans le répertoire (section 11.4, cas (a), exception). |
+| `invalide-approval-nombre/` | A-1 | E-1, E-3, E-5, E-7, E-8, E-9, C-2, M-1, A-1, A-2, A-3, A-4 | `approval` = 5 dans `evenement.json`, non rescellé, SHA-256 de l'index reporté. |
+| `invalide-demande-non-objet/` | C-1 | E-1, C-1, C-2, C-3, P-3 | `valide-seq-6` dont `voisins.json` porte `previous = "x"` : le voisin n'est pas candidat à la demande, A-4 non exécuté (`piece_hors_dossier`). |
+| `invalide-evenement-nul-autres-echecs/` | E-1 | E-1, E-8, P-1, P-5 | `evenement.json` = `null`, manifeste à `period_end = period_start + 7200` non re-signé, `cles.json` à `key_id` en double : les vérifications qui échouent sur les autres parties l'emportent, les autres ne sont pas exécutées. |
+| `invalide-k6-voisins-nul-seq-9/` | C-1 | C-1 | Dossier de la rotation (seq 9) avec le point de clôture de la période 1 (`last_seq = 9`), `voisins.json` = `null` : K-6 réussit sur l'événement prouvé (section 10.5). |
+| `invalide-outil-nombre/` | E-3 | E-1, E-3, E-7, E-8, C-2, M-1 | `execution.tool` = 5 dans `evenement.json`, non rescellé. |
+| `invalide-voisin-absent/` | C-1 | C-1, C-2, C-3, P-3 | `voisins.json` sans membre `previous` : E-1 n'est pas concernée. |
+| `invalide-voisin-nombre/` | C-1 | E-1, C-1, C-2, C-3, P-3 | `voisins.json` dont `next` vaut 5. |
 
 ## 12. Correspondances d'export
 
@@ -2273,7 +2790,7 @@ l'identique par `test/journal.test.js`) sont disposés ainsi :
 | `journal-supprime/`, `journal-modifie/`, `journal-insere/`, `journal-insere-sans-cle/`, `journal-reordonne/` | le journal altéré | diagnostics et contrôles de la table 7.2 |
 | `merkle/arbres.json` | arbres de 0, 1, 2, 3, 5, 8, 12 et 1000 feuilles, racines, preuves d'inclusion | égalité, preuves acceptées |
 | `manifestes/` | trois périodes consécutives (dont une vide), signatures, `anchorFingerprint`, `PeriodMeta`, continuité, un manifeste discontinu | égalité, P-5 |
-| `points-de-controle/` (révision 0.3) | séries complètes des points des trois périodes, `checkpointHash`, signatures, preuves de cohérence vers chaque manifeste, chaînage | égalité, signatures et preuves acceptées, chaînage et monotonie |
+| `points-de-controle/` (révision 0.3) | séries complètes des points des trois périodes, `checkpointHash`, signatures, preuves de cohérence vers chaque manifeste, chaînage ; séries invalides `invalides/*.json` ; révision 0.5 : `evenements_partiels` de `attendu.json`, la série complète de la période 1 vérifiée avec `evenements/sans-5-a-9.json` (événements 1 à 4 et 10 à 12) et avec `evenements/evenement-5-altere.json` (tous les événements du journal, seq 5 modifié après scellement, `hash` et `sig` inchangés) | égalité, signatures et preuves acceptées, chaînage et monotonie ; règles violées (`rules_failed`) et non évaluées (`rules_not_evaluated`) : sans 5 à 9, `root` et `last_hash` non évaluées (`piece_hors_dossier`), aucune violée ; avec seq 5 altéré, `root` et `last_hash` violées, aucune non évaluée |
 | `merkle/coherence.json` (révision 0.3) | preuves de cohérence entre les arbres publiés de `arbres.json` ; cas refusés | égalité, acceptation, refus |
 | `dossiers/` | les dossiers de la section 11.5 ; révision 0.4 : les dossiers avec la partie `attestation-perimetre.json` (section 11.5) | `valide` ou liste exacte des contrôles en échec |
 
@@ -2482,6 +2999,93 @@ faire » : attendu d'un autre lot, nommé ; aucune ligne ne change de format.
 | CT-2 | politique sans `perimeter` | membre `policy.perimeter` et unicité des noms de version de politique (CT-7 PA-8, PA-9) | à faire (proposition de CT-7, révision de CT-2 à décider) |
 | `spec/README.md` | CT-1 version 0.3 ; quatre schémas de CT-1 | CT-1 version 0.4 ; ligne du schéma `attestation-perimetre-v0` ; `-r spec/schemas/attestation-perimetre-v0.schema.json` dans toute commande qui charge le schéma de dossier | fait |
 | `README.md`, `README.fr.md`, `ARCHITECTURE.md`, `CHANGELOG.md` | dossier à douze ou treize parties | quatorzième partie facultative `attestation-perimetre.json`, déclarative, rapportée « déclarée, non prouvée », sans effet sur le verdict | à faire (alignement des documents racine) |
+
+**Version 0.5** (3 novembre 2026), après le figeage de la conception v1.0 :
+passages que le texte ne tranchait pas et contradictions relevés pendant la
+construction (bibliothèque noyau écrite depuis le seul texte, implémentation
+de référence, binaire de CT-6, vérificateur indépendant), tranchés dans le
+texte. Aucun format v0 (événement, manifeste, dossier, objets `A` et `R`,
+signatures, préfixes, point de contrôle, attestation) n'est retiré ni
+modifié ; aucun identifiant de contrôle n'est ajouté, retiré ni renuméroté ;
+les soixante-dix dossiers, les journaux, les séries de points et les
+manifestes publiés gardent leur verdict et leurs listes exactes :
+
+- **Parties défectueuses** (section 11.4) : contradiction entre la section
+  11.4 (« non exécutés ») et les cascades de la section 11.5 levée en faveur
+  des vecteurs ; contrôle porteur de chaque partie ; cinq cas de partie
+  inexploitable (fichier manquant ou non ordinaire : D-2 seule ; au-delà de
+  la limite : contrôle porteur, SHA-256 non comparé ; pas du JSON ou trop
+  profond : contrôle porteur ; sans forme canonique : E-2 ; pas un objet :
+  contrôle porteur) ; partie contraire à son schéma exploitable, relations
+  évaluées sur les valeurs lues et non tenues pour un terme absent, mal typé
+  ou incalculable ; exceptions de `dossier.json`, `cles.json` et
+  `points-de-controle.json` ; `dossier.json` à clé en double : E-2 ; table
+  des lectures ; statut de E-1 à E-11 sur plusieurs événements ; limites de
+  taille de CT-6 EX-4.13 rappelées (sept parties JSON v0 à 16 Mio) ;
+  dépendances de K-1 (P-1 non réussie, `evenement.json` inexploitable) et
+  liaisons de `tree_size` ; parties réservées présentes et ancres non nulles
+  pour un vérificateur de CT-1 seul.
+- **Lignes de la table 11.4** : D-1 compare aussi `org_id` et `journal_id` ;
+  D-2 et la raison d'absence (chaîne non vide, section 3) ; E-1 (dates,
+  identifiants non nuls) ; E-3 renvoie à sa règle exacte (section 5.3) ;
+  E-4 (chaîne non vide) ; E-9 (une signature sans approbateur échoue) ; P-1
+  (identifiants non nuls, `generated_at`) ; A-1 (raison exacte « aucune
+  approbation liée ») ; A-4 (demande reconnue au seul hash ; `voisins.json`
+  inexploitable) ; AT-1 (dates de l'inscription).
+- **Règle exacte de E-3** (section 5.3) : appel d'outil, échange, décision,
+  rotation, changement de politique ; effets vides d'un appel retenu ou
+  refusé et d'une décision ; `delegation.launched_by` d'un événement du
+  journal sur lui-même.
+- **Encodage et forme canonique** (sections 3 et 4) : UTF-8 mal formé et
+  marque d'ordre d'octets (pas du JSON), substitut écrit en octets (E-2),
+  chaîne non vide, identifiants nuls, profondeur d'au plus 128.
+- **Journal** (section 7.2) : analyse des `seq` sur tout le fichier,
+  `cles.json` comparé à chaque événement, ordre et types des symptômes.
+- **Clé en vigueur d'un point** (section 10.5, règle 5) quand l'événement
+  `last_seq` manque ; règles de série `root` et `last_hash` quand des
+  événements manquent : non évaluées (`rules_not_evaluated`), jamais
+  violées ni remplacées par une valeur par défaut (section 10.5).
+- Sections 11.1 (raisons d'absence) et 11.5 (cascades rattachées aux règles
+  de 11.4).
+- **Compléments du même jour, après l'alignement des quatre implémentations**
+  (bibliothèque noyau, référence, binaire de CT-6, vérificateur indépendant)
+  sur cette révision et sur CT-6 révision 0.4, qui ont relevé trente-cinq
+  passages encore ouverts ; CT-6 (révision 0.4, complétée le même jour) dit
+  la même chose : voisin qui n'est pas un objet, ou membre `previous`/`next`
+  absent (règle unique, section 11.4) ; `approval` ni nul ni objet et
+  `execution.tool` qui n'est pas une chaîne ; règle d'origine de C-2 sur les
+  voisins ; « sauf s'il échoue sur ce qu'il lit des autres parties » défini
+  et illustré ; A-1 avec `approval` nul et `approbations.json` déclarée
+  présente mais absente du répertoire (A-1 et D-2 en échec) ; K-6 jugée sur
+  l'événement prouvé quand `last_seq` est le sien, quel que soit
+  `voisins.json` ; raison `prerequis_en_echec` d'une vérification de CT-6
+  non exécutée par un vérificateur de CT-1 seul, et partie réservée trop
+  grande non vérifiée pour lui ; attestation au-delà de 64 Mio : code 2 ;
+  profondeur du document de politique (section 4, règle 7) ; journal :
+  réordonnancement parmi les `seq` entiers, hash incalculable (`rupture`),
+  `ts` qui n'est pas une date (`horodatage`) ; série de points : liste fermée
+  des noms de règle, raison `prerequis_en_echec` quand un événement manque
+  et un autre ne se hache pas, ordre et unicité des entrées de
+  `rules_failed` et `rules_not_evaluated`, règles qui lisent `cles.json` sans
+  lui ; forme de `attendu.json` (section 11.5 : `exit_code`, `error_kind`
+  pour le code 2) ; famille `points-de-controle/` décrite telle qu'elle est
+  publiée (section 13, `evenements_partiels`).
+
+Alignement de la révision 0.5 avec le dépôt. Le texte a d'abord été révisé
+seul ; chaque ligne nomme le comportement à changer, que les sections citées
+décrivent en entier. L'alignement est fait le 3 novembre 2026, et chaque
+ligne dit où il est éprouvé.
+
+| Emplacement | Avant | Attendu par la révision 0.5 | État |
+|---|---|---|---|
+| `paquets/noyau` | lectures de son `LISEZMOI.md` | D-1 compare `org_id` et `journal_id` ; raison d'absence et `policy.redaction` : chaîne non vide ; A-1 : raison exacte ; décision à effets non vides : E-3 ; `policy_version` d'un événement de politique au plus 128 caractères et `delegation.launched_by` des événements du journal (E-3) ; borne de profondeur 128 par défaut ; relations à terme mal typé ou incalculable en échec (M-1, C-1, E-11 et les autres, au lieu de non exécutées ou réussies) ; `evenement.json` inexploitable : P-1, P-5 (par `cles.json`) et E-2 non exécutées sauf échec ; K-6 avec `voisins.json` inexploitable : sans raison admise ; série de points : `root` et `last_hash` non évaluées (et non violées) pour un événement non fourni, `rules_not_evaluated` au rapport ; ordre des symptômes d'un journal (origine dans le premier temps ; insertions, suppressions, réordonnancements par sorte) | fait (`test/noyau.test.js`, describe « révision 0.5 de CT-1, révision 0.4 de CT-6 », et `test/noyau-vecteurs.test.js` : 305 cas réussis) |
+| `scripts/lib/journal.mjs`, `scripts/lib/verificateur.mjs`, `scripts/verify/dossier.mjs` (implémentation de référence) | — | partie au-delà de sa limite : D-2 n'échoue pas ; `dossier.json` à clé en double ou sans forme canonique : E-2, non le code 2 ; `dossier.json` au-delà de 1 Mio : D-1, non le code 2 (côté CT-6, voir sa révision) ; partie manquante : A-1 non exécutée (D-2 seule), sauf `approval` nul et `approbations.json` déclarée présente (A-1 en échec) ; `evenement.json` inexploitable : D-1, E-1 à E-11, P-1 et P-5 (par `cles.json`) non exécutées sauf échec ; marque d'ordre d'octets et UTF-8 mal formé : contrôle porteur, non E-2 ; `cles.json` contraire à la première partie de E-8 : E-11 et P-5 non exécutées ; A-4 et K-6 avec `voisins.json` inexploitable : sans raison admise ; A-4 exécutée quand `approval` n'est pas nul et `approbations.json` absent ou inexploitable ; E-3 : effets d'un appel retenu ou refusé, `approval` non nul avec `refuse`, `result`, `duration_ms`, `is_error` d'un appel, `delegation.launched_by`, `policy_version` non vide et au plus 128, ticket laissé à E-5 ; E-1 sans `valid_from` de l'annonce de rotation ; E-4 : chaîne de blancs refusée ; raisons : U+0085 est un blanc ; relations à terme mal typé ou incalculable en échec (M-3, P-2, A-2 pour un `seq` en chaîne ; C-1 et A-2 pour un `ts` qui n'est pas une date existante) ; `org_id` nul : E-1 ; `verifierChaine` : E-1 à E-11 pour chaque événement, `cles.json` du journal comparé à chaque événement ; `cleEnVigueurPoint` : règle de la section 10.5 quand l'événement `last_seq` manque ; `verifierSeriePointsDeControle` : `root` et `last_hash` évaluées point par point (aujourd'hui sautées pour toute la série dès qu'un événement de la période manque), sans 32 octets nuls à la place d'un événement précédent manquant, et `rules_not_evaluated` au rapport ; profondeur comptée sur les conteneurs (déjà) | fait (`test/journal.test.js`, describe « CT-1 révision 0.5 : règles tranchées » ; `test/verificateur.test.js`, rejeu des quatre-vingt-dix-sept dossiers) |
+| `verificateur/` (binaire Go de CT-6) | — | E-3 d'un appel d'outil : politique, statut et approbation (aujourd'hui non contrôlés : un appel `a_approuver` exécuté sans approbation passe), échange avec `approval`, effets vides, `launched_by` ; E-9 sur toutes les signatures ; E-4 : chaîne non vide ; D-1 : `org_id`, `journal_id` ; A-1 : raison exacte « aucune approbation liée » ; A-4 et K-6 avec `voisins.json` inexploitable : sans raison admise ; `evenement.json` inexploitable : D-1 non exécuté ; raisons : U+FEFF est un blanc ; `org_id` nul : E-1 ; enveloppe de `voisins.json` ou de `approbations.json` contraire au schéma : C-2, C-3, P-3, A-2, A-3 exécutées ; substitut écrit en octets : E-2 ; dates de l'inscription : AT-1 ; `attestation-perimetre.json` sans forme canonique (clé en double hors de `signed.attestation`) : AT-1 en échec (aujourd'hui réussie, et l'attestation retenue) ; profondeur comptée sur les conteneurs (aujourd'hui 128 conteneurs refusés si le dernier n'est pas vide) | fait (`go test ./...` dans `verificateur/`, dont `dossier/revision05_test.go` ; son `LISEZMOI.md` renvoie aux règles du texte) |
+| `spec/vecteurs/ct-1/verificateur-independant` (et sa copie `ct1_*.go` de `spec/vecteurs/ct-2/verificateur-independant`) | — | partie manquante : D-2 seule ; limites de taille ; profondeur ; marque d'ordre d'octets et UTF-8 mal formé : contrôle porteur ; partie réservée présente : jamais « valide » ; index sans forme canonique : E-2 (un nombre non entier dans l'index est aujourd'hui accepté) ; index illisible : code 2 ; K-1 non exécutée quand P-1 n'a pas réussi ; `chemin.json` contraire au schéma : M-1, M-3 exécutées ; `approver_set` à membre en trop : A-3 exécutée sur ses valeurs ; `cles.json` contraire à la première partie de E-8 : E-11, P-5 non exécutées ; A-4 et K-6 avec `voisins.json` inexploitable : sans raison admise ; E-3 : effets, `policy_version` ; E-4 : chaîne non vide ; raisons : U+FEFF est un blanc ; relations à terme incalculable en échec (C-1, P-2, E-11, A-2 pour un `ts` qui n'est pas une date existante) ; contrôle de chaîne : analyse des `seq` sur tout le fichier, `cles.json` comparé à chaque événement ; clé en vigueur quand l'événement `last_seq` manque ; `ControlerSerie` : `root` et `last_hash` point par point, sans `RacineVide` à la place d'un événement précédent manquant, et règles non évaluées rapportées | fait (`go run . ..` dans les deux modules : « tout concorde ») |
+| `scripts/vecteurs/generer-ct1.mjs`, `spec/vecteurs/ct-1` | soixante-dix dossiers | dossiers nouveaux, un par règle tranchée qu'aucun vecteur ne fixe : raison de blancs (D-2), `approval` nul et autre raison (A-1), index d'un autre journal (D-1), `policy.redaction` vide (E-4), décision à effets et appel retenu à effets (E-3), appel `a_approuver` exécuté sans approbation (E-3), `seq` en chaîne (cascade de 11.4), partie manquante (D-2 seule), partie au-delà de sa limite, profondeur 128 et 129, marque d'ordre d'octets, substitut en octets, signature en trop (E-5, E-9), date inexistante de l'inscription (AT-1) ; journal dont `cles.json` est d'une autre organisation ; série dont un point a `last_seq = 0` et une autre clé ; série de la période 1 vérifiée sans les événements 5 à 9 (`root` et `last_hash` dans `rules_not_evaluated`, `piece_hors_dossier`, aucune règle violée) et la même série vérifiée avec tous les événements du journal dont seq 5 est modifié après scellement (`evenements/evenement-5-altere.json` : `root`, `last_hash` violées ; un événement altéré parmi 1 à 4 ne servirait pas, aucun point n'engageant 1 à 4 sans 5) | fait (vingt-sept dossiers, section 11.5 ; `journal-cles-autre-organisation/`, `journal-seq-chaine/`, `journal-ts-inexistant/`, `journal-non-canonique/` ; `points-de-controle/invalides/periode-1-cle-last-seq-0.json`, `periode-1-cle-inconnue.json`, `periode-1-tree-size-trop-grand.json` ; `points-de-controle/evenements/`) |
+| CT-6 | EX-4.11 à EX-4.15, EX-5.9 | même règle pour la partie manquante (D-2 seule), la limite (sept parties ; `dossier.json` au-delà de 1 Mio : D-1), l'index à clé en double (E-2) et la profondeur (définition de la section 4) ; K-6 sans raison admise quand `voisins.json` est inexploitable | fait (CT-6 révision 0.4) |
+| `spec/README.md`, CT-9 (table de la section 5.2 et ligne TC-1) | CT-1 version 0.4 ; renvoi de TC-1 à la ligne 2160 | CT-1 version 0.5 ; ligne de l'occurrence de « CT-9 » en section 12 après cette révision | fait (`spec/README.md` ; plan de tests, révision 0.3) |
+| `paquets/noyau/LISEZMOI.md` | section « Lectures de CT-1 » | lectures devenues règles du texte, renvoyées aux sections de la révision 0.5 | fait (section « Règles de CT-1 révision 0.5 appliquées ») |
 
 ## Annexe A — Les cinq événements de l'exemple de référence
 

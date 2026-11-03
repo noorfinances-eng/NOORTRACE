@@ -1,7 +1,7 @@
 {
   "description": "Horloge non relevée (clock null) : IP-5 non exécutée (mesure_absente), bloquante en production.",
   "profile": "production",
-  "storage_free_min_bytes": 417235686480,
+  "storage_free_min_bytes": 1039011288480,
   "observations": {
     "version": 0,
     "checked_at": "2026-10-27T09:00:00.000Z",
@@ -13,7 +13,7 @@
     "storage": {
       "path": "/var/lib/docker/volumes",
       "fstype": "ext4",
-      "free_bytes": 644245094400
+      "free_bytes": 1288490188800
     },
     "clock": null,
     "ports": [
@@ -194,10 +194,10 @@
         "status": "reussi",
         "reason": null,
         "measured": {
-          "free_bytes": 644245094400
+          "free_bytes": 1288490188800
         },
         "expected": {
-          "free_min_bytes": 417235686480
+          "free_min_bytes": 1039011288480
         },
         "blocking": true
       },

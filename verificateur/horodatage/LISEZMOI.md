@@ -31,6 +31,29 @@ jetons fabriqués (`fabrique_test.go`, clés de test publiques de
 `rfc3161/cles`) ; `robustesse_test.go` couvre N-1, les entrées hostiles et
 les cibles de fuzzing `FuzzJeton`, `FuzzCertificat`, `FuzzCRL`.
 
+## Révision 0.4 de CT-6
+
+Le paquet applique les règles de la révision 0.4 propres au contrôle 4 et à
+K-7 :
+
+- **EX-9.10** : un `sid` qui ne désigne aucun candidat fait échouer T-4 dès
+  que le fichier d'ancres porte une autorité d'horodatage ou que le jeton
+  porte le champ `certificates` (même vide) ; seul un jeton sans
+  certificats, vérifié sans autorité, laisse T-4 `ancre_absente`. Le détail
+  nomme le `sid` et le nombre de candidats examinés (`t4SansCandidat`).
+- **EX-9.23** : clé RSA de 2048 à 8192 bits, exposant impair de 3 à
+  2³¹ − 1, contrôlés sur la clé avant toute vérification (`lireCle`), pour
+  la clé de S (T-5), celles du chemin et de l'autorité (T-7) et celle d'une
+  CRL (T-10, CRL écartée avec AV-T-3).
+- **EX-9.24** : clé et algorithme qui ne vont pas ensemble, T-5 en échec ;
+  clé d'un type hors de la version 0 sous un algorithme qui ne l'est pas
+  non plus : `hors_perimetre_version` si le certificat de l'unité se
+  rattache à une autorité par les règles 1 à 7 d'EX-9.13 (`rattachement`),
+  échec sinon, `ancre_absente` sans autorité ; résumé « signature hors de la
+  version 0, non vérifiée : aucune date établie ».
+- **EX-9.15** : `serialNumber` de toute taille et de tout signe, sans effet
+  sur T-9 (le paquet était conforme).
+
 ## Lectures
 
 Points où CT-6 ne tranche pas, ou que les vecteurs précisent ; la lecture
@@ -43,10 +66,8 @@ retenue est celle du code.
    Lecture : les octets de valeur de l'INTEGER tels qu'encodés, en
    hexadécimal minuscule complet (EX-6.11, CT-1 §3), soit `0x03e9`, comme les
    faits de l'attendu.
-2. **`serialNumber` « accepté jusqu'à 160 bits »** (EX-9.15). La règle de
-   statut de T-9 ne nomme que les règles 1 à 5 ; un numéro plus long n'est
-   donc pas un échec : il est lu sans borne (dans la limite de 64 Kio) et
-   rapporté.
+2. **`serialNumber`** : tranché par EX-9.15 (révision 0.4) : ni sa taille
+   ni son signe ne sont contrôlés, il est rapporté tel qu'encodé.
 3. **AV-T-4 sans `accuracy`** (§9.7). Comparé à `genTime` seul (un sous-champ
    absent vaut zéro, EX-9.15). AV-T-4 est levé par T-9 dès que les règles 1,
    2, 4 et 5 tiennent, avant la règle 3 ; AV-T-2 dès que T-9 s'exécute.
@@ -73,7 +94,8 @@ retenue est celle du code.
    pas signé).
 8. **Algorithme « admis par T-5 » pour un certificat ou une CRL** (règle 3
    de T-7, règle 1 de T-10) : la table d'EX-9.11, clé de l'émetteur comprise
-   (RSA d'au moins 2048 bits, P-256, P-384, P-521) ; `rsaEncryption`, qui ne
+   (RSA de 2048 à 8192 bits et d'exposant impair de 3 à 2³¹ − 1, EX-9.23 ;
+   P-256, P-384, P-521) ; `rsaEncryption`, qui ne
    nomme pas de fonction de hachage, n'est pas admis pour signer un
    certificat. Les paramètres « absents ou `NULL` » sont admis pour tous les
    algorithmes, ECDSA compris. RSASSA-PSS : longueur de sel lue dans les

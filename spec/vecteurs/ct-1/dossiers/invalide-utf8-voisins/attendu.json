@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "C-1",
+  "controles_en_echec": [
+    "C-1"
+  ],
+  "description": "voisins.json dont l'octet C3 du « é » de « assuré » (intent de voisins.next) est remplacé par FF : UTF-8 mal formé, ce n'est pas un texte JSON (CT-1 §3, révision 0.5) ; C-1, qui porte la partie, échoue (et non E-2) ; C-2, C-3, P-3 et A-4 ne sont pas exécutées, sans raison admise."
+}

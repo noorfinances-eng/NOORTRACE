@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "D-2",
+  "controles_en_echec": [
+    "D-2"
+  ],
+  "description": "dossier.json déclare jeton-rfc3161.der absent avec la raison « U+0085 U+FEFF U+3000 » : trois blancs au sens de CT-1 §3 (révision 0.5), donc pas une chaîne non vide ; le schéma l'admet (minLength 1), D-2 la refuse. U+0085 n'est pas retiré par String.prototype.trim, U+FEFF ne l'est pas par strings.TrimSpace de Go."
+}

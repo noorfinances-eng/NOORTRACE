@@ -1,0 +1,8 @@
+{
+  "valide": null,
+  "controle": null,
+  "controles_en_echec": [],
+  "exit_code": 2,
+  "error_kind": "dossier_illisible",
+  "description": "valide-seq-7 dont dossier.json est le texte « { » (un octet, pas un texte JSON) : l'entrée est inutilisable, code 2, sans verdict (CT-1 §11.4, révision 0.5 ; CT-6 EX-4.12, type dossier_illisible). Forme d'attendu d'une entrée en code 2 (CT-1 §11.5) : valide null, controle null, controles_en_echec [], exit_code 2 et error_kind."
+}

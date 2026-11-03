@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-3",
+  "controles_en_echec": [
+    "E-3"
+  ],
+  "description": "Journal rejoué où l'appel retenu pour approbation (seq 5) déclare un effet : un appel qui n'a pas été relayé n'a pas d'effet (CT-1 §5.3, règle 1, révision 0.5) ; dossier de la décision seq 6, dont la demande est le voisin précédent (A-4 exécutée et réussie)."
+}

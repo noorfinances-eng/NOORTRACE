@@ -269,24 +269,42 @@ func verifierDossiersDemo(rap *Rapport, ctx *contexteCT2, racine string) {
 	sort.Strings(dossiers)
 	for _, d := range dossiers {
 		nom := "dossier " + relatif(ctx.racine, d)
-		valide, ctrl := true, []string(nil)
+		var attendu *Value
 		if fichierExiste(filepath.Join(d, "attendu.json")) {
-			if v := lireFichierJSON(rap, filepath.Join(d, "attendu.json")); v != nil {
-				valide, ctrl, _ = lireAttendu(v)
-			}
+			attendu = lireFichierJSON(rap, filepath.Join(d, "attendu.json"))
 		}
 		res := VerifierDossier(d)
-		if nonAdmis := res.NonExecutesNonAdmis(); valide && res.Resultats.Valide() && len(nonAdmis) > 0 {
-			rap.ComparerAvecNote(f, nom, "verdict du dossier (CT-1 §11.4)", "valide", "non exécuté sans raison admise : "+strings.Join(nonAdmis, ","), false, "")
-		} else {
-			comparerVerdict(rap, f, nom, valide, ctrl, res.Resultats, ctx.strict)
-		}
+		comparerDossierCT1(rap, f, nom, attendu, res, ctx.strict)
 		rap.Detail("[evenements] %s\n%s", nom, res.Resultats.Resume("    "))
 		for _, b := range res.Bornes {
 			rap.Detail("    %s", b)
 		}
-		rap.Note("%s : dossier CT-1 vérifié (contrôles 1, 2, 3, 6 ; 7, signatures EIP-191, hors périmètre ; 4, 5, 8 non exécutables : CT-4, CT-5)", relatif(ctx.racine, d))
+		rap.Note("%s : dossier CT-1 vérifié (contrôles 1, 2, 3, 6, 7 ; 4, 5, 8 non exécutables : CT-4, CT-5)", relatif(ctx.racine, d))
 	}
+}
+
+// comparerDossierCT1 confronte le verdict d'un dossier vérifié par le code
+// CT-1 copié à son attendu. Une entrée inutilisable (Illisible : code 2,
+// sans verdict, CT-1 §11.4 et §11.5 révision 0.5) ne passe jamais pour un
+// dossier valide : elle ne concorde qu'avec un attendu exit_code = 2 de même
+// error_kind. Sinon : valide ⇔ aucun échec et aucun contrôle non exécuté sans
+// raison admise ; liste attendue ⇔ contrôles en échec.
+func comparerDossierCT1(rap *Rapport, f, nom string, attendu *Value, res *Dossier, strict bool) {
+	if res.Illisible != "" || attenduCode2(attendu) {
+		obtenu := "verdict rendu"
+		if res.Illisible != "" {
+			obtenu = "code 2, " + res.TypeErreur
+		}
+		valide, ctrl, _ := lireAttendu(attendu)
+		rap.Comparer(f, nom, "verdict du dossier (CT-1 §11.4) : entrée inutilisable", verdictAttenduTexte(attendu, valide, ctrl), obtenu)
+		return
+	}
+	valide, ctrl, _ := lireAttendu(attendu)
+	if nonAdmis := res.NonExecutesNonAdmis(); valide && res.Resultats.Valide() && len(nonAdmis) > 0 {
+		rap.ComparerAvecNote(f, nom, "verdict du dossier (CT-1 §11.4)", "valide", "non exécuté sans raison admise : "+strings.Join(nonAdmis, ","), false, "")
+		return
+	}
+	comparerVerdict(rap, f, nom, valide, ctrl, res.Resultats, strict)
 }
 
 func conformeSi(b bool) string {

@@ -10,7 +10,7 @@
     "specs": [
       {
         "file": "spec/CT-1-evenements-et-formats.md",
-        "sha256": "ced2d62f7610407fa4c4ec8dcbb0eb9f74b098ce7efa875b43d4970c356e3489"
+        "sha256": "bf3c5f5b53849d0055522e7883af6a502083fae628bce333b1a08afab0263258"
       },
       {
         "file": "spec/CT-2-enregistreur.md",
@@ -22,41 +22,41 @@
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "616b8d66adcbf8a37a313a5a0f16abe95a8e79e5bcf29c8730a7bf2ab0ad3190"
+        "sha256": "8f74f144e4275b494c3fbe02b4f15d8536c62a65526b23e2e05728965b9b14a2"
       },
       {
         "file": "spec/CT-5-ancrage.md",
-        "sha256": "3d407c8a2e928972bf090bba4ae3bb3fa4a413dcd08c5f59dfb1bdf94ba051b2"
+        "sha256": "34805eea8234cce008a6e562942f5f15880d37b9cb6d78f6ffce598671a91c47"
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "c3b7b8a7ca79c2446ab42e4e83698d7870fd3ebe387df4615ed40830eca4fb9c"
+        "sha256": "27b0ae8037aa38e77c710788db52542204f8b95fc32ef6e4d28e8a99955af1e6"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "4fa7e72d7b94995686eb55ca30b038076ed0ca5c489e8f11c5214c13a4707f9f"
+        "sha256": "ccb10a358f3ca482b03166316a2dde61a461e283cd885da0f3ff98dfc9736e68"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "9a4c1f236cb68d0cdfa6488739157f6f5319b291f6d3b098c07d3a6af84ecb0b"
+        "sha256": "1bf7d98510af3f341ff9f79293c6a8ddcb77e35c046ca97d7fae9a165a34013a"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "c78ee5ee5e284179ad153ada1598a358b95bb2eae3fc11d862a64fb3080e50b9"
+      "sha256": "4b3761a9fdfa4a6d58cb7eb6f1ae6a3d27e7e9493722fd7b1843ce7190cd7834"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
-      "sha256": "dca593f7dfa88421397318ea9f108dd925a935bf3c4b63236d271a37abed1dc8"
+      "sha256": "ed826d4094bd0ced5e19851ea173085c5b7661690fc4c19ccea10c438851b23f"
     },
     "tests": [
       {
         "file": "test/adversarial.test.js",
-        "sha256": "b35c0246c44e89b769bfdf4c3a67696f2c1e77f91c214413aae3b2e50ac445ae"
+        "sha256": "ec34969d18e34c593c77abf3576dd1b8e2fafbdf3aca2e6f87fcffab045bd561"
       },
       {
         "file": "test/ancrage.test.js",
-        "sha256": "2f16963d350a51474b4d9c4c950e00d86d8595131f22504c99d8fefaa885dd25"
+        "sha256": "f350c1203944f4e4ba39daad4e239fdd5ad9e187e04f6c9ec8dc18b960108baf"
       },
       {
         "file": "test/approbation-service-exigences.test.js",
@@ -80,7 +80,7 @@
       },
       {
         "file": "test/certificatCommit.test.js",
-        "sha256": "e4e8e3a824fa9e8eda49a0428a183e6b38059a17b9ab7489440175816d016dd5"
+        "sha256": "ed65110f53d916799ff1eeb200437cb074f106cbc94583192bd500aec9237c75"
       },
       {
         "file": "test/conformite.test.js",
@@ -100,7 +100,7 @@
       },
       {
         "file": "test/deploiement.test.js",
-        "sha256": "6f3590df7fbf0d86198f50c938c687b387d4032baf7de5a75e8c661a78662f17"
+        "sha256": "79a863fec91f8aa168c38befdad1c49226e9578bdbe44d2b0c3fc101b098c95b"
       },
       {
         "file": "test/deploy.test.js",
@@ -300,11 +300,11 @@
       },
       {
         "file": "test/horodatage.test.js",
-        "sha256": "4cddc16ad1eef9961031077bdc61c6eb6d05c64a996747c27f6d05b36f5a8d62"
+        "sha256": "dbf61e5592dcb49fb4290851b1034b17fd78e8aba4a959b7d704cd0c1b5f87a8"
       },
       {
         "file": "test/journal.test.js",
-        "sha256": "98d690e4024b197ee73a9185f3282270b477d3588b9e45ab5951d9d85d3c2a33"
+        "sha256": "780b26f42a1d4f18785dc5d84ae0ec7a4de3347a21ba1d34bafdc4cf1f9988dc"
       },
       {
         "file": "test/noyau-proprietes.test.js",
@@ -312,11 +312,11 @@
       },
       {
         "file": "test/noyau-vecteurs.test.js",
-        "sha256": "49768fbc363d5c46c12f0c59bc78ae8a6132f50d95a90abce9ebaf3d25b9afb8"
+        "sha256": "515f75bc3f38ca7c30bdfcb81b1764cdc8c68ce50b82bb224c9122163d117ccf"
       },
       {
         "file": "test/noyau.test.js",
-        "sha256": "0bae8224248f63c79d894c19d3e4d39faa1af2b7a50819ff31d818955cf95b1d"
+        "sha256": "d1a48914a58fe30f00a0a22ec420dc8962a251ce9e9831666f5e820d37be09f7"
       },
       {
         "file": "test/observation.test.js",
@@ -336,7 +336,7 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "161af1488433c227dbea131a02bab556fc58118f04d286d78453ab70c69a6d49"
+        "sha256": "700cee4579ba4dc22d43446e474216d53ccf7d229fc62f557cec720783d91d2f"
       },
       {
         "file": "test/recorderRegistry.test.js",
@@ -348,7 +348,7 @@
       },
       {
         "file": "test/registre.test.js",
-        "sha256": "8c17e50dfa2f043bb277624086d4bde0865aac8130254d1bf96e6850d0907dae"
+        "sha256": "e9bbf7f0a1676c812b01b83556c4bb1626ff6fc4d647cb469dadc88ae0d27844"
       },
       {
         "file": "test/registreCt4.test.js",
@@ -364,13 +364,13 @@
       },
       {
         "file": "test/verificateur.test.js",
-        "sha256": "865c973462a7e603a75e95ecc7d23597896296295037326df077cc2f5187f480"
+        "sha256": "1af9ceda916aecd4ba7a0e66819b3c4908ab28df4e59aed7b3d52ad68e6d522a"
       }
     ]
   },
   "identifiers": {
-    "total": 2332,
-    "covered_by_tests": 2193,
+    "total": 2348,
+    "covered_by_tests": 2209,
     "covered_by_nc": 139,
     "uncovered": 0,
     "unknown_cited": [],
@@ -501,26 +501,26 @@
       },
       {
         "spec": "CT-6",
-        "total": 262,
-        "covered_by_tests": 262,
+        "total": 278,
+        "covered_by_tests": 278,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
         "families": {
           "EX-3": 8,
-          "EX-4": 15,
-          "EX-5": 12,
-          "EX-6": 21,
+          "EX-4": 17,
+          "EX-5": 20,
+          "EX-6": 22,
           "EX-7": 3,
           "EX-8": 11,
-          "EX-9": 22,
+          "EX-9": 24,
           "EX-10": 16,
           "EX-11": 25,
           "EX-12": 6,
           "EX-13": 19,
           "EX-14": 11,
           "EX-15": 3,
-          "EX-A": 21,
+          "EX-A": 24,
           "K": 2,
           "AT": 7,
           "AV-AT": 3,
@@ -617,14 +617,14 @@
     "without_ta": []
   },
   "traceability": {
-    "occurrences": 117,
-    "rows": 117,
+    "occurrences": 122,
+    "rows": 122,
     "missing": [],
     "orphans": []
   },
   "executable": {
     "total": 208,
-    "titles_checked": 400,
+    "titles_checked": 405,
     "titles_missing": []
   },
   "text_tables": {

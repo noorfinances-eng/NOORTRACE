@@ -246,7 +246,7 @@ def cle_publique(pem):
     profondeur 2 de TBSCertificate) puis openssl pkey : vaut aussi pour un certificat qu'openssl x509 refuse."""
     der = ecrire("certificat.der", der_de(pem))
     lignes = ossl(["asn1parse", "-inform", "DER", "-in", der])[1].splitlines()
-    i = next(k for k, l in enumerate(lignes) if l.rstrip().endswith(":rsaEncryption"))
+    i = next(k for k, l in enumerate(lignes) if "d=4 " in l and (l.rstrip().endswith(":rsaEncryption") or l.rstrip().endswith(":ED25519")))
     off = next(int(re.match(r"\s*(\d+):", l).group(1)) for l in reversed(lignes[:i]) if re.search(r"d=2 .*cons: SEQUENCE", l))
     spki = os.path.join(TRAVAIL, "spki.der")
     ossl(["asn1parse", "-inform", "DER", "-in", der, "-strparse", str(off), "-noout", "-out", spki])
@@ -295,6 +295,44 @@ def x509_texte(pem):
     return ossl(["x509", "-noout", "-text", "-nameopt", "compat"], entree=pem.encode())[1]
 
 
+# Révision 0.4 de CT-6 (EX-A.22) : clé de chaque certificat de test, et bornes des clés RSA d'EX-9.23,
+# appliquées par ce programme aux tailles et exposants qu'openssl lit (openssl ne les applique pas).
+CLE_DU_CERTIFICAT = {"cles/ac-test.pem": "ac-test", "cles/tsa-8200.pem": "tsa-8200", "cles/tsa-8192.pem": "tsa-8192",
+                     "cles/tsa-exposant.pem": "tsa-exposant", "cles/intermediaire-8200.pem": "intermediaire-8200",
+                     "cles/tsa-ed25519.pem": "tsa-ed25519", "cles/tsa-ed25519-auto-signe.pem": "tsa-ed25519"}
+
+
+def parametres_cle(texte_pkey):
+    """(type, bits, exposant) lus dans « openssl pkey -text » ou « openssl x509 -text »."""
+    if re.search(r"ED25519 (Private|Public)-Key", texte_pkey):
+        return ("Ed25519", None, None)
+    bits = re.search(r"\((\d+) bit", texte_pkey)
+    e = re.search(r"(?:publicExponent|Exponent): (\d+)", texte_pkey)
+    return ("RSA", int(bits.group(1)) if bits else None, int(e.group(1)) if e else None)
+
+
+def hors_bornes_rsa(param):
+    """Clé RSA hors des bornes d'EX-9.23 (module de 2048 à 8192 bits, exposant impair de 3 à 2^31 - 1)."""
+    t, bits, e = param
+    return t == "RSA" and (bits is None or bits < 2048 or bits > 8192 or e is None or e < 3 or e > 2 ** 31 - 1 or e % 2 == 0)
+
+
+def candidats(certs, ancres):
+    """Certificats du jeton, puis ceux des autorités du fichier d'ancres (certificate, intermediates), en PEM."""
+    out = list(certs)
+    for x in (ancres or {}).get("tsa_authorities", []):
+        out += [x["certificate"]] + list(x.get("intermediates", []))
+    return out
+
+
+def signataire(certs, a, ancres=None):
+    """Certificat signataire : le candidat dont le SHA-256 égale le certHash ESSCertIDv2 (openssl dgst), sinon le premier du jeton."""
+    for p in candidats(certs, ancres):
+        if a.get("ess_v2") == sha256_ossl(der_de(p)):
+            return p
+    return certs[0] if certs else None
+
+
 def ecrire(nom, contenu):
     p = os.path.join(TRAVAIL, nom)
     with open(p, "w" if isinstance(contenu, str) else "wb") as f:
@@ -322,8 +360,14 @@ for fichier, attendu in ATTENDU["keys"]["files"].items():
         # openssl pkey -outform DER écrit la forme propre au type (PKCS #1) : PKCS #8 par openssl pkcs8 -topk8
         code, der = ossl_octets(["pkcs8", "-topk8", "-nocrypt", "-outform", "DER", "-in", fichier])
         comparer(fichier + " SHA-256 du PKCS #8 DER (openssl pkcs8 -topk8)", attendu, sha256_ossl(der))
-        bits = re.search(r"\((\d+) bit", ossl(["pkey", "-in", fichier, "-noout", "-text"])[1]).group(1)
-        comparer(fichier + " taille de clé RSA", "3072", bits)
+        ident = fichier[len("cles/"):-len(".cle.pem")]
+        r04 = ATTENDU["keys"].get("revision_04", {}).get(ident)
+        t_cle, bits, e = parametres_cle(ossl(["pkey", "-in", fichier, "-noout", "-text"])[1])
+        if r04 and r04["type"] == "ed25519":
+            comparer(fichier + " type de clé", "Ed25519", t_cle)
+        else:
+            comparer(fichier + " taille de clé RSA", str(r04["bits"]) if r04 else "3072", str(bits))
+            comparer(fichier + " exposant public RSA", r04["e"] if r04 else 65537, e)
     else:
         pem = open(fichier).read()
         lisible, raison = x509_lisible(pem)
@@ -337,7 +381,7 @@ for fichier, attendu in ATTENDU["keys"]["files"].items():
 for fichier in ATTENDU["keys"]["files"]:
     if fichier.endswith(".cle.pem"):
         continue
-    cle = "cles/ac-test.cle.pem" if fichier == "cles/ac-test.pem" else "cles/tsa-test.cle.pem"
+    cle = "cles/%s.cle.pem" % CLE_DU_CERTIFICAT.get(fichier, "tsa-test")
     comparer(fichier + " clé publique = celle de " + cle, True, cle_publique(open(fichier).read()) == ossl(["pkey", "-in", cle, "-pubout"])[1])
 # Chemin de chaque certificat sous ac-test.pem à 2026-11-05T10:00:05Z, relevé ; comparé pour tsa-test.pem
 for fichier in ATTENDU["keys"]["files"]:
@@ -405,7 +449,7 @@ for tok in ATTENDU["tokens"]:
         n = int(re.search(r"periode-(\d)", f).group(1)) if "periode-" in f else 1
         comparer("nonce = 8 premiers octets de SHA-256(« …/nonce-tsa/periode-%d »)" % n, NONCE[n], t["nonce"])
     if certs:
-        comparer("tsa (directoryName) = sujet du certificat du jeton", "DirName:" + sujet_compat(certs[0]), t["tsa"])
+        comparer("tsa (directoryName) = sujet du certificat signataire du jeton", "DirName:" + sujet_compat(signataire(certs, a)), t["tsa"])
     else:
         dire("  tsa : %s ; aucun certificat lu par openssl pkcs7 -print_certs" % (t["tsa"] or "absent"))
     dire("  extensions de TSTInfo lues par openssl : %s" % (t["extensions"].replace("\n", " | ") or "aucune"))
@@ -495,22 +539,39 @@ def statut_openssl(cas):
     res["T-3"] = ("reussi" if t3 else "echoue", "message-digest %s… ; %s de eContent (asn1parse -strparse, dgst) %s… ; cms -verify : %s"
                   % ((a.get("message_digest") or "?")[:18], c["algo_condensat"], condensat[:18],
                      "content verify error" if "content verify error" in s_cms else "pas d'erreur de contenu"))
-    # T-4 : certificat signataire (ESS) ; ts -verify contrôle signingCertificate(V2)
-    s_ts = next(x["_ts_verify"] for x in ATTENDU["tokens"] if x["file"] == f)
-    h_cert = sha256_ossl(der_de(certs[0])) if certs else None
-    t4 = "ess cert id not found" not in s_ts and a.get("ess_v2") == h_cert
-    res["T-4"] = ("reussi" if t4 else "echoue", "certHash ESSCertIDv2 %s… ; SHA-256 du certificat du jeton %s… ; ts -verify : %s"
-                  % ((a.get("ess_v2") or "?")[:18], (h_cert or "?")[:18], "ess cert id not found" if "ess cert id not found" in s_ts else "ESS accepté"))
+    # T-4 : certificat signataire désigné par le sid (ts -verify : « signer certificate not found ») et
+    # identifié par ESS ; révision 0.4 (EX-9.10) : les certificats des autorités du fichier d'ancres sont
+    # passés à openssl par -untrusted, comme candidats ; sans eux et sans certificats dans le jeton, rien
+    # ne permet d'identifier le signataire (ancre absente : sans objet).
+    autres = candidats([], ancres)
+    untrusted = ["-untrusted", ecrire("candidats-ancres.pem", "".join(autres))] if autres else []
+    code_4, s_ts = ossl(["ts", "-verify", "-digest", ph[2:], "-in", f, "-token_in", "-CAfile", "cles/ac-test.pem", "-attime", str(at)] + untrusted)
+    S = signataire(certs, a, ancres)
+    h_cert = sha256_ossl(der_de(S)) if S else None
+    if not certs and not autres:
+        res["T-4"] = (None, "jeton sans certificats et aucune autorité d'horodatage : openssl ne peut identifier le signataire")
+    else:
+        introuvable = "signer certificate not found" in s_ts
+        t4 = not introuvable and "ess cert id not found" not in s_ts and a.get("ess_v2") == h_cert
+        res["T-4"] = ("reussi" if t4 else "echoue", "ts -verify (candidats des ancres en -untrusted) : %s ; certHash ESSCertIDv2 %s… ; SHA-256 du signataire %s…"
+                      % ("signer certificate not found" if introuvable else ("ess cert id not found" if "ess cert id not found" in s_ts else "signataire trouvé, ESS accepté"),
+                         (a.get("ess_v2") or "?")[:18], (h_cert or "?")[:18]))
+    if S is None:
+        for i in ("T-5", "T-6", "T-7", "T-8", "T-9", "T-10"):
+            res[i] = (None, "signataire introuvable")
+        res["T-11"] = ("hors_outil", "statut qualifié déclaré par le réviseur : openssl ne le connaît pas")
+        return res
     # T-5 : algorithmes ; openssl n'a pas de liste d'algorithmes admis (il accepte SHA-1)
-    bits = re.search(r"Public-Key: \((\d+) bit\)", x509_texte(certs[0])).group(1) if certs else "?"
-    res["T-5"] = ("hors_outil", "valeurs lues par openssl : digestAlgorithm %s, signatureAlgorithm %s, clé RSA %s bits ; "
+    p_s = parametres_cle(x509_texte(S))
+    bits = "%s %s bits%s" % (p_s[0], p_s[1], ", e = %d" % p_s[2] if p_s[2] else "") if p_s[1] else p_s[0]
+    res["T-5"] = ("hors_outil", "valeurs lues par openssl : digestAlgorithm %s, signatureAlgorithm %s, clé %s ; "
                   "openssl ts -verify %s ces algorithmes" % (c["algo_condensat"], c["algo_signature"], bits,
                                                               "accepte" if "Verification: OK" in s_ts else "ne se prononce pas sur"))
     # T-6 : signature
     # signature des seuls signedAttrs : -no_content_verify écarte le contrôle de message-digest (T-3),
     # -noverify celui du certificat (T-7, T-8)
     code_s, s_s = ossl(["cms", "-verify", "-inform", "DER", "-in", f, "-binary", "-noverify", "-no_content_verify",
-                        "-out", os.path.join(TRAVAIL, "contenu.der")])
+                        "-out", os.path.join(TRAVAIL, "contenu.der")] + (["-certfile", ecrire("certfile.pem", S)] if not certs else []))
     sig_ko = code_s != 0
     res["T-6"] = ("echoue" if sig_ko else "reussi", "cms -verify -noverify -no_content_verify : %s"
                   % ("; ".join(erreurs(s_s)) if sig_ko else "CMS Verification successful (signature valide)"))
@@ -520,26 +581,37 @@ def statut_openssl(cas):
     if ancres is None:
         res["T-7"] = (None, "sans fichier d'ancres, aucun -CAfile : openssl ne peut établir aucun chemin")
     else:
-        pem_s = ecrire("signataire.pem", certs[0])
-        cafile = ecrire("ancre.pem", "".join(x["certificate"] for x in ancres["tsa_authorities"]))
-        code, s = ossl(["verify", "-partial_chain", "-attime", str(at), "-CAfile", cafile, pem_s])
+        pem_s = ecrire("signataire.pem", S)
+        # Révision 0.4 (EX-9.23) : une signature de certificat sous une clé RSA hors des bornes ne compte pas ;
+        # openssl ne l'applique pas. Ce programme lit la clé de chaque certificat candidat (openssl x509 -text),
+        # écarte ceux dont la clé est hors bornes, et laisse openssl chercher un chemin avec les autres.
+        autorites = [x["certificate"] for x in ancres["tsa_authorities"]]
+        inter = [p for p in certs if p != S] + [i for x in ancres["tsa_authorities"] for i in x.get("intermediates", [])]
+        ecartes = [sujet_compat(p) for p in inter + autorites if hors_bornes_rsa(parametres_cle(x509_texte(p)))]
+        inter = [p for p in inter if not hors_bornes_rsa(parametres_cle(x509_texte(p)))]
+        cafile = ecrire("ancre.pem", "".join(p for p in autorites if not hors_bornes_rsa(parametres_cle(x509_texte(p)))))
+        args_u = ["-untrusted", ecrire("intermediaires-chemin.pem", "".join(inter))] if inter else []
+        code, s = ossl(["verify", "-partial_chain", "-attime", str(at), "-CAfile", cafile] + args_u + [pem_s])
+        emetteurs_hors_bornes = ecartes
         pol = ancres["tsa_authorities"][0]["accepted_policies"]
         q = os.path.join(TRAVAIL, "requete.tsq")
         ossl(["ts", "-query", "-digest", t["empreinte"][2:], "-sha256", "-tspolicy", pol[0], "-no_nonce", "-out", q])
         code_q, s_q = ossl(["ts", "-verify", "-queryfile", q, "-in", f, "-token_in", "-CAfile", cafile, "-attime", str(at), "-partial_chain"])
         pol_ok = "policy mismatch" not in s_q
         t7 = code == 0 and s.strip().endswith(": OK") and pol_ok
-        res["T-7"] = ("reussi" if t7 else "echoue", "openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : %s ; ts -verify -queryfile (politique %s) : %s"
+        res["T-7"] = ("reussi" if t7 else "echoue", "openssl verify -partial_chain -attime genTime -CAfile <autorités de l'ancre> : %s ; ts -verify -queryfile (politique %s) : %s%s"
                       % (court(s), pol[0],
-                         "policy mismatch" if not pol_ok else "politique acceptée"))
+                         "policy mismatch" if not pol_ok else "politique acceptée",
+                         " ; certificats écartés, clé RSA hors des bornes d'EX-9.23 (lue par openssl x509 -text) : %s" % ", ".join(emetteurs_hors_bornes) if emetteurs_hors_bornes else ""))
     # T-8 : usage horodatage
     cafile = ecrire("ac.pem", open("cles/ac-test.pem").read())
-    pem_s = ecrire("signataire.pem", certs[0])
-    code, s = ossl(["verify", "-purpose", "timestampsign", "-attime", str(at), "-CAfile", cafile, pem_s])
+    pem_s = ecrire("signataire.pem", S)
+    inter8 = [p for p in certs if p != S]
+    code, s = ossl(["verify", "-purpose", "timestampsign", "-attime", str(at), "-CAfile", cafile] + (["-untrusted", ecrire("inter8.pem", "".join(inter8))] if inter8 else []) + [pem_s])
     t8 = "unsuitable certificate purpose" not in s
     res["T-8"] = ("reussi" if t8 else "echoue", "openssl verify -purpose timestampsign : %s" % ("accepté" if t8 else "unsuitable certificate purpose"))
     # T-9 : contenu de TSTInfo ; openssl lit les extensions mais ts -verify ne refuse pas une extension critique
-    sujet = sujet_compat(certs[0])
+    sujet = sujet_compat(S)
     t9 = not t["extensions_critiques"] and t["tsa"] in (None, "DirName:" + sujet)
     res["T-9"] = ("reussi" if t9 else "echoue", "extensions critiques lues par ts -text : %s ; tsa absent ou égal au sujet du signataire : %s ; ts -verify : %s"
                   % (t["extensions_critiques"] or "aucune", t["tsa"] in (None, "DirName:" + sujet),
@@ -620,9 +692,10 @@ for cas in ATTENDU["cases"]:
     t, a, c, certs = LECTURES[cas["token"]]
     ancres = ANCRES[cas["anchors"]]
     dire("-- %s, ancres %s" % (cas["token"], cas["anchors"]))
-    tx = x509_texte(certs[0])
-    comparer("tsu_certificate_sha256", fa["tsu_certificate_sha256"], sha256_ossl(der_de(certs[0])))
-    cn = re.search(r"/CN=([^/]+)", sujet_compat(certs[0]))
+    S = signataire(certs, a, ancres)
+    tx = x509_texte(S)
+    comparer("tsu_certificate_sha256", fa["tsu_certificate_sha256"], sha256_ossl(der_de(S)))
+    cn = re.search(r"/CN=([^/]+)", sujet_compat(S))
     comparer("tsu_subject_cn (sujet imprimé par openssl x509 -subject ; nul sans CN)", fa["tsu_subject_cn"], cn.group(1) if cn else None)
     comparer("gen_time", fa["gen_time"], t["gen_time"])
     sec = int(re.match(r"0x([0-9a-fA-F]+) seconds", t["precision"]).group(1), 16)
@@ -635,7 +708,7 @@ for cas in ATTENDU["cases"]:
     comparer("signature_algorithm", fa["signature_algorithm"], c["algo_signature"])
     comparer("key_bits", fa["key_bits"], int(re.search(r"Public-Key: \((\d+) bit\)", tx).group(1)))
     comparer("qualified_claim (qcStatements absent des extensions de TSTInfo)", fa["qualified_claim"], "qcStatements" in t["extensions"] or "1.3.6.1.5.5.7.1.3" in t["extensions"])
-    pem_s = ecrire("signataire.pem", certs[0])
+    pem_s = ecrire("signataire.pem", S)
     k, longueur = autorite_retenue(ancres, pem_s, unix(t["gen_time"]))
     A = ancres["tsa_authorities"][k]
     comparer("authority (autorité retenue : openssl verify autorité par autorité, règle de EX-9.13 ; nom lu dans le fichier d'ancres)", fa["authority"], A["name"])
@@ -648,7 +721,7 @@ for cas in ATTENDU["cases"]:
     if longueur > 1:
         crl_pem = ancres["revocation"]["crls"][0]
         code, s = ossl(["crl", "-noout", "-lastupdate"], entree=crl_pem.encode())
-        attendues.append({"certificate_sha256": sha256_ossl(der_de(certs[0])), "evidence": "crl", "issued_at": iso(s.split("=", 1)[1])})
+        attendues.append({"certificate_sha256": sha256_ossl(der_de(S)), "evidence": "crl", "issued_at": iso(s.split("=", 1)[1])})
     comparer("revocation (lastUpdate de la CRL de l'ancre, certificats du chemin hors autorité : %d)" % max(longueur - 1, 0), fa["revocation"], attendues)
 dire("")
 
@@ -665,9 +738,15 @@ for cas in ATTENDU["cases"]:
     echecs = cas["failed_checks"]
     if ok == (not echecs):
         verdict = "concorde"
-    else:
+    elif ok:
         verdict = "limite de l'outil : openssl ts -verify ne fait pas %s" % ", ".join(echecs)
         LIMITES.append("%s : attendu.json %s en échec ; openssl ts -verify : Verification: OK" % (cas["token"], ", ".join(echecs)))
+    else:
+        # Révision 0.4 (EX-9.24, cas 2) : la signature d'une clé hors de la version 0 n'est pas vérifiée
+        # (raison admise) ; openssl ts -verify échoue sur ce qu'il ne sait pas vérifier.
+        hors = [x["id"] for x in cas["checks"] if x["reason"] == "hors_perimetre_version"]
+        verdict = "limite de l'outil : openssl ts -verify échoue là où attendu.json n'a aucun échec (%s non exécutées, hors_perimetre_version)" % ", ".join(hors)
+        LIMITES.append("%s : attendu.json aucun échec (%s hors_perimetre_version) ; openssl ts -verify : FAILED (%s)" % (cas["token"], ", ".join(hors), "; ".join(erreurs(s_ts))))
     dire("  %-34s periodHash du dossier %s… ; attendu : %-12s openssl ts -verify : %-60s %s" % (cas["token"], cas["dossier_period_hash"][:10], ", ".join(echecs) or "aucun échec",
          "Verification: OK" if ok else "FAILED (" + "; ".join(erreurs(s_ts)) + ")", verdict))
 dire("")
@@ -676,7 +755,7 @@ dire("Bilan des cas : %d concordances, %d discordances, %d hors outil, %d sans o
 dire("Discordances au total (sections 1 à 4) : %d" % len(DISCORDANCES))
 for d in DISCORDANCES:
     dire("  - " + d)
-dire("Verdicts d'openssl ts -verify qui ne disent pas « échec » là où attendu.json en relève un (limites de l'outil, section 5) : %d" % len(LIMITES))
+dire("Verdicts d'openssl ts -verify qui ne disent pas ce que dit attendu.json (limites de l'outil, section 5) : %d" % len(LIMITES))
 for d in LIMITES:
     dire("  - " + d)
 print("\n".join(SORTIE))

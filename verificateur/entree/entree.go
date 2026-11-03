@@ -165,3 +165,12 @@ func EstRepertoire(chemin string) bool {
 	st, err := os.Stat(chemin)
 	return err == nil && st.IsDir()
 }
+
+// EstOrdinaire dit si le chemin désigne un fichier ordinaire, sans suivre de
+// lien (Lstat) : un lien symbolique, un tube nommé ou un répertoire n'en est
+// pas un (EX-4.17). Une partie déclarée absente n'a aucun fichier ordinaire
+// de son nom dans le répertoire (D-2, CT-1 §11.4, révision 0.5).
+func EstOrdinaire(chemin string) bool {
+	st, err := os.Lstat(chemin)
+	return err == nil && st.Mode().IsRegular()
+}

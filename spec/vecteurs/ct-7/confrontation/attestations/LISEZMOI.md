@@ -122,14 +122,18 @@ Ce sont ceux de la confrontation de CT-3 (EX-A.25) :
 | `refusee_par_la_bibliotheque` | dans CT-3, une forme normalisée que la bibliothèque refuse ; jamais rendu ici : CT-7 ne normalise pas, et une forme canonique refusée est une `discordance` |
 | `discordance` | une forme que CT-7 accepte recouvre une autre adresse que l'attendue ou est refusée par la bibliothèque, les deux appels d'`encode_defunct` divergent, ou le vecteur contredit la référence ; le programme rend alors 1 |
 
-## Sorties publiées (2026-10-27)
+## Sorties publiées (2026-10-27, rejouées le 2026-11-03)
 
-- `sorties/ethers.txt` (ethers 6.17.0) : 100 signatures ; 99 `concorde`, 1
+- `sorties/ethers.txt` (ethers 6.17.0) : 102 signatures ; 101 `concorde`, 1
   `acceptee_par_la_bibliotheque`, 0 `refusee_par_la_bibliotheque`, 0
   `discordance`.
 - `sorties/eth-account.txt` (eth-account 0.14.0, eth-keys 0.8.0, Python
-  3.13) : 100 signatures ; 98 `concorde`, 2 `acceptee_par_la_bibliotheque`,
+  3.13) : 102 signatures ; 100 `concorde`, 2 `acceptee_par_la_bibliotheque`,
   0 `refusee_par_la_bibliotheque`, 0 `discordance`.
+
+Rejeu du 2026-11-03 : le dossier `valide-at1-inscription-date-inexistante` de
+CT-1 (révision 0.5) porte la partie signée ; ses deux signatures s'ajoutent,
+rien d'autre ne change.
 
 Les deux sorties portent les mêmes lignes, dans le même ordre, avec les mêmes
 adresses attendues ; seuls l'adresse recouvrée et le verdict dépendent de la

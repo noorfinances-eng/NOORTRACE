@@ -388,12 +388,14 @@ func construireJournal(t *testing.T, a *arbreSynthetique, pol *Politique, pii []
 	appel(5, "2026-11-10T10:00:03.500Z", ligneHote("h-5", "demo__payments.create", argsClairs), Nul())
 	s5 := sceller("2026-11-10T10:00:04.000Z", deleg, Copier(e4.Get("code")), Chaine("Je crée le paiement."), politiqueEv(regle, Chaine("a_approuver"), ticket, true), Nul(),
 		exec("demo__payments.create", refPiece(argsE, true), Chaine("retenue"), Nul(), Nul(), Nul()), TableauVide(), ctxDef(defEcriture))
-	// seq 6 : décision
-	sigFactice := "0x" + strings.Repeat("11", 64) + "1b"
+	// seq 6 : décision, signée EIP-191 (CT-1 §6.3) par les comptes Hardhat 1
+	// et 2, clés de test publiques des vecteurs (CT-1 §13,
+	// spec/vecteurs/ct-1/cles/cles-test.json) : le code CT-1 copié recouvre
+	// les adresses (E-9, révision 0.5).
+	s6 := Objet("decision", Chaine("approuve"), "journal_id", Chaine(jid), "org_id", Chaine(OrgIDVecteurs), "request_hash", Chaine(chaineDe(s5, "hash")), "ticket", ticket)
 	approval := Objet("decision", Chaine("approuve"), "ticket", ticket, "request_hash", Chaine(chaineDe(s5, "hash")), "threshold", Objet("required", Entier(2), "size", Entier(3)),
 		"approvers", doit(t, `["0x70997970c51812dc3a010c7d01b50e0d17dc79c8","0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"]`),
-		"signatures", &Value{Kind: KindArray, Arr: []*Value{Chaine(sigFactice), Chaine(sigFactice)}}, "at", Chaine("2026-11-10T10:00:10.000Z"), "reason", Chaine("Pièces validées"))
-	s6 := Objet("decision", Chaine("approuve"), "journal_id", Chaine(jid), "org_id", Chaine(OrgIDVecteurs), "request_hash", Chaine(chaineDe(s5, "hash")), "ticket", ticket)
+		"signatures", &Value{Kind: KindArray, Arr: []*Value{Chaine(signerApprobationTest(t, ClePriveeTestHardhat1, s6)), Chaine(signerApprobationTest(t, ClePriveeTestHardhat2, s6))}}, "at", Chaine("2026-11-10T10:00:10.000Z"), "reason", Chaine("Pièces validées"))
 	sceller("2026-11-10T10:00:10.000Z", deleg, Copier(s5.Get("code")), Nul(), politiqueEv(Nul(), Chaine("sans_objet"), ticket, false), Copier(approval),
 		exec(OutilApprobation, enLigne(s6), Chaine("executee"), Nul(), Nul(), Nul()), TableauVide(), TableauVide())
 	// seq 7 : écriture relayée après approbation : reprend de seq 5 intent, code et policy (EX-7.12)
@@ -582,4 +584,32 @@ func copierFamillesRevision05(a *arbreSynthetique) {
 	b = append(b, []byte("\n## `otel/`\n\n"+strings.Join(cas, ", ")+"\n\n## `worm/`\n\nBucket `"+BucketWormDemo+"`, préfixe `"+PrefixeWormDemo+
 		"`, période `1794304800`.\n\n## `cout-agent/`\n\nPrix en unités symboliques.\n")...)
 	a.ecrire("INDEX.md", b)
+}
+
+// Clés privées de test des comptes Hardhat 1 et 2 (mnémonique public de
+// Hardhat, CT-1 §13, spec/vecteurs/ct-1/cles/cles-test.json) : jetables,
+// publiques, réservées aux vecteurs ; jamais des clés d'approbateur réelles.
+const (
+	ClePriveeTestHardhat1 = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+	ClePriveeTestHardhat2 = "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+)
+
+// signerApprobationTest signe l'objet A d'une décision (CT-1 §6.3) :
+// D_A = SHA-256(P_A ‖ JCS(A)), M = keccak256("\x19Ethereum Signed
+// Message:\n32" ‖ D_A), signature r ‖ s ‖ v (s bas, v = 27 + recid).
+func signerApprobationTest(t *testing.T, clePrivee string, a *Value) string {
+	t.Helper()
+	prive, err := OctetsHex(clePrivee, 32)
+	if err != nil {
+		t.Fatal(err)
+	}
+	da, err := CondenseApprobation(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, sv, recid, err := SignerDeterministe(prive, MessageEIP191(da))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return Hex0x(append(append(octets32(r), octets32(sv)...), byte(27+recid)))
 }

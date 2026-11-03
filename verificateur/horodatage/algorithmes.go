@@ -66,6 +66,12 @@ var (
 	oidDeltaCRL     = asn1.ObjectIdentifier{2, 5, 29, 27}
 	oidIDP          = asn1.ObjectIdentifier{2, 5, 29, 28}
 	oidCommonName   = asn1.ObjectIdentifier{2, 5, 4, 3}
+
+	// Types de clé hors de la version 0, nommés dans le détail de T-5
+	// (EX-9.24).
+	oidEd25519 = asn1.ObjectIdentifier{1, 3, 101, 112}
+	oidEd448   = asn1.ObjectIdentifier{1, 3, 101, 113}
+	oidDSA     = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 1}
 )
 
 // empreinteParOID : fonction de hachage d'un AlgorithmIdentifier de
@@ -306,10 +312,23 @@ type cle struct {
 	bits  int
 }
 
+// Bornes des clés RSA (EX-9.23, révision 0.4) : module de 2048 à 8192 bits,
+// exposant public impair de 3 à 2³¹ − 1.
+const (
+	rsaBitsMin     = 2048
+	rsaBitsMax     = 8192
+	rsaExposantMax = 1<<31 - 1
+)
+
 // lireCle lit une clé publique et applique la ligne « Clé publique de S »
-// d'EX-9.11 : RSA de module d'au moins 2048 bits, ECDSA sur P-256, P-384
-// ou P-521 ; RSA plus courte : refusée ; autre type ou autre courbe : hors
-// de la version 0.
+// d'EX-9.11 (révision 0.4) : RSA de module de 2048 à 8192 bits et
+// d'exposant impair de 3 à 2³¹ − 1 (EX-9.23), ECDSA sur P-256, P-384 ou
+// P-521 ; RSA hors de ces bornes : refusée, contrôlée sur la clé avant tout
+// calcul (aucune exponentiation sous une clé refusée) ; autre type ou autre
+// courbe : hors de la version 0 (le cas 2 d'EX-9.24 en décide pour la clé
+// de S). La règle vaut pour toute clé RSA sous laquelle une signature serait
+// vérifiée : clé de S (T-5), clés du chemin et de l'autorité (T-7), clé
+// d'une CRL (T-10).
 func lireCle(spki []byte) (*cle, admission, *defaut) {
 	s := cryptobyte.String(spki)
 	var seq cryptobyte.String
@@ -337,11 +356,18 @@ func lireCle(spki []byte) (*cle, admission, *defaut) {
 			return nil, refuse, def("clé RSA illisible", "unreadable RSA key")
 		}
 		n, e := valeurEntier(nb), valeurEntier(eb)
-		if n.Sign() <= 0 || e.Sign() <= 0 || !e.IsInt64() || e.Int64() > 1<<31-1 || e.Int64() < 2 {
+		if n.Sign() <= 0 {
 			return nil, refuse, def("clé RSA invalide", "invalid RSA key")
 		}
-		c := &cle{rsa: &rsa.PublicKey{N: n, E: int(e.Int64())}, bits: n.BitLen()}
-		if c.bits < 2048 {
+		bits := n.BitLen()
+		if bits > rsaBitsMax {
+			return nil, refuse, defF("clé RSA de %d bits, au-delà de 8192 (EX-9.23)", "RSA key of %d bits, beyond 8192 (EX-9.23)", bits)
+		}
+		if !e.IsInt64() || e.Int64() < 3 || e.Int64() > rsaExposantMax || e.Bit(0) == 0 {
+			return nil, refuse, def("exposant public hors de 3 à 2³¹ − 1, ou pair (EX-9.23)", "public exponent outside 3 to 2³¹ − 1, or even (EX-9.23)")
+		}
+		c := &cle{rsa: &rsa.PublicKey{N: n, E: int(e.Int64())}, bits: bits}
+		if c.bits < rsaBitsMin {
 			return c, refuse, defF("clé RSA de %d bits, moins de 2048 (EX-9.11)", "RSA key of %d bits, less than 2048 (EX-9.11)", c.bits)
 		}
 		return c, admis, nil
@@ -362,6 +388,38 @@ func lireCle(spki []byte) (*cle, admission, *defaut) {
 		return &cle{ecdsa: k, bits: k.Curve.Params().BitSize}, admis, nil
 	}
 	return nil, horsPerimetre, defF("type de clé %s hors de la version 0 (EX-9.11)", "key type %s outside version 0 (EX-9.11)", a.oid.String())
+}
+
+// typeCle nomme le type d'une clé publique pour le détail de T-5
+// (EX-9.24) : « Ed25519 », « Ed448 », « DSA », « ECDSA <courbe> », « RSA »,
+// ou l'identifiant de l'algorithme de clé.
+func typeCle(spki []byte) string {
+	s := cryptobyte.String(spki)
+	var seq cryptobyte.String
+	if !s.ReadASN1(&seq, casn1.SEQUENCE) {
+		return "illisible"
+	}
+	a, ok := lireAlgo(&seq)
+	if !ok {
+		return "illisible"
+	}
+	switch {
+	case a.oid.Equal(oidEd25519):
+		return "Ed25519"
+	case a.oid.Equal(oidEd448):
+		return "Ed448"
+	case a.oid.Equal(oidDSA):
+		return "DSA"
+	case a.oid.Equal(oidRSA):
+		return "RSA"
+	case a.oid.Equal(oidClePubliqueE):
+		pc := cryptobyte.String(a.params)
+		if courbe, ok := lireOID(&pc); ok {
+			return "ECDSA " + courbe.String()
+		}
+		return "ECDSA"
+	}
+	return a.oid.String()
 }
 
 // accorde : la famille de signature convient au type de clé.

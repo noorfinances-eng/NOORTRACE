@@ -14,13 +14,13 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
     familles : CP 6, EX-10 9, EX-11 1, EX-3 3, EX-4 28, EX-5 12, EX-6 23, EX-7 17, EX-8 21, EX-9 14, EX-A 8, OP 12, RG 20, SU 7
   CT-5 : 174 identifiants (95 EX-, 79 de famille), 15 familles
     familles : AN 61, EX-10 7, EX-11 5, EX-12 2, EX-13 1, EX-3 5, EX-4 13, EX-5 16, EX-6 10, EX-7 4, EX-8 16, EX-9 9, EX-A 7, NV 12, P 6
-  CT-6 : 262 identifiants (193 EX-, 69 de famille), 26 familles
-    familles : AT 7, AV-AT 3, AV-K 4, AV-O 3, AV-R 3, AV-T 4, EX-10 16, EX-11 25, EX-12 6, EX-13 19, EX-14 11, EX-15 3, EX-3 8, EX-4 15, EX-5 12, EX-6 21, EX-7 3, EX-8 11, EX-9 22, EX-A 21, K 2, N 4, O 7, R 11, T 11, V 10
+  CT-6 : 278 identifiants (209 EX-, 69 de famille), 26 familles
+    familles : AT 7, AV-AT 3, AV-K 4, AV-O 3, AV-R 3, AV-T 4, EX-10 16, EX-11 25, EX-12 6, EX-13 19, EX-14 11, EX-15 3, EX-3 8, EX-4 17, EX-5 20, EX-6 22, EX-7 3, EX-8 11, EX-9 24, EX-A 24, K 2, N 4, O 7, R 11, T 11, V 10
   CT-7 : 580 identifiants (117 EX-, 463 de famille), 24 familles
     familles : AT 7, CL 6, CLE 29, CR 12, EX-0 1, EX-3 15, EX-4 10, EX-5 12, EX-6 3, EX-7 18, EX-8 20, EX-9 5, EX-A 31, EX-C 2, JS 12, L 10, MC 58, MN 98, MX 9, PA 20, RA 82, RV 9, T 10, TR 101
   CT-8 : 497 identifiants (198 EX-, 299 de famille), 30 familles
     familles : AV-PR 4, CA 6, CO 14, DM 22, EX-0 2, EX-10 23, EX-11 24, EX-12 16, EX-13 38, EX-14 12, EX-3 15, EX-4 4, EX-5 7, EX-6 6, EX-7 4, EX-8 7, EX-9 4, EX-A 36, FL 31, IC 18, IP 13, IR 8, OB 6, PD 16, PR 12, PV 10, RB 8, SV 8, TC 115, TP 8
-  total : 2332 identifiants ; couverture.json : 2332 ; table de 5.2 : 2332
+  total : 2348 identifiants ; couverture.json : 2348 ; table de 5.2 : 2348
   comparaison par spécification (total et familles) : égale
 
 2. Règle (a) : couverture de chaque identifiant (5.1, EX-5.5)
@@ -29,26 +29,26 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
   CT-3 : 259 identifiants, 259 par une entrée, 0 par un NC-, 0 non couvert(s)
   CT-4 : 181 identifiants, 174 par une entrée, 7 par un NC-, 0 non couvert(s)
   CT-5 : 174 identifiants, 162 par une entrée, 12 par un NC-, 0 non couvert(s)
-  CT-6 : 262 identifiants, 262 par une entrée, 0 par un NC-, 0 non couvert(s)
+  CT-6 : 278 identifiants, 278 par une entrée, 0 par un NC-, 0 non couvert(s)
   CT-7 : 580 identifiants, 476 par une entrée, 104 par un NC-, 0 non couvert(s)
   CT-8 : 497 identifiants, 481 par une entrée, 16 par un NC-, 0 non couvert(s)
-  total : 2193 par une entrée, 139 par un NC-, 0 non couvert(s), 0 cité(s) inconnu(s)
-  couverture.json : 2193, 139, 0, 0
+  total : 2209 par une entrée, 139 par un NC-, 0 non couvert(s), 0 cité(s) inconnu(s)
+  couverture.json : 2209, 139, 0, 0
   chiffres par spécification de 5.5 : 8 lignes lues, égaux au recompte
 
 3. Occurrences de « CT-9 » et lignes TC- (0.2, règle (c))
-  CT-1 : 1 occurrence(s) sur 1 ligne(s) ; texte 0.2 : 1 sur 1 ; lignes TC- : 1
+  CT-1 : 3 occurrence(s) sur 2 ligne(s) ; texte 0.2 : 3 sur 2 ; lignes TC- : 3
   CT-2 : 7 occurrence(s) sur 7 ligne(s) ; texte 0.2 : 7 sur 7 ; lignes TC- : 7
   CT-3 : 4 occurrence(s) sur 4 ligne(s) ; texte 0.2 : 4 sur 4 ; lignes TC- : 4
-  CT-4 : 3 occurrence(s) sur 3 ligne(s) ; texte 0.2 : 3 sur 3 ; lignes TC- : 3
-  CT-5 : 9 occurrence(s) sur 9 ligne(s) ; texte 0.2 : 9 sur 9 ; lignes TC- : 9
+  CT-4 : 5 occurrence(s) sur 5 ligne(s) ; texte 0.2 : 5 sur 5 ; lignes TC- : 5
+  CT-5 : 10 occurrence(s) sur 10 ligne(s) ; texte 0.2 : 10 sur 10 ; lignes TC- : 10
   CT-6 : 3 occurrence(s) sur 3 ligne(s) ; texte 0.2 : 3 sur 3 ; lignes TC- : 3
   CT-7 : 20 occurrence(s) sur 19 ligne(s) ; texte 0.2 : 20 sur 19 ; lignes TC- : 20
   CT-8 : 60 occurrence(s) sur 59 ligne(s) ; texte 0.2 : 60 sur 59 ; lignes TC- : 60
   spec/README.md : 10 occurrence(s) sur 5 ligne(s) ; texte 0.2 : 10 sur 5 ; lignes TC- : 10
-  total : 117 occurrences sur 110 lignes ; texte 0.2 : 117 sur 110 ; couverture.json : 117 occurrences, 117 lignes TC- ; catalogue : 117 lignes TC-
+  total : 122 occurrences sur 114 lignes ; texte 0.2 : 122 sur 114 ; couverture.json : 122 occurrences, 122 lignes TC- ; catalogue : 122 lignes TC-
   clés de section (dernier titre de niveau 2 à 4 hors bloc de code) : multi-ensemble égal à traceability[].key
-  table TC du texte : 117 lignes ; identifiants et clés dans l'ordre du catalogue : oui
+  table TC du texte : 122 lignes ; identifiants et clés dans l'ordre du catalogue : oui
 
 4. Menaces, TA- et risques acceptés (règle (b), 10.2, 10.6, EX-A.13)
   menaces.json : 98 menaces ; catalogue : 98 TA- à menace, 5 scénarios (adversarial.threat nul), 103 TA- en tout
@@ -59,9 +59,9 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
   index-ta-par-menace.json : 98 menaces, 0 défaut(s) (test, état, scénarios)
 
 5. Titres de tests et étapes de CI cités par les entrées exécutables (règle (d), EX-4.2)
-  test/*.test.js : 79 fichiers, 442 describe, 1762 it ; ci.yml : 53 étapes « - name: »
-  208 entrées exécutables citent 400 titres ou étapes ; 0 absent(s)
-  couverture.json : 208 exécutables, 400 cités, 0 absent(s)
+  test/*.test.js : 79 fichiers, 446 describe, 1805 it ; ci.yml : 53 étapes « - name: »
+  208 entrées exécutables citent 405 titres ou étapes ; 0 absent(s)
+  couverture.json : 208 exécutables, 405 cités, 0 absent(s)
 
 6. it de test/adversarial.test.js (EX-10.7, 10.8, EX-A.11)
   71 it, 71 dont le titre commence par « TA- », 10 describe de composant ; EX-A.11 : 71 it ; 10.8 : 71 passing
@@ -72,11 +72,11 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
   titres d'it TA- non cités par l'entrée qu'ils nomment : 0
 
 7. Lignes TM- et TR- du texte (11.5, 12.2) et du catalogue
-  TM- : 43 lignes dans le texte, 43 entrées ; mêmes identifiants dans le même ordre : oui ; 0 ligne(s) mal formée(s) ; 0 état(s) en désaccord ; 0 mesure(s) non vide(s)
+  TM- : 44 lignes dans le texte, 44 entrées ; mêmes identifiants dans le même ordre : oui ; 0 ligne(s) mal formée(s) ; 0 état(s) en désaccord ; 0 mesure(s) non vide(s)
     covers : 91 identifiants distincts, 0 inconnu(s)
   TR- : 15 lignes dans le texte, 15 entrées ; mêmes identifiants dans le même ordre : oui ; 0 ligne(s) mal formée(s) ; 0 état(s) en désaccord
     covers : 29 identifiants distincts, 0 inconnu(s)
   table des chiffres par niveau (5.5) : 9 lignes ; égale au recompte sur le catalogue : oui
-  catalogue : 321 entrées (TU 39, TV 76, TI 20, TE 17, TA 103, TM 43, TR 15, TQ 8)
+  catalogue : 322 entrées (TU 39, TV 76, TI 20, TE 17, TA 103, TM 44, TR 15, TQ 8)
 
 Bilan : 0 discordance(s) ; 0 écart(s) déclaré(s) dans LISEZMOI.md

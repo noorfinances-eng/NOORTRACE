@@ -66,12 +66,14 @@ func TestReferenceJournal(t *testing.T) {
 			t.Errorf("seq %d : %v\n%s", i+1, res.Echecs(), res.Resume("  "))
 		}
 	}
-	res := ControlerChaine(evs, cles)
-	if !res.Valide() {
-		t.Fatalf("chaîne : %v\n%s", res.Echecs(), res.Resume("  "))
+	res, symptomes := ControlerJournal(evs, cles, nil)
+	if !res.Valide() || len(symptomes) != 0 {
+		t.Fatalf("chaîne : %v %v\n%s", res.Echecs(), symptomes, res.Resume("  "))
 	}
-	if c := res.parID["E-9"]; c == nil || c.Etat != EtatHorsPerimetre {
-		t.Error("E-9 doit être déclaré hors périmètre")
+	// Révision 0.5 : E-9 recouvre les adresses des signatures EIP-191 de seq 3
+	// et seq 4 (avant : hors périmètre).
+	if c := res.parID["E-9"]; c == nil || c.Etat != EtatPasse {
+		t.Errorf("E-9 doit être exécutée et réussie : %v", c)
 	}
 	// Forme canonique de seq 4 (§6.4), début et fin.
 	_, c, _ := HashEvenement(evs[3])
@@ -271,7 +273,7 @@ func TestReferenceDossierValide(t *testing.T) {
 	if !d.Resultats.Valide() {
 		t.Fatalf("dossier de référence invalide :\n%s", d.Resultats.Resume("  "))
 	}
-	for id, etat := range map[string]Etat{"E-9": EtatHorsPerimetre, "A-4": EtatNonExecute, "D-1": EtatPasse, "D-2": EtatPasse,
+	for id, etat := range map[string]Etat{"E-9": EtatPasse, "A-4": EtatNonExecute, "D-1": EtatPasse, "D-2": EtatPasse,
 		"E-7": EtatPasse, "E-8": EtatPasse, "E-10": EtatPasse, "E-11": EtatPasse, "C-1": EtatPasse, "C-2": EtatPasse, "C-3": EtatPasse,
 		"M-1": EtatPasse, "M-2": EtatPasse, "M-3": EtatPasse, "P-1": EtatPasse, "P-2": EtatPasse, "P-3": EtatPasse, "P-4": EtatPasse, "P-5": EtatPasse,
 		"A-1": EtatPasse, "A-2": EtatPasse, "A-3": EtatPasse} {
@@ -315,9 +317,16 @@ func TestReferencePartiesNulles(t *testing.T) {
 	if d.Valide() || len(d.NonExecutesNonAdmis()) != 1 {
 		t.Errorf("E-11 non exécuté doit rendre le dossier invalide : %v", d.NonExecutesNonAdmis())
 	}
-	d.Resultats.NonExecute("A-4", "demande hors dossier")
+	// Révision 0.5 : A-4 non exécutée n'est admise que pour sa raison
+	// (demande hors du dossier, voisins.json exploitable) ; non exécutée pour
+	// une autre raison, elle rend le dossier invalide.
+	d.nonExecuteAdmis("A-4", "demande hors dossier", RaisonNEHorsDossier)
 	if nonAdmis := d.NonExecutesNonAdmis(); len(nonAdmis) != 1 || nonAdmis[0] != "E-11" {
-		t.Errorf("A-4 non exécuté est admis : %v", nonAdmis)
+		t.Errorf("A-4 non exécuté pour la raison admise : %v", nonAdmis)
+	}
+	d.Resultats.NonExecute("A-2", "approbations.json inexploitable")
+	if nonAdmis := d.NonExecutesNonAdmis(); len(nonAdmis) != 2 || nonAdmis[1] != "A-2" {
+		t.Errorf("A-2 non exécutée sans raison admise : %v", nonAdmis)
 	}
 }
 
@@ -466,12 +475,23 @@ func TestComparerVerdictSemantique(t *testing.T) {
 	if comparerVerdict(rap, "t", "v", true, nil, r, false) {
 		t.Error("attendu valide avec des échecs ne doit pas concorder")
 	}
-	comparerVerdict(rap, "t", "v", false, []string{"E-9"}, NouveauxResultats(), false)
+	// Un contrôle que les résultats déclarent hors périmètre rend la
+	// comparaison hors périmètre ; E-9 ne l'est plus par principe (révision
+	// 0.5 : sa forme est contrôlée, et une E-9 attendue en échec qui réussit,
+	// faute de signature, est une discordance).
+	hp1 := NouveauxResultats()
+	hp1.HorsPerimetre("E-9", "z")
+	comparerVerdict(rap, "t", "v", false, []string{"E-9"}, hp1, false)
 	if last := rap.Comparaisons[len(rap.Comparaisons)-1]; !last.HorsPerimetre {
-		t.Error("E-9 attendu seul doit être hors périmètre")
+		t.Error("un contrôle hors périmètre attendu seul doit rendre la comparaison hors périmètre")
+	}
+	passe := NouveauxResultats()
+	passe.Passe("E-9")
+	if comparerVerdict(rap, "t", "v", false, []string{"E-9"}, passe, false) {
+		t.Error("E-9 attendue en échec et réussie doit être discordante")
 	}
 	_, c, d, hp := rap.Comptes()
-	if c != 1 || d != 2 || hp != 1 {
+	if c != 1 || d != 3 || hp != 1 {
 		t.Errorf("comptes %d %d %d", c, d, hp)
 	}
 	va, ids, present := lireAttendu(&Value{Kind: KindObject, Obj: []Member{

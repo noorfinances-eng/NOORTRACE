@@ -43,12 +43,29 @@ type Analyse struct {
 	PartiesAbsentes []*Partie
 
 	// Événement prouvé (nil s'il est inexploitable), voisins, décisions.
-	Evenement  *Evt
-	Precedent  *Evt
-	Suivant    *Evt
-	Decisions  []*Evt
-	voisinsOK  bool
-	evenements []*Evt
+	Evenement *Evt
+	Precedent *Evt
+	Suivant   *Evt
+	Decisions []*Evt
+	// voisinsLus : voisins.json exploitable (EX-5.13), conforme ou non à
+	// son schéma ; voisinsEnveloppe : enveloppe { version, previous, next }
+	// conforme (C-1).
+	voisinsLus       bool
+	voisinsEnveloppe bool
+	// precedentInvalide, suivantInvalide : previous ou next qui n'est ni un
+	// objet ni null (membre absent compris) : un événement qui n'est pas un
+	// objet, E-1 échoue pour lui et les relations qui le lisent ne sont pas
+	// tenues (CT-1 §11.4, révision 0.5).
+	precedentInvalide, suivantInvalide bool
+	// precedentPresent, suivantPresent : le membre invalide est présent
+	// (et non absent) : c'est alors un événement qui n'est pas un objet, E-1
+	// échoue pour lui et E-2 à E-11 ne s'y exécutent pas ; un membre absent
+	// n'est pas un événement (CT-1 §11.4, CT-6 EX-5.13, révision 0.5).
+	precedentPresent, suivantPresent bool
+	// decisionsInvalides : rangs des éléments de events qui ne sont pas des
+	// objets (E-1 échoue pour eux).
+	decisionsInvalides []int
+	evenements         []*Evt
 	// evenementSansForme : evenement.json est un objet JSON sans forme
 	// canonique (E-2) ; Evenement vaut alors nil.
 	evenementSansForme bool
@@ -193,36 +210,49 @@ func (a *Analyse) indexInexploitable() {
 
 // preparer lit les événements et les clés.
 func (a *Analyse) preparer() {
+	// Un evenement.json sans forme canonique est inexploitable : E-2 porte
+	// l'échec, et les vérifications qui dépendent de l'événement prouvé ne
+	// sont pas exécutées (CT-1 §11.4, cas (d) ; CT-6 EX-5.15).
 	if p := a.Dossier.Partie(PEvenement); p.Exploitable() {
-		// Un evenement.json sans forme canonique est inexploitable : E-2
-		// porte l'échec, et les vérifications qui dépendent de l'événement
-		// prouvé ne sont pas exécutées (CT-1 §11.4 ; « Lectures », point 10).
-		if err := jcs.Calculable(p.Valeur); err == nil {
-			a.Evenement = nouvelEvt(commun.T("evenement", "event"), p.Valeur)
-			a.evenements = append(a.evenements, a.Evenement)
-		} else {
-			a.evenementSansForme = true
-		}
+		a.Evenement = nouvelEvt(commun.T("evenement", "event"), p.Valeur)
+		a.evenements = append(a.evenements, a.Evenement)
+	} else if p.SansForme() {
+		a.evenementSansForme = true
 	}
+	// Les événements de voisins.json et de approbations.json sont lus dans
+	// une partie exploitable, conforme ou non au schéma de son enveloppe
+	// (CT-1 §11.4, révision 0.5 ; CT-6 EX-5.13).
 	if p := a.Dossier.Partie(PVoisins); p.Exploitable() {
 		v := p.Valeur
-		if v.Membre("previous").EstObjet() {
-			a.Precedent = nouvelEvt(commun.T("voisin précédent", "previous neighbour"), v.Membre("previous"))
+		a.voisinsLus = true
+		a.voisinsEnveloppe = enveloppeVoisins(v)
+		switch x := v.Membre("previous"); {
+		case x.EstObjet():
+			a.Precedent = nouvelEvt(commun.T("voisin précédent", "previous neighbour"), x)
 			a.evenements = append(a.evenements, a.Precedent)
+		case !x.EstNul():
+			a.precedentInvalide = true
+			a.precedentPresent = x != nil
 		}
-		if v.Membre("next").EstObjet() {
-			a.Suivant = nouvelEvt(commun.T("voisin suivant", "next neighbour"), v.Membre("next"))
+		switch x := v.Membre("next"); {
+		case x.EstObjet():
+			a.Suivant = nouvelEvt(commun.T("voisin suivant", "next neighbour"), x)
 			a.evenements = append(a.evenements, a.Suivant)
+		case !x.EstNul():
+			a.suivantInvalide = true
+			a.suivantPresent = x != nil
 		}
 	}
 	if p := a.Dossier.Partie(PApprobations); p.Exploitable() {
 		if ev := p.Valeur.Membre("events"); ev.EstTableau() {
 			for i, x := range ev.Elements {
-				if x.EstObjet() {
-					e := nouvelEvt(commun.T(fmt.Sprintf("approbation[%d]", i), fmt.Sprintf("approval[%d]", i)), x)
-					a.Decisions = append(a.Decisions, e)
-					a.evenements = append(a.evenements, e)
+				if !x.EstObjet() {
+					a.decisionsInvalides = append(a.decisionsInvalides, i)
+					continue
 				}
+				e := nouvelEvt(commun.T(fmt.Sprintf("approbation[%d]", i), fmt.Sprintf("approval[%d]", i)), x)
+				a.Decisions = append(a.Decisions, e)
+				a.evenements = append(a.evenements, e)
 			}
 		}
 	}
@@ -247,18 +277,17 @@ func (a *Analyse) lireCles() (commun.Statut, commun.Texte) {
 	if p == nil || !p.Present || p.Lecture.Etat == entree.Absent {
 		return commun.NonExecute, commun.T("cles.json absent du répertoire", "cles.json missing from the directory")
 	}
+	if p.SansForme() {
+		// Cas (d) de CT-1 §11.4 : E-2 porte le défaut, E-8 n'est pas
+		// exécutée.
+		return commun.NonExecute, commun.T("cles.json sans forme canonique (E-2)", "cles.json without canonical form (E-2)")
+	}
 	if !p.Exploitable() {
 		return commun.Echoue, commun.T("cles.json inexploitable (pas un objet JSON, ou limite de taille)", "cles.json unusable (not a JSON object, or size limit)")
 	}
 	v := p.Valeur
 	if err := schema.Valider(schema.Dossier+"#/$defs/cles", v); err != nil {
 		return commun.Echoue, commun.T("cles.json contraire à son schéma ("+err.Error()+")", "cles.json does not follow its schema ("+err.Error()+")")
-	}
-	if a.Evenement == nil {
-		return commun.NonExecute, commun.T("evenement.json inexploitable : org_id et journal_id non comparés", "evenement.json unusable: org_id and journal_id not compared")
-	}
-	if v.Membre("org_id").S() != a.Evenement.V.Membre("org_id").S() || v.Membre("journal_id").S() != a.Evenement.V.Membre("journal_id").S() {
-		return commun.Echoue, commun.T("cles.json : org_id ou journal_id différent de celui de l'événement", "cles.json: org_id or journal_id differs from the event's")
 	}
 	ids, pubs := map[string]bool{}, map[string]bool{}
 	var liste []Cle
@@ -283,6 +312,17 @@ func (a *Analyse) lireCles() (commun.Statut, commun.Texte) {
 		}
 		liste = append(liste, c)
 	}
+	// La comparaison à l'événement vient après les règles qui ne lisent que
+	// cles.json (schéma, dates, unicité, valid_to ≥ valid_from) : celles-ci
+	// sont évaluées même quand evenement.json est inexploitable, et leur
+	// échec l'emporte (CT-1 §11.4, « sauf s'il échoue sur ce qu'il lit des
+	// autres parties » ; CT-6 EX-5.15, point 1).
+	if a.Evenement == nil {
+		return commun.NonExecute, commun.T("evenement.json inexploitable : org_id et journal_id non comparés", "evenement.json unusable: org_id and journal_id not compared")
+	}
+	if v.Membre("org_id").S() != a.Evenement.V.Membre("org_id").S() || v.Membre("journal_id").S() != a.Evenement.V.Membre("journal_id").S() {
+		return commun.Echoue, commun.T("cles.json : org_id ou journal_id différent de celui de l'événement", "cles.json: org_id or journal_id differs from the event's")
+	}
 	a.ClesExploitables = true
 	a.ClesListe = liste
 	for _, c := range liste {
@@ -293,20 +333,36 @@ func (a *Analyse) lireCles() (commun.Statut, commun.Texte) {
 
 // --- D-1, D-2 --------------------------------------------------------------
 
+// d1 : D-1 sur un index conforme à son schéma (CT-1 §11.4, révision 0.5 ;
+// CT-6 EX-5.14). La comparaison à l'événement exige evenement.json
+// exploitable ; sinon D-1 est non_execute (prerequis_en_echec), jamais
+// reussi.
 func (a *Analyse) d1() {
 	idx := a.Dossier.Index
-	if a.Evenement != nil {
-		s, okS := a.Evenement.Seq()
-		is, _ := idx.Chemin("event", "seq").Entier()
-		h := a.Evenement.V.Membre("hash").S()
-		if !okS || s != is || h != idx.Chemin("event", "hash").S() {
-			a.ajouter(commun.Nouvelle("D-1", commun.Echoue, "", commun.T(
-				fmt.Sprintf("event de l'index (seq %d, hash %s) différent de evenement.json (seq %d, hash %s)", is, idx.Chemin("event", "hash").S(), s, h),
-				fmt.Sprintf("index event (seq %d, hash %s) differs from evenement.json (seq %d, hash %s)", is, idx.Chemin("event", "hash").S(), s, h))))
-			return
+	if a.Evenement == nil {
+		a.ajouter(prerequis("D-1", "dossier.json conforme au schéma ; evenement.json inexploitable : event, org_id et journal_id non comparés", "dossier.json follows the schema; evenement.json unusable: event, org_id and journal_id not compared"))
+		return
+	}
+	ev := a.Evenement.V
+	s, okS := a.Evenement.Seq()
+	is, _ := idx.Chemin("event", "seq").Entier()
+	h, ih := ev.Membre("hash").S(), idx.Chemin("event", "hash").S()
+	var fr, en []string
+	if !okS || s != is || !ev.Membre("hash").EstChaine() || h != ih {
+		fr = append(fr, fmt.Sprintf("event de l'index (seq %d, hash %s) différent de evenement.json (seq %d, hash %s)", is, ih, s, h))
+		en = append(en, fmt.Sprintf("index event (seq %d, hash %s) differs from evenement.json (seq %d, hash %s)", is, ih, s, h))
+	}
+	for _, nom := range []string{"org_id", "journal_id"} {
+		if v := ev.Membre(nom); !v.EstChaine() || v.Chaine != idx.Membre(nom).S() {
+			fr = append(fr, nom+" de l'index "+idx.Membre(nom).S()+" différent de celui de evenement.json "+v.S())
+			en = append(en, "index "+nom+" "+idx.Membre(nom).S()+" differs from that of evenement.json "+v.S())
 		}
 	}
-	a.ajouter(commun.Nouvelle("D-1", commun.Reussi, "", commun.T("dossier.json conforme au schéma", "dossier.json follows the schema")))
+	if len(fr) > 0 {
+		a.ajouter(commun.Nouvelle("D-1", commun.Echoue, "", commun.T(strings.Join(fr, " ; "), strings.Join(en, "; "))))
+		return
+	}
+	a.ajouter(commun.Nouvelle("D-1", commun.Reussi, "", commun.T("dossier.json conforme au schéma, event, org_id et journal_id égaux à ceux de evenement.json", "dossier.json follows the schema, event, org_id and journal_id equal those of evenement.json")))
 }
 
 func (a *Analyse) d2() {
@@ -314,13 +370,16 @@ func (a *Analyse) d2() {
 	for _, p := range a.Dossier.Parties {
 		chemin := filepath.Join(a.Dossier.Repertoire, p.Fichier)
 		if !p.Present {
-			if entree.Existe(chemin) {
+			// Aucun fichier ordinaire de ce nom, et une raison qui est une
+			// chaîne non vide (CT-1 §3, §11.4, révision 0.5) ; une entrée
+			// qui n'est pas un fichier ordinaire compte comme absente.
+			if entree.EstOrdinaire(chemin) {
 				ecartsFr = append(ecartsFr, p.Fichier+" déclaré absent mais présent dans le répertoire")
 				ecartsEn = append(ecartsEn, p.Fichier+" declared absent but present in the directory")
 			}
-			if strings.TrimSpace(p.Raison) == "" {
-				ecartsFr = append(ecartsFr, p.Fichier+" absent sans raison")
-				ecartsEn = append(ecartsEn, p.Fichier+" absent without a reason")
+			if !commun.ChaineNonVide(p.Raison) {
+				ecartsFr = append(ecartsFr, p.Fichier+" absent sans raison (raison vide ou faite de blancs)")
+				ecartsEn = append(ecartsEn, p.Fichier+" absent without a reason (empty reason or made of white space)")
 			}
 			continue
 		}
@@ -383,7 +442,24 @@ func (a *Analyse) verificationsE() *Defaut {
 	for _, e := range evts {
 		res = append(res, regleE1(e))
 	}
-	v := agregerEvts("E-1", evts, res, 1)
+	// previous, next ou élément de events qui n'est pas un objet : un
+	// événement qui n'est pas un objet, E-1 échoue pour lui (CT-1 §11.4,
+	// révision 0.5).
+	evtsE1 := append([]*Evt{}, evts...)
+	nonObjet := func(fr, en string) {
+		evtsE1 = append(evtsE1, &Evt{Role: commun.T(fr, en)})
+		res = append(res, ko("n'est pas un objet JSON", "is not a JSON object"))
+	}
+	if a.precedentPresent {
+		nonObjet("voisin précédent", "previous neighbour")
+	}
+	if a.suivantPresent {
+		nonObjet("voisin suivant", "next neighbour")
+	}
+	for _, i := range a.decisionsInvalides {
+		nonObjet(fmt.Sprintf("approbation[%d]", i), fmt.Sprintf("approval[%d]", i))
+	}
+	v := agregerEvts("E-1", evtsE1, res, 1)
 	switch {
 	case a.evenementSansForme && v.Statut != commun.Echoue:
 		v = prerequis("E-1", "evenement.json sans forme canonique (E-2)", "evenement.json without canonical form (E-2)", 1)
@@ -403,11 +479,12 @@ func (a *Analyse) verificationsE() *Defaut {
 	// d'AT-1, sans effet sur le verdict (EX-5.11).
 	var fautifs []string
 	for _, nom := range []string{PEvenement, PVoisins, PChemin, PManifeste, PManifesteSig, PCles, PApprobations, PPoints} {
-		p := a.Dossier.Partie(nom)
-		if p.Exploitable() {
-			if err := jcs.Calculable(p.Valeur); err != nil {
-				fautifs = append(fautifs, p.Fichier+" ("+err.(*jcs.Erreur).Motif+")")
+		if p := a.Dossier.Partie(nom); p.SansForme() {
+			m := p.ErrCanonique.Error()
+			if e, ok := p.ErrCanonique.(*jcs.Erreur); ok {
+				m = e.Motif
 			}
+			fautifs = append(fautifs, p.Fichier+" ("+m+")")
 		}
 	}
 	switch {
@@ -471,7 +548,43 @@ func (a *Analyse) verificationsE() *Defaut {
 	simple("E-9", regleE9, 7)
 	simple("E-10", a.regleE10, 6)
 	simple("E-11", a.regleE11, 6)
+	a.nonObjetsNonExecutes()
 	return nil
+}
+
+// nonObjetsNonExecutes : E-2 à E-11 ne s'exécutent pas sur un événement qui
+// n'est pas un objet (voisin présent ou élément de events) ; faute d'échec
+// sur un autre événement, elles sont rapportées non_execute,
+// prerequis_en_echec, et non réussies (CT-1 §11.4, statut sur plusieurs
+// événements ; CT-6 EX-5.13, révision 0.4).
+func (a *Analyse) nonObjetsNonExecutes() {
+	var roles []string
+	if a.precedentPresent {
+		roles = append(roles, "voisin précédent")
+	}
+	if a.suivantPresent {
+		roles = append(roles, "voisin suivant")
+	}
+	for _, i := range a.decisionsInvalides {
+		roles = append(roles, fmt.Sprintf("approbation[%d]", i))
+	}
+	if len(roles) == 0 {
+		return
+	}
+	l := strings.Join(roles, ", ")
+	for k, v := range a.Verifs {
+		switch v.ID {
+		case "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11":
+		default:
+			continue
+		}
+		if v.Statut != commun.Reussi {
+			continue
+		}
+		n := prerequis(v.ID, "non exécutée sur un événement qui n'est pas un objet : "+l, "not run on an event that is not an object: "+l, v.Controles...)
+		a.Verifs[k] = n
+		a.statut[v.ID] = n
+	}
 }
 
 // lireClesStatut rend le statut de la première partie de E-8 (calculée une
@@ -515,16 +628,22 @@ func enveloppeVoisins(v *jsonv.Valeur) bool {
 	return p != nil && n != nil && (p.EstObjet() || p.EstNul()) && (n.EstObjet() || n.EstNul())
 }
 
+// verificationsC : C-1 porte voisins.json et son enveloppe ; C-2, C-3 (et
+// P-3) s'exécutent sur une partie exploitable même contraire au schéma de
+// son enveloppe, sur les valeurs lues (CT-1 §11.4, révision 0.5).
 func (a *Analyse) verificationsC() {
 	pv := a.Dossier.Partie(PVoisins)
 	absV, _ := a.partieInexploitable(PVoisins)
-	a.voisinsOK = pv.Exploitable() && enveloppeVoisins(pv.Valeur)
 	ev := a.Evenement
 	// C-1
 	switch {
 	case absV:
 		a.ajouter(prerequis("C-1", "voisins.json absent du répertoire (D-2)", "voisins.json missing from the directory (D-2)", 2))
-	case !a.voisinsOK:
+	case pv.SansForme():
+		a.ajouter(prerequis("C-1", "voisins.json sans forme canonique (E-2)", "voisins.json without canonical form (E-2)", 2))
+	case !a.voisinsLus:
+		a.ajouter(commun.Nouvelle("C-1", commun.Echoue, "", commun.T("voisins.json inexploitable (limite de taille, pas du JSON ou pas un objet)", "voisins.json unusable (size limit, not JSON or not an object)"), 2))
+	case !a.voisinsEnveloppe:
 		a.ajouter(commun.Nouvelle("C-1", commun.Echoue, "", commun.T("voisins.json : enveloppe { version, previous, next } non conforme", "voisins.json: non-conforming { version, previous, next } envelope"), 2))
 	case ev == nil:
 		a.ajouter(prerequis("C-1", "evenement.json inexploitable", "evenement.json unusable", 2))
@@ -533,18 +652,32 @@ func (a *Analyse) verificationsC() {
 	}
 	// C-2
 	switch {
-	case !a.voisinsOK || ev == nil:
+	case !a.voisinsLus || ev == nil:
 		a.ajouter(prerequis("C-2", "voisins.json ou evenement.json inexploitable", "voisins.json or evenement.json unusable", 2))
 	default:
 		a.ajouter(a.c2())
 	}
 	// C-3
 	switch {
-	case !a.voisinsOK || ev == nil:
+	case !a.voisinsLus || ev == nil:
 		a.ajouter(prerequis("C-3", "voisins.json ou evenement.json inexploitable", "voisins.json or evenement.json unusable", 6))
 	default:
 		a.ajouter(a.c3())
 	}
+}
+
+// voisinsNonObjets : écarts dus à un previous ou un next qui n'est ni un
+// objet ni null : la relation qui le lit n'est pas tenue (CT-1 §11.4,
+// révision 0.5).
+func (a *Analyse) voisinsNonObjets() []string {
+	var e []string
+	if a.precedentInvalide {
+		e = append(e, "voisin précédent qui n'est ni un objet ni null")
+	}
+	if a.suivantInvalide {
+		e = append(e, "voisin suivant qui n'est ni un objet ni null")
+	}
+	return e
 }
 
 func (a *Analyse) c1() commun.Verification {
@@ -603,11 +736,24 @@ var zero32 = "0x0000000000000000000000000000000000000000000000000000000000000000
 
 func (a *Analyse) c2() commun.Verification {
 	ev := a.Evenement
-	seq, _ := ev.Seq()
 	ph := ev.V.Membre("prev_hash").S()
-	var ecarts []string
-	if (ph == zero32) != (seq == 1) {
-		ecarts = append(ecarts, "prev_hash nul si et seulement si seq = 1 : non respecté")
+	ecarts := a.voisinsNonObjets()
+	// Règle d'origine (prev_hash nul si et seulement si seq = 1), appliquée
+	// à chaque événement du dossier, voisins compris, et évaluée seulement
+	// pour un seq entier : sinon elle n'est ni tenue ni violée, E-1 seule
+	// porte le défaut (CT-1 §11.4 « Autres termes mal typés », §7.2 temps 1 ;
+	// CT-6 EX-5.13).
+	for _, e := range []*Evt{a.Precedent, ev, a.Suivant} {
+		if e == nil {
+			continue
+		}
+		s, okS := e.Seq()
+		if !okS {
+			continue
+		}
+		if (e.V.Membre("prev_hash").S() == zero32) != (s == 1) {
+			ecarts = append(ecarts, e.Role.Fr+" : prev_hash nul si et seulement si seq = 1 : non respecté")
+		}
 	}
 	nonExec := false
 	if a.Precedent != nil {
@@ -643,7 +789,7 @@ func cleAttendueApres(e *Evt) string {
 
 func (a *Analyse) c3() commun.Verification {
 	ev := a.Evenement
-	var ecarts []string
+	ecarts := a.voisinsNonObjets()
 	if a.Precedent != nil && ev.Cle() != cleAttendueApres(a.Precedent) {
 		ecarts = append(ecarts, "clé de l'événement "+ev.Cle()+" ≠ "+cleAttendueApres(a.Precedent))
 	}
@@ -669,9 +815,10 @@ func (a *Analyse) verificationsM() {
 	}
 	conforme := ch != nil && schema.Valider(schema.Dossier+"#/$defs/chemin", ch) == nil
 	ev := a.Evenement
-	// M-1
+	// M-1 (sur chemin.json exploitable, même contraire à son schéma : un
+	// leaf_hash d'un autre genre ne tient pas la relation, CT-1 §11.4).
 	switch {
-	case ch == nil || !ch.Membre("leaf_hash").EstChaine():
+	case ch == nil:
 		a.ajouter(prerequis("M-1", "chemin.json inexploitable", "chemin.json unusable", 3))
 	case ev == nil || !ev.HashOK():
 		a.ajouter(prerequis("M-1", "hash de l'événement non recalculé (E-2)", "event hash not recomputed (E-2)", 3))
@@ -687,6 +834,8 @@ func (a *Analyse) verificationsM() {
 	switch {
 	case absC:
 		a.ajouter(prerequis("M-2", "chemin.json absent du répertoire (D-2)", "chemin.json missing from the directory (D-2)", 3))
+	case pc.SansForme():
+		a.ajouter(prerequis("M-2", "chemin.json sans forme canonique (E-2)", "chemin.json without canonical form (E-2)", 3))
 	case !conforme:
 		a.ajouter(commun.Nouvelle("M-2", commun.Echoue, "", commun.T("chemin.json inexploitable ou contraire à son schéma", "chemin.json unusable or not following its schema"), 3))
 	default:
@@ -746,6 +895,8 @@ func (a *Analyse) verificationsP(second *jsonv.Valeur) {
 	switch {
 	case absM:
 		a.ajouter(prerequis("P-1", "manifeste.json absent du répertoire (D-2)", "manifeste.json missing from the directory (D-2)", 3))
+	case a.Dossier.Partie(PManifeste).SansForme():
+		a.ajouter(prerequis("P-1", "manifeste.json sans forme canonique (E-2)", "manifeste.json without canonical form (E-2)", 3))
 	case man == nil:
 		a.ajouter(commun.Nouvelle("P-1", commun.Echoue, "", commun.T("manifeste.json n'est pas un objet JSON exploitable", "manifeste.json is not a usable JSON object"), 3))
 	default:
@@ -766,6 +917,10 @@ func (a *Analyse) verificationsP(second *jsonv.Valeur) {
 			}
 			if cn != ls-fs+1 {
 				ecarts = append(ecarts, "count ≠ last_seq − first_seq + 1")
+			}
+			// org_id et journal_id non nuls (CT-1 §3, révision 0.5).
+			if man.Membre("org_id").S() == zero32 || man.Membre("journal_id").S() == zero32 {
+				ecarts = append(ecarts, "org_id ou journal_id nul (32 octets nuls)")
 			}
 		}
 		if ev != nil && (man.Membre("org_id").S() != ev.V.Membre("org_id").S() || man.Membre("journal_id").S() != ev.V.Membre("journal_id").S()) {
@@ -805,7 +960,7 @@ func (a *Analyse) verificationsP(second *jsonv.Valeur) {
 		}
 	}
 	// P-3
-	if man == nil || !a.voisinsOK {
+	if man == nil || !a.voisinsLus {
 		a.ajouter(prerequis("P-3", "manifeste.json ou voisins.json inexploitable", "manifeste.json or voisins.json unusable", 2, 3))
 	} else {
 		fs, _ := man.Membre("first_seq").Entier()
@@ -813,7 +968,7 @@ func (a *Analyse) verificationsP(second *jsonv.Valeur) {
 		ps, _ := man.Membre("period_start").Entier()
 		pe, _ := man.Membre("period_end").Entier()
 		debut, fin := time.Unix(ps, 0), time.Unix(pe, 0)
-		var ecarts []string
+		ecarts := a.voisinsNonObjets()
 		for _, v := range []*Evt{a.Precedent, a.Suivant} {
 			if v == nil {
 				continue
@@ -863,6 +1018,9 @@ func (a *Analyse) p5(second *jsonv.Valeur) commun.Verification {
 	absS, _ := a.partieInexploitable(PManifesteSig)
 	if absS {
 		return prerequis("P-5", "manifeste.sig absent du répertoire (D-2)", "manifeste.sig missing from the directory (D-2)", 3, 6)
+	}
+	if ps.SansForme() {
+		return prerequis("P-5", "manifeste.sig sans forme canonique (E-2)", "manifeste.sig without canonical form (E-2)", 3, 6)
 	}
 	if !ps.Exploitable() || schema.Valider(schema.Dossier+"#/$defs/manifeste_sig", ps.Valeur) != nil {
 		return commun.Nouvelle("P-5", commun.Echoue, "", commun.T("manifeste.sig inexploitable ou contraire à son schéma", "manifeste.sig unusable or not following its schema"), 3, 6)
@@ -990,6 +1148,12 @@ func enveloppeApprobations(v *jsonv.Valeur) bool {
 	return true
 }
 
+// RaisonSansApprobation : raison d'absence exigée à l'identique de
+// approbations.json quand approval est nul (CT-1 §11.1, révision 0.5 ; A-1).
+const RaisonSansApprobation = "aucune approbation liée"
+
+// verificationsA : A-1 à A-4 (CT-1 §11.4, révision 0.5 ; CT-6 EX-5.16,
+// EX-5.18).
 func (a *Analyse) verificationsA() {
 	ev := a.Evenement
 	pa := a.Dossier.Partie(PApprobations)
@@ -1001,59 +1165,96 @@ func (a *Analyse) verificationsA() {
 	}
 	ap := ev.V.Membre("approval")
 	present := pa != nil && pa.Present
+	raison := ""
+	if pa != nil && !pa.Present {
+		raison = pa.Raison
+	}
+	// approval nul : la partie doit être déclarée absente avec la raison
+	// exacte « aucune approbation liée » ; A-2 à A-4 sont alors non
+	// exécutées, partie absente. Partie présente, ou absente sous une autre
+	// raison : A-1 en échec, A-2 à A-4 prerequis_en_echec.
+	if ap.EstNul() {
+		switch {
+		case present:
+			a.ajouter(commun.Nouvelle("A-1", commun.Echoue, "", commun.T("approbations.json déclaré présent alors que approval est nul", "approbations.json declared present while approval is null"), 7))
+		case raison != RaisonSansApprobation:
+			a.ajouter(commun.Nouvelle("A-1", commun.Echoue, "", commun.T("approval nul, mais approbations.json déclaré absent avec la raison « "+raison+" », et non « "+RaisonSansApprobation+" »", "null approval, but approbations.json declared absent with reason “"+raison+"”, not “"+RaisonSansApprobation+"”"), 7))
+		default:
+			a.ajouter(commun.Nouvelle("A-1", commun.Reussi, "", commun.T(RaisonSansApprobation, "no linked approval"), 7))
+			for _, id := range []string{"A-2", "A-3", "A-4"} {
+				a.ajouter(commun.Nouvelle(id, commun.NonExecute, commun.PartieAbsente, commun.T("approbations.json absent ("+raison+")", "approbations.json absent ("+raison+")"), 7))
+			}
+			return
+		}
+		for _, id := range []string{"A-2", "A-3", "A-4"} {
+			a.ajouter(prerequis(id, "A-1 en échec : approval nul et approbations.json mal déclaré", "A-1 failed: null approval and approbations.json wrongly declared", 7))
+		}
+		return
+	}
+	if !ap.EstObjet() {
+		// approval ni nul ni objet (E-1 porte le défaut de schéma) : les
+		// relations qui lisent ses membres ne sont pas tenues (CT-1 §11.4,
+		// révision 0.5).
+		for _, id := range []string{"A-1", "A-2", "A-3", "A-4"} {
+			a.ajouter(commun.Nouvelle(id, commun.Echoue, "", commun.T("approval n'est ni nul ni un objet", "approval is neither null nor an object"), 7))
+		}
+		return
+	}
 	// A-1
 	a1 := func() commun.Verification {
-		if !ap.EstObjet() {
-			if present {
-				return commun.Nouvelle("A-1", commun.Echoue, "", commun.T("approbations.json présent alors que approval est nul", "approbations.json present while approval is null"), 7)
-			}
-			return commun.Nouvelle("A-1", commun.Reussi, "", commun.T("aucune approbation liée", "no linked approval"), 7)
-		}
-		if !present {
+		switch {
+		case !present:
 			return commun.Nouvelle("A-1", commun.Echoue, "", commun.T("approval non nul sans approbations.json", "non-null approval without approbations.json"), 7)
-		}
-		if pa.Lecture.Etat == entree.Absent {
+		case pa.Lecture.Etat == entree.Absent:
 			return prerequis("A-1", "approbations.json absent du répertoire (D-2)", "approbations.json missing from the directory (D-2)", 7)
+		case pa.SansForme():
+			return prerequis("A-1", "approbations.json sans forme canonique (E-2)", "approbations.json without canonical form (E-2)", 7)
+		case !pa.Exploitable():
+			return commun.Nouvelle("A-1", commun.Echoue, "", commun.T("approbations.json inexploitable (limite de taille, pas du JSON ou pas un objet)", "approbations.json unusable (size limit, not JSON or not an object)"), 7)
 		}
-		if !pa.Exploitable() || !enveloppeApprobations(pa.Valeur) {
-			return commun.Nouvelle("A-1", commun.Echoue, "", commun.T("approbations.json inexploitable ou contraire à son schéma", "approbations.json unusable or not following its schema"), 7)
+		var ecarts, ecartsEn []string
+		if !enveloppeApprobations(pa.Valeur) {
+			ecarts, ecartsEn = append(ecarts, "approbations.json contraire au schéma de son enveloppe"), append(ecartsEn, "approbations.json does not follow its envelope schema")
 		}
-		if pa.Valeur.Membre("ticket").S() != ap.Membre("ticket").S() || pa.Valeur.Membre("request_hash").S() != ap.Membre("request_hash").S() {
-			return commun.Nouvelle("A-1", commun.Echoue, "", commun.T("ticket ou request_hash de approbations.json différent de approval", "ticket or request_hash of approbations.json differs from approval"), 7)
+		if t := pa.Valeur.Membre("ticket"); !t.EstChaine() || t.Chaine != ap.Membre("ticket").S() || !ap.Membre("ticket").EstChaine() {
+			ecarts, ecartsEn = append(ecarts, "ticket différent de celui de approval"), append(ecartsEn, "ticket differs from that of approval")
+		}
+		if r := pa.Valeur.Membre("request_hash"); !r.EstChaine() || r.Chaine != ap.Membre("request_hash").S() || !ap.Membre("request_hash").EstChaine() {
+			ecarts, ecartsEn = append(ecarts, "request_hash différent de celui de approval"), append(ecartsEn, "request_hash differs from that of approval")
+		}
+		if len(ecarts) > 0 {
+			return commun.Nouvelle("A-1", commun.Echoue, "", commun.T("approbations.json : "+strings.Join(ecarts, " ; "), "approbations.json: "+strings.Join(ecartsEn, "; ")), 7)
 		}
 		t := ap.Membre("ticket").S()
 		return commun.Nouvelle("A-1", commun.Reussi, "", commun.T("ticket "+t, "ticket "+t), 7)
 	}()
 	a.ajouter(a1)
-	if !ap.EstObjet() {
-		raison := "aucune approbation liée"
-		if pa != nil && !pa.Present && pa.Raison != "" {
-			raison = pa.Raison
-		}
-		for _, id := range []string{"A-2", "A-3", "A-4"} {
-			a.ajouter(commun.Nouvelle(id, commun.NonExecute, commun.PartieAbsente, commun.T("approbations.json absent ("+raison+")", "approbations.json absent ("+raison+")"), 7))
-		}
-		return
-	}
-	// A-2 et A-3 ne dépendent pas de A-1 (CT-1 §11.4, CT-6 EX-5.5) : elles
-	// ne demandent que approbations.json exploitable et conforme à son
-	// schéma, défaut que A-1 porte (« Lectures », point 8).
-	if !present || !pa.Exploitable() || !enveloppeApprobations(pa.Valeur) {
-		a.ajouter(prerequis("A-2", "approbations.json absent ou inexploitable (A-1)", "approbations.json missing or unusable (A-1)", 7))
-		a.ajouter(prerequis("A-3", "approbations.json absent ou inexploitable (A-1)", "approbations.json missing or unusable (A-1)", 7))
+	// A-2 et A-3 ne dépendent pas de A-1 (CT-6 EX-5.16) : elles s'exécutent
+	// sur approbations.json exploitable, même contraire au schéma de son
+	// enveloppe, et sont non exécutées (prerequis_en_echec) quand la partie
+	// est déclarée absente, absente du répertoire ou inexploitable.
+	if !present || !pa.Exploitable() {
+		a.ajouter(prerequis("A-2", "approbations.json absent ou inexploitable", "approbations.json missing or unusable", 7))
+		a.ajouter(prerequis("A-3", "approbations.json absent ou inexploitable", "approbations.json missing or unusable", 7))
 	} else {
-		a.ajouter(a.a2(ap))
+		a.ajouter(a.a2(ap, pa.Valeur))
 		a.ajouter(a.a3(ap, pa.Valeur))
 	}
 	a.ajouter(a.a4(ap))
 }
 
-func (a *Analyse) a2(ap *jsonv.Valeur) commun.Verification {
+func (a *Analyse) a2(ap, approbations *jsonv.Valeur) commun.Verification {
 	ev := a.Evenement
 	seq, _ := ev.Seq()
 	ts, _ := ev.Ts()
 	estDecision := ev.Outil() == OutilDecision
 	var ecarts []string
+	if !approbations.Membre("events").EstTableau() {
+		ecarts = append(ecarts, "events n'est pas un tableau")
+	}
+	for _, i := range a.decisionsInvalides {
+		ecarts = append(ecarts, fmt.Sprintf("approbation[%d] n'est pas un objet", i))
+	}
 	trouve := false
 	for _, d := range a.Decisions {
 		if d.Outil() != OutilDecision {
@@ -1062,8 +1263,9 @@ func (a *Analyse) a2(ap *jsonv.Valeur) commun.Verification {
 		if !jsonv.Egales(d.V.Membre("approval"), ap) {
 			ecarts = append(ecarts, d.Role.Fr+" : approval différent de celui de l'événement prouvé")
 		}
-		A := objetA(d.V.Membre("approval"), d.V.Membre("org_id").S(), d.V.Membre("journal_id").S())
-		if !jsonv.Egales(d.V.Chemin("execution", "arguments", "value"), A) {
+		A, errA := jcs.Canonique(objetA(d.V.Membre("approval"), d.V.Membre("org_id").S(), d.V.Membre("journal_id").S()))
+		val, errV := jcs.Canonique(d.V.Chemin("execution", "arguments", "value"))
+		if errA != nil || errV != nil || string(A) != string(val) {
 			ecarts = append(ecarts, d.Role.Fr+" : arguments.value ≠ A")
 		}
 		if estDecision {
@@ -1138,6 +1340,11 @@ func (a *Analyse) a3(ap, approbations *jsonv.Valeur) commun.Verification {
 
 func (a *Analyse) a4(ap *jsonv.Valeur) commun.Verification {
 	rh := ap.Membre("request_hash").S()
+	// voisins.json inexploitable : non exécutée, sans raison admise (CT-1
+	// §11.4, révision 0.5 ; CT-6 EX-5.18).
+	if !a.voisinsLus {
+		return prerequis("A-4", "voisins.json inexploitable : événement de demande non recherché", "voisins.json unusable: request event not looked for", 7)
+	}
 	for _, v := range []*Evt{a.Precedent, a.Suivant} {
 		if v == nil || !v.HashOK() || v.HashHex() != rh {
 			continue

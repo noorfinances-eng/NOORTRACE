@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "K-1",
+  "controles_en_echec": [
+    "K-1"
+  ],
+  "description": "points-de-controle.json de valide-seq-7-point-de-controle complété d'espaces jusqu'à 1048577 octets (1 Mio + 1, conforme à son schéma), index au SHA-256 exact : au-delà de sa limite (CT-1 §11.4, révision 0.5 ; CT-6 EX-4.14), la partie n'est pas lue ; K-1, qui la porte, échoue, K-2 à K-9 ne sont pas exécutées, et D-2 ne compare pas son SHA-256 (ni réussite ni échec pour cette partie)."
+}

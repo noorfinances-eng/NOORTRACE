@@ -257,34 +257,65 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
   const lireDossier = (rep) => Object.fromEntries(fs.readdirSync(rep).filter((f) => V.FICHIERS_DOSSIER.includes(f)).map((f) => [f, fs.readFileSync(path.join(rep, f))]));
   const ancres = V.controlerAncres(fs.readFileSync(ANCRES_TEST), SCHEMAS);
 
-  it("les soixante-dix dossiers (quarante de la version 0.2, dix de la révision 0.3 et vingt de la révision 0.4), sans ancres et avec ancres-test.json : même code et mêmes vérifications en échec ; 4, 5, 8 hors_perimetre_version ; N-3 jamais en échec ; K-1 à K-9 seulement avec la partie points-de-controle.json, AT-1 à AT-7 seulement avec la partie attestation-perimetre.json", function () {
-    expect(noms).to.have.length(70);
-    for (const nom of noms) {
-      const a = lireJSON(racine, nom, "attendu.json");
-      const avecPartie = fs.existsSync(path.join(racine, nom, "points-de-controle.json"));
-      const avecAttestation = fs.existsSync(path.join(racine, nom, "attestation-perimetre.json"));
-      const attendusIds = [...J.CONTROLES_DOSSIER.map((c) => c.id).filter((id) => avecPartie || !id.startsWith("K-")), ...(avecAttestation ? ["AT-1", "AT-2", "AT-3", "AT-4", "AT-5", "AT-6", "AT-7"] : [])];
-      for (const avec of [null, ancres]) {
-        const corps = V.verifierDossierComplet({ fichiers: lireDossier(path.join(racine, nom)), schemas: SCHEMAS, ancres: avec });
-        const etiquette = `${nom}${avec ? " (ancres-test.json)" : ""}`;
-        expect(corps.exit_code, etiquette).to.equal(a.valide ? 0 : 1);
-        expect(corps.failed_checks, etiquette).to.deep.equal(a.controles_en_echec);
-        for (const n of [4, 5, 8]) expect([corps.controls[n - 1].status, corps.controls[n - 1].reason], `${etiquette} contrôle ${n}`).to.deep.equal(["non_execute", "hors_perimetre_version"]);
-        expect(corps.checks.filter((c) => /^[TOR]-/.test(c.id)), etiquette).to.deep.equal([]);
-        expect(corps.checks.find((c) => c.id === "N-4"), etiquette).to.equal(undefined);
-        if (!avec) expect(corps.checks.find((c) => c.id === "N-3"), etiquette).to.equal(undefined);
-        else expect(corps.checks.find((c) => c.id === "N-3")?.status ?? "absente", etiquette).to.not.equal("echoue");
-        expect(corps.checks.filter((c) => c.id !== "N-3").map((c) => c.id), etiquette).to.deep.equal(attendusIds);
-        // Révision 0.4 de CT-1 : statuts des AT- et avertissements AV-AT- de attendu.json.
-        expect(corps.checks.filter((c) => c.id.startsWith("AT-")).map((c) => ({ id: c.id, status: c.status, reason: c.reason })), etiquette).to.deep.equal(a.perimeter_checks ?? []);
-        expect(corps.warnings.filter((w) => w.id.startsWith("AV-AT-")).map((w) => w.id), etiquette).to.deep.equal(a.warnings ?? []);
-        // K-7 à K-9 (ancres du point) ne s'exécutent que sur une ancre présente : les dossiers de CT-1 n'en portent pas.
-        for (const c of corps.checks.filter((x) => ["K-7", "K-8", "K-9"].includes(x.id))) {
-          expect(c.status, `${etiquette} ${c.id}`).to.equal("non_execute");
-          expect(["partie_absente", "prerequis_en_echec"], `${etiquette} ${c.id}`).to.include(c.reason);
+  // Dossiers de la révision 0.5 de CT-1 : vérifiés comme les soixante-dix autres, dans leur propre cas de test
+  // (le titre du premier est cité mot pour mot par le plan de tests de CT-9, TV-7).
+  const REVISION_05 = ["invalide-a1-autre-raison", "invalide-appel-sans-approbation", "invalide-decision-effets", "invalide-demande-effets", "invalide-index-autre-journal", "invalide-marque-ordre-octets", "invalide-partie-manquante", "invalide-partie-trop-grande", "invalide-profondeur-129", "invalide-raison-blancs", "invalide-redaction-blancs", "invalide-redaction-vide", "invalide-seq-chaine", "invalide-signature-en-trop", "invalide-substitut-octets", "invalide-utf8-voisins", "valide-at1-inscription-date-inexistante", "valide-profondeur-128"];
+  // Compléments de la révision 0.5 (passages tranchés après l'alignement des implémentations), dont une entrée en code 2.
+  const COMPLEMENTS_05 = ["illisible-index-non-json", "invalide-approbations-declaree-manquante", "invalide-approval-nombre", "invalide-demande-non-objet", "invalide-evenement-nul-autres-echecs", "invalide-k6-voisins-nul-seq-9", "invalide-outil-nombre", "invalide-voisin-absent", "invalide-voisin-nombre"];
+  const compatibilite = (liste) => {
+    for (const nom of liste) {
+        const a = lireJSON(racine, nom, "attendu.json");
+        // Entrée inutilisable (CT-1 §11.5, révision 0.5) : la bibliothèque lève DossierInutilisable, que la ligne de
+        // commande rend en code 2, type dossier_illisible.
+        if (a.exit_code === 2) {
+          expect(() => V.verifierDossierComplet({ fichiers: lireDossier(path.join(racine, nom)), schemas: SCHEMAS, ancres }), nom).to.throw(J.DossierInutilisable);
+          const r = spawnSync(process.execPath, [path.join(PROJECT_ROOT, "scripts", "verify", "dossier.mjs"), path.join(racine, nom), "--json"], { encoding: "utf8" });
+          expect([r.status, JSON.parse(r.stdout).error.kind], nom).to.deep.equal([2, a.error_kind]);
+          continue;
         }
-      }
+        const avecPartie = fs.existsSync(path.join(racine, nom, "points-de-controle.json"));
+        const avecAttestation = fs.existsSync(path.join(racine, nom, "attestation-perimetre.json"));
+        const attendusIds = [...J.CONTROLES_DOSSIER.map((c) => c.id).filter((id) => avecPartie || !id.startsWith("K-")), ...(avecAttestation ? ["AT-1", "AT-2", "AT-3", "AT-4", "AT-5", "AT-6", "AT-7"] : [])];
+        for (const avec of [null, ancres]) {
+          const corps = V.verifierDossierComplet({ fichiers: lireDossier(path.join(racine, nom)), schemas: SCHEMAS, ancres: avec });
+          const etiquette = `${nom}${avec ? " (ancres-test.json)" : ""}`;
+          expect(corps.exit_code, etiquette).to.equal(a.valide ? 0 : 1);
+          expect(corps.failed_checks, etiquette).to.deep.equal(a.controles_en_echec);
+          // invalide-raison-blancs (révision 0.5 de CT-1) déclare jeton-rfc3161.der absent sous une raison de blancs, autre que
+          // « hors périmètre CT-1 » : le contrôle 4 est non exécuté, partie_absente (EX-4.3) ; D-2 rend le dossier invalide.
+          for (const n of [4, 5, 8]) expect([corps.controls[n - 1].status, corps.controls[n - 1].reason], `${etiquette} contrôle ${n}`).to.deep.equal(["non_execute", nom === "invalide-raison-blancs" && n === 4 ? "partie_absente" : "hors_perimetre_version"]);
+          expect(corps.checks.filter((c) => /^[TOR]-/.test(c.id)), etiquette).to.deep.equal([]);
+          expect(corps.checks.find((c) => c.id === "N-4"), etiquette).to.equal(undefined);
+          if (!avec) expect(corps.checks.find((c) => c.id === "N-3"), etiquette).to.equal(undefined);
+          else expect(corps.checks.find((c) => c.id === "N-3")?.status ?? "absente", etiquette).to.not.equal("echoue");
+          expect(corps.checks.filter((c) => c.id !== "N-3").map((c) => c.id), etiquette).to.deep.equal(attendusIds);
+          // Révision 0.4 de CT-1 : statuts des AT- et avertissements AV-AT- de attendu.json.
+          expect(corps.checks.filter((c) => c.id.startsWith("AT-")).map((c) => ({ id: c.id, status: c.status, reason: c.reason })), etiquette).to.deep.equal(a.perimeter_checks ?? []);
+          expect(corps.warnings.filter((w) => w.id.startsWith("AV-AT-")).map((w) => w.id), etiquette).to.deep.equal(a.warnings ?? []);
+          // K-7 à K-9 (ancres du point) ne s'exécutent que sur une ancre présente : les dossiers de CT-1 n'en portent pas.
+          for (const c of corps.checks.filter((x) => ["K-7", "K-8", "K-9"].includes(x.id))) {
+            expect(c.status, `${etiquette} ${c.id}`).to.equal("non_execute");
+            expect(["partie_absente", "prerequis_en_echec"], `${etiquette} ${c.id}`).to.include(c.reason);
+          }
+        }
     }
+  };
+
+  it("les soixante-dix dossiers (quarante de la version 0.2, dix de la révision 0.3 et vingt de la révision 0.4), sans ancres et avec ancres-test.json : même code et mêmes vérifications en échec ; 4, 5, 8 hors_perimetre_version ; N-3 jamais en échec ; K-1 à K-9 seulement avec la partie points-de-controle.json, AT-1 à AT-7 seulement avec la partie attestation-perimetre.json", function () {
+    const anciens = noms.filter((n) => !REVISION_05.includes(n) && !COMPLEMENTS_05.includes(n));
+    expect(anciens).to.have.length(70);
+    compatibilite(anciens);
+  });
+
+  it("révision 0.5 de CT-1 : les dix-huit dossiers nouveaux, mêmes exigences que les soixante-dix (invalide-raison-blancs : contrôle 4 partie_absente, sa raison n'étant pas « hors périmètre CT-1 »)", function () {
+    expect(noms.filter((n) => REVISION_05.includes(n))).to.deep.equal(REVISION_05);
+    compatibilite(REVISION_05);
+  });
+
+  it("révision 0.5 de CT-1, compléments : les neuf dossiers des passages tranchés après l'alignement, mêmes exigences ; illisible-index-non-json en code 2 (dossier_illisible)", function () {
+    expect(noms.filter((n) => COMPLEMENTS_05.includes(n))).to.deep.equal(COMPLEMENTS_05);
+    expect(noms.filter((n) => !REVISION_05.includes(n) && !COMPLEMENTS_05.includes(n))).to.have.length(70);
+    compatibilite(COMPLEMENTS_05);
   });
 
   it("dossier complet et invalide-hash-faux : les exemples des sections 8.5 et 8.6 sont la sortie réelle (chemins abrégés en …/, version de Node exceptée)", function () {
@@ -426,14 +457,102 @@ describe("CT-6 : entrées inutilisables (code 2) et limites", function () {
     fs.rmSync(rep, { recursive: true, force: true });
   });
 
-  it("une partie déclarée présente mais absente du répertoire : D-2 et la première vérification de son contrôle échouent", function () {
+  // Révision 0.4 (EX-4.11, point 1) : ce test figeait l'échec de O-1 en plus de D-2 ; D-2 seule échoue désormais,
+  // et la vérification qui porte la partie n'est pas exécutée (prerequis_en_echec), comme son contrôle.
+  it("une partie déclarée présente mais absente du répertoire : D-2 seule échoue ; O-1 (ou R-1, R-3) et son contrôle ne sont pas exécutés (EX-4.11, point 1)", function () {
     const rep = tmp("noortrace-ct6-manquante-");
     for (const f of fs.readdirSync(COMPLET)) if (!["attendu.json", "preuve.ots"].includes(f)) fs.copyFileSync(path.join(COMPLET, f), path.join(rep, f));
     const { code, doc } = rapportJSON([rep, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);
     expect(code).to.equal(1);
-    expect(doc.failed_checks).to.deep.equal(["D-2", "O-1"]);
-    expect(doc.checks.find((c) => c.id === "O-1").detail).to.equal("preuve.ots déclaré présent mais absent du répertoire");
+    expect(doc.failed_checks).to.deep.equal(["D-2"]);
+    expect([doc.checks.find((c) => c.id === "O-1").status, doc.checks.find((c) => c.id === "O-1").reason]).to.deep.equal(["non_execute", "prerequis_en_echec"]);
+    expect(doc.checks.find((c) => c.id === "O-1").detail).to.equal("preuve.ots déclaré présent mais absent du répertoire (D-2)");
+    expect([doc.controls[4].status, doc.controls[4].reason]).to.deep.equal(["non_execute", "prerequis_en_echec"]);
+    // validateurs.json manquante : R-3 non exécutée (prerequis_en_echec), sans effet sur le contrôle 8 ; registre.json manquante : R-1 non exécutée.
+    fs.copyFileSync(path.join(COMPLET, "preuve.ots"), path.join(rep, "preuve.ots"));
+    fs.rmSync(path.join(rep, "validateurs.json"));
+    const v = rapportJSON([rep, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]).doc;
+    expect([v.failed_checks, v.checks.find((c) => c.id === "R-3").reason, v.controls[7].status]).to.deep.equal([["D-2"], "prerequis_en_echec", "reussi"]);
+    fs.rmSync(path.join(rep, "registre.json"));
+    const r = rapportJSON([rep, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]).doc;
+    expect([r.failed_checks, r.checks.find((c) => c.id === "R-1").reason, r.controls[7].status, r.controls[7].reason]).to.deep.equal([["D-2"], "prerequis_en_echec", "non_execute", "prerequis_en_echec"]);
     fs.rmSync(rep, { recursive: true, force: true });
+  });
+
+  it("révision 0.4 : partie au-delà de sa limite (D-2 ne la compare pas), index de plus de 1 Mio (D-1, code 1), index sans forme canonique (E-2, code 1), index contraire à son schéma (D-1, rien d'autre au rapport)", function () {
+    const rep = tmp("noortrace-ct6-index-");
+    const copier = () => {
+      for (const f of fs.readdirSync(rep)) fs.rmSync(path.join(rep, f));
+      for (const f of fs.readdirSync(COMPLET)) if (f !== "attendu.json") fs.copyFileSync(path.join(COMPLET, f), path.join(rep, f));
+    };
+    copier();
+    fs.writeFileSync(path.join(rep, "jeton-rfc3161.der"), Buffer.alloc(V.LIMITES.jeton + 1));
+    let doc = rapportJSON([rep, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]).doc;
+    expect(doc.failed_checks).to.deep.equal(["T-1"], "le SHA-256 d'une partie au-delà de sa limite n'est pas comparé par D-2 (EX-4.11, point 2)");
+    const sansLaPartie = (d) => {
+      expect(d.checks.map((c) => c.id), "aucune vérification T-, O-, R-, N-, K- ni AT- au rapport").to.deep.equal(J.CONTROLES_DOSSIER.map((c) => c.id).filter((id) => !id.startsWith("K-")));
+      expect(d.absent_parts).to.deep.equal([]);
+    };
+    copier();
+    const index = fs.readFileSync(path.join(rep, "dossier.json"), "utf8");
+    fs.writeFileSync(path.join(rep, "dossier.json"), index.slice(0, -1) + " ".repeat(1024 * 1024 + 1 - Buffer.byteLength(index)) + "\n");
+    let r = rapportJSON([rep, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);
+    expect([r.code, r.doc.failed_checks, r.doc.controls.map((c) => c.status + ":" + c.reason)]).to.deep.equal([1, ["D-1"], Array(8).fill("non_execute:prerequis_en_echec")]);
+    sansLaPartie(r.doc);
+    fs.writeFileSync(path.join(rep, "dossier.json"), index.replace('"version": 0,', '"version": 0, "version": 0,'));
+    r = rapportJSON([rep, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);
+    expect([r.code, r.doc.failed_checks, r.doc.controls.map((c) => c.status)]).to.deep.equal([1, ["E-2"], ["echoue", ...Array(7).fill("non_execute")]]);
+    sansLaPartie(r.doc);
+    fs.writeFileSync(path.join(rep, "dossier.json"), index.replace('"version": 0,', '"version": 0, "extra": 1,'));
+    r = rapportJSON([rep, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);
+    expect([r.code, r.doc.failed_checks]).to.deep.equal([1, ["D-1"]]);
+    sansLaPartie(r.doc);
+    fs.rmSync(rep, { recursive: true, force: true });
+  });
+
+  it("révision 0.4 (EX-4.17, EX-4.12 point 3) : lien symbolique pour --ancres, --entetes-bitcoin, --second-manifeste, dossier.json ou une pièce : code 2 ; partie liée : absente (D-2) ; second manifeste sans forme canonique : code 2", function () {
+    const rep = tmp("noortrace-ct6-liens-");
+    const d = path.join(rep, "dossier");
+    fs.mkdirSync(d);
+    for (const f of fs.readdirSync(COMPLET)) if (f !== "attendu.json") fs.copyFileSync(path.join(COMPLET, f), path.join(d, f));
+    fs.symlinkSync(ANCRES_TEST, path.join(rep, "ancres.json"));
+    fs.symlinkSync(CHAINE, path.join(rep, "entetes.json"));
+    fs.symlinkSync(path.join(COMPLET, "manifeste.json"), path.join(rep, "manifeste.json"));
+    const cas = [[["--ancres", path.join(rep, "ancres.json")], "ancres_inutilisables"], [["--entetes-bitcoin", path.join(rep, "entetes.json")], "entree_illisible"], [["--second-manifeste", path.join(rep, "manifeste.json")], "entree_illisible"]];
+    for (const [args, kind] of cas) {
+      const r = lancer([d, ...args, "--json"]);
+      expect([r.code, JSON.parse(r.stdout).error.kind], args[0]).to.deep.equal([2, kind]);
+    }
+    const ev = J.analyserJSONStrict(fs.readFileSync(path.join(COMPLET, "evenement.json")));
+    const pieces = path.join(rep, "pieces");
+    fs.mkdirSync(pieces);
+    fs.symlinkSync(ANCRES_TEST, path.join(pieces, ev.execution.result.sha256.slice(2)));
+    expect(JSON.parse(lancer([d, "--pieces", pieces, "--json"]).stdout).error.kind).to.equal("entree_illisible");
+    const m = fs.readFileSync(path.join(COMPLET, "manifeste.json"), "utf8");
+    fs.writeFileSync(path.join(rep, "second.json"), m.replace('"version": 0,', '"version": 0, "version": 0,'));
+    expect(lancer([d, "--second-manifeste", path.join(rep, "second.json")]).code).to.equal(2);
+    fs.rmSync(path.join(d, "chemin.json"));
+    fs.symlinkSync(path.join(COMPLET, "chemin.json"), path.join(d, "chemin.json"));
+    expect(rapportJSON([d]).doc.failed_checks).to.deep.equal(["D-2"], "une partie qui est un lien compte comme absente");
+    fs.rmSync(path.join(d, "dossier.json"));
+    fs.symlinkSync(path.join(COMPLET, "dossier.json"), path.join(d, "dossier.json"));
+    expect(lancer([d]).code).to.equal(2);
+    fs.rmSync(rep, { recursive: true, force: true });
+  });
+
+  it("révision 0.4 (EX-A.23, EX-A.24) : codes avec --exiger 4 (exit_code_exiger_4) ; événement prouvé inexploitable : P-1 jamais réussie, contrôles 4, 5, 8 non exécutés, N-4 absente", function () {
+    for (const nom of ["invalide-t5-algorithme-inconnu", "valide-t5-cle-ed25519"]) {
+      const { a, args } = argumentsDossier(nom);
+      expect(lancer([...args.filter((x) => x !== "--json"), "--exiger", "4"]).code, nom).to.equal(a.exit_code_exiger_4);
+    }
+    expect([lireJSON(DOSSIERS, "invalide-t5-algorithme-inconnu", "attendu.json").exit_code_exiger_4, lireJSON(DOSSIERS, "valide-t5-cle-ed25519", "attendu.json").exit_code_exiger_4]).to.deep.equal([1, 3]);
+    for (const nom of ["invalide-evenement-nul-complet", "invalide-evenement-retire-complet"]) {
+      const { doc } = rapportJSON(argumentsDossier(nom).args);
+      const st = (id) => doc.checks.find((c) => c.id === id);
+      expect(["P-1", "T-2", "O-2", "R-9", "R-10"].map((id) => st(id).reason), nom).to.deep.equal(Array(5).fill("prerequis_en_echec"));
+      expect([st("N-4"), doc.event, doc.org_id, doc.journal_id], nom).to.deep.equal([undefined, null, null, null]);
+      expect([3, 4, 7].map((i) => doc.controls[i].status), nom).to.deep.equal(["non_execute", "non_execute", "non_execute"]);
+    }
   });
 });
 
@@ -664,7 +783,8 @@ describe("CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 
 
   it("V-10 : chaque dossier qui porte la partie a le code, le verdict, failed_checks (hors D-2), blocking_unexecuted, les statuts des huit contrôles et la borne du même dossier privé de la partie (EX-A.20)", function () {
     const liste = porteurs();
-    expect(liste.length).to.equal(19 + 5);
+    // Révision 0.5 de CT-1 : valide-at1-inscription-date-inexistante s'ajoute aux dix-neuf porteurs de CT-1.
+    expect(liste.length).to.equal(20 + 5);
     for (const d of liste) {
       const avec = lireDossier(d.rep);
       const sans = { ...avec };

@@ -1,5 +1,5 @@
 // Point d'entrée de @noortrace/noyau : l'API publique de la bibliothèque
-// noyau de CT-1 version 0.4. La lecture d'un répertoire de dossier est à part,
+// noyau de CT-1 version 0.5. La lecture d'un répertoire de dossier est à part,
 // dans « @noortrace/noyau/dossier-fichiers », pour que ce point d'entrée ne
 // lise aucun fichier.
 

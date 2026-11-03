@@ -49,7 +49,15 @@ func (a *Analyse) verificationsAT(p *Partie) {
 			return echec("attestation-perimetre.json dépasse 4 Mio", "attestation-perimetre.json exceeds 4 MiB")
 		case p.Lecture.Etat != entree.Lu:
 			return echec("attestation-perimetre.json absent ou illisible", "attestation-perimetre.json missing or unreadable")
-		case !p.Exploitable():
+		case !p.Lue():
+			return echec("attestation-perimetre.json n'est pas du JSON (EX-4.16)", "attestation-perimetre.json is not JSON (EX-4.16)")
+		case p.SansForme():
+			// Tout défaut de forme canonique de la partie, hors de
+			// signed.attestation compris (clé en double), relève d'AT-1
+			// (CT-6 EX-4.15, EX-4.16 ; CT-1 §11.4, révision 0.5) : la
+			// lecture d'un nom en double serait arbitraire.
+			return echec("attestation-perimetre.json sans forme canonique ("+p.ErrCanonique.Error()+")", "attestation-perimetre.json without canonical form ("+p.ErrCanonique.Error()+")")
+		case !p.ObjetLu():
 			return echec("attestation-perimetre.json n'est pas un objet JSON", "attestation-perimetre.json is not a JSON object")
 		}
 		v := p.Valeur
@@ -98,6 +106,17 @@ func (a *Analyse) verificationsAT(p *Partie) {
 			sigs[s.Membre("address").S()] = true
 		}
 		if ins := v.Membre("inscription"); ins.EstObjet() {
+			// Dates de l'événement d'inscription : relèvent d'AT-1, non
+			// d'AT-6 (CT-1 §11.4, révision 0.5).
+			ie := ins.Membre("event")
+			if _, okT := commun.LireHorodatage(ie.Membre("ts").S()); !okT {
+				return echec("ts de l'événement d'inscription n'est pas une date existante", "ts of the inscription event is not an existing date")
+			}
+			if ap := ie.Membre("approval"); ap.EstObjet() {
+				if _, okA := commun.LireHorodatage(ap.Membre("at").S()); !okA {
+					return echec("approval.at de l'événement d'inscription n'est pas une date existante", "approval.at of the inscription event is not an existing date")
+				}
+			}
 			doc, err := cryptographie.Base64Canonique(ins.Membre("policy_document").S())
 			if err != nil {
 				return echec("policy_document : "+err.Error(), "policy_document: "+err.Error())

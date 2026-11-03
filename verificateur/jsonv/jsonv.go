@@ -3,11 +3,19 @@
 // isolé, nombre non entier) au lieu de le corriger comme le fait
 // encoding/json.
 //
-// Règles de lecture :
+// Règles de lecture (CT-6 EX-4.16, révision 0.4 ; CT-1 §3 et §4, révision
+// 0.5) :
 //   - le texte est de l'UTF-8 bien formé, sans marque d'ordre d'octets
-//     (CT-1 §3) ; sinon ce n'est pas du JSON ;
+//     (CT-1 §3) ; sinon ce n'est pas du JSON. Seule exception : une suite
+//     de trois octets ED A0 80 à ED BF BF (substitut UTF-16 écrit en octets,
+//     à la manière de CESU-8), seule ou suivie d'une autre, est lue comme un
+//     substitut isolé : défaut de forme canonique (E-2), et non texte qui
+//     n'est pas du JSON ;
 //   - grammaire de la RFC 8259, espaces « » « \t » « \n » « \r » seulement ;
-//   - profondeur d'imbrication bornée (CT-6 EX-4.13 : 128 niveaux) ;
+//   - profondeur bornée à 128 (CT-6 EX-4.13, EX-4.16 point 3 ; CT-1 §4,
+//     règle 7) : un scalaire est de profondeur 0, un objet ou un tableau de
+//     1 + la plus grande profondeur de ses valeurs ; on compte les objets et
+//     les tableaux imbriqués, la racine comprise (`[[1]]` vaut 2) ;
 //   - un nom en double dans un objet est conservé et signalé ; la lecture
 //     d'un membre rend la dernière occurrence, comme JSON.parse ;
 //   - un échappement `\uXXXX` de substitut non apparié est conservé (codé
@@ -65,7 +73,8 @@ type Membre struct {
 	Valeur       *Valeur
 }
 
-// ProfondeurMax : profondeur d'imbrication admise (CT-6 EX-4.13).
+// ProfondeurMax : profondeur admise (CT-6 EX-4.13), comptée en conteneurs
+// imbriqués, la racine comprise.
 const ProfondeurMax = 128
 
 // ErrProfondeur : imbrication trop profonde.
@@ -76,9 +85,10 @@ func Analyser(b []byte) (*Valeur, error) {
 	return AnalyserProfondeur(b, ProfondeurMax)
 }
 
-// AnalyserProfondeur lit un document JSON avec une profondeur maximale donnée.
+// AnalyserProfondeur lit un document JSON avec une profondeur maximale donnée
+// (nombre de conteneurs imbriqués admis, la racine comprise).
 func AnalyserProfondeur(b []byte, profondeur int) (*Valeur, error) {
-	if !utf8.Valid(b) {
+	if !utf8Substituts(b) {
 		return nil, errors.New("texte qui n'est pas de l'UTF-8 bien formé")
 	}
 	if len(b) >= 3 && b[0] == 0xEF && b[1] == 0xBB && b[2] == 0xBF {
@@ -118,17 +128,22 @@ func (l *lecteur) espaces() {
 	}
 }
 
+// valeur lit une valeur dont le conteneur parent est à la profondeur prof
+// (0 pour la racine du document) : un objet ou un tableau lu ici est de
+// rang prof + 1 et n'est admis que si ce rang ne dépasse pas la borne ; un
+// scalaire n'ajoute aucun niveau. La récursion est donc bornée par la borne.
 func (l *lecteur) valeur(prof int) (*Valeur, error) {
-	if prof >= l.max {
-		return nil, ErrProfondeur
-	}
 	if l.i >= len(l.b) {
 		return nil, l.erreur("fin de texte inattendue")
 	}
 	switch c := l.b[l.i]; {
-	case c == '{':
-		return l.objet(prof)
-	case c == '[':
+	case c == '{' || c == '[':
+		if prof >= l.max {
+			return nil, ErrProfondeur
+		}
+		if c == '{' {
+			return l.objet(prof)
+		}
 		return l.tableau(prof)
 	case c == '"':
 		s, iso, err := l.chaine()
@@ -334,11 +349,43 @@ func (l *lecteur) chaine() (string, bool, error) {
 			default:
 				return "", false, l.erreur("échappement inconnu")
 			}
+		case c == 0xED && l.i+2 < len(l.b) && l.b[l.i+1] >= 0xA0 && l.b[l.i+1] <= 0xBF:
+			// Substitut UTF-16 écrit en octets (CESU-8) : substitut isolé
+			// de CT-1 §4, règle 3 (EX-4.16, point 1), conservé en WTF-8.
+			out = append(out, l.b[l.i:l.i+3]...)
+			l.i += 3
+			iso = true
 		default:
 			out = append(out, c)
 			l.i++
 		}
 	}
+}
+
+// utf8Substituts dit si b est de l'UTF-8 bien formé (RFC 3629), à cette
+// exception près qu'une suite ED A0 80 à ED BF BF (point de code de U+D800
+// à U+DFFF écrit en octets) est admise ici : elle est lue comme un substitut
+// isolé, défaut de forme canonique (CT-1 §3, révision 0.5 ; CT-6 EX-4.16,
+// point 1). Toute autre suite mal formée (octet de continuation isolé,
+// forme trop longue, au-delà de U+10FFFF, suite tronquée) rend faux.
+func utf8Substituts(b []byte) bool {
+	for i := 0; i < len(b); {
+		c := b[i]
+		if c < 0x80 {
+			i++
+			continue
+		}
+		if c == 0xED && i+2 < len(b) && b[i+1] >= 0xA0 && b[i+1] <= 0xBF && b[i+2] >= 0x80 && b[i+2] <= 0xBF {
+			i += 3
+			continue
+		}
+		r, n := utf8.DecodeRune(b[i:])
+		if r == utf8.RuneError && n <= 1 {
+			return false
+		}
+		i += n
+	}
+	return true
 }
 
 func (l *lecteur) nombre() (*Valeur, error) {

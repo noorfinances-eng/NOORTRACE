@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "D-2",
+  "controles_en_echec": [
+    "D-2"
+  ],
+  "description": "approbations.json retiré du répertoire, l'index inchangé (partie déclarée présente avec son SHA-256) : D-2 échoue, et elle seule ; A-1, qui porte la partie, n'est pas exécutée, ni A-2 et A-3 (sans raison admise) ; A-4 s'exécute sur les voisins, sans approbations.json, et n'est pas exécutée pour sa raison admise (la demande, seq 5, n'est pas un voisin)."
+}

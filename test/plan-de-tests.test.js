@@ -107,7 +107,7 @@ describe("CT-9 : catalogue, schéma et cas (section 4, annexe A.2, EX-4.3, EX-A.
   it("catalogue.json valide contre la racine, couverture.json contre rapport_couverture, et index-ta-par-menace.json est l'index que le catalogue donne (EX-A.13)", function () {
     expect(valider(CATALOGUE, "racine")).to.deep.equal([]);
     expect(valider(COUVERTURE, "rapport_couverture")).to.deep.equal([]);
-    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.2", date: "2026-11-03" });
+    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.3", date: "2026-11-03" });
     const index = lire(CT9, "index-ta-par-menace.json");
     expect(index.index).to.deep.equal(P.indexParMenace(CATALOGUE));
     expect(Object.keys(index.index)).to.have.length(MENACES.threats.length);
@@ -141,8 +141,8 @@ describe("CT-9 : catalogue, schéma et cas (section 4, annexe A.2, EX-4.3, EX-A.
       expect(t.id, t.title).to.equal(`${t.level}-${compteurs[t.level]}`);
     }
     expect(new Set(CATALOGUE.tests.map((t) => t.id)).size).to.equal(CATALOGUE.tests.length);
-    expect(CATALOGUE.tests).to.have.length(321);
-    expect(compteurs).to.deep.equal({ TU: 39, TV: 76, TI: 20, TE: 17, TA: 103, TM: 43, TR: 15, TQ: 8 });
+    expect(CATALOGUE.tests).to.have.length(322);
+    expect(compteurs).to.deep.equal({ TU: 39, TV: 76, TI: 20, TE: 17, TA: 103, TM: 44, TR: 15, TQ: 8 });
     CATALOGUE.non_tests.forEach((n, i) => expect(n.id).to.equal(`NC-${i + 1}`));
     CATALOGUE.traceability.forEach((r, i) => expect(r.id).to.equal(`TC-${i + 1}`));
   });
@@ -171,7 +171,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
   this.timeout(300_000);
   const INV = P.inventaire(R);
 
-  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2332 identifiants", function () {
+  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2348 identifiants", function () {
     const couverts = new Set();
     const connu = (id) => { const m = /^(CT-[1-8]) (.+)$/.exec(id); return Boolean(m && INV[m[1]]?.ids.has(m[2])); };
     for (const t of CATALOGUE.tests) {
@@ -185,7 +185,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     for (const [ct] of P.SPECIFICATIONS) for (const x of INV[ct].ids) { total++; const id = `${ct} ${x}`; if (couverts.has(id)) parEntree++; else if (parNC.has(id)) parJustification++; else nonCouverts.push(id); }
     expect(nonCouverts).to.deep.equal([]);
     expect([total, parEntree, parJustification]).to.deep.equal([COUVERTURE.identifiers.total, COUVERTURE.identifiers.covered_by_tests, COUVERTURE.identifiers.covered_by_nc]);
-    expect(total).to.equal(2332);
+    expect(total).to.equal(2348);
     expect(COUVERTURE.identifiers.unknown_cited).to.deep.equal([]);
     // EX-4.1 : specs est l'ensemble des spécifications de covers (entrées à covers non vide).
     for (const t of CATALOGUE.tests) if (t.covers.length) expect(t.specs, t.id).to.deep.equal([...new Set(t.covers.map((c) => c.split(" ")[0]))].sort((x, y) => Number(x.slice(3)) - Number(y.slice(3))));
@@ -219,7 +219,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     expect(COUVERTURE.threats).to.deep.equal({ total: 98, with_ta: 98, without_ta: [] });
   });
 
-  it("règle (c) rejouée : le compte des occurrences de « CT-9 » dans spec/CT-1-*.md à CT-8-*.md et spec/README.md égale le nombre de lignes TC-, clé par clé (117)", function () {
+  it("règle (c) rejouée : le compte des occurrences de « CT-9 » dans spec/CT-1-*.md à CT-8-*.md et spec/README.md égale le nombre de lignes TC-, clé par clé (122)", function () {
     const occ = P.occurrencesCT9(R);
     expect(occ).to.have.length(CATALOGUE.traceability.length);
     const brut = P.FICHIERS_TC.reduce((n, [, f]) => n + (texte(R, f).match(/CT-9/g) || []).length, 0);
@@ -227,10 +227,10 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     const multi = (l) => { const m = {}; for (const k of l) m[k] = (m[k] ?? 0) + 1; return m; };
     expect(multi(CATALOGUE.traceability.map((r) => r.key))).to.deep.equal(multi(occ.map((o) => o.key)));
     for (const r of CATALOGUE.traceability) expect(r.response.length, r.id).to.be.greaterThan(0);
-    expect(COUVERTURE.traceability).to.deep.equal({ occurrences: 117, rows: 117, missing: [], orphans: [] });
+    expect(COUVERTURE.traceability).to.deep.equal({ occurrences: 122, rows: 122, missing: [], orphans: [] });
   });
 
-  it("règle (d) rejouée : chaque titre de describe/it et chaque étape de CI cités par une entrée exécutable existent mot pour mot (191 entrées, 353 citations)", function () {
+  it("règle (d) rejouée : chaque titre de describe/it et chaque étape de CI cités par une entrée exécutable existent mot pour mot (208 entrées, 405 citations)", function () {
     const index = P.indexTitres(R);
     const ci = P.etapesCI(texte(R, P.CI));
     let entrees = 0, citations = 0;
@@ -256,9 +256,9 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     // Les tables 11.5 et 12.2 sont celles des entrées TM- et TR- ; la table
     // TC- a une ligne par occurrence.
     const lu = P.tablesDuTexte(TEXTE);
-    expect(lu.TM).to.have.length(2 + 43);
+    expect(lu.TM).to.have.length(2 + 44);
     expect(lu.TR).to.have.length(2 + 15);
-    expect(lu.TC).to.have.length(2 + 117);
+    expect(lu.TC).to.have.length(2 + 122);
   });
 
   it("l'outil de couverture rend 0 sur le dépôt et un rapport égal à couverture.json hors date et tool.command ; --strict rend 0 aussi", function () {
@@ -454,7 +454,7 @@ describe("CT-9 : mesures TM- (section 11, EX-11.14, EX-11.16, annexe A.7, EX-A.9
   const COMPARAISONS = ["au_plus", "strictement_inferieur", "au_moins", "p50_au_plus", "p95_au_plus", "p99_au_plus", "p50_et_p99_au_plus", "somme_au_plus", "egalite", "aucune_cible"];
 
   it("chaque entrée TM- : measured null, result_name unique, cible présente sauf aucune_cible, comparaison admise, source définie dans sa spécification (identifiant ou section)", function () {
-    expect(TM).to.have.length(43);
+    expect(TM).to.have.length(44);
     expect(new Set(TM.map((t) => t.measure.result_name)).size).to.equal(TM.length);
     for (const t of TM) {
       const m = t.measure;

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // Statut d'une vérification ou d'un contrôle (CT-6 EX-6.1).
@@ -264,4 +265,21 @@ func Pluriel(n int, un, plusieurs string) string {
 		return un
 	}
 	return plusieurs
+}
+
+// ChaineNonVide dit si s est une chaîne non vide au sens de CT-1 §3
+// (révision 0.5) : elle contient au moins un caractère qui n'est pas un
+// blanc. Les blancs sont les points de code de la propriété Unicode
+// White_Space (unicode.IsSpace : U+0009 à U+000D, U+0020, U+0085, U+00A0,
+// U+1680, U+2000 à U+200A, U+2028, U+2029, U+202F, U+205F, U+3000) et
+// U+FEFF. S'applique à la raison d'absence d'une partie (D-2) et à
+// policy.redaction (E-4). Ce jeu diffère de celui de strings.TrimSpace, qui
+// ne compte pas U+FEFF (identifiants de validateurs, CT-6 EX-12.2).
+func ChaineNonVide(s string) bool {
+	for _, r := range s {
+		if !unicode.IsSpace(r) && r != '\uFEFF' {
+			return true
+		}
+	}
+	return false
 }

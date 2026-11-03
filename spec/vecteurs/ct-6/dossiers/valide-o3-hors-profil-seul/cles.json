@@ -1,0 +1,23 @@
+{
+  "version": 0,
+  "org_id": "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab",
+  "journal_id": "0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164",
+  "keys": [
+    {
+      "key_id": "rec-test-01",
+      "algorithm": "ed25519",
+      "public_key": "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+      "valid_from": "2026-11-01T00:00:00.000Z",
+      "valid_to": "2026-11-05T09:59:58.000Z",
+      "source": "vecteurs CT-1 (graines documentées dans cles/cles-test.json)"
+    },
+    {
+      "key_id": "rec-test-02",
+      "algorithm": "ed25519",
+      "public_key": "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+      "valid_from": "2026-11-05T09:59:58.000Z",
+      "valid_to": null,
+      "source": "vecteurs CT-1 (graines documentées dans cles/cles-test.json)"
+    }
+  ]
+}

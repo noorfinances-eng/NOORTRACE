@@ -1,0 +1,92 @@
+{
+  "valid": false,
+  "target": "T-4",
+  "failed_checks": [
+    "T-4"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "echoue",
+    "5": "non_execute",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "non_execute"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-5",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-6",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-7",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-8",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-9",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-10",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "T-11",
+      "reason": "prerequis_en_echec"
+    },
+    {
+      "id": "O-4",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-5",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "O-6",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-2",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-4",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-5",
+      "reason": "ancre_absente"
+    },
+    {
+      "id": "R-8",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [],
+  "anchors": null,
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : T-4 ; vérification(s) non exécutée(s) sans raison admise : T-5, T-6, T-7, T-8, T-9, T-10, T-11 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): T-4; check(s) not run without an admitted reason: T-5, T-6, T-7, T-8, T-9, T-10, T-11; the verifier asserts nothing about this event."
+  },
+  "bound": {
+    "fr": "verdict borné : contrôle 5 non exécuté (ancre_absente), contrôle 8 non exécuté (ancre_absente)",
+    "en": "bounded verdict: control 5 not run (ancre_absente), control 8 not run (ancre_absente)"
+  },
+  "description": "Le même jeton, vérifié sans fichier d'ancres : le jeton porte des certificats, T-4 échoue quand même (EX-9.10) ; contrôles 5 et 8 non exécutés (ancre_absente)."
+}

@@ -173,6 +173,15 @@ func TestO3(t *testing.T) {
 	if g := avertissements(r); g != "AV-O-2/O-3 AV-O-3/O-5" {
 		t.Errorf("avertissements %s", g)
 	}
+	// Textes imposés par EX-10.12 (révision 0.4) : detail de O-3, summary,
+	// aucun fait ni proposition.
+	if d := r.Verifications[2].Detail; d.Fr != "attestation sous une opération hors du profil de la version 0 : non vérifiée ; aucune date n'est établie" ||
+		d.En != "attestation under an operation outside the version 0 profile: not verified; no time is established" {
+		t.Errorf("O-3 : %s / %s", d.Fr, d.En)
+	}
+	if r.Resume.Fr != "preuve hors du profil de la version 0, non vérifiée : aucune date établie" || r.Faits != nil || !r.Proposition.Vide() {
+		t.Errorf("résumé %q, faits %v", r.Resume.Fr, r.Faits)
+	}
 	// Opération hors profil à côté de la branche attestée : contrôle réussi,
 	// attestation hors profil non_execute dans les faits.
 	e.Preuve = fichierOTS(sc.empreinte, fourche(), []byte{opReverse}, attAttente("x"), opAp(nonceTest), opSHA(), attBitcoin(1001))
@@ -209,7 +218,12 @@ func TestO4(t *testing.T) {
 	// Hors fichier et hors profil : hors_perimetre_version passe avant
 	// ancre_absente (EX-6.5).
 	e.Preuve = fichierOTS(sc.empreinte, fourche(), []byte{opSHA1}, attBitcoin(1001), attBitcoin(5000))
-	attendre(t, verifierEtControler(t, e), "r r r "+hp+" r "+hp+" r", hp)
+	r = verifierEtControler(t, e)
+	attendre(t, r, "r r r "+hp+" r "+hp+" r", hp)
+	// Une attestation du profil existe : pas les textes du hors-profil seul.
+	if strings.Contains(r.Verifications[2].Detail.Fr, "aucune date n'est établie") || !r.Resume.Vide() {
+		t.Errorf("O-3 : %s ; résumé %q", r.Verifications[2].Detail.Fr, r.Resume.Fr)
+	}
 	// Deux attestations, l'une concorde : AV-O-1 pour l'autre (EX-10.8),
 	// retenue la concordante de plus petite hauteur.
 	e.Preuve = fichierOTS(sc.empreinte, opAp(nonceTest), opSHA(), fourche(), attBitcoin(1003), fourche(), attBitcoin(1001), attBitcoin(1021))

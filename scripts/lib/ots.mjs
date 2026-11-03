@@ -557,7 +557,13 @@ export function evaluerPreuve(octets, { periodHash = null, entetes = null, ancre
     else {
       const tailles = [...new Set(execution.attestations.filter((a) => a.resultat).map((a) => a.resultat.length))].sort((a, b) => a - b);
       const resultat = tailles.length ? T(` ; résultat${tailles.length > 1 ? "s" : ""} de ${tailles.join(", ")} octets`, `; result${tailles.length > 1 ? "s" : ""} of ${tailles.join(", ")} bytes`) : T("", "");
-      res["O-3"] = horsProfil.length
+      // EX-10.12 (révision 0.4, complément) : aucune attestation Bitcoin atteinte par les seules opérations du
+      // profil (toutes sous une opération hors profil) : texte imposé, pour que personne ne croie la date établie.
+      const bitcoinExec = execution.attestations.filter((a) => a.genre === "bitcoin");
+      const toutHorsProfil = bitcoinExec.length > 0 && bitcoinExec.every((a) => a.horsProfil);
+      res["O-3"] = toutHorsProfil
+        ? reussi(T("attestation sous une opération hors du profil de la version 0 : non vérifiée ; aucune date n'est établie", "attestation under an operation outside the version 0 profile: not verified; no time is established"))
+        : horsProfil.length
         ? reussi(T(`opérations du profil rejouées ; opérations hors profil non exécutées : ${horsProfil.join(", ")}${resultat.fr}`, `profile operations replayed; out-of-profile operations not run: ${horsProfil.join(", ")}${resultat.en}`))
         : reussi(T(`opérations rejouées, toutes du profil f0, f1, 08${resultat.fr}`, `operations replayed, all in the f0, f1, 08 profile${resultat.en}`));
     }
@@ -697,6 +703,9 @@ export function evaluerPreuve(octets, { periodHash = null, entetes = null, ancre
   } else if (status === "echoue") {
     const ids = IDS.filter((id) => res[id].status === "echoue");
     summary = T(`vérification(s) en échec : ${ids.join(", ")}`, `failed check(s): ${ids.join(", ")}`);
+  } else if (reason === "hors_perimetre_version" && bitcoin.length > 0 && bitcoin.every((a) => a.horsProfil)) {
+    // EX-10.12 (révision 0.4, complément) : résumé imposé du contrôle 5 quand toutes les attestations sont hors profil.
+    summary = T("preuve hors du profil de la version 0, non vérifiée : aucune date établie", "proof outside the version 0 profile, not verified: no time established");
   } else {
     // Le résumé reprend la cause première : une non-exécution qui n'est pas héritée d'un prérequis.
     const premier = IDS.find((id) => res[id].status === "non_execute" && res[id].reason === reason && !/^prérequis /.test(res[id].detail.fr)) ?? IDS.find((id) => res[id].status === "non_execute" && res[id].reason === reason);

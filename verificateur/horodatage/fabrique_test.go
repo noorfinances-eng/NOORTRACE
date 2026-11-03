@@ -8,6 +8,7 @@ package horodatage
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -224,6 +225,9 @@ func (s signeur) signer(t testing.TB, m []byte) []byte {
 		}
 	case *ecdsa.PrivateKey:
 		sig, err = ecdsa.SignASN1(rand.Reader, k, d)
+	case ed25519.PrivateKey:
+		// Ed25519 (RFC 8419) signe le message lui-même.
+		sig = ed25519.Sign(k, m)
 	}
 	if err != nil {
 		t.Fatal(err)

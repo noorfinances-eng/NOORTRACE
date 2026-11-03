@@ -24,7 +24,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import * as H from "../../lib/horodatage.mjs";
-import { hachageManifeste, analyserJSONStrict } from "../../lib/journal.mjs";
+import { hachageManifeste, analyserJSONStrict, cleEd25519DepuisGraine, sha256 as sha256Hex0x } from "../../lib/journal.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const OID = H.OID;
@@ -100,6 +100,8 @@ const ALG = {
   sha256WithRSAEncryption: seq(oid(OID.sha256WithRSAEncryption), nul()),
   sha1WithRSAEncryption: seq(oid(OID.sha1WithRSAEncryption), nul()),
   rsaEncryption: seq(oid(OID.rsaEncryption), nul()),
+  sha512: seq(oid(OID.sha512)),
+  ed25519: seq(oid(OID.ed25519)),
 };
 export { ALG };
 
@@ -144,13 +146,31 @@ function flux(etiquette, n) {
   for (let i = 0, total = 0; total < n; i++, total += 32) parties.push(crypto.createHash("sha256").update(`${etiquette}/${i}`, "utf8").digest());
   return Buffer.concat(parties).subarray(0, n);
 }
-function premierDepuis(etiquette, octetsPremier) {
+function premierDepuis(etiquette, octetsPremier, e = E) {
   const b = flux(etiquette, octetsPremier);
   b[0] |= 0xc0;
   b[b.length - 1] |= 0x01;
   for (let p = BigInt("0x" + b.toString("hex")); ; p += 2n) {
     if (!PREMIERS_IMPAIRS.every((q) => p % BigInt(q) !== 0n)) continue;
-    if ((p - 1n) % E === 0n) continue;
+    if (pgcd(p - 1n, e) !== 1n) continue;
+    if (millerRabin(p, TEMOINS)) return p;
+  }
+}
+/**
+ * Premier de `bits` bits (révision 0.4 de CT-6, clés de EX-A.22) : valeur des
+ * ⌈bits/8⌉ premiers octets du flux de l'étiquette réduite à `bits` bits, les
+ * deux bits de tête et le bit de poids faible positionnés, puis la même
+ * recherche que premierDepuis ; pour bits multiple de 8, c'est premierDepuis.
+ */
+function premierDepuisBits(etiquette, bits, e = E) {
+  if (bits % 8 === 0) return premierDepuis(etiquette, bits / 8, e);
+  const n = Math.ceil(bits / 8);
+  const b = flux(etiquette, n);
+  let p = BigInt("0x" + b.toString("hex")) & ((1n << BigInt(bits)) - 1n);
+  p |= (3n << BigInt(bits - 2)) | 1n;
+  for (; ; p += 2n) {
+    if (!PREMIERS_IMPAIRS.every((q) => p % BigInt(q) !== 0n)) continue;
+    if (pgcd(p - 1n, e) !== 1n) continue;
     if (millerRabin(p, TEMOINS)) return p;
   }
 }
@@ -171,22 +191,25 @@ const b64url = (x) => {
   return Buffer.from(h, "hex").toString("base64url");
 };
 /**
- * Clé privée RSA de `bits` bits (e = 65537) dérivée de l'étiquette :
- * p (resp. q) est le premier entier, à partir de la valeur des bits/16 premiers
- * octets du flux SHA-256(UTF-8(« étiquette/p/i »)) (resp. « /q/ »), deux bits de
- * tête et bit de poids faible positionnés, puis par pas de 2, qui n'a aucun
- * diviseur parmi les 600 premiers nombres premiers impairs, tel que p − 1 ne
- * soit pas multiple de e, et qui passe Miller-Rabin pour les témoins 2, 3, …, 173
- * (les 40 premiers nombres premiers) ; d = e⁻¹ mod ppcm(p − 1, q − 1).
+ * Clé privée RSA de `taille` bits (exposant `e`, 65537 par défaut) dérivée de
+ * l'étiquette : p (resp. q) est le premier entier, à partir de la valeur des
+ * taille/16 premiers octets du flux SHA-256(UTF-8(« étiquette/p/i »)) (resp.
+ * « /q/ ») — révision 0.4 : réduite à taille/2 bits quand taille/2 n'est pas
+ * multiple de 8 (premierDepuisBits) —, deux bits de tête et bit de poids faible
+ * positionnés, puis par pas de 2, qui n'a aucun diviseur parmi les 600 premiers
+ * nombres premiers impairs, tel que p − 1 soit premier avec e (pour e premier,
+ * comme 65537 : p − 1 non multiple de e), et qui passe Miller-Rabin pour les
+ * témoins 2, 3, …, 173 (les 40 premiers nombres premiers) ;
+ * d = e⁻¹ mod ppcm(p − 1, q − 1).
  */
-export function cleRsaDepuisGraine(etiquette, taille = 3072) {
-  let p = premierDepuis(`${etiquette}/p`, taille / 16);
-  let q = premierDepuis(`${etiquette}/q`, taille / 16);
+export function cleRsaDepuisGraine(etiquette, taille = 3072, e = E) {
+  let p = premierDepuisBits(`${etiquette}/p`, taille / 2, e);
+  let q = premierDepuisBits(`${etiquette}/q`, taille / 2, e);
   if (p < q) [p, q] = [q, p];
   const n = p * q;
   const lambda = ((p - 1n) * (q - 1n)) / pgcd(p - 1n, q - 1n);
-  const d = inverse(E, lambda);
-  const jwk = { kty: "RSA", n: b64url(n), e: b64url(E), d: b64url(d), p: b64url(p), q: b64url(q), dp: b64url(d % (p - 1n)), dq: b64url(d % (q - 1n)), qi: b64url(inverse(q, p)) };
+  const d = inverse(e, lambda);
+  const jwk = { kty: "RSA", n: b64url(n), e: b64url(e), d: b64url(d), p: b64url(p), q: b64url(q), dp: b64url(d % (p - 1n)), dq: b64url(d % (q - 1n)), qi: b64url(inverse(q, p)) };
   return crypto.createPrivateKey({ key: jwk, format: "jwk" });
 }
 
@@ -198,9 +221,29 @@ export const GRAINES = {
   "ac-test": "noortrace/vecteurs/v0/ct-6/rsa/ac-test",
   "tsa-test": "noortrace/vecteurs/v0/ct-6/rsa/tsa-test",
 };
+/**
+ * Clés de test de la révision 0.4 (EX-A.22), entrées conservées comme les
+ * autres (EX-A.4) : étiquette de graine et paramètres. RSA : taille du module
+ * et exposant ; Ed25519 : graine = SHA-256(UTF-8(étiquette)), comme les clés
+ * d'enregistreur de CT-1 §13. Clés publiques, pour les tests seulement.
+ */
+export const CLES_REVISION_04 = {
+  "tsa-8200": { graine: "noortrace/vecteurs/v0/ct-6/rsa/tsa-8200", type: "rsa", bits: 8200, e: 65537n },
+  "tsa-8192": { graine: "noortrace/vecteurs/v0/ct-6/rsa/tsa-8192", type: "rsa", bits: 8192, e: 65537n },
+  "tsa-exposant": { graine: "noortrace/vecteurs/v0/ct-6/rsa/tsa-exposant", type: "rsa", bits: 3072, e: 2147483649n },
+  "intermediaire-8200": { graine: "noortrace/vecteurs/v0/ct-6/rsa/intermediaire-8200", type: "rsa", bits: 8200, e: 65537n },
+  "tsa-ed25519": { graine: "noortrace/vecteurs/v0/ct-6/ed25519/tsa-ed25519", type: "ed25519" },
+};
+/** Dérive une clé de la révision 0.4 depuis sa graine documentée. */
+function deriverCleRevision04(id) {
+  const c = CLES_REVISION_04[id];
+  if (c.type === "ed25519") return cleEd25519DepuisGraine(sha256Hex0x(Buffer.from(c.graine, "utf8"))).clePrivee;
+  return cleRsaDepuisGraine(c.graine, c.bits, c.e);
+}
 export const SUJETS = {
   ac: { C: "CH", O: "NOORTRACE vecteurs", CN: "AC de test CT-6" },
   tsa: { C: "CH", O: "NOORTRACE vecteurs", CN: "TSA de test CT-6" },
+  intermediaire: { C: "CH", O: "NOORTRACE vecteurs", CN: "AC intermédiaire RSA 8200 de test CT-6" },
 };
 /**
  * Sujet de tsa-cn-utf8-invalide.pem : C et O lisibles, CN en UTF8String
@@ -239,17 +282,20 @@ const ski = (clePublique) => {
 
 /** Certificat X.509 v3 signé en sha256WithRSAEncryption. */
 export function construireCertificat({ numero, emetteur, sujet, debut, fin, clePublique, extensions = [], cleEmetteur }) {
+  // Révision 0.4 : un émetteur Ed25519 (certificat auto-signé de t5-cle-ed25519-non-rattachee) signe en Ed25519 (RFC 8410).
+  const ed = cleEmetteur.asymmetricKeyType === "ed25519";
+  const alg = ed ? ALG.ed25519 : ALG.sha256WithRSAEncryption;
   const tbs = seq(
     explicite(0, entier(2)),
     entier(numero),
-    ALG.sha256WithRSAEncryption,
+    alg,
     emetteur,
     seq(temps(debut), temps(fin)),
     sujet,
     clePublique.export({ type: "spki", format: "der" }),
     explicite(3, seq(...extensions.map(extension))),
   );
-  return seq(tbs, ALG.sha256WithRSAEncryption, bits(crypto.sign("sha256", tbs, cleEmetteur)));
+  return seq(tbs, alg, bits(crypto.sign(ed ? null : "sha256", tbs, cleEmetteur)));
 }
 
 /** CRL X.509 v2 complète signée en sha256WithRSAEncryption. */
@@ -276,7 +322,7 @@ export function construireCRL({ emetteur, thisUpdate, nextUpdate, revoques = [],
  *   certificats      : DER des certificats du champ certificates ;
  *   signataire       : DER du certificat désigné par sid et par l'identifiant ESS ;
  *   cle              : clé privée de signature ;
- *   hash             : "sha256" (défaut) ou "sha1" : digestAlgorithm et message-digest ;
+ *   hash             : "sha256" (défaut), "sha1" ou "sha512" : digestAlgorithm et message-digest ;
  *   extensionsTst    : [{ oid, critique, valeur }] ajoutées à TSTInfo ;
  *   certHash         : certHash de l'identifiant ESS imposé (défaut : empreinte du signataire) ;
  *   eContentPourDigest : TSTInfo dont message-digest est l'empreinte (défaut : le vrai).
@@ -286,12 +332,13 @@ export function construireCRL({ emetteur, thisUpdate, nextUpdate, revoques = [],
  *   ess              : "v2" (défaut), "v1" (signingCertificate en SHA-1), "les-deux" ou "aucun" ;
  *   attributsEnPlus  : attributs DER ajoutés à signedAttrs ;
  *   sid              : "issuerAndSerialNumber" (défaut) ou "ski" ;
+ *   sidNumero        : numéro du sid issuerAndSerialNumber, à la place de celui du signataire ;
  *   crls             : CRL DER du champ crls du SignedData ;
  *   tsaGeneralName   : GeneralName DER du champ tsa (remplace tsaNom) ;
  *   extensionsTstBrutes : extensions DER de TSTInfo, telles quelles ;
  *   precisionBrute   : Accuracy DER, telle quelle (remplace precision).
  */
-export function construireJeton({ empreinte, genTime, serie, nonce, precision = 1, politique = POLITIQUE, tsaNom = null, certificats, signataire, cle, hash = "sha256", extensionsTst = [], certHash = null, eContentPourDigest = null, algSignature = null, signer = null, algImprint = ALG.sha256Nul, ess = "v2", attributsEnPlus = [], sid = "issuerAndSerialNumber", crls = [], tsaGeneralName = null, extensionsTstBrutes = null, precisionBrute = null }) {
+export function construireJeton({ empreinte, genTime, serie, nonce, precision = 1, politique = POLITIQUE, tsaNom = null, certificats, signataire, cle, hash = "sha256", extensionsTst = [], certHash = null, eContentPourDigest = null, algSignature = null, signer = null, algImprint = ALG.sha256Nul, ess = "v2", attributsEnPlus = [], sid = "issuerAndSerialNumber", sidNumero = null, crls = [], tsaGeneralName = null, extensionsTstBrutes = null, precisionBrute = null }) {
   const extTst = extensionsTstBrutes ?? extensionsTst.map(extension);
   const tsa = tsaGeneralName ?? (tsaNom ? tlv(0xa4, tsaNom) : null);
   const eContent = seq(
@@ -306,7 +353,7 @@ export function construireJeton({ empreinte, genTime, serie, nonce, precision = 
     ...(extTst.length ? [tlv(0xa1, Buffer.concat(extTst))] : []),
   );
   const s = identiteSignataire(signataire);
-  const algEmpreinte = hash === "sha1" ? ALG.sha1 : ALG.sha256;
+  const algEmpreinte = hash === "sha1" ? ALG.sha1 : hash === "sha512" ? ALG.sha512 : ALG.sha256;
   const algSig = algSignature ?? (hash === "sha1" ? ALG.sha1WithRSAEncryption : ALG.sha256WithRSAEncryption);
   const issuerSerial = seq(seq(tlv(0xa4, s.emetteur)), entier(s.numero));
   const essV1 = seq(oid(OID.signingCertificate), set(seq(seq(seq(octets(certHash ?? crypto.createHash("sha1").update(signataire).digest()), issuerSerial)))));
@@ -320,7 +367,8 @@ export function construireJeton({ empreinte, genTime, serie, nonce, precision = 
   const signature = signer ? signer(attributs) : crypto.sign(hash, attributs, cle);
   const attributsImplicites = Buffer.from(attributs);
   attributsImplicites[0] = 0xa0;
-  const identifiant = sid === "ski" ? implicite(0, Buffer.from(H.lireDER(s.extension(OID.subjectKeyIdentifier).valeur).valeur())) : seq(s.emetteur, entier(s.numero));
+  // sidNumero (révision 0.4, t4-sid-introuvable) : numéro du sid remplacé ; le sid n'est pas signé.
+  const identifiant = sid === "ski" ? implicite(0, Buffer.from(H.lireDER(s.extension(OID.subjectKeyIdentifier).valeur).valeur())) : seq(s.emetteur, entier(sidNumero ?? s.numero));
   const signerInfo = seq(entier(sid === "ski" ? 3 : 1), identifiant, algEmpreinte, attributsImplicites, algSig, octets(signature));
   const signedData = seq(
     entier(3),
@@ -361,6 +409,10 @@ export function chargerCles(repertoireCles) {
     const fichier = repertoireCles ? path.join(repertoireCles, `${id}.cle.pem`) : null;
     cles[id] = fichier && fs.existsSync(fichier) ? crypto.createPrivateKey(fs.readFileSync(fichier, "utf8")) : cleRsaDepuisGraine(graine);
   }
+  for (const id of Object.keys(CLES_REVISION_04)) {
+    const fichier = repertoireCles ? path.join(repertoireCles, `${id}.cle.pem`) : null;
+    cles[id] = fichier && fs.existsSync(fichier) ? crypto.createPrivateKey(fs.readFileSync(fichier, "utf8")) : deriverCleRevision04(id);
+  }
   return cles;
 }
 
@@ -386,22 +438,40 @@ export function materielTest(cles) {
       { oid: OID.subjectKeyIdentifier, valeur: octets(skiAc) },
     ],
   });
-  const tsa = (numero, debut, fin, ekuCritique = true, { sujet = nomTsa, skiCritiqueExplicite = false } = {}) =>
+  const tsa = (numero, debut, fin, ekuCritique = true, { sujet = nomTsa, skiCritiqueExplicite = false, clePublique = pubTsa, emetteur = nomAc, cleEmetteur = cles["ac-test"], skiEmetteur = skiAc } = {}) =>
     construireCertificat({
       numero,
-      emetteur: nomAc,
+      emetteur,
       sujet,
       debut,
       fin,
-      clePublique: pubTsa,
-      cleEmetteur: cles["ac-test"],
+      clePublique,
+      cleEmetteur,
       extensions: [
         { oid: OID.keyUsage, critique: true, valeur: bits(Buffer.from([0x80]), 7) }, // digitalSignature
         { oid: OID.extKeyUsage, critique: ekuCritique, valeur: seq(oid(OID.idKpTimeStamping)) },
-        { oid: OID.subjectKeyIdentifier, critiqueExplicite: skiCritiqueExplicite, valeur: octets(skiTsa) },
-        { oid: OID.authorityKeyIdentifier, valeur: seq(implicite(0, skiAc)) },
+        { oid: OID.subjectKeyIdentifier, critiqueExplicite: skiCritiqueExplicite, valeur: octets(clePublique === pubTsa ? skiTsa : ski(clePublique)) },
+        { oid: OID.authorityKeyIdentifier, valeur: seq(implicite(0, skiEmetteur)) },
       ],
     });
+  // Révision 0.4 (EX-A.22) : unités RSA 8200, 8192 et à exposant 2^31 + 1, AC intermédiaire RSA 8200 et unité qu'elle émet, unité Ed25519.
+  const pub = (id) => crypto.createPublicKey(cles[id]);
+  const nomInter = nom(SUJETS.intermediaire);
+  const intermediaire = construireCertificat({
+    numero: 11,
+    emetteur: nomAc,
+    sujet: nomInter,
+    debut: "2026-01-01T00:00:00Z",
+    fin: "2036-01-01T00:00:00Z",
+    clePublique: pub("intermediaire-8200"),
+    cleEmetteur: cles["ac-test"],
+    extensions: [
+      { oid: OID.basicConstraints, critique: true, valeur: seq(bool(true)) },
+      { oid: OID.keyUsage, critique: true, valeur: bits(Buffer.from([0x04]), 2) }, // keyCertSign
+      { oid: OID.subjectKeyIdentifier, valeur: octets(ski(pub("intermediaire-8200"))) },
+      { oid: OID.authorityKeyIdentifier, valeur: seq(implicite(0, skiAc)) },
+    ],
+  });
   const certs = {
     "ac-test": ac,
     "tsa-test": tsa(2, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z"),
@@ -410,6 +480,13 @@ export function materielTest(cles) {
     "tsa-critique-faux": tsa(5, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { skiCritiqueExplicite: true }),
     "tsa-cn-utf8-invalide": tsa(6, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { sujet: NOM_CN_UTF8_INVALIDE }),
     "tsa-sans-cn": tsa(7, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { sujet: NOM_SANS_CN }),
+    "tsa-8200": tsa(8, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { clePublique: pub("tsa-8200") }),
+    "tsa-8192": tsa(9, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { clePublique: pub("tsa-8192") }),
+    "tsa-exposant": tsa(10, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { clePublique: pub("tsa-exposant") }),
+    "intermediaire-8200": intermediaire,
+    "tsa-par-intermediaire-8200": tsa(1, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { emetteur: nomInter, cleEmetteur: cles["intermediaire-8200"], skiEmetteur: ski(pub("intermediaire-8200")) }),
+    "tsa-ed25519": tsa(12, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { clePublique: pub("tsa-ed25519") }),
+    "tsa-ed25519-auto-signe": tsa(13, "2026-06-01T00:00:00Z", "2027-06-01T00:00:00Z", true, { clePublique: pub("tsa-ed25519"), emetteur: nomTsa, cleEmetteur: cles["tsa-ed25519"], skiEmetteur: ski(pub("tsa-ed25519")) }),
   };
   const crls = {
     "crl-vide": construireCRL({ emetteur: nomAc, thisUpdate: CRL_THIS_UPDATE, nextUpdate: CRL_NEXT_UPDATE, numeroCrl: 1, skiEmetteur: skiAc, cleEmetteur: cles["ac-test"] }),
@@ -449,6 +526,8 @@ export function fragmentsAncres(materiel) {
     tsa_revoquee: { tsa_authorities: [autorite(null)], revocation: revocation("crl-tsa-revoquee") },
     unite_epinglee_revoquee: { tsa_authorities: [unite(null)], revocation: revocation("crl-tsa-revoquee") },
     deux_autorites: { tsa_authorities: [unite(qualifie), autorite(null)], revocation: revocation("crl-vide") },
+    // Révision 0.4 (EX-A.22) : l'autorité de test porte le certificat de l'unité dans intermediates.
+    unite_intermediaire: { tsa_authorities: [{ ...autorite(null), intermediates: [H.encoderPEM(materiel.certs["tsa-test"], "CERTIFICATE")] }], revocation: revocation("crl-vide") },
   };
 }
 
@@ -528,6 +607,17 @@ export function jetonsTest(materiel, manifestes, point = null) {
     "t1-default-explicite": { octets: base(1, { certificats: [certs["tsa-critique-faux"]], signataire: certs["tsa-critique-faux"] }), alteration: "certificates = [tsa-critique-faux.pem] : extension subjectKeyIdentifier avec critical codé explicitement à FALSE (valeur DEFAULT encodée, EX-9.21)", cible: "T-1" },
     "t1-cn-utf8-invalide": { octets: base(1, { certificats: [certs["tsa-cn-utf8-invalide"]], signataire: certs["tsa-cn-utf8-invalide"], tsaNom: null }), alteration: "certificates = [tsa-cn-utf8-invalide.pem] (CN en UTF8String d'octets ff fe, UTF-8 invalide), champ tsa absent : certificat illisible (EX-9.4)", cible: "T-1" },
     "periode-1-unite-sans-cn": { octets: base(1, { certificats: [certs["tsa-sans-cn"]], signataire: certs["tsa-sans-cn"], tsaNom: NOM_SANS_CN }), alteration: "certificates = [tsa-sans-cn.pem] (sujet sans commonName), tsa = son sujet : jeton valide, tsu_subject_cn nul, unité nommée par le SHA-256 de son certificat (EX-9.19, EX-9.20)", cible: null },
+    // Révision 0.4 (EX-A.22).
+    "t4-sid-introuvable": { octets: base(1, { sidNumero: 0x7f }), alteration: "periode-1.der dont le numéro du sid issuerAndSerialNumber (émetteur : l'AC) devient 0x7f, que ne porte aucun candidat ; certificates = [tsa-test.pem] ; signedAttrs et signature inchangés (le sid n'est pas signé)", cible: "T-4" },
+    "t4-sans-certificat": { octets: base(1, { certificats: [] }), alteration: "periode-1.der réémis sans le champ certificates (que la signature ne couvre pas) : signedAttrs et signature inchangés", cible: "T-4" },
+    "t5-rsa-8200": { octets: base(1, { certificats: [certs["tsa-8200"]], signataire: certs["tsa-8200"], cle: cles["tsa-8200"] }), alteration: "signé par tsa-8200 (RSA 8200 bits, e = 65537), certificates = [tsa-8200.pem]", cible: "T-5" },
+    "t5-exposant": { octets: base(1, { certificats: [certs["tsa-exposant"]], signataire: certs["tsa-exposant"], cle: cles["tsa-exposant"] }), alteration: "signé par tsa-exposant (RSA 3072 bits, e = 2^31 + 1 = 2147483649), certificates = [tsa-exposant.pem]", cible: "T-5" },
+    "t7-intermediaire-rsa-8200": { octets: base(1, { certificats: [certs["tsa-par-intermediaire-8200"], certs["intermediaire-8200"]], signataire: certs["tsa-par-intermediaire-8200"] }), alteration: "signé par tsa-test, certificates = [tsa-par-intermediaire-8200.pem, intermediaire-8200.pem] : le seul chemin jusqu'à l'AC passe par la clé RSA 8200 de l'intermédiaire, refusée (EX-9.23)", cible: "T-7" },
+    "rsa-8192": { octets: base(1, { certificats: [certs["tsa-8192"]], signataire: certs["tsa-8192"], cle: cles["tsa-8192"] }), alteration: "signé par tsa-8192 (RSA 8192 bits, la borne, admise), certificates = [tsa-8192.pem]", cible: null },
+    "t5-algorithme-inconnu": { octets: base(1, { algSignature: seq(oid("1.2.840.113549.1.1.127"), nul()), signer: (attrs) => { const sg = Buffer.from(crypto.sign("sha256", attrs, cles["tsa-test"])); sg[sg.length - 1] ^= 0xff; return sg; } }), alteration: "periode-1.der dont l'OID de signatureAlgorithm devient 1.2.840.113549.1.1.127 et dont le dernier octet de la signature est inversé (ni l'un ni l'autre n'est signé)", cible: "T-5" },
+    "t5-cle-ed25519": { octets: base(1, { certificats: [certs["tsa-ed25519"]], signataire: certs["tsa-ed25519"], hash: "sha512", algSignature: ALG.ed25519, signer: (attrs) => crypto.sign(null, attrs, cles["tsa-ed25519"]) }), alteration: "signé en Ed25519 (RFC 8419 : digestAlgorithm SHA-512, signatureAlgorithm id-Ed25519) par tsa-ed25519, certificat émis par l'AC (mêmes extensions que tsa-test.pem) : clé et algorithme hors de la version 0, rattachés à l'autorité (EX-9.24, cas 2)", cible: null },
+    "t5-cle-ed25519-non-rattachee": { octets: base(1, { certificats: [certs["tsa-ed25519-auto-signe"]], signataire: certs["tsa-ed25519-auto-signe"], hash: "sha512", algSignature: ALG.ed25519, signer: (attrs) => crypto.sign(null, attrs, cles["tsa-ed25519"]) }), alteration: "comme t5-cle-ed25519.der, certificat de l'unité auto-signé (tsa-ed25519-auto-signe.pem) : rattaché à aucune autorité (EX-9.24, cas 2)", cible: "T-5" },
+    "serie-168-bits": { octets: base(1, { serie: BigInt("0x01" + "ab".repeat(20)) }), alteration: "periode-1.der réémis avec un serialNumber de 21 octets (0x01 suivi de vingt octets 0xab), re-signé : accepté (EX-9.15, révision 0.4)", cible: null },
     ...(point
       ? (() => {
           const k7 = Buffer.from(jetonPoint());
@@ -540,6 +630,21 @@ export function jetonsTest(materiel, manifestes, point = null) {
       : {}),
   };
 }
+
+/**
+ * Statuts attendus de T-1 à T-11 des jetons de EX-A.22 avec ancres-test.json (un
+ * caractère par vérification : r réussie, e en échec, p prerequis_en_echec,
+ * a ancre_absente, h hors_perimetre_version).
+ */
+const STATUTS_EX_A22 = {
+  "t4-sid-introuvable": "rrre" + "p".repeat(7),
+  "t4-sans-certificat": "rrre" + "p".repeat(7),
+  "t5-rsa-8200": "rrrrepprrpp",
+  "t5-exposant": "rrrrepprrpp",
+  "t7-intermediaire-rsa-8200": "rrrrrrerrpp",
+  "t5-algorithme-inconnu": "rrrrepprrpp",
+  "t5-cle-ed25519-non-rattachee": "rrrrepprrpp",
+};
 
 /**
  * Cas vérifiés : chaque jeton contre le periodHash du dossier qui l'emploie et
@@ -559,7 +664,16 @@ function casVerifies(jetons, manifestes, ancres, point = null) {
   ajouter("periode-1", 1, "ancres-deux-autorites", { echecs: [], controle: "reussi", t11: "reussi" });
   ajouter("periode-1-unite-sans-cn", 1, "ancres-test", { echecs: [], controle: "reussi" });
   ajouter("periode-1", 1, null, { echecs: [], controle: "non_execute" });
-  for (const [nomJeton, j] of Object.entries(jetons)) if (j.cible && !j.point) ajouter(nomJeton, 1, "ancres-test", { echecs: [j.cible], controle: "echoue" });
+  for (const [nomJeton, j] of Object.entries(jetons)) if (j.cible && !j.point) ajouter(nomJeton, 1, "ancres-test", { echecs: [j.cible], controle: "echoue", statuts: STATUTS_EX_A22[nomJeton] });
+  // Révision 0.4 (EX-A.22) : statuts exacts des jetons nouveaux, avec ou sans fichier d'ancres.
+  ajouter("t4-sid-introuvable", 1, null, { echecs: ["T-4"], controle: "echoue", statuts: STATUTS_EX_A22["t4-sid-introuvable"] });
+  ajouter("t4-sans-certificat", 1, null, { echecs: [], controle: "non_execute", statuts: "rrr" + "a".repeat(8) });
+  ajouter("t4-sans-certificat", 1, "ancres-unite-intermediaire", { echecs: [], controle: "reussi", statuts: "r".repeat(10) + "a" });
+  ajouter("rsa-8192", 1, "ancres-test", { echecs: [], controle: "reussi", statuts: "r".repeat(10) + "a" });
+  ajouter("t5-algorithme-inconnu", 1, null, { echecs: ["T-5"], controle: "echoue", statuts: STATUTS_EX_A22["t5-algorithme-inconnu"] });
+  ajouter("t5-cle-ed25519", 1, "ancres-test", { echecs: [], controle: "non_execute", statuts: "rrrrhhhrrhh" });
+  ajouter("t5-cle-ed25519", 1, null, { echecs: [], controle: "non_execute", statuts: "rrrraaarraa" });
+  ajouter("serie-168-bits", 1, "ancres-test", { echecs: [], controle: "reussi", statuts: "r".repeat(10) + "a" });
   // Jeton du point de contrôle (EX-A.13) : vérifié sur checkpoint_hash (K-7, EX-9.22) ; le jeton de la clôture rejoué comme jeton du point échoue par T-2.
   if (point) {
     ajouter("point-periode-1", "point", "ancres-test", { echecs: [], controle: "reussi" });
@@ -572,6 +686,9 @@ function casVerifies(jetons, manifestes, ancres, point = null) {
     const r = H.evaluerJeton(jetons[c.jeton].octets, { periodHash: ph, ancres: c.ancresNom ? ancres[c.ancresNom] : null });
     const echecs = r.checks.filter((x) => x.status === "echoue").map((x) => x.id);
     const t11 = r.checks.find((x) => x.id === "T-11");
+    const code = (x) => (x.status === "reussi" ? "r" : x.status === "echoue" ? "e" : { prerequis_en_echec: "p", ancre_absente: "a", hors_perimetre_version: "h", partie_absente: "s" }[x.reason]);
+    const statuts = r.checks.map(code).join("");
+    if (c.attendu.statuts && statuts !== c.attendu.statuts) throw new Error(`vecteur rfc3161 ${c.jeton} (${c.ancresNom}) : statuts T-1 à T-11 ${statuts}, attendus ${c.attendu.statuts} ; ${JSON.stringify(r.checks.map((x) => [x.id, x.detail.fr]))}`);
     if (JSON.stringify(echecs) !== JSON.stringify(c.attendu.echecs) || r.status !== c.attendu.controle || (c.attendu.t11 && t11.status !== c.attendu.t11))
       throw new Error(`vecteur rfc3161 ${c.jeton} (période ${c.periode}, ${c.ancresNom}) : échecs ${JSON.stringify(echecs)}, contrôle ${r.status}, attendus ${JSON.stringify(c.attendu)}`);
     return {
@@ -609,6 +726,17 @@ const OPENSSL_PRESUME = {
   "periode-1-unite-sans-cn": { resultat: "Verification: OK", source: "relevé par la confrontation (A.8)" },
   "point-periode-1": { resultat: "Verification: OK", source: "EX-A.13 ; relevé par la confrontation (A.8, EX-A.17)" },
   "k7-point-signature": { resultat: "invalid padding / signature failure", source: "relevé par la confrontation (A.8, EX-A.17)" },
+  // Révision 0.4 (EX-A.22), relevés par la confrontation (A.8) avec OpenSSL 3.0.13.
+  "t4-sid-introuvable": { resultat: "signer certificate not found", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "t4-sans-certificat": { resultat: "signer certificate not found (le jeton ne porte pas le certificat de l'unité ; avec -untrusted tsa-test.pem : Verification: OK)", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "t5-rsa-8200": { resultat: "Verification: OK (OpenSSL n'applique pas la borne de 8192 bits d'EX-9.23)", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "t5-exposant": { resultat: "Verification: OK (OpenSSL n'applique pas la borne d'exposant d'EX-9.23)", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "t7-intermediaire-rsa-8200": { resultat: "Verification: OK (OpenSSL n'applique pas la borne de 8192 bits d'EX-9.23 aux clés du chemin)", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "rsa-8192": { resultat: "Verification: OK", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "t5-algorithme-inconnu": { resultat: "invalid padding / signature failure (OpenSSL vérifie la signature RSA altérée)", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "t5-cle-ed25519": { resultat: "operation not supported for this keytype / signature failure (openssl ts -verify d'OpenSSL 3.0.13 ne vérifie pas une signature Ed25519 de jeton)", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "t5-cle-ed25519-non-rattachee": { resultat: "self-signed certificate", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "serie-168-bits": { resultat: "Verification: OK (serialNumber de 168 bits accepté)", source: "relevé par la confrontation (A.8, EX-A.22)" },
 };
 
 /**
@@ -637,7 +765,7 @@ export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecte
   // Les certificats de cles/ sont générés : seules les clés (*.cle.pem) sont des entrées.
   for (const f of fs.readdirSync(repCles)) if (f.endsWith(".pem") && !f.endsWith(".cle.pem")) fs.rmSync(path.join(repCles, f));
   const cles = chargerCles(repCles);
-  for (const id of Object.keys(GRAINES)) {
+  for (const id of [...Object.keys(GRAINES), ...Object.keys(CLES_REVISION_04)]) {
     const fichier = path.join(repCles, `${id}.cle.pem`);
     if (!fs.existsSync(fichier)) fs.writeFileSync(fichier, cles[id].export({ type: "pkcs8", format: "pem" }));
   }
@@ -658,14 +786,16 @@ export function genererRfc3161({ racine = path.join(PROJECT_ROOT, "spec", "vecte
     "ancres-tsa-revoquee": ancresHorodatage(fragments.tsa_revoquee),
     "ancres-unite-epinglee-revoquee": ancresHorodatage(fragments.unite_epinglee_revoquee),
     "ancres-deux-autorites": ancresHorodatage(fragments.deux_autorites),
+    "ancres-unite-intermediaire": ancresHorodatage(fragments.unite_intermediaire),
   };
   const sha = (b) => "0x" + crypto.createHash("sha256").update(b).digest("hex");
   const attendu = {
     description: "Vecteurs CT-6 de la famille rfc3161 (spec/CT-6-verificateur.md, annexe A.3). Les statuts sont ceux de l'implémentation de référence (scripts/lib/horodatage.mjs) avec les seules parties d'horodatage des fichiers d'ancres de test (tsa_authorities, revocation).",
     keys: {
-      derivation: "RSA 3072, e = 65537 ; p et q dérivés des étiquettes <graine>/p et <graine>/q par scripts/vecteurs/ct6/rfc3161.mjs (cleRsaDepuisGraine) ; SHA-256 des clés : PKCS #8 DER ; clés publiques, pour les tests seulement",
+      derivation: "RSA 3072, e = 65537 ; p et q dérivés des étiquettes <graine>/p et <graine>/q par scripts/vecteurs/ct6/rfc3161.mjs (cleRsaDepuisGraine) ; SHA-256 des clés : PKCS #8 DER ; clés publiques, pour les tests seulement. Révision 0.4 (EX-A.22) : revision_04 donne la graine et les paramètres des clés tsa-8200, tsa-8192, tsa-exposant, intermediaire-8200 (RSA, premiers de bits/2 bits) et tsa-ed25519 (graine Ed25519 = SHA-256 de l'étiquette)",
       seeds: GRAINES,
-      files: Object.fromEntries([...Object.keys(GRAINES).map((id) => [`cles/${id}.cle.pem`, sha(cles[id].export({ type: "pkcs8", format: "der" }))]), ...Object.entries(materiel.certs).map(([id, der]) => [`cles/${id}.pem`, sha(der)])]),
+      revision_04: Object.fromEntries(Object.entries(CLES_REVISION_04).map(([id, c]) => [id, c.type === "rsa" ? { seed: c.graine, type: "rsa", bits: c.bits, e: Number(c.e) } : { seed: c.graine, type: "ed25519" }])),
+      files: Object.fromEntries([...[...Object.keys(GRAINES), ...Object.keys(CLES_REVISION_04)].map((id) => [`cles/${id}.cle.pem`, sha(cles[id].export({ type: "pkcs8", format: "der" }))]), ...Object.entries(materiel.certs).map(([id, der]) => [`cles/${id}.pem`, sha(der)])]),
     },
     crls: Object.fromEntries(Object.entries(materiel.crls).map(([id, der]) => [`crl/${id}.pem`, sha(der)])),
     tokens: Object.entries(jetons).map(([id, j]) => {

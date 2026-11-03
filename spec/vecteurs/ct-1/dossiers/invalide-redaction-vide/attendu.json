@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-4",
+  "controles_en_echec": [
+    "E-4"
+  ],
+  "description": "voisins.next (seq 8) porte une référence rédigée et policy.redaction vaut la chaîne vide (rescellé : hash et signature valides) ; le schéma l'admet (pas de longueur minimale), E-4 exige une chaîne non vide (révision 0.5)."
+}

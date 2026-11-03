@@ -80,17 +80,18 @@ sortie égale, octet pour octet, à `sorties/recompte.txt` ;
 
 Sortie publiée `sorties/recompte.txt` : **0 discordance**, 0 écart déclaré.
 
-Tous les comptes égalent `couverture.json` et le catalogue : 2332
-identifiants (CT-1 44, CT-2 335, CT-3 259, CT-4 181, CT-5 174, CT-6 262,
-CT-7 580, CT-8 497), mêmes familles ; 2193 couverts par une entrée, 139 par
-un NC-, 0 non couvert, 0 cité inconnu ; 117 occurrences de « CT-9 » sur 110
-lignes, 117 lignes TC-, mêmes clés de section ; 98 menaces, 98 TA-, 82
-risques acceptés, index égal ; 162 `describe` et 906 `it` dans 26 fichiers,
-41 étapes de CI, 189 entrées exécutables citant 359 titres ou étapes tous
-trouvés ; 58 `it` dans `test/adversarial.test.js`, 63 identifiants TA-
-distincts cités, 63 entrées citant le fichier (TA-17 partage les `it`
-« TA-17 et TA-61 … » et « TA-17 et TA-69 … », EX-10.7) ; 43 lignes TM- et
-15 lignes TR- égales au catalogue ; table des chiffres par niveau égale.
+Tous les comptes égalent `couverture.json` et le catalogue : 2348
+identifiants (CT-1 44, CT-2 335, CT-3 259, CT-4 181, CT-5 174, CT-6 278,
+CT-7 580, CT-8 497), mêmes familles ; 2209 couverts par une entrée, 139 par
+un NC-, 0 non couvert, 0 cité inconnu ; 122 occurrences de « CT-9 » sur 114
+lignes, 122 lignes TC-, mêmes clés de section ; 98 menaces, 98 TA-, 82
+risques acceptés, index égal ; 446 `describe` et 1805 `it` dans 79 fichiers,
+53 étapes de CI, 208 entrées exécutables citant 405 titres ou étapes tous
+trouvés ; 71 `it` dans `test/adversarial.test.js`, 75 identifiants TA-
+distincts cités, 75 entrées citant le fichier (TA-17 partage les `it`
+« TA-17 et TA-61 … » et « TA-17 et TA-69 … », EX-10.7) ; 44 lignes TM- et
+15 lignes TR- égales au catalogue ; table des chiffres par niveau égale ;
+catalogue de 322 entrées (version 0.3 de CT-9).
 
 Formes admises comptées sans écart : les deux `it` d'EX-10.4 (TA-23, TA-72),
 dont l'oracle porte sur un vecteur et dont le mutant est la régénération

@@ -23,22 +23,24 @@ import { FICHIERS_DOSSIER, PARTIE_ATTESTATION_PERIMETRE, PLAFOND_LECTURE, TAILLE
 
 const BLOC = 1024 * 1024;
 const O_NOFOLLOW = fs.constants.O_NOFOLLOW ?? 0;
+const O_NONBLOCK = fs.constants.O_NONBLOCK ?? 0;
 
 /**
- * Ouvre un fichier ordinaire sans suivre de lien et vérifie, sur le
- * descripteur, qu'il l'est toujours ; rend le descripteur et la taille, ou
- * null si l'entrée n'est plus un fichier ordinaire.
+ * Ouvre un fichier ordinaire sans suivre de lien et sans attendre, puis
+ * vérifie sur le descripteur que c'est toujours un fichier ordinaire, le même
+ * que celui que lstat a vu (même périphérique, même inode : CT-6 EX-4.17) ;
+ * rend le descripteur et la taille, ou null si l'entrée a changé.
  */
-function ouvrirOrdinaire(chemin) {
+function ouvrirOrdinaire(chemin, vu) {
   let fd;
   try {
-    fd = fs.openSync(chemin, fs.constants.O_RDONLY | O_NOFOLLOW);
+    fd = fs.openSync(chemin, fs.constants.O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
   } catch (e) {
     if (e.code === "ENOENT" || e.code === "ELOOP") return null;
     throw e;
   }
   const stat = fs.fstatSync(fd);
-  if (!stat.isFile()) {
+  if (!stat.isFile() || stat.dev !== vu.dev || stat.ino !== vu.ino) {
     fs.closeSync(fd);
     return null;
   }
@@ -110,7 +112,7 @@ export function lireRepertoireDossier(repertoire) {
       fichiers.set(nom, { taille: stat.size, sha256: null });
       continue;
     }
-    const ouvert = ouvrirOrdinaire(chemin);
+    const ouvert = ouvrirOrdinaire(chemin, stat);
     if (!ouvert) continue;
     try {
       if (ouvert.taille > limite) {

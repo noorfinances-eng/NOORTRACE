@@ -1,4 +1,4 @@
-Confrontation des preuves de cohérence RFC 9162 §2.1.4 (CT-1 §10.7 ; CT-5 annexe A.6) par github.com/transparency-dev/merkle v0.0.2 (rfc6962.DefaultHasher, testonly.Tree, proof.VerifyConsistency), go1.24.7
+Confrontation des preuves de cohérence RFC 9162 §2.1.4 (CT-1 §10.7 ; CT-5 annexe A.6) par github.com/transparency-dev/merkle v0.0.2 (rfc6962.DefaultHasher, testonly.Tree, proof.VerifyConsistency), go1.27.3
 Entrées : ct-1/merkle/coherence.json, ct-1/points-de-controle/attendu.json, ct-1/manifestes/periode-{1,2,3}.json, ct-1/journal-valide/attendu.json, ct-1/dossiers/*/points-de-controle.json, ct-6/dossiers/*/points-de-controle.json et leurs attendu.json
 
 == 1. Vecteurs publics de transparency-dev/merkle v0.0.2 (proof/verify_test.go) : huit feuilles, racines, preuves de cohérence, sondes
@@ -180,6 +180,18 @@ Entrées : ct-1/merkle/coherence.json, ct-1/points-de-controle/attendu.json, ct-
   second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
   path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
   proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-1/dossiers/invalide-k6-voisins-nul-seq-9 (vérifications en échec attendues : C-1)
+  SHA-256 de points-de-controle.json : 0xdfc020b8eb7175a03ab8e06b8abd4e8bddea33a1d204f1cc1110d23f08c5a76c
+  consistency : (9, 9), 0 nœud(s) ; point : tree_size 9, root 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : []
+  path = preuve régénérée, nœud pour nœud : vecteur [] ; bibliothèque [] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-1/dossiers/invalide-partie-trop-grande (vérifications en échec attendues : K-1)
+  SHA-256 de points-de-controle.json : 0x918f60b17d5ee8cb95e45bd10eef81182b3e2d653653af3a64bb2ba35db48cbb
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, pour information (K-1 attendue en échec) : true
+  K-1 attendue en échec : K-5 n'est pas exécutée par le vérificateur (prérequis en échec) ; verdict de la bibliothèque pour information : acceptee
 -- ct-1/dossiers/valide-seq-7-point-de-cloture (vérifications en échec attendues : aucune)
   SHA-256 de points-de-controle.json : 0xdfc020b8eb7175a03ab8e06b8abd4e8bddea33a1d204f1cc1110d23f08c5a76c
   consistency : (9, 9), 0 nœud(s) ; point : tree_size 9, root 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b
@@ -226,6 +238,12 @@ Entrées : ct-1/merkle/coherence.json, ct-1/points-de-controle/attendu.json, ct-
   path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
   proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
 -- ct-6/dossiers/invalide-k8-empreinte (vérifications en échec attendues : K-8)
+  SHA-256 de points-de-controle.json : 0x46f2ac59c5140e70afad772448ba2a91761af5e56e49c1acbc67ffd58b4828cd
+  consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
+  second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]
+  path = preuve régénérée, nœud pour nœud : vecteur [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] ; bibliothèque [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204] : concorde
+  proof.VerifyConsistency : vecteur acceptee ; bibliothèque acceptee : concorde
+-- ct-6/dossiers/invalide-k8-empreinte-sans-registre (vérifications en échec attendues : K-8)
   SHA-256 de points-de-controle.json : 0x46f2ac59c5140e70afad772448ba2a91761af5e56e49c1acbc67ffd58b4828cd
   consistency : (8, 9), 1 nœud(s) ; point : tree_size 8, root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d
   second_root est la racine du manifeste de periode-1.json : preuve régénérée depuis ses feuilles : [0x6004ea4ddabfe81afc2c77f0eac72ab5a32795ea731d20ccbf29ad1870ad8204]

@@ -359,6 +359,10 @@ Entrées : reponses/reponses.json, reponses/*.tsr, reponses/*.der, requetes/*.ts
   base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
   messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
   openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
+-- dossiers/invalide-k8-empreinte-sans-registre (vérifications en échec attendues : K-8)
+  base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
+  messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde
+  openssl ts -verify -digest <checkpoint_hash> -token_in : vecteur OK ; openssl OK : concorde
 -- dossiers/invalide-k9-preuve-autre-empreinte (vérifications en échec attendues : K-9)
   base64 canonique (réencodage identique) : True ; jeton de 2105 octets, SHA-256 0x00734a31b38e888bebe7af85a63144779e68be09e6424e2213c6e0f97abf09cf
   messageImprint du jeton = checkpoint_hash de la partie : vecteur True ; openssl True : concorde

@@ -6,11 +6,16 @@
 // l'intervalle sûr. Ces refus sont ceux du contrôle E-2 ; une erreur de
 // syntaxe, elle, rend la partie inexploitable (« pas du JSON »).
 //
-// Profondeur d'imbrication : CT-1 §4 n'en fixe aucune ; la lecture et la forme
-// canonique n'en appliquent donc aucune par défaut. L'option `profondeurMax`
-// applique une borne explicite (celle de CT-6 EX-4.13 est PROFONDEUR_CT6, 128
-// niveaux). La lecture, l'écriture canonique et l'égalité sont itératives :
-// une imbrication arbitraire n'épuise jamais la pile d'appels.
+// Profondeur d'imbrication (CT-1 §4, règle 7, révision 0.5) : un texte JSON du
+// format v0 a une profondeur d'au plus 128, comptée en objets et tableaux
+// imbriqués, la racine comprise (`[[1]]` vaut 2) ; un texte plus profond est
+// refusé pendant la lecture (code `profondeur`, « pas du JSON », et non E-2).
+// C'est la borne par défaut de la lecture stricte et de la forme canonique
+// (PROFONDEUR_V0, égale à celle de CT-6 EX-4.13). L'option `profondeurMax` en
+// fixe une autre (Infinity : aucune). La lecture en nombres libres (JCS
+// intégral de CT-2, qui n'est pas un texte du format v0) n'a pas de borne par
+// défaut. La lecture, l'écriture canonique et l'égalité sont itératives : une
+// imbrication arbitraire n'épuise jamais la pile d'appels.
 
 import { utf8 } from "./conventions.mjs";
 
@@ -23,18 +28,45 @@ export const CODES_FORME_CANONIQUE = Object.freeze([
 ]);
 
 /**
- * Profondeur d'imbrication que CT-6 EX-4.13 (et EX-15.1) fixe au vérificateur :
- * 128 niveaux. CT-1 n'en fixe aucune : cette borne ne s'applique que si on la
- * passe en option `profondeurMax`.
+ * Profondeur d'imbrication maximale d'un texte JSON du format v0 (CT-1 §4,
+ * règle 7, révision 0.5) : 128. Borne par défaut de la lecture stricte et de
+ * la forme canonique.
  */
-export const PROFONDEUR_CT6 = 128;
+export const PROFONDEUR_V0 = 128;
 
-// Borne de profondeur d'une option : entier ≥ 0, ou Infinity (aucune borne).
-function borneProfondeur(options) {
+/**
+ * Profondeur d'imbrication que CT-6 EX-4.13 (et EX-15.1) fixe au vérificateur :
+ * 128 niveaux, la même que celle de CT-1 §4 (PROFONDEUR_V0).
+ */
+export const PROFONDEUR_CT6 = PROFONDEUR_V0;
+
+// Borne de profondeur d'une option : entier ≥ 0, ou Infinity (aucune borne) ;
+// absente : la borne par défaut.
+function borneProfondeur(options, defaut) {
   const p = options?.profondeurMax;
-  if (p === undefined || p === null) return Infinity;
+  if (p === undefined || p === null) return defaut;
   if (p !== Infinity && !(Number.isSafeInteger(p) && p >= 0)) throw new TypeError("profondeurMax : entier ≥ 0 attendu");
   return p;
+}
+
+/**
+ * Dit si une valeur en mémoire est plus profonde que la borne (comptage de
+ * CT-1 §4, règle 7 : objets et tableaux imbriqués, la racine comprise). Le
+ * parcours est itératif et s'arrête dès que la borne est dépassée.
+ * @param {unknown} valeur
+ * @param {number} [profondeurMax] PROFONDEUR_V0 par défaut ; Infinity : jamais
+ * @returns {boolean}
+ */
+export function depasseProfondeur(valeur, profondeurMax = PROFONDEUR_V0) {
+  if (profondeurMax === Infinity) return false;
+  const pile = [[valeur, 0]];
+  while (pile.length) {
+    const [v, p] = pile.pop();
+    if (v === null || typeof v !== "object") continue;
+    if (p + 1 > profondeurMax) return true;
+    for (const x of Array.isArray(v) ? v : Object.values(v)) pile.push([x, p + 1]);
+  }
+  return false;
 }
 
 /**
@@ -117,8 +149,10 @@ function definir(objet, cle, valeur) {
  * nombres (lus comme des nombres ECMAScript) ; `substituts: "admis"` admet les
  * substituts isolés. Par défaut, les deux sont refusés (contrôle E-2). La clé
  * en double est toujours refusée. `profondeurMax` borne le nombre de
- * conteneurs (objets, tableaux) imbriqués ; par défaut, aucune borne (CT-1 §4
- * n'en fixe pas), et la lecture, itérative, n'épuise jamais la pile.
+ * conteneurs (objets, tableaux) imbriqués, la racine comprise : par défaut
+ * PROFONDEUR_V0 (128, CT-1 §4 règle 7) en lecture stricte, aucune en nombres
+ * libres ; Infinity n'en applique aucune. La lecture, itérative, n'épuise
+ * jamais la pile.
  * @param {string|Uint8Array} source texte, ou octets UTF-8
  * @param {{nombres?: "stricts"|"libres", substituts?: "refuses"|"admis", profondeurMax?: number}} [options]
  * @returns {unknown} la valeur lue (objets à prototype ordinaire)
@@ -127,7 +161,7 @@ function definir(objet, cle, valeur) {
 export function analyserJson(source, options = {}) {
   const texte = typeof source === "string" ? source : decoderUtf8(source);
   const nombresLibres = options.nombres === "libres";
-  const profondeurMax = borneProfondeur(options);
+  const profondeurMax = borneProfondeur(options, nombresLibres ? Infinity : PROFONDEUR_V0);
   const substitutsAdmis = options.substituts === "admis";
   let i = 0;
   const n = texte.length;
@@ -434,15 +468,16 @@ function ecrire(racine, profondeurMax) {
  * Forme canonique JCS v0 d'une valeur JSON (CT-1 §4) : membres triés par
  * unités de code UTF-16, aucun espace, chaînes échappées comme
  * `JSON.stringify` d'ECMAScript 2019, entiers sûrs seulement (`-0` s'écrit
- * `0`), substitut isolé refusé. Aucune borne de profondeur par défaut (CT-1
- * §4 n'en fixe pas) ; `options.profondeurMax` en applique une.
+ * `0`), substitut isolé refusé. Profondeur d'au plus PROFONDEUR_V0 (128, CT-1
+ * §4 règle 7) par défaut ; `options.profondeurMax` en fixe une autre
+ * (Infinity : aucune).
  * @param {unknown} valeur
  * @param {{profondeurMax?: number}} [options]
  * @returns {string}
  * @throws {ErreurJson} valeur sans forme canonique (E-2), non JSON, cyclique, ou au-delà de profondeurMax
  */
 export function jcs(valeur, options = {}) {
-  return ecrire(valeur, borneProfondeur(options));
+  return ecrire(valeur, borneProfondeur(options, PROFONDEUR_V0));
 }
 
 /**
@@ -458,7 +493,7 @@ export function jcsOctets(valeur, options = {}) {
 /**
  * Forme canonique d'un texte JSON, ou null si le texte est invalide pour JCS
  * v0 (syntaxe, clé en double, substitut isolé, nombre non entier ou hors de
- * l'intervalle sûr).
+ * l'intervalle sûr, profondeur au-delà de la borne, 128 par défaut).
  * @param {string|Uint8Array} source
  * @param {{profondeurMax?: number}} [options]
  * @returns {string|null}
@@ -507,4 +542,97 @@ export function egaliteJson(a, b) {
     }
   }
   return true;
+}
+
+// Valeurs lues sans forme canonique (fichier de journal) : registre des
+// événements dont le texte a un défaut de forme canonique, avec son motif.
+const SANS_FORME = new WeakMap();
+
+/**
+ * Motif du défaut de forme canonique d'une valeur lue par lireJournal, ou
+ * null : un événement d'un journal dont le texte n'a pas de forme canonique
+ * (nombre non entier ou hors de l'intervalle sûr, clé en double, substitut
+ * isolé) garde ce défaut même si sa valeur en mémoire en a une (`530.0` se
+ * lit 530) : E-2 échoue pour lui et son hash ne se recalcule pas (CT-1 §7.2,
+ * §11.4 cas (d)).
+ * @param {unknown} valeur
+ * @returns {string|null}
+ */
+export function formeCanoniqueAbsente(valeur) {
+  return valeur !== null && typeof valeur === "object" ? (SANS_FORME.get(valeur) ?? null) : null;
+}
+
+/**
+ * Lit un fichier de journal : un tableau JSON d'événements, chacun lu à
+ * part. Un élément sans forme canonique ne rend pas le fichier illisible :
+ * il est lu en nombres et substituts libres (un objet vide si une clé est en
+ * double) et marqué (formeCanoniqueAbsente). Toute autre erreur (syntaxe,
+ * UTF-8, profondeur) rend le fichier illisible.
+ * @param {string|Uint8Array} source
+ * @param {{profondeurMax?: number}} [options] profondeur, comptée depuis chaque événement (128 par défaut)
+ * @returns {unknown[]}
+ * @throws {ErreurJson}
+ */
+export function lireJournal(source, options = {}) {
+  const texte = typeof source === "string" ? source : decoderUtf8(source);
+  const n = texte.length;
+  let i = 0;
+  const blancs = () => {
+    while (i < n && " \t\n\r".includes(texte[i])) i++;
+  };
+  blancs();
+  if (texte[i] !== "[") throw new ErreurJson("syntaxe", "journal : tableau JSON attendu (position 0)");
+  i++;
+  const morceaux = [];
+  blancs();
+  if (texte[i] === "]") i++;
+  else {
+    while (true) {
+      blancs();
+      const debut = i;
+      let profondeur = 0;
+      while (i < n) {
+        const c = texte[i];
+        if (c === '"') {
+          i++;
+          while (i < n && texte[i] !== '"') i += texte[i] === "\\" ? 2 : 1;
+          i++;
+          continue;
+        }
+        if (c === "{" || c === "[") profondeur++;
+        else if (c === "}" || c === "]") {
+          if (profondeur === 0) break;
+          profondeur--;
+        } else if (c === "," && profondeur === 0) break;
+        i++;
+      }
+      if (i >= n) throw new ErreurJson("syntaxe", "journal : tableau non terminé");
+      morceaux.push(texte.slice(debut, i));
+      if (texte[i] === "]") {
+        i++;
+        break;
+      }
+      i++;
+    }
+  }
+  blancs();
+  if (i !== n) throw new ErreurJson("syntaxe", "journal : texte après le tableau");
+  const borne = { profondeurMax: options.profondeurMax };
+  return morceaux.map((m) => {
+    try {
+      return analyserJson(m, borne);
+    } catch (e) {
+      if (!(e instanceof ErreurJson) || !e.formeCanonique) throw e;
+      let valeur;
+      try {
+        valeur = analyserJson(m, { nombres: "libres", substituts: "admis", profondeurMax: options.profondeurMax ?? PROFONDEUR_V0 });
+      } catch (e2) {
+        if (!(e2 instanceof ErreurJson) || e2.code !== "cle_en_double") throw e2;
+        valeur = {};
+      }
+      if (valeur === null || typeof valeur !== "object") throw e;
+      SANS_FORME.set(valeur, e.message);
+      return valeur;
+    }
+  });
 }

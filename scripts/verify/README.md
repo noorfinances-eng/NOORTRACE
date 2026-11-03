@@ -213,14 +213,18 @@ precommit, `bodyHash` incohérent, S haut, vote nul) sont toutes refusées.
 Les vecteurs sont épinglés et exportés par un test Go permanent de noorchain-core,
 `core/consensus/signing_vectors_test.go` : un changement de `SigningDigest`, de
 `ValidatorSetHash` ou de la tolérance du décodeur fait échouer ce test côté Go.
-Pour régénérer la constante `VECTEURS_GO` du test JavaScript (depuis la copie de
-travail de noorchain-core, le fichier de validateurs étant celui du fixture) :
+Pour régénérer la constante `VECTEURS_GO` du test JavaScript (depuis la racine
+de la copie de travail de noorchain-core, le fichier de validateurs étant celui
+du fixture de ce dépôt ; `NOORTRACE` désigne le chemin absolu de la copie de ce
+dépôt, et la sortie va dans un fichier temporaire créé par `mktemp`, chemin
+absolu, car `go test` lance le test depuis le répertoire du paquet) :
 
 ```bash
-NOOR_SIGNING_VECTORS_OUT=/tmp/vectors.json \
-NOOR_SIGNING_VECTORS_VALIDATORS_FILE=$PWD/test/fixtures/certificat-commit/validators.json \
+sortie=$(mktemp)
+NOOR_SIGNING_VECTORS_OUT="$sortie" \
+NOOR_SIGNING_VECTORS_VALIDATORS_FILE="$NOORTRACE/test/fixtures/certificat-commit/validators.json" \
   go test ./core/consensus/ -run TestSigningVectors -count=1
-# puis recopier le contenu de /tmp/vectors.json tel quel dans VECTEURS_GO
+# puis recopier le contenu du fichier "$sortie" tel quel dans VECTEURS_GO
 ```
 
 Un vecteur qui change après régénération signale un changement du protocole ou
@@ -413,14 +417,65 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
 | `--schemas <dir>` | répertoire des schémas (défaut : `spec/schemas`) |
 | `--version`, `--aide` | version, environnement et SHA-256 des huit schémas ; aide (code 0) ; exclusives : avec un répertoire, l'une avec l'autre ou avec une autre option que `--langue` et `--schemas`, code 2 (usage ; rapport d'erreur JSON avec `--json`) |
 
-Limites de lecture (CT-6 EX-4.13) : `dossier.json` 1 Mio ; parties JSON de CT-1
-16 Mio ; `jeton-rfc3161.der` 64 Kio ; `preuve.ots` 256 Kio ; `registre.json` et
-`certificat-commit.json` 64 Mio ; `validateurs.json` 1 Mio ; fichier d'ancres
-16 Mio ; fichier d'en-têtes 64 Mio et 200 000 en-têtes ; second manifeste
-1 Mio ; pièce 1 Gio ; imbrication JSON 128 niveaux. Une partie au-delà de sa
-limite n'est pas lue au-delà : elle est inexploitable et fait échouer la
-vérification qui la porte ; une entrée à part au-delà de sa limite rend le
-code 2.
+Limites de lecture (CT-6 EX-4.13) : `dossier.json` 1 Mio ; les sept parties
+JSON de CT-1 16 Mio ; `points-de-controle.json` 1 Mio ;
+`attestation-perimetre.json` 4 Mio ; `jeton-rfc3161.der` 64 Kio ; `preuve.ots`
+256 Kio ; `registre.json` et `certificat-commit.json` 64 Mio ;
+`validateurs.json` 1 Mio ; fichier d'ancres 16 Mio ; fichier d'en-têtes
+64 Mio et 200 000 en-têtes ; second manifeste 1 Mio ; pièce 1 Gio ;
+imbrication JSON 128 niveaux (comptage de CT-1 §4, règle 7). Une partie
+au-delà de sa limite n'est pas lue au-delà : elle est inexploitable et fait
+échouer la vérification qui la porte, et D-2 ne compare pas son SHA-256 (sauf
+`attestation-perimetre.json`, CT-6 EX-4.15) ; `dossier.json` au-delà de 1 Mio
+fait échouer D-1 (code 1) ; une entrée à part au-delà de sa limite rend le
+code 2. Le vérificateur n'ouvre que des fichiers ordinaires, sans suivre de
+lien (CT-6 EX-4.17).
+
+## Règles des révisions 0.5 de CT-1 et 0.4 de CT-6
+
+Cette implémentation n'a pas de lecture propre : là où CT-1 et CT-6 laissaient
+un cas ouvert, elle applique la règle que leurs révisions ont écrite. Renvois :
+
+| Cas | Règle |
+|---|---|
+| texte d'une partie qui n'est pas du JSON (UTF-8 mal formé, marque d'ordre d'octets, profondeur au-delà de 128) : vérification qui porte la partie ; substitut écrit en octets, clé en double, nombre non entier : E-2 | CT-1 §3, §4 (règles 3 et 7), §11.4 cas (c) et (d) ; CT-6 EX-4.16, EX-5.20 |
+| partie manquante ou qui n'est pas un fichier ordinaire : D-2 seule, vérification porteuse non exécutée | CT-1 §11.4 cas (a) ; CT-6 EX-4.11 point 1, EX-4.17 |
+| partie au-delà de sa limite : D-2 ne compare pas, vérification porteuse en échec | CT-1 §11.4 cas (b) ; CT-6 EX-4.11 point 2 |
+| `dossier.json` contraire à son schéma ou de plus de 1 Mio : D-1 ; sans forme canonique : E-2 ; rien d'autre n'est exécuté ni rapporté | CT-1 §11.4 (`dossier.json`) ; CT-6 EX-4.11 point 3, EX-4.12 point 2 |
+| partie contraire à son schéma : exploitable ; relation à terme absent, mal typé ou incalculable : en échec | CT-1 §11.4 (partie contraire à son schéma) ; CT-6 EX-5.13 |
+| `evenement.json` inexploitable : D-1, E-1 à E-11, C-, M-1, M-3, P-1, P-2, P-5, A-, K-, AT-5, AT-6 non exécutées sauf échec ; P-1 jamais réussie ; contrôles 4, 5, 8 non réussis | CT-1 §11.4 (table des lectures) ; CT-6 EX-5.14, EX-5.15 |
+| `cles.json` exploitable si et seulement si la première partie de E-8 réussit | CT-1 §11.4 (exceptions) ; CT-6 EX-5.13 |
+| E-3 : cohérence avec la sorte | CT-1 §5.3 (règle exacte de E-3) ; CT-6 EX-5.17 |
+| E-4 et raisons d'absence : chaîne non vide | CT-1 §3 (chaîne non vide), §11.1, E-4, D-2 |
+| E-1 : identifiants nuls, dates ; E-9 : signature sans approbateur | CT-1 §3, §11.4 (E-1, E-9) ; CT-6 EX-5.19 |
+| A-1 : raison exacte « aucune approbation liée » ; A-4 et K-6 avec `voisins.json` inexploitable : sans raison admise | CT-1 §11.4 (A-1, A-4, K-6) ; CT-6 EX-5.9, EX-5.16, EX-5.18 |
+| partie réservée présente, ou ancre non nulle du point, pour la bibliothèque de CT-1 seule : jamais « valide » | CT-1 §11.4 (révision 0.5, parties réservées) |
+| vérification d'un journal : `cles.json` comparé à chaque événement, analyse des `seq` sur tout le fichier, ordre des symptômes | CT-1 §7.2 (règle exacte) |
+| série de points : clé en vigueur sans l'événement `last_seq`, `root` et `last_hash` non évaluées (`rules_not_evaluated`) | CT-1 §10.5 (règle 5 ; règles `root` et `last_hash`) |
+| T-4 : `sid` qui ne désigne aucun certificat | CT-6 EX-9.10 |
+| T-5 : bornes des clés RSA ; clé ou algorithme hors de la version 0 | CT-6 EX-9.23, EX-9.24 |
+| T-9 : taille et signe de `serialNumber` non contrôlés | CT-6 EX-9.15 |
+| R-1, R-3 : partie manquante | CT-6 EX-11.10, EX-11.12 |
+
+Compléments des deux révisions (passages tranchés après l'alignement des
+implémentations), renvois :
+
+| Cas | Règle |
+|---|---|
+| contrôle qui lit une partie inexploitable : non exécuté, sauf échec de la part de sa règle qui ne lit pas cette partie | CT-1 §11.4 (« sauf s'il échoue sur ce qu'il lit des autres parties ») ; CT-6 EX-5.15 |
+| voisin qui n'est pas un objet, ou membre `previous`/`next` absent : C-1, C-2, C-3, P-3 en échec, E-1 pour un voisin présent ; ni candidat d'A-4 ni de K-6 | CT-1 §11.4 (voisin qui n'est pas un objet, règle unique) ; CT-6 EX-5.13 |
+| `approval` ni nul ni objet : A-1 à A-4 en échec ; `execution.tool` qui n'est pas une chaîne : E-3 en échec | CT-1 §11.4 (autres termes mal typés) ; CT-6 EX-5.13 |
+| `approval` nul et `approbations.json` déclarée présente, sans fichier : A-1 et D-2 | CT-1 §11.4 cas (a), A-1 ; CT-6 EX-4.11 point 1, EX-5.16 |
+| K-6 quand `last_seq` est le `seq` de l'événement prouvé : jugée sur lui, quel que soit `voisins.json` | CT-1 §10.5, K-6 ; CT-6 EX-5.9 |
+| vérification de CT-6 que la bibliothèque de CT-1 seule n'exécute pas : `prerequis_en_echec`, « vérification de CT-6 non exécutée par ce vérificateur » | CT-1 §11.4 (parties réservées) ; CT-6 EX-4.2 |
+| document de politique d'une attestation : profondeur d'au plus 128, même comptage | CT-1 §4 règle 7 ; CT-6 EX-4.16 |
+| journal : réordonnancement comparé au dernier `seq` entier ; hash incalculable : `rupture` ; `ts` qui n'est pas une date : `horodatage` ; événement qui n'est pas un objet : relations de ses couples non tenues ; événement sans forme canonique : E-2 seule, fichier lu élément par élément | CT-1 §7.2 (temps 2 et 3) |
+| série de points : liste fermée des noms de règle et leur ordre, `prerequis_en_echec` avant `piece_hors_dossier`, règles qui lisent `cles.json` sans lui | CT-1 §10.5 |
+| entrée en code 2 dans un attendu : `exit_code`, `error_kind` ; `exit_code_exiger_4` | CT-1 §11.5 ; CT-6 EX-A.3 |
+| preuve dont toutes les attestations sont sous une opération hors profil : contrôle 5 `hors_perimetre_version`, textes « aucune date établie » | CT-6 EX-10.12 |
+| membre connu d'un corps de proposition ou de vote mal typé : ligne refusée, R-5 | CT-6 EX-11.6 |
+
+Aucune lecture propre ne reste.
 
 Écart avec la version CT-1 de ce script : le libellé des lignes du rapport
 lisible (« vérification(s) en échec ») et la sortie JSON, remplacée par le

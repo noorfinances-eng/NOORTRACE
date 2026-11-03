@@ -1,7 +1,8 @@
 // Familles « disposition » (A.1, A.6 : ce qui est présent sous
 // spec/vecteurs/ct-8) et « coefficients » (9.2 et A.5 : mesures des
-// coefficients b_pt, b_man, b_tsr_sup et b_cap, rejouées sur les vecteurs
-// de ct-1, ct-5 et ct-6).
+// coefficients b_pt, b_man et b_tsr_sup, rejouées sur les vecteurs de ct-1 et
+// ct-5 ; b_cap, relu dans le rapport de sa mesure publié sous ct-9/mesures,
+// révision 0.2 de CT-8).
 
 package main
 
@@ -9,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -142,8 +144,65 @@ func FamilleCoefficients(c *Contexte) {
 	c.Rap.Comparer(f, "b_tsr_sup", "écarts .tsr − .der (9.2 : 9 octets dans chaque cas)", "["+val("b_tsr_sup")+"]", Liste(lst))
 	c.Rap.Comparer(f, "b_tsr_sup", "paires mesurées (9.2)", "16", strconv.Itoa(paires))
 
-	// b_cap : en-tête de bloc, certificat de commit et reçu les plus grands
-	// de ct-6/registre/capture (A.5 : « 1 498 ; 6 818 à 7 782 ; 1 107 à
+	// b_cap (révision 0.2) : capture d'une transaction d'un bloc plein, telle
+	// que CT-4 EX-9.2 l'écrit, relue dans le rapport publié de sa mesure
+	// (9.2, A.5) : max de la ligne b_cap_bloc_plein (en-tête, certificat, 64
+	// reçus) plus le plus grand index de capture des répétitions.
+	fr := filepath.Join(vec, "ct-9", "mesures", "rapport-2026-11-02-capture-bloc-plein.json")
+	r, _, ok := c.LireJSON(fr)
+	if !ok {
+		return
+	}
+	var ligne *Value
+	for _, x := range r.Get("results").Arr {
+		if x.Get("name").Str == "b_cap_bloc_plein" {
+			ligne = x
+		}
+	}
+	if ligne == nil {
+		c.Rap.Erreur("%s : ligne b_cap_bloc_plein absente", fr)
+		return
+	}
+	var ech []string
+	maxEch := 0.0
+	for _, x := range ligne.Get("samples").Arr {
+		ech = append(ech, NombreES6(nombre(x)))
+		if nombre(x) > maxEch {
+			maxEch = nombre(x)
+		}
+	}
+	c.Rap.Comparer(f, "b_cap", "mesure : test, unité, échantillons (9.2 : trois répétitions égales)", "TM-31 ; octets ; [109479, 109479, 109479]",
+		ligne.Get("test_id").Str+" ; "+ligne.Get("unit").Str+" ; "+Liste(ech))
+	c.Rap.Comparer(f, "b_cap", "mesure : max de la ligne = plus grand échantillon", NombreES6(maxEch), NombreES6(nombre(ligne.Get("max"))))
+	notes := r.Get("notes").Str
+	var maxIndex, maxUnRecu int64
+	var decomp []string
+	for _, m := range regexp.MustCompile(`= (\d+) octets = en-tête (\d+) \+ certificat (\d+) \+ (\d+) reçus (\d+) `).FindAllStringSubmatch(notes, -1) {
+		n := make([]int64, 5)
+		for i := range n {
+			n[i], _ = strconv.ParseInt(m[i+1], 10, 64)
+		}
+		decomp = append(decomp, fmt.Sprintf("%d = %d + %d + %d (%d reçus), somme %d", n[0], n[1], n[2], n[4], n[3], n[1]+n[2]+n[4]))
+	}
+	for _, m := range regexp.MustCompile(`index de capture (\d+) octets`).FindAllStringSubmatch(notes, -1) {
+		v, _ := strconv.ParseInt(m[1], 10, 64)
+		if v > maxIndex {
+			maxIndex = v
+		}
+	}
+	for _, m := range regexp.MustCompile(`un seul reçu \(forme de CT-8 §9\.2\) : au plus (\d+) octets`).FindAllStringSubmatch(notes, -1) {
+		v, _ := strconv.ParseInt(m[1], 10, 64)
+		if v > maxUnRecu {
+			maxUnRecu = v
+		}
+	}
+	d := "109479 = 5846 + 32587 + 71046 (64 reçus), somme 109479"
+	c.Rap.Comparer(f, "b_cap", "décomposition de chaque répétition (9.2 : en-tête 5 846, certificat 32 587, 64 reçus 71 046)", Liste([]string{d, d, d}), Liste(decomp))
+	c.Rap.Comparer(f, "b_cap", "index de capture et forme à un seul reçu (9.2 : 14 282 ; 39 544)", "14282 ; 39544", fmt.Sprintf("%d ; %d", maxIndex, maxUnRecu))
+	c.Rap.Comparer(f, "b_cap", "valeur de la table de 9.2 = max de la ligne + index", val("b_cap"), strconv.FormatInt(int64(maxEch)+maxIndex, 10))
+
+	// Réserves de 9.2 : fichiers des blocs d'une transaction de
+	// ct-6/registre/capture (A.5 : « 1 498 ; 6 818 à 7 782 ; 1 107 à
 	// 1 816 »).
 	cap := filepath.Join(vec, "ct-6", "registre", "capture")
 	etendue := func(prefixe string) (int64, int64) {
@@ -168,7 +227,6 @@ func FamilleCoefficients(c *Contexte) {
 	bl, bh := etendue("bloc-")
 	cl, ch := etendue("certificat-")
 	rl, rh := etendue("recu-")
-	c.Rap.Comparer(f, "b_cap", "valeur de la table de 9.2 = mesure", val("b_cap"), strconv.FormatInt(bh+ch+rh, 10))
-	c.Rap.Comparer(f, "b_cap", "étendues (A.5)", "1498 à 1498 ; 6818 à 7782 ; 1107 à 1816",
+	c.Rap.Comparer(f, "b_cap", "étendues des blocs d'une transaction (A.5)", "1498 à 1498 ; 6818 à 7782 ; 1107 à 1816",
 		fmt.Sprintf("%d à %d ; %d à %d ; %d à %d", bl, bh, cl, ch, rl, rh))
 }

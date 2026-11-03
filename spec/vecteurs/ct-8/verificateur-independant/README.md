@@ -45,7 +45,8 @@ Le vérificateur lit, à côté des vecteurs, la spécification
 du paquet (EX-A.11), des vecteurs d'autres spécifications : les points et
 les manifestes de `ct-1`, les réponses de `ct-5`, les dossiers, les ancres,
 les en-têtes et la capture du registre de `ct-6`, l'attestation d'exemple de
-`ct-7`, le manifeste d'instance de `ct-4`. Il n'écrit rien : PR-10
+`ct-7`, le manifeste d'instance de `ct-4`, et le rapport de la mesure de
+`b_cap` publié sous `ct-9/mesures/` (révision 0.2 de CT-8). Il n'écrit rien : PR-10
 (extraction) est jouée en mémoire.
 
 Codes de retour (EX-A.21) : `0` tout concorde (les valeurs hors périmètre
@@ -55,12 +56,13 @@ discordance, listée avec l'attendu et la valeur recalculée, ou une erreur
 
 ## Décomptes
 
-Exécution du 2026-10-27, `go run . ..` depuis ce répertoire :
+Exécution du 2026-11-03 (révision 0.2 de CT-8), `go run . ..` depuis ce
+répertoire :
 
 | Famille | Recalculées | Concordantes | Discordantes | Hors périmètre |
 |---|---|---|---|---|
 | disposition | 16 | 16 | 0 | 1 |
-| coefficients | 8 | 8 | 0 | 0 |
+| coefficients | 12 | 12 | 0 | 0 |
 | dimensionnement | 838 | 838 | 0 | 0 |
 | controle-prealable | 2 979 | 2 979 | 0 | 0 |
 | paquets | 849 | 849 | 0 | 23 |
@@ -69,7 +71,7 @@ Exécution du 2026-10-27, `go run . ..` depuis ce répertoire :
 | journaux | 49 | 49 | 0 | 3 |
 | consultations | 7 | 7 | 0 | 0 |
 | proces-verbaux | 14 | 14 | 0 | 0 |
-| **Total** | **5 183** | **5 183** | **0** | **65** |
+| **Total** | **5 187** | **5 187** | **0** | **65** |
 
 « Résultat : tout concorde. »
 
@@ -78,9 +80,9 @@ Exécution du 2026-10-27, `go run . ..` depuis ce répertoire :
 | Famille | Fichiers lus | Valeurs recalculées et confrontées |
 |---|---|---|
 | disposition | `spec/vecteurs/ct-8/` | présence de chaque entrée de la disposition d'A.1 ; aucune entrée hors de cette disposition |
-| coefficients | `ct-1/points-de-controle/periode-{1,2,3}.json`, `ct-1/manifestes/periode-*.{json,sig}`, `ct-5/reponses/*.{der,tsr}`, `ct-6/registre/capture/{bloc,certificat,recu}-*` | mesures de 9.2 rejouées comme les commandes d'A.5 : `b_pt` (ligne JCS v0 plus `\n` la plus longue des 183 points, 681 à 682 octets), `b_man` (631 + 285), `b_tsr_sup` (9 octets sur les 16 paires), `b_cap` (1 498 + 7 782 + 1 816), chacune égale à la valeur de la table de 9.2 |
+| coefficients | `ct-1/points-de-controle/periode-{1,2,3}.json`, `ct-1/manifestes/periode-*.{json,sig}`, `ct-5/reponses/*.{der,tsr}`, `ct-9/mesures/rapport-2026-11-02-capture-bloc-plein.json`, `ct-6/registre/capture/{bloc,certificat,recu}-*` | mesures de 9.2 rejouées comme les commandes d'A.5 : `b_pt` (ligne JCS v0 plus `\n` la plus longue des 183 points, 681 à 682 octets), `b_man` (631 + 285), `b_tsr_sup` (9 octets sur les 16 paires), chacune égale à la valeur de la table de 9.2 ; `b_cap` (révision 0.2) relu dans le rapport de sa mesure : ligne `b_cap_bloc_plein` de TM-31 en octets, trois échantillons de 109 479 et `max` égal au plus grand, décomposition de chaque répétition dans `notes` (5 846 + 32 587 + 71 046, 64 reçus), plus grand index de capture (14 282) et forme à un seul reçu (39 544), valeur de la table de 9.2 égale au `max` plus l'index (123 761) ; étendues des fichiers des blocs d'une transaction de `ct-6/registre/capture/`, dont 9.2 tire ses réserves (1 498 ; 6 818 à 7 782 ; 1 107 à 1 816) |
 | dimensionnement | `dimensionnement/*.json`, blocs de 9.5, tables de 9.2 et de 9.6 | coefficients lus dans la table de 9.2 (EX-9.1) ; refus d'EX-9.3, toutes les raisons, journal par journal ; DM-1 à DM-22 en `float64`, dans l'ordre écrit, `math.Ceil` et `math.Round(x*1000)/1000` (six décimales pour la part), comparaison de chaque nombre à l'égalité exacte (EX-A.22) ; membres et ordre de la sortie ; exemple de 9.5 recalculé et égal à la sortie imprimée, octet pour octet sous `JSON.stringify` ; `reference` égal à l'exemple ; chaque ligne de 9.6 (Gio à trois décimales, jetons, transactions par heure et part, pointe, `J_max`, refus) ; forme EX-A.1 et schéma `$defs/cas` de chaque fichier |
-| controle-prealable | `controle-prealable/*.json`, blocs de 6.3, table d'A.4 | IP-1 à IP-13 de la table d'EX-6.2 (seuils des deux profils, systèmes de fichiers admis et refusés, borne d'horloge et `borne_inconnue`, ports du profil rapide ou publiés et adresse interne, destinations, première faute d'IP-10 dans l'ordre du texte, `condense_requis`, déclaration du cache d'EX-6.4), `--seulement` (EX-6.1), verdict et code d'EX-6.3 ; pour chaque vérification : `id`, `status`, `reason`, `blocking`, `expected` et `measured` selon la table d'EX-6.6 ; exemple de 6.3 réévalué et égal au rapport imprimé ; `pret-rapide` égal aux observations de 6.3 ; variante de production d'A.4 (8 processeurs, 16 Gio, 600 Gio, ports sur `192.0.2.40`, condensés, cache) ; seuil de `pret-production` égal à `local_bytes` de 9.5 recalculé ; table d'A.4 (profil, verdict, vérifications nommées) ; forme EX-A.1 et schéma |
+| controle-prealable | `controle-prealable/*.json`, blocs de 6.3, table d'A.4 | IP-1 à IP-13 de la table d'EX-6.2 (seuils des deux profils, systèmes de fichiers admis et refusés, borne d'horloge et `borne_inconnue`, ports du profil rapide ou publiés et adresse interne, destinations, première faute d'IP-10 dans l'ordre du texte, `condense_requis`, déclaration du cache d'EX-6.4), `--seulement` (EX-6.1), verdict et code d'EX-6.3 ; pour chaque vérification : `id`, `status`, `reason`, `blocking`, `expected` et `measured` selon la table d'EX-6.6 ; exemple de 6.3 réévalué et égal au rapport imprimé ; `pret-rapide` égal aux observations de 6.3 ; variante de production d'A.4 (8 processeurs, 16 Gio, 1 200 Gio, ports sur `192.0.2.40`, condensés, cache) ; seuil de `pret-production` égal à `local_bytes` de 9.5 recalculé ; table d'A.4 (profil, verdict, vérifications nommées) ; forme EX-A.1 et schéma |
 | paquets | `paquets/cas.json`, `paquets/*.tar`, `paquets/description.json`, blocs de 13.3, 13.5, 13.7, 13.11, table et exemple d'A.10 | chaque archive lue deux fois, lecture brute des blocs de 512 octets (EX-13.14, EX-13.31) et `archive/tar`, accordées sur chaque entrée (nom, type, taille, mode, propriétaires, noms, date, lien, périphériques, format, données) ; longueur `L` d'EX-13.14 ; PR-1 à PR-9 (EX-13.30 à EX-13.33 : arrêt à la première en échec, PR-2 avec `options.expected_sha256`), PR-10 en mémoire, PR-11 et PR-12 `sans_objet` sans vérificateur ni attestation ; état du paquet, AV-PR-1 à AV-PR-4 (13.9), code d'EX-13.26 à partir des codes de `expected.dossiers` ; SHA-256 et taille de chaque archive et de chaque fichier ; décompte, octets et SHA-256 de `cas.json` d'EX-A.13 ; table d'EX-A.13 entière ; 17 cas dont onze de code 4 (EX-13.1), les sept cas qu'A.10 désigne, cas `observation` d'EX-A.15 (dossiers, `observation_mode`, `observation`, décompte) ; découpage nom/préfixe d'EX-13.14 (plus long préfixe, règle de GNU tar) ; manifeste de `valide.tar` égal à celui de 13.3 (49 fichiers, 236 017 octets, 11 274 octets, SHA-256), écrit par `JSON.stringify(m, null, 2)` plus saut de ligne (EX-13.12), `created_at` de 1 793 059 200 secondes ; `LISEZMOI.md` et `README.md` égaux aux blocs de 13.11 et à leurs SHA-256 ; détails PR- et manifeste du rapport de `fichier-altere` de 13.7 ; SHA-256 du manifeste recalculé de `contrefacon-coherente` ; `description.json` égale à 13.5, chaque fichier de `valide.tar` égal à sa source (EX-13.18, EX-A.11) ; chaque variante égale à `valide.tar` sauf la seule chose que décrit EX-A.13 (entrée retirée, ajoutée ou remplacée, octet `7` devenu `9`, lien, mode `0600`) |
 | conteneurs | `conteneurs/*.yaml`, `conteneurs/*.attendu.json`, `images.json`, blocs de 4.1 à 4.3, table d'A.3 | `images.json` égal au bloc de 4.1 ; `valide-rapide.yaml` et `valide-production.yaml` égaux aux blocs de 4.2 et 4.3 et à leurs SHA-256 ; `valide-production-condenses.yaml` reconstruit depuis 4.3 (`@sha256:` et 32 fois `ab`) ; SHA-256 de chaque fichier ; `all_images_by_digest` lu sur les clés `image:` ; verdict cohérent avec les vérifications ; pour chaque cas invalide, la seule vérification en échec et son code selon A.3, fragment de remplacement présent (forme courte ou en blocs) ; forme EX-A.1 et schéma |
 

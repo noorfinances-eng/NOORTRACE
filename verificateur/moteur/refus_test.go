@@ -97,7 +97,7 @@ func TestRefusIndex(t *testing.T) {
 	// Index sans forme canonique (membre « event » en double, version 0.0) :
 	// du JSON, donc pas de code 2 ; E-2 en échec, D-1 et le reste non
 	// exécutés, rapport conforme à son schéma, jamais valide (CT-1 §4,
-	// §11.4 ; LISEZMOI.md, « Lectures », point 20).
+	// §11.4 ; CT-6 EX-4.12, point 2, révision 0.4).
 	for _, c := range []string{
 		strings.Replace(string(idx), `"event": {`, `"event": {"seq": 99, "hash": "0x`+strings.Repeat("0", 64)+`"}, "event": {`, 1),
 		strings.Replace(string(idx), `"version": 0`, `"version": 0.0`, 1),

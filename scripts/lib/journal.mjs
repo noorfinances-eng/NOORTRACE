@@ -189,9 +189,11 @@ export class ErreurFormat extends Error {
 /**
  * Texte qui n'est pas un document JSON acceptable. `canonique` vaut true quand
  * l'erreur est une violation de la forme canonique v0 (nombre non entier ou
- * hors intervalle, clé en double, substitut isolé, octets UTF-8 invalides,
- * marque d'ordre d'octets : contrôle E-2), false pour une erreur de syntaxe
- * JSON, que le vérificateur impute au contrôle qui porte la partie (CT-1 §11.4).
+ * hors intervalle, clé en double, substitut isolé, échappé ou écrit en octets
+ * ED A0 80 à ED BF BF : contrôle E-2), false quand le texte n'est pas du JSON
+ * (UTF-8 mal formé, marque d'ordre d'octets, syntaxe, profondeur au-delà de
+ * 128), que le vérificateur impute au contrôle qui porte la partie (CT-1 §3,
+ * §4 règle 7, §11.4 cas (c) ; CT-6 EX-4.16).
  */
 export class ErreurJSON extends ErreurFormat {
   constructor(message, canonique = false) {
@@ -401,30 +403,108 @@ export function canonicaliserJCSIntegral(valeur, chemin = "") {
   }
 }
 
+/** Profondeur maximale d'un texte JSON du format v0 (CT-1 §4, règle 7 ; CT-6 EX-4.13, EX-4.16). */
+export const PROFONDEUR_JSON_MAX = 128;
+
 /**
- * Analyse stricte d'un texte JSON (chaîne ou octets UTF-8) : refuse ce que la
- * forme canonique v0 ne sait pas représenter et que JSON.parse accepterait en
- * silence — nombre à partie fractionnaire ou exposant (412.0, 1e3), entier hors
- * de l'intervalle sûr, clé en double, substitut isolé, marque d'ordre d'octets.
- * C'est l'analyseur du vérificateur (contrôle E-2).
+ * Décodage UTF-8 d'octets (CT-1 §3, CT-6 EX-4.16, point 1). Rend { texte,
+ * substitutEnOctets } ; lève ErreurJSON (pas du JSON) pour une marque d'ordre
+ * d'octets en tête ou une suite qui n'est pas de l'UTF-8 bien formé (RFC 3629).
+ * Seule exception : une suite ED A0 80 à ED BF BF (point de code U+D800 à
+ * U+DFFF écrit en octets, seul ou en paire à la manière de CESU-8) est décodée
+ * en unité de code UTF-16 et signalée : c'est un substitut isolé au sens de
+ * CT-1 §4 (règle 3), un défaut de forme canonique (E-2), non de codage.
  */
-export function analyserJSONStrict(entree) {
+export function decoderUTF8(octetsTexte) {
+  const buf = Buffer.isBuffer(octetsTexte) ? octetsTexte : Buffer.from(octetsTexte);
+  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) throw new ErreurJSON("marque d'ordre d'octets en tête du document : pas un texte JSON (CT-1 §3)", false);
+  try {
+    return { texte: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(buf), substitutEnOctets: false };
+  } catch {
+    // Décodage octet par octet : seules les suites ED A0..BF 80..BF sont tolérées ici, et signalées.
+  }
+  const unites = [];
+  let substitutEnOctets = false;
+  const suite = (k) => k < buf.length && (buf[k] & 0xc0) === 0x80;
+  for (let i = 0; i < buf.length; ) {
+    const b0 = buf[i];
+    if (b0 < 0x80) {
+      unites.push(b0);
+      i += 1;
+      continue;
+    }
+    if (b0 === 0xed && i + 2 < buf.length && buf[i + 1] >= 0xa0 && buf[i + 1] <= 0xbf && suite(i + 2)) {
+      unites.push(0xd000 | ((buf[i + 1] & 0x3f) << 6) | (buf[i + 2] & 0x3f));
+      substitutEnOctets = true;
+      i += 3;
+      continue;
+    }
+    let n;
+    let cp;
+    let min;
+    if (b0 >= 0xc2 && b0 <= 0xdf) [n, cp, min] = [2, b0 & 0x1f, 0x80];
+    else if (b0 >= 0xe0 && b0 <= 0xef) [n, cp, min] = [3, b0 & 0x0f, 0x800];
+    else if (b0 >= 0xf0 && b0 <= 0xf4) [n, cp, min] = [4, b0 & 0x07, 0x10000];
+    else throw new ErreurJSON(`octets UTF-8 invalides (octet ${i}) : pas un texte JSON (CT-1 §3)`, false);
+    for (let k = 1; k < n; k++) {
+      if (!suite(i + k)) throw new ErreurJSON(`octets UTF-8 invalides (octet ${i}) : pas un texte JSON (CT-1 §3)`, false);
+      cp = (cp << 6) | (buf[i + k] & 0x3f);
+    }
+    if (cp < min || cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff)) throw new ErreurJSON(`octets UTF-8 invalides (octet ${i}) : pas un texte JSON (CT-1 §3)`, false);
+    if (cp >= 0x10000) {
+      const v = cp - 0x10000;
+      unites.push(0xd800 | (v >> 10), 0xdc00 | (v & 0x3ff));
+    } else unites.push(cp);
+    i += n;
+  }
+  let texte = "";
+  for (let k = 0; k < unites.length; k += 8192) texte += String.fromCharCode(...unites.slice(k, k + 8192));
+  return { texte, substitutEnOctets };
+}
+
+/**
+ * Analyse stricte d'un texte JSON (chaîne ou octets UTF-8), dans l'ordre de CT-6
+ * EX-4.16 : codage (UTF-8 bien formé, sans marque d'ordre d'octets), syntaxe
+ * (RFC 8259), profondeur (`profondeurMax`, comptage de CT-1 §4, règle 7 : les
+ * objets et tableaux imbriqués, la racine comprise ; par défaut sans borne),
+ * puis forme canonique : ce que la forme canonique v0 ne sait pas représenter
+ * et que JSON.parse accepterait en silence — nombre à partie fractionnaire ou
+ * exposant (412.0, 1e3), entier hors de l'intervalle sûr, clé en double,
+ * substitut isolé (échappé ou écrit en octets). Un défaut des trois premiers
+ * points lève ErreurJSON avec `canonique` faux (pas du JSON) ; un défaut de
+ * forme canonique n'est levé qu'après la lecture complète du texte, avec
+ * `canonique` vrai (E-2). C'est l'analyseur du vérificateur.
+ */
+export function analyserJSONStrict(entree, { profondeurMax = Infinity, parElement = false } = {}) {
   let texte;
+  let substitutEnOctets = false;
   if (typeof entree === "string") {
     texte = entree;
   } else {
-    const buf = Buffer.isBuffer(entree) ? entree : Buffer.from(entree);
-    if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) throw new ErreurJSON("marque d'ordre d'octets en tête du document", true);
-    try {
-      texte = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(buf);
-    } catch {
-      throw new ErreurJSON("octets UTF-8 invalides", true);
-    }
+    ({ texte, substitutEnOctets } = decoderUTF8(entree));
   }
   let i = 0;
   const n = texte.length;
-  const erreur = (m, canonique = false) => {
-    throw new ErreurJSON(`${m} (caractère ${i})`, canonique);
+  let defautCanonique = null;
+  const erreur = (m) => {
+    throw new ErreurJSON(`${m} (caractère ${i})`, false);
+  };
+  // Défaut de forme canonique : relevé au premier, levé après la lecture complète (EX-4.16, point 4 après les points 1 à 3).
+  // parElement : texte dont la racine est un tableau (journal) ; un défaut de forme canonique est imputé à
+  // l'élément de premier niveau qui le porte, marqué sans forme canonique, au lieu de refuser tout le texte.
+  let elementCourant = null;
+  const defautsElements = new Map();
+  const canonique = (m) => {
+    if (parElement && elementCourant !== null) {
+      if (!defautsElements.has(elementCourant)) defautsElements.set(elementCourant, `${m} (caractère ${i})`);
+      return;
+    }
+    defautCanonique ??= `${m} (caractère ${i})`;
+  };
+  let profondeur = 0;
+  const entrer = () => {
+    profondeur++;
+    if (profondeur > profondeurMax) erreur(`imbrication JSON de plus de ${profondeurMax} niveaux : pas un texte JSON exploitable (CT-1 §4, règle 7)`);
   };
   const blancs = () => {
     for (;;) {
@@ -467,14 +547,12 @@ export function analyserJSONStrict(entree) {
         case "t": out += "\t"; break;
         case "u": {
           const cu = unite();
-          if (cu >= 0xd800 && cu <= 0xdbff) {
-            if (texte[i] !== "\\" || texte[i + 1] !== "u") erreur("substitut haut isolé", true);
+          if (cu >= 0xd800 && cu <= 0xdbff && texte[i] === "\\" && texte[i + 1] === "u" && /^[dD][c-fC-F][0-9a-fA-F]{2}$/.test(texte.slice(i + 2, i + 6))) {
             i += 2;
-            const bas = unite();
-            if (bas < 0xdc00 || bas > 0xdfff) erreur("substitut haut sans substitut bas", true);
-            out += String.fromCharCode(cu, bas);
-          } else if (cu >= 0xdc00 && cu <= 0xdfff) {
-            erreur("substitut bas isolé", true);
+            out += String.fromCharCode(cu, unite());
+          } else if (cu >= 0xd800 && cu <= 0xdfff) {
+            canonique(cu <= 0xdbff ? "substitut haut isolé" : "substitut bas isolé");
+            out += String.fromCharCode(cu);
           } else {
             out += String.fromCharCode(cu);
           }
@@ -488,9 +566,13 @@ export function analyserJSONStrict(entree) {
   const nombre = () => {
     const m = /^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?/.exec(texte.slice(i, i + 400));
     if (!m) erreur("nombre invalide");
-    if (m[2] !== undefined || m[3] !== undefined) erreur(`nombre non entier « ${m[0]} » : JCS v0 n'admet que les entiers`, true);
+    if (m[2] !== undefined || m[3] !== undefined) {
+      canonique(`nombre non entier « ${m[0]} » : JCS v0 n'admet que les entiers`);
+      i += m[0].length;
+      return Number(m[0]);
+    }
     const grand = BigInt(m[0]);
-    if (grand > 9007199254740991n || grand < -9007199254740991n) erreur(`entier hors de l'intervalle sûr « ${m[0]} » : à porter en chaîne décimale`, true);
+    if (grand > 9007199254740991n || grand < -9007199254740991n) canonique(`entier hors de l'intervalle sûr « ${m[0]} » : à porter en chaîne décimale`);
     i += m[0].length;
     return Number(grand);
   };
@@ -500,15 +582,20 @@ export function analyserJSONStrict(entree) {
     return val;
   };
   const tableau = () => {
+    const racine = profondeur === 0;
     i++;
+    entrer();
     const out = [];
     blancs();
     if (texte[i] === "]") {
       i++;
+      profondeur--;
       return out;
     }
     for (;;) {
+      if (racine) elementCourant = out.length;
       out.push(valeur());
+      if (racine) elementCourant = null;
       blancs();
       if (texte[i] === ",") {
         i++;
@@ -516,6 +603,7 @@ export function analyserJSONStrict(entree) {
       }
       if (texte[i] === "]") {
         i++;
+        profondeur--;
         return out;
       }
       erreur("« , » ou « ] » attendu");
@@ -523,10 +611,12 @@ export function analyserJSONStrict(entree) {
   };
   const objet = () => {
     i++;
+    entrer();
     const out = {};
     blancs();
     if (texte[i] === "}") {
       i++;
+      profondeur--;
       return out;
     }
     for (;;) {
@@ -537,8 +627,8 @@ export function analyserJSONStrict(entree) {
       if (texte[i] !== ":") erreur("« : » attendu");
       i++;
       const v = valeur();
-      if (Object.hasOwn(out, k)) erreur(`clé en double « ${k} »`, true);
-      Object.defineProperty(out, k, { value: v, enumerable: true, writable: true, configurable: true });
+      if (Object.hasOwn(out, k)) canonique(`clé en double « ${k} »`);
+      else Object.defineProperty(out, k, { value: v, enumerable: true, writable: true, configurable: true });
       blancs();
       if (texte[i] === ",") {
         i++;
@@ -546,6 +636,7 @@ export function analyserJSONStrict(entree) {
       }
       if (texte[i] === "}") {
         i++;
+        profondeur--;
         return out;
       }
       erreur("« , » ou « } » attendu");
@@ -568,7 +659,40 @@ export function analyserJSONStrict(entree) {
   const v = valeur();
   blancs();
   if (i < n) erreur("texte après la valeur JSON");
+  if (substitutEnOctets) defautCanonique ??= "substitut (U+D800 à U+DFFF) écrit en octets ED A0 80 à ED BF BF : substitut isolé (CT-1 §3, §4 règle 3)";
+  if (defautCanonique) throw new ErreurJSON(defautCanonique, true);
+  for (const [k, m] of defautsElements) {
+    if (estObjet(v[k])) SANS_FORME_CANONIQUE.set(v[k], m);
+    else throw new ErreurJSON(m, true);
+  }
   return v;
+}
+
+/**
+ * Objets lus sans forme canonique (élément d'un journal, lireJournalJSON) : la
+ * valeur est celle que le texte porte, lue sans perte de ses autres membres,
+ * mais son hachage ne se calcule pas (E-2, CT-1 §4) et ses autres contrôles ne
+ * s'exécutent pas (CT-1 §11.4, cas (d), appliqué à un événement du journal).
+ */
+const SANS_FORME_CANONIQUE = new WeakMap();
+
+/** Le défaut de forme canonique d'un objet lu par lireJournalJSON, ou null. */
+export function defautFormeCanonique(valeur) {
+  return estObjet(valeur) ? SANS_FORME_CANONIQUE.get(valeur) ?? null : null;
+}
+
+/**
+ * Lit un fichier d'événements (tableau JSON : `evenements.json` d'un journal,
+ * événements fournis à une série de points). Le texte doit être du JSON
+ * (CT-1 §3) ; un événement sans forme canonique (nombre non entier, clé en
+ * double, substitut isolé échappé) ne rend pas tout le fichier illisible : il
+ * est rendu tel qu'il se lit et marqué, de sorte que la vérification de chaîne
+ * rapporte E-2 pour lui et `rupture` sur le suivant (CT-1 §7.2), et qu'une
+ * série le compte comme fourni sans forme canonique (`prerequis_en_echec`,
+ * CT-1 §10.5).
+ */
+export function lireJournalJSON(entree) {
+  return analyserJSONStrict(entree, { parElement: true });
 }
 
 /** Égalité structurelle de deux valeurs JSON. */
@@ -704,11 +828,13 @@ export function corpsEvenement(evenement) {
 
 /** hash = SHA-256(P_H || JCS(E')). */
 export function hachageEvenement(evenement) {
+  if (defautFormeCanonique(evenement)) throw new ErreurJSON(`événement sans forme canonique : ${defautFormeCanonique(evenement)}`, true);
   return sha256(Buffer.concat([Buffer.from(PREFIXE_EVENEMENT, "utf8"), octetsJCS(corpsEvenement(evenement))]));
 }
 
 /** Message signé par l'enregistreur : P_S || JCS(E'). */
 export function messageSignatureEvenement(evenement) {
+  if (defautFormeCanonique(evenement)) throw new ErreurJSON(`événement sans forme canonique : ${defautFormeCanonique(evenement)}`, true);
   return Buffer.concat([Buffer.from(PREFIXE_SIGNATURE_EVENEMENT, "utf8"), octetsJCS(corpsEvenement(evenement))]);
 }
 
@@ -989,85 +1115,144 @@ export function verifierCles(clesDoc, evenement = null) {
   return erreurs;
 }
 
+/** Type des symptômes de E-1 à E-11 d'un journal (CT-1 §7.2, révision 0.5). */
+export const TYPES_SYMPTOMES = { "E-1": "schema", "E-2": "format", "E-3": "sorte", "E-4": "redaction", "E-5": "approbation", "E-6": "reference", "E-7": "modification", "E-8": "signature", "E-9": "approbateur", "E-10": "rotation", "E-11": "validite_cle" };
+
 /**
- * Vérifie une suite d'événements d'un même journal (CT-1 §7.2) et nomme ce
- * qu'elle détecte. Diagnostics : { type, controle, seq, message } avec type dans
- * modification (hash recalculé différent, E-7), signature (E-8), origine
- * (prev_hash nul ssi seq = 1, C-2), suppression (trou de seq, C-1), insertion
- * (seq en double, C-1), reordonnancement (seq décroissant, C-1), rupture
- * (prev_hash différent du hash recalculé de l'événement qui précède dans le
- * fichier, C-2), horodatage (ts décroissant, C-1), journal (org_id ou
- * journal_id différents, C-1), cle (recorder_key_id inattendu, C-3). Tous les
- * symptômes de la table 7.2 sont rapportés, pas seulement le premier : chaque
- * événement est contrôlé pour lui-même, puis chaque couple consécutif dans
- * l'ordre du fichier. La troncature de la fin du journal n'est pas détectable
- * par la chaîne seule (manifeste, P-3/P-4).
- * `clesPubliques` : voir normaliserCles ; sans clés, les signatures ne sont pas contrôlées.
+ * Première partie de E-8 sur le cles.json d'un journal, sans référence à un
+ * événement (CT-1 §7.2, révision 0.5) : schéma (`schemas` fourni), dates
+ * existantes, key_id et public_key uniques, valid_to >= valid_from. Rend la
+ * liste des erreurs.
  */
-export function verifierChaine(evenements, { clesPubliques } = {}) {
+export function verifierClesJournal(clesDoc, { schemas = null } = {}) {
+  if (!estObjet(clesDoc)) return ["cles.json : objet JSON attendu"];
+  const erreurs = [];
+  if (schemas?.[ID_SCHEMA_DOSSIER]) erreurs.push(...validerSchema(clesDoc, schemas[ID_SCHEMA_DOSSIER], { registre: schemas, fragment: "#/$defs/cles" }).map((e) => `${e.chemin} : ${e.message}`));
+  erreurs.push(...verifierCles(clesDoc, null));
+  return erreurs;
+}
+
+/**
+ * Vérifie un journal (CT-1 §7.2, règle exacte de la révision 0.5) : les
+ * événements dans l'ordre du fichier et le cles.json du journal. Diagnostics :
+ * { type, controle, seq, message }, rapportés en trois temps et dans cet ordre :
+ *
+ *   1. chaque événement pour lui-même, dans l'ordre du fichier : E-1 à E-11
+ *      (types de TYPES_SYMPTOMES), puis l'origine (prev_hash nul si et
+ *      seulement si seq = 1 : C-2, type origine). cles.json est lu d'abord :
+ *      s'il ne passe pas la première partie de E-8, un symptôme E-8 de type
+ *      cles et de seq nul est rapporté en tête et E-8 ne l'est pour aucun
+ *      événement ; sinon son org_id et son journal_id sont comparés à ceux de
+ *      chaque événement (écart : E-8, type signature) ;
+ *   2. la suite des seq sur tout le fichier (C-1), parmi les seq entiers :
+ *      insertion (seq présent plusieurs fois, ordre de première apparition),
+ *      suppression (trou de l'ensemble trié des seq distincts, seq qui suit le
+ *      trou, ordre croissant), reordonnancement (seq inférieur à celui de
+ *      l'événement qui le précède dans le fichier) ;
+ *   3. chaque couple consécutif (a, b) dans l'ordre du fichier : rupture
+ *      (b.prev_hash différent du hash recalculé de a, ou hash de a
+ *      incalculable, C-2), horodatage (ts de b antérieur à celui de a, ou
+ *      incomparable, C-1), journal (org_id ou journal_id différents, C-1), cle
+ *      (recorder_key_id de b différent de la clé attendue après a, C-3). Un
+ *      couple dont un élément n'est pas un objet n'est pas examiné.
+ *
+ * `clesPubliques` : le cles.json du journal (objet { org_id, journal_id, keys }),
+ * ou, hors de la règle exacte, une source de clés (voir normaliserCles) sans
+ * comparaison d'org_id ni de journal_id ; sans clés, E-8, E-10 (clés) et E-11
+ * ne sont pas exécutées. `schemas` : registre des schémas (E-1 et schéma de
+ * cles.json) ; sans lui, E-1 n'est pas exécutée. La troncature de la fin du
+ * journal n'est pas détectable par la chaîne seule (manifeste, P-3/P-4).
+ */
+export function verifierChaine(evenements, { clesPubliques, schemas = null } = {}) {
   const diagnostics = [];
   const dire = (type, controle, seq, message) => diagnostics.push({ type, controle, seq, message });
   if (!Array.isArray(evenements)) return { valide: false, diagnostics: [{ type: "format", controle: "E-1", seq: null, message: "tableau d'événements attendu" }] };
-  const cles = normaliserCles(clesPubliques);
-  const haches = new Map(); // position -> hash recalculé
-  const intacts = new Map();
+  const seqDe = (ev) => (estObjet(ev) && Number.isSafeInteger(ev.seq) ? ev.seq : null);
 
-  // 1. Chaque événement pour lui-même : hachage, signature, prev_hash nul ssi seq = 1.
+  // cles.json du journal, lu d'abord (première partie de E-8, sans événement).
+  const estClesJson = estObjet(clesPubliques) && Array.isArray(clesPubliques.keys) && ("org_id" in clesPubliques || "journal_id" in clesPubliques);
+  let clesExploitables = true;
+  if (estClesJson) {
+    const erreurs = verifierClesJournal(clesPubliques, { schemas });
+    if (erreurs.length) {
+      clesExploitables = false;
+      dire("cles", "E-8", null, `cles.json du journal : ${erreurs.slice(0, 4).join(" ; ")}`);
+    }
+  }
+  const cles = clesExploitables ? normaliserCles(clesPubliques) : new Map();
+  const haches = new Map(); // position -> hash recalculé (null : incalculable)
+
+  // 1. Chaque événement pour lui-même : E-1 à E-11, puis l'origine.
   evenements.forEach((ev, pos) => {
-    const seq = typeof ev?.seq === "number" ? ev.seq : null;
+    const seq = seqDe(ev);
+    const res = controlesEvenement(ev, { schemas, cles: clesExploitables ? clesPubliques : null, clesExploitables });
     let h = null;
-    try {
-      h = hachageEvenement(ev);
-    } catch (err) {
-      dire("format", "E-2", seq, `événement en position ${pos} sans forme canonique : ${err.message}`);
-      intacts.set(pos, false);
-      return;
+    if (estObjet(ev)) {
+      try {
+        h = hachageEvenement(ev);
+      } catch {
+        h = null;
+      }
     }
     haches.set(pos, h);
-    const intact = h === ev.hash;
-    intacts.set(pos, intact);
-    if (!intact) dire("modification", "E-7", seq, `seq ${seq} : hash recalculé ${h} différent de hash ${ev.hash} (contenu modifié après scellement)`);
-    if (cles.size > 0) {
-      const cle = cles.get(ev.recorder_key_id);
-      if (!cle) dire("signature", "E-8", seq, `seq ${seq} : clé ${ev.recorder_key_id} inconnue`);
-      else if (!verifierSignatureEvenement(ev, cle.public_key)) dire("signature", "E-8", seq, `seq ${seq} : signature invalide sous la clé ${ev.recorder_key_id}${intact ? "" : " (contenu modifié)"}`);
+    for (const id of ["E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11"]) {
+      const x = res[id];
+      const ecart = id === "E-8" && estClesJson && clesExploitables && estObjet(ev) && !defautFormeCanonique(ev) && (ev.org_id !== clesPubliques.org_id || ev.journal_id !== clesPubliques.journal_id);
+      const messages = [];
+      if (x && x.ok === false) messages.push(id === "E-7" ? `seq ${seq} : ${x.detail} (contenu modifié après scellement)` : id === "E-8" && /^signature invalide/.test(x.detail ?? "") ? `seq ${seq} : signature invalide sous la clé ${ev.recorder_key_id}${res["E-7"]?.ok === false ? " (contenu modifié)" : ""}` : `seq ${seq} : ${x.detail}`);
+      if (ecart) messages.unshift(`seq ${seq} : org_id ou journal_id de l'événement différents de ceux de cles.json du journal`);
+      if (messages.length) dire(TYPES_SYMPTOMES[id], id, seq, messages.join(" ; "));
     }
-    if (seq === 1 && ev.prev_hash !== HASH_NUL) dire("origine", "C-2", seq, "seq 1 : prev_hash doit être nul");
-    if (seq !== 1 && ev.prev_hash === HASH_NUL) dire("origine", "C-2", seq, `seq ${seq} : prev_hash nul réservé au premier événement`);
+    if (estObjet(ev)) {
+      if (ev.seq === 1 && ev.prev_hash !== HASH_NUL) dire("origine", "C-2", seq, "seq 1 : prev_hash doit être nul");
+      if (ev.seq !== 1 && ev.prev_hash === HASH_NUL) dire("origine", "C-2", seq, `seq ${seq} : prev_hash nul réservé au premier événement`);
+    }
   });
 
-  // 2. La suite des seq : doublons (insertion), trous (suppression), ordre (réordonnancement).
-  const seqs = evenements.map((ev) => ev?.seq);
+  // 2. La suite des seq sur tout le fichier : doublons (insertion), trous (suppression), ordre (réordonnancement).
+  const seqs = evenements.map(seqDe);
   const vus = new Map();
-  seqs.forEach((s, pos) => vus.set(s, [...(vus.get(s) ?? []), pos]));
+  seqs.forEach((s, pos) => {
+    if (s !== null) vus.set(s, [...(vus.get(s) ?? []), pos]);
+  });
   for (const [s, positions] of vus) if (positions.length > 1) dire("insertion", "C-1", s, `seq ${s} présent ${positions.length} fois (positions ${positions.join(", ")}) : événement inséré`);
-  const uniques = [...vus.keys()].filter((s) => Number.isInteger(s)).sort((a, b) => a - b);
+  const uniques = [...vus.keys()].sort((x, y) => x - y);
   for (let i = 1; i < uniques.length; i++) {
     if (uniques[i] !== uniques[i - 1] + 1) {
       const manquants = uniques[i] - uniques[i - 1] - 1;
       dire("suppression", "C-1", uniques[i], `trou entre seq ${uniques[i - 1]} et seq ${uniques[i]} : ${manquants} événement(s) supprimé(s)`);
     }
   }
-  for (let pos = 1; pos < seqs.length; pos++) {
-    if (Number.isInteger(seqs[pos]) && Number.isInteger(seqs[pos - 1]) && seqs[pos] < seqs[pos - 1]) {
-      dire("reordonnancement", "C-1", seqs[pos], `seq ${seqs[pos]} (position ${pos}) après seq ${seqs[pos - 1]} (position ${pos - 1}) : ordre du journal non respecté`);
+  // Révision 0.5 : « l'événement qui le précède » est le dernier événement à seq entier qui le précède dans le fichier.
+  let dernierEntier = null;
+  for (let pos = 0; pos < seqs.length; pos++) {
+    if (seqs[pos] === null) continue;
+    if (dernierEntier !== null && seqs[pos] < seqs[dernierEntier]) {
+      dire("reordonnancement", "C-1", seqs[pos], `seq ${seqs[pos]} (position ${pos}) après seq ${seqs[dernierEntier]} (position ${dernierEntier}) : ordre du journal non respecté`);
     }
+    dernierEntier = pos;
   }
 
-  // 3. Les liens, couple par couple dans l'ordre du fichier : prev_hash contre
-  // le hash recalculé du précédent (C-2), ts et journal (C-1), clé (C-3).
+  // 3. Les liens, couple par couple dans l'ordre du fichier. Révision 0.5 : un terme qui ne se calcule
+  // pas (événement qui n'est pas un objet, hash sans forme canonique, ts qui n'est pas une date existante,
+  // identifiant absent ou mal typé) ne tient pas la relation, qui est rapportée.
+  const texteOuAbsent = (v) => (typeof v === "string" ? v : JSON.stringify(v) ?? "absent");
   for (let pos = 1; pos < evenements.length; pos++) {
-    const prec = evenements[pos - 1];
-    const ev = evenements[pos];
-    if (!prec || typeof prec !== "object" || !ev || typeof ev !== "object") continue;
+    const prec = estObjet(evenements[pos - 1]) ? evenements[pos - 1] : {};
+    const ev = estObjet(evenements[pos]) ? evenements[pos] : {};
+    const seq = seqDe(evenements[pos]);
+    const seqPrec = estObjet(evenements[pos - 1]) ? JSON.stringify(evenements[pos - 1].seq) : `(position ${pos - 1}, pas un objet)`;
     const hp = haches.get(pos - 1);
-    if (hp && ev.prev_hash !== hp) dire("rupture", "C-2", ev.seq, `seq ${ev.seq} (position ${pos}) : prev_hash ${ev.prev_hash} différent du hash recalculé de l'événement précédent dans le fichier, seq ${prec.seq} (${hp})`);
+    if (hp === null) dire("rupture", "C-2", seq, `seq ${seq} (position ${pos}) : hash de l'événement précédent dans le fichier incalculable (${estObjet(evenements[pos - 1]) ? "sans forme canonique" : "pas un objet"}) : chaînage non établi`);
+    else if (ev.prev_hash !== hp) dire("rupture", "C-2", seq, `seq ${seq} (position ${pos}) : prev_hash ${texteOuAbsent(ev.prev_hash)} différent du hash recalculé de l'événement précédent dans le fichier, seq ${seqPrec} (${hp})`);
     const t0 = msHorodatage(prec.ts);
     const t1 = msHorodatage(ev.ts);
-    if (!Number.isNaN(t0) && !Number.isNaN(t1) && t1 < t0) dire("horodatage", "C-1", ev.seq, `seq ${ev.seq} : ts ${ev.ts} antérieur à celui de seq ${prec.seq} (${prec.ts})`);
-    if (ev.org_id !== prec.org_id || ev.journal_id !== prec.journal_id) dire("journal", "C-1", ev.seq, `seq ${ev.seq} : org_id ou journal_id différents de seq ${prec.seq}`);
-    const attendue = cleSuivanteAttendue(prec);
-    if (ev.recorder_key_id !== attendue) dire("cle", "C-3", ev.seq, `seq ${ev.seq} : recorder_key_id ${ev.recorder_key_id}, attendu ${attendue}${estRotation(prec) ? " (rotation en seq " + prec.seq + ")" : ""}`);
+    if (Number.isNaN(t0) || Number.isNaN(t1)) dire("horodatage", "C-1", seq, `seq ${seq} : ts ${texteOuAbsent(ev.ts)} incomparable à celui de seq ${seqPrec} (${texteOuAbsent(prec.ts)}) : horodatage qui n'est pas une date existante`);
+    else if (t1 < t0) dire("horodatage", "C-1", seq, `seq ${seq} : ts ${ev.ts} antérieur à celui de seq ${seqPrec} (${prec.ts})`);
+    const idsLisibles = ["org_id", "journal_id"].every((k) => typeof ev[k] === "string" && typeof prec[k] === "string");
+    if (!idsLisibles || ev.org_id !== prec.org_id || ev.journal_id !== prec.journal_id) dire("journal", "C-1", seq, idsLisibles ? `seq ${seq} : org_id ou journal_id différents de seq ${seqPrec}` : `seq ${seq} : org_id ou journal_id absent ou mal typé (seq ${seq} ou seq ${seqPrec})`);
+    const attendue = estObjet(evenements[pos - 1]) ? cleSuivanteAttendue(prec) : undefined;
+    if (typeof attendue !== "string" || ev.recorder_key_id !== attendue) dire("cle", "C-3", seq, `seq ${seq} : recorder_key_id ${texteOuAbsent(ev.recorder_key_id)}, attendu ${texteOuAbsent(attendue)}${estObjet(evenements[pos - 1]) && estRotation(prec) ? " (rotation en seq " + prec.seq + ")" : ""}`);
   }
   return { valide: diagnostics.length === 0, diagnostics };
 }
@@ -1442,82 +1627,170 @@ export function verifierPointDeControle(p) {
 }
 
 /**
- * Clé de l'enregistreur en vigueur pour un point (CT-1 §10.5, règle 5) : la clé
- * du dernier événement de seq <= last_seq, ou new_key_id si cet événement est
- * une rotation ; null si aucun événement ne précède. `evenements` : les
- * événements du journal (tout ou partie), dans n'importe quel ordre.
+ * Clé de l'enregistreur en vigueur pour un point (CT-1 §10.5, règle 5, règle
+ * exacte de la révision 0.5). Quand l'événement de seq = last_seq est parmi
+ * `evenements` : son new_key_id s'il est une rotation, sinon son
+ * recorder_key_id. Sinon (last_seq = 0, journal encore vide, ou événement non
+ * fourni) : la règle de la section 10.1 appliquée à `cles` (cles.json, tableau
+ * de clés ou Map de normaliserCles) — la clé de plus grand valid_from
+ * inférieur ou égal à `checkpoint_ts` (instants décodés), la dernière dans
+ * l'ordre de keys en cas d'égalité. Rend null si aucune clé ne remplit la
+ * condition, ou si `cles` ou `checkpoint_ts` manquent. Un événement de seq
+ * inférieur à last_seq ne remplace jamais l'événement last_seq manquant.
  */
-export function cleEnVigueurPoint(evenements, last_seq) {
-  let dernier = null;
-  for (const ev of evenements ?? []) if (estObjet(ev) && Number.isSafeInteger(ev.seq) && ev.seq <= last_seq && (!dernier || ev.seq > dernier.seq)) dernier = ev;
-  return dernier ? cleSuivanteAttendue(dernier) : null;
+export function cleEnVigueurPoint(evenements, last_seq, { cles = null, checkpoint_ts = null } = {}) {
+  const ev = Number.isSafeInteger(last_seq) && last_seq >= 1 ? (evenements ?? []).find((e) => estObjet(e) && e.seq === last_seq) : undefined;
+  if (ev) return cleSuivanteAttendue(ev);
+  if (!cles || typeof checkpoint_ts !== "string") return null;
+  const t = msHorodatage(checkpoint_ts);
+  if (Number.isNaN(t)) return null;
+  const liste = cles instanceof Map ? [...cles.entries()].map(([key_id, k]) => ({ key_id, ...k })) : Array.isArray(cles) ? cles : Array.isArray(cles.keys) ? cles.keys : [];
+  let choisie = null;
+  let meilleur = -Infinity;
+  for (const k of liste) {
+    if (!estObjet(k) || typeof k.key_id !== "string") continue;
+    const de = msHorodatage(k.valid_from);
+    if (Number.isNaN(de) || de > t) continue;
+    if (de >= meilleur) {
+      meilleur = de;
+      choisie = k.key_id;
+    }
+  }
+  return choisie;
 }
 
 /**
- * Règles de série d'une période (CT-1 §10.5, règles 2 à 5), hors dossier : rend
- * { valide, erreurs }. `manifeste` : le manifeste de la période ; `evenements`
- * (facultatif) : les événements du journal, pour la règle 5 (clé en vigueur) et
- * la règle 2 (last_hash et root recalculés depuis les hash) ; `cles`
- * (facultatif) : { keys } ou Map de normaliserCles, pour les signatures et la
- * validité annoncée de la clé à checkpoint_ts.
+ * Règles de série d'une période (CT-1 §10.5, règles 2 à 5 ; révision 0.5 pour
+ * root, last_hash et la clé en vigueur quand des événements manquent), hors
+ * dossier. `manifeste` : le manifeste de la période ; `evenements` : les
+ * événements fournis (tout ou partie du journal) ; `cles` : cles.json (ou
+ * { keys }, ou Map de normaliserCles), pour les signatures, la validité de la
+ * clé à checkpoint_ts et la clé en vigueur quand l'événement last_seq manque.
+ * Chaque règle est évaluée point par point. root (n >= 1) et last_hash
+ * (last_seq >= 1) exigent les événements qu'elles nomment : un événement non
+ * fourni rend la règle non évaluée pour ce point (piece_hors_dossier), un
+ * événement fourni sans forme canonique aussi (prerequis_en_echec) ; jamais
+ * violée, et 32 octets nuls ne remplacent jamais un événement manquant. Rend
+ * { valide, erreurs, rules_failed, rules_not_evaluated } : `erreurs` (messages)
+ * et `rules_failed` (noms de règles, ordre de première apparition) pour les
+ * règles violées ; `rules_not_evaluated`, liste de { rule, reason } distincts ;
+ * `valide` exige les deux listes vides.
  */
-export function verifierSeriePointsDeControle(points, manifeste, { evenements = null, cles = null } = {}) {
-  const erreurs = [];
-  if (!Array.isArray(points) || points.length === 0) return { valide: false, erreurs: ["série vide"] };
-  const jeu = cles instanceof Map ? cles : cles ? normaliserCles(cles) : null;
-  const evs = Array.isArray(evenements) ? evenements.filter((e) => estObjet(e) && Number.isSafeInteger(e.seq)) : null;
-  const parSeq = evs ? new Map(evs.map((e) => [e.seq, e])) : null;
-  const hashesPeriode = evs ? evs.filter((e) => manifeste.first_seq <= e.seq && e.seq <= manifeste.last_seq).sort((a, b) => a.seq - b.seq).map((e) => e.hash) : null;
+export const REGLES_SERIE = Object.freeze(["chainage", "tree_size_decroissant", "checkpoint_ts_decroissant", "period_start", "root", "last_seq", "last_hash", "dernier_point", "cle_en_vigueur", "signature", "validite_cle"]);
+const RAISONS_SERIE = ["prerequis_en_echec", "piece_hors_dossier"];
+
+export function verifierSeriePointsDeControle(points, manifeste, { evenements = null, cles = null, schemas = null } = {}) {
+  const ecarts = [];
+  const nonEvaluees = [];
+  const ecart = (regle, message) => ecarts.push({ regle, message });
+  const nonEvaluee = (rule, reason) => {
+    if (!nonEvaluees.some((x) => x.rule === rule && x.reason === reason)) nonEvaluees.push({ rule, reason });
+  };
+  // Révision 0.5 : une entrée par règle violée, une par couple (règle, raison), dans l'ordre des noms de
+  // règle de CT-1 §10.5, puis prerequis_en_echec avant piece_hors_dossier ; une règle violée pour un point
+  // n'est pas aussi non évaluée pour lui (elle peut l'être pour un autre point).
+  const fin = () => {
+    const rules_failed = REGLES_SERIE.filter((r) => ecarts.some((e) => e.regle === r));
+    const rules_not_evaluated = [...nonEvaluees].sort((a, b) => REGLES_SERIE.indexOf(a.rule) - REGLES_SERIE.indexOf(b.rule) || RAISONS_SERIE.indexOf(a.reason) - RAISONS_SERIE.indexOf(b.reason));
+    return { valide: ecarts.length === 0 && nonEvaluees.length === 0, erreurs: ecarts.map((e) => e.message), rules_failed, rules_not_evaluated };
+  };
+  if (!Array.isArray(points) || points.length === 0) {
+    ecart("dernier_point", "série vide");
+    return fin();
+  }
+  // cles.json (révision 0.5) : signature, validite_cle et, quand l'événement last_seq n'est pas fourni,
+  // cle_en_vigueur le lisent ; absent : non évaluées (piece_hors_dossier) ; qui ne passe pas la première
+  // partie de E-8 sans référence à un événement : non évaluées (prerequis_en_echec) ; jamais violées alors.
+  let raisonCles = null;
+  if (cles === null || cles === undefined) raisonCles = "piece_hors_dossier";
+  else if (!(cles instanceof Map) && verifierClesJournal(Array.isArray(cles) ? { keys: cles } : cles, { schemas }).length) raisonCles = "prerequis_en_echec";
+  const jeu = raisonCles ? null : cles instanceof Map ? cles : normaliserCles(cles);
+  // Événements fournis, par seq (le premier en cas de doublon), avec leur hash recalculé (null : sans forme canonique).
+  const fournis = new Map();
+  for (const e of Array.isArray(evenements) ? evenements : []) {
+    if (!estObjet(e) || !Number.isSafeInteger(e.seq) || fournis.has(e.seq)) continue;
+    let h = null;
+    try {
+      h = hachageEvenement(e);
+    } catch {
+      h = null;
+    }
+    fournis.set(e.seq, { ev: e, h });
+  }
+  const listeEvenements = [...fournis.values()].map((x) => x.ev);
   let precedent = null;
   points.forEach((p, i) => {
     const ou = `point[${i}]`;
     const internes = verifierPointDeControle(p);
     if (internes.length) {
-      erreurs.push(`${ou} : ${internes.join(" ; ")}`);
+      for (const m of internes) ecart(/racine/.test(m) ? "root" : "period_start", `${ou} : ${m}`);
       precedent = p;
       return;
     }
-    if (p.org_id !== manifeste.org_id || p.journal_id !== manifeste.journal_id) erreurs.push(`${ou} : org_id ou journal_id différents du manifeste`);
-    if (p.period_start !== manifeste.period_start) erreurs.push(`${ou} : period_start ${p.period_start} différent de celui du manifeste ${manifeste.period_start}`);
-    if (p.tree_size > manifeste.count) erreurs.push(`${ou} : tree_size ${p.tree_size} supérieur à count ${manifeste.count}`);
-    if (p.last_seq !== manifeste.first_seq + p.tree_size - 1) erreurs.push(`${ou} : last_seq ${p.last_seq} différent de first_seq + tree_size - 1 (${manifeste.first_seq + p.tree_size - 1})`);
-    if (Math.floor(msHorodatage(p.checkpoint_ts) / 1000) < manifeste.period_start) erreurs.push(`${ou} : checkpoint_ts ${p.checkpoint_ts} antérieur à period_start`);
+    if (p.org_id !== manifeste.org_id || p.journal_id !== manifeste.journal_id) ecart("period_start", `${ou} : org_id ou journal_id différents du manifeste`);
+    if (p.period_start !== manifeste.period_start) ecart("period_start", `${ou} : period_start ${p.period_start} différent de celui du manifeste ${manifeste.period_start}`);
+    if (p.tree_size > manifeste.count) ecart("last_seq", `${ou} : tree_size ${p.tree_size} supérieur à count ${manifeste.count}`);
+    if (p.last_seq !== manifeste.first_seq + p.tree_size - 1) ecart("last_seq", `${ou} : last_seq ${p.last_seq} différent de first_seq + tree_size - 1 (${manifeste.first_seq + p.tree_size - 1})`);
+    if (Math.floor(msHorodatage(p.checkpoint_ts) / 1000) < manifeste.period_start) ecart("period_start", `${ou} : checkpoint_ts ${p.checkpoint_ts} antérieur à period_start`);
     const attenduPrev = precedent ? hachagePointDeControle(precedent) : HASH_NUL;
-    if (p.prev_checkpoint_hash !== attenduPrev) erreurs.push(`${ou} : prev_checkpoint_hash ${p.prev_checkpoint_hash} différent de ${precedent ? "checkpointHash du point précédent " + attenduPrev : "32 octets nuls (premier point de la période)"}`);
+    if (p.prev_checkpoint_hash !== attenduPrev) ecart("chainage", `${ou} : prev_checkpoint_hash ${p.prev_checkpoint_hash} différent de ${precedent ? "checkpointHash du point précédent " + attenduPrev : "32 octets nuls (premier point de la période)"}`);
     if (precedent) {
-      if (p.tree_size < precedent.tree_size) erreurs.push(`${ou} : tree_size ${p.tree_size} décroît (précédent ${precedent.tree_size})`);
-      if (msHorodatage(p.checkpoint_ts) < msHorodatage(precedent.checkpoint_ts)) erreurs.push(`${ou} : checkpoint_ts ${p.checkpoint_ts} antérieur au précédent ${precedent.checkpoint_ts}`);
+      if (p.tree_size < precedent.tree_size) ecart("tree_size_decroissant", `${ou} : tree_size ${p.tree_size} décroît (précédent ${precedent.tree_size})`);
+      if (msHorodatage(p.checkpoint_ts) < msHorodatage(precedent.checkpoint_ts)) ecart("checkpoint_ts_decroissant", `${ou} : checkpoint_ts ${p.checkpoint_ts} antérieur au précédent ${precedent.checkpoint_ts}`);
     }
-    if (hashesPeriode && hashesPeriode.length === manifeste.count) {
-      const root = racineMerkle(hashesPeriode.slice(0, p.tree_size));
-      if (p.root !== root) erreurs.push(`${ou} : root ${p.root} différent de la racine recalculée ${root}`);
-      const attenduLast = p.tree_size > 0 ? hashesPeriode[p.tree_size - 1] : (parSeq.get(manifeste.first_seq - 1)?.hash ?? HASH_NUL);
-      if (p.last_hash !== attenduLast) erreurs.push(`${ou} : last_hash ${p.last_hash} différent du hash de l'événement ${p.last_seq} (${attenduLast})`);
-    }
-    if (evs) {
-      const attendue = cleEnVigueurPoint(evs, p.last_seq);
-      if (attendue !== null && p.key_id !== attendue) erreurs.push(`${ou} : key_id ${p.key_id}, clé en vigueur attendue ${attendue}`);
-    }
-    if (jeu) {
-      const cle = jeu.get(p.key_id);
-      if (!cle) erreurs.push(`${ou} : clé ${p.key_id} absente du jeu de clés`);
+    // root : n = 0, 32 octets nuls (règle interne du point) ; n >= 1, les événements first_seq .. first_seq + n - 1.
+    if (p.tree_size >= 1) {
+      // Les événements first_seq à first_seq + n − 1, même au-delà de count (la règle last_seq porte cet écart) ;
+      // au plus jusqu'au plus grand seq fourni, les suivants manquant de toute façon.
+      const derniere = manifeste.first_seq + p.tree_size - 1;
+      const borne = Math.min(derniere, fournis.size ? Math.max(...fournis.keys()) : manifeste.first_seq - 1);
+      const lus = [];
+      for (let s = manifeste.first_seq; s <= borne; s++) lus.push(fournis.get(s));
+      const manque = borne < derniere || lus.some((x) => x === undefined);
+      if (lus.some((x) => x !== undefined && x.h === null)) nonEvaluee("root", "prerequis_en_echec");
+      else if (manque) nonEvaluee("root", "piece_hors_dossier");
       else {
-        if (!verifierSignaturePointDeControle(p, cle.public_key)) erreurs.push(`${ou} : signature invalide sous ${p.key_id}`);
+        const root = racineMerkle(lus.map((x) => x.h));
+        if (p.root !== root) ecart("root", `${ou} : root ${p.root} différent de la racine recalculée ${root}`);
+      }
+    }
+    // last_hash : last_seq = 0, 32 octets nuls ; sinon l'événement last_seq, même quand il appartient à la période précédente (n = 0).
+    if (p.last_seq === 0) {
+      if (p.last_hash !== HASH_NUL) ecart("last_hash", `${ou} : last_hash ${p.last_hash} différent de 32 octets nuls (last_seq = 0, journal vide)`);
+    } else {
+      const cible = fournis.get(p.last_seq);
+      if (!cible) nonEvaluee("last_hash", "piece_hors_dossier");
+      else if (cible.h === null) nonEvaluee("last_hash", "prerequis_en_echec");
+      else if (p.last_hash !== cible.h) ecart("last_hash", `${ou} : last_hash ${p.last_hash} différent du hash de l'événement ${p.last_seq} (${cible.h})`);
+    }
+    if ((p.last_seq >= 1 && fournis.has(p.last_seq)) || jeu) {
+      const attendue = cleEnVigueurPoint(listeEvenements, p.last_seq, { cles: jeu, checkpoint_ts: p.checkpoint_ts });
+      if (attendue === null) ecart("cle_en_vigueur", `${ou} : key_id ${p.key_id}, aucune clé en vigueur à ${p.checkpoint_ts}`);
+      else if (p.key_id !== attendue) ecart("cle_en_vigueur", `${ou} : key_id ${p.key_id}, clé en vigueur attendue ${attendue}`);
+    } else nonEvaluee("cle_en_vigueur", raisonCles);
+    if (!jeu) {
+      nonEvaluee("signature", raisonCles);
+      nonEvaluee("validite_cle", raisonCles);
+    } else {
+      const cle = jeu.get(p.key_id);
+      if (!cle) ecart("signature", `${ou} : clé ${p.key_id} absente du jeu de clés`);
+      else {
+        if (!verifierSignaturePointDeControle(p, cle.public_key)) ecart("signature", `${ou} : signature invalide sous ${p.key_id}`);
         const t = msHorodatage(p.checkpoint_ts);
         const de = cle.valid_from === null ? -Infinity : msHorodatage(cle.valid_from);
         const a = cle.valid_to === null ? Infinity : msHorodatage(cle.valid_to);
-        if (!(t >= de && t <= a)) erreurs.push(`${ou} : checkpoint_ts ${p.checkpoint_ts} hors de la validité de la clé ${p.key_id}`);
+        if (!(t >= de && t <= a)) ecart("validite_cle", `${ou} : checkpoint_ts ${p.checkpoint_ts} hors de la validité de la clé ${p.key_id}`);
       }
     }
     precedent = p;
   });
   const dernier = points[points.length - 1];
   if (estObjet(dernier)) {
-    if (dernier.tree_size !== manifeste.count) erreurs.push(`dernier point : tree_size ${dernier.tree_size} différent de count ${manifeste.count}`);
-    if (dernier.root !== manifeste.root) erreurs.push(`dernier point : root ${dernier.root} différent de celui du manifeste`);
-    if (dernier.last_seq !== manifeste.last_seq) erreurs.push(`dernier point : last_seq ${dernier.last_seq} différent de celui du manifeste ${manifeste.last_seq}`);
+    if (dernier.tree_size !== manifeste.count) ecart("dernier_point", `dernier point : tree_size ${dernier.tree_size} différent de count ${manifeste.count}`);
+    if (dernier.root !== manifeste.root) ecart("dernier_point", `dernier point : root ${dernier.root} différent de celui du manifeste`);
+    if (dernier.last_seq !== manifeste.last_seq) ecart("dernier_point", `dernier point : last_seq ${dernier.last_seq} différent de celui du manifeste ${manifeste.last_seq}`);
   }
-  return { valide: erreurs.length === 0, erreurs };
+  return fin();
 }
 
 /**
@@ -1776,68 +2049,123 @@ function resumerErreurs(erreurs, max = 4) {
 // Contrôles d'un événement pris seul (E-1 à E-11)
 // ---------------------------------------------------------------------------
 
-function outilsCoherents(ev) {
-  const erreurs = [];
-  const ex = ev.execution ?? {};
-  const outil = ex.tool;
-  const refs = (o) => o && typeof o === "object";
-  if (estOutilReserve(outil) && !OUTILS_RESERVES.includes(outil)) erreurs.push(`outil réservé inconnu : ${outil}`);
-  const sansObjet = ev.policy?.decision === "sans_objet";
-  if (estOutilReserve(outil)) {
-    if (!sansObjet) erreurs.push(`policy.decision doit valoir sans_objet pour ${outil}`);
-    if (ex.status !== "executee") erreurs.push(`execution.status doit valoir executee pour ${outil}`);
-    if (outil !== OUTIL_MODELE && ex.result !== null) erreurs.push(`execution.result doit être null pour ${outil}`);
-    if (outil !== OUTIL_MODELE && ev.intent !== null) erreurs.push(`intent doit être null pour ${outil}`);
-    if (outil !== OUTIL_MODELE && (ex.duration_ms !== null || ex.is_error !== null)) erreurs.push(`duration_ms et is_error doivent être null pour ${outil}`);
-  } else if (!sansObjet || ev.policy?.decision === undefined) {
-    // Appel d'outil réel : les trois sorties de la politique, cohérentes avec le statut et l'approbation.
-    const dec = ev.policy?.decision;
-    const app = ev.approval;
-    if (!["autorise", "a_approuver", "refuse"].includes(dec)) erreurs.push(`policy.decision ${JSON.stringify(dec)} invalide pour un appel d'outil`);
-    if (ex.status === "retenue" && (dec !== "a_approuver" || app !== null)) erreurs.push("appel retenu : policy.decision doit valoir a_approuver sans approbation liée");
-    if (ex.status === "executee" && app === null && dec !== "autorise") erreurs.push("appel exécuté sans approbation : policy.decision doit valoir autorise");
-    if (ex.status === "executee" && app !== null && (app?.decision !== "approuve" || dec !== "a_approuver")) erreurs.push("appel exécuté après approbation : approval.decision approuve et policy.decision a_approuver attendus");
-    if (ex.status === "refusee" && !(dec === "refuse" || (app && ["refuse", "expire"].includes(app.decision)))) erreurs.push("appel refusé : policy.decision refuse, ou approbation refusée ou expirée, attendus");
-  } else {
-    erreurs.push("policy.decision sans_objet réservé aux événements qui ne sont pas des appels d'outil");
+/**
+ * Les blancs de la « chaîne non vide » de CT-1 §3 (révision 0.5) : propriété
+ * Unicode White_Space et U+FEFF. U+0085 et U+FEFF y sont, à la différence de
+ * String.prototype.trim (sans U+0085) et de strings.TrimSpace de Go (sans U+FEFF).
+ */
+const BLANCS_CT1 = new Set([0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0x85, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff]);
+/** Chaîne non vide au sens de CT-1 §3 : une chaîne qui contient au moins un caractère qui n'est pas un blanc. */
+export function estChaineNonVide(v) {
+  if (typeof v !== "string") return false;
+  for (const c of v) if (!BLANCS_CT1.has(c.codePointAt(0))) return true;
+  return false;
+}
+
+/** Vrai si `v` est un entier JSON de l'intervalle sûr supérieur ou égal à 0. */
+const entierNaturel = (v) => Number.isSafeInteger(v) && v >= 0;
+/** Même forme canonique (CT-1 §4) ; faux si l'une des deux n'en a pas. */
+function memeFormeCanonique(a, b) {
+  try {
+    return canonicaliserJCS(a) === canonicaliserJCS(b);
+  } catch {
+    return false;
   }
-  switch (outil) {
-    case OUTIL_MODELE:
-      // Table 5.3 : l'échange avec le modèle porte la référence à la réponse, la durée et le drapeau d'erreur.
-      if (ev.approval !== null) erreurs.push("approval doit être null pour un échange avec le modèle");
-      if (!refs(ex.result)) erreurs.push("execution.result doit référencer la réponse du modèle");
-      if (!Number.isSafeInteger(ex.duration_ms) || ex.duration_ms < 0) erreurs.push("execution.duration_ms doit être un entier >= 0 pour un échange avec le modèle");
-      if (typeof ex.is_error !== "boolean") erreurs.push("execution.is_error doit être un booléen pour un échange avec le modèle");
-      break;
-    case OUTIL_APPROBATION: {
-      if (!refs(ev.approval)) erreurs.push("approval obligatoire pour une décision d'approbation");
-      if (!refs(ex.arguments) || ex.arguments.value === undefined) erreurs.push("execution.arguments.value (objet signé A) obligatoire");
-      else if (refs(ev.approval) && !egalJSON(ex.arguments.value, objetApprobation(ev))) erreurs.push("execution.arguments.value différent de A = { decision, journal_id, org_id, request_hash, ticket }");
-      if (refs(ev.approval) && ev.policy?.ticket !== ev.approval.ticket) erreurs.push("policy.ticket différent de approval.ticket");
-      if (Array.isArray(ev.effects) && ev.effects.length) erreurs.push("effects doit être vide pour une décision d'approbation");
-      break;
+}
+
+/**
+ * Profondeur d'une valeur JSON déjà lue (CT-1 §4, règle 7) : objets et tableaux
+ * imbriqués, la valeur comprise ; parcours itératif, sans récursion.
+ */
+export function profondeurValeur(valeur) {
+  let max = 0;
+  const pile = [[valeur, 1]];
+  while (pile.length) {
+    const [v, p] = pile.pop();
+    if (v === null || typeof v !== "object") continue;
+    if (p > max) max = p;
+    for (const x of Array.isArray(v) ? v : Object.values(v)) if (x !== null && typeof x === "object") pile.push([x, p + 1]);
+  }
+  return max;
+}
+
+/** Effet unique d'une rotation (CT-1 §8, règle 4), pour un new_key_id lu dans l'annonce. */
+const effetRotation = (new_key_id) => ({ system: "noortrace", action: "ecriture", object: `cle:${new_key_id}`, amount: null, currency: null });
+
+/**
+ * E-3 : la règle exacte de CT-1 §5.3 (révision 0.5, « Cohérence avec la
+ * sorte »). Rend la liste des règles non tenues (vide si E-3 réussit). Une
+ * valeur absente, ou d'un autre type que celui que la règle nomme, ne la tient
+ * pas. `policy.rule` et `policy.ticket` relèvent du schéma (E-1) et
+ * `approval.ticket = policy.ticket` de E-5 seule.
+ */
+export function regleE3(ev) {
+  const erreurs = [];
+  const ex = estObjet(ev?.execution) ? ev.execution : {};
+  const outil = ex.tool;
+  // Révision 0.5 (CT-1 §11.4, « Autres termes mal typés ») : execution.tool qui n'est pas une chaîne, la sorte ne se lit pas.
+  if (typeof outil !== "string") return [`execution.tool ${JSON.stringify(outil) ?? "absent"} qui n'est pas une chaîne : sorte de l'événement illisible`];
+  // Un nom en noortrace. hors des quatre noms réservés : échec, et aucune autre règle de E-3.
+  if (estOutilReserve(outil) && !OUTILS_RESERVES.includes(outil)) return [`outil réservé inconnu : ${outil}`];
+  const pol = estObjet(ev?.policy) ? ev.policy : {};
+  const dec = pol.decision;
+  const app = ev?.approval;
+  const statut = ex.status;
+  const effetsVides = Array.isArray(ev?.effects) && ev.effects.length === 0;
+  const sortiesExecutee = () => {
+    if (!estObjet(ex.result)) erreurs.push("execution.result doit être une référence");
+    if (!entierNaturel(ex.duration_ms)) erreurs.push("execution.duration_ms doit être un entier >= 0");
+    if (typeof ex.is_error !== "boolean") erreurs.push("execution.is_error doit être un booléen");
+  };
+  if (!estOutilReserve(outil)) {
+    // Règle 1 : appel d'outil.
+    if (!["autorise", "a_approuver", "refuse"].includes(dec)) erreurs.push(`policy.decision ${JSON.stringify(dec)} invalide pour un appel d'outil (autorise, a_approuver ou refuse)`);
+    if (app !== null && dec !== "a_approuver") erreurs.push("approval non nul alors que policy.decision ne vaut pas a_approuver");
+    if (statut === "retenue") {
+      if (dec !== "a_approuver" || app !== null) erreurs.push("appel retenu : policy.decision a_approuver et approval nul attendus");
+    } else if (statut === "executee") {
+      if (!(dec === "autorise" || (dec === "a_approuver" && estObjet(app) && app.decision === "approuve"))) erreurs.push("appel exécuté : policy.decision autorise, ou a_approuver avec approval.decision approuve, attendus");
+    } else if (statut === "refusee") {
+      if (!(dec === "refuse" || (dec === "a_approuver" && estObjet(app) && (app.decision === "refuse" || app.decision === "expire")))) erreurs.push("appel refusé : policy.decision refuse, ou a_approuver avec approval.decision refuse ou expire, attendus");
+    } else erreurs.push(`execution.status ${JSON.stringify(statut)} invalide pour un appel d'outil`);
+    if (statut === "executee") sortiesExecutee();
+    else if (statut === "retenue" || statut === "refusee") {
+      if (ex.result !== null || ex.duration_ms !== null || ex.is_error !== null) erreurs.push(`appel ${statut} : execution.result, duration_ms et is_error doivent être null`);
+      if (!effetsVides) erreurs.push(`appel ${statut} : effects doit être vide (un appel qui n'a pas été relayé n'a pas d'effet)`);
     }
-    case OUTIL_ROTATION: {
-      if (ev.approval !== null) erreurs.push("approval doit être null pour une rotation");
-      const val = refs(ex.arguments) ? ex.arguments.value : undefined;
-      const attendues = ["journal_id", "new_key_id", "new_public_key", "old_key_id", "org_id", "valid_from", "counter_sig"];
-      if (!refs(val)) erreurs.push("execution.arguments.value (annonce de rotation) obligatoire");
-      else {
-        const cles = Object.keys(val).sort();
-        if (!egalJSON(cles, [...attendues].sort())) erreurs.push(`annonce de rotation : clés ${JSON.stringify(cles)}, attendues ${JSON.stringify([...attendues].sort())}`);
-      }
-      const effet = { system: "noortrace", action: "ecriture", object: `cle:${val?.new_key_id}`, amount: null, currency: null };
-      if (!Array.isArray(ev.effects) || ev.effects.length !== 1 || !egalJSON(ev.effects[0], effet)) erreurs.push(`effects d'une rotation : exactement ${JSON.stringify(effet)}`);
-      break;
-    }
-    case OUTIL_POLITIQUE: {
-      if (ev.approval !== null) erreurs.push("approval doit être null pour un changement de politique");
-      const val = refs(ex.arguments) ? ex.arguments.value : undefined;
-      if (!refs(val) || typeof val.policy_version !== "string" || !estHex32(val.policy_sha256) || Object.keys(val).length !== 2) erreurs.push("execution.arguments.value doit être { policy_version, policy_sha256 }");
-      break;
-    }
-    default:
-      break;
+    return erreurs;
+  }
+  if (dec !== "sans_objet") erreurs.push(`policy.decision doit valoir sans_objet pour ${outil}`);
+  if (statut !== "executee") erreurs.push(`execution.status doit valoir executee pour ${outil}`);
+  if (outil === OUTIL_MODELE) {
+    // Règle 2 : échange avec le modèle.
+    if (app !== null) erreurs.push("approval doit être null pour un échange avec le modèle");
+    sortiesExecutee();
+    return erreurs;
+  }
+  // Règle 3 : décision d'approbation, rotation de clé, changement de politique.
+  if (ex.result !== null || ex.duration_ms !== null || ex.is_error !== null) erreurs.push(`execution.result, duration_ms et is_error doivent être null pour ${outil}`);
+  if (ev?.intent !== null) erreurs.push(`intent doit être null pour ${outil}`);
+  const aValeur = estObjet(ex.arguments) && Object.hasOwn(ex.arguments, "value");
+  if (!aValeur) erreurs.push("execution.arguments doit porter un membre value (référence en ligne)");
+  const val = aValeur ? ex.arguments.value : undefined;
+  const lanceParEnregistreur = () => {
+    if (!estObjet(ev?.delegation) || ev.delegation.launched_by !== "noortrace-enregistreur") erreurs.push(`delegation.launched_by doit valoir noortrace-enregistreur pour ${outil}`);
+  };
+  if (outil === OUTIL_APPROBATION) {
+    if (!estObjet(app)) erreurs.push("approval doit être un objet pour une décision d'approbation");
+    else if (aValeur && !memeFormeCanonique(val, objetApprobation(ev))) erreurs.push("execution.arguments.value différent de A = { decision, journal_id, org_id, request_hash, ticket } (forme canonique)");
+    if (!effetsVides) erreurs.push("effects doit être vide pour une décision d'approbation");
+  } else if (outil === OUTIL_ROTATION) {
+    if (app !== null) erreurs.push("approval doit être null pour une rotation");
+    lanceParEnregistreur();
+    if (!estObjet(val) || typeof val.new_key_id !== "string") erreurs.push("effects d'une rotation : new_key_id introuvable dans execution.arguments.value");
+    else if (!Array.isArray(ev?.effects) || ev.effects.length !== 1 || !memeFormeCanonique(ev.effects[0], effetRotation(val.new_key_id))) erreurs.push(`effects d'une rotation : exactement ${JSON.stringify([effetRotation(val.new_key_id)])}`);
+  } else if (outil === OUTIL_POLITIQUE) {
+    if (app !== null) erreurs.push("approval doit être null pour un changement de politique");
+    lanceParEnregistreur();
+    const longueur = typeof val?.policy_version === "string" ? [...val.policy_version].length : 0;
+    if (!estObjet(val) || Object.keys(val).length !== 2 || longueur < 1 || longueur > 128 || !estHex32(val.policy_sha256)) erreurs.push("execution.arguments.value doit être { policy_version (chaîne de 1 à 128 caractères), policy_sha256 (32 octets) }, exactement");
   }
   return erreurs;
 }
@@ -1846,17 +2174,32 @@ function outilsCoherents(ev) {
  * Les contrôles E-1 à E-11 sur un événement pris seul. `schemas` : registre de
  * schémas (registreSchemas) ; sans registre, E-1 n'est pas exécuté. `cles` :
  * clés publiques (voir normaliserCles) ; sans clés, E-8, E-10 (clé annoncée) et
- * E-11 ne sont pas exécutés. Rend un objet id -> { ok, execute, detail }.
+ * E-11 ne sont pas exécutés. `clesExploitables` (faux dans un dossier dont
+ * cles.json est inexploitable, CT-1 §11.4) : E-8 et E-11 ne sont pas exécutées,
+ * et E-10 ne l'est pas pour une rotation dont les autres règles tiennent.
+ * Rend un objet id -> { ok, execute, detail }.
  */
-export function controlesEvenement(ev, { schemas, cles } = {}) {
+export function controlesEvenement(ev, { schemas, cles, clesExploitables = true } = {}) {
   const r = {};
   const pose = (id, ok, detail = null) => (r[id] = { ok, execute: true, detail });
   const nonExecute = (id, detail) => (r[id] = { ok: null, execute: false, detail });
-  const clesMap = normaliserCles(cles);
+  const clesMap = clesExploitables ? normaliserCles(cles) : new Map();
+  const SANS_CLES = "cles.json inexploitable (première partie de E-8)";
+
+  // Événement d'un journal lu sans forme canonique (lireJournalJSON) : E-2 échoue, les autres ne s'exécutent pas (CT-1 §11.4, cas (d)).
+  const defaut = defautFormeCanonique(ev);
+  if (defaut) {
+    for (const id of ["E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11"]) nonExecute(id, "événement sans forme canonique (E-2)");
+    pose("E-2", false, defaut);
+    return r;
+  }
 
   if (schemas?.[ID_SCHEMA_EVENEMENT]) {
     const erreurs = validerSchema(ev, schemas[ID_SCHEMA_EVENEMENT], { registre: schemas });
-    erreurs.push(...horodatagesHorsCalendrier([["/ts", ev?.ts], ["/approval/at", ev?.approval?.at], ["/execution/arguments/value/valid_from", ev?.execution?.arguments?.value?.valid_from]]));
+    // CT-1 §3 et §11.4 (révision 0.5) : ts et approval.at dates existantes, org_id et journal_id non nuls, profondeur au plus 128.
+    erreurs.push(...horodatagesHorsCalendrier([["/ts", ev?.ts], ["/approval/at", ev?.approval?.at]]));
+    for (const k of ["org_id", "journal_id"]) if (ev?.[k] === HASH_NUL) erreurs.push({ chemin: `/${k}`, message: "32 octets nuls : identifiant refusé (CT-1 §3, révision 0.5)" });
+    if (profondeurValeur(ev) > PROFONDEUR_JSON_MAX) erreurs.push({ chemin: "/", message: `profondeur au-delà de ${PROFONDEUR_JSON_MAX} (CT-1 §4, règle 7)` });
     pose("E-1", erreurs.length === 0, erreurs.length ? resumerErreurs(erreurs) : "conforme au schéma");
   } else {
     nonExecute("E-1", "aucun schéma fourni");
@@ -1874,22 +2217,26 @@ export function controlesEvenement(ev, { schemas, cles } = {}) {
     pose("E-2", false, err.message);
   }
 
-  const e3 = outilsCoherents(ev);
+  const e3 = regleE3(ev);
   pose("E-3", e3.length === 0, e3.length ? e3.join(" ; ") : `sorte : ${estOutilReserve(ev.execution?.tool) ? ev.execution.tool : "appel d'outil"}`);
 
   const refs = referencesEvenement(ev);
   const redigees = refs.filter(({ ref }) => ref.redacted === true);
   const redaction = ev.policy?.redaction;
-  pose("E-4", redigees.length === 0 || (typeof redaction === "string" && redaction.length > 0), redigees.length === 0 ? "aucune référence rédigée" : typeof redaction === "string" && redaction ? `${redigees.length} référence(s) rédigée(s) par ${redaction}` : `référence(s) rédigée(s) (${redigees.map((x) => x.chemin).join(", ")}) sans policy.redaction`);
+  const redactionNommee = estChaineNonVide(redaction);
+  pose("E-4", redigees.length === 0 || redactionNommee, redigees.length === 0 ? "aucune référence rédigée" : redactionNommee ? `${redigees.length} référence(s) rédigée(s) par ${redaction}` : `référence(s) rédigée(s) (${redigees.map((x) => x.chemin).join(", ")}) sans policy.redaction qui soit une chaîne non vide`);
 
-  if (ev.approval === null || ev.approval === undefined) {
+  const a = ev.approval;
+  if (a === null || a === undefined) {
     pose("E-5", true, "aucune approbation liée");
   } else {
-    const a = ev.approval;
     const erreurs = [];
-    if (!Array.isArray(a.approvers) || !Array.isArray(a.signatures) || a.approvers.length !== a.signatures.length) erreurs.push(`approvers (${a.approvers?.length}) et signatures (${a.signatures?.length}) de longueurs différentes`);
-    if (a.ticket !== ev.policy?.ticket) erreurs.push(`approval.ticket ${JSON.stringify(a.ticket)} différent de policy.ticket ${JSON.stringify(ev.policy?.ticket)}`);
-    pose("E-5", erreurs.length === 0, erreurs.length ? erreurs.join(" ; ") : `${a.approvers.length} signature(s), ticket ${a.ticket}`);
+    const approvers = estObjet(a) ? a.approvers : undefined;
+    const signatures = estObjet(a) ? a.signatures : undefined;
+    if (!Array.isArray(approvers) || !Array.isArray(signatures) || approvers.length !== signatures.length) erreurs.push(`approvers (${Array.isArray(approvers) ? approvers.length : "pas un tableau"}) et signatures (${Array.isArray(signatures) ? signatures.length : "pas un tableau"}) de longueurs différentes`);
+    const ticket = estObjet(a) ? a.ticket : undefined;
+    if (typeof ticket !== "string" || ticket !== ev.policy?.ticket) erreurs.push(`approval.ticket ${JSON.stringify(ticket)} différent de policy.ticket ${JSON.stringify(ev.policy?.ticket)}`);
+    pose("E-5", erreurs.length === 0, erreurs.length ? erreurs.join(" ; ") : `${approvers.length} signature(s), ticket ${ticket}`);
   }
 
   const e6 = refs.filter(({ ref }) => ref.value !== undefined).map(({ chemin, ref }) => ({ chemin, ...verifierReference(ref) })).filter((x) => !x.ok);
@@ -1901,8 +2248,9 @@ export function controlesEvenement(ev, { schemas, cles } = {}) {
   } else {
     const h = hachageEvenement(ev);
     pose("E-7", h === ev.hash, h === ev.hash ? `hash ${h}` : `hash recalculé ${h} différent de hash ${ev.hash}`);
-    const cle = clesMap.get(ev.recorder_key_id);
-    if (clesMap.size === 0) nonExecute("E-8", "aucune clé publique fournie");
+    const cle = typeof ev.recorder_key_id === "string" ? clesMap.get(ev.recorder_key_id) : undefined;
+    if (!clesExploitables) nonExecute("E-8", SANS_CLES);
+    else if (clesMap.size === 0) nonExecute("E-8", "aucune clé publique fournie");
     else if (!cle) pose("E-8", false, `clé ${ev.recorder_key_id} absente de cles.json`);
     else {
       const ok = verifierSignatureEvenement(ev, cle.public_key);
@@ -1910,22 +2258,27 @@ export function controlesEvenement(ev, { schemas, cles } = {}) {
     }
   }
 
-  if (!ev.approval || typeof ev.approval !== "object") {
+  // E-9 (révision 0.5) : chaque signature, une signature sans approbateur comprise ; approvers ou signatures qui n'est pas un tableau : échec.
+  if (a === null || a === undefined) {
     pose("E-9", true, "aucune approbation liée");
-  } else if (!Array.isArray(ev.approval.approvers) || !Array.isArray(ev.approval.signatures)) {
+  } else if (!estObjet(a) || !Array.isArray(a.approvers) || !Array.isArray(a.signatures)) {
     pose("E-9", false, "approvers ou signatures ne sont pas des tableaux");
   } else {
     const A = objetApprobation(ev);
     const erreurs = [];
-    try {
-      ev.approval.signatures.forEach((sig, i) => {
-        const res = verifierSignatureApprobation(A, sig, ev.approval.approvers[i]);
+    a.signatures.forEach((sig, i) => {
+      if (i >= a.approvers.length) {
+        erreurs.push(`signatures[${i}] sans approvers[${i}]`);
+        return;
+      }
+      try {
+        const res = verifierSignatureApprobation(A, sig, a.approvers[i]);
         if (!res.ok) erreurs.push(`signatures[${i}] : ${res.raison}`);
-      });
-    } catch (err) {
-      erreurs.push(err.message);
-    }
-    pose("E-9", erreurs.length === 0, erreurs.length ? erreurs.join(" ; ") : `${ev.approval.signatures.length} signature(s) d'approbateur recouvrée(s) : ${ev.approval.approvers.join(", ")}`);
+      } catch (err) {
+        erreurs.push(`signatures[${i}] : ${err.message}`);
+      }
+    });
+    pose("E-9", erreurs.length === 0, erreurs.length ? erreurs.join(" ; ") : `${a.signatures.length} signature(s) d'approbateur recouvrée(s) : ${a.approvers.join(", ")}`);
   }
 
   if (!estRotation(ev)) {
@@ -1933,13 +2286,15 @@ export function controlesEvenement(ev, { schemas, cles } = {}) {
   } else {
     const val = ev.execution?.arguments?.value;
     const erreurs = [];
-    if (!val || typeof val !== "object") erreurs.push("annonce de rotation absente");
+    let comparerCles = false;
+    if (!estObjet(val)) erreurs.push("annonce de rotation absente");
     else {
       if (val.old_key_id !== ev.recorder_key_id) erreurs.push(`old_key_id ${val.old_key_id} différent de recorder_key_id ${ev.recorder_key_id}`);
-      if (val.valid_from !== ev.ts) erreurs.push(`valid_from ${val.valid_from} différent de ts ${ev.ts}`);
+      if (typeof val.valid_from !== "string" || val.valid_from !== ev.ts) erreurs.push(`valid_from ${val.valid_from} différent de ts ${ev.ts}`);
       if (val.org_id !== ev.org_id || val.journal_id !== ev.journal_id) erreurs.push("org_id ou journal_id de l'annonce différents de l'enveloppe");
-      if (typeof val.new_key_id === "string" && val.new_key_id === val.old_key_id) erreurs.push(`new_key_id ${val.new_key_id} égal à old_key_id`);
+      if (typeof val.new_key_id !== "string" || val.new_key_id === val.old_key_id) erreurs.push(`new_key_id ${val.new_key_id} absent ou égal à old_key_id`);
       if (!verifierContresignatureRotation(val)) erreurs.push("counter_sig invalide sous new_public_key");
+      comparerCles = true;
       if (clesMap.size > 0) {
         // CT-1 §8 règle 3 : cles.json annonce valid_from(nouvelle) = valid_to(ancienne) = ts de la rotation.
         const t = msHorodatage(ev.ts);
@@ -1947,24 +2302,27 @@ export function controlesEvenement(ev, { schemas, cles } = {}) {
         if (!nouvelle) erreurs.push(`new_key_id ${val.new_key_id} absent de cles.json`);
         else {
           if (nouvelle.public_key !== val.new_public_key) erreurs.push(`new_public_key différent de la clé ${val.new_key_id} de cles.json`);
-          if (nouvelle.valid_from !== null && msHorodatage(nouvelle.valid_from) !== t) erreurs.push(`valid_from de ${val.new_key_id} dans cles.json (${nouvelle.valid_from}) différent du ts de la rotation (${ev.ts})`);
+          if (nouvelle.valid_from !== null && (Number.isNaN(t) || msHorodatage(nouvelle.valid_from) !== t)) erreurs.push(`valid_from de ${val.new_key_id} dans cles.json (${nouvelle.valid_from}) différent du ts de la rotation (${ev.ts})`);
         }
         const ancienne = clesMap.get(val.old_key_id);
-        if (ancienne && ancienne.valid_from !== null && (ancienne.valid_to === null || msHorodatage(ancienne.valid_to) !== t)) erreurs.push(`valid_to de ${val.old_key_id} dans cles.json (${ancienne.valid_to}) différent du ts de la rotation (${ev.ts})`);
+        if (ancienne && ancienne.valid_from !== null && (Number.isNaN(t) || ancienne.valid_to === null || msHorodatage(ancienne.valid_to) !== t)) erreurs.push(`valid_to de ${val.old_key_id} dans cles.json (${ancienne.valid_to}) différent du ts de la rotation (${ev.ts})`);
       }
     }
-    pose("E-10", erreurs.length === 0, erreurs.length ? erreurs.join(" ; ") : `rotation ${val.old_key_id} -> ${val.new_key_id} contresignée`);
+    if (erreurs.length) pose("E-10", false, erreurs.join(" ; "));
+    else if (comparerCles && !clesExploitables) nonExecute("E-10", `${SANS_CLES} : comparaisons de la rotation à cles.json non faites`);
+    else pose("E-10", true, `rotation ${val.old_key_id} -> ${val.new_key_id} contresignée`);
   }
 
-  const cle = clesMap.get(ev.recorder_key_id);
-  if (clesMap.size === 0) nonExecute("E-11", "aucune clé publique fournie");
+  const cle = typeof ev.recorder_key_id === "string" ? clesMap.get(ev.recorder_key_id) : undefined;
+  if (!clesExploitables) nonExecute("E-11", SANS_CLES);
+  else if (clesMap.size === 0) nonExecute("E-11", "aucune clé publique fournie");
   else if (!cle) nonExecute("E-11", `clé ${ev.recorder_key_id} absente de cles.json (échec porté par E-8)`);
   else if (cle.valid_from === null && cle.valid_to === null) nonExecute("E-11", "aucune période de validité annoncée");
   else {
     const t = msHorodatage(ev.ts);
     const de = cle.valid_from === null ? -Infinity : msHorodatage(cle.valid_from);
-    const a = cle.valid_to === null ? Infinity : msHorodatage(cle.valid_to);
-    const ok = !Number.isNaN(t) && !Number.isNaN(de) && !Number.isNaN(a) && t >= de && t <= a;
+    const fin = cle.valid_to === null ? Infinity : msHorodatage(cle.valid_to);
+    const ok = !Number.isNaN(t) && !Number.isNaN(de) && !Number.isNaN(fin) && t >= de && t <= fin;
     pose("E-11", ok, ok ? `ts ${ev.ts} dans la validité de ${ev.recorder_key_id}` : `ts ${ev.ts} hors de [${cle.valid_from ?? "-∞"}, ${cle.valid_to ?? "+∞"}] de la clé ${ev.recorder_key_id}`);
   }
   return r;
@@ -2091,6 +2449,21 @@ class Rapport {
     if (ok) this.succes(id, detail);
     else this.echec(id, detail);
   }
+  /**
+   * Statut d'une vérification depuis ses fautes et ses manques (CT-1 §11.4,
+   * révision 0.5) : en échec dès qu'une faute est relevée sur ce qu'elle lit,
+   * l'échec l'emportant sur un prérequis manquant ; sinon non exécutée si un
+   * prérequis manque ; sinon réussie.
+   */
+  juger(id, fautes, manque, succes) {
+    if (fautes.length) fautes.forEach((m) => this.echec(id, m));
+    else if (manque) this.nonExecute(id, manque);
+    else this.succes(id, succes);
+  }
+  statut(id) {
+    const c = this.parId.get(id);
+    return c.ok === false ? "echoue" : c.execute ? "reussi" : "non_execute";
+  }
   /** Aucun contrôle en échec. La validité du dossier exige en plus qu'aucun contrôle ne soit non exécuté sans raison admise (voir terminer). */
   get sansEchec() {
     return this.controles.every((c) => c.ok !== false);
@@ -2103,79 +2476,130 @@ const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
 /** Décrit une valeur JSON pour un message d'erreur. */
 const sorteJSON = (v) => (v === null ? "le littéral null" : Array.isArray(v) ? "un tableau" : typeof v);
 
-/**
- * Les contrôles non exécutés qu'un dossier valide ne peut pas avoir (CT-1
- * §11.4) : tout contrôle non exécuté, sauf A-4 (événement de demande hors du
- * dossier) et, quand approbations.json est déclaré absent avec raison, A-2,
- * A-3 et A-4. Les parties réservées à CT-4 et CT-5 n'ont pas de contrôle ici.
- */
-function nonExecutesBloquants(rapport, parts) {
-  const approbations = parts.find((p) => p && p.name === "approbations");
-  const absenteAvecRaison = Boolean(approbations && approbations.present === false && typeof approbations.reason_if_absent === "string" && approbations.reason_if_absent.trim() !== "");
-  // Partie points_de_controle (révision 0.3) : absente avec raison ou index à douze
-  // parties, les neuf K- sont admises ; K-6 l'est quand l'événement last_seq est
-  // hors du dossier (comme A-4) ; K-7 à K-9 le sont quand leur ancre vaut null ou
-  // quand leur vérification relève de CT-6 (hors périmètre de cette bibliothèque).
-  const points = parts.find((p) => p && p.name === PARTIE_POINTS_DE_CONTROLE.name);
-  const pointsAbsents = !points || (points.present === false && typeof points.reason_if_absent === "string" && points.reason_if_absent.trim() !== "");
-  const admisK = (c) => {
-    if (!c.id.startsWith("K-")) return false;
-    if (pointsAbsents) return true;
-    const detail = c.details.join(" ; ");
-    if (c.id === "K-6") return detail.includes(DETAIL_K6_HORS_DOSSIER);
-    if (["K-7", "K-8", "K-9"].includes(c.id)) return detail.includes(DETAIL_K_ANCRE_NULLE) || detail.includes(DETAIL_K_HORS_PERIMETRE);
-    return false;
-  };
-  const admis = (c) => c.id === "A-4" || (absenteAvecRaison && ["A-2", "A-3", "A-4"].includes(c.id)) || admisK(c);
-  return rapport.controles.filter((c) => !c.execute && !admis(c)).map((c) => c.id);
-}
-
 /** Détails de non-exécution des vérifications K- (CT-1 §11.4) que CT-6 traduit en raisons. */
 export const DETAIL_K_PARTIE_ABSENTE = "partie absente";
 export const DETAIL_K6_HORS_DOSSIER = "événement last_seq hors du dossier";
 export const DETAIL_K_ANCRE_NULLE = "ancre nulle : partie absente";
-export const DETAIL_K_HORS_PERIMETRE = "ancre à vérifier par CT-6 : hors périmètre CT-1";
+/**
+ * Révision 0.5 (CT-1 §11.4, parties réservées ; CT-6 EX-4.2) : une vérification de CT-6 qu'un vérificateur
+ * de CT-1 seul n'exécute pas est rapportée avec la raison prerequis_en_echec, seule raison non admise de la
+ * liste fermée de CT-6 §6.2, et ce détail ; aucune autre valeur n'est employée.
+ */
+export const RAISON_VERIFICATION_CT6 = "prerequis_en_echec";
+export const DETAIL_VERIFICATION_CT6 = "vérification de CT-6 non exécutée par ce vérificateur";
+export const DETAIL_K_HORS_PERIMETRE = `${DETAIL_VERIFICATION_CT6} (${RAISON_VERIFICATION_CT6}, sans raison admise)`;
+/** Détail de non-exécution de A-4 dont l'événement de demande n'est pas un voisin (raison admise, CT-1 §11.4). */
+export const DETAIL_A4_HORS_DOSSIER = "événement de demande";
 const IDS_K = ["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"];
+const IDS_E = ["E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11"];
+const MIO = 1024 * 1024;
+
+/**
+ * Limites de taille des fichiers d'un dossier (CT-1 §11.4, révision 0.5, qui
+ * reprend CT-6 EX-4.13 à EX-4.15) : un fichier de taille égale à sa limite est
+ * lu, un fichier plus grand ne l'est pas (cas (b)).
+ */
+export const LIMITES_DOSSIER = Object.freeze({
+  "dossier.json": 1 * MIO,
+  "evenement.json": 16 * MIO,
+  "voisins.json": 16 * MIO,
+  "chemin.json": 16 * MIO,
+  "manifeste.json": 16 * MIO,
+  "manifeste.sig": 16 * MIO,
+  "cles.json": 16 * MIO,
+  "approbations.json": 16 * MIO,
+  "points-de-controle.json": 1 * MIO,
+  "attestation-perimetre.json": 4 * MIO,
+  "jeton-rfc3161.der": 64 * 1024,
+  "preuve.ots": 256 * 1024,
+  "registre.json": 64 * MIO,
+  "certificat-commit.json": 64 * MIO,
+  "validateurs.json": 1 * MIO,
+});
+
+/**
+ * Les contrôles non exécutés qu'un dossier valide ne peut pas avoir (CT-1
+ * §11.4) : tout contrôle non exécuté, sauf A-4 (événement de demande hors du
+ * dossier), A-2 à A-4 quand `approval` est nul et approbations.json déclaré
+ * absent avec la raison exacte « aucune approbation liée » (révision 0.5), K-
+ * quand la partie points_de_controle est absente, K-6 pour l'événement
+ * last_seq hors du dossier et K-7 à K-9 pour une ancre nulle.
+ */
+function nonExecutesBloquants(rapport, parts) {
+  const points = parts.find((p) => p && p.name === PARTIE_POINTS_DE_CONTROLE.name);
+  const pointsAbsents = !points || (points.present === false && estChaineNonVide(points.reason_if_absent));
+  const admis = (c) => {
+    const detail = c.details.join(" ; ");
+    if (c.id.startsWith("K-")) {
+      if (pointsAbsents) return true;
+      if (c.id === "K-6") return detail.includes(DETAIL_K6_HORS_DOSSIER);
+      if (["K-7", "K-8", "K-9"].includes(c.id)) return detail === DETAIL_K_ANCRE_NULLE;
+      return false;
+    }
+    if (["A-2", "A-3", "A-4"].includes(c.id) && detail === RAISON_AUCUNE_APPROBATION) return true;
+    if (c.id === "A-4") return detail.startsWith(DETAIL_A4_HORS_DOSSIER) && detail.includes("absent du dossier");
+    return false;
+  };
+  return rapport.controles.filter((c) => !c.execute && !admis(c)).map((c) => c.id);
+}
 
 /**
  * Vérifie un dossier v0 (contrôles 1, 2, 3, 6, 7 de l'architecture, soit D-1 à
- * A-4 de CT-1 §11.4). `fichiers` : objet nom de fichier -> octets ou texte, pour
- * les fichiers PRÉSENTS dans le répertoire. `schemas` : registre des quatre
- * schémas (evenement, manifeste, dossier, point-de-controle ; registreSchemas).
- * Lève DossierInutilisable si dossier.json manque ou
- * n'est pas du JSON ; sinon rend un rapport { valide, controles,
- * nonExecutesBloquants, evenement, org_id, journal_id, partiesAbsentes, borne }.
+ * A-4 de CT-1 §11.4, et K-1 à K-9 de la partie facultative). `fichiers` : objet
+ * nom de fichier -> octets ou texte, pour les fichiers ordinaires PRÉSENTS dans
+ * le répertoire (un lien symbolique, un répertoire ou tout autre objet compte
+ * comme absent : à l'appelant de ne pas le passer). `schemas` : registre des
+ * schémas (evenement, manifeste, dossier ; point-de-controle et
+ * attestation-perimetre quand ces parties sont déclarées présentes ;
+ * registreSchemas). Lève DossierInutilisable si dossier.json manque ou n'est
+ * pas du JSON (UTF-8 mal formé, marque d'ordre d'octets, syntaxe, profondeur
+ * au-delà de 128 : CT-6 EX-4.12, EX-4.16).
  *
- * Une partie présente dont le fichier n'est pas un objet JSON, ou n'est pas
- * conforme à son schéma, met en échec le contrôle qui la porte (dossier.json
- * D-1, evenement.json E-1, enveloppe de voisins.json C-1, chemin.json M-2,
- * manifeste.json P-1, manifeste.sig P-5, cles.json E-8, approbations.json A-1,
- * points-de-controle.json K-1 ; forme canonique impossible E-2) ; les contrôles
- * qui en dépendent sont non exécutés, sans raison admise, et le dossier est
- * invalide.
+ * Règles de CT-1 §11.4, révision 0.5 :
  *
- * Révision 0.3 : l'index compte douze ou treize parties ; avec la treizième
- * (points_de_controle) présente, K-1 à K-6 sont exécutées ici ; K-7 à K-9
- * (ancres du point) relèvent de CT-6 (scripts/lib/verificateur.mjs) et restent
- * non exécutées, raison admise, dans cette bibliothèque.
+ * - `dossier.json` au-delà de 1 Mio, qui n'est pas un objet, contraire à son
+ *   schéma ou dont generated_at n'est pas une date existante : D-1 échoue ;
+ *   sans forme canonique (clé en double, nombre non entier) : E-2 échoue, D-1
+ *   n'est pas exécutée ; dans ces cas rien d'autre n'est lu ni exécuté
+ *   (`indexExploitable` faux dans le rapport) ;
+ * - partie inexploitable (cas (a) à (e)) : (a) fichier manquant, D-2 échoue
+ *   et le contrôle porteur n'est pas exécuté ; (b) au-delà de sa limite
+ *   (LIMITES_DOSSIER, ou `inexploitables` de l'appelant pour un fichier non
+ *   lu), D-2 ne compare pas son SHA-256 et le contrôle porteur échoue ; (c) pas
+ *   du JSON ou plus profond que 128, et (e) pas un objet, le contrôle porteur
+ *   échoue ; (d) sans forme canonique, E-2 échoue et le contrôle porteur n'est
+ *   pas exécuté. Tout contrôle qui lit la partie n'est pas exécuté, sans raison
+ *   admise, sauf s'il échoue sur ce qu'il lit des autres parties ;
+ * - partie contraire à son schéma : le contrôle porteur échoue, la partie
+ *   reste exploitable ; chaque relation dont un terme est absent, mal typé ou
+ *   incalculable n'est pas tenue (échec) ; exceptions de cles.json (exploitable
+ *   si et seulement si la première partie de E-8 réussit) et de
+ *   points-de-controle.json (K-1 non réussie : K-2 à K-9 non exécutées) ;
+ * - E-1 à E-11 sur chaque événement d'une partie exploitable (événement
+ *   prouvé, voisins, décisions de approbations.json) : en échec si une échoue
+ *   pour un événement ; sinon non exécutée si evenement.json est inexploitable
+ *   ou si elle ne l'est pas pour un événement ; sinon réussie ;
+ * - une partie réservée déclarée présente, ou une ancre non nulle du point,
+ *   n'est pas vérifiée par cette bibliothèque (CT-6 le fait) : le dossier n'est
+ *   jamais « valide » pour elle (`partiesNonVerifiees`, K-7 et K-9 non
+ *   exécutées sans raison admise, K-8 en échec sur fingerprint ou doc_type,
+ *   sinon non exécutée sans raison admise).
  *
- * `inexploitables` (facultatif, CT-6 EX-4.11, EX-4.13) : Map nom de fichier ->
- * motif, pour les parties que l'appelant a refusé de lire ou d'analyser (taille
- * au-delà de la limite de la partie, imbrication JSON trop profonde). Une telle
- * partie met en échec le contrôle qui la porte, avec ce motif ; si ses octets ne
- * sont pas dans `fichiers` (fichier non lu), D-2 échoue aussi, son SHA-256
- * n'étant pas vérifiable, sauf si `empreintes` (Map nom de fichier -> SHA-256
- * 0x des octets complets, calculé par l'appelant en flux) le donne. Sans ces
- * options, le comportement est celui de CT-1.
+ * `inexploitables` (facultatif, CT-6 EX-4.13) : Map nom de fichier -> motif,
+ * pour les parties que l'appelant n'a pas lues (au-delà de leur limite) ;
+ * `empreintes` : Map nom de fichier -> SHA-256 des octets complets calculé en
+ * flux (attestation-perimetre.json, seule partie dont D-2 compare le SHA-256
+ * au-delà de sa limite, CT-6 EX-4.15).
  *
- * Révision 0.4 : l'index compte douze, treize ou quatorze parties ; avec la
- * quatorzième (attestation_perimetre) déclarée présente, AT-1 à AT-7 sont
- * exécutées par scripts/lib/securite.mjs et rendues dans `attestation` ({
- * checks, retenue, digest, faits, avertissements, nonRetenue }, null sans la
- * partie déclarée présente). Elles ne figurent pas dans `controles` : une AT-
- * en échec ne rend jamais le dossier invalide (CT-1 §11.4, CT-6 EX-5.11) ;
- * seule D-2 porte sur le fichier. `schemas` doit alors contenir aussi le
- * schéma attestation-perimetre-v0.
+ * Rend { valide, controles, nonExecutesBloquants, partiesNonVerifiees,
+ * evenement, org_id, journal_id, partiesAbsentes, borne, attestation,
+ * indexExploitable, parties } ; `parties` porte les valeurs exploitables lues
+ * (null sinon) et l'état de chaque partie, pour le vérificateur de CT-6.
+ *
+ * Révision 0.4 : avec la quatorzième partie (attestation_perimetre) déclarée
+ * présente, AT-1 à AT-7 sont exécutées par scripts/lib/securite.mjs et rendues
+ * dans `attestation` ; elles ne figurent pas dans `controles` et ne rendent
+ * jamais le dossier invalide (CT-6 EX-5.11) ; seule D-2 porte sur le fichier.
  */
 export function verifierDossier(fichiers, { schemas, inexploitables = null, empreintes = null } = {}) {
   if (!schemas || !schemas[ID_SCHEMA_EVENEMENT] || !schemas[ID_SCHEMA_MANIFESTE] || !schemas[ID_SCHEMA_DOSSIER]) {
@@ -2185,243 +2609,331 @@ export function verifierDossier(fichiers, { schemas, inexploitables = null, empr
   const brut = (nom) => (fichiers[nom] === undefined || fichiers[nom] === null ? null : enOctets(fichiers[nom]));
   const refus = (nom) => (inexploitables instanceof Map && inexploitables.has(nom) ? inexploitables.get(nom) : null);
   const nonLu = (nom) => refus(nom) !== null && !brut(nom);
+  const limite = (nom) => LIMITES_DOSSIER[nom] ?? 16 * MIO;
+  const tropGrand = (nom) => nonLu(nom) || (brut(nom) !== null && brut(nom).length > limite(nom));
+  const toutNonExecute = (detail, sauf = []) => {
+    for (const c of rapport.controles) if (!sauf.includes(c.id)) rapport.nonExecute(c.id, detail);
+  };
+
+  // dossier.json (CT-1 §11.4, révision 0.5 ; CT-6 EX-4.11 point 3, EX-4.12 point 2).
   const indexOctets = brut("dossier.json");
-  if (!indexOctets) throw new DossierInutilisable("dossier.json absent : le répertoire n'est pas un dossier de preuve");
+  if (!indexOctets && !nonLu("dossier.json")) throw new DossierInutilisable("dossier.json absent : le répertoire n'est pas un dossier de preuve");
+  if (tropGrand("dossier.json")) {
+    rapport.echec("D-1", `dossier.json : ${refus("dossier.json") ?? `fichier de ${indexOctets.length} octets`}, au-delà de la limite de ${limite("dossier.json")} octets ; rien n'est lu de l'index`);
+    toutNonExecute("index inexploitable", ["D-1"]);
+    return terminer(rapport, null, null, []);
+  }
   let index;
   try {
-    index = analyserJSONStrict(indexOctets);
+    index = analyserJSONStrict(indexOctets, { profondeurMax: PROFONDEUR_JSON_MAX });
   } catch (err) {
-    throw new DossierInutilisable(`dossier.json illisible : ${err.message}`);
+    if (!(err instanceof ErreurJSON) || !err.canonique) throw new DossierInutilisable(`dossier.json illisible : ${err.message}`);
+    rapport.echec("E-2", `dossier.json sans forme canonique : ${err.message} ; rien n'est lu de l'index`);
+    toutNonExecute("index inexploitable", ["E-2"]);
+    return terminer(rapport, null, null, []);
   }
-  if (!estObjet(index)) {
-    rapport.echec("D-1", `dossier.json : objet JSON attendu, reçu ${sorteJSON(index)}`);
-    index = {};
+  const erreursIndex = estObjet(index) ? validerSchema(index, schemas[ID_SCHEMA_DOSSIER], { registre: schemas }) : [{ chemin: "/", message: `objet JSON attendu, reçu ${sorteJSON(index)}` }];
+  if (estObjet(index)) erreursIndex.push(...horodatagesHorsCalendrier([["/generated_at", index.generated_at]]));
+  if (erreursIndex.length) {
+    rapport.echec("D-1", `dossier.json : ${resumerErreurs(erreursIndex)} ; rien n'est lu de l'index`);
+    toutNonExecute("index inexploitable", ["D-1"]);
+    return terminer(rapport, null, null, []);
   }
-
-  // D-1 : schéma de l'index (et règle calendaire de generated_at, CT-1 §3).
-  const erreursIndex = validerSchema(index, schemas[ID_SCHEMA_DOSSIER], { registre: schemas });
-  erreursIndex.push(...horodatagesHorsCalendrier([["/generated_at", index.generated_at]]));
-  rapport.resultat("D-1", erreursIndex.length === 0, erreursIndex.length ? `dossier.json : ${resumerErreurs(erreursIndex)}` : "dossier.json conforme au schéma");
-  const parts = Array.isArray(index.parts) ? index.parts : [];
-  const partie = (name) => parts.find((p) => p && p.name === name);
-  if (parts.length < PARTIES_DOSSIER.length || parts.length > PARTIES_DOSSIER.length + 2) {
-    for (const c of rapport.controles) if (c.id !== "D-1") rapport.nonExecute(c.id, "index inexploitable");
-    return terminer(rapport, index, null, parts);
-  }
-  // Treize parties : la treizième est points_de_controle (sinon D-1 l'a déjà dit) ; douze : la partie n'est pas déclarée.
-  // Quatorze (révision 0.4) : la quatorzième est attestation_perimetre, après la treizième.
+  const parts = index.parts;
+  const partie = (name) => parts.find((p) => p.name === name);
+  // Le schéma fixe l'ordre : douze parties, puis la treizième (points_de_controle) et la quatorzième (attestation_perimetre).
   const partiesDeclarees = [...PARTIES_DOSSIER, PARTIE_POINTS_DE_CONTROLE, PARTIE_ATTESTATION_PERIMETRE].slice(0, parts.length);
 
-  // D-2 : les fichiers tels qu'ils sont dans le répertoire.
+  // D-2 : les fichiers ordinaires du répertoire contre l'index ; état de chaque partie.
+  const etats = new Map(); // fichier -> "presente" | "manquante" | "trop_grande" | "absente"
   for (const { name, file } of partiesDeclarees) {
     const p = partie(name);
     const o = brut(file);
-    if (!p) {
-      rapport.echec("D-2", `partie ${name} absente de l'index`);
-      continue;
-    }
     if (p.present === true) {
-      if (nonLu(file) && empreintes instanceof Map && empreintes.has(file)) {
-        if (empreintes.get(file) !== p.sha256) rapport.echec("D-2", `${file} : SHA-256 ${empreintes.get(file)} différent de l'index ${p.sha256}`);
-        else rapport.succes("D-2");
-      } else if (nonLu(file)) rapport.echec("D-2", `${file} non lu (${refus(file)}) : SHA-256 non vérifiable`);
-      else if (!o) rapport.echec("D-2", `${file} déclaré présent mais absent du répertoire`);
-      else if (sha256(o) !== p.sha256) rapport.echec("D-2", `${file} : SHA-256 ${sha256(o)} différent de l'index ${p.sha256}`);
-      else rapport.succes("D-2");
+      if (!o && !nonLu(file)) {
+        rapport.echec("D-2", `${file} déclaré présent mais absent du répertoire`);
+        etats.set(file, "manquante");
+      } else if (tropGrand(file)) {
+        etats.set(file, "trop_grande");
+        // Au-delà de la limite, le SHA-256 n'est pas comparé (CT-6 EX-4.11, point 2), sauf pour attestation-perimetre.json (EX-4.15).
+        if (file === PARTIE_ATTESTATION_PERIMETRE.file) {
+          const h = o ? sha256(o) : empreintes instanceof Map ? empreintes.get(file) ?? null : null;
+          if (h === null) rapport.echec("D-2", `${file} non lu (${refus(file)}) : SHA-256 non calculé`);
+          else if (h !== p.sha256) rapport.echec("D-2", `${file} : SHA-256 ${h} différent de l'index ${p.sha256}`);
+          else rapport.succes("D-2");
+        }
+      } else if (sha256(o) !== p.sha256) {
+        rapport.echec("D-2", `${file} : SHA-256 ${sha256(o)} différent de l'index ${p.sha256}`);
+        etats.set(file, "presente");
+      } else {
+        rapport.succes("D-2");
+        etats.set(file, "presente");
+      }
     } else {
+      etats.set(file, "absente");
       if (o || nonLu(file)) rapport.echec("D-2", `${file} déclaré absent mais présent dans le répertoire`);
-      else if (typeof p.reason_if_absent !== "string" || !p.reason_if_absent.trim()) rapport.echec("D-2", `${file} absent sans raison`);
+      else if (!estChaineNonVide(p.reason_if_absent)) rapport.echec("D-2", `${file} absent sans raison (raison qui n'est pas une chaîne non vide, CT-1 §3)`);
       else rapport.succes("D-2");
     }
   }
 
-  // Lecture stricte des parties JSON : chaque partie présente doit être un objet
-  // JSON. L'échec est imputé au contrôle qui porte la partie (E-2 quand c'est
-  // la forme canonique qui est en cause).
+  // Lecture des parties JSON de CT-1 (cas (a) à (e)) : rend { valeur, etat } ;
+  // etat « exploitable », « manquante » (cas (a), porteur non exécuté),
+  // « inexploitable » (porteur en échec, ou E-2 en échec et porteur non exécuté), « absente ».
   const lire = (file, controle) => {
-    if (refus(file) !== null) {
-      rapport.echec(controle, `${file} : ${refus(file)} ; la partie est inexploitable`);
-      return null;
+    const etat = etats.get(file);
+    if (etat === undefined || etat === "absente") return { valeur: null, etat: "absente" };
+    if (etat === "manquante") {
+      rapport.nonExecute(controle, `${file} absent du répertoire`);
+      return { valeur: null, etat: "manquante" };
     }
-    const o = brut(file);
-    if (!o) return null;
+    if (etat === "trop_grande") {
+      rapport.echec(controle, `${file} : ${refus(file) ?? `fichier de ${brut(file).length} octets`}, au-delà de la limite de ${limite(file)} octets ; la partie est inexploitable`);
+      return { valeur: null, etat: "inexploitable" };
+    }
     let valeur;
     try {
-      valeur = analyserJSONStrict(o);
+      valeur = analyserJSONStrict(brut(file), { profondeurMax: PROFONDEUR_JSON_MAX });
     } catch (err) {
-      rapport.echec(err instanceof ErreurJSON && err.canonique ? "E-2" : controle, `${file} : ${err.message}`);
-      return null;
+      if (err instanceof ErreurJSON && err.canonique) {
+        rapport.echec("E-2", `${file} sans forme canonique : ${err.message}`);
+        rapport.nonExecute(controle, `${file} sans forme canonique (E-2) : la partie est inexploitable`);
+      } else rapport.echec(controle, `${file} : ${err.message} ; la partie est inexploitable`);
+      return { valeur: null, etat: "inexploitable" };
     }
     if (!estObjet(valeur)) {
       rapport.echec(controle, `${file} : objet JSON attendu, reçu ${sorteJSON(valeur)} ; la partie est inexploitable`);
-      return null;
+      return { valeur: null, etat: "inexploitable" };
     }
-    return valeur;
+    return { valeur, etat: "exploitable" };
   };
-  const evenement = lire("evenement.json", "E-1");
-  const voisins = lire("voisins.json", "C-1");
-  const chemin = lire("chemin.json", "M-2");
-  const manifeste = lire("manifeste.json", "P-1");
-  const manifesteSig = lire("manifeste.sig", "P-5");
-  const clesDoc = lire("cles.json", "E-8");
-  const approbations = brut("approbations.json") || refus("approbations.json") !== null ? lire("approbations.json", "A-1") : null;
+  const pEv = lire("evenement.json", "E-1");
+  const pVoisins = lire("voisins.json", "C-1");
+  const pChemin = lire("chemin.json", "M-2");
+  const pManifeste = lire("manifeste.json", "P-1");
+  const pSig = lire("manifeste.sig", "P-5");
+  const pCles = lire("cles.json", "E-8");
+  const pApprobations = lire("approbations.json", "A-1");
   const partiePoints = partie(PARTIE_POINTS_DE_CONTROLE.name);
   const pointsDeclaresPresents = Boolean(partiePoints && partiePoints.present === true);
-  // Révision 0.3 : le schéma point-de-controle-v0 n'est exigé que pour vérifier la partie déclarée présente
-  // (K-1 ; $defs/points_de_controle de dossier-v0 y renvoie) ; un dossier à douze parties s'en passe.
+  // Révision 0.3 : le schéma point-de-controle-v0 n'est exigé que pour vérifier la partie déclarée présente.
   if (pointsDeclaresPresents && !schemas[ID_SCHEMA_POINT_DE_CONTROLE]) throw new DossierInutilisable("le schéma point-de-controle est requis pour vérifier la partie points-de-controle.json (CT-1 révision 0.3)");
-  const pointsDoc = pointsDeclaresPresents ? lire(PARTIE_POINTS_DE_CONTROLE.file, "K-1") : null;
+  const pPoints = pointsDeclaresPresents ? lire(PARTIE_POINTS_DE_CONTROLE.file, "K-1") : { valeur: null, etat: "absente" };
 
-  if (evenement) {
-    if (index.event?.seq !== evenement.seq || index.event?.hash !== evenement.hash) rapport.echec("D-1", `event de l'index (seq ${index.event?.seq}, ${index.event?.hash}) différent de evenement.json (seq ${evenement.seq}, ${evenement.hash})`);
-    if (index.org_id !== evenement.org_id || index.journal_id !== evenement.journal_id) rapport.echec("D-1", "org_id ou journal_id de l'index différents de evenement.json");
-  }
-
-  // Schémas des fichiers compagnons ; l'échec de lecture a déjà été imputé par lire().
-  const schemaDossier = schemas[ID_SCHEMA_DOSSIER];
-  const valider = (valeur, controle, file, fragment, document = schemaDossier, filtre = () => true, poserSucces = true) => {
-    if (valeur === null) return false;
-    const erreurs = validerSchema(valeur, document, { registre: schemas, fragment }).filter(filtre);
-    if (erreurs.length) rapport.echec(controle, `${file} : ${resumerErreurs(erreurs)}`);
-    else if (poserSucces) rapport.succes(controle);
-    return erreurs.length === 0;
-  };
-  if (voisins) {
-    // L'enveloppe de voisins.json relève de C-1 ; ses événements, de E-1 à E-11 (plus bas).
-    const c1 = [];
-    const clesV = Object.keys(voisins).sort();
-    if (!egalJSON(clesV, ["next", "previous", "version"])) c1.push(`voisins.json : clés ${JSON.stringify(clesV)}, attendues ["next","previous","version"]`);
-    if (voisins.version !== VERSION_FORMAT) c1.push(`voisins.json : version ${JSON.stringify(voisins.version)}, attendu ${VERSION_FORMAT}`);
-    for (const nom of ["previous", "next"]) if (voisins[nom] !== null && !estObjet(voisins[nom])) c1.push(`voisins.json : ${nom} doit être un événement ou null`);
-    c1.forEach((m) => rapport.echec("C-1", m));
-  }
-  valider(chemin, "M-2", "chemin.json", "#/$defs/chemin");
-  valider(manifeste, "P-1", "manifeste.json", "", schemas[ID_SCHEMA_MANIFESTE]);
-  // Le succès de P-5 n'est posé qu'au terme du bloc P-5 : sans clés exploitables, le contrôle reste non exécuté.
-  valider(manifesteSig, "P-5", "manifeste.sig", "#/$defs/manifeste_sig", schemaDossier, () => true, false);
-  valider(clesDoc, "E-8", "cles.json", "#/$defs/cles");
-  if (clesDoc) for (const m of verifierCles(clesDoc, evenement)) rapport.echec("E-8", `cles.json : ${m}`);
-  // L'enveloppe de approbations.json relève de A-1 ; le contenu de ses événements, de E-1 à E-11 (plus bas).
-  if (approbations) valider(approbations, "A-1", "approbations.json", "#/$defs/approbations", schemaDossier, (e) => !/^\/events\/[0-9]+(\/|$)/.test(e.chemin));
-  // Les clés sont employées au mieux même si cles.json est en échec (première occurrence d'un key_id) : le verdict est déjà invalide, le rapport reste informatif.
-  const cles = clesDoc && Array.isArray(clesDoc.keys) ? normaliserCles(clesDoc) : new Map();
-
-  // E-1 à E-11 sur chaque événement du dossier.
-  const roles = [];
-  if (evenement) roles.push({ role: "evenement", ev: evenement });
-  if (voisins && estObjet(voisins.previous)) roles.push({ role: "voisin précédent", ev: voisins.previous });
-  if (voisins && estObjet(voisins.next)) roles.push({ role: "voisin suivant", ev: voisins.next });
-  if (Array.isArray(approbations?.events)) approbations.events.forEach((ev, i) => roles.push({ role: `approbation[${i}]`, ev }));
-  for (const { role, ev } of roles) {
-    const res = controlesEvenement(ev, { schemas, cles });
-    for (const [id, x] of Object.entries(res)) {
-      if (!x.execute) rapport.nonExecute(id, `${role} : ${x.detail}`);
-      else rapport.resultat(id, x.ok, x.ok ? (id === "E-7" || id === "E-8" ? `${role} : ${x.detail}` : null) : `${role} : ${x.detail}`);
-    }
-  }
-  if (roles.length === 0) for (const id of ["E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11"]) rapport.nonExecute(id, "aucun événement lisible");
-
-  const hashRecalcule = (ev) => {
+  const ev = pEv.valeur;
+  const voisins = pVoisins.valeur;
+  const chemin = pChemin.valeur;
+  const manifeste = pManifeste.valeur;
+  const manifesteSig = pSig.valeur;
+  const clesDoc = pCles.valeur;
+  const approbations = pApprobations.valeur;
+  const SANS_EV = "evenement.json inexploitable";
+  const hashRecalcule = (e) => {
+    if (!estObjet(e)) return null;
     try {
-      return hachageEvenement(ev);
+      return hachageEvenement(e);
     } catch {
       return null;
     }
   };
-  const ev = evenement;
   const hashEv = ev ? hashRecalcule(ev) : null;
+  const entier = (v) => Number.isSafeInteger(v);
 
-  // C-1, C-2, C-3 : les voisins.
-  if (!ev || !voisins) {
-    for (const id of ["C-1", "C-2", "C-3"]) rapport.nonExecute(id, "événement ou voisins inexploitables");
+  // D-1 : relations de l'index à evenement.json (révision 0.5 : org_id et journal_id compris).
+  {
+    const f = [];
+    if (ev) {
+      if (index.event.seq !== ev.seq || index.event.hash !== ev.hash) f.push(`event de l'index (seq ${index.event.seq}, ${index.event.hash}) différent de evenement.json (seq ${JSON.stringify(ev.seq)}, ${JSON.stringify(ev.hash)})`);
+      if (index.org_id !== ev.org_id || index.journal_id !== ev.journal_id) f.push("org_id ou journal_id de l'index différents de ceux de evenement.json");
+    }
+    rapport.juger("D-1", f, ev ? null : SANS_EV, "dossier.json conforme au schéma");
+  }
+
+  // E-8, première partie : cles.json (schéma, org_id et journal_id de l'événement prouvé, unicités, dates).
+  let clesExploitables = false;
+  if (clesDoc) {
+    const f = validerSchema(clesDoc, schemas[ID_SCHEMA_DOSSIER], { registre: schemas, fragment: "#/$defs/cles" }).map((e) => `cles.json : ${e.chemin} : ${e.message}`);
+    f.push(...verifierCles(clesDoc, ev).map((m) => `cles.json : ${m}`));
+    if (f.length) f.forEach((m) => rapport.echec("E-8", m));
+    clesExploitables = f.length === 0 && Boolean(ev);
+  }
+  const cles = clesExploitables ? normaliserCles(clesDoc) : new Map();
+
+  // Enveloppe de voisins.json (C-1) et de approbations.json (A-1) ; schémas de chemin.json (M-2) et de manifeste.sig (P-5).
+  if (voisins) {
+    const clesV = Object.keys(voisins).sort();
+    if (!egalJSON(clesV, ["next", "previous", "version"])) rapport.echec("C-1", `voisins.json : clés ${JSON.stringify(clesV)}, attendues ["next","previous","version"]`);
+    if (voisins.version !== VERSION_FORMAT) rapport.echec("C-1", `voisins.json : version ${JSON.stringify(voisins.version)}, attendu ${VERSION_FORMAT}`);
+  }
+  const erreursSchema = (valeur, fragment, document = schemas[ID_SCHEMA_DOSSIER], filtre = () => true) => validerSchema(valeur, document, { registre: schemas, fragment }).filter(filtre);
+  const schemaChemin = chemin ? erreursSchema(chemin, "#/$defs/chemin") : [];
+  schemaChemin.forEach((e) => rapport.echec("M-2", `chemin.json : ${e.chemin} : ${e.message}`));
+  if (manifesteSig) erreursSchema(manifesteSig, "#/$defs/manifeste_sig").forEach((e) => rapport.echec("P-5", `manifeste.sig : ${e.chemin} : ${e.message}`));
+  if (approbations) erreursSchema(approbations, "#/$defs/approbations", schemas[ID_SCHEMA_DOSSIER], (e) => !/^\/events\/[0-9]+(\/|$)/.test(e.chemin)).forEach((e) => rapport.echec("A-1", `approbations.json : ${e.chemin} : ${e.message}`));
+
+  // E-1 à E-11 sur chaque événement d'une partie exploitable.
+  const roles = [];
+  if (ev) roles.push({ role: "evenement", e: ev });
+  if (voisins && voisins.previous !== null && voisins.previous !== undefined) roles.push({ role: "voisin précédent", e: voisins.previous });
+  if (voisins && voisins.next !== null && voisins.next !== undefined) roles.push({ role: "voisin suivant", e: voisins.next });
+  if (approbations && Array.isArray(approbations.events)) approbations.events.forEach((e, i) => roles.push({ role: `approbation[${i}]`, e }));
+  const resultatsE = roles.map(({ role, e }) => ({ role, res: controlesEvenement(e, { schemas, cles: clesExploitables ? clesDoc : null, clesExploitables }) }));
+  for (const id of IDS_E) {
+    const echecs = resultatsE.filter(({ res }) => res[id]?.ok === false);
+    if (echecs.length) {
+      // Dans l'ordre des événements ; E-7 et E-8 gardent aussi le détail des événements où elles réussissent.
+      for (const { role, res } of resultatsE) {
+        if (res[id]?.ok === false) rapport.echec(id, `${role} : ${res[id].detail}`);
+        else if (res[id]?.ok === true && (id === "E-7" || id === "E-8")) rapport.succes(id, `${role} : ${res[id].detail}`);
+      }
+      continue;
+    }
+    if (rapport.parId.get(id).ok === false) continue;
+    const nonExec = resultatsE.find(({ res }) => !res[id]?.execute);
+    if (!ev) rapport.nonExecute(id, nonExec ? `${SANS_EV} ; ${nonExec.role} : ${nonExec.res[id].detail}` : SANS_EV);
+    else if (nonExec) rapport.nonExecute(id, `${nonExec.role} : ${nonExec.res[id].detail}`);
+    else for (const { role, res } of resultatsE) rapport.succes(id, id === "E-7" || id === "E-8" ? `${role} : ${res[id].detail}` : null);
+  }
+
+  // C-1, C-2, C-3 : les voisins (les relations à terme absent, mal typé ou incalculable ne sont pas tenues).
+  // Révision 0.5 (règle unique du voisin qui n'est pas un objet) : un membre previous ou next absent, ou ni
+  // objet ni null, est un voisin qui n'est pas un objet ; les relations qui l'ont pour terme ne sont pas tenues.
+  const avecVoisin = (nom) => Boolean(voisins) && voisins[nom] !== null;
+  const SANS_VOISINS = pVoisins.etat === "manquante" ? "voisins.json absent du répertoire" : "voisins.json inexploitable";
+  if (!voisins) {
+    for (const id of ["C-1", "C-2", "C-3"]) rapport.nonExecute(id, SANS_VOISINS);
   } else {
-    const previous = estObjet(voisins.previous) ? voisins.previous : null;
-    const next = estObjet(voisins.next) ? voisins.next : null;
+    const prev = voisins.previous;
+    const next = voisins.next;
     const c1 = [];
-    if (previous === null && ev.seq !== 1) c1.push(`previous null alors que seq = ${ev.seq}`);
-    if (previous && ev.seq === 1) c1.push("previous présent alors que seq = 1");
-    if (previous && previous.seq !== ev.seq - 1) c1.push(`previous.seq ${previous.seq} différent de seq - 1 (${ev.seq - 1})`);
-    if (next && next.seq !== ev.seq + 1) c1.push(`next.seq ${next.seq} différent de seq + 1 (${ev.seq + 1})`);
-    if (previous && msHorodatage(previous.ts) > msHorodatage(ev.ts)) c1.push(`ts ${ev.ts} antérieur à previous.ts ${previous.ts}`);
-    if (next && msHorodatage(next.ts) < msHorodatage(ev.ts)) c1.push(`next.ts ${next.ts} antérieur à ts ${ev.ts}`);
-    for (const [nom, v] of [["previous", previous], ["next", next]]) {
-      if (v && (v.org_id !== ev.org_id || v.journal_id !== ev.journal_id)) c1.push(`${nom} : org_id ou journal_id différents`);
-    }
-    c1.length ? c1.forEach((m) => rapport.echec("C-1", m)) : rapport.succes("C-1", `previous ${previous ? "seq " + previous.seq : "null"}, next ${next ? "seq " + next.seq : "null"}`);
-
     const c2 = [];
-    for (const [nom, v] of [["evenement", ev], ["previous", previous], ["next", next]]) {
-      if (v && (v.seq === 1) !== (v.prev_hash === HASH_NUL)) c2.push(`${nom} : prev_hash ${v.prev_hash === HASH_NUL ? "nul" : "non nul"} avec seq ${v.seq}`);
-    }
-    if (previous) {
-      const hp = hashRecalcule(previous);
-      if (hp && ev.prev_hash !== hp) c2.push(`prev_hash ${ev.prev_hash} différent du hash recalculé de previous ${hp}`);
-    }
-    if (next && hashEv && next.prev_hash !== hashEv) c2.push(`next.prev_hash ${next.prev_hash} différent du hash recalculé de l'événement ${hashEv}`);
-    c2.length ? c2.forEach((m) => rapport.echec("C-2", m)) : rapport.succes("C-2", "chaînage avec les voisins fournis");
-
     const c3 = [];
-    if (previous && ev.recorder_key_id !== cleSuivanteAttendue(previous)) c3.push(`recorder_key_id ${ev.recorder_key_id}, attendu ${cleSuivanteAttendue(previous)} d'après previous`);
-    if (next && next.recorder_key_id !== cleSuivanteAttendue(ev)) c3.push(`next.recorder_key_id ${next.recorder_key_id}, attendu ${cleSuivanteAttendue(ev)}`);
-    c3.length ? c3.forEach((m) => rapport.echec("C-3", m)) : rapport.succes("C-3", `clé ${ev.recorder_key_id}${estRotation(ev) ? " puis " + cleSuivanteAttendue(ev) : ""}`);
+    for (const [nom, v] of [["previous", prev], ["next", next]]) {
+      if (v === undefined) c1.push(`voisins.json : membre ${nom} absent : voisin qui n'est pas un objet`);
+      else if (v !== null && !estObjet(v)) c1.push(`voisins.json : ${nom} doit être un événement ou null (${sorteJSON(v)})`);
+    }
+    // prev_hash nul si et seulement si seq = 1, pour chaque voisin (lu dans voisins.json seul).
+    for (const [nom, v] of [["previous", prev], ["next", next]]) {
+      if (!estObjet(v)) continue;
+      if (!entier(v.seq)) c2.push(`${nom} : seq ${JSON.stringify(v.seq)} qui n'est pas un entier : origine non établie`);
+      else if ((v.seq === 1) !== (v.prev_hash === HASH_NUL)) c2.push(`${nom} : prev_hash ${v.prev_hash === HASH_NUL ? "nul" : "non nul"} avec seq ${v.seq}`);
+    }
+    if (ev) {
+      const seqOk = entier(ev.seq);
+      const tEv = msHorodatage(ev.ts);
+      if (!avecVoisin("previous")) {
+        if (ev.seq !== 1) c1.push(`previous null alors que seq = ${JSON.stringify(ev.seq)}`);
+      } else if (!estObjet(prev)) {
+        c1.push("previous qui n'est pas un objet : relation de seq non tenue");
+      } else {
+        if (!seqOk || !entier(prev.seq) || prev.seq !== ev.seq - 1) c1.push(`previous.seq ${JSON.stringify(prev.seq)} différent de seq - 1 (seq ${JSON.stringify(ev.seq)})`);
+        const t = msHorodatage(prev.ts);
+        if (Number.isNaN(t) || Number.isNaN(tEv)) c1.push(`ts ${ev.ts} et previous.ts ${prev.ts} incomparables (date inexistante ou mal formée)`);
+        else if (t > tEv) c1.push(`ts ${ev.ts} antérieur à previous.ts ${prev.ts}`);
+      }
+      if (avecVoisin("next") && !estObjet(next)) c1.push("next qui n'est pas un objet : relation de seq non tenue");
+      if (avecVoisin("next") && estObjet(next)) {
+        if (!seqOk || !entier(next.seq) || next.seq !== ev.seq + 1) c1.push(`next.seq ${JSON.stringify(next.seq)} différent de seq + 1 (seq ${JSON.stringify(ev.seq)})`);
+        const t = msHorodatage(next.ts);
+        if (Number.isNaN(t) || Number.isNaN(tEv)) c1.push(`next.ts ${next.ts} et ts ${ev.ts} incomparables (date inexistante ou mal formée)`);
+        else if (t < tEv) c1.push(`next.ts ${next.ts} antérieur à ts ${ev.ts}`);
+      }
+      for (const [nom, v] of [["previous", prev], ["next", next]]) {
+        if (avecVoisin(nom) && (!estObjet(v) || v.org_id !== ev.org_id || v.journal_id !== ev.journal_id)) c1.push(`${nom} : org_id ou journal_id différents`);
+      }
+      if (!seqOk) c2.push(`evenement : seq ${JSON.stringify(ev.seq)} qui n'est pas un entier : origine non établie`);
+      else if ((ev.seq === 1) !== (ev.prev_hash === HASH_NUL)) c2.push(`evenement : prev_hash ${ev.prev_hash === HASH_NUL ? "nul" : "non nul"} avec seq ${ev.seq}`);
+      if (avecVoisin("previous")) {
+        const hp = hashRecalcule(prev);
+        if (hp === null) c2.push("hash de previous incalculable : chaînage non établi");
+        else if (ev.prev_hash !== hp) c2.push(`prev_hash ${ev.prev_hash} différent du hash recalculé de previous ${hp}`);
+        if (!estObjet(prev) || ev.recorder_key_id !== cleSuivanteAttendue(prev)) c3.push(`recorder_key_id ${ev.recorder_key_id}, attendu ${estObjet(prev) ? cleSuivanteAttendue(prev) : "?"} d'après previous`);
+      }
+      if (avecVoisin("next")) {
+        if (!estObjet(next) || next.prev_hash !== hashEv) c2.push(`next.prev_hash ${estObjet(next) ? next.prev_hash : "?"} différent du hash recalculé de l'événement ${hashEv}`);
+        if (!estObjet(next) || next.recorder_key_id !== cleSuivanteAttendue(ev)) c3.push(`next.recorder_key_id ${estObjet(next) ? next.recorder_key_id : "?"}, attendu ${cleSuivanteAttendue(ev)}`);
+      }
+    }
+    const p = estObjet(prev) ? prev : null;
+    const n = estObjet(next) ? next : null;
+    rapport.juger("C-1", c1, ev ? null : SANS_EV, `previous ${p ? "seq " + p.seq : "null"}, next ${n ? "seq " + n.seq : "null"}`);
+    rapport.juger("C-2", c2, ev ? null : SANS_EV, "chaînage avec les voisins fournis");
+    rapport.juger("C-3", c3, ev ? null : SANS_EV, ev ? `clé ${ev.recorder_key_id}${estRotation(ev) ? " puis " + cleSuivanteAttendue(ev) : ""}` : null);
   }
 
   // M-1, M-2, M-3 : le chemin.
+  const SANS_CHEMIN = pChemin.etat === "manquante" ? "chemin.json absent du répertoire" : "chemin.json inexploitable";
   if (!chemin) {
-    for (const id of ["M-1", "M-2", "M-3"]) rapport.nonExecute(id, "chemin.json inexploitable");
+    for (const id of ["M-1", "M-2", "M-3"]) rapport.nonExecute(id, SANS_CHEMIN);
   } else {
-    if (hashEv) {
-      const feuille = feuilleMerkle(hashEv);
-      rapport.resultat("M-1", chemin.leaf_hash === feuille, chemin.leaf_hash === feuille ? `leaf_hash ${feuille}` : `leaf_hash ${chemin.leaf_hash} différent de SHA-256(0x00 || hash recalculé) ${feuille}`);
-    } else rapport.nonExecute("M-1", "hash de l'événement incalculable");
-    const ok = verifierInclusion(chemin);
-    rapport.resultat("M-2", ok, ok ? `chemin de ${chemin.path?.length} nœud(s) mène à la racine (indice ${chemin.leaf_index}, taille ${chemin.tree_size})` : "le chemin ne mène pas à chemin.root pour (leaf_index, tree_size), ou sa longueur est incorrecte");
-    if (manifeste && ev) {
+    const feuille = hashEv ? feuilleMerkle(hashEv) : null;
+    rapport.juger("M-1", feuille && chemin.leaf_hash !== feuille ? [`leaf_hash ${chemin.leaf_hash} différent de SHA-256(0x00 || hash recalculé) ${feuille}`] : [], feuille ? null : SANS_EV, `leaf_hash ${feuille}`);
+    let inclus = false;
+    try {
+      inclus = verifierInclusion(chemin);
+    } catch {
+      inclus = false;
+    }
+    if (schemaChemin.length === 0) rapport.resultat("M-2", inclus, inclus ? `chemin de ${chemin.path?.length} nœud(s) mène à la racine (indice ${chemin.leaf_index}, taille ${chemin.tree_size})` : "le chemin ne mène pas à chemin.root pour (leaf_index, tree_size), ou sa longueur est incorrecte");
+    else if (!inclus) rapport.echec("M-2", "le chemin ne mène pas à chemin.root pour (leaf_index, tree_size), ou sa longueur est incorrecte");
+    if (!manifeste) rapport.nonExecute("M-3", pManifeste.etat === "manquante" ? "manifeste.json absent du répertoire" : "manifeste.json inexploitable");
+    else {
       const m3 = [];
       if (chemin.root !== manifeste.root) m3.push(`chemin.root ${chemin.root} différent de manifeste.root ${manifeste.root}`);
-      if (chemin.tree_size !== manifeste.count) m3.push(`tree_size ${chemin.tree_size} différent de count ${manifeste.count}`);
-      if (chemin.leaf_index !== ev.seq - manifeste.first_seq) m3.push(`leaf_index ${chemin.leaf_index} différent de seq - first_seq (${ev.seq - manifeste.first_seq})`);
-      m3.length ? m3.forEach((m) => rapport.echec("M-3", m)) : rapport.succes("M-3", "chemin cohérent avec le manifeste");
-    } else rapport.nonExecute("M-3", "manifeste ou événement inexploitable");
+      if (!entier(chemin.tree_size) || chemin.tree_size !== manifeste.count) m3.push(`tree_size ${JSON.stringify(chemin.tree_size)} différent de count ${JSON.stringify(manifeste.count)}`);
+      if (ev && (!entier(chemin.leaf_index) || !entier(ev.seq) || !entier(manifeste.first_seq) || chemin.leaf_index !== ev.seq - manifeste.first_seq)) m3.push(`leaf_index ${JSON.stringify(chemin.leaf_index)} différent de seq - first_seq (seq ${JSON.stringify(ev.seq)}, first_seq ${JSON.stringify(manifeste.first_seq)})`);
+      rapport.juger("M-3", m3, ev ? null : SANS_EV, "chemin cohérent avec le manifeste");
+    }
   }
 
   // P-1 à P-5 : le manifeste.
+  const SANS_MANIFESTE = pManifeste.etat === "manquante" ? "manifeste.json absent du répertoire" : "manifeste.json inexploitable";
   if (!manifeste) {
-    for (const id of ["P-1", "P-2", "P-3", "P-4", "P-5"]) rapport.nonExecute(id, "manifeste.json inexploitable");
+    for (const id of ["P-1", "P-2", "P-3", "P-4"]) rapport.nonExecute(id, SANS_MANIFESTE);
+    rapport.nonExecute("P-5", SANS_MANIFESTE);
   } else {
-    const p1 = verifierManifeste(manifeste).filter((m) => !m.includes("racine"));
+    const p1 = validerSchema(manifeste, schemas[ID_SCHEMA_MANIFESTE], { registre: schemas }).map((e) => `manifeste.json : ${e.chemin} : ${e.message}`);
+    p1.push(...horodatagesHorsCalendrier([["/generated_at", manifeste.generated_at]]).map((e) => `manifeste.json : ${e.chemin} : ${e.message}`));
+    p1.push(...verifierManifeste(manifeste).filter((m) => !m.includes("racine")));
+    for (const k of ["org_id", "journal_id"]) if (manifeste[k] === HASH_NUL) p1.push(`${k} du manifeste : 32 octets nuls (CT-1 §3, révision 0.5)`);
     if (ev && (manifeste.org_id !== ev.org_id || manifeste.journal_id !== ev.journal_id)) p1.push("org_id ou journal_id différents de ceux de l'événement");
-    p1.length ? p1.forEach((m) => rapport.echec("P-1", m)) : rapport.succes("P-1", `période [${manifeste.period_start}, ${manifeste.period_end}), seq ${manifeste.first_seq}..${manifeste.last_seq}`);
+    rapport.juger("P-1", [...new Set(p1)], ev ? null : SANS_EV, `période [${manifeste.period_start}, ${manifeste.period_end}), seq ${manifeste.first_seq}..${manifeste.last_seq}`);
     if (ev) {
       const p2 = [];
-      if (!(manifeste.first_seq <= ev.seq && ev.seq <= manifeste.last_seq)) p2.push(`seq ${ev.seq} hors de [${manifeste.first_seq}, ${manifeste.last_seq}]`);
-      if (!dansPeriode(ev.ts, manifeste.period_start, manifeste.period_end)) p2.push(`ts ${ev.ts} hors de la période`);
-      p2.length ? p2.forEach((m) => rapport.echec("P-2", m)) : rapport.succes("P-2", "événement dans la période");
-    } else rapport.nonExecute("P-2", "événement inexploitable");
+      if (!entier(ev.seq) || !entier(manifeste.first_seq) || !entier(manifeste.last_seq) || !(manifeste.first_seq <= ev.seq && ev.seq <= manifeste.last_seq)) p2.push(`seq ${JSON.stringify(ev.seq)} hors de [${manifeste.first_seq}, ${manifeste.last_seq}]`);
+      if (!entier(manifeste.period_start) || !entier(manifeste.period_end) || !dansPeriode(ev.ts, manifeste.period_start, manifeste.period_end)) p2.push(`ts ${ev.ts} hors de la période`);
+      rapport.juger("P-2", p2, null, "événement dans la période");
+    } else rapport.nonExecute("P-2", SANS_EV);
     if (voisins) {
       // P-3 : un voisin dans la période par seq y est aussi par ts ; un voisin hors
       // période est adjacent (first_seq - 1, ts < period_start ; last_seq + 1,
       // ts >= period_end), sinon le manifeste a tronqué sa période (CT-1 §7.2).
       const p3 = [];
+      const bornesOk = entier(manifeste.first_seq) && entier(manifeste.last_seq) && entier(manifeste.period_start) && entier(manifeste.period_end);
       for (const [nom, v] of [["previous", voisins.previous], ["next", voisins.next]]) {
-        if (!estObjet(v)) continue;
+        if (v === null) continue;
+        if (!estObjet(v) || !entier(v.seq) || !bornesOk) {
+          p3.push(`${nom} : seq ou bornes du manifeste mal typés : appartenance à la période non établie`);
+          continue;
+        }
         if (manifeste.first_seq <= v.seq && v.seq <= manifeste.last_seq) {
           if (!dansPeriode(v.ts, manifeste.period_start, manifeste.period_end)) p3.push(`${nom} (seq ${v.seq}) dans la période par seq mais ts ${v.ts} hors des bornes`);
         } else if (v.seq !== manifeste.first_seq - 1 && v.seq !== manifeste.last_seq + 1) {
           p3.push(`${nom} (seq ${v.seq}) hors période sans être adjacent (${manifeste.first_seq - 1} ou ${manifeste.last_seq + 1})`);
         } else {
           const sec = Math.floor(msHorodatage(v.ts) / 1000);
-          const horsPeriode = nom === "previous" ? sec < manifeste.period_start : sec >= manifeste.period_end;
-          if (!Number.isNaN(sec) && !horsPeriode) p3.push(`${nom} (seq ${v.seq}) hors de l'intervalle de seq du manifeste mais horodaté ${v.ts}, dans la période : manifeste tronqué`);
+          const horsPeriode = v.seq === manifeste.first_seq - 1 ? sec < manifeste.period_start : sec >= manifeste.period_end;
+          if (Number.isNaN(sec)) p3.push(`${nom} (seq ${v.seq}) : ts ${v.ts} qui n'est pas une date existante`);
+          else if (!horsPeriode) p3.push(`${nom} (seq ${v.seq}) hors de l'intervalle de seq du manifeste mais horodaté ${v.ts}, dans la période : manifeste tronqué`);
         }
       }
-      p3.length ? p3.forEach((m) => rapport.echec("P-3", m)) : rapport.succes("P-3", "voisins cohérents avec la période");
-    } else rapport.nonExecute("P-3", "voisins inexploitables");
+      rapport.juger("P-3", p3, null, "voisins cohérents avec la période");
+    } else rapport.nonExecute("P-3", SANS_VOISINS);
     const p4 = [];
-    if ((manifeste.count === 0) !== (manifeste.root === HASH_NUL)) p4.push(manifeste.count === 0 ? "racine non nulle pour une période vide" : "racine nulle pour une période non vide");
-    if (!(manifeste.count >= 1)) p4.push(`count ${manifeste.count} : un dossier prouve un événement, la période n'est pas vide`);
-    p4.length ? p4.forEach((m) => rapport.echec("P-4", m)) : rapport.succes("P-4", `count ${manifeste.count}, racine ${manifeste.root}`);
-    if (!manifesteSig) rapport.nonExecute("P-5", "manifeste.sig inexploitable");
+    if (!entier(manifeste.count) || (manifeste.count === 0) !== (manifeste.root === HASH_NUL)) p4.push(manifeste.count === 0 ? "racine non nulle pour une période vide" : "racine nulle pour une période non vide, ou count mal typé");
+    if (!(entier(manifeste.count) && manifeste.count >= 1)) p4.push(`count ${JSON.stringify(manifeste.count)} : un dossier prouve un événement, la période n'est pas vide`);
+    rapport.juger("P-4", p4, null, `count ${manifeste.count}, racine ${manifeste.root}`);
+    if (!manifesteSig) rapport.nonExecute("P-5", pSig.etat === "manquante" ? "manifeste.sig absent du répertoire" : "manifeste.sig inexploitable");
     else {
       const p5 = [];
       let ph = null;
@@ -2432,133 +2944,164 @@ export function verifierDossier(fichiers, { schemas, inexploitables = null, empr
       }
       if (ph && ph !== manifesteSig.period_hash) p5.push(`periodHash recalculé ${ph} différent de manifeste.sig.period_hash ${manifesteSig.period_hash}`);
       if (manifeste.recorder_key_id !== manifesteSig.recorder_key_id) p5.push(`manifeste.recorder_key_id ${manifeste.recorder_key_id} différent de manifeste.sig.recorder_key_id ${manifesteSig.recorder_key_id}`);
-      const cle = cles.get(manifesteSig.recorder_key_id);
-      let clesInexploitables = false;
-      if (cles.size === 0) clesInexploitables = true;
-      else if (!cle) p5.push(`clé ${manifesteSig.recorder_key_id} absente de cles.json`);
-      else {
-        if (ph && !verifierSignatureManifeste(manifeste, manifesteSig, cle.public_key)) p5.push(`signature du manifeste invalide sous ${manifesteSig.recorder_key_id}`);
-        const t = msHorodatage(manifeste.generated_at);
-        const de = cle.valid_from === null ? -Infinity : msHorodatage(cle.valid_from);
-        const a = cle.valid_to === null ? Infinity : msHorodatage(cle.valid_to);
-        if (!(t >= de && t <= a)) p5.push(`generated_at ${manifeste.generated_at} hors de la validité de la clé ${manifesteSig.recorder_key_id}`);
+      if (clesExploitables) {
+        const cle = typeof manifesteSig.recorder_key_id === "string" ? cles.get(manifesteSig.recorder_key_id) : undefined;
+        if (!cle) p5.push(`clé ${manifesteSig.recorder_key_id} absente de cles.json`);
+        else {
+          if (ph && !verifierSignatureManifeste(manifeste, manifesteSig, cle.public_key)) p5.push(`signature du manifeste invalide sous ${manifesteSig.recorder_key_id}`);
+          const t = msHorodatage(manifeste.generated_at);
+          const de = cle.valid_from === null ? -Infinity : msHorodatage(cle.valid_from);
+          const a = cle.valid_to === null ? Infinity : msHorodatage(cle.valid_to);
+          if (!(t >= de && t <= a)) p5.push(`generated_at ${manifeste.generated_at} hors de la validité de la clé ${manifesteSig.recorder_key_id}`);
+        }
       }
-      if (p5.length) p5.forEach((m) => rapport.echec("P-5", m));
-      else if (clesInexploitables) rapport.nonExecute("P-5", "cles.json inexploitable (E-8) : signature du manifeste non vérifiable");
-      else rapport.succes("P-5", `periodHash ${ph} signé par ${manifesteSig.recorder_key_id}`);
+      rapport.juger("P-5", p5, clesExploitables ? null : "cles.json inexploitable (E-8) : signature du manifeste non vérifiable", `periodHash ${ph} signé par ${manifesteSig.recorder_key_id}`);
     }
   }
 
-  // A-1 à A-4 : les approbations.
+  // A-1 à A-4 : les approbations (révision 0.5 : raison exacte, A-4 avec approbations.json absent ou inexploitable).
   const partieApprobations = partie("approbations");
-  if (!ev) {
-    for (const id of ["A-1", "A-2", "A-3", "A-4"]) rapport.nonExecute(id, "événement inexploitable");
-  } else if (ev.approval === null || ev.approval === undefined) {
-    const a1 = [];
-    if (approbations || brut("approbations.json") || nonLu("approbations.json")) a1.push("approbations.json présent alors que approval est null");
-    if (partieApprobations?.present === false && partieApprobations.reason_if_absent !== RAISON_AUCUNE_APPROBATION) a1.push(`raison d'absence « ${partieApprobations.reason_if_absent} », attendue « ${RAISON_AUCUNE_APPROBATION} »`);
-    a1.length ? a1.forEach((m) => rapport.echec("A-1", m)) : rapport.succes("A-1", "aucune approbation liée, partie absente avec sa raison");
-    for (const id of ["A-2", "A-3", "A-4"]) rapport.nonExecute(id, "aucune approbation liée");
-  } else if (!approbations) {
-    rapport.echec("A-1", "approval non nul mais approbations.json absent ou inexploitable");
-    for (const id of ["A-2", "A-3", "A-4"]) rapport.nonExecute(id, "approbations.json absent ou inexploitable");
-  } else {
-    const app = ev.approval;
-    const a1 = [];
-    if (approbations.ticket !== app.ticket) a1.push(`ticket ${approbations.ticket} différent de approval.ticket ${app.ticket}`);
-    if (approbations.request_hash !== app.request_hash) a1.push(`request_hash ${approbations.request_hash} différent de approval.request_hash ${app.request_hash}`);
-    a1.length ? a1.forEach((m) => rapport.echec("A-1", m)) : rapport.succes("A-1", `ticket ${app.ticket}`);
-
-    const events = Array.isArray(approbations.events) ? approbations.events : [];
-    const a2 = [];
-    if (events.length === 0) a2.push("aucun événement de décision");
-    const evEstDecision = estDecisionApprobation(ev);
-    events.forEach((d, i) => {
-      if (d?.execution?.tool !== OUTIL_APPROBATION) a2.push(`events[${i}] : execution.tool ${d?.execution?.tool} au lieu de ${OUTIL_APPROBATION}`);
-      if (!egalJSON(d?.approval, app)) a2.push(`events[${i}] : approval différent de celui de l'événement prouvé`);
-      if (!egalJSON(d?.execution?.arguments?.value, objetApprobation(ev))) a2.push(`events[${i}] : execution.arguments.value différent de A`);
-      if (!evEstDecision && !(Number.isInteger(d?.seq) && d.seq < ev.seq)) a2.push(`events[${i}] : seq ${d?.seq} n'est pas antérieur à celui de l'appel relayé (${ev.seq})`);
-    });
-    if (!evEstDecision) {
-      const tAt = msHorodatage(app.at);
-      const tEv = msHorodatage(ev.ts);
-      if (!Number.isNaN(tAt) && !Number.isNaN(tEv) && tAt > tEv) a2.push(`approval.at ${app.at} postérieur au ts de l'appel relayé ${ev.ts}`);
-    } else if (hashEv && !events.some((d) => hashRecalcule(d) === hashEv)) a2.push("l'événement prouvé est une décision mais ne figure pas dans events");
-    a2.length ? a2.forEach((m) => rapport.echec("A-2", m)) : rapport.succes("A-2", `${events.length} événement(s) de décision cohérent(s)`);
-
-    const a3 = [];
-    const jeu = approbations.approver_set ?? {};
-    const membres = Array.isArray(jeu.members) ? jeu.members : [];
-    const jeuMembres = new Set(membres);
-    const approvers = Array.isArray(app.approvers) ? app.approvers : [];
-    if (new Set(approvers).size !== approvers.length) a3.push("approbateur en double");
-    for (const a of approvers) if (!jeuMembres.has(a)) a3.push(`approbateur ${a} hors du jeu déclaré`);
-    if (!egalJSON(app.threshold, jeu.threshold)) a3.push(`threshold de l'événement ${JSON.stringify(app.threshold)} différent de celui du jeu ${JSON.stringify(jeu.threshold)}`);
-    if (!(jeu.threshold?.required <= jeu.threshold?.size && jeu.threshold?.size === membres.length)) a3.push(`seuil ${jeu.threshold?.required}/${jeu.threshold?.size} incohérent avec ${membres.length} membre(s)`);
-    if (app.decision === "expire") {
-      if (approvers.length !== 0) a3.push("décision expirée avec des approbateurs");
-    } else if (approvers.length < (app.threshold?.required ?? Infinity)) a3.push(`${approvers.length} approbateur(s) pour un seuil de ${app.threshold?.required}`);
-    a3.length ? a3.forEach((m) => rapport.echec("A-3", m)) : rapport.succes("A-3", `${approvers.length} approbateur(s) distinct(s) sur un seuil de ${app.threshold?.required}/${app.threshold?.size}`);
-
-    const candidats = [voisins?.previous, voisins?.next].filter((v) => estObjet(v));
-    const demande = candidats.find((v) => hashRecalcule(v) === app.request_hash);
-    if (!demande) rapport.nonExecute("A-4", `événement de demande (request_hash ${app.request_hash}) absent du dossier : non vérifiable`);
+  const app = ev ? ev.approval : undefined;
+  const sansApprobation = ev && (app === null || app === undefined);
+  const declareeAbsente = partieApprobations?.present === false;
+  const raisonExacte = declareeAbsente && partieApprobations.reason_if_absent === RAISON_AUCUNE_APPROBATION;
+  // A-4 : la demande est le voisin dont le hash recalculé égale request_hash ; voisins.json inexploitable : sans raison admise.
+  const jugerA4 = () => {
+    // Révision 0.5 : approval ni nul ni objet, request_hash (terme de la règle d'A-4) ne se lit pas : A-4 échoue.
+    if (!estObjet(app)) return rapport.echec("A-4", `approval ${sorteJSON(app)} qui n'est pas un objet : request_hash illisible, demande non désignée`);
+    if (!voisins) return rapport.nonExecute("A-4", `${SANS_VOISINS} : événement de demande non recherché`);
+    const candidats = [voisins.previous, voisins.next].filter((v) => estObjet(v));
+    const demande = estObjet(app) ? candidats.find((v) => hashRecalcule(v) === app.request_hash) : undefined;
+    if (!demande) rapport.nonExecute("A-4", `${DETAIL_A4_HORS_DOSSIER} (request_hash ${estObjet(app) ? app.request_hash : "?"}) absent du dossier : non vérifiable`);
     else if (demande.execution?.status !== "retenue") rapport.echec("A-4", `événement de demande seq ${demande.seq} avec status ${demande.execution?.status}, attendu retenue`);
     else rapport.succes("A-4", `événement de demande seq ${demande.seq} retenu, hash égal à request_hash`);
+  };
+  if (!ev) {
+    for (const id of ["A-1", "A-2", "A-3", "A-4"]) rapport.nonExecute(id, SANS_EV);
+  } else if (sansApprobation) {
+    const a1 = [];
+    if (!declareeAbsente) a1.push("approbations.json déclaré présent alors que approval est null");
+    else if (!raisonExacte) a1.push(`raison d'absence « ${partieApprobations.reason_if_absent} », attendue exactement « ${RAISON_AUCUNE_APPROBATION} »`);
+    rapport.juger("A-1", a1, null, "aucune approbation liée, partie absente avec sa raison");
+    for (const id of ["A-2", "A-3", "A-4"]) rapport.nonExecute(id, rapport.statut("A-1") === "reussi" ? RAISON_AUCUNE_APPROBATION : "A-1 en échec : partie approbations.json mal déclarée");
+  } else {
+    if (declareeAbsente) {
+      rapport.echec("A-1", "approval non nul mais approbations.json déclaré absent");
+      for (const id of ["A-2", "A-3"]) rapport.nonExecute(id, "approbations.json déclaré absent");
+    } else if (!approbations) {
+      // Cas (a) : A-1 non exécutée (D-2 en échec) ; cas (b) à (e) : A-1 déjà en échec, ou E-2.
+      rapport.nonExecute("A-1", pApprobations.etat === "manquante" ? "approbations.json absent du répertoire" : "approbations.json inexploitable");
+      for (const id of ["A-2", "A-3"]) rapport.nonExecute(id, pApprobations.etat === "manquante" ? "approbations.json absent du répertoire" : "approbations.json inexploitable");
+    } else {
+      const a1 = [];
+      if (!estObjet(app) || approbations.ticket !== app.ticket) a1.push(`ticket ${approbations.ticket} différent de approval.ticket ${estObjet(app) ? app.ticket : "?"}`);
+      if (!estObjet(app) || approbations.request_hash !== app.request_hash) a1.push(`request_hash ${approbations.request_hash} différent de approval.request_hash ${estObjet(app) ? app.request_hash : "?"}`);
+      rapport.juger("A-1", a1, null, `ticket ${estObjet(app) ? app.ticket : "?"}`);
+
+      const events = Array.isArray(approbations.events) ? approbations.events : [];
+      const a2 = [];
+      if (events.length === 0) a2.push("aucun événement de décision");
+      const evEstDecision = estDecisionApprobation(ev);
+      const A = objetApprobation(ev);
+      events.forEach((d, i) => {
+        if (!estObjet(d)) {
+          a2.push(`events[${i}] : ${sorteJSON(d)}, pas un événement`);
+          return;
+        }
+        if (d.execution?.tool !== OUTIL_APPROBATION) a2.push(`events[${i}] : execution.tool ${d.execution?.tool} au lieu de ${OUTIL_APPROBATION}`);
+        if (!egalJSON(d.approval, app)) a2.push(`events[${i}] : approval différent de celui de l'événement prouvé`);
+        if (!memeFormeCanonique(d.execution?.arguments?.value, A)) a2.push(`events[${i}] : execution.arguments.value différent de A`);
+        if (!evEstDecision && !(entier(d.seq) && entier(ev.seq) && d.seq < ev.seq)) a2.push(`events[${i}] : seq ${JSON.stringify(d.seq)} n'est pas antérieur à celui de l'appel relayé (${JSON.stringify(ev.seq)})`);
+      });
+      if (!evEstDecision) {
+        const tAt = msHorodatage(estObjet(app) ? app.at : undefined);
+        const tEv = msHorodatage(ev.ts);
+        if (Number.isNaN(tAt) || Number.isNaN(tEv)) a2.push(`approval.at ${estObjet(app) ? app.at : "?"} et ts ${ev.ts} de l'appel relayé incomparables (date inexistante ou mal formée)`);
+        else if (tAt > tEv) a2.push(`approval.at ${app.at} postérieur au ts de l'appel relayé ${ev.ts}`);
+      } else if (!events.some((d) => hashRecalcule(d) === hashEv)) a2.push("l'événement prouvé est une décision mais ne figure pas dans events");
+      rapport.juger("A-2", a2, null, `${events.length} événement(s) de décision cohérent(s)`);
+
+      const a3 = [];
+      const jeu = estObjet(approbations.approver_set) ? approbations.approver_set : {};
+      const membres = Array.isArray(jeu.members) ? jeu.members : [];
+      const jeuMembres = new Set(membres);
+      const approvers = estObjet(app) && Array.isArray(app.approvers) ? app.approvers : [];
+      const seuil = estObjet(app) ? app.threshold : undefined;
+      if (new Set(approvers).size !== approvers.length) a3.push("approbateur en double");
+      for (const x of approvers) if (!jeuMembres.has(x)) a3.push(`approbateur ${x} hors du jeu déclaré`);
+      if (!egalJSON(seuil, jeu.threshold)) a3.push(`threshold de l'événement ${JSON.stringify(seuil)} différent de celui du jeu ${JSON.stringify(jeu.threshold)}`);
+      const req = jeu.threshold?.required;
+      const size = jeu.threshold?.size;
+      if (!(entier(req) && entier(size) && req <= size && size === membres.length)) a3.push(`seuil ${req}/${size} incohérent avec ${membres.length} membre(s)`);
+      if (estObjet(app) && app.decision === "expire") {
+        if (approvers.length !== 0) a3.push("décision expirée avec des approbateurs");
+      } else if (!(estObjet(seuil) && entier(seuil.required) && approvers.length >= seuil.required)) a3.push(`${approvers.length} approbateur(s) pour un seuil de ${estObjet(seuil) ? seuil.required : "?"}`);
+      rapport.juger("A-3", a3, null, `${approvers.length} approbateur(s) distinct(s) sur un seuil de ${seuil?.required}/${seuil?.size}`);
+    }
+    jugerA4();
   }
 
   // K-1 à K-9 : la partie points-de-controle.json (CT-1 révision 0.3, §11.4).
   if (!pointsDeclaresPresents) {
     for (const id of IDS_K) rapport.nonExecute(id, DETAIL_K_PARTIE_ABSENTE);
-  } else if (!pointsDoc) {
-    // lire() a imputé K-1 si la partie est inexploitable ; déclarée présente mais absente du répertoire, D-2 l'a dit.
-    if (!rapport.parId.get("K-1").execute) rapport.nonExecute("K-1", `${PARTIE_POINTS_DE_CONTROLE.file} absent du répertoire`);
+  } else if (!pPoints.valeur) {
+    // lire() a imputé K-1 (cas (b), (c), (e)) ou E-2 (cas (d)), ou laissé K-1 non exécutée (cas (a), D-2 en échec).
     for (const id of IDS_K.slice(1)) rapport.nonExecute(id, `${PARTIE_POINTS_DE_CONTROLE.file} inexploitable`);
   } else {
-    verifierPartiePointsDeControle(rapport, pointsDoc, { ev, voisins, chemin, manifeste, cles, schemas, hashRecalcule });
+    verifierPartiePointsDeControle(rapport, pPoints.valeur, { ev, voisins, chemin, manifeste, cles, clesExploitables, schemas, hashRecalcule });
   }
 
   // AT-1 à AT-7 : la partie attestation-perimetre.json (CT-1 révision 0.4, §11.4), sans effet sur la validité.
   let attestation = null;
   const partieAttestation = partie(PARTIE_ATTESTATION_PERIMETRE.name);
-  if (parts.length === PARTIES_DOSSIER.length + 2 && partieAttestation && partieAttestation.present === true) {
+  if (partieAttestation && partieAttestation.present === true) {
     if (!schemas[ID_SCHEMA_ATTESTATION_PERIMETRE]) throw new DossierInutilisable("le schéma attestation-perimetre est requis pour vérifier la partie attestation-perimetre.json (CT-1 révision 0.4)");
     const file = PARTIE_ATTESTATION_PERIMETRE.file;
-    attestation = S.verifierPartieAttestation({ octets: brut(file), inexploitable: refus(file), evenement, cles: clesDoc, approbations, schemas });
+    const motifTaille = etats.get(file) === "trop_grande" ? refus(file) ?? `${file} : ${brut(file).length} octets, au-delà de la limite de ${limite(file)} octets` : null;
+    attestation = S.verifierPartieAttestation({ octets: motifTaille ? null : brut(file), inexploitable: motifTaille, evenement: ev, cles: clesDoc, approbations, schemas });
   }
 
-  return terminer(rapport, index, ev, parts, attestation);
+  // Parties réservées déclarées présentes : CT-6 les vérifie ; cette bibliothèque ne dit pas valide ce qu'elle n'a pas vérifié.
+  const partiesNonVerifiees = PARTIES_RESERVEES.filter((name) => partie(name)?.present === true);
+  const parties = {
+    evenement: ev, voisins, chemin, manifeste, manifesteSig, cles: clesDoc, approbations, points: pPoints.valeur,
+    clesExploitables,
+    etats: Object.fromEntries(etats),
+    exploitabilite: { evenement: pEv.etat, voisins: pVoisins.etat, chemin: pChemin.etat, manifeste: pManifeste.etat, manifesteSig: pSig.etat, cles: pCles.etat, approbations: pApprobations.etat, points: pPoints.etat },
+  };
+  return terminer(rapport, index, ev, parts, attestation, { partiesNonVerifiees, parties });
 }
 
 /**
- * K-1 à K-6 sur une partie points-de-controle.json lisible (objet JSON) ; K-7 à
- * K-9 restent non exécutées (ancre nulle : partie absente ; ancre fournie : à
- * vérifier par CT-6). Les erreurs de schéma sont imputées à K-1 ; les
- * vérifications qui dépendent d'une pièce inexploitable sont non exécutées.
+ * K-1 à K-9 sur une partie points-de-controle.json exploitable (objet JSON).
+ * K-1 contrôle toujours le schéma ; ses relations au manifeste exigent P-1
+ * réussie et celles à l'événement evenement.json exploitable (sinon K-1 n'est
+ * pas exécutée, sauf échec). K-2 à K-9 exigent K-1 réussie. K-7 à K-9 : ancre
+ * nulle, non exécutées (partie absente, raison admise) ; ancre non nulle,
+ * vérifiée par CT-6 : ici K-7 et K-9 ne sont pas exécutées, sans raison admise,
+ * et K-8 compare fingerprint et doc_type (écart : échec ; sinon non exécutée,
+ * sans raison admise).
  */
-function verifierPartiePointsDeControle(rapport, doc, { ev, voisins, chemin, manifeste: manifesteLu, cles, schemas, hashRecalcule }) {
+function verifierPartiePointsDeControle(rapport, doc, { ev, voisins, chemin, manifeste: manifesteLu, cles, clesExploitables, schemas, hashRecalcule }) {
   const file = PARTIE_POINTS_DE_CONTROLE.file;
   const erreursSchema = validerSchema(doc, schemas[ID_SCHEMA_DOSSIER], { registre: schemas, fragment: "#/$defs/points_de_controle" });
   const point = estObjet(doc.checkpoint) ? doc.checkpoint : null;
   // Prérequis (CT-6 EX-5.9, table 5.3) : les relations au manifeste exigent P-1 réussie ; K-4 exige M-3 réussie.
-  const reussie = (id) => rapport.parId.get(id).execute && rapport.parId.get(id).ok === true;
+  const reussie = (id) => rapport.statut(id) === "reussi";
   const manifeste = reussie("P-1") ? manifesteLu : null;
   const k1 = erreursSchema.length ? [`${file} : ${resumerErreurs(erreursSchema)}`] : [];
-  if (point) {
-    k1.push(...horodatagesHorsCalendrier([["/checkpoint/checkpoint_ts", point.checkpoint_ts]]).map((m) => `${file} : ${m}`));
-  }
+  if (point) k1.push(...horodatagesHorsCalendrier([["/checkpoint/checkpoint_ts", point.checkpoint_ts]]).map((e) => `${file} : ${e.chemin} : ${e.message}`));
   if (point && ev && (point.org_id !== ev.org_id || point.journal_id !== ev.journal_id)) k1.push("org_id ou journal_id du point différents de ceux de l'événement");
   if (point && manifeste) {
     if (point.period_start !== manifeste.period_start) k1.push(`period_start du point ${point.period_start} différent de celui du manifeste ${manifeste.period_start}`);
     if (!(Number.isSafeInteger(point.tree_size) && point.tree_size >= 1 && point.tree_size <= manifeste.count)) k1.push(`tree_size ${point.tree_size} hors de [1, count = ${manifeste.count}]`);
-    if (point.last_seq !== manifeste.first_seq + point.tree_size - 1) k1.push(`last_seq ${point.last_seq} différent de first_seq + tree_size - 1 (${manifeste.first_seq + point.tree_size - 1})`);
+    if (!Number.isSafeInteger(point.last_seq) || point.last_seq !== manifeste.first_seq + point.tree_size - 1) k1.push(`last_seq ${point.last_seq} différent de first_seq + tree_size - 1 (${manifeste.first_seq + point.tree_size - 1})`);
     if (point.root === HASH_NUL) k1.push("racine du point nulle");
     const sec = Math.floor(msHorodatage(point.checkpoint_ts) / 1000);
     if (Number.isNaN(sec) || sec < manifeste.period_start) k1.push(`checkpoint_ts ${point.checkpoint_ts} antérieur à period_start ${manifeste.period_start}`);
   }
-  if (k1.length) k1.forEach((m) => rapport.echec("K-1", m));
-  else if (!point || !ev || !manifeste) rapport.nonExecute("K-1", manifesteLu && !manifeste ? "P-1 en échec : relations du point au manifeste non vérifiables" : "événement ou manifeste inexploitable : relations du point non vérifiables");
-  else rapport.succes("K-1", `point de tree_size ${point.tree_size} (seq ${manifeste.first_seq}..${point.last_seq}), checkpoint_ts ${point.checkpoint_ts}`);
+  const manqueK1 = !point ? "checkpoint inexploitable" : !ev ? "événement ou manifeste inexploitable : relations du point non vérifiables" : !manifeste ? (manifesteLu ? "P-1 n'a pas réussi : relations du point au manifeste non vérifiables" : "événement ou manifeste inexploitable : relations du point non vérifiables") : null;
+  rapport.juger("K-1", k1, manqueK1, point ? `point de tree_size ${point.tree_size} (seq ${manifeste?.first_seq}..${point.last_seq}), checkpoint_ts ${point.checkpoint_ts}` : null);
   // CT-1 §11.4, CT-6 EX-5.9 : K-1 en échec ou non exécutée, K-2 à K-9 ne sont pas exécutées, sans raison
   // admise (prerequis_en_echec), ancres nulles comprises ; aucun calcul n'est fait sur la partie.
   if (!reussie("K-1")) {
@@ -2577,7 +3120,7 @@ function verifierPartiePointsDeControle(rapport, doc, { ev, voisins, chemin, man
   if (ch) rapport.resultat("K-2", ch === doc.checkpoint_hash, ch === doc.checkpoint_hash ? `checkpointHash ${ch}` : `checkpointHash recalculé ${ch} différent de checkpoint_hash ${doc.checkpoint_hash}`);
 
   // K-3 : signature et validité de la clé.
-  if (cles.size === 0) rapport.nonExecute("K-3", "cles.json inexploitable (E-8) : signature du point non vérifiable");
+  if (!clesExploitables) rapport.nonExecute("K-3", "cles.json inexploitable (E-8) : signature du point non vérifiable");
   else {
     const cle = cles.get(point.key_id);
     const k3 = [];
@@ -2589,7 +3132,7 @@ function verifierPartiePointsDeControle(rapport, doc, { ev, voisins, chemin, man
       const a = cle.valid_to === null ? Infinity : msHorodatage(cle.valid_to);
       if (!(t >= de && t <= a)) k3.push(`checkpoint_ts ${point.checkpoint_ts} hors de la validité de la clé ${point.key_id}`);
     }
-    k3.length ? k3.forEach((m) => rapport.echec("K-3", m)) : rapport.succes("K-3", `point signé par ${point.key_id}`);
+    rapport.juger("K-3", k3, null, `point signé par ${point.key_id}`);
   }
 
   // K-4 : couverture de l'événement prouvé (prérequis : M-3 réussie).
@@ -2601,7 +3144,7 @@ function verifierPartiePointsDeControle(rapport, doc, { ev, voisins, chemin, man
     const tEv = msHorodatage(ev.ts);
     const tK = msHorodatage(point.checkpoint_ts);
     if (Number.isNaN(tEv) || Number.isNaN(tK) || tEv > tK) k4.push(`ts de l'événement ${ev.ts} postérieur à checkpoint_ts ${point.checkpoint_ts}`);
-    k4.length ? k4.forEach((m) => rapport.echec("K-4", m)) : rapport.succes("K-4", `feuille ${chemin.leaf_index} couverte (tree_size ${point.tree_size}), ts ${ev.ts} <= ${point.checkpoint_ts}`);
+    rapport.juger("K-4", k4, null, `feuille ${chemin.leaf_index} couverte (tree_size ${point.tree_size}), ts ${ev.ts} <= ${point.checkpoint_ts}`);
   }
 
   // K-5 : preuve de cohérence vers le manifeste.
@@ -2614,28 +3157,46 @@ function verifierPartiePointsDeControle(rapport, doc, { ev, voisins, chemin, man
     if (cs.second_size !== manifeste.count) k5.push(`second_size ${cs.second_size} différent de count ${manifeste.count}`);
     if (cs.first_root !== point.root) k5.push(`first_root ${cs.first_root} différent de root du point ${point.root}`);
     if (cs.second_root !== manifeste.root) k5.push(`second_root ${cs.second_root} différent de root du manifeste ${manifeste.root}`);
-    if (!verifierCoherence(cs)) k5.push(`la preuve de cohérence (${Array.isArray(cs.path) ? cs.path.length : "?"} nœud(s)) n'est pas acceptée pour (${cs.first_size}, ${cs.second_size})`);
-    k5.length ? k5.forEach((m) => rapport.echec("K-5", m)) : rapport.succes("K-5", `arbre de ${cs.first_size} feuilles préfixe de l'arbre de ${cs.second_size} (${cs.path.length} nœud(s))`);
+    let accepte = false;
+    try {
+      accepte = verifierCoherence(cs);
+    } catch {
+      accepte = false;
+    }
+    if (!accepte) k5.push(`la preuve de cohérence (${Array.isArray(cs.path) ? cs.path.length : "?"} nœud(s)) n'est pas acceptée pour (${cs.first_size}, ${cs.second_size})`);
+    rapport.juger("K-5", k5, null, `arbre de ${cs.first_size} feuilles préfixe de l'arbre de ${cs.second_size} (${Array.isArray(cs.path) ? cs.path.length : 0} nœud(s))`);
   }
 
-  // K-6 : last_hash contre l'événement last_seq quand il est dans le dossier.
-  const candidats = [ev, voisins?.previous, voisins?.next].filter((v) => estObjet(v));
-  const cible = candidats.find((v) => v.seq === point.last_seq);
-  if (!cible) rapport.nonExecute("K-6", `${DETAIL_K6_HORS_DOSSIER} (seq ${point.last_seq}) : last_hash non vérifiable`);
+  // K-6 : last_hash contre l'événement last_seq quand il est dans le dossier ; voisins.json inexploitable : sans raison admise.
+  let cible = ev && ev.seq === point.last_seq ? ev : undefined;
+  if (!cible && !voisins) rapport.nonExecute("K-6", "voisins.json inexploitable : événement last_seq non recherché");
   else {
-    const h = hashRecalcule(cible);
-    if (!h) rapport.nonExecute("K-6", `hash de l'événement ${point.last_seq} incalculable`);
-    else rapport.resultat("K-6", h === point.last_hash, h === point.last_hash ? `last_hash égal au hash recalculé de l'événement ${point.last_seq}` : `last_hash ${point.last_hash} différent du hash recalculé de l'événement ${point.last_seq} (${h})`);
+    cible ??= [voisins?.previous, voisins?.next].filter((v) => estObjet(v)).find((v) => v.seq === point.last_seq);
+    if (!cible) rapport.nonExecute("K-6", `${DETAIL_K6_HORS_DOSSIER} (seq ${point.last_seq}) : last_hash non vérifiable`);
+    else {
+      const h = hashRecalcule(cible);
+      if (!h) rapport.nonExecute("K-6", `hash de l'événement ${point.last_seq} incalculable`);
+      else rapport.resultat("K-6", h === point.last_hash, h === point.last_hash ? `last_hash égal au hash recalculé de l'événement ${point.last_seq}` : `last_hash ${point.last_hash} différent du hash recalculé de l'événement ${point.last_seq} (${h})`);
+    }
   }
 
-  // K-7 à K-9 : ancres du point, vérifiées par CT-6 (verificateur.mjs).
+  // K-7 à K-9 : ancres du point. Nulles : partie absente (admise). Non nulles : vérifiées par CT-6 (verificateur.mjs).
   const anchors = estObjet(doc.anchors) ? doc.anchors : {};
-  for (const [id, cle] of [["K-7", "rfc3161"], ["K-8", "registry"], ["K-9", "ots"]]) {
-    rapport.nonExecute(id, anchors[cle] === null || anchors[cle] === undefined ? DETAIL_K_ANCRE_NULLE : DETAIL_K_HORS_PERIMETRE);
+  const nulle = (cle) => anchors[cle] === null || anchors[cle] === undefined;
+  for (const [id, cle] of [["K-7", "rfc3161"], ["K-9", "ots"]]) rapport.nonExecute(id, nulle(cle) ? DETAIL_K_ANCRE_NULLE : DETAIL_K_HORS_PERIMETRE);
+  if (nulle("registry")) rapport.nonExecute("K-8", DETAIL_K_ANCRE_NULLE);
+  else if (rapport.statut("K-2") !== "reussi") rapport.nonExecute("K-8", "K-2 n'a pas réussi : checkpointHash non recalculé");
+  else {
+    const ref = estObjet(anchors.registry) ? anchors.registry : {};
+    const k8 = [];
+    const attendue = empreinteAncrePoint(ev.org_id, ev.journal_id, ch);
+    if (ref.fingerprint !== attendue) k8.push(`fingerprint ${ref.fingerprint} au lieu de keccak256(org_id ‖ journal_id ‖ checkpoint_hash) = ${attendue}`);
+    if (ref.doc_type !== DOC_TYPE_POINT_DE_CONTROLE) k8.push(`doc_type ${ref.doc_type} au lieu de ${DOC_TYPE_POINT_DE_CONTROLE} (noortrace/point-de-controle/v0)`);
+    rapport.juger("K-8", k8, `${DETAIL_K_HORS_PERIMETRE} (fichier d'ancres et vérifications R- de CT-6)`, null);
   }
 }
 
-function terminer(rapport, index, ev, parts, attestation = null) {
+function terminer(rapport, index, ev, parts, attestation = null, { partiesNonVerifiees = [], parties = null } = {}) {
   const partiesAbsentes = parts.filter((p) => p && p.present === false).map((p) => ({ name: p.name, file: p.file, reason: p.reason_if_absent ?? null }));
   const reserveesAbsentes = partiesAbsentes.filter((p) => PARTIES_RESERVEES.includes(p.name));
   const borne = reserveesAbsentes.length
@@ -2643,16 +3204,23 @@ function terminer(rapport, index, ev, parts, attestation = null) {
     : null;
   const bloquants = nonExecutesBloquants(rapport, parts);
   return {
-    valide: rapport.sansEchec && bloquants.length === 0,
+    valide: rapport.sansEchec && bloquants.length === 0 && partiesNonVerifiees.length === 0,
     controles: rapport.controles.map((c) => ({ id: c.id, libelle: c.libelle, architecture: c.architecture, ok: c.ok, execute: c.execute, detail: c.details.join(" ; ") || null })),
     nonExecutesBloquants: bloquants,
-    // Rien n'est repris de l'index à la place d'un evenement.json inexploitable.
+    // Révision 0.5 : parties réservées déclarées présentes, non vérifiées par CT-1 seule (sans raison admise).
+    partiesNonVerifiees,
+    // Leurs vérifications de CT-6, rapportées non exécutées : raison prerequis_en_echec, détail fixé par CT-1 §11.4.
+    verificationsCT6NonExecutees: partiesNonVerifiees.map((name) => ({ part: name, reason: RAISON_VERIFICATION_CT6, detail: DETAIL_VERIFICATION_CT6 })),
+    // Rien n'est repris de l'index à la place d'un evenement.json inexploitable (CT-6 EX-6.22).
     evenement: ev ? { seq: ev.seq, hash: ev.hash, ts: ev.ts, tool: ev.execution?.tool ?? null } : null,
-    org_id: index.org_id ?? null,
-    journal_id: index.journal_id ?? null,
+    org_id: ev && estHex32(ev.org_id) ? ev.org_id : null,
+    journal_id: ev && estHex32(ev.journal_id) ? ev.journal_id : null,
     partiesAbsentes,
     borne,
     attestation,
+    indexExploitable: index !== null,
+    index,
+    parties,
   };
 }
 

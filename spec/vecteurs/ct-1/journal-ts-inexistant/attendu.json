@@ -1,0 +1,31 @@
+{
+  "valide": false,
+  "description": "Le ts de seq 12 (changement de politique, dernier événement du journal) devient 2026-02-30T10:05:00.000Z, date qui n'existe pas, événement rescellé (hash et signature valides) : E-1 (date inexistante, CT-1 §3) ; E-11, dont la relation (ts dans la validité de la clé) a un terme incalculable (CT-1 §11.4, révision 0.5) ; et, au troisième temps, le couple (seq 11, seq 12) rapporte le symptôme horodatage (C-1) : un ts qui n'est pas une date existante ne tient pas la relation (CT-1 §7.2, révision 0.5).",
+  "controles_en_echec": [
+    "E-1",
+    "E-11",
+    "C-1"
+  ],
+  "diagnostics": [
+    {
+      "type": "schema",
+      "controle": "E-1",
+      "seq": 12
+    },
+    {
+      "type": "validite_cle",
+      "controle": "E-11",
+      "seq": 12
+    },
+    {
+      "type": "horodatage",
+      "controle": "C-1",
+      "seq": 12
+    }
+  ],
+  "messages": [
+    "seq 12 : /ts : horodatage 2026-02-30T10:05:00.000Z hors du calendrier grégorien (date inexistante)",
+    "seq 12 : ts 2026-02-30T10:05:00.000Z hors de [2026-11-05T09:59:58.000Z, +∞] de la clé rec-test-02",
+    "seq 12 : ts 2026-02-30T10:05:00.000Z incomparable à celui de seq 11 (2026-11-05T10:04:13.040Z) : horodatage qui n'est pas une date existante"
+  ]
+}

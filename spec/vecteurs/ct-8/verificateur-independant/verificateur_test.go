@@ -280,7 +280,7 @@ func TestDimensionnementRefus(t *testing.T) {
 
 func TestDimensionnementCoefficients(t *testing.T) {
 	v, k := entreesTest(t)
-	if k["blocs_par_s"] != 1.1 || k["gaz_cloture"] != 314256 || k["b_der"] != 3114 {
+	if k["blocs_par_s"] != 1.1 || k["gaz_cloture"] != 314256 || k["b_der"] != 3114 || k["b_cap"] != 123761 {
 		t.Fatalf("table de 9.2 : %v", k)
 	}
 	// Un coefficient remplacé par l'exploitant (EX-9.1) change la sortie.

@@ -150,15 +150,33 @@ function aide(langue) {
 }
 
 /**
- * Lit au plus `limite + 1` octets d'un fichier régulier (EX-4.13) : rend
- * { octets } ou, au-delà de la limite, { trop: true, taille, debut } sans lire
- * plus loin. Lève l'erreur du système de fichiers.
+ * Ouvre un fichier ordinaire sans suivre de lien ni attendre (CT-6 EX-4.17) :
+ * lstat sur le chemin, refus de tout ce qui n'est pas un fichier ordinaire
+ * (lien symbolique, même vers un fichier conforme, tube nommé, socket,
+ * périphérique, répertoire), ouverture O_NOFOLLOW et O_NONBLOCK, puis fstat :
+ * fichier ordinaire, même périphérique et même inode que ceux que lstat a vus.
+ * Rend { fd, st } ; lève une erreur sinon.
+ */
+function ouvrirOrdinaire(fichier) {
+  const vu = fs.lstatSync(fichier);
+  if (!vu.isFile()) throw new Error(vu.isSymbolicLink() ? "lien symbolique : pas un fichier ordinaire (CT-6 EX-4.17)" : "pas un fichier ordinaire (CT-6 EX-4.17)");
+  const fd = fs.openSync(fichier, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0) | (fs.constants.O_NONBLOCK ?? 0));
+  const st = fs.fstatSync(fd);
+  if (!st.isFile() || st.dev !== vu.dev || st.ino !== vu.ino) {
+    fs.closeSync(fd);
+    throw new Error("fichier remplacé entre son examen et son ouverture : pas le fichier ordinaire vu (CT-6 EX-4.17)");
+  }
+  return { fd, st };
+}
+
+/**
+ * Lit au plus `limite + 1` octets d'un fichier ordinaire (EX-4.13, EX-4.17) :
+ * rend { octets } ou, au-delà de la limite, { trop: true, taille, debut } sans
+ * lire plus loin. Lève l'erreur du système de fichiers.
  */
 function lireBorne(fichier, limite) {
-  const fd = fs.openSync(fichier, "r");
+  const { fd, st } = ouvrirOrdinaire(fichier);
   try {
-    const st = fs.fstatSync(fd);
-    if (!st.isFile()) throw new Error("pas un fichier régulier");
     const morceaux = [];
     let total = 0;
     const tampon = Buffer.alloc(Math.min(limite + 1, 1 << 20));
@@ -183,7 +201,7 @@ function lireBorne(fichier, limite) {
  * inutilisable (le fichier a grandi depuis sa mesure).
  */
 function sha256Flux(fichier, plafond) {
-  const fd = fs.openSync(fichier, "r");
+  const { fd } = ouvrirOrdinaire(fichier);
   try {
     const h = crypto.createHash("sha256");
     const tampon = Buffer.alloc(1 << 20);
@@ -302,13 +320,12 @@ function principal(argv, etat) {
     pieces = {
       lire(nom) {
         const fichier = path.join(rep, nom);
-        let stp;
         try {
-          stp = fs.statSync(fichier);
+          fs.lstatSync(fichier);
         } catch {
           return null; // pièce non fournie : la référence reste une empreinte (EX-4.6)
         }
-        if (!stp.isFile()) return null;
+        // Une entrée de ce nom qui n'est pas un fichier ordinaire (lien, tube, répertoire) rend l'entrée inutilisable (EX-4.17).
         const lu = lireEntree(fichier, V.LIMITES.piece, { kind: "entree_illisible", check: null, nom: langue === "en" ? "piece" : "pièce" });
         if (lu.trop) throw new V.EntreeInutilisable("taille_depassee", T(`pièce ${fichier} : ${lu.taille} octets, au-delà de la limite de ${V.LIMITES.piece}`, `piece ${fichier}: ${lu.taille} bytes, beyond the limit of ${V.LIMITES.piece}`));
         return lu.octets;
@@ -335,7 +352,7 @@ function principal(argv, etat) {
       throw new V.EntreeInutilisable("dossier_illisible", T(`${e.name} illisible : ${err.message}`, `${e.name} unreadable: ${err.message}`));
     }
     if (lu.trop) {
-      if (e.name === "dossier.json") throw new V.EntreeInutilisable("taille_depassee", T(`dossier.json : ${lu.taille} octets, au-delà de la limite de ${limite}`, `dossier.json: ${lu.taille} bytes, beyond the limit of ${limite}`));
+      // dossier.json au-delà de 1 Mio : D-1 échoue, code 1, et non le code 2 (CT-6 EX-4.11, point 3 ; CT-1 §11.4, révision 0.5).
       // attestation-perimetre.json au-delà de 4 Mio fait échouer AT-1 et rien d'autre (CT-6 EX-4.15) : son SHA-256 est calculé en flux pour D-2,
       // jusqu'au plafond absolu de 64 Mio ; au-delà, l'entrée est inutilisable (code 2), comme une pièce trop grande.
       const info = { taille: lu.taille, limite, debut: lu.debut };

@@ -47,14 +47,18 @@ func TestPointK2Reference(t *testing.T) {
 	}
 	// Clé en vigueur sur le journal de référence : seq 4 est signé par rec-test-01 ; seq 5 est la rotation vers rec-test-02.
 	evs := lireTest(t, "testdata/reference/journal.json").Arr
-	if got := CleEnVigueur(evs, 4); got != "rec-test-01" {
+	cles = clesReference(t)
+	instant, _ := ParseHorodatage("2026-11-03T13:53:00.000Z")
+	if got, ok := CleEnVigueurPoint(evs, cles, 4, instant, true); !ok || got != "rec-test-01" {
 		t.Errorf("clé en vigueur à seq 4 : %q", got)
 	}
-	if got := CleEnVigueur(evs, 5); got != "rec-test-02" {
+	if got, ok := CleEnVigueurPoint(evs, cles, 5, instant, true); !ok || got != "rec-test-02" {
 		t.Errorf("clé en vigueur après la rotation de seq 5 : %q", got)
 	}
-	if got := CleEnVigueur(evs, 0); got != "" {
-		t.Errorf("aucun événement avant seq 1 : %q", got)
+	// Révision 0.5 (§10.5, règle 5) : last_seq = 0, la clé en vigueur se lit
+	// dans cles.json (plus grand valid_from ≤ checkpoint_ts), et non plus « aucune ».
+	if got, ok := CleEnVigueurPoint(evs, cles, 0, instant, true); !ok || got != "rec-test-01" {
+		t.Errorf("last_seq = 0 : clé de cles.json attendue, reçu %q", got)
 	}
 }
 
@@ -259,7 +263,7 @@ func TestExempleCT1Section108(t *testing.T) {
 		if err := VerifierSignaturePoint(v, cles.Trouver(k.key)); err != nil {
 			t.Errorf("%s : signature sous %s : %v", nom, k.key, err)
 		}
-		if en := CleEnVigueur(evs, k.lastSeq); en != k.key {
+		if en, _ := CleEnVigueurPoint(evs, cles, k.lastSeq, LirePoint(v).CheckpointTs, true); en != k.key {
 			t.Errorf("%s : clé en vigueur %s ≠ %s", nom, en, k.key)
 		}
 		points = append(points, v)
@@ -268,26 +272,26 @@ func TestExempleCT1Section108(t *testing.T) {
 	// période 1, K5 et K6 contre celui de la période vide.
 	m1 := LireManifeste(lireTest(t, "testdata/reference/dossier-seq-4/manifeste.json"))
 	m2 := LireManifeste(lireTest(t, "testdata/reference/manifeste-2.json"))
-	if regles, erreurs := ControlerSerie(points[:4], m1, evs, cles); len(regles) > 0 {
-		t.Errorf("période 1 : règles violées %v : %v", regles, erreurs)
+	if regles, erreurs, ne := ControlerSerie(points[:4], m1, evs, cles, false); len(regles) > 0 || len(ne) > 0 {
+		t.Errorf("période 1 : règles violées %v : %v ; non évaluées %v", regles, erreurs, ne)
 	}
-	if regles, erreurs := ControlerSerie(points[4:], m2, evs, cles); len(regles) > 0 {
-		t.Errorf("période vide : règles violées %v : %v", regles, erreurs)
+	if regles, erreurs, ne := ControlerSerie(points[4:], m2, evs, cles, false); len(regles) > 0 || len(ne) > 0 {
+		t.Errorf("période vide : règles violées %v : %v ; non évaluées %v", regles, erreurs, ne)
 	}
 	// Sondes sur la série : K4 retiré (règle 4), K3 avant K2 (règle 3), K2 signé
 	// par la mauvaise clé (règle 5), last_hash de K6 faux (règle 2).
-	if regles, _ := ControlerSerie(points[:3], m1, evs, cles); strings.Join(regles, ",") != "dernier_point" {
+	if regles, _, _ := ControlerSerie(points[:3], m1, evs, cles, false); strings.Join(regles, ",") != "dernier_point" {
 		t.Errorf("sans point de clôture : %v", regles)
 	}
-	if regles, _ := ControlerSerie([]*Value{points[0], points[2], points[1], points[3]}, m1, evs, cles); !strings.Contains(strings.Join(regles, ","), "chainage") {
+	if regles, _, _ := ControlerSerie([]*Value{points[0], points[2], points[1], points[3]}, m1, evs, cles, false); !strings.Contains(strings.Join(regles, ","), "chainage") {
 		t.Errorf("points permutés : %v", regles)
 	}
 	k2Autre, _ := ParseJSON([]byte(strings.Replace(pointK2, `"key_id":"rec-test-01"`, `"key_id":"rec-test-02"`, 1)))
-	if regles, _ := ControlerSerie([]*Value{points[0], k2Autre, points[2], points[3]}, m1, evs, cles); !strings.Contains(strings.Join(regles, ","), "signature") || !strings.Contains(strings.Join(regles, ","), "cle_en_vigueur") {
+	if regles, _, _ := ControlerSerie([]*Value{points[0], k2Autre, points[2], points[3]}, m1, evs, cles, false); !strings.Contains(strings.Join(regles, ","), "signature") || !strings.Contains(strings.Join(regles, ","), "cle_en_vigueur") {
 		t.Errorf("K2 attribué à rec-test-02 : %v", regles)
 	}
 	k6Faux, _ := ParseJSON([]byte(strings.Replace(strings.Replace(canoniqueK5, `"last_hash":"0x506e`, `"last_hash":"0x506f`, 1), `,"version":0}`, `,"version":0,"sig":"0x`+strings.Repeat("00", 64)+`"}`, 1)))
-	if regles, _ := ControlerSerie([]*Value{k6Faux}, m2, evs, nil); strings.Join(regles, ",") != "last_hash" {
+	if regles, _, _ := ControlerSerie([]*Value{k6Faux}, m2, evs, nil, false); strings.Join(regles, ",") != "last_hash" {
 		t.Errorf("période vide, last_hash faux : %v", regles)
 	}
 	// K5 complet : forme canonique de §10.8.

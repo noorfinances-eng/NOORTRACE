@@ -21,7 +21,7 @@ node scripts/conformite/attestation.mjs verifier spec/vecteurs/ct-7/attestations
 
 Le modèle de menace de CT-7 §3.8, tiré des tables 3.2 à 3.5 du texte (EX-A.4) :
 14 composants, 98 menaces (MN-1 à MN-98), dont 82 avec un risque accepté et 16
-sans, 15 tables sources de 151 lignes. Schéma :
+sans, 15 tables sources de 154 lignes. Schéma :
 `spec/schemas/modele-menace-v0.schema.json`.
 
 | Composant | Menaces |
@@ -171,6 +171,9 @@ sans, 15 tables sources de 151 lignes. Schéma :
 | CT-6 | 15.5 | Jeton d'une TSA que le réviseur n'accepte pas, ou expirée à `genTime` | MN-61 |
 | CT-6 | 15.5 | Clé de TSA compromise | MN-60 |
 | CT-6 | 15.5 | Rétrogradation d'algorithme | MN-61 |
+| CT-6 | 15.5 | (révision 0.4) Faux jeton dont le `sid` ne désigne aucun certificat, pour soustraire le jeton à T-5, T-6 et T-7 et le faire passer pour une ancre absente | MN-61 |
+| CT-6 | 15.5 | (révision 0.4) Clé RSA démesurée (module de plus de 8192 bits, exposant géant) pour faire durer la vérification, ou pour faire diverger deux implémentations | MN-68 |
+| CT-6 | 15.5 | (révision 0.4) Faux jeton qui déclare un algorithme ou une clé hors de la version 0, pour échapper à T-6 et T-7 et passer pour un hors-périmètre admis | MN-61 |
 | CT-6 | 15.5 | Preuve OpenTimestamps d'un autre manifeste | MN-61 |
 | CT-6 | 15.5 | Chaîne d'en-têtes sans travail, ou d'un autre réseau | MN-61 |
 | CT-6 | 15.5 | Attestation désignant un autre bloc | MN-61 |
@@ -252,8 +255,8 @@ Hardhat 1 à 8 du mnémonique public de `spec/vecteurs/ct-3/constantes.json`.
 
 Les clés publiques de test publiées par les vecteurs (EX-4.10, EX-A.7),
 recalculées depuis `ct-1/cles/cles-test.json`, `ct-3/constantes.json` (comptes
-Hardhat 0 à 9), `ct-4/constantes.json` et `ct-6/rfc3161/cles/` : 39 clés (ct-1 :
-2, ct-3 : 10, ct-4 : 18, ct-6 : 9). Aucune ne sert en production ; RV-9 les
+Hardhat 0 à 9), `ct-4/constantes.json` et `ct-6/rfc3161/cles/` : 51 clés (ct-1 :
+2, ct-3 : 10, ct-4 : 18, ct-6 : 21). Aucune ne sert en production ; RV-9 les
 recalcule.
 
 ## attestations/

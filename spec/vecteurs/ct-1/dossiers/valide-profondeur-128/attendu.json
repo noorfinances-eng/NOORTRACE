@@ -1,0 +1,6 @@
+{
+  "valide": true,
+  "controle": null,
+  "controles_en_echec": [],
+  "description": "voisins.next (seq 8, rescellé) porte en execution.arguments une référence en ligne dont la valeur est 124 tableaux imbriqués : voisins.json a la profondeur 128 de CT-1 §4, règle 7 (objets et tableaux imbriqués, la racine comprise : voisins, next, execution, arguments, puis 124 tableaux), la borne, admise ; l'événement seul a la profondeur 127. Dossier valide, comme valide-seq-7 (A-4 non exécuté, la demande n'est pas un voisin)."
+}

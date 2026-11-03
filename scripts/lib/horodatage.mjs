@@ -100,7 +100,6 @@ export const BORNES = {
   profondeurDER: 32,
   certificatsJeton: 16,
   cheminMax: 4, // n ≤ 4 : cinq certificats au plus, ancre non comprise (EX-9.13)
-  bitsNumeroSerie: 160,
   precisionSecondes: 86400, // accuracy.seconds au plus une journée (EX-9.15, règle 2)
 };
 
@@ -490,9 +489,15 @@ function reglePss(alg, empreinte) {
   return { verdict: "admis", nom: "id-RSASSA-PSS", hash, schema: "pss", saltLength };
 }
 
+/** Bornes des clés RSA admises (EX-9.23, révision 0.4). */
+export const BORNES_RSA = { bitsMin: 2048, bitsMax: 8192, exposantMin: 3n, exposantMax: 2n ** 31n - 1n };
+
 /**
- * Règle T-5 pour une clé publique (SubjectPublicKeyInfo) : RSA ≥ 2048 bits ;
- * ECDSA sur P-256, P-384, P-521. Rend { verdict, cle, type, bits, courbe, motif }.
+ * Règle T-5 pour une clé publique (SubjectPublicKeyInfo) : RSA de 2048 à 8192
+ * bits, d'exposant public impair de 3 à 2³¹ − 1 (EX-9.23, contrôlés sur la clé,
+ * avant tout calcul) ; ECDSA sur P-256, P-384, P-521. Rend { verdict (admis,
+ * refuse ou hors_perimetre), cle, type, bits, courbe, motif }. Une clé refusée
+ * ne vérifie aucune signature (T-5, T-7, T-10).
  */
 function regleCle(spkiDer) {
   let cle;
@@ -504,7 +509,11 @@ function regleCle(spkiDer) {
   const details = cle.asymmetricKeyDetails ?? {};
   if (cle.asymmetricKeyType === "rsa") {
     const bits = details.modulusLength;
-    if (bits < 2048) return { verdict: "refuse", cle, type: "rsa", bits, motif: T(`clé RSA de ${bits} bits (< 2048)`, `RSA key of ${bits} bits (< 2048)`) };
+    const e = typeof details.publicExponent === "bigint" ? details.publicExponent : BigInt(details.publicExponent ?? 0);
+    if (bits < BORNES_RSA.bitsMin) return { verdict: "refuse", cle, type: "rsa", bits, motif: T(`clé RSA de ${bits} bits (< 2048)`, `RSA key of ${bits} bits (< 2048)`) };
+    if (bits > BORNES_RSA.bitsMax) return { verdict: "refuse", cle, type: "rsa", bits, motif: T(`clé RSA de ${bits} bits, au-delà de 8192 (EX-9.23)`, `RSA key of ${bits} bits, beyond 8192 (EX-9.23)`) };
+    if (e < BORNES_RSA.exposantMin || e > BORNES_RSA.exposantMax) return { verdict: "refuse", cle, type: "rsa", bits, motif: T("exposant public hors de 3 à 2³¹ − 1 (EX-9.23)", "public exponent outside 3 to 2³¹ − 1 (EX-9.23)") };
+    if (e % 2n === 0n) return { verdict: "refuse", cle, type: "rsa", bits, motif: T("exposant public pair (EX-9.23)", "even public exponent (EX-9.23)") };
     return { verdict: "admis", cle, type: "rsa", bits };
   }
   if (cle.asymmetricKeyType === "ec") {
@@ -921,6 +930,8 @@ export function lireJeton(octets) {
   const eContent = Buffer.from(eContentNoeud.valeur());
   let certificats = [];
   let crls = [];
+  // Présence du champ certificates (EX-9.10, révision 0.4) : un jeton qui le porte sans le certificat que désigne sid est mal formé.
+  const certificatsPresents = sd[i]?.etiquette === 0xa0;
   if (sd[i]?.etiquette === 0xa0) {
     const elements = sd[i++].enfants;
     if (elements.length > BORNES.certificatsJeton) throw new ErreurDER(`${elements.length} certificats dans le jeton, au plus ${BORNES.certificatsJeton}`);
@@ -964,7 +975,7 @@ export function lireJeton(octets) {
   const signedAttrsSignes = Buffer.from(attrsN.octets());
   signedAttrsSignes[0] = 0x31;
   const tst = lireTSTInfo(eContent, eContentNoeud.profondeur + 1);
-  return { octets: buf, version, algosEmpreinte, eContent, certificats, crls, signerInfo: { version: siVersion, sid, algoEmpreinte, attributs, algoSignature, signature, signedAttrsSignes }, tst };
+  return { octets: buf, version, algosEmpreinte, eContent, certificats, certificatsPresents, crls, signerInfo: { version: siVersion, sid, algoEmpreinte, attributs, algoSignature, signature, signedAttrsSignes }, tst };
 }
 
 /**
@@ -1220,7 +1231,20 @@ export function evaluerJeton(octets, { periodHash = null, ancres = null, tsEvene
         return false;
       }
     })()));
-    if (designes.length === 0) res["T-4"] = nonExecute("ancre_absente", T("le certificat que désigne sid n'est ni dans le jeton ni dans le fichier d'ancres", "the certificate designated by sid is neither in the token nor in the anchors file"));
+    if (designes.length === 0) {
+      // EX-9.10, révision 0.4 : un sid qui ne désigne aucun candidat échoue dès que le fichier d'ancres porte une
+      // autorité d'horodatage ou que le jeton porte le champ certificates ; seul un jeton sans certificats, vérifié
+      // sans aucune autorité d'horodatage, laisse T-4 non exécutée (ancre_absente).
+      const nJeton = jeton.certificats.length;
+      const nAncres = candidats.length - candidats.filter((c) => c.origine.startsWith("certificates[")).length;
+      const designation = sid.type === "issuerAndSerialNumber" ? T(`sid issuerAndSerialNumber (émetteur ${nomDER(sid.emetteur)}, numéro ${hexEntier(sid.numero)})`, `sid issuerAndSerialNumber (issuer ${nomDER(sid.emetteur)}, serial ${hexEntier(sid.numero)})`) : T(`sid subjectKeyIdentifier ${hex(sid.ski)}`, `sid subjectKeyIdentifier ${hex(sid.ski)}`);
+      const examines = T(`${nJeton} certificat(s) du jeton et ${nAncres} des ancres examinés`, `${nJeton} certificate(s) of the token and ${nAncres} of the anchors examined`);
+      const conseil = T("si vous tenez le certificat de l'unité pour authentique, ajoutez-le aux intermediates de votre fichier d'ancres", "if you hold the unit certificate to be authentic, add it to the intermediates of your anchors file");
+      if ((ancresTsa?.autorites.length ?? 0) > 0 || jeton.certificatsPresents) {
+        const pourquoi = jeton.certificatsPresents ? T("le jeton porte des certificats sans celui que désigne son sid (RFC 3161 §2.4.1)", "the token carries certificates but not the one its sid designates (RFC 3161 §2.4.1)") : T("aucune autorité d'horodatage du fichier d'ancres ne le fournit", "no time-stamping authority of the anchors file provides it");
+        res["T-4"] = echoue(T(`${designation.fr} ne désigne aucun certificat (${examines.fr}) : ${pourquoi.fr} (EX-9.10) ; ${conseil.fr}`, `${designation.en} designates no certificate (${examines.en}): ${pourquoi.en} (EX-9.10); ${conseil.en}`));
+      } else res["T-4"] = nonExecute("ancre_absente", T(`${designation.fr} : le jeton ne porte aucun certificat et aucune autorité d'horodatage n'est fournie (EX-9.10)`, `${designation.en}: the token carries no certificate and no time-stamping authority is given (EX-9.10)`));
+    }
     else if (designes.length > 1) res["T-4"] = echoue(T(`${designes.length} certificats distincts désignés par sid`, `${designes.length} distinct certificates designated by sid`));
     else {
       S = designes[0].cert;
@@ -1235,8 +1259,9 @@ export function evaluerJeton(octets, { periodHash = null, ancres = null, tsEvene
     }
   }
 
-  // T-5 : algorithmes.
+  // T-5 : algorithmes (EX-9.11, EX-9.23, EX-9.24).
   let regle = null;
+  let horsVersion0 = false;
   if (res["T-4"].status !== "reussi") res["T-5"] = heriter([["T-4", res["T-4"]]]);
   else {
     const si = jeton.signerInfo;
@@ -1244,11 +1269,24 @@ export function evaluerJeton(octets, { periodHash = null, ancres = null, tsEvene
     if (!fonction || !EMPREINTES_ADMISES.has(fonction) || !paramsNulOuAbsents(si.algoEmpreinte)) res["T-5"] = echoue(T(`digestAlgorithm ${fonction ? LIBELLE_EMPREINTE[fonction] : si.algoEmpreinte.oid} refusé`, `digestAlgorithm ${fonction ? LIBELLE_EMPREINTE[fonction] : si.algoEmpreinte.oid} refused`));
     else {
       regle = regleSignature(si.algoSignature, fonction);
+      const oidAlg = si.algoSignature.oid;
       if (regle.verdict === "refuse") res["T-5"] = echoue(regle.motif);
-      else if (regle.verdict === "hors_perimetre") res["T-5"] = nonExecute("hors_perimetre_version", regle.motif);
       else if (S.cle.verdict === "refuse") res["T-5"] = echoue(S.cle.motif);
-      else if (S.cle.verdict === "hors_perimetre") res["T-5"] = nonExecute("hors_perimetre_version", S.cle.motif);
-      else if (!schemaCompatible(regle, S.cle)) res["T-5"] = echoue(T(`signature ${regle.nom} incompatible avec une clé ${S.cle.type}`, `${regle.nom} signature incompatible with a ${S.cle.type} key`));
+      else if (S.cle.verdict === "admis" && regle.verdict !== "admis") res["T-5"] = echoue(T(`algorithme de signature ${oidAlg} non admis pour une clé ${nomTypeCle(S.cle)} admise : jeton altéré (EX-9.24, cas 1)`, `signature algorithm ${oidAlg} not admitted for an admitted ${nomTypeCle(S.cle)} key: altered token (EX-9.24, case 1)`));
+      else if (S.cle.verdict !== "admis" && regle.verdict === "admis") res["T-5"] = echoue(T(`algorithme admis ${regle.nom} sous une clé ${nomTypeCle(S.cle)} hors de la version 0 (EX-9.24, cas 1)`, `admitted algorithm ${regle.nom} under a ${nomTypeCle(S.cle)} key outside version 0 (EX-9.24, case 1)`));
+      else if (S.cle.verdict !== "admis") {
+        // EX-9.24, cas 2 et 3 : clé et algorithme hors de la version 0.
+        const type = nomTypeCle(S.cle);
+        if (!ancresTsa || ancresTsa.autorites.length === 0) res["T-5"] = nonExecute("ancre_absente", T(`clé ${type} et algorithme ${oidAlg} hors de la version 0, sans autorité d'horodatage dans le fichier d'ancres : aucun rattachement possible (EX-9.24, cas 3)`, `${type} key and algorithm ${oidAlg} outside version 0, with no time-stamping authority in the anchors file: no attachment possible (EX-9.24, case 3)`));
+        else {
+          const gt = lireGenTime(jeton.tst.genTimeTexte);
+          const rattache = gt ? chercherChemin(S, candidats.map((c) => c.cert), ancresTsa.autorites, gt, jeton.tst.politique) : null;
+          if (rattache) {
+            horsVersion0 = true;
+            res["T-5"] = nonExecute("hors_perimetre_version", T(`clé ${type} et algorithme ${oidAlg} hors de la version 0 : signature du jeton non vérifiée ; certificat de l'unité rattaché à l'autorité ${rattache.autorite.nom} ; aucune date n'est établie`, `${type} key and algorithm ${oidAlg} outside version 0: token signature not verified; unit certificate attached to authority ${rattache.autorite.nom}; no time is established`));
+          } else res["T-5"] = echoue(T(`clé ${type} et algorithme ${oidAlg} hors de la version 0, et certificat de l'unité rattaché à aucune autorité du fichier d'ancres (EX-9.24, cas 2)`, `${type} key and algorithm ${oidAlg} outside version 0, and unit certificate attached to no authority of the anchors file (EX-9.24, case 2)`));
+        }
+      } else if (!schemaCompatible(regle, S.cle)) res["T-5"] = echoue(T(`signature ${regle.nom} incompatible avec une clé ${S.cle.type} (EX-9.24, cas 1)`, `${regle.nom} signature incompatible with a ${S.cle.type} key (EX-9.24, case 1)`));
       else {
         const cleTexte = S.cle.type === "rsa" ? `RSA ${S.cle.bits} bits` : `ECDSA ${S.cle.courbe}`;
         res["T-5"] = reussi(T(`algorithmes admis : ${LIBELLE_EMPREINTE[fonction]}, ${regle.nom}, ${cleTexte}`, `admitted algorithms: ${LIBELLE_EMPREINTE[fonction]}, ${regle.nom}, ${cleTexte}`));
@@ -1274,8 +1312,7 @@ export function evaluerJeton(octets, { periodHash = null, ancres = null, tsEvene
     const p = tst.precision;
     if (!defaut && p && ((p.seconds !== null && (p.seconds < 0n || p.seconds > BigInt(BORNES.precisionSecondes))) || (p.millis !== null && (p.millis < 1n || p.millis > 999n)) || (p.micros !== null && (p.micros < 1n || p.micros > 999n)))) defaut = T(`accuracy hors des bornes (seconds de 0 à ${BORNES.precisionSecondes}, millis et micros de 1 à 999)`, `accuracy outside the bounds (seconds from 0 to ${BORNES.precisionSecondes}, millis and micros from 1 to 999)`);
     if (!defaut && p && comparerInstants(ajouterPrecision(genTime, p), INSTANT_MAX) > 0) defaut = T("genTime + accuracy au-delà de 9999-12-31T23:59:59.999999Z", "genTime + accuracy beyond 9999-12-31T23:59:59.999999Z");
-    if (!defaut && tst.numero < 0n) defaut = T("serialNumber négatif", "negative serialNumber");
-    if (!defaut && tst.numero >= 1n << BigInt(BORNES.bitsNumeroSerie)) defaut = T(`serialNumber de plus de ${BORNES.bitsNumeroSerie} bits`, `serialNumber longer than ${BORNES.bitsNumeroSerie} bits`);
+    // EX-9.15, révision 0.4 : ni la taille ni le signe de serialNumber ne sont contrôlés ; il est rapporté tel qu'encodé.
     if (!defaut && tst.tsa) {
       if (tst.tsa.etiquette !== 0xa4) avertissements.push({ id: "AV-T-2", check: "T-9", detail: T("champ tsa sous une autre forme que directoryName : non comparé", "tsa field in another form than directoryName: not compared") });
       else if (!S) regle3NonEvaluee = true;
@@ -1309,7 +1346,7 @@ export function evaluerJeton(octets, { periodHash = null, ancres = null, tsEvene
     } else {
       if (p) tst.precision = { seconds: p.seconds === null ? null : Number(p.seconds), millis: p.millis === null ? null : Number(p.millis), micros: p.micros === null ? null : Number(p.micros) };
       const prec = p ? precisionTexte(tst.precision) : T("sans précision", "no accuracy");
-      res["T-9"] = reussi(T(`TSTInfo version 1, politique ${tst.politique}, genTime ${rfc3339(genTime)}, précision ${prec.fr}, numéro de série ${hexEntier(tst.numero)}`, `TSTInfo version 1, policy ${tst.politique}, genTime ${rfc3339(genTime)}, accuracy ${prec.en}, serial number ${hexEntier(tst.numero)}`));
+      res["T-9"] = reussi(T(`TSTInfo version 1, politique ${tst.politique}, genTime ${rfc3339(genTime)}, précision ${prec.fr}, numéro de série ${numeroSerie(tst)}`, `TSTInfo version 1, policy ${tst.politique}, genTime ${rfc3339(genTime)}, accuracy ${prec.en}, serial number ${numeroSerie(tst)}`));
     }
   }
 
@@ -1405,7 +1442,7 @@ export function evaluerJeton(octets, { periodHash = null, ancres = null, tsEvene
       accuracy: tst.precision ? { seconds: tst.precision.seconds, millis: tst.precision.millis, micros: tst.precision.micros } : null,
       upper_bound: borne ? rfc3339(borne) : null,
       policy: tst.politique,
-      serial_number: hexEntier(tst.numero),
+      serial_number: numeroSerie(tst),
       digest_algorithm: fonctionEmpreinte(jeton.signerInfo.algoEmpreinte),
       signature_algorithm: regleSignature(jeton.signerInfo.algoSignature, fonctionEmpreinte(jeton.signerInfo.algoEmpreinte)).nom,
       key_bits: S.cle.bits,
@@ -1421,6 +1458,9 @@ export function evaluerJeton(octets, { periodHash = null, ancres = null, tsEvene
   } else if (status === "echoue") {
     const ids = IDS.filter((id) => res[id].status === "echoue");
     summary = T(`vérification(s) en échec : ${ids.join(", ")}`, `failed check(s): ${ids.join(", ")}`);
+  } else if (horsVersion0 && reason === "hors_perimetre_version") {
+    // EX-9.24, cas 2 avec rattachement : rien ne laisse croire l'horodatage vérifié.
+    summary = T("signature hors de la version 0, non vérifiée : aucune date établie", "signature outside version 0, not verified: no time established");
   } else {
     // Le résumé reprend la cause première : une non-exécution qui n'est pas héritée d'un prérequis.
     const candidates = IDS.filter((id) => id !== "T-11" && res[id].status === "non_execute" && res[id].reason === reason);
@@ -1441,9 +1481,27 @@ export function evaluerJeton(octets, { periodHash = null, ancres = null, tsEvene
 }
 
 const hexEntier = (n) => {
+  if (n < 0n) return `-${hexEntier(-n)}`;
   const h = n.toString(16);
   return "0x" + (h.length % 2 ? "0" + h : h);
 };
+/** serialNumber de TSTInfo rapporté tel qu'encodé (EX-9.15, EX-9.19) : la valeur pour un entier positif, les octets du contenu DER sinon. */
+const numeroSerie = (tst) => (tst.numero >= 0n ? hexEntier(tst.numero) : hex(tst.numeroOctets));
+/** Nom lisible du type d'une clé publique (T-5, EX-9.24). */
+function nomTypeCle(cle) {
+  if (cle.type === "rsa") return `RSA ${cle.bits} bits`;
+  if (cle.type === "ec") return cle.courbe ? `ECDSA ${cle.courbe}` : "ECDSA (courbe hors de la version 0)";
+  return { ed25519: "Ed25519", ed448: "Ed448", dsa: "DSA", x25519: "X25519", x448: "X448" }[cle.type] ?? (cle.type ? String(cle.type) : "de type non lu");
+}
+/** Nom distinctif DER lisible (sid, détail de T-4) : CN si présent, sinon SHA-256 du DER. */
+function nomDER(octetsNom) {
+  try {
+    const cn = nomCommun(lireDER(octetsNom));
+    return cn !== null ? `CN=${cn}` : hex(crypto.createHash("sha256").update(octetsNom).digest());
+  } catch {
+    return hex(crypto.createHash("sha256").update(octetsNom).digest());
+  }
+}
 function precisionTexte(p) {
   const fr = [];
   const en = [];
@@ -1661,13 +1719,14 @@ function revocation(chemin, ancresTsa, crlsJeton, genTime, avertissements) {
       let motif = null;
       if (crl.extension(OID.deltaCRLIndicator)) motif = "delta";
       else if (crl.extension(OID.issuingDistributionPoint)?.critique) motif = "partielle";
+      else if (cleEmetteur.verdict !== "admis") motif = "cle";
       else if (signatureObjet(crl, cleEmetteur) !== "ok") motif = "signature";
       else if (comparerInstants(crl.thisUpdate, genTime) < 0) motif = "thisUpdate";
       if (motif) {
         const cle = `${src.pointeur ?? src.origine.fr}:${motif}`;
         if (!ecartees.has(cle)) {
           ecartees.add(cle);
-          const m = { delta: T("CRL delta", "delta CRL"), partielle: T("CRL partielle", "partial CRL"), signature: T("signature invalide", "invalid signature"), thisUpdate: T("thisUpdate antérieur à genTime", "thisUpdate earlier than genTime") }[motif];
+          const m = { delta: T("CRL delta", "delta CRL"), partielle: T("CRL partielle", "partial CRL"), cle: T("clé de vérification hors des bornes d'EX-9.23 ou hors de la version 0", "verification key outside the bounds of EX-9.23 or outside version 0"), signature: T("signature invalide", "invalid signature"), thisUpdate: T("thisUpdate antérieur à genTime", "thisUpdate earlier than genTime") }[motif];
           avertissements.push({ id: "AV-T-3", check: "T-10", detail: T(`${src.origine.fr}) écartée : ${m.fr}`, `${src.origine.en}) discarded: ${m.en}`) });
         }
         continue;

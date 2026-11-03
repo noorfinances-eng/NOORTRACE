@@ -369,7 +369,7 @@ describe("CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques
       const schemas = (J) => J.registreSchemas(["evenement", "manifeste", "dossier", "point-de-controle", "attestation-perimetre"].map(schemaJSON));
       const r0 = J0.verifierDossier(lireDossier(nom), { schemas: schemas(J0) });
       expect([r0.valide, J0.controlesEnEchec(r0)]).to.deep.equal([false, ["K-4"]]);
-      const m = mutant("mn74", [{ fichier: "lib/journal.mjs", ancien: 'k4.length ? k4.forEach((m) => rapport.echec("K-4", m)) : rapport.succes("K-4"', nouveau: 'false ? k4.forEach((m) => rapport.echec("K-4", m)) : rapport.succes("K-4"' }]);
+      const m = mutant("mn74", [{ fichier: "lib/journal.mjs", ancien: 'rapport.juger("K-4", k4, null,', nouveau: 'rapport.juger("K-4", [], null,' }]);
       const J1 = await m.importer("lib/journal.mjs");
       const r1 = J1.verifierDossier(lireDossier(nom), { schemas: schemas(J1) });
       expect([r1.valide, J1.controlesEnEchec(r1)]).to.deep.equal([true, []]);

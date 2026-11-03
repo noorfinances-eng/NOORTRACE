@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "C-1",
+  "controles_en_echec": [
+    "C-1"
+  ],
+  "description": "Comme valide-profondeur-128 avec 125 tableaux : voisins.json a la profondeur 129, au-delà de la borne de 128 ; la partie n'est pas lue (pas un texte JSON exploitable) : C-1, qui la porte, échoue ; C-2, C-3 et P-3 ne sont pas exécutées, ni A-4 (sans raison admise : voisins.json inexploitable, révision 0.5) ; E-1 à E-11 s'exécutent sur l'événement prouvé et la décision de approbations.json."
+}

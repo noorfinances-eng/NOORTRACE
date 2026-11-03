@@ -28,14 +28,31 @@ func TestRefus(t *testing.T) {
 	}
 }
 
+// TestProfondeur : profondeur comptée sur les conteneurs imbriqués, la
+// racine comprise (CT-6 EX-4.16, point 3, révision 0.4 ; CT-1 §4, règle
+// 7) : 128 admise, 129 refusée, qu'un scalaire termine ou non
+// l'imbrication. Le lecteur refusait 128 conteneurs dont le dernier n'est
+// pas vide (il comptait le scalaire comme un niveau).
 func TestProfondeur(t *testing.T) {
-	ok := strings.Repeat("[", 128) + strings.Repeat("]", 128)
-	if _, err := Analyser([]byte(ok)); err != nil {
-		t.Errorf("128 niveaux refusés : %v", err)
-	}
-	ko := strings.Repeat("[", 129) + strings.Repeat("]", 129)
-	if _, err := Analyser([]byte(ko)); err != ErrProfondeur {
-		t.Errorf("129 niveaux : %v", err)
+	for _, c := range []struct {
+		texte string
+		ok    bool
+	}{
+		{strings.Repeat("[", 128) + strings.Repeat("]", 128), true},
+		{strings.Repeat("[", 128) + "1" + strings.Repeat("]", 128), true},
+		{`{"a":` + strings.Repeat("[", 127) + `"x"` + strings.Repeat("]", 127) + `}`, true},
+		{strings.Repeat("[", 129) + strings.Repeat("]", 129), false},
+		{strings.Repeat("[", 129) + "1" + strings.Repeat("]", 129), false},
+		{`{"a":` + strings.Repeat("[", 128) + strings.Repeat("]", 128) + `}`, false},
+		{`1`, true},
+	} {
+		_, err := Analyser([]byte(c.texte))
+		if c.ok && err != nil {
+			t.Errorf("profondeur admise refusée (%d octets) : %v", len(c.texte), err)
+		}
+		if !c.ok && err != ErrProfondeur {
+			t.Errorf("profondeur refusée admise (%d octets) : %v", len(c.texte), err)
+		}
 	}
 	// Une profondeur hostile ne fait pas déborder la pile.
 	tres := strings.Repeat("[", 1_000_000)
@@ -86,5 +103,43 @@ func TestEgales(t *testing.T) {
 	c, _ := Analyser([]byte(`{"z":null,"x":[1,{"y":3}]}`))
 	if Egales(a, c) {
 		t.Error("valeurs différentes jugées égales")
+	}
+}
+
+// TestSubstitutsEnOctets : une suite ED A0 80 à ED BF BF (CESU-8), seule ou
+// en paire, est un substitut isolé (défaut de forme canonique), non un texte
+// qui n'est pas du JSON (CT-6 EX-4.16, point 1 ; CT-1 §3, révision 0.5) ;
+// toute autre suite mal formée reste refusée.
+func TestSubstitutsEnOctets(t *testing.T) {
+	for nom, texte := range map[string]string{
+		"seul":        "{\"a\":\"x\xed\xa0\x80y\"}",
+		"paire":       "{\"a\":\"\xed\xa0\xbd\xed\xb8\x80\"}",
+		"bas":         "{\"a\":\"\xed\xbf\xbf\"}",
+		"dans un nom": "{\"\xed\xa0\x80\":1}",
+	} {
+		v, err := Analyser([]byte(texte))
+		if err != nil {
+			t.Errorf("%s : refusé comme texte qui n'est pas du JSON : %v", nom, err)
+			continue
+		}
+		iso := v.Membres[0].NomSubstitut || v.Membres[0].Valeur.SubstitutIsole
+		if !iso {
+			t.Errorf("%s : substitut non signalé", nom)
+		}
+	}
+	for nom, texte := range map[string]string{
+		"ED A0 seul":            "\"\xed\xa0\"",
+		"ED 9F 80 hors":         "\"\xed\x9f\"",
+		"forme trop longue":     "\"\xc0\x80\"",
+		"au-delà de U+10FFFF":   "\"\xf4\x90\x80\x80\"",
+		"substitut hors chaîne": "\xed\xa0\x80",
+	} {
+		if _, err := Analyser([]byte(texte)); err == nil {
+			t.Errorf("%s : accepté", nom)
+		}
+	}
+	// Témoin : un caractère valide de trois octets en ED (U+D7FF).
+	if v, err := Analyser([]byte("\"\xed\x9f\xbf\"")); err != nil || v.SubstitutIsole {
+		t.Errorf("U+D7FF : %v", err)
 	}
 }

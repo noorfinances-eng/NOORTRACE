@@ -3,23 +3,25 @@
 Bibliothèque noyau de NOORTRACE, étape 1 de la phase 2 : forme canonique,
 hachage, signatures, chaînage, arbre de Merkle, manifeste, point de contrôle
 et dossier de preuve, tels que les fixe la spécification normative
-[CT-1 version 0.4](../../spec/CT-1-evenements-et-formats.md) (avec la section 7
+[CT-1 version 0.5](../../spec/CT-1-evenements-et-formats.md) (avec la section 7
 de [CT-7](../../spec/CT-7-securite-et-conformite.md), qui fait foi pour
-l'attestation de périmètre).
+l'attestation de périmètre, et les règles de la section 5.6 de
+[CT-6 version 0.4](../../spec/CT-6-verificateur.md) que CT-1 reprend).
 
 Le paquet est écrit à neuf depuis le seul texte de la spécification ; il ne
 reprend rien de l'implémentation de référence qui a produit les vecteurs
 (`scripts/lib/journal.mjs`). Les vecteurs de `spec/vecteurs/ct-1` sont le juge
-entre les deux : la bibliothèque les rejoue tous (`test/noyau-vecteurs.test.js`).
+entre les deux : la bibliothèque les rejoue tous, avec les vérifications de
+CT-1 des dossiers de `spec/vecteurs/ct-6` (`test/noyau-vecteurs.test.js`).
 
 ## Ce que fait le paquet
 
-- lit le JSON strictement (clé en double, substitut isolé, nombre non entier ou
-  hors de l'intervalle sûr : refus) et calcule la forme canonique JCS v0, sans
-  borne de profondeur par défaut (CT-1 §4 n'en fixe pas) et sans récursion :
-  une imbrication arbitraire n'épuise jamais la pile ; l'option
-  `profondeurMax` applique une borne explicite (`PROFONDEUR_CT6`, 128, celle
-  de CT-6 EX-4.13) ;
+- lit le JSON strictement (UTF-8 bien formé sans marque d'ordre d'octets ;
+  clé en double, substitut isolé, nombre non entier ou hors de l'intervalle
+  sûr : refus de forme canonique, E-2) et calcule la forme canonique JCS v0,
+  avec la borne de profondeur de CT-1 §4 règle 7 (128, racine comprise) par
+  défaut, sans récursion : une imbrication arbitraire n'épuise jamais la pile ;
+  l'option `profondeurMax` fixe une autre borne (`Infinity` : aucune) ;
 - décode les horodatages RFC 3339 à la milliseconde sans jamais renormaliser
   une date inexistante ; n'admet que les entiers sûrs et l'hexadécimal minuscule
   préfixé ;
@@ -28,14 +30,17 @@ entre les deux : la bibliothèque les rejoue tous (`test/noyau-vecteurs.test.js`
   sans cofacteur en refusant S non réduit, les encodages non canoniques et les
   clés de petit ordre ; signe et recouvre les signatures EIP-191 des
   approbateurs (règle « s bas », v ∈ {27, 28}) ;
-- vérifie un journal (E-1 à E-11 pour chaque événement, puis C-1, C-2, C-3 dans
-  l'ordre du fichier) en rapportant tous les symptômes de la table 7.2 ;
+- vérifie un journal selon la règle exacte de CT-1 §7.2 (chaque événement pour
+  lui-même et son origine, puis la suite des `seq` sur tout le fichier, puis
+  chaque couple dans l'ordre du fichier) en rapportant tous les symptômes de
+  la table 7.2, avec leurs types ;
 - construit l'arbre de Merkle RFC 6962 (racine nulle de la période vide), les
   preuves d'inclusion et de cohérence, et les vérifie par les algorithmes de la
   RFC 9162 reproduits dans CT-1 ;
 - hache, signe et enchaîne les manifestes (continuité, PeriodMeta, empreinte
   d'ancre), hache et signe les points de contrôle, vérifie une série de points
-  contre son manifeste avec les noms de règles de §10.5 ;
+  contre son manifeste avec les noms de règles de §10.5, règles violées et
+  règles non évaluées faute d'événement ;
 - vérifie un dossier de preuve v0 à douze, treize ou quatorze parties : tous
   les contrôles de §11.4 (D-, E-, C-, M-, P-, A-, K-), le verdict, la liste
   exacte des contrôles en échec, et les vérifications AT-1 à AT-7 de
@@ -52,7 +57,8 @@ sont embarqués dans `src/schemas-v0.mjs`, copie à l'identique de
 originaux.
 
 Lecture d'un répertoire : `src/dossier-fichiers.mjs` n'ouvre un fichier
-qu'après `lstat`, s'il est ordinaire (puis sans suivre de lien), et ne le lit
+qu'après `lstat`, s'il est ordinaire (puis sans suivre de lien ni attendre, et
+seulement si le descripteur désigne le même fichier : CT-6 EX-4.17), et ne le lit
 que s'il ne dépasse pas sa limite (`TAILLES_MAX`, valeurs de CT-6 EX-4.13) :
 
 | Fichier | Limite |
@@ -74,7 +80,8 @@ applique les mêmes limites aux octets qu'on lui passe directement.
 
 Ce que le paquet ne fait pas : les vérifications des parties réservées à CT-4
 et CT-5 (jeton RFC 3161, preuve OpenTimestamps, registre : contrôles 4, 5 et 8,
-fixés par CT-6). Une partie réservée déclarée présente est rapportée comme non
+fixés par CT-6). Comme CT-1 §11.4 (révision 0.5) le demande à un vérificateur
+de CT-1 seul, une partie réservée déclarée présente est rapportée comme non
 vérifiée (`non_executes_bloquants`) et rend le verdict invalide ; une ancre de
 point de contrôle non nulle (K-7, K-8, K-9) n'est vérifiée que par une fonction
 fournie dans `options.verificateursAncres` (K-8 recalcule seulement
@@ -132,19 +139,24 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 - `decoderBase64Canonique(texte, maxOctets?)` — base64 canonique (remplissage exact, bits de bourrage nuls), sinon null.
 - `encoderBase64(octets)` — base64 standard avec remplissage.
 - `utf8(texte)` — encode en UTF-8.
+- `chaineNonVide(valeur)` — chaîne qui contient un caractère autre qu'un blanc (CT-1 §3, révision 0.5 : White_Space et U+FEFF).
 
 ### JSON strict et JCS v0 (`json-strict.mjs`)
 
 - `CODES_FORME_CANONIQUE` — codes d'erreur relevant de E-2.
-- `PROFONDEUR_CT6` — 128, profondeur d'imbrication de CT-6 EX-4.13, à passer en option `profondeurMax` (CT-1 n'en fixe aucune).
+- `PROFONDEUR_V0` — 128, profondeur d'imbrication maximale d'un texte du format v0 (CT-1 §4, règle 7), borne par défaut.
+- `PROFONDEUR_CT6` — 128, celle de CT-6 EX-4.13, égale à `PROFONDEUR_V0`.
+- `depasseProfondeur(valeur, profondeurMax?)` — une valeur en mémoire est plus profonde que la borne (comptage de CT-1 §4, règle 7).
 - `ErreurJson` — erreur de lecture ou de forme canonique (`code`, `formeCanonique`).
 - `decoderUtf8(octets)` — décode de l'UTF-8 bien formé sans marque d'ordre d'octets ; un substitut encodé (CESU-8) est un `substitut_isole` (E-2).
-- `analyserJson(source, options?)` — lecture stricte et itérative (refus de E-2 ; options pour le document de politique ; `profondeurMax`, aucune par défaut).
+- `analyserJson(source, options?)` — lecture stricte et itérative (refus de E-2 ; options pour le document de politique ; `profondeurMax`, 128 par défaut, aucune en nombres libres).
 - `chaineBienFormee(s)` — aucune moitié de substitut isolée.
-- `jcs(valeur, options?)` — forme canonique JCS v0, itérative, structure cyclique refusée (`profondeurMax`, aucune par défaut).
+- `jcs(valeur, options?)` — forme canonique JCS v0, itérative, structure cyclique refusée (`profondeurMax`, 128 par défaut).
 - `jcsOctets(valeur, options?)` — forme canonique en UTF-8.
 - `canoniserTexte(source, options?)` — forme canonique d'un texte JSON, ou null s'il est refusé.
 - `egaliteJson(a, b)` — égalité de deux valeurs JSON, membre pour membre, itérative.
+- `lireJournal(source, options?)` — lit un fichier de journal (tableau d'événements) ; un élément sans forme canonique reste lisible et marqué (E-2 pour lui, hash incalculable, CT-1 §7.2).
+- `formeCanoniqueAbsente(valeur)` — motif du défaut de forme canonique d'un événement lu par `lireJournal`, ou null.
 
 ### Hachage et signatures (`hachage.mjs`)
 
@@ -219,8 +231,9 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 
 - `CONTROLES_EVENEMENT` — E-1 à E-11.
 - `STATUTS` — reussi, echoue, non_execute.
-- `ecartsSorte(e)` — écarts à la cohérence de la sorte (E-3).
-- `controlerEvenement(e, contexte?)` — E-1 à E-11 et le hash recalculé.
+- `LANCEUR_ENREGISTREUR` — `"noortrace-enregistreur"`, `delegation.launched_by` d'une rotation ou d'un changement de politique (E-3).
+- `ecartsSorte(e)` — écarts à la règle exacte de E-3 (CT-1 §5.3, révision 0.5).
+- `controlerEvenement(e, contexte?)` — E-1 à E-11 et le hash recalculé (événement plus profond que 128 : E-1).
 - `hashRecalcule(e)` — hash recalculé, ou null.
 - `nouvelleCle(e)` — `new_key_id` d'une rotation, sinon null.
 
@@ -228,7 +241,7 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 
 - `ORDRE_CONTROLES` — ordre de rapport des contrôles de §11.4.
 - `trierControles(ids)` — trie des identifiants dans cet ordre.
-- `verifierJournal(evenements, cles)` — vérifie un journal, tous les symptômes de la table 7.2.
+- `verifierJournal(evenements, cles)` — vérifie un journal, tous les symptômes de la table 7.2, dans l'ordre de la règle exacte de §7.2.
 
 ### Merkle (`merkle.mjs`)
 
@@ -267,7 +280,7 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 - `verifierSignaturePoint(point, cle)` — vérifie la signature du point.
 - `coherencePoint(treeSize, hashesPeriode)` — membre `consistency` vers le manifeste.
 - `cleEnVigueur(parSeq, lastSeq, contexte?)` — clé en vigueur (règle 5) : celle de l'événement `last_seq`, sinon la règle de §10.1 sur `cles.json` à l'instant du point.
-- `verifierSeriePointsDeControle(points, manifeste, evenements, cles)` — règles violées et erreurs d'une série.
+- `verifierSeriePointsDeControle(points, manifeste, evenements, cles)` — règles violées (`rules_failed`), règles non évaluées (`rules_not_evaluated`) et erreurs d'une série.
 
 ### Attestation de périmètre (`attestation.mjs`)
 
@@ -292,8 +305,9 @@ Point d'entrée `@noortrace/noyau` (`src/index.mjs`) :
 - `PLAFOND_LECTURE` — 64 Mio, plafond de lecture en flux de `attestation-perimetre.json` (CT-6 EX-4.15).
 - `RAISONS_ADMISES` — raisons de non-exécution qui laissent le dossier valide.
 - `BORNE` — énoncé de la borne de §11.3.
+- `VERIFICATION_CT6_NON_EXECUTEE` — détail d'une vérification de CT-6 non exécutée par la bibliothèque (raison `prerequis_en_echec`, CT-1 §11.4).
 - `DOC_TYPE_POINT` — `docType` de l'ancre d'un point au registre.
-- `verifierDossier(fichiers, options?)` — tous les contrôles de §11.4 et le verdict (octets ou `FichierNonLu` par nom ; option `profondeurMax`).
+- `verifierDossier(fichiers, options?)` — tous les contrôles de §11.4 et le verdict (octets ou `FichierNonLu` par nom ; option `profondeurMax`, 128 par défaut).
 - `indexerDossier(p)` — construit l'index `dossier.json`.
 
 Point d'entrée `@noortrace/noyau/dossier-fichiers` (`src/dossier-fichiers.mjs`, seul
@@ -302,121 +316,66 @@ module qui lit des fichiers) :
 - `lireRepertoireDossier(repertoire)` — lit `dossier.json` et les fichiers qu'un index peut déclarer, fichiers ordinaires seulement, chacun dans sa limite (`FichierNonLu` au-delà).
 - `verifierRepertoireDossier(repertoire, options?)` — lit puis vérifie un dossier.
 
-## Lectures de CT-1
+## Règles de CT-1 révision 0.5 appliquées
 
-Passages de CT-1 (et de CT-7 §7) que le texte ne tranche pas, et la lecture
-que le paquet retient ; « aligné » signale un comportement corrigé pour suivre
-un texte qui, lui, tranche.
+La section « Lectures de CT-1 » des versions précédentes consignait les
+passages que CT-1 0.4 ne tranchait pas. La révision 0.5 de CT-1 et la
+révision 0.4 de CT-6 les tranchent dans le texte ; le paquet applique ces
+règles, que voici avec leur renvoi.
 
-- **Partie hors schéma mais exploitable** (§11.4 contre §11.5). §11.4 dit que
-  les contrôles qui dépendent d'une partie contraire à son schéma sont « non
-  exécutés », mais les vecteurs de §11.5 publient les cascades (E-1 et E-3,
-  P-1 et P-4, E-1, E-7, E-8, C-2 et M-1…) : le contrôle porteur échoue, et les
-  autres s'exécutent sur les champs bien typés qu'ils lisent. Une partie qui
-  n'est pas un objet JSON, elle, n'est pas exploitée.
-- **Analyse des `seq` d'un journal** (§7.2). Les doublons, retours en arrière
-  et trous de `seq` se lisent sur tout le fichier, non couple par couple : un
-  réordonnancement n'est pas aussi rapporté comme deux trous.
-- **`cles.json` d'un journal** (§7.2, E-8). Son `org_id` et son `journal_id`
-  sont comparés à ceux de chaque événement : un écart est un E-8 de cet
-  événement, et un premier événement altéré ne masque plus les E-8 des autres
-  (aligné : « un vérificateur de chaîne les rapporte tous »).
-- **Règles de E-3** (tables 5.1 et 5.3). Appel d'outil : `policy.decision`
-  parmi `autorise`, `a_approuver`, `refuse` ; `approval` non nul seulement
-  avec `a_approuver` ; appel retenu : `a_approuver` et `approval` nul ; appel
-  refusé : `refuse`, ou `a_approuver` avec une approbation `refuse` ou
-  `expire` ; appel exécuté : `autorise`, ou `a_approuver` avec `approuve` ;
-  appel retenu ou refusé : `effects` vide (§5.3 : « vide si aucun effet
-  (appel retenu, refusé…) »). Autres sortes : `sans_objet`, `executee`,
-  `intent` nul sauf échange, `approval` seulement pour une décision ;
-  `result`, `duration_ms`, `is_error` selon la table de §5.3 ; décision :
-  `arguments.value` = A ; rotation : `effects` de §8 règle 4 ; politique :
-  `{ policy_version, policy_sha256 }`.
-- **Décision d'approbation avec `effects` non vide** (E-3). Ni la table 5.1
-  ni la table 5.3 ne fixent les effets d'une décision, et §5.3 ne nomme
-  d'effets vides que pour l'appel retenu, refusé ou la lecture pure : E-3 ne
-  la refuse pas.
-- **A-4** (§11.4). La demande est le voisin dont le `hash` recalculé est
-  `request_hash` ; aucun voisin ne l'étant, A-4 n'est pas exécutée
-  (`piece_hors_dossier`, admise), même si un voisin est un appel retenu d'un
-  autre hash ; `voisins.json` inexploitable : `prerequis_en_echec`.
-- **Clé en vigueur d'un point quand `last_seq = 0`** (§10.5 règle 5, §10.1).
-  Sans événement `last_seq` (journal encore vide, ou événement non fourni),
-  la règle de §10.1 telle qu'écrite : la dernière clé annoncée dont
-  `valid_from` ≤ `checkpoint_ts`, lue comme la clé de `cles.json` de plus grand
-  `valid_from` ≤ cet instant, la dernière du fichier à égalité (aligné : la
-  version précédente refusait tout `key_id`).
-- **Partie facultative sans forme canonique** (§11.4). Une seule règle pour
-  toutes les parties : un fichier sans forme canonique met E-2 en échec,
-  `points-de-controle.json` compris (K-1 à K-9 non exécutées, sans raison
-  admise ; aligné, l'écart se perdait sous K-1). Seule exception,
-  `attestation-perimetre.json`, dont tout défaut, forme canonique comprise,
-  est porté par AT-1 sans changer le verdict (§11.4, révision 0.4).
-- **`dossier.json` à clé en double** (§11.4, CT-6 EX-4.12). C'est du JSON,
-  sans forme canonique : E-2 en échec, les autres contrôles non exécutés ;
-  l'entrée n'est pas « inutilisable », code réservé à un index absent ou qui
-  n'est pas du JSON.
-- **Partie déclarée présente mais absente** (§11.4 D-2, CT-6 EX-4.11). Échec
-  de D-2 seul ; le contrôle qui porte la partie n'est pas exécuté (raison
-  `prerequis_en_echec`, D-2 étant en échec, dans la liste fermée de CT-6 §6.2)
-  et ceux qui en dépendent non plus, pour
-  toutes les parties (aligné : `cles.json`, `approbations.json` et
-  `points-de-controle.json` manquants mettaient aussi en échec E-8, A-1 ou
-  K-1). Une entrée qui n'est pas un fichier ordinaire (répertoire, lien) n'est
-  jamais ouverte et compte comme absente.
-- **Partie au-delà de sa limite de taille** (CT-6 EX-4.11, EX-4.13). Échec
-  du contrôle porteur ; D-2 ne compare pas son SHA-256, la limite interdisant
-  de lire au-delà (sauf `attestation-perimetre.json`, hachée en flux jusqu'à
-  64 Mio, EX-4.15). La limite de 16 Mio vaut pour les sept parties JSON v0
-  autres que l'index (EX-4.13 dit « six »).
-- **Profondeur d'imbrication** (§4). CT-1 n'en fixe aucune : aucune borne par
-  défaut, ni à la lecture, ni à la forme canonique, ni dans `verifierDossier`
-  (aligné : la borne de 256 refusait des événements conformes) ; la borne de
-  128 de CT-6 EX-4.13 s'applique par l'option `profondeurMax`, et une partie
-  qui la dépasse est inexploitable (contrôle porteur).
-- **`org_id` ou `journal_id` nul** (§3, §5.2). « Non nul » n'est pas dans le
-  schéma : pour un événement, c'est un échec de E-1 (validité de
-  l'événement) ; pour un manifeste, de P-1 par `ecartsManifeste` (aligné,
-  §10.1 : « ceux des événements »).
-- **`org_id`, `journal_id` de l'index différents de l'événement** (D-1). D-1
-  ne compare que `event.seq` et `event.hash` ; ces deux champs de l'index ne
-  sont pas comparés.
-- **Liaison de `tree_size`** (M-3, K-1, K-5). `chemin.tree_size` n'est lié au
-  manifeste que par M-3 (= `count`) ; `consistency.first_size` et
-  `second_size` ne sont liés au point et au manifeste que par K-5 ; K-1 ne lie
-  que `checkpoint.tree_size` (`1 ≤ tree_size ≤ count`). Un écart n'est imputé
-  qu'à ce contrôle.
-- **K-1 quand P-1 échoue** (CT-6 EX-5.9). Le schéma de la partie est contrôlé
-  quand même (défaut : K-1 en échec) ; sinon K-1 n'est pas exécutée,
-  `prerequis_en_echec` (aligné).
-- **Raison d'absence faite d'espaces** (D-2). « Raison non vide » et le
-  schéma (`minLength` 1) sont satisfaits par une chaîne d'espaces : admise.
-- **`approbations` absente avec une autre raison que « aucune approbation
-  liée »** (§11.1 contre A-1). §11.1 décrit la raison qu'écrit l'exportateur ;
-  A-1 ne porte que sur la présence de la partie, et D-2 sur une raison non
-  vide : A-1 réussit quand `approval` est nul, quelle que soit la raison.
-- **`policy.redaction = ""` avec une référence rédigée** (E-4). E-4 exige une
-  valeur « non nulle » et le schéma admet la chaîne vide : E-4 réussit.
-- **UTF-8 invalide, marque d'ordre d'octets, substitut CESU-8** (§3, §4).
-  Un texte qui n'est pas de l'UTF-8 bien formé, ou qui commence par une
-  marque d'ordre d'octets, n'est pas du JSON (§3 : « UTF-8 sans marque
-  d'ordre d'octets ») : échec du contrôle porteur (E-1 pour
-  `evenement.json`). Un substitut encodé en UTF-8 (`ED A0 80`) est un
-  substitut isolé de §4 : E-2 (aligné ; il était imputé à E-1).
-- **Plus de signatures que d'approbateurs** (E-5, E-9). E-9 dit « pour chaque
-  `i`, l'adresse recouvrée de `signatures[i]` = `approvers[i]` » : `i`
-  parcourt les signatures, et une signature sans `approvers[i]` met E-9 en
-  échec en plus de E-5 (aligné) ; un approbateur sans signature relève de E-5
-  seul (vecteur `invalide-signature-manquante`).
-- **Dates d'AT-1** (§11.4 AT-1). « Dates existantes » couvre
-  `validity.from`, `validity.until`, `issued_at`, et le `ts` et
-  `approval.at` de l'événement d'inscription.
-- **Parties réservées et ancres non nulles** (§11.4, CT-6). Leur vérification
-  (T-, O-, R-, N-) est fixée par CT-6 : une partie réservée déclarée présente
-  est rapportée non vérifiée (`non_executes_bloquants`, verdict invalide) ;
-  une ancre non nulle de K-7, K-9 (et K-8 au-delà de l'empreinte et du
-  `doc_type`) n'est pas exécutée (`verification_ct6_requise`) sans fonction
-  de `options.verificateursAncres`.
+| Règle | Renvoi | Module |
+|---|---|---|
+| UTF-8 mal formé, marque d'ordre d'octets : pas du JSON (contrôle porteur, E-1 pour `evenement.json`) ; substitut écrit en octets (`ED A0 80`) : E-2 | CT-1 §3, §4 règle 3 ; CT-6 EX-4.16 | `json-strict.mjs` |
+| Chaîne non vide : au moins un caractère hors des blancs (White_Space et U+FEFF) | CT-1 §3 | `conventions.mjs` |
+| Profondeur d'au plus 128, racine comprise, par défaut ; au-delà, partie inexploitable (contrôle porteur) ; événement d'un journal plus profond : E-1 | CT-1 §4 règle 7 ; CT-6 EX-4.13, EX-4.16 | `json-strict.mjs`, `controles-evenement.mjs` |
+| E-3, règle exacte : appel d'outil (décision, statut, `approval`, effets vides d'un appel retenu ou refusé) ; échange ; décision (même forme canonique que `A`, effets vides) ; rotation et changement de politique (`delegation.launched_by = "noortrace-enregistreur"`, effets de §8 règle 4, `policy_version` de 1 à 128 caractères) | CT-1 §5.3 ; CT-6 EX-5.17 | `controles-evenement.mjs` |
+| E-4 : `policy.redaction` chaîne non vide | CT-1 §5.3, §11.4 | `controles-evenement.mjs` |
+| Journal : trois temps (E-1 à E-11 puis origine ; insertions, suppressions, réordonnancements sur tout le fichier, parmi les `seq` entiers ; couples), `cles.json` comparé à chaque événement, types `schema`, `format`, `sorte`, `redaction`, `approbation`, `reference`, `modification`, `signature`, `approbateur`, `rotation`, `validite_cle`, `cles`, `origine`, `insertion`, `suppression`, `reordonnancement`, `rupture`, `horodatage`, `journal`, `cle` | CT-1 §7.2 | `chainage.mjs` |
+| Clé en vigueur d'un point sans l'événement `last_seq` : clé de plus grand `valid_from` ≤ `checkpoint_ts`, la dernière de `keys` à égalité ; aucune : règle violée | CT-1 §10.5 règle 5 | `point-de-controle.mjs` |
+| Série de points : `root` et `last_hash` évaluées point par point ; événement non fourni : non évaluées (`piece_hors_dossier`), fourni sans forme canonique : `prerequis_en_echec`, jamais violées ni remplacées par 32 octets nuls ; `rules_not_evaluated` au rapport ; série valide si les deux listes sont vides | CT-1 §10.5 | `point-de-controle.mjs` |
+| Raison d'absence d'une partie : chaîne non vide (blancs : D-2 ; chaîne vide : D-1 par le schéma) | CT-1 §11.1, D-2 | `dossier.mjs` |
+| `approval` nul : partie déclarée absente avec la raison exacte « aucune approbation liée » ; sinon A-1 en échec, A-2 à A-4 `prerequis_en_echec` | CT-1 §11.1, A-1 ; CT-6 EX-5.16 | `dossier.mjs` |
+| Contrôle porteur de chaque partie ; cinq cas de partie inexploitable ; contrôles qui lisent une partie inexploitable non exécutés sans raison admise, sauf échec sur les autres parties | CT-1 §11.4 ; CT-6 EX-4.11, EX-5.13 | `dossier.mjs` |
+| Partie contraire à son schéma : porteur en échec, partie exploitable ; relation à terme absent, mal typé ou incalculable (un `seq` en chaîne, le hash d'un voisin qui n'est pas un objet, une date inexistante) : le contrôle qui l'évalue échoue | CT-1 §11.4 | `dossier.mjs`, `controles-evenement.mjs` |
+| Exceptions : `dossier.json` (D-1 seul, ou E-2 seul pour une clé en double ; absent ou pas du JSON : entrée inutilisable) ; `cles.json` exploitable si et seulement si la première partie de E-8 réussit, impossible sans `evenement.json` exploitable ; `points-de-controle.json` (K-1 en échec ou non exécutée : K-2 à K-9 `prerequis_en_echec`) | CT-1 §11.4 ; CT-6 EX-4.12 | `dossier.mjs` |
+| Statut de E-1 à E-11 sur plusieurs événements : en échec pour un événement ; sinon non exécutée si `evenement.json` est inexploitable ou si elle ne l'est pas pour un événement ; sinon réussie | CT-1 §11.4 | `dossier.mjs` |
+| `evenement.json` inexploitable : D-1, E-2, P-1, P-2, P-5, C-, M-1, M-3, A-, K- non exécutées, sauf échec ; P-1 jamais réussie | CT-1 §11.4 ; CT-6 EX-5.14, EX-5.15 | `dossier.mjs` |
+| D-1 compare `event.seq`, `event.hash`, `org_id`, `journal_id` | CT-1 §11.4 ; CT-6 EX-5.14 | `dossier.mjs` |
+| Partie déclarée présente sans fichier ordinaire : D-2 seule ; au-delà de sa limite : porteur en échec, SHA-256 non comparé ; limites de CT-6 EX-4.13 (sept parties JSON v0 à 16 Mio) | CT-1 §11.4 ; CT-6 EX-4.11, EX-4.13, EX-4.17 | `dossier.mjs`, `dossier-fichiers.mjs` |
+| E-9 : une signature sans `approvers[i]` échoue, en plus de E-5 ; `approvers` ou `signatures` qui n'est pas un tableau : E-9 en échec | CT-1 §11.4 ; CT-6 EX-5.19 | `controles-evenement.mjs` |
+| A-4 : la demande est le voisin dont le hash recalculé égale `request_hash` ; aucun : `piece_hors_dossier` ; `voisins.json` inexploitable : `prerequis_en_echec` | CT-1 §11.4 ; CT-6 EX-5.18 | `dossier.mjs` |
+| K-1 contrôle le schéma de la partie même quand P-1 n'a pas réussi ou que `evenement.json` est inexploitable ; K-1 ne lie que `tree_size` au manifeste, K-5 la preuve de cohérence, M-3 `chemin.tree_size` | CT-1 §11.4 ; CT-6 EX-5.9 | `dossier.mjs` |
+| K-6 avec `voisins.json` inexploitable : non exécutée, `prerequis_en_echec` (et non `piece_hors_dossier`) | CT-1 §11.4 ; CT-6 EX-5.9 | `dossier.mjs` |
+| `points-de-controle.json` sans forme canonique : E-2, K-1 à K-9 non exécutées | CT-1 §11.4 ; CT-6 EX-5.20 | `dossier.mjs` |
+| Partie réservée présente, ancre non nulle : jamais « valide » pour un vérificateur de CT-1 seul | CT-1 §11.4 | `dossier.mjs` |
+| AT-1 : dates de l'inscription ; AT-5 et AT-6 exigent E-1 et E-2 réussies sur l'événement prouvé | CT-1 §11.4 | `attestation.mjs` |
+| Lecture d'un répertoire : fichiers ordinaires seulement (`lstat`, ouverture sans suivre de lien ni attendre, même périphérique et même inode sur le descripteur) | CT-1 §11.4 cas (a) ; CT-6 EX-4.17 | `dossier-fichiers.mjs` |
+
+Décisions du 3 novembre 2026, complétées en place dans CT-1 révision 0.5 et
+CT-6 révision 0.4, que le paquet applique aussi :
+
+| Règle | Renvoi |
+|---|---|
+| « Sauf échec » : la part de la règle qui ne lit pas la partie inexploitable est évaluée ; le contrôle échoue si elle ne tient pas, sinon il n'est pas exécuté, jamais réussi | CT-1 §11.4 ; CT-6 EX-5.15 |
+| K-6 se juge sur l'événement prouvé quand `last_seq` est son `seq`, quel que soit l'état de `voisins.json` ; `voisins.json` inexploitable ne donne `prerequis_en_echec` que si `last_seq` désigne un voisin | CT-1 §10.5, K-6 ; CT-6 EX-5.9 |
+| `approval` nul et `approbations.json` déclarée présente : A-1 échoue, que le fichier existe ou non (D-2 en plus s'il manque) | CT-1 §11.4 cas (a), A-1 ; CT-6 EX-4.11, EX-5.16 |
+| Vérification de CT-6 non exécutée : `prerequis_en_echec`, détail « vérification de CT-6 non exécutée par ce vérificateur » (`VERIFICATION_CT6_NON_EXECUTEE`) ; partie réservée non vérifiée quelle que soit sa taille | CT-1 §11.4 ; CT-6 EX-4.2 |
+| Série : un événement manque et un autre est sans forme canonique, `prerequis_en_echec` ; une entrée par couple (règle, raison) ; ordre des noms de règle, puis `prerequis_en_echec` avant `piece_hors_dossier` | CT-1 §10.5 |
+| Série : sans `cles.json`, `signature`, `validite_cle` et (sans l'événement `last_seq`) `cle_en_vigueur` non évaluées (`piece_hors_dossier`) ; `cles.json` qui ne passe pas la première partie de E-8 lue sans événement, `prerequis_en_echec` | CT-1 §10.5 |
+| Noms de règle fermés : en-tête ou schéma → `period_start` ; racine nulle à tort → `root` ; `tree_size > count` → `last_seq` ; clé absente → `signature` (et `cle_en_vigueur`) | CT-1 §10.5 |
+| Journal : `ts` qui n'est pas une date existante, symptôme `horodatage` ; réordonnancement lu parmi les `seq` entiers ; hash incalculable du précédent (événement sans forme canonique, lu par `lireJournal`), `rupture` ; un événement sans forme canonique n'a que E-2 ; `seq` d'un symptôme nul quand il n'est pas un entier | CT-1 §7.2, §11.4 cas (d) |
+| Voisin absent, ou présent ni objet ni `null` : C-1, C-2, C-3, P-3 en échec, E-1 pour lui s'il est présent ; ni demande d'A-4 ni événement de K-6 | CT-1 §11.4 ; CT-6 EX-5.13 |
+| `approval` ni nul ni objet : E-1, A-1 à A-4 en échec ; `execution.tool` qui n'est pas une chaîne : E-1 et E-3 ; origine de C-2 sur chaque événement du dossier | CT-1 §11.4 |
+| Document de politique d'une inscription : même borne de 128 et même comptage, nombres libres | CT-1 §4 règle 7 ; CT-6 EX-4.16 |
+| Entrée inutilisable : `type_erreur` (`dossier_illisible`, `taille_depassee`), l'`error_kind` de `attendu.json` | CT-1 §11.5 ; CT-6 EX-4.12, EX-4.15 |
+
+## Lectures qui restent
+
+- **Racine nulle d'un point de `tree_size ≥ 1`** (§10.5). Le schéma du point
+  la refuse (son `allOf`), et le texte range les défauts de schéma sous
+  `period_start` mais la racine nulle sous `root`. Le paquet tient un point
+  dont le seul défaut de schéma est cette racine pour conforme à son en-tête
+  et viole `root` seule.
 
 ## Dépendances
 
@@ -433,7 +392,7 @@ Aucune autre dépendance d'exécution. Pour les tests, la racine du dépôt port
 
 Ce paquet est écrit d'après le seul texte de CT-1 (et de CT-7 §7, des passages
 de CT-6 que CT-1 cite, des schémas et des données des vecteurs de
-`spec/vecteurs/ct-1`). Ni son code ni ses tests n'ouvrent, ne cherchent ni
+`spec/vecteurs/ct-1` et des dossiers de `spec/vecteurs/ct-6`). Ni son code ni ses tests n'ouvrent, ne cherchent ni
 n'importent `scripts/lib/**`, `scripts/verify/**`, `scripts/vecteurs/**`,
 `test/journal.test.js`, `test/verificateur.test.js`, `test/securite.test.js`,
 les vérificateurs indépendants (`spec/vecteurs/*/verificateur-independant/`) ni
@@ -454,9 +413,13 @@ npx hardhat --config hardhat.config.mjs test test/noyau.test.js
 
 - `test/noyau-vecteurs.test.js` rejoue chaque vecteur de `spec/vecteurs/ct-1`
   contre son `attendu.json` et vérifie par un inventaire que chaque fichier de
-  données des familles est consommé ;
+  données des familles est consommé ; il compare aussi, pour chaque dossier de
+  `spec/vecteurs/ct-6/dossiers`, le statut et la raison des vérifications de
+  CT-1 (D-1 à A-4, K-1 à K-9) à son `attendu.json` ;
 - `test/noyau-proprietes.test.js` est l'entrée TU-12 du plan de tests (cinq
   propriétés, fast-check, graine constante, 200 exécutions) ; un échec se
   rejoue par le couple `seed`/`path` imprimé ;
-- `test/noyau.test.js` couvre l'API publique et ses refus, et l'exemple de
-  référence de CT-1, lu dans le texte de la spécification.
+- `test/noyau.test.js` couvre l'API publique et ses refus, l'exemple de
+  référence de CT-1, lu dans le texte de la spécification, et chaque règle de
+  la révision 0.5 de CT-1 (bloc « révision 0.5 de CT-1, révision 0.4 de
+  CT-6 »), en réussite et en échec.

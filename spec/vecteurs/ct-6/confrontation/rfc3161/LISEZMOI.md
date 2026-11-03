@@ -71,12 +71,13 @@ python3 -I spec/vecteurs/ct-6/confrontation/rfc3161/confronter_rfc3161.py spec/v
 ```
 
 Code de retour : 0 si tout concorde, 1 sinon. La sortie de référence est
-`../sorties/rfc3161.txt` (OpenSSL 3.0.13) : 173 concordances vérification par
-vérification, 0 discordance, 47 vérifications hors outil (T-5 et T-11),
-44 sans objet (vérifications que le vecteur n'exécute pas par dépendance ou
+`../sorties/rfc3161.txt` (OpenSSL 3.0.13) : 265 concordances vérification par
+vérification, 0 discordance, 75 vérifications hors outil (T-5 et T-11),
+89 sans objet (vérifications que le vecteur n'exécute pas par dépendance ou
 faute d'ancre, ou qu'OpenSSL ne peut établir sur un jeton qu'il ne lit pas),
-et 4 verdicts d'`openssl ts -verify` qui ne relèvent pas l'échec visé (T-1
-deux fois, T-5, T-9) pour les raisons ci-dessus.
+et 8 verdicts d'`openssl ts -verify` qui ne disent pas ce que dit
+`attendu.json` (T-1 deux fois, T-5 trois fois, T-7, T-9, et le jeton Ed25519
+de la révision 0.4) pour les raisons ci-dessus et ci-dessous.
 
 ## Révision 0.2 (points de contrôle, EX-A.17)
 
@@ -89,3 +90,37 @@ altéré). Les jetons embarqués en base64 dans les dossiers qui portent la
 partie `points-de-controle.json` sont confrontés par CT-5
 (`spec/vecteurs/ct-5/confrontation/reponses/`, section 2 de sa sortie), qui
 les extrait du base64 et lance la même commande.
+
+## Révision 0.4 (EX-A.22)
+
+Les clés et jetons nouveaux sont confrontés comme les autres. Chaque clé est
+lue par `openssl pkey -text` (taille, exposant public, ou type Ed25519) et
+chaque certificat par `openssl x509`, sa clé publique comparée à celle de sa
+clé (`tsa-8200.pem`, `tsa-8192.pem`, `tsa-exposant.pem`,
+`intermediaire-8200.pem`, `tsa-ed25519.pem`, `tsa-ed25519-auto-signe.pem` ;
+`tsa-par-intermediaire-8200.pem` porte la clé de `tsa-test`). Le certificat
+signataire est le candidat (certificats du jeton, puis ceux des autorités du
+fichier d'ancres) dont le SHA-256 égale le `certHash` ESS ; T-4 passe ces
+candidats des ancres à `openssl ts -verify` par `-untrusted`, et relève
+« signer certificate not found » (`t4-sid-introuvable.der`,
+`t4-sans-certificat.der` sans intermédiaire ; avec
+`ancres-unite-intermediaire.json`, le jeton sans certificats se vérifie).
+
+Ce qu'OpenSSL ne fait pas, en plus de ce qui précède :
+
+- EX-9.23 : OpenSSL vérifie sous une clé RSA de 8200 bits ou d'exposant
+  2^31 + 1 (`openssl ts -verify` : « Verification: OK » pour
+  `t5-rsa-8200.der`, `t5-exposant.der` et `t7-intermediaire-rsa-8200.der`).
+  T-5 reste « hors outil » ; pour T-7, le programme lit la clé de chaque
+  certificat candidat (`openssl x509 -text`), écarte ceux dont la clé RSA est
+  hors des bornes (module de 2048 à 8192 bits, exposant impair de 3 à
+  2^31 − 1) et laisse `openssl verify -partial_chain` chercher un chemin avec
+  les autres : sans l'intermédiaire de 8200 bits, aucun chemin.
+- EX-9.24 : `openssl ts -verify` d'OpenSSL 3.0.13 ne vérifie pas la signature
+  Ed25519 d'un jeton (« operation not supported for this keytype »), là où le
+  vecteur `t5-cle-ed25519.der` ne relève aucun échec (T-5 à T-7, T-10, T-11
+  non exécutées, `hors_perimetre_version`) ; `openssl cms -verify` la vérifie.
+  Pour `t5-algorithme-inconnu.der`, OpenSSL ignore l'identifiant inconnu de
+  `signatureAlgorithm` et échoue sur la signature altérée.
+- EX-9.15 : le numéro de série de 168 bits de `serie-168-bits.der` est lu et
+  accepté (« Verification: OK »).

@@ -1,0 +1,11 @@
+{
+  "valide": false,
+  "controle": "C-1",
+  "controles_en_echec": [
+    "C-1",
+    "C-2",
+    "C-3",
+    "P-3"
+  ],
+  "description": "voisins.json sans membre previous, index recalculé : un membre absent est un voisin qui n'est pas un objet (CT-1 §11.4, révision 0.5) : C-1, C-2 (prev_hash = hash de previous), C-3 et P-3 échouent ; E-1 ne le concerne pas (un membre absent n'est pas un événement)."
+}

@@ -112,7 +112,10 @@ const REDACTION = "pii-v1";
 // demandeRefusee (seq 5 refusé par la politique au lieu d'être retenu) ;
 // révision 0.4 (journal rejoué de CT-7 §7.5) : politique12 (valeur en ligne
 // { policy_version, policy_sha256 } de l'événement de politique seq 12) et
-// politique13 ({ ts, policy_version, policy_sha256 } : un seq 13 de politique).
+// politique13 ({ ts, policy_version, policy_sha256 } : un seq 13 de politique) ;
+// révision 0.5 (règle exacte de E-3, CT-1 §5.3) : effetsDemande (seq 5, retenu,
+// porte un effet), effetsDecision (seq 6, la décision, porte un effet),
+// appelSansApprobation (seq 7, a_approuver et exécuté, sans approbation liée).
 // ---------------------------------------------------------------------------
 
 const DELEGATION = { launched_by: "u.martin@assureur-demo.example", on_behalf_of: "service-sinistres", scope: "sinistres:lecture,paiement,courriel", run_id: "run-2026-11-05-0007" };
@@ -166,7 +169,7 @@ function construireJournal(variante = {}) {
       policy: variante.demandeRefusee ? POLICY("refuse", { rule: "paiement > 5000 CHF", redaction: REDACTION }) : POLICY("a_approuver", { rule: "paiement > 5000 CHF", ticket: "apr-2201", redaction: REDACTION }),
       approval: null,
       execution: EXEC("sap.payments.create", { args: ref("arguments_paiement", true), status: variante.demandeRefusee ? "refusee" : "retenue" }),
-      effects: [], context: [DOC("constat"), DOC("facture")],
+      effects: variante.effetsDemande ? [EFFET("SAP", "ecriture", "PAY-2026-61877", "12500.00", "CHF")] : [], context: [DOC("constat"), DOC("facture")],
     },
   ];
   const evenements = J.chainer(premiers, commun);
@@ -192,12 +195,12 @@ function construireJournal(variante = {}) {
     {
       ts: ts(6, T(9, 31, 47, 250)), recorder_key_id: k1, delegation: DELEGATION, code: CODE(), intent: null,
       policy: POLICY("sans_objet", { ticket: "apr-2201" }), approval,
-      execution: EXEC(J.OUTIL_APPROBATION, { args: { ...J.referenceEnLigne(A), length: J.referenceEnLigne(A).length + (variante.longueurReferenceDecision ?? 0) } }), effects: [], context: [],
+      execution: EXEC(J.OUTIL_APPROBATION, { args: { ...J.referenceEnLigne(A), length: J.referenceEnLigne(A).length + (variante.longueurReferenceDecision ?? 0) } }), effects: variante.effetsDecision ? [EFFET("SAP", "ecriture", "PAY-2026-61877", "12500.00", "CHF")] : [], context: [],
     },
     {
       ts: ts(7, T(9, 31, 48, 6)), recorder_key_id: k1, delegation: DELEGATION, code: CODE(),
       intent: "Régler le sinistre 2026-81044 : 12500.00 CHF au bénéficiaire du contrat",
-      policy: POLICY("a_approuver", { rule: "paiement > 5000 CHF", ticket: "apr-2201", redaction: REDACTION }), approval,
+      policy: POLICY("a_approuver", { rule: "paiement > 5000 CHF", ticket: "apr-2201", redaction: REDACTION }), approval: variante.appelSansApprobation ? null : approval,
       execution: EXEC("sap.payments.create", { args: ref("arguments_paiement", true), result: ref("resultat_paiement"), duration_ms: 530, is_error: false }),
       effects: [EFFET("SAP", "ecriture", "PAY-2026-61877", "12500.00", "CHF")], context: [DOC("constat"), DOC("facture")],
     },
@@ -329,7 +332,7 @@ function exiger(condition, message) {
 // réécrire (aucun fichier périmé ne survit) et laisse intact tout ce que
 // d'autres déposent dans le répertoire des vecteurs (par exemple un
 // vérificateur indépendant).
-export const ENTREES_GENEREES = ["INDEX.md", "cles", "jcs", "journal-valide", "journal-supprime", "journal-modifie", "journal-insere", "journal-insere-sans-cle", "journal-reordonne", "merkle", "manifestes", "points-de-controle", "dossiers"];
+export const ENTREES_GENEREES = ["INDEX.md", "cles", "jcs", "journal-valide", "journal-supprime", "journal-modifie", "journal-insere", "journal-insere-sans-cle", "journal-reordonne", "journal-cles-autre-organisation", "journal-ts-inexistant", "journal-seq-chaine", "journal-non-canonique", "merkle", "manifestes", "points-de-controle", "dossiers"];
 for (const entree of ENTREES_GENEREES) fs.rmSync(path.join(SORTIE, entree), { recursive: true, force: true });
 fs.mkdirSync(SORTIE, { recursive: true });
 
@@ -365,7 +368,7 @@ exiger(erreursCles.length === 0, `cles.json non conforme : ${JSON.stringify(erre
 // 2. Journal valide ------------------------------------------------------------
 const clesPubliques = jeu.cles;
 {
-  const chaine = J.verifierChaine(jeu.evenements, { clesPubliques });
+  const chaine = J.verifierChaine(jeu.evenements, { clesPubliques, schemas: SCHEMAS });
   exiger(chaine.valide, `journal valide refusé : ${JSON.stringify(chaine.diagnostics)}`);
   for (const ev of jeu.evenements) {
     const res = J.controlesEvenement(ev, { schemas: SCHEMAS, cles: clesPubliques });
@@ -393,12 +396,23 @@ const clesPubliques = jeu.cles;
 // 3. Journaux altérés ------------------------------------------------------------
 // Les contrôles en échec d'un journal altéré, dans l'ordre de la table 11.4 (table 7.2 : tous les symptômes sont rapportés).
 const controlesDesDiagnostics = (diagnostics) => J.CONTROLES_DOSSIER.map((c) => c.id).filter((id) => diagnostics.some((d) => d.controle === id));
-function vecteurChaine(nom, evenements, attendus, controles, description) {
-  const r = J.verifierChaine(evenements, { clesPubliques });
+function vecteurChaine(nom, evenementsBruts, attendus, controles, description, { cles = null, remplacement = null } = {}) {
+  // Révision 0.5 : `remplacement` [ancien, nouveau] altère le texte du fichier (forme non canonique d'un
+  // nombre) ; le vérificateur lit alors le fichier tel qu'il est écrit (lireJournalJSON).
+  let texte = J.texteJSON(evenementsBruts);
+  if (remplacement) {
+    exiger(texte.split(remplacement[0]).length === 2, `${nom} : « ${remplacement[0]} » doit figurer une fois`);
+    texte = texte.replace(remplacement[0], remplacement[1]);
+  }
+  const evenements = J.lireJournalJSON(texte);
+  // CT-1 §7.2 (révision 0.5) : le vérificateur reçoit le cles.json du journal ; celui de journal-valide, sauf
+  // pour un vecteur qui porte le sien (écrit à côté de evenements.json).
+  const r = J.verifierChaine(evenements, { clesPubliques: cles ?? clesPubliques, schemas: SCHEMAS });
   const obtenus = r.diagnostics.map(({ type, controle, seq }) => ({ type, controle, seq }));
   exiger(!r.valide && JSON.stringify(obtenus) === JSON.stringify(attendus), `${nom} : diagnostics ${JSON.stringify(obtenus)} différents des attendus ${JSON.stringify(attendus)}`);
   exiger(JSON.stringify(controlesDesDiagnostics(obtenus)) === JSON.stringify(controles), `${nom} : contrôles ${JSON.stringify(controlesDesDiagnostics(obtenus))} différents des attendus ${JSON.stringify(controles)}`);
-  ecrireJSON(`${nom}/evenements.json`, evenements);
+  ecrire(`${nom}/evenements.json`, texte);
+  if (cles) ecrireJSON(`${nom}/cles.json`, cles);
   ecrireJSON(`${nom}/attendu.json`, { valide: false, description, controles_en_echec: controles, diagnostics: obtenus, messages: r.diagnostics.map((d) => d.message) });
 }
 {
@@ -417,7 +431,28 @@ function vecteurChaine(nom, evenements, attendus, controles, description) {
   vecteurChaine("journal-insere-sans-cle", [...E.slice(0, 4), insereSansCle, ...E.slice(4)], [{ type: "signature", controle: "E-8", seq: 5 }, { type: "insertion", controle: "C-1", seq: 5 }, { type: "rupture", controle: "C-2", seq: 5 }, { type: "horodatage", controle: "C-1", seq: 5 }], ["E-8", "C-1", "C-2"], "Même insertion, mais l'attaquant n'a pas la clé de l'enregistreur : l'événement forgé annonce rec-test-01 et porte une signature produite par une autre clé (E-8), en plus des symptômes de chaîne (C-1, C-2).");
 
   const reordonne = [...E.slice(0, 4), E[5], E[4], ...E.slice(6)];
+  // Révision 0.5 (CT-1 §7.2, règle exacte) : cles.json d'une autre organisation, mêmes clés ; son org_id est
+  // comparé à celui de chaque événement, si bien que les douze événements portent chacun un symptôme E-8.
+  const clesAutreOrganisation = { ...jeu.cles, org_id: keccak256(toUtf8Bytes("autre-organisation")) };
+  vecteurChaine("journal-cles-autre-organisation", E, E.map((e) => ({ type: "signature", controle: "E-8", seq: e.seq })), ["E-8"], "Le journal valide, vérifié avec un cles.json dont org_id est keccak256(« autre-organisation ») (mêmes clés, mêmes validités, porté par ce répertoire) : cles.json passe la première partie de E-8 lue sans événement (schéma, unicités, dates), puis son org_id est comparé à celui de chaque événement (CT-1 §7.2, révision 0.5) ; les signatures sont valides, mais chacun des douze événements porte un symptôme E-8 (type signature), et non le seul premier.", { cles: clesAutreOrganisation });
+
   vecteurChaine("journal-reordonne", reordonne, [{ type: "reordonnancement", controle: "C-1", seq: 5 }, { type: "rupture", controle: "C-2", seq: 6 }, { type: "rupture", controle: "C-2", seq: 5 }, { type: "horodatage", controle: "C-1", seq: 5 }, { type: "rupture", controle: "C-2", seq: 7 }], ["C-1", "C-2"], "Les événements seq 5 et seq 6 ont été échangés de place dans le fichier (contenus intacts) : l'ordre des seq n'est plus croissant (C-1) et aucun des trois liens autour d'eux ne tient (C-2).");
+
+  // Compléments de la révision 0.5 (CT-1 §7.2, temps 2 et 3).
+  const resceller = (ev) => J.scellerEvenement(J.corpsEvenement(ev), CLES_PRIVEES[ev.recorder_key_id]);
+  {
+    // ts de seq 12 (dernier événement) au 30 février, rescellé : E-1 et symptôme horodatage sur le couple (11, 12).
+    const E12 = resceller({ ...E[11], ts: "2026-02-30T10:05:00.000Z" });
+    vecteurChaine("journal-ts-inexistant", [...E.slice(0, 11), E12], [{ type: "schema", controle: "E-1", seq: 12 }, { type: "validite_cle", controle: "E-11", seq: 12 }, { type: "horodatage", controle: "C-1", seq: 12 }], ["E-1", "E-11", "C-1"], "Le ts de seq 12 (changement de politique, dernier événement du journal) devient 2026-02-30T10:05:00.000Z, date qui n'existe pas, événement rescellé (hash et signature valides) : E-1 (date inexistante, CT-1 §3) ; E-11, dont la relation (ts dans la validité de la clé) a un terme incalculable (CT-1 §11.4, révision 0.5) ; et, au troisième temps, le couple (seq 11, seq 12) rapporte le symptôme horodatage (C-1) : un ts qui n'est pas une date existante ne tient pas la relation (CT-1 §7.2, révision 0.5).");
+  }
+  {
+    // seq de seq 11 écrit en chaîne, rescellé ; seq 12 rechaîné et rescellé.
+    const E11 = resceller({ ...E[10], seq: "11" });
+    const E12 = resceller({ ...E[11], prev_hash: E11.hash });
+    vecteurChaine("journal-seq-chaine", [...E.slice(0, 10), E11, E12], [{ type: "schema", controle: "E-1", seq: null }, { type: "suppression", controle: "C-1", seq: 12 }], ["E-1", "C-1"], "Le seq de seq 11 est écrit en chaîne (\"11\"), événement rescellé, seq 12 rechaîné sur lui et rescellé : E-1 pour l'événement (schéma ; seq nul au symptôme, son seq n'étant pas un entier) ; au deuxième temps, seuls les seq entiers comptent (CT-1 §7.2, révision 0.5) : un trou entre seq 10 et seq 12 (suppression, C-1), et aucun réordonnancement, seq 12 étant comparé à seq 10, le dernier événement à seq entier qui le précède dans le fichier ; au troisième temps, les liens tiennent (hash, ts, identifiants et clés).");
+  }
+  // duration_ms de seq 7 écrit 530.0 dans le fichier (même valeur, forme fractionnaire), hash et sig inchangés.
+  vecteurChaine("journal-non-canonique", E, [{ type: "format", controle: "E-2", seq: 7 }, { type: "rupture", controle: "C-2", seq: 8 }], ["E-2", "C-2"], "Le fichier porte \"duration_ms\": 530.0 pour seq 7 (même valeur, forme fractionnaire, interdite par JCS v0), hash et sig inchangés : E-2 pour seq 7, dont les autres règles ne s'exécutent pas (CT-1 §11.4, cas (d)) ; au troisième temps, le hash de seq 7 est incalculable et le couple (seq 7, seq 8) rapporte une rupture (C-2, CT-1 §7.2, révision 0.5). Le fichier reste lisible : seul l'événement fautif est sans forme canonique.", { remplacement: ['"duration_ms": 530,', '"duration_ms": 530.0,'] });
 }
 
 // 3 bis. Cas limites de la forme canonique (CT-1 §4) ------------------------------
@@ -635,15 +670,17 @@ const SERIES = {};
   const REGLES = [
     [/prev_checkpoint_hash/, "chainage"], [/tree_size .* décroît/, "tree_size_decroissant"], [/checkpoint_ts .* antérieur au précédent/, "checkpoint_ts_decroissant"],
     [/^dernier point/, "dernier_point"], [/clé en vigueur attendue/, "cle_en_vigueur"], [/signature invalide/, "signature"], [/hors de la validité/, "validite_cle"],
-    [/racine recalculée/, "root"], [/last_hash/, "last_hash"], [/last_seq .* différent de first_seq/, "last_seq"], [/period_start/, "period_start"],
+    [/racine recalculée/, "root"], [/last_hash/, "last_hash"], [/last_seq .* différent de first_seq/, "last_seq"], [/supérieur à count/, "last_seq"], [/period_start/, "period_start"],
+    [/absente du jeu de clés/, "signature"],
   ];
   const reglesDe = (erreurs) => [...new Set(erreurs.map((e) => REGLES.find(([re]) => re.test(e))?.[1] ?? "autre"))];
+  // Révision 0.5 : la bibliothèque nomme elle-même les règles (rules_failed) ; le nommage par les messages le recoupe.
   const periode1 = jeu.periodes[0];
   const corps1 = corpsSerie(jeu, periode1);
   const indicePoint = (tree_size) => corps1.findIndex((c) => c.tree_size === tree_size);
   const serieInvalide = (nom, points, rules, description) => {
     const r = J.verifierSeriePointsDeControle(points, periode1.manifeste, { evenements: jeu.evenements, cles: jeu.cles });
-    exiger(!r.valide && JSON.stringify(reglesDe(r.erreurs)) === JSON.stringify(rules), `${nom} : règles ${JSON.stringify(reglesDe(r.erreurs))}, attendues ${JSON.stringify(rules)} ; ${JSON.stringify(r.erreurs)}`);
+    exiger(!r.valide && JSON.stringify(reglesDe(r.erreurs)) === JSON.stringify(rules) && JSON.stringify(r.rules_failed) === JSON.stringify(rules) && r.rules_not_evaluated.length === 0, `${nom} : règles ${JSON.stringify(r.rules_failed)} (${JSON.stringify(reglesDe(r.erreurs))}), attendues ${JSON.stringify(rules)} ; ${JSON.stringify(r.erreurs)}`);
     ecrireJSON(`points-de-controle/invalides/${nom}.json`, points);
     attendu.invalides.push({ file: `invalides/${nom}.json`, manifest: "../manifestes/periode-1.json", description, rules_failed: rules, errors: r.erreurs });
   };
@@ -684,12 +721,59 @@ const SERIES = {};
     c[c.length - 1].key_id = "rec-test-01";
     serieInvalide("periode-1-cle-perimee", chainerPoints(c), ["cle_en_vigueur", "validite_cle"], "Le point de clôture est signé par rec-test-01 (key_id et signature cohérents) alors que la rotation de seq 9 (09:59:58.000Z) a mis rec-test-02 en vigueur et clos la validité de rec-test-01 avant 10:00:00.300Z.");
   }
+  // Révision 0.5 (CT-1 §10.5, liste fermée des noms de règle) : tree_size au-delà de count viole last_seq ; une
+  // clé absente de cles.json viole signature (et cle_en_vigueur, la clé en vigueur étant une autre).
+  {
+    const c = corps1.map((x) => ({ ...x }));
+    const n = c.length - 1;
+    const hashes10 = jeu.evenements.filter((e) => e.seq <= 10).map((e) => e.hash);
+    c[n] = J.construirePointDeControle({ org_id: ORG_ID, journal_id: JOURNAL_ID, period_start: periode1.period_start, first_seq: 1, hashes: hashes10, tree_size: 10, checkpoint_ts: c[n].checkpoint_ts, key_id: c[n].key_id });
+    serieInvalide("periode-1-tree-size-trop-grand", chainerPoints(c), ["last_seq", "dernier_point"], "Le point de clôture (10:00:00.300Z) engage dix événements alors que la période 1 en compte neuf (count 9) : root, last_seq (10) et last_hash (hash de seq 10) recalculés pour dix, série rechaînée et re-signée. tree_size supérieur à count viole last_seq (CT-1 §10.5, révision 0.5 : le nom tree_size n'est pas un nom de règle) ; le dernier point ne rejoint plus le manifeste (dernier_point). Aucune série ne peut violer last_seq seule par ce moyen : un point de tree_size supérieur à count suivi d'un autre fait décroître tree_size, et en dernière place il viole dernier_point.");
+  }
+  {
+    const c = corps1.map((x) => ({ ...x }));
+    c[10].key_id = "rec-test-03";
+    serieInvalide("periode-1-cle-inconnue", chainerPoints(c, { signataires: { 10: CLE_TIERCE.clePrivee } }), ["cle_en_vigueur", "signature"], "Le point d'indice 10 (09:10:00.000Z) annonce key_id rec-test-03, absente de cles.json, et porte la signature de cette clé (série rechaînée) : la signature ne se vérifie sous aucune clé désignée (signature ; le nom cle_absente n'est pas un nom de règle, CT-1 §10.5, révision 0.5), et la clé en vigueur, rec-test-01, est une autre (cle_en_vigueur) ; les deux noms dans l'ordre de la liste fermée.");
+  }
   {
     const c = corps1.map((x) => ({ ...x }));
     const i = indicePoint(8);
     c[i].last_hash = J.sha256(Buffer.from("last_hash faux", "utf8"));
     serieInvalide("periode-1-last-hash", chainerPoints(c), ["last_hash"], `Le point d'indice ${i} (premier point à engager seq 8) porte un last_hash qui n'est pas le hash de seq 8 (re-signé, série rechaînée) : la tête de chaîne annoncée n'est pas celle du journal.`);
   }
+  // Révision 0.5 (CT-1 §10.5, règle 5, règle exacte) : un point de last_seq = 0, sans événement, signé par une autre clé.
+  {
+    const c = corps1.map((x) => ({ ...x }));
+    c[0].key_id = "rec-test-02";
+    serieInvalide("periode-1-cle-last-seq-0", chainerPoints(c), ["cle_en_vigueur", "validite_cle"], "Le premier point (09:00:00.000Z, tree_size 0, last_seq 0) annonce et porte la signature de rec-test-02 (série rechaînée) : sans événement last_seq, la clé en vigueur est celle de cles.json de plus grand valid_from inférieur ou égal à checkpoint_ts (règle de la section 10.1), rec-test-01 (valid_from 2026-11-01) ; rec-test-02 n'est valide qu'à partir de la rotation (09:59:58.000Z).");
+  }
+  // Révision 0.5 (CT-1 §10.5, règles root et last_hash quand des événements manquent) : la série valide de la
+  // période 1, vérifiée avec une partie des événements seulement, puis avec un événement altéré.
+  attendu.description += " Révision 0.5 : evenements_partiels vérifie la série de la période 1 avec les seuls événements d'un fichier (events) et cles.json (keys) : rules_not_evaluated nomme les règles non évaluées faute d'événement (piece_hors_dossier) ou de forme canonique (prerequis_en_echec), jamais violées ; une série n'est valide que si rules_failed et rules_not_evaluated sont vides. Pour les séries de periodes et d'invalides, vérifiées avec tout journal-valide/evenements.json et journal-valide/cles.json, rules_not_evaluated absent vaut liste vide.";
+  attendu.evenements_partiels = [];
+  // Révision 0.5 : `remplacement` [ancien, nouveau] altère le texte du fichier d'événements (forme non canonique),
+  // relu par lireJournalJSON ; evenements null : aucun fichier (events nul) ; sansCles : keys nul.
+  const seriePartielle = (nom, evenementsBruts, rules_failed, rules_not_evaluated, description, { remplacement = null, sansCles = false } = {}) => {
+    let texte = evenementsBruts === null ? null : J.texteJSON(evenementsBruts);
+    if (remplacement) {
+      exiger(texte.split(remplacement[0]).length === 2, `${nom} : « ${remplacement[0]} » doit figurer une fois`);
+      texte = texte.replace(remplacement[0], remplacement[1]);
+    }
+    const evenements = texte === null ? null : J.lireJournalJSON(texte);
+    const r = J.verifierSeriePointsDeControle(SERIES[1], periode1.manifeste, { evenements, cles: sansCles ? null : jeu.cles });
+    exiger(!r.valide && JSON.stringify(r.rules_failed) === JSON.stringify(rules_failed) && JSON.stringify(r.rules_not_evaluated) === JSON.stringify(rules_not_evaluated), `${nom} : ${JSON.stringify(r)}, attendus ${JSON.stringify({ rules_failed, rules_not_evaluated })}`);
+    if (texte !== null) ecrire(`points-de-controle/evenements/${nom}.json`, texte);
+    attendu.evenements_partiels.push({ file: "periode-1.json", manifest: "../manifestes/periode-1.json", events: texte === null ? null : `evenements/${nom}.json`, keys: sansCles ? null : "../journal-valide/cles.json", description, rules_failed, rules_not_evaluated, errors: r.erreurs });
+  };
+  seriePartielle("sans-5-a-9", jeu.evenements.filter((e) => e.seq < 5 || e.seq > 9), [], [{ rule: "root", reason: "piece_hors_dossier" }, { rule: "last_hash", reason: "piece_hors_dossier" }], "La série complète de la période 1 (periode-1.json), vérifiée avec les événements 1 à 4 et 10 à 12 seulement (sans 5 à 9) : les points de tree_size 0 (09:00 à 09:12) sont évalués (root et last_hash nuls, sans événement) ; pour les points de tree_size 5, 8 et 9, root et last_hash ne sont pas évaluées (piece_hors_dossier), jamais violées ni remplacées par 32 octets nuls ; la clé en vigueur des points dont l'événement last_seq manque se lit dans cles.json (rec-test-01, puis rec-test-02 pour le point de clôture). Aucune règle violée ; la série n'est ni valide ni invalide sur root et last_hash.");
+  {
+    const altere = jeu.evenements.map((e) => (e.seq === 5 ? { ...e, intent: "Régler le sinistre 2026-81044 : 1250.00 CHF au bénéficiaire du contrat" } : e));
+    seriePartielle("evenement-5-altere", altere, ["root", "last_hash"], [], "La même série, vérifiée avec tous les événements du journal dont seq 5 a été modifié après scellement (intent, hash et sig inchangés) : la racine recalculée des points de tree_size 5, 8 et 9 et le hash recalculé de seq 5 (last_hash des points de 09:13 à 09:31) diffèrent de ce que les points annoncent ; root et last_hash sont violées, aucune règle n'est non évaluée. (Avec les seuls événements 1 à 4 de la variante précédente, aucun point de la série n'engage un événement altéré parmi 1 à 4 sans engager seq 5 : les points de la période passent de tree_size 0 à 5.)");
+  }
+  // Compléments de la révision 0.5 : un événement manque et un autre ne se hache pas (prerequis_en_echec
+  // l'emporte pour un même point et une même règle) ; série vérifiée sans événement ni cles.json.
+  seriePartielle("sans-5-seq-7-non-canonique", jeu.evenements.filter((e) => e.seq !== 5), [], [{ rule: "root", reason: "prerequis_en_echec" }, { rule: "root", reason: "piece_hors_dossier" }, { rule: "last_hash", reason: "piece_hors_dossier" }], "La série complète de la période 1, vérifiée avec les événements 1 à 12 sauf seq 5, le fichier portant \"duration_ms\": 530.0 pour seq 7 (même valeur, forme fractionnaire : fourni sans forme canonique, son hash ne se recalcule pas). Points de tree_size 5 (09:13 à 09:31) : root et last_hash non évaluées, piece_hors_dossier (seq 5 manque) ; points de tree_size 8 et 9 : root non évaluée, prerequis_en_echec (seq 5 manque et seq 7 ne se hache pas : une donnée fournie et défectueuse ne passe pas pour une absence, CT-1 §10.5, révision 0.5), last_hash évaluée et tenue (seq 8 et seq 9 fournis). Une entrée par couple (règle, raison), dans l'ordre des noms de règle, prerequis_en_echec avant piece_hors_dossier ; aucune règle violée.", { remplacement: ['"duration_ms": 530,', '"duration_ms": 530.0,'] });
+  seriePartielle("sans-evenements-ni-cles", null, [], [{ rule: "root", reason: "piece_hors_dossier" }, { rule: "last_hash", reason: "piece_hors_dossier" }, { rule: "cle_en_vigueur", reason: "piece_hors_dossier" }, { rule: "signature", reason: "piece_hors_dossier" }, { rule: "validite_cle", reason: "piece_hors_dossier" }], "La série complète de la période 1, vérifiée sans aucun événement (events nul) ni cles.json (keys nul) : root et last_hash ne sont pas évaluées pour les points de tree_size 5, 8 et 9 (les points de tree_size 0 ont root et last_hash nuls, sans événement) ; signature, validite_cle et cle_en_vigueur (aucun événement last_seq fourni) lisent cles.json et ne sont pas évaluées (piece_hors_dossier, CT-1 §10.5, révision 0.5) ; les règles qui se décident sans événement ni clé (chaînage, monotonie, en-tête, last_seq, dernier point) tiennent. Aucune règle violée.", { sansCles: true });
   ecrireJSON("points-de-controle/attendu.json", attendu);
 }
 
@@ -1145,6 +1229,13 @@ const invalide = (controle, controles_en_echec, description) => ({ valide: false
     ecrireDossierAT("valide-at6-inscription-signature-fausse", reindexer({ ...d12.fichiers, [FICHIER]: J.texteJSON(pk) }), attenduAT({ cible: "AT-6", checks: statuts("r", "r", "r", "r", "r", "e", PR), retenue: false, warnings: ["AV-AT-1"], description: "Dossier valide-seq-12-attestation-inscrite dont l'événement d'inscription joint à la partie est signé par rec-test-01 alors qu'il nomme rec-test-02 (hash inchangé, evenement.json intact) : la signature est invalide sous la clé nommée, AT-6 échoue, AV-AT-1 ; le dossier reste valide." }));
   }
 
+  // AT-1 (CT-1 révision 0.5, table 11.4) : date inexistante dans l'événement d'inscription ; relève d'AT-1, non d'AT-6.
+  {
+    const pk = J.analyserJSONStrict(d12.fichiers[FICHIER]);
+    pk.inscription.event.ts = "2026-11-31T10:05:00.000Z";
+    ecrireDossierAT("valide-at1-inscription-date-inexistante", reindexer({ ...d12.fichiers, [FICHIER]: J.texteJSON(pk) }), attenduAT({ cible: "AT-1", checks: statuts("e", PR, PR, PR, PR, PR, PR), retenue: false, warnings: ["AV-AT-1"], description: "Dossier valide-seq-12-attestation-inscrite dont l'événement d'inscription joint à la partie porte ts 2026-11-31T10:05:00.000Z (motif du schéma respecté, date inexistante : novembre a trente jours) : la date de l'inscription relève d'AT-1 (CT-1 §11.4, révision 0.5), qui échoue ; AT-2 à AT-7 ne sont pas exécutées, AV-AT-1 ; le dossier reste valide." }));
+  }
+
   // AT-6 : inscription forgée sous une clé que le dossier déclare lui-même (CT-7 MN-84, MN-90) :
   // une clé rec-forge-01, dérivée d'une étiquette publique, ajoutée à cles.json, signe un
   // événement noortrace.journal.politique seq 2 qui porte D_P. La clé n'est pas celle de
@@ -1213,11 +1304,175 @@ const invalide = (controle, controles_en_echec, description) => ({ valide: false
   }
 }
 
+// 6 quater. Dossiers de la révision 0.5 (CT-1 §3, §4, §5.3, §11.1, §11.4, §17) : un par
+// règle tranchée qu'aucun vecteur ne fixait. Les soixante-dix dossiers ci-dessus ne changent pas.
+{
+  const F = dossierPour(jeu, 7).fichiers;
+  const k2 = CLES["rec-test-02"].clePrivee;
+  const reindexer = (fichiers) => J.reindexerDossier(fichiers).fichiers;
+  /** Remplace le texte d'une partie et reporte son SHA-256 exact dans l'index (l'objet n'est pas relu). */
+  const avecOctets = (fichiers, nom, octets) => {
+    const idx = lireF(fichiers, "dossier.json");
+    idx.parts.find((p) => p.file === nom).sha256 = J.sha256(Buffer.from(octets));
+    return { ...remplacer(fichiers, "dossier.json", idx), [nom]: Buffer.from(octets) };
+  };
+
+  // D-2 : raison d'absence faite de blancs (U+0085, U+FEFF, U+3000 : blancs de CT-1 §3, que trim() ou TrimSpace oublient en partie).
+  {
+    const idx = lireF(F, "dossier.json");
+    idx.parts.find((p) => p.name === "jeton_rfc3161").reason_if_absent = "\u0085﻿　";
+    ecrireDossier("invalide-raison-blancs", remplacer(F, "dossier.json", idx), invalide("D-2", ["D-2"], "dossier.json déclare jeton-rfc3161.der absent avec la raison « U+0085 U+FEFF U+3000 » : trois blancs au sens de CT-1 §3 (révision 0.5), donc pas une chaîne non vide ; le schéma l'admet (minLength 1), D-2 la refuse. U+0085 n'est pas retiré par String.prototype.trim, U+FEFF ne l'est pas par strings.TrimSpace de Go."));
+  }
+  // A-1 : approval nul, approbations.json déclaré absent sous une autre raison que « aucune approbation liée ».
+  ecrireDossier("invalide-a1-autre-raison", dossierPour(jeu, 8, { raisons: { approbations: "approbations non exportées" } }).fichiers, invalide("A-1", ["A-1"], "Dossier de seq 8 (mail.send, approval nul) dont l'index déclare approbations.json absent avec la raison « approbations non exportées » : CT-1 §11.1 et A-1 (révision 0.5) exigent la raison exacte « aucune approbation liée » ; A-1 échoue, A-2 à A-4 ne sont pas exécutées, sans raison admise."));
+  // D-1 : org_id et journal_id de l'index comparés à ceux de evenement.json (révision 0.5).
+  {
+    const idx = lireF(F, "dossier.json");
+    idx.journal_id = keccak256(toUtf8Bytes("journal-principal"));
+    ecrireDossier("invalide-index-autre-journal", remplacer(F, "dossier.json", idx), invalide("D-1", ["D-1"], "dossier.json porte le journal_id de journal-principal alors que evenement.json est de journal-sinistres (index conforme à son schéma, parties intactes) : D-1 compare aussi org_id et journal_id de l'index à ceux de l'événement (révision 0.5)."));
+  }
+  // E-4 : policy.redaction vide, puis faite de blancs, sur le voisin suivant dont les arguments sont rédigés.
+  for (const [nom, valeur, quoi] of [["invalide-redaction-vide", "", "la chaîne vide"], ["invalide-redaction-blancs", " ﻿", "« U+00A0 U+FEFF », deux blancs au sens de CT-1 §3"]]) {
+    const v = lireF(F, "voisins.json");
+    v.next = resceller({ ...v.next, policy: { ...v.next.policy, redaction: valeur } });
+    ecrireDossier(nom, reindexer(remplacer(F, "voisins.json", v)), invalide("E-4", ["E-4"], `voisins.next (seq 8) porte une référence rédigée et policy.redaction vaut ${quoi} (rescellé : hash et signature valides) ; le schéma l'admet (pas de longueur minimale), E-4 exige une chaîne non vide (révision 0.5).`));
+  }
+  // E-3 (règle exacte de CT-1 §5.3) : décision à effets, appel retenu à effets, appel a_approuver exécuté sans approbation.
+  ecrireDossier("invalide-decision-effets", dossierPour(construireJournal({ effetsDecision: true }), 7).fichiers, invalide("E-3", ["E-3"], "Journal rejoué où la décision d'approbation (seq 6) déclare l'effet du paiement (SAP, ecriture, PAY-2026-61877) : les effets de l'appel approuvé sont déclarés par l'appel relayé, une décision a des effets vides (CT-1 §5.3, règle 3, révision 0.5) ; dossier de seq 7, la décision étant le voisin précédent et l'événement de approbations.json."));
+  ecrireDossier("invalide-demande-effets", dossierPour(construireJournal({ effetsDemande: true }), 6).fichiers, invalide("E-3", ["E-3"], "Journal rejoué où l'appel retenu pour approbation (seq 5) déclare un effet : un appel qui n'a pas été relayé n'a pas d'effet (CT-1 §5.3, règle 1, révision 0.5) ; dossier de la décision seq 6, dont la demande est le voisin précédent (A-4 exécutée et réussie)."));
+  ecrireDossier("invalide-appel-sans-approbation", dossierPour(construireJournal({ appelSansApprobation: true }), 7).fichiers, invalide("E-3", ["E-3"], "Journal rejoué où l'appel relayé (seq 7) porte policy.decision a_approuver et execution.status executee avec approval nul : un appel exécuté exige autorise, ou a_approuver avec approval.decision approuve (CT-1 §5.3, règle 1, révision 0.5). approbations.json est déclaré absent, « aucune approbation liée » ; A-1 réussit, A-2 à A-4 non exécutées pour une raison admise : seule E-3 voit l'appel exécuté sans approbation."));
+  // Cascade de CT-1 §11.4 (révision 0.5) : seq de evenement.json en chaîne.
+  {
+    const texte = F["evenement.json"];
+    exiger(texte.includes('"seq": 7,'), "seq de seq 7 introuvable");
+    ecrireDossier("invalide-seq-chaine", avecOctets(F, "evenement.json", texte.replace('"seq": 7,', '"seq": "7",')), invalide("E-1", ["D-1", "E-1", "E-7", "E-8", "C-1", "C-2", "M-1", "M-3", "P-2", "A-2"], "evenement.json dont seq est la chaîne \"7\", sans autre changement (SHA-256 de l'index reporté) : la partie, contraire à son schéma, reste exploitable, et chaque relation dont un terme est mal typé n'est pas tenue (CT-1 §11.4, révision 0.5) : D-1 (event.seq), E-1 (schéma), E-7 et E-8 (hash et signature sur l'objet tel qu'il est), C-1 (previous.seq = seq − 1, next.seq = seq + 1), C-2 (next.prev_hash), M-1 (feuille), M-3 (leaf_index = seq − first_seq), P-2 (first_seq ≤ seq ≤ last_seq), A-2 (seq de la décision antérieur)."));
+  }
+  // Partie déclarée présente et absente du répertoire : D-2 seule (révision 0.5, cas (a)).
+  {
+    const sans = { ...F };
+    delete sans["approbations.json"];
+    ecrireDossier("invalide-partie-manquante", sans, invalide("D-2", ["D-2"], "approbations.json retiré du répertoire, l'index inchangé (partie déclarée présente avec son SHA-256) : D-2 échoue, et elle seule ; A-1, qui porte la partie, n'est pas exécutée, ni A-2 et A-3 (sans raison admise) ; A-4 s'exécute sur les voisins, sans approbations.json, et n'est pas exécutée pour sa raison admise (la demande, seq 5, n'est pas un voisin)."));
+  }
+  // Partie au-delà de sa limite (cas (b)) : points-de-controle.json de 1 Mio + 1 octet.
+  {
+    const point = J.choisirPointCouvrant(SERIES[1], 6);
+    const Fk = dossierPour(jeu, 7, { point }).fichiers;
+    const texte = Fk[J.PARTIE_POINTS_DE_CONTROLE.file];
+    const limite = J.LIMITES_DOSSIER[J.PARTIE_POINTS_DE_CONTROLE.file];
+    const grand = texte.slice(0, -1) + " ".repeat(limite + 1 - Buffer.byteLength(texte, "utf8")) + "\n";
+    exiger(Buffer.byteLength(grand, "utf8") === limite + 1, "taille de la partie de invalide-partie-trop-grande");
+    ecrireDossier("invalide-partie-trop-grande", reindexer({ ...Fk, [J.PARTIE_POINTS_DE_CONTROLE.file]: grand }), invalide("K-1", ["K-1"], `points-de-controle.json de valide-seq-7-point-de-controle complété d'espaces jusqu'à ${limite + 1} octets (1 Mio + 1, conforme à son schéma), index au SHA-256 exact : au-delà de sa limite (CT-1 §11.4, révision 0.5 ; CT-6 EX-4.14), la partie n'est pas lue ; K-1, qui la porte, échoue, K-2 à K-9 ne sont pas exécutées, et D-2 ne compare pas son SHA-256 (ni réussite ni échec pour cette partie).`));
+  }
+  // Profondeur (CT-1 §4, règle 7) : voisins.json de profondeur 128 (admis) et 129 (refusé).
+  const imbrication = (n) => {
+    let v = [];
+    for (let i = 1; i < n; i++) v = [v];
+    return v;
+  };
+  for (const [total, nom] of [[128, "valide-profondeur-128"], [129, "invalide-profondeur-129"]]) {
+    const v = lireF(F, "voisins.json");
+    // voisins.json (1) > next (2) > execution (3) > arguments (4) > value : la valeur en ligne porte le reste.
+    v.next = resceller({ ...v.next, execution: { ...v.next.execution, arguments: J.referenceEnLigne(imbrication(total - 4)) } });
+    const fichiers = reindexer(remplacer(F, "voisins.json", v));
+    exiger(J.profondeurValeur(J.analyserJSONStrict(fichiers["voisins.json"])) === total, `profondeur de voisins.json de ${nom}`);
+    if (total === 128) ecrireDossier(nom, fichiers, { valide: true, controle: null, controles_en_echec: [], description: "voisins.next (seq 8, rescellé) porte en execution.arguments une référence en ligne dont la valeur est 124 tableaux imbriqués : voisins.json a la profondeur 128 de CT-1 §4, règle 7 (objets et tableaux imbriqués, la racine comprise : voisins, next, execution, arguments, puis 124 tableaux), la borne, admise ; l'événement seul a la profondeur 127. Dossier valide, comme valide-seq-7 (A-4 non exécuté, la demande n'est pas un voisin)." });
+    else ecrireDossier(nom, fichiers, invalide("C-1", ["C-1"], "Comme valide-profondeur-128 avec 125 tableaux : voisins.json a la profondeur 129, au-delà de la borne de 128 ; la partie n'est pas lue (pas un texte JSON exploitable) : C-1, qui la porte, échoue ; C-2, C-3 et P-3 ne sont pas exécutées, ni A-4 (sans raison admise : voisins.json inexploitable, révision 0.5) ; E-1 à E-11 s'exécutent sur l'événement prouvé et la décision de approbations.json."));
+  }
+  // Codage (CT-1 §3) : marque d'ordre d'octets, UTF-8 mal formé (contrôle porteur) ; substitut écrit en octets (E-2).
+  ecrireDossier("invalide-marque-ordre-octets", avecOctets(F, "evenement.json", Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(F["evenement.json"], "utf8")])), invalide("E-1", ["E-1"], "evenement.json précédé de la marque d'ordre d'octets EF BB BF (SHA-256 de l'index reporté) : ce n'est pas un texte JSON (CT-1 §3, révision 0.5), la partie est inexploitable et E-1, qui la porte, échoue (et non E-2) ; les contrôles qui lisent l'événement ne sont pas exécutés, sans raison admise."));
+  {
+    const octetsVoisins = Buffer.from(F["voisins.json"], "utf8");
+    const i = octetsVoisins.indexOf(Buffer.from("Informer l'assur", "utf8"));
+    exiger(i > 0 && octetsVoisins[i + 16] === 0xc3 && octetsVoisins[i + 17] === 0xa9, "« assuré » de voisins.next introuvable");
+    const mal = Buffer.from(octetsVoisins);
+    mal[i + 16] = 0xff;
+    ecrireDossier("invalide-utf8-voisins", avecOctets(F, "voisins.json", mal), invalide("C-1", ["C-1"], "voisins.json dont l'octet C3 du « é » de « assuré » (intent de voisins.next) est remplacé par FF : UTF-8 mal formé, ce n'est pas un texte JSON (CT-1 §3, révision 0.5) ; C-1, qui porte la partie, échoue (et non E-2) ; C-2, C-3, P-3 et A-4 ne sont pas exécutées, sans raison admise."));
+  }
+  {
+    const octetsEv = Buffer.from(F["evenement.json"], "utf8");
+    const i = octetsEv.indexOf(Buffer.from("\"intent\": \"R", "utf8"));
+    exiger(i > 0, "intent de seq 7 introuvable");
+    const j = i + Buffer.byteLength("\"intent\": \"", "utf8");
+    const substitut = Buffer.concat([octetsEv.subarray(0, j), Buffer.from([0xed, 0xa0, 0x80]), octetsEv.subarray(j)]);
+    ecrireDossier("invalide-substitut-octets", avecOctets(F, "evenement.json", substitut), invalide("E-2", ["E-2"], "evenement.json dont intent commence par les octets ED A0 80 (U+D800 écrit en octets, à la manière de CESU-8 ; SHA-256 de l'index reporté) : ce n'est pas un défaut de codage mais un substitut isolé (CT-1 §3 et §4, règle 3, révision 0.5) : E-2 échoue, E-1 n'est pas exécutée, et la partie est inexploitable pour les autres contrôles."));
+  }
+  // E-5 et E-9 : une signature de plus que d'approbateurs (journal rejoué).
+  ecrireDossier("invalide-signature-en-trop", dossierPour(construireJournal({ signatairesApprobation: [HARDHAT[0], HARDHAT[1], HARDHAT[2]], approbateurs: [ADRESSES_HARDHAT[0], ADRESSES_HARDHAT[1]] }), 7).fichiers, invalide("E-9", ["E-5", "E-9"], "Journal rejoué où approval porte deux approbateurs (comptes Hardhat 1 et 2) et trois signatures valides (comptes 1, 2 et 3) : E-5 (longueurs différentes) et E-9 (signatures[2] sans approvers[2], révision 0.5) échouent ; A-3 réussit (deux approbateurs distincts, membres du jeu, au seuil)."));
+
+  // Compléments de la révision 0.5 (passages tranchés après l'alignement des quatre implémentations).
+  // CT-1 §11.4 et CT-6 EX-5.15 : « sauf s'il échoue sur ce qu'il lit des autres parties » ; l'exemple du texte.
+  {
+    const m = lireF(F, "manifeste.json");
+    m.period_end = m.period_start + 7200;
+    const c = lireF(F, "cles.json");
+    c.keys.push({ ...c.keys[0], public_key: CLES["rec-test-02"].clePublique });
+    const base = reindexer(remplacer(remplacer(F, "manifeste.json", m), "cles.json", c));
+    ecrireDossier("invalide-evenement-nul-autres-echecs", avecOctets(base, "evenement.json", "null\n"), invalide("E-1", ["E-1", "E-8", "P-1", "P-5"], "valide-seq-7 dont evenement.json est le littéral null (inexploitable, cas (e) : E-1, qui le porte, échoue), dont le manifeste porte period_end = period_start + 7200 (non re-signé) et dont cles.json porte une seconde entrée rec-test-01 (clé publique de rec-test-02), index recalculé. Les contrôles qui lisent evenement.json ne sont pas exécutés, sauf s'ils échouent sur ce qu'ils lisent des autres parties (CT-1 §11.4, révision 0.5 ; CT-6 EX-5.15) : E-8 (unicité des key_id, lue sans l'événement), P-1 (period_end = period_start + 3600) et P-5 (periodHash recalculé du manifeste modifié différent de manifeste.sig.period_hash) échouent ; les autres ne sont pas exécutés, jamais réussis."));
+  }
+  // CT-1 §10.5 et ligne K-6 (révision 0.5) : last_seq égal au seq de l'événement prouvé, K-6 jugée sur lui seul.
+  {
+    const cloture = SERIES[1][SERIES[1].length - 1];
+    exiger(cloture.last_seq === 9, "point de clôture de la période 1 inattendu");
+    const d = dossierPour(jeu, 9, { point: cloture });
+    const r0 = J.verifierDossier(d.fichiers, { schemas: SCHEMAS });
+    exiger(r0.valide, `dossier de seq 9 au point de clôture : ${JSON.stringify(J.controlesEnEchec(r0))}`);
+    const fichiers = avecOctets(d.fichiers, "voisins.json", "null\n");
+    const r = J.verifierDossier(fichiers, { schemas: SCHEMAS });
+    const k6 = r.controles.find((x) => x.id === "K-6");
+    exiger(k6.ok === true, `K-6 du dossier de seq 9 à voisins.json nul : ${JSON.stringify(k6)}`);
+    ecrireDossier("invalide-k6-voisins-nul-seq-9", fichiers, invalide("C-1", ["C-1"], `Dossier de la rotation (seq 9) avec le point de clôture de la période 1 (${cloture.checkpoint_ts}, tree_size 9, last_seq 9), dont voisins.json est le littéral null, index recalculé : C-1, qui porte la partie, échoue ; C-2 (sauf la règle d'origine, tenue), C-3, P-3 et les règles E- des voisins ne sont pas exécutées, sans raison admise. last_seq étant le seq de l'événement prouvé, K-6 se juge sur lui seul, quel que soit l'état de voisins.json (CT-1 §10.5, révision 0.5 ; CT-6 EX-5.9) : last_hash égale le hash recalculé de seq 9, K-6 réussie.`));
+  }
+  // A-1 (révision 0.5) : approval nul et approbations.json déclarée présente, sans fichier : A-1 et D-2.
+  {
+    const base = dossierPour(jeu, 8, { raisons: { approbations: "approbations non exportées" } }).fichiers;
+    const idx = lireF(base, "dossier.json");
+    const pa = idx.parts.find((x) => x.name === "approbations");
+    Object.assign(pa, { sha256: J.sha256(Buffer.from("approbations déclarées présentes", "utf8")), present: true, reason_if_absent: null });
+    ecrireDossier("invalide-approbations-declaree-manquante", remplacer(base, "dossier.json", idx), invalide("A-1", ["D-2", "A-1"], "invalide-a1-autre-raison (seq 8, approval nul) dont l'index déclare approbations.json présente (SHA-256 quelconque), sans fichier dans le répertoire : D-2 échoue (cas (a)), et A-1, qui juge aussi la déclaration de la partie, échoue que le fichier existe ou non (CT-1 §11.4, cas (a), exception de la révision 0.5 ; CT-6 EX-4.11 point 1, EX-5.16) ; A-2 à A-4 ne sont pas exécutées, sans raison admise."));
+  }
+  // Autres termes mal typés (révision 0.5) : execution.tool qui n'est pas une chaîne ; approval ni nul ni objet.
+  {
+    const texte = F["evenement.json"];
+    exiger(texte.split('"tool": "sap.payments.create"').length === 2, "execution.tool de seq 7 introuvable");
+    ecrireDossier("invalide-outil-nombre", avecOctets(F, "evenement.json", texte.replace('"tool": "sap.payments.create"', '"tool": 5')), invalide("E-3", ["E-1", "E-3", "E-7", "E-8", "C-2", "M-1"], "evenement.json dont execution.tool vaut 5 (non rescellé, SHA-256 de l'index reporté) : E-1 (schéma) et E-3 (la sorte de l'événement ne se lit pas, CT-1 §11.4, révision 0.5) ; hash recalculé sur l'objet tel qu'il est, différent du hash déclaré : E-7, E-8, C-2 (next.prev_hash) et M-1 (feuille)."));
+    const ev = lireF(F, "evenement.json");
+    ev.approval = 5;
+    ecrireDossier("invalide-approval-nombre", avecOctets(F, "evenement.json", J.texteJSON(ev)), invalide("A-1", ["E-1", "E-3", "E-5", "E-7", "E-8", "E-9", "C-2", "M-1", "A-1", "A-2", "A-3", "A-4"], "evenement.json dont approval vaut 5 (non rescellé, SHA-256 de l'index reporté) : E-1 (schéma), E-3, E-5 et E-9 (règles qui lisent approval) ; E-7, E-8, C-2 et M-1 (hash recalculé différent) ; A-1 à A-4, dont les relations lisent approval, échouent : pour A-4, request_hash, terme de sa propre règle, ne se lit pas, la règle n'est pas tenue (CT-1 §11.4, révision 0.5)."));
+  }
+  // Voisin qui n'est pas un objet (révision 0.5, règle unique) : présent (nombre, chaîne) ou membre absent.
+  {
+    const v = lireF(F, "voisins.json");
+    v.next = 5;
+    ecrireDossier("invalide-voisin-nombre", reindexer(remplacer(F, "voisins.json", v)), invalide("C-1", ["E-1", "C-1", "C-2", "C-3", "P-3"], "voisins.json dont next vaut 5, index recalculé : voisin qui n'est pas un objet (CT-1 §11.4, révision 0.5, règle unique) : E-1 échoue pour lui, E-2 à E-11 ne s'y exécutent pas ; C-1 (enveloppe et relation de seq), C-2 (next.prev_hash), C-3 (clé de next) et P-3 (appartenance à la période) échouent ; voisins.json reste exploitable, le voisin précédent est contrôlé normalement."));
+    const w = lireF(F, "voisins.json");
+    delete w.previous;
+    ecrireDossier("invalide-voisin-absent", reindexer(remplacer(F, "voisins.json", w)), invalide("C-1", ["C-1", "C-2", "C-3", "P-3"], "voisins.json sans membre previous, index recalculé : un membre absent est un voisin qui n'est pas un objet (CT-1 §11.4, révision 0.5) : C-1, C-2 (prev_hash = hash de previous), C-3 et P-3 échouent ; E-1 ne le concerne pas (un membre absent n'est pas un événement)."));
+    const F6 = dossierPour(jeu, 6).fichiers;
+    const x = lireF(F6, "voisins.json");
+    x.previous = "x";
+    ecrireDossier("invalide-demande-non-objet", reindexer(remplacer(F6, "voisins.json", x)), invalide("C-1", ["E-1", "C-1", "C-2", "C-3", "P-3"], "valide-seq-6 (décision d'approbation, dont la demande seq 5 est le voisin précédent) dont voisins.json porte previous = \"x\", index recalculé : E-1, C-1, C-2, C-3 et P-3 échouent ; le voisin qui n'est pas un objet n'est pas candidat à la demande d'A-4 (son hash ne se recalcule pas), et aucun autre voisin ne l'est : A-4 n'est pas exécutée, pièce hors dossier (raison admise), et n'échoue pas à cause de lui."));
+  }
+  // Entrée inutilisable (code 2) : dossier.json qui n'est pas un texte JSON (CT-1 §11.4 et §11.5, révision 0.5).
+  {
+    const fichiers = { ...F, "dossier.json": "{" };
+    let erreur = null;
+    try {
+      J.verifierDossier(fichiers, { schemas: SCHEMAS });
+    } catch (err) {
+      erreur = err;
+    }
+    exiger(erreur instanceof J.DossierInutilisable, `illisible-index-non-json : ${erreur?.message ?? "aucune erreur"}`);
+    for (const [fichier, contenu] of Object.entries(fichiers)) ecrire(`dossiers/illisible-index-non-json/${fichier}`, contenu);
+    ecrireJSON("dossiers/illisible-index-non-json/attendu.json", { valide: null, controle: null, controles_en_echec: [], exit_code: 2, error_kind: "dossier_illisible", description: "valide-seq-7 dont dossier.json est le texte « { » (un octet, pas un texte JSON) : l'entrée est inutilisable, code 2, sans verdict (CT-1 §11.4, révision 0.5 ; CT-6 EX-4.12, type dossier_illisible). Forme d'attendu d'une entrée en code 2 (CT-1 §11.5) : valide null, controle null, controles_en_echec [], exit_code 2 et error_kind." });
+  }
+}
+
 // 7. INDEX.md ------------------------------------------------------------
 const dossiersEcrits = [...new Set(ecrits.filter((f) => f.startsWith("dossiers/")).map((f) => f.split("/")[1]))];
 const lignesDossiers = dossiersEcrits.map((d) => {
   const a = JSON.parse(fs.readFileSync(path.join(SORTIE, "dossiers", d, "attendu.json"), "utf8"));
-  const verdict = a.valide ? "valide" : `**${a.controle}**${a.controles_en_echec.length > 1 ? ` (en échec : ${a.controles_en_echec.join(", ")})` : ""}`;
+  // Révision 0.5 (CT-1 §11.5) : une entrée en code 2 porte exit_code et error_kind, sans verdict.
+  const verdict = a.exit_code === 2 ? `code 2 (\`${a.error_kind}\`)` : a.valide ? "valide" : `**${a.controle}**${a.controles_en_echec.length > 1 ? ` (en échec : ${a.controles_en_echec.join(", ")})` : ""}`;
   // Révision 0.4 : la vérification AT- visée (sans effet sur le verdict) et l'attestation retenue ou non.
   const at = a.perimeter_checks === undefined ? "" : a.perimeter_checks.length === 0 ? " ; aucune AT-" : ` ; ${a.perimeter_target ? `${a.perimeter_target} visée, ` : ""}attestation ${a.perimeter_retained ? "retenue" : "non retenue"}${a.warnings.length ? ` (${a.warnings.join(", ")})` : ""}`;
   return `| \`${d}/\` | ${verdict}${at} | ${a.description} |`;
@@ -1275,13 +1530,17 @@ hash, signature, \`prev_hash\` et longueur canonique de chaque événement, obje
 d'approbation \`A\` et son condensé \`D_A\`. \`pieces.json\` : les pièces référencées
 (octets UTF-8, \`sha256\`, \`length\`). \`cles.json\` : les clés publiques nécessaires.
 
-## \`journal-supprime/\`, \`journal-modifie/\`, \`journal-insere/\`, \`journal-insere-sans-cle/\`, \`journal-reordonne/\`
+## \`journal-supprime/\`, \`journal-modifie/\`, \`journal-insere/\`, \`journal-insere-sans-cle/\`, \`journal-reordonne/\`, \`journal-cles-autre-organisation/\`, \`journal-ts-inexistant/\`, \`journal-seq-chaine/\`, \`journal-non-canonique/\`
 
 Le même journal altéré ; \`attendu.json\` donne la liste exacte des contrôles en
-échec (\`controles_en_echec\`, table 7.2 de CT-1 : tous les symptômes sont
-rapportés, chaque événement pour lui-même puis chaque couple consécutif dans
-l'ordre du fichier), les diagnostics nommés de l'implémentation de référence
-(\`type\`, \`controle\`, \`seq\`) et les messages produits.
+échec (\`controles_en_echec\`), les diagnostics nommés de l'implémentation de
+référence (\`type\`, \`controle\`, \`seq\`), dans l'ordre de la règle exacte de
+CT-1 §7.2 (révision 0.5 : chaque événement pour lui-même, E-1 à E-11 puis
+l'origine ; la suite des \`seq\` sur tout le fichier, insertions, suppressions,
+réordonnancements ; chaque couple consécutif dans l'ordre du fichier), et les
+messages produits, dont le texte n'est pas normatif. Chaque journal est
+vérifié avec \`journal-valide/cles.json\`, sauf \`journal-cles-autre-organisation/\`,
+qui porte son propre \`cles.json\`.
 
 | Répertoire | Altération | Contrôles en échec | Diagnostics |
 |---|---|---|---|
@@ -1290,6 +1549,14 @@ l'ordre du fichier), les diagnostics nommés de l'implémentation de référence
 | \`journal-insere/\` | événement forgé, signé avec la clé de l'enregistreur, inséré entre seq 4 et seq 5 avec seq 5 | C-1, C-2 | \`insertion\` (C-1), \`rupture\` (C-2) et \`horodatage\` (C-1) en seq 5 |
 | \`journal-insere-sans-cle/\` | même insertion, signée par une autre clé que celle annoncée | E-8, C-1, C-2 | \`signature\` (E-8) en plus des trois précédents |
 | \`journal-reordonne/\` | seq 5 et seq 6 échangés de place | C-1, C-2 | \`reordonnancement\` (C-1) en seq 5, \`rupture\` (C-2) en seq 6, 5 et 7, \`horodatage\` (C-1) en seq 5 |
+| \`journal-cles-autre-organisation/\` | aucune sur les événements ; \`cles.json\` (porté par le répertoire) d'une autre organisation, mêmes clés (révision 0.5) | E-8 | \`signature\` (E-8) pour chacun des douze événements |
+| \`journal-ts-inexistant/\` | \`ts\` de seq 12 au 2026-02-30, rescellé (révision 0.5) | E-1, E-11, C-1 | \`schema\` (E-1) et \`validite_cle\` (E-11) en seq 12, \`horodatage\` (C-1) en seq 12 (date qui n'est pas une date existante) |
+| \`journal-seq-chaine/\` | \`seq\` de seq 11 écrit \`"11"\`, rescellé, seq 12 rechaîné (révision 0.5) | E-1, C-1 | \`schema\` (E-1) de \`seq\` nul, \`suppression\` (C-1) en seq 12 ; aucun \`reordonnancement\` : seq 12 est comparé à seq 10, le dernier \`seq\` entier qui le précède |
+| \`journal-non-canonique/\` | \`"duration_ms": 530.0\` pour seq 7 dans le fichier, \`hash\` et \`sig\` inchangés (révision 0.5) | E-2, C-2 | \`format\` (E-2) en seq 7, \`rupture\` (C-2) en seq 8 : hash de seq 7 incalculable |
+
+Révision 0.5 : un fichier d'événements se lit élément par élément ; un
+événement sans forme canonique (\`journal-non-canonique\`) est rapporté par
+E-2 seule, ses autres règles ne s'exécutant pas, et le fichier reste lisible.
 
 La troncature de la fin du journal n'est pas détectable par la chaîne seule
 (CT-1 §7.2) : elle relève du manifeste (P-3, P-4) ; le dossier
@@ -1337,8 +1604,31 @@ la racine du manifeste (\`null\` pour \`tree_size = 0\`), et pour chaque série
 invalide de \`invalides/\` (dérivée de la période 1) les règles violées
 (\`rules_failed\` : \`chainage\`, \`tree_size_decroissant\`,
 \`checkpoint_ts_decroissant\`, \`dernier_point\`, \`cle_en_vigueur\`,
-\`validite_cle\`, \`signature\`, \`last_hash\`) et les erreurs de l'implémentation
-de référence.
+\`validite_cle\`, \`signature\`, \`last_hash\`, \`last_seq\`) et les erreurs de l'implémentation
+de référence ; ces séries sont vérifiées avec tout \`journal-valide/evenements.json\`
+et \`journal-valide/cles.json\`. Révision 0.5 : \`invalides/periode-1-cle-last-seq-0.json\`
+porte un point de \`last_seq = 0\` signé par une autre clé que celle que la
+règle de la section 10.1 tire de \`cles.json\` (\`cle_en_vigueur\`,
+\`validite_cle\`) ; \`evenements_partiels\` vérifie la série de la période 1 avec
+les seuls événements d'un fichier de \`evenements/\` (\`events\`, et \`keys\` pour
+\`cles.json\`) : sans les événements 5 à 9, \`root\` et \`last_hash\` figurent dans
+\`rules_not_evaluated\` (\`{ rule, reason }\`, raison \`piece_hors_dossier\`), aucune
+règle n'est violée ; avec seq 5 altéré, \`root\` et \`last_hash\` sont violées.
+Une série n'est valide que si \`rules_failed\` et \`rules_not_evaluated\` sont
+vides ; un \`rules_not_evaluated\` absent vaut liste vide. Compléments de la
+révision 0.5 (liste fermée des noms de règle, ordre des entrées) :
+\`invalides/periode-1-tree-size-trop-grand.json\` (point de clôture de
+\`tree_size\` 10 pour \`count\` 9 : \`last_seq\`, \`dernier_point\`) et
+\`invalides/periode-1-cle-inconnue.json\` (clé \`rec-test-03\` absente de
+\`cles.json\` : \`cle_en_vigueur\`, \`signature\`) ; dans \`evenements_partiels\`,
+\`evenements/sans-5-seq-7-non-canonique.json\` (seq 5 retiré, seq 7 écrit avec
+\`"duration_ms": 530.0\` : \`root\` non évaluée, \`prerequis_en_echec\` pour les
+points de \`tree_size\` 8 et 9, \`piece_hors_dossier\` pour ceux de \`tree_size\`
+5, et \`last_hash\` \`piece_hors_dossier\`) et une entrée sans événement ni
+\`cles.json\` (\`events\` et \`keys\` nuls : \`root\`, \`last_hash\`,
+\`cle_en_vigueur\`, \`signature\` et \`validite_cle\` non évaluées,
+\`piece_hors_dossier\`). Les deux listes suivent l'ordre des noms de règle de
+CT-1 §10.5, puis \`prerequis_en_echec\` avant \`piece_hors_dossier\`.
 
 ## \`dossiers/\`
 
@@ -1360,6 +1650,31 @@ de \`valide-seq-7\` et leur index est recalculé après l'altération, pour que 
 le contrôle visé échoue ; quand une cascade est inévitable, elle est listée.
 « Journal rejoué » : l'altération est faite à la source et la chaîne, les
 manifestes et le dossier sont recalculés.
+
+Révision 0.5 (CT-1 §3, §4, §5.3, §11.1, §11.4 ; table d'alignement de la
+section 17) : un dossier par règle tranchée qu'aucun vecteur ne fixait —
+\`invalide-raison-blancs\` (D-2), \`invalide-a1-autre-raison\` (A-1),
+\`invalide-index-autre-journal\` (D-1), \`invalide-redaction-vide\` et
+\`invalide-redaction-blancs\` (E-4), \`invalide-decision-effets\`,
+\`invalide-demande-effets\` et \`invalide-appel-sans-approbation\` (E-3),
+\`invalide-seq-chaine\` (cascade d'un \`seq\` mal typé),
+\`invalide-partie-manquante\` (D-2 seule), \`invalide-partie-trop-grande\` (au-delà
+de la limite : D-2 ne compare pas), \`valide-profondeur-128\` et
+\`invalide-profondeur-129\`, \`invalide-marque-ordre-octets\` et
+\`invalide-utf8-voisins\` (contrôle porteur), \`invalide-substitut-octets\` (E-2),
+\`invalide-signature-en-trop\` (E-5, E-9) et
+\`valide-at1-inscription-date-inexistante\` (AT-1). Les soixante-dix dossiers
+antérieurs gardent leur attendu. Compléments de la révision 0.5 (passages
+tranchés après l'alignement des implémentations) :
+\`invalide-evenement-nul-autres-echecs\` (E-1, E-8, P-1, P-5 : l'échec sur les
+autres parties l'emporte), \`invalide-k6-voisins-nul-seq-9\` (C-1 ; K-6 jugée
+sur l'événement prouvé, \`last_seq\` 9), \`invalide-approbations-declaree-manquante\`
+(D-2, A-1), \`invalide-outil-nombre\` et \`invalide-approval-nombre\` (termes mal
+typés), \`invalide-voisin-nombre\`, \`invalide-voisin-absent\` et
+\`invalide-demande-non-objet\` (voisin qui n'est pas un objet, règle unique), et
+\`illisible-index-non-json\`, entrée en code 2 : son \`attendu.json\` porte
+\`valide\` nul, \`controle\` nul, \`controles_en_echec\` vide, \`exit_code\` 2 et
+\`error_kind\` (\`dossier_illisible\`), seuls noms employés (CT-1 §11.5).
 
 Révision 0.4 (CT-1 §11.5, CT-7 annexe A.7) : l'\`attendu.json\` d'un dossier
 qui déclare la quatorzième partie donne en plus \`perimeter_target\` (la

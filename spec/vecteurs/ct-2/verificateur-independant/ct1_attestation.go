@@ -27,7 +27,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -403,21 +402,16 @@ func (d *Dossier) controlerAttestation() {
 		}
 	}
 
-	// AT-1 : forme.
-	octets, err := os.ReadFile(filepath.Join(d.Dir, pa.File))
+	// AT-1 : forme. Tout défaut des cas (a) à (e) de §11.4, forme canonique
+	// comprise, est porté par AT-1 seule (révision 0.5) ; au cas (a), D-2
+	// échoue aussi (controlerEmpreintes).
+	octets, def, msg := lireBorne(filepath.Join(d.Dir, pa.File), TailleMaxPartieAttestation)
 	var v *Value
-	switch {
-	case err != nil:
-		at.echec("AT-1", "%s illisible : %v", pa.File, err)
-	case len(octets) > TailleMaxPartieAttestation:
-		at.echec("AT-1", "%s : %d octets, au plus 4 Mio", pa.File, len(octets))
-	default:
-		v, err = ParseJSON(octets)
-		if err != nil {
-			at.echec("AT-1", "%s : %v", pa.File, err)
-		} else if v.Kind != KindObject {
-			at.echec("AT-1", "%s : objet JSON attendu, reçu %s", pa.File, v.Kind)
-		}
+	if def == partieExploitable {
+		v, def, msg = analyserPartie(octets)
+	}
+	if def != partieExploitable {
+		at.echec("AT-1", "%s : %s", pa.File, msg)
 	}
 	var p, signee, jeu, ins *Value
 	var dp, doc []byte
@@ -508,10 +502,10 @@ func (d *Dossier) controlerAttestation() {
 		}
 	}
 
-	// AT-5 : liaison à l'événement prouvé.
+	// AT-5 : liaison à l'événement prouvé ; « evenement.json exploitable (E-1,
+	// E-2) » : E-1 et E-2 réussies pour l'événement prouvé (§11.4, révision 0.5).
 	ev := d.Evenement
-	_, errCan := Canonique(ev)
-	evExploitable := len(ValiderSchemaEvenement(ev)) == 0 && errCan == nil
+	evExploitable := ev != nil && d.evE1E2
 	if !evExploitable {
 		prerequis("AT-5")
 	} else {
@@ -560,7 +554,9 @@ func (d *Dossier) controlerAttestation() {
 	if got, att := Hex0x(SHA256(doc)), chaineDe(insEv, "execution", "arguments", "value", "policy_sha256"); got != att {
 		at.echec("AT-6", "SHA-256 du document %s ≠ policy_sha256 %s", got, att)
 	}
-	if dv, err := ParseJSON(doc); err != nil || dv.Kind != KindObject {
+	// Document de politique : même borne de profondeur (128) et même comptage
+	// qu'un texte du format v0, nombres libres (CT-1 §4 règle 7, révision 0.5).
+	if dv, err := ParseJSONV0(doc); err != nil || dv.Kind != KindObject {
 		at.echec("AT-6", "document de politique : objet JSON UTF-8 sans nom en double attendu (%v)", err)
 	} else if per := dv.Get("perimeter"); per == nil || per.Kind != KindObject {
 		at.echec("AT-6", "document de politique sans objet perimeter")

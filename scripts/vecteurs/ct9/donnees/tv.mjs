@@ -254,16 +254,23 @@ export const TV = [
       "CT-6 V-7",
       "CT-6 EX-6.14",
       "CT-7 EX-A.10",
-      "CT-7 EX-A.11"
+      "CT-7 EX-A.11",
+      "CT-6 EX-4.16",
+      "CT-6 EX-5.13",
+      "CT-6 EX-5.16",
+      "CT-6 EX-5.17",
+      "CT-6 EX-5.18",
+      "CT-6 EX-5.19"
     ],
     "preconditions": [
       "Vecteurs `ct-1/dossiers` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
       "`npm ci` fait ; aucun réseau."
     ],
     "steps": [
-      "Vérifier chacun des soixante-dix dossiers par `journal.mjs` puis par `scripts/verify/dossier.mjs`, sans ancres et avec `ancres-test.json`."
+      "Vérifier chacun des quatre-vingt-dix-sept dossiers (soixante-dix des versions 0.2 à 0.4 de CT-1, dix-huit de sa révision 0.5 et neuf de ses compléments) par `journal.mjs` puis par le vérificateur de CT-6 (`verifierDossierComplet`, et `scripts/verify/dossier.mjs` pour l'entrée inutilisable `illisible-index-non-json`, code 2), sans ancres et avec `ancres-test.json`.",
+      "Les dossiers de la révision 0.5 de CT-1 éprouvent dans le vérificateur de CT-6 les lectures que sa révision 0.4 reprend : codage, profondeur et forme canonique (EX-4.16 : `invalide-marque-ordre-octets`, `invalide-utf8-voisins`, `invalide-profondeur-129`, `valide-profondeur-128`, `invalide-substitut-octets`) ; voisin, `approval` ou `execution.tool` qui n'est pas ce que le schéma attend (EX-5.13 : `invalide-voisin-absent`, `invalide-voisin-nombre`, `invalide-demande-non-objet`, `invalide-approval-nombre`, `invalide-outil-nombre`) ; A-1 à A-3 (EX-5.16 : `invalide-a1-autre-raison`, `invalide-approbations-declaree-manquante`) ; règle exacte de E-3 (EX-5.17 : `invalide-appel-sans-approbation`, `invalide-decision-effets`, `invalide-demande-effets`) ; A-4 (EX-5.18 : `invalide-demande-non-objet`) ; E-5 et E-9 (EX-5.19 : `invalide-signature-en-trop`, `invalide-approval-nombre`)."
     ],
-    "oracle": "Contrôles en échec et code de retour égaux à `attendu.json` de chaque dossier.",
+    "oracle": "Contrôles en échec et code de retour égaux à `attendu.json` de chaque dossier ; statuts des AT- égaux à `perimeter_checks` ; pour l'entrée inutilisable, code 2 et `error_kind` égal à l'attendu.",
     "status": {
       "state": "executable",
       "tests": [
@@ -276,6 +283,16 @@ export const TV = [
           "file": "test/verificateur.test.js",
           "describe": "CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)",
           "it": "les soixante-dix dossiers (quarante de la version 0.2, dix de la révision 0.3 et vingt de la révision 0.4), sans ancres et avec ancres-test.json : même code et mêmes vérifications en échec ; 4, 5, 8 hors_perimetre_version ; N-3 jamais en échec ; K-1 à K-9 seulement avec la partie points-de-controle.json, AT-1 à AT-7 seulement avec la partie attestation-perimetre.json"
+        },
+        {
+          "file": "test/verificateur.test.js",
+          "describe": "CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)",
+          "it": "révision 0.5 de CT-1 : les dix-huit dossiers nouveaux, mêmes exigences que les soixante-dix (invalide-raison-blancs : contrôle 4 partie_absente, sa raison n'étant pas « hors périmètre CT-1 »)"
+        },
+        {
+          "file": "test/verificateur.test.js",
+          "describe": "CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)",
+          "it": "révision 0.5 de CT-1, compléments : les neuf dossiers des passages tranchés après l'alignement, mêmes exigences ; illisible-index-non-json en code 2 (dossier_illisible)"
         }
       ],
       "command": "npx hardhat --config hardhat.config.mjs test test/journal.test.js"
@@ -2190,14 +2207,15 @@ export const TV = [
       "CT-6 EX-9.19",
       "CT-6 EX-9.20",
       "CT-6 EX-A.4",
-      "CT-6 EX-A.5"
+      "CT-6 EX-A.5",
+      "CT-6 EX-A.22"
     ],
     "preconditions": [
       "Vecteurs `ct-6/rfc3161` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
       "`npm ci` fait ; aucun réseau."
     ],
     "steps": [
-      "Vérifier les SHA-256 ; rejouer chaque cas d'`attendu.json` ; une variante par vérification ; `openssl ts -verify` sur les jetons valides et sur deux cas refusés."
+      "Vérifier les SHA-256 ; rejouer chaque cas d'`attendu.json` (trente-neuf, dont les quinze des jetons de la révision 0.4 de CT-6, EX-A.22 : `sid` introuvable, jeton sans certificat, clés RSA de 8200 et 8192 bits, exposant 2³¹ + 1, intermédiaire de 8200 bits, algorithme inconnu, clé Ed25519 rattachée ou non, numéro de série de 168 bits) ; une variante par vérification ; `openssl ts -verify` sur les jetons valides et sur deux cas refusés."
     ],
     "oracle": "Statuts, avertissements, faits, résumé et proposition égaux ; `Verification: OK` d'openssl où attendu.",
     "status": {
@@ -2463,14 +2481,23 @@ export const TV = [
       "CT-6 EX-A.20",
       "CT-6 EX-A.21",
       "CT-6 K-1",
-      "CT-6 K-6"
+      "CT-6 K-6",
+      "CT-6 EX-4.16",
+      "CT-6 EX-4.17",
+      "CT-6 EX-5.14",
+      "CT-6 EX-5.15",
+      "CT-6 EX-5.20",
+      "CT-6 EX-6.22",
+      "CT-6 EX-A.23",
+      "CT-6 EX-A.24"
     ],
     "preconditions": [
       "Vecteurs `ct-6/dossiers` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
       "`npm ci` fait ; aucun réseau."
     ],
     "steps": [
-      "Lancer `scripts/verify/dossier.mjs` sur chaque dossier, en français et en anglais, avec et sans `--json` ; comparer deux exécutions ; reconstruire l'énoncé fragment par fragment ; vérifier V-10 sur chaque dossier avec la partie d'attestation ; aucun « prouvé » sur le périmètre."
+      "Lancer `scripts/verify/dossier.mjs` sur chaque dossier, en français et en anglais, avec et sans `--json` ; comparer deux exécutions ; reconstruire l'énoncé fragment par fragment ; vérifier V-10 sur chaque dossier avec la partie d'attestation ; aucun « prouvé » sur le périmètre.",
+      "Révision 0.4 de CT-6 : les seize dossiers d'EX-A.23 et les deux d'EX-A.24 sont rejoués comme les autres, `--exiger 4` compris (`exit_code_exiger_4`) ; événement prouvé inexploitable (EX-5.14, EX-5.15) : D-1, P-1, T-2, O-2, R-9 et R-10 non exécutées (`prerequis_en_echec`), contrôles 4, 5 et 8 non exécutés, N-4 absente, `event`, `org_id` et `journal_id` nuls (EX-6.22) ; entrées éprouvées sur une copie de `valide-seq-7-complet` : partie imbriquée au-delà de 128 niveaux (EX-4.16, point 3), `dossier.json` sans forme canonique (E-2, EX-5.20) ou contraire à son schéma (D-1), lien symbolique pour `dossier.json`, une partie, `--ancres`, `--entetes-bitcoin`, `--second-manifeste` ou une pièce (EX-4.17)."
     ],
     "oracle": "Code, vérifications en échec, statuts, non-exécutions, avertissements, énoncé et borne égaux à `attendu.json` ; rapports JSON identiques octet pour octet (V-8).",
     "status": {
@@ -2607,13 +2634,30 @@ export const TV = [
       "CT-6 EX-14.8",
       "CT-6 EX-14.9",
       "CT-6 EX-14.10",
-      "CT-6 EX-14.11"
+      "CT-6 EX-14.11",
+      "CT-6 EX-4.16",
+      "CT-6 EX-4.17",
+      "CT-6 EX-5.13",
+      "CT-6 EX-5.14",
+      "CT-6 EX-5.15",
+      "CT-6 EX-5.16",
+      "CT-6 EX-5.17",
+      "CT-6 EX-5.18",
+      "CT-6 EX-5.19",
+      "CT-6 EX-5.20",
+      "CT-6 EX-6.22",
+      "CT-6 EX-9.23",
+      "CT-6 EX-9.24",
+      "CT-6 EX-A.22",
+      "CT-6 EX-A.23",
+      "CT-6 EX-A.24"
     ],
     "preconditions": [
       "Module Go `verificateur/` (binaire `noortrace-verifier`), écrit depuis le seul texte de CT-6, étape 2 du plan (CT-6 §14 : « le binaire est construit en phase 2 ») ; Go 1.27.3, dépendances vendorisées."
     ],
     "steps": [
-      "`go test ./...` dans `verificateur/` : chaque dossier de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers` rejoué ; code, `failed_checks`, statuts, raisons, avertissements, énoncé et borne comparés à son `attendu.json`.",
+      "`go test ./...` dans `verificateur/` : chaque dossier de `spec/vecteurs/ct-1/dossiers` et de `spec/vecteurs/ct-6/dossiers` rejoué ; code, `failed_checks`, statuts, raisons, avertissements, énoncé et borne comparés à son `attendu.json` ; chaque jeton de `spec/vecteurs/ct-6/rfc3161/attendu.json` rejoué, ceux d'EX-A.22 compris.",
+      "Le même `go test ./...` exécute les tests des règles de la révision 0.4 de CT-6 et de la révision 0.5 de CT-1 : `moteur/revision04_test.go` (codage, profondeur et forme canonique d'EX-4.16 ; événement prouvé inexploitable d'EX-5.15 ; désignation membre par membre d'EX-6.22 ; EX-9.24 de bout en bout), `moteur/ordinaire_unix_test.go` (lien symbolique et tube nommé, EX-4.17), `horodatage/revision04_test.go` (bornes RSA d'EX-9.23, clé hors de la version 0 d'EX-9.24), `dossier/revision05_test.go` et `dossier/correctifs_test.go` (EX-5.13, EX-5.14, EX-5.16 à EX-5.20).",
       "Construire deux fois par la recette d'EX-14.6 dans des répertoires et des caches différents ; comparer les SHA-256.",
       "Appliquer les quatre preuves d'absence de réseau d'EX-14.5 (`verificateur/scripts/verifier-sans-reseau.sh`)."
     ],
@@ -3320,9 +3364,9 @@ export const TV = [
       "`npm ci` fait ; aucun réseau."
     ],
     "steps": [
-      "`dimensionner` sur chaque cas ; recalcul des tables ; refus d'EX-9.3 ; coefficients remplacés ; mesures de 9.2 rejouées sur les vecteurs."
+      "`dimensionner` sur chaque cas ; recalcul des tables ; refus d'EX-9.3 ; coefficients remplacés ; mesures de 9.2 rejouées sur les vecteurs, `b_cap` relu dans le rapport de mesure de TM-31."
     ],
-    "oracle": "Égalité exacte à l'octet ; `b_pt = 682`, `b_man = 916`, `b_tsr_sup = 9`, `b_cap = 11 096`.",
+    "oracle": "Égalité exacte à l'octet ; `b_pt = 682`, `b_man = 916`, `b_tsr_sup = 9` recalculés sur les vecteurs ; `b_cap = 123 761` relu dans le rapport de TM-31 (`mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, trois échantillons de 109 479 octets, soit en-tête 5 846, certificat 32 587 et 64 reçus 71 046, plus 14 282 octets d'index relevés dans `notes`), égal à la constante du calculateur ; fichiers les plus grands de `ct-6/registre/capture/`, blocs d'une transaction : en-tête 1 498, certificat 7 782, reçu 1 816 (celui d'une clôture, réserve de CT-8 §9.2).",
     "status": {
       "state": "executable",
       "tests": [

@@ -453,7 +453,16 @@ describe("CT-6 contrôle 8 : vérifications R-1 à R-10 et N-4", function () {
       expect(statut(r, "N-4")).to.equal("non_execute:prerequis_en_echec");
       expect(r.statut).to.equal("echoue");
     };
-    verifierR1({ ...p, registre: { present: true, octets: null } }, /absent du répertoire/);
+    // Révision 0.4 (EX-4.11, point 1 ; EX-11.10) : une partie déclarée présente mais absente du répertoire ne fait plus
+    // échouer R-1 (ce test figeait cet échec) : D-2 porte l'absence, R-1 et la suite ne sont pas exécutées.
+    const manquante = controle({ ...p, registre: { present: true, octets: null } });
+    expect([statut(manquante, "R-1"), manquante.statut, manquante.raison]).to.deep.equal(["non_execute:prerequis_en_echec", "non_execute", "prerequis_en_echec"]);
+    expect(manquante.verifications.find((v) => v.id === "R-1").detail).to.match(/registre\.json déclaré présent mais absent du répertoire \(D-2\)/);
+    expect(manquante.verifications.slice(1).every((v) => v.reason === "prerequis_en_echec")).to.equal(true);
+    // Une partie manquante n'efface pas l'échec de l'autre partie : R-1 échoue.
+    verifierR1({ ...p, registre: { present: true, octets: null }, certificat_commit: { present: true, octets: p.certificat_commit.octets, tropGrand: true } }, /limite/);
+    const sansValidateurs = controle({ ...p, validateurs: { present: true, octets: null } });
+    expect([statut(sansValidateurs, "R-3"), sansValidateurs.statut]).to.deep.equal(["non_execute:prerequis_en_echec", "reussi"], "validateurs.json manquante : R-3 non exécutée, sans effet sur le contrôle 8 (EX-11.12)");
     verifierR1({ ...p, certificat_commit: { present: true, octets: p.certificat_commit.octets, tropGrand: true } }, /limite/);
     const deuxClotures = copie(P1);
     deuxClotures.registre.entries[0] = copie(deuxClotures.registre.entries[indice(P1, "cloture")]);

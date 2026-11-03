@@ -13,7 +13,7 @@
     "storage": {
       "path": "/var/lib/docker/volumes",
       "fstype": "ext4",
-      "free_bytes": 644245094400
+      "free_bytes": 1288490188800
     },
     "clock": {
       "source": "chrony",
@@ -198,7 +198,7 @@
         "status": "non_execute",
         "reason": "dimensionnement_absent",
         "measured": {
-          "free_bytes": 644245094400
+          "free_bytes": 1288490188800
         },
         "expected": {
           "free_min_bytes": null

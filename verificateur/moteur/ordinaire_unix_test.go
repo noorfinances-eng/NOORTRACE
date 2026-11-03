@@ -15,7 +15,7 @@ import (
 // TestEntreesAPartNonOrdinaires : un second manifeste en lien symbolique
 // (même vers un manifeste conforme) ou une pièce qui est un tube nommé ne
 // sont ni suivis ni ouverts : entrée inutilisable, code 2, en temps borné
-// (EX-4.12, EX-15.2 ; LISEZMOI.md, « Lectures », point 23).
+// (EX-4.12, EX-4.17, EX-15.2, révision 0.4).
 func TestEntreesAPartNonOrdinaires(t *testing.T) {
 	base, err := filepath.Abs(racineCT1 + "/valide-seq-7")
 	if err != nil {

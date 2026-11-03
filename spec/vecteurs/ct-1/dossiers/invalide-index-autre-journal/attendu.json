@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "D-1",
+  "controles_en_echec": [
+    "D-1"
+  ],
+  "description": "dossier.json porte le journal_id de journal-principal alors que evenement.json est de journal-sinistres (index conforme à son schéma, parties intactes) : D-1 compare aussi org_id et journal_id de l'index à ceux de l'événement (révision 0.5)."
+}

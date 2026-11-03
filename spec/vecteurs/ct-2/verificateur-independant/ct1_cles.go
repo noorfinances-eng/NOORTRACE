@@ -227,3 +227,36 @@ func ChargerCles(v *Value) (*JeuCles, []string) {
 	}
 	return jeu, m
 }
+
+// ChargerClesDossier lit un cles.json au schéma strict de #/$defs/cles
+// (§11.2) : ChargerCles, sans les champs annexes que le fichier des clés de
+// test admet (recorder_keys, seed, approvers, nonces…), et au plus 1024 clés.
+// C'est la première partie de E-8 hors la comparaison à l'événement.
+func ChargerClesDossier(v *Value) (*JeuCles, []string) {
+	jeu, mq := ChargerCles(v)
+	if v == nil || v.Kind != KindObject {
+		return jeu, mq
+	}
+	for _, k := range v.Keys() {
+		switch k {
+		case "version", "org_id", "journal_id", "keys":
+		default:
+			if !dansEnum(fmt.Sprintf("cles : clé inattendue %q", k), mq) {
+				mq = append(mq, fmt.Sprintf("cles : clé inattendue %q", k))
+			}
+		}
+	}
+	if !v.Has("keys") {
+		mq = append(mq, "cles.keys : obligatoire")
+	} else if t := v.Get("keys"); t.Kind == KindArray {
+		if len(t.Arr) > 1024 {
+			mq = append(mq, fmt.Sprintf("cles.keys : %d clés, au plus 1024", len(t.Arr)))
+		}
+		for i, kv := range t.Arr {
+			if kv.Has("seed") {
+				mq = append(mq, fmt.Sprintf("cles.keys[%d] : clé inattendue \"seed\"", i))
+			}
+		}
+	}
+	return jeu, mq
+}

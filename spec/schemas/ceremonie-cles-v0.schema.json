@@ -236,7 +236,7 @@
       }
     },
     "cles_de_test": {
-      "description": "Fichier `spec/vecteurs/ct-7/cles-de-test.json` (CT-7 EX-A.7) : les clés publiques de test publiées par les vecteurs, triées par source puis étiquette. Une clé RSA ou ECDSA P-256 n'a que spki_sha256 ; une clé Ed25519 n'a que public_key ; une clé secp256k1 a public_key et address.",
+      "description": "Fichier `spec/vecteurs/ct-7/cles-de-test.json` (CT-7 EX-A.7) : les clés publiques de test publiées par les vecteurs, triées par source, puis par étiquette dans l'ordre des octets ; un membre sans objet vaut null. Clés Ed25519 de ct-1 et de ct-4 : public_key seule, la clé publique de 32 octets. Clés secp256k1 de ct-3 et de ct-4 : public_key, forme non compressée de 65 octets, et address. Clés de ct-6 : une entrée par fichier .pem de rfc3161/cles/, d'algorithme rsa, ecdsa_p256 ou ed25519 selon le type de la clé, dont la seule forme est spki_sha256, SHA-256 du SubjectPublicKeyInfo DER de la clé publique, quel que soit son type : une clé Ed25519 de ct-6 n'a pas de public_key.",
       "type": "object",
       "additionalProperties": false,
       "required": ["version", "keys"],

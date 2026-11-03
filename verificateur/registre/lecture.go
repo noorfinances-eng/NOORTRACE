@@ -157,7 +157,7 @@ func analyser(octets []byte, uri, nom string) (*jsonv.Valeur, *commun.Texte) {
 		t := texte(nom+" n'est pas un objet JSON", nom+" is not a JSON object")
 		return nil, &t
 	}
-	// Forme canonique exigée (« Lectures », point 9) : une clé en double ou
+	// Forme canonique exigée (CT-6 EX-4.16, EX-11.10, révision 0.4) : une clé en double ou
 	// un nombre non entier rendrait la lecture ambiguë ; la partie est
 	// refusée comme une partie contraire à son schéma (R-1 ou R-3).
 	if err := jcs.Calculable(v); err != nil {

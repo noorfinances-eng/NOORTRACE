@@ -8,7 +8,7 @@ import "math/bits"
 // Pourquoi pas golang.org/x/crypto/sha3 : dans x/crypto v0.58.0,
 // sha3.NewLegacyKeccak256 importe golang.org/x/sys/cpu, ce qui ajouterait
 // golang.org/x/sys v0.49.0 aux dépendances et deux lignes à go.sum, contre
-// la liste fermée de CT-6 EX-14.1 (voir LISEZMOI.md, « Lectures »). La
+// la liste fermée de CT-6 EX-14.1 (révision 0.4, qui le dit). La
 // fonction est contrôlée par les vecteurs publics (chaîne vide, adresses des
 // comptes de test, empreintes de CT-1 et de CT-6).
 

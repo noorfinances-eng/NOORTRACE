@@ -306,8 +306,8 @@ export function verifierAttestation(signee, jeu, { brut = null, schemas = null }
 
 /**
  * Vérifie qu'un texte est du JSON (RFC 8259) dont aucun objet ne répète un nom
- * de membre (noms comparés après décodage), sans autre contrainte sur les
- * nombres : le reste du document de politique n'est ni lu ni validé (CT-1
+ * de membre (noms comparés après décodage), de profondeur au plus 128 (CT-1 §4,
+ * règle 7), sans autre contrainte sur les nombres : le reste du document de politique n'est ni lu ni validé (CT-1
  * AT-6). Rend la valeur (JSON.parse), ou lève une Error qui dit le défaut.
  */
 export function analyserJSONSansDoublon(texte) {
@@ -330,11 +330,16 @@ export function analyserJSONSansDoublon(texte) {
     }
     throw new Error("chaîne non terminée");
   };
+  // Profondeur (CT-1 §4, règle 7, révision 0.5) : même borne de 128 et même comptage que les textes du
+  // format v0 (objets et tableaux imbriqués, la racine comprise) ; au-delà, pas un objet JSON lisible.
+  const entrer = (profondeur) => {
+    if (profondeur + 1 > J.PROFONDEUR_JSON_MAX) throw new Error(`imbrication au-delà de ${J.PROFONDEUR_JSON_MAX} niveaux (CT-1 §4, règle 7)`);
+  };
   const valeur = (profondeur) => {
-    if (profondeur > 512) throw new Error("imbrication trop profonde");
     espaces();
     const c = texte[i];
     if (c === "{") {
+      entrer(profondeur);
       i++;
       const vus = new Set();
       espaces();
@@ -365,6 +370,7 @@ export function analyserJSONSansDoublon(texte) {
       }
     }
     if (c === "[") {
+      entrer(profondeur);
       i++;
       espaces();
       if (texte[i] === "]") {

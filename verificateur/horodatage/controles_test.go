@@ -327,20 +327,50 @@ func essV1(cert []byte) []byte {
 func TestT4CertificatSignataire(t *testing.T) {
 	jouer(t, []cas{
 		{nom: "sid subjectKeyIdentifier", jeton: func(m *materiel, mj *modeleJeton) { mj.sidSKI = m.tsa.ski }, attendu: tousReussis},
-		{nom: "sid inconnu, sans ancres", jeton: func(m *materiel, mj *modeleJeton) { mj.sidSKI = []byte{9, 9} },
+		// Révision 0.4 (EX-9.10) : un sid qui ne désigne aucun candidat
+		// n'est une ancre absente que pour un jeton sans certificats
+		// vérifié sans autorité d'horodatage ; ce cas figeait l'ancienne
+		// règle (ancre_absente avec un jeton qui porte des certificats).
+		{nom: "sid inconnu, sans ancres, jeton qui porte des certificats", jeton: func(m *materiel, mj *modeleJeton) { mj.sidSKI = []byte{9, 9} },
+			ancres:  func(*materiel, *ancres.Ancres) *ancres.Ancres { return nil },
+			attendu: "re re re ec ne:pe ne:pe ne:pe ne:pe ne:pe ne:pe ne:pe", verif: func(t *testing.T, r Resultat) {
+				if r.Statut != commun.Echoue {
+					t.Errorf("statut %s/%s", r.Statut, r.Raison)
+				}
+				if d := r.Verifications[3].Detail.Fr; !strings.Contains(d, "subjectKeyIdentifier 0x0909") || !strings.Contains(d, "1 candidat(s) examiné(s) (1 du jeton, 0 des ancres)") || !strings.Contains(d, "intermediates") {
+					t.Errorf("détail de T-4 : %s", d)
+				}
+			}},
+		{nom: "sid inconnu, sans ancres, jeton sans certificats", jeton: func(m *materiel, mj *modeleJeton) {
+			mj.sidSKI = []byte{9, 9}
+			mj.certs = nil
+		},
 			ancres:  func(*materiel, *ancres.Ancres) *ancres.Ancres { return nil },
 			attendu: "re re re ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa", verif: func(t *testing.T, r Resultat) {
 				if r.Statut != commun.NonExecute || r.Raison != commun.AncreAbsente {
 					t.Errorf("statut %s/%s", r.Statut, r.Raison)
 				}
 			}},
+		{nom: "jeton sans certificats, ancres sans autorité d'horodatage", jeton: func(m *materiel, mj *modeleJeton) { mj.certs = nil },
+			ancres:  func(m *materiel, a *ancres.Ancres) *ancres.Ancres { a.Autorites = nil; return a },
+			attendu: "re re re ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa"},
 		{nom: "certificat dans intermediates de l'ancre seulement", jeton: func(m *materiel, mj *modeleJeton) { mj.certs = nil },
 			ancres: func(m *materiel, a *ancres.Ancres) *ancres.Ancres {
 				a.Autorites[0].Intermediaires = [][]byte{m.certTSA}
 				return a
 			}, attendu: tousReussis},
+		// Révision 0.4 (EX-9.10) : jeton sans certificats et autorité
+		// d'horodatage fournie qui ne porte pas le certificat de l'unité :
+		// T-4 échoue (ce cas figeait l'ancienne règle, ancre_absente).
 		{nom: "certificat ni dans le jeton ni dans l'ancre", jeton: func(m *materiel, mj *modeleJeton) { mj.certs = nil },
-			attendu: "re re re ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa"},
+			attendu: "re re re ec ne:pe ne:pe ne:pe ne:pe ne:pe ne:pe ne:pe", verif: func(t *testing.T, r Resultat) {
+				if r.Statut != commun.Echoue {
+					t.Errorf("statut %s", r.Statut)
+				}
+				if d := r.Verifications[3].Detail.Fr; !strings.Contains(d, "émetteur CN=AC de test CT-6, numéro 0x02") || !strings.Contains(d, "(0 du jeton, 1 des ancres)") {
+					t.Errorf("détail de T-4 : %s", d)
+				}
+			}},
 		{nom: "deux certificats distincts désignés", jeton: func(m *materiel, mj *modeleJeton) {
 			c := m.modeleTSA()
 			c.fin = c.fin.AddDate(0, 0, 1)
@@ -440,17 +470,26 @@ func TestT5Algorithmes(t *testing.T) {
 					t.Errorf("faits : %d %s", r.Faits.KeyBits, r.Faits.SignatureAlgorithm)
 				}
 			}},
-		{nom: "ECDSA P-224, hors de la version 0", jeton: avecCle(p224, algoDER(oidECDSASHA256, false)),
-			attendu: "re re re re ne:hp ne:hp ne:hp re re ne:hp ne:hp", verif: func(t *testing.T, r Resultat) {
-				if r.Statut != commun.NonExecute || r.Raison != commun.HorsPerimetreVersion {
-					t.Errorf("statut %s/%s", r.Statut, r.Raison)
+		// Révision 0.4 (EX-9.24, cas 1) : un algorithme admis sous une clé
+		// qui ne l'est pas, ou l'inverse, fait échouer T-5 ; ces deux cas
+		// figeaient l'ancienne règle (hors_perimetre_version, raison
+		// admise).
+		{nom: "ECDSA P-224 sous ecdsa-with-SHA256 (EX-9.24, cas 1)", jeton: avecCle(p224, algoDER(oidECDSASHA256, false)),
+			attendu: "re re re re ec ne:pe ne:pe re re ne:pe ne:pe", verif: func(t *testing.T, r Resultat) {
+				if r.Statut != commun.Echoue || !strings.Contains(r.Verifications[4].Detail.Fr, "EX-9.24, cas 1") {
+					t.Errorf("statut %s/%s : %s", r.Statut, r.Raison, r.Verifications[4].Detail.Fr)
 				}
 			}},
 		{nom: "signature ECDSA sous clé RSA", jeton: func(m *materiel, mj *modeleJeton) { mj.sigAlgo = algoDER(oidECDSASHA256, false) },
 			attendu: "re re re re ec ne:pe ne:pe re re ne:pe ne:pe"},
-		{nom: "algorithme DSA, hors de la version 0", jeton: func(m *materiel, mj *modeleJeton) {
+		{nom: "algorithme DSA sous une clé RSA admise (EX-9.24, cas 1)", jeton: func(m *materiel, mj *modeleJeton) {
 			mj.sigAlgo = algoDER(asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 3, 2}, false)
-		}, attendu: "re re re re ne:hp ne:hp ne:hp re re ne:hp ne:hp"},
+		}, attendu: "re re re re ec ne:pe ne:pe re re ne:pe ne:pe"},
+		{nom: "algorithme inconnu sous une clé RSA admise, sans ancres (EX-9.24, cas 1)", jeton: func(m *materiel, mj *modeleJeton) {
+			mj.sigAlgo = algoDER(asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 127}, true)
+			mj.inverserSig = true
+		}, ancres: func(*materiel, *ancres.Ancres) *ancres.Ancres { return nil },
+			attendu: "re re re re ec ne:pe ne:pe re re ne:pe ne:pe"},
 	})
 	_ = m
 }
@@ -692,6 +731,7 @@ func TestT9ContenuTSTInfo(t *testing.T) {
 			attendu: tousReussis, avert: []string{"AV-T-2"}},
 		{nom: "tsa absent", jeton: func(m *materiel, mj *modeleJeton) { mj.tsa = nil }, attendu: tousReussis},
 		{nom: "tsa directoryName et T-4 non exécutée", jeton: func(m *materiel, mj *modeleJeton) { mj.certs = nil },
+			ancres:  func(*materiel, *ancres.Ancres) *ancres.Ancres { return nil },
 			attendu: "re re re ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa ne:aa", verif: func(t *testing.T, r Resultat) {
 				if !strings.Contains(r.Verifications[8].Detail.Fr, "règle 3 non évaluée") {
 					t.Errorf("T-9 : %s", r.Verifications[8].Detail.Fr)
@@ -703,7 +743,7 @@ func TestT9ContenuTSTInfo(t *testing.T) {
 		{nom: "règle 1 en échec avant la règle 3", jeton: func(m *materiel, mj *modeleJeton) {
 			mj.certs = nil
 			mj.genTime = "2026"
-		}, attendu: "re re re ne:aa ne:aa ne:aa ne:pe ne:aa ec ne:pe ne:pe"},
+		}, ancres: func(*materiel, *ancres.Ancres) *ancres.Ancres { return nil }, attendu: "re re re ne:aa ne:aa ne:aa ne:pe ne:aa ec ne:pe ne:pe"},
 		{nom: "extension critique", jeton: func(m *materiel, mj *modeleJeton) {
 			mj.extsTST = []extTest{{asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 99999, 2}, 1, []byte{5, 0}}}
 		}, attendu: echec},

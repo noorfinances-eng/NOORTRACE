@@ -208,21 +208,38 @@ func TestPointsSansFormeCanonique(t *testing.T) {
 }
 
 // TestA2A3SansA1 : A-1 en échec pour un ticket différent ; A-2 et A-3 ne
-// dépendent pas de A-1 et s'exécutent (CT-1 §11.4, CT-6 EX-5.5). Elles ne
-// sont pas exécutées quand approbations.json est inexploitable.
+// dépendent pas de A-1 et s'exécutent (CT-1 §11.4, CT-6 EX-5.5, EX-5.16).
+// Révision 0.5 de CT-1 (table d'alignement, ligne verificateur/) : sur une
+// partie exploitable contraire au schéma de son enveloppe, A-2 et A-3
+// s'exécutent aussi, sur les valeurs lues ; ce test figeait jusqu'ici
+// l'ancienne lecture (A-2 et A-3 prerequis_en_echec), corrigée ici. Elles
+// ne sont pas exécutées quand approbations.json est inexploitable.
 func TestA2A3SansA1(t *testing.T) {
 	_, m := analyser(t, racineCT1+"/invalide-ticket-approbations")
 	attendre(t, m, "A-1", commun.Echoue, "")
 	attendre(t, m, "A-2", commun.Reussi, "")
 	attendre(t, m, "A-3", commun.Reussi, "")
-	// approbations.json contraire à son schéma : A-1 en échec, A-2 et A-3
-	// faute de prérequis.
+	// approbations.json contraire au schéma de son enveloppe : A-1 en
+	// échec, A-2 et A-3 exécutées sur les valeurs lues.
 	rep := copier(t, racineCT1+"/valide-seq-7")
 	remplacer(t, rep, "approbations.json", `"version": 0`, `"version": 0, "membre_en_trop": 1`)
+	a, m := analyser(t, rep)
+	attendre(t, m, "A-1", commun.Echoue, "")
+	attendre(t, m, "A-2", commun.Reussi, "")
+	attendre(t, m, "A-3", commun.Reussi, "")
+	if l := echecs(a); strings.Join(l, ",") != "A-1" {
+		t.Errorf("échecs %v, attendu [A-1]", l)
+	}
+	// approbations.json qui n'est pas un objet (inexploitable, cas (e) de
+	// CT-1 §11.4) : A-1 en échec, A-2 et A-3 faute de prérequis.
+	rep = copier(t, racineCT1+"/valide-seq-7")
+	b, _ := os.ReadFile(filepath.Join(rep, "approbations.json"))
+	remplacer(t, rep, "approbations.json", string(b), "[]")
 	_, m = analyser(t, rep)
 	attendre(t, m, "A-1", commun.Echoue, "")
 	attendre(t, m, "A-2", commun.NonExecute, commun.PrerequisEnEchec)
 	attendre(t, m, "A-3", commun.NonExecute, commun.PrerequisEnEchec)
+	attendre(t, m, "A-4", commun.NonExecute, commun.PieceHorsDossier)
 }
 
 // TestE9SignaturesNulles : approval.signatures = null dans le voisin

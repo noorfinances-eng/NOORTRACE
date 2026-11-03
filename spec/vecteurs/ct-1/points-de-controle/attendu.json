@@ -1,6 +1,6 @@
 {
   "version": 0,
-  "description": "Séries complètes des points de contrôle des trois périodes de journal-valide (CT-1 §10.5 à §10.8) : un point par minute depuis period_start (cadence par défaut, points sans nouvel événement compris) puis le point de clôture à generated_at du manifeste. Pour chaque point : checkpoint_hash, forme canonique C_K, prev_checkpoint_hash attendu, clé en vigueur, preuve de cohérence vers la racine du manifeste (null pour tree_size = 0 : aucune preuve ne part d'une racine nulle). Les séries invalides (invalides/) violent chacune une règle de la série ; rules_failed les nomme.",
+  "description": "Séries complètes des points de contrôle des trois périodes de journal-valide (CT-1 §10.5 à §10.8) : un point par minute depuis period_start (cadence par défaut, points sans nouvel événement compris) puis le point de clôture à generated_at du manifeste. Pour chaque point : checkpoint_hash, forme canonique C_K, prev_checkpoint_hash attendu, clé en vigueur, preuve de cohérence vers la racine du manifeste (null pour tree_size = 0 : aucune preuve ne part d'une racine nulle). Les séries invalides (invalides/) violent chacune une règle de la série ; rules_failed les nomme. Révision 0.5 : evenements_partiels vérifie la série de la période 1 avec les seuls événements d'un fichier (events) et cles.json (keys) : rules_not_evaluated nomme les règles non évaluées faute d'événement (piece_hors_dossier) ou de forme canonique (prerequis_en_echec), jamais violées ; une série n'est valide que si rules_failed et rules_not_evaluated sont vides. Pour les séries de periodes et d'invalides, vérifiées avec tout journal-valide/evenements.json et journal-valide/cles.json, rules_not_evaluated absent vaut liste vide.",
   "periodes": [
     {
       "file": "periode-1.json",
@@ -3208,6 +3208,34 @@
       ]
     },
     {
+      "file": "invalides/periode-1-tree-size-trop-grand.json",
+      "manifest": "../manifestes/periode-1.json",
+      "description": "Le point de clôture (10:00:00.300Z) engage dix événements alors que la période 1 en compte neuf (count 9) : root, last_seq (10) et last_hash (hash de seq 10) recalculés pour dix, série rechaînée et re-signée. tree_size supérieur à count viole last_seq (CT-1 §10.5, révision 0.5 : le nom tree_size n'est pas un nom de règle) ; le dernier point ne rejoint plus le manifeste (dernier_point). Aucune série ne peut violer last_seq seule par ce moyen : un point de tree_size supérieur à count suivi d'un autre fait décroître tree_size, et en dernière place il viole dernier_point.",
+      "rules_failed": [
+        "last_seq",
+        "dernier_point"
+      ],
+      "errors": [
+        "point[60] : tree_size 10 supérieur à count 9",
+        "dernier point : tree_size 10 différent de count 9",
+        "dernier point : root 0xe4b65e99c7ec4743ee1ff9fb9681cd5089927e67e57a1b7993a5bddb8a939fa7 différent de celui du manifeste",
+        "dernier point : last_seq 10 différent de celui du manifeste 9"
+      ]
+    },
+    {
+      "file": "invalides/periode-1-cle-inconnue.json",
+      "manifest": "../manifestes/periode-1.json",
+      "description": "Le point d'indice 10 (09:10:00.000Z) annonce key_id rec-test-03, absente de cles.json, et porte la signature de cette clé (série rechaînée) : la signature ne se vérifie sous aucune clé désignée (signature ; le nom cle_absente n'est pas un nom de règle, CT-1 §10.5, révision 0.5), et la clé en vigueur, rec-test-01, est une autre (cle_en_vigueur) ; les deux noms dans l'ordre de la liste fermée.",
+      "rules_failed": [
+        "cle_en_vigueur",
+        "signature"
+      ],
+      "errors": [
+        "point[10] : key_id rec-test-03, clé en vigueur attendue rec-test-01",
+        "point[10] : clé rec-test-03 absente du jeu de clés"
+      ]
+    },
+    {
       "file": "invalides/periode-1-last-hash.json",
       "manifest": "../manifestes/periode-1.json",
       "description": "Le point d'indice 32 (premier point à engager seq 8) porte un last_hash qui n'est pas le hash de seq 8 (re-signé, série rechaînée) : la tête de chaîne annoncée n'est pas celle du journal.",
@@ -3217,6 +3245,175 @@
       "errors": [
         "point[32] : last_hash 0x53791328206da6c909a893336591ac95cedc7d373a856809c61784bc97e9ba0d différent du hash de l'événement 8 (0x74f7dd908e35792023f6238ff1bc8999a0a24a7b025d65d58a810ac5701f9eb5)"
       ]
+    },
+    {
+      "file": "invalides/periode-1-cle-last-seq-0.json",
+      "manifest": "../manifestes/periode-1.json",
+      "description": "Le premier point (09:00:00.000Z, tree_size 0, last_seq 0) annonce et porte la signature de rec-test-02 (série rechaînée) : sans événement last_seq, la clé en vigueur est celle de cles.json de plus grand valid_from inférieur ou égal à checkpoint_ts (règle de la section 10.1), rec-test-01 (valid_from 2026-11-01) ; rec-test-02 n'est valide qu'à partir de la rotation (09:59:58.000Z).",
+      "rules_failed": [
+        "cle_en_vigueur",
+        "validite_cle"
+      ],
+      "errors": [
+        "point[0] : key_id rec-test-02, clé en vigueur attendue rec-test-01",
+        "point[0] : checkpoint_ts 2026-11-05T09:00:00.000Z hors de la validité de la clé rec-test-02"
+      ]
+    }
+  ],
+  "evenements_partiels": [
+    {
+      "file": "periode-1.json",
+      "manifest": "../manifestes/periode-1.json",
+      "events": "evenements/sans-5-a-9.json",
+      "keys": "../journal-valide/cles.json",
+      "description": "La série complète de la période 1 (periode-1.json), vérifiée avec les événements 1 à 4 et 10 à 12 seulement (sans 5 à 9) : les points de tree_size 0 (09:00 à 09:12) sont évalués (root et last_hash nuls, sans événement) ; pour les points de tree_size 5, 8 et 9, root et last_hash ne sont pas évaluées (piece_hors_dossier), jamais violées ni remplacées par 32 octets nuls ; la clé en vigueur des points dont l'événement last_seq manque se lit dans cles.json (rec-test-01, puis rec-test-02 pour le point de clôture). Aucune règle violée ; la série n'est ni valide ni invalide sur root et last_hash.",
+      "rules_failed": [],
+      "rules_not_evaluated": [
+        {
+          "rule": "root",
+          "reason": "piece_hors_dossier"
+        },
+        {
+          "rule": "last_hash",
+          "reason": "piece_hors_dossier"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "file": "periode-1.json",
+      "manifest": "../manifestes/periode-1.json",
+      "events": "evenements/evenement-5-altere.json",
+      "keys": "../journal-valide/cles.json",
+      "description": "La même série, vérifiée avec tous les événements du journal dont seq 5 a été modifié après scellement (intent, hash et sig inchangés) : la racine recalculée des points de tree_size 5, 8 et 9 et le hash recalculé de seq 5 (last_hash des points de 09:13 à 09:31) diffèrent de ce que les points annoncent ; root et last_hash sont violées, aucune règle n'est non évaluée. (Avec les seuls événements 1 à 4 de la variante précédente, aucun point de la série n'engage un événement altéré parmi 1 à 4 sans engager seq 5 : les points de la période passent de tree_size 0 à 5.)",
+      "rules_failed": [
+        "root",
+        "last_hash"
+      ],
+      "rules_not_evaluated": [],
+      "errors": [
+        "point[13] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[13] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[14] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[14] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[15] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[15] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[16] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[16] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[17] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[17] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[18] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[18] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[19] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[19] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[20] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[20] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[21] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[21] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[22] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[22] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[23] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[23] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[24] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[24] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[25] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[25] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[26] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[26] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[27] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[27] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[28] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[28] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[29] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[29] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[30] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[30] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[31] : root 0x6f8cffbc3d15946e792c3b222edf985d9062998123620ff1edc66801ffd6dc77 différent de la racine recalculée 0x62571060eeecca4ba4be70b27d079dd3f539de587c21de8d4209ad3c0c1fd3d9",
+        "point[31] : last_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d différent du hash de l'événement 5 (0x93bf612ceb6758b9242d03d76b6f2e096ba95c13100bc82fafe15654c556deb0)",
+        "point[32] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[33] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[34] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[35] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[36] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[37] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[38] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[39] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[40] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[41] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[42] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[43] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[44] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[45] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[46] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[47] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[48] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[49] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[50] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[51] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[52] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[53] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[54] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[55] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[56] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[57] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[58] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[59] : root 0xe0b398d3b05cdcd1de46056d938026142f54feb47e694647a7120f388fb2e83d différent de la racine recalculée 0x1c0e56e602f4809ef9fbf437a124340fc8c3dbb7cb9627a1aba72e55a56d2d93",
+        "point[60] : root 0xb16c288f2864e5e311646bc4af84e2752f0fe1f71266841ce65ddb28fa21298b différent de la racine recalculée 0xcbd18f6bf71b0f99b05350aa4389ff1193f1484bed439a234abfd510e5554a2b"
+      ]
+    },
+    {
+      "file": "periode-1.json",
+      "manifest": "../manifestes/periode-1.json",
+      "events": "evenements/sans-5-seq-7-non-canonique.json",
+      "keys": "../journal-valide/cles.json",
+      "description": "La série complète de la période 1, vérifiée avec les événements 1 à 12 sauf seq 5, le fichier portant \"duration_ms\": 530.0 pour seq 7 (même valeur, forme fractionnaire : fourni sans forme canonique, son hash ne se recalcule pas). Points de tree_size 5 (09:13 à 09:31) : root et last_hash non évaluées, piece_hors_dossier (seq 5 manque) ; points de tree_size 8 et 9 : root non évaluée, prerequis_en_echec (seq 5 manque et seq 7 ne se hache pas : une donnée fournie et défectueuse ne passe pas pour une absence, CT-1 §10.5, révision 0.5), last_hash évaluée et tenue (seq 8 et seq 9 fournis). Une entrée par couple (règle, raison), dans l'ordre des noms de règle, prerequis_en_echec avant piece_hors_dossier ; aucune règle violée.",
+      "rules_failed": [],
+      "rules_not_evaluated": [
+        {
+          "rule": "root",
+          "reason": "prerequis_en_echec"
+        },
+        {
+          "rule": "root",
+          "reason": "piece_hors_dossier"
+        },
+        {
+          "rule": "last_hash",
+          "reason": "piece_hors_dossier"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "file": "periode-1.json",
+      "manifest": "../manifestes/periode-1.json",
+      "events": null,
+      "keys": null,
+      "description": "La série complète de la période 1, vérifiée sans aucun événement (events nul) ni cles.json (keys nul) : root et last_hash ne sont pas évaluées pour les points de tree_size 5, 8 et 9 (les points de tree_size 0 ont root et last_hash nuls, sans événement) ; signature, validite_cle et cle_en_vigueur (aucun événement last_seq fourni) lisent cles.json et ne sont pas évaluées (piece_hors_dossier, CT-1 §10.5, révision 0.5) ; les règles qui se décident sans événement ni clé (chaînage, monotonie, en-tête, last_seq, dernier point) tiennent. Aucune règle violée.",
+      "rules_failed": [],
+      "rules_not_evaluated": [
+        {
+          "rule": "root",
+          "reason": "piece_hors_dossier"
+        },
+        {
+          "rule": "last_hash",
+          "reason": "piece_hors_dossier"
+        },
+        {
+          "rule": "cle_en_vigueur",
+          "reason": "piece_hors_dossier"
+        },
+        {
+          "rule": "signature",
+          "reason": "piece_hors_dossier"
+        },
+        {
+          "rule": "validite_cle",
+          "reason": "piece_hors_dossier"
+        }
+      ],
+      "errors": []
     }
   ]
 }

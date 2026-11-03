@@ -154,7 +154,7 @@ func TestEntreesHostiles(t *testing.T) {
 // en double, nombre non entier) est refusée comme une partie contraire à son
 // schéma : R-1 pour registre.json et certificat-commit.json, R-3 pour
 // validateurs.json, au lieu d'être lue en dernière occurrence (LISEZMOI.md,
-// « Lectures », point 5).
+// « Lectures », point 5 ; CT-6 EX-11.10, EX-11.12, révision 0.4).
 func TestFormeCanonique(t *testing.T) {
 	cas := []struct {
 		nom, partie, id string
@@ -209,7 +209,7 @@ func TestFormeCanonique(t *testing.T) {
 // TestIdentifiantValidateurEspaces : validateurs.json se charge comme le
 // nœud le charge (EX-12.2) : un identifiant écrit avec des espaces de tête
 // ou de queue est lu sans eux (strings.TrimSpace), et le hachage du jeu
-// porte sur l'identifiant ainsi chargé (LISEZMOI.md, « Lectures », point 9).
+// porte sur l'identifiant ainsi chargé (CT-6 EX-12.2, révision 0.4).
 func TestIdentifiantValidateurEspaces(t *testing.T) {
 	m := nouveauMonde()
 	e := m.entree()

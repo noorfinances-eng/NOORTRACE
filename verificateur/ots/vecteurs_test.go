@@ -177,8 +177,8 @@ func egales(a, b []string) bool {
 // chaque fichier de preuves/, contre attendu.json (EX-A.7, EX-A.14).
 func TestVecteursPreuves(t *testing.T) {
 	a := lireAttenduOTS(t)
-	if len(a.Proofs) != 12 {
-		t.Fatalf("%d preuves, 12 attendues", len(a.Proofs))
+	if len(a.Proofs) == 0 {
+		t.Fatal("aucune preuve dans attendu.json")
 	}
 	for _, p := range a.Proofs {
 		t.Run(p.File, func(t *testing.T) {
@@ -252,8 +252,8 @@ func TestVecteursEntetes(t *testing.T) {
 // statut du contrôle 5 ou de K-9, avertissements, faits).
 func TestVecteursCas(t *testing.T) {
 	a := lireAttenduOTS(t)
-	if len(a.Cases) != 20 {
-		t.Fatalf("%d cas, 20 attendus", len(a.Cases))
+	if len(a.Cases) == 0 {
+		t.Fatal("aucun cas dans attendu.json")
 	}
 	ancreTest := lireAncreBitcoin(t, filepath.Join(repAncres, "ancres-test.json"))
 	if ancreTest.Reseau != a.BitcoinAnchor.Network || int64(ancreTest.Hauteur) != a.BitcoinAnchor.Checkpoint.Height ||
@@ -379,7 +379,10 @@ func verifierForme(t *testing.T, e Entree, r Resultat) {
 		}
 	}
 	reussi := r.Statut == commun.Reussi
-	if reussi == r.Resume.Vide() {
+	// Résumé : seulement pour un contrôle réussi, et, depuis la révision
+	// 0.4 (EX-10.12), pour une preuve hors du profil seul
+	// (hors_perimetre_version, « aucune date établie »).
+	if (reussi && r.Resume.Vide()) || (!reussi && !r.Resume.Vide() && r.Raison != commun.HorsPerimetreVersion) {
 		t.Errorf("résumé %+v pour le statut %s", r.Resume, r.Statut)
 	}
 	if (reussi && e.Usage == Cloture) == r.Proposition.Vide() {

@@ -1,0 +1,17 @@
+{
+  "valide": false,
+  "controle": "E-1",
+  "controles_en_echec": [
+    "D-1",
+    "E-1",
+    "E-7",
+    "E-8",
+    "C-1",
+    "C-2",
+    "M-1",
+    "M-3",
+    "P-2",
+    "A-2"
+  ],
+  "description": "evenement.json dont seq est la chaîne \"7\", sans autre changement (SHA-256 de l'index reporté) : la partie, contraire à son schéma, reste exploitable, et chaque relation dont un terme est mal typé n'est pas tenue (CT-1 §11.4, révision 0.5) : D-1 (event.seq), E-1 (schéma), E-7 et E-8 (hash et signature sur l'objet tel qu'il est), C-1 (previous.seq = seq − 1, next.seq = seq + 1), C-2 (next.prev_hash), M-1 (feuille), M-3 (leaf_index = seq − first_seq), P-2 (first_seq ≤ seq ≤ last_seq), A-2 (seq de la décision antérieur)."
+}

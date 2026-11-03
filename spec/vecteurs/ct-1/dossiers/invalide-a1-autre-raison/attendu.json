@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "A-1",
+  "controles_en_echec": [
+    "A-1"
+  ],
+  "description": "Dossier de seq 8 (mail.send, approval nul) dont l'index déclare approbations.json absent avec la raison « approbations non exportées » : CT-1 §11.1 et A-1 (révision 0.5) exigent la raison exacte « aucune approbation liée » ; A-1 échoue, A-2 à A-4 ne sont pas exécutées, sans raison admise."
+}

@@ -859,8 +859,12 @@ func (c *calcul) synthese(res *Resultat) {
 			}
 			res.FaitsPoint = fp
 		}
+		// AV-K-1 qualifie une référence que K-8 a acceptée : levé seulement
+		// quand K-8 a réussi (EX-11.25, révision 0.4) ; K-8 en échec ou non
+		// exécutée ne le lève pas, quelle que soit la présence des parties
+		// du contrôle 8.
 		admise := c.r11 != nil && c.r11.Statut == commun.NonExecute && c.r11.Raison.Admise()
-		if !presentes || admise {
+		if c.k8.Statut == commun.Reussi && (!presentes || admise) {
 			c.avK1 = append(c.avK1, commun.Avertissement{ID: "AV-K-1", Verification: "K-8", Detail: commun.T(
 				"référence au registre du point déclarative : aucune entrée ancre_point_de_controle de registre.json rattachée par R-11, l'inclusion de l'ancre du point n'est pas prouvée",
 				"declarative registry reference of the checkpoint: no ancre_point_de_controle entry of registre.json attached by R-11, the inclusion of the checkpoint anchor is not proven")})

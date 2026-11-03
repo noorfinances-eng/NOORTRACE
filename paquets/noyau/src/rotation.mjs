@@ -7,6 +7,10 @@ import { jcsOctets } from "./json-strict.mjs";
 import { PREFIXES, clePubliqueEd25519, signerEd25519, verifierEd25519 } from "./hachage.mjs";
 import { NOMS_RESERVES, creerReferenceEnLigne } from "./evenement.mjs";
 
+// Le hachage et la signature portent sur l'objet en mémoire : la borne de
+// profondeur de CT-1 §4 (règle 7) s'applique à la lecture et à E-1, non ici.
+const SANS_BORNE = Object.freeze({ profondeurMax: Infinity });
+
 const CLES_ANNONCE = ["journal_id", "new_key_id", "new_public_key", "old_key_id", "org_id", "valid_from", "counter_sig"];
 const MOTIF_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
@@ -27,7 +31,7 @@ export function corpsRotation(annonce) {
  * @returns {Uint8Array}
  */
 export function messageRotation(annonce) {
-  return concatener(PREFIXES.P_R, jcsOctets(corpsRotation(annonce)));
+  return concatener(PREFIXES.P_R, jcsOctets(corpsRotation(annonce), SANS_BORNE));
 }
 
 /**

@@ -35,6 +35,8 @@ const (
 
 type attenduCT1 struct {
 	Valide            bool     `json:"valide"`
+	ExitCode          *int     `json:"exit_code"`
+	ErrorKind         *string  `json:"error_kind"`
 	ControlesEnEchec  []string `json:"controles_en_echec"`
 	PerimeterChecks   []etat   `json:"perimeter_checks"`
 	PerimeterRetained *bool    `json:"perimeter_retained"`
@@ -61,10 +63,57 @@ type attenduCT6 struct {
 	Anchors           *string           `json:"anchors"`
 	BitcoinHeaders    *string           `json:"bitcoin_headers"`
 	ExitCode          int               `json:"exit_code"`
+	ErrorKind         *string           `json:"error_kind"`
 	Statement         *texte            `json:"statement"`
 	Bound             *texte            `json:"bound"`
 	PerimeterChecks   []etat            `json:"perimeter_checks"`
 	PerimeterRetained *bool             `json:"perimeter_retained"`
+}
+
+// exigesAttendus lit les champs facultatifs exit_code_exiger_<n> d'un
+// attendu (CT-6 EX-A.3, CT-1 §11.5, révision 0.4 et 0.5) : code de retour
+// attendu avec les mêmes entrées et --exiger <n> en plus.
+func exigesAttendus(t *testing.T, chemin string) map[int]int {
+	t.Helper()
+	var brut map[string]json.RawMessage
+	lireJSON(t, chemin, &brut)
+	out := map[int]int{}
+	for k, v := range brut {
+		n, ok := strings.CutPrefix(k, "exit_code_exiger_")
+		if !ok {
+			continue
+		}
+		var code int
+		if len(n) != 1 || n[0] < '1' || n[0] > '8' || json.Unmarshal(v, &code) != nil {
+			t.Fatalf("%s : champ %s illisible", chemin, k)
+		}
+		out[int(n[0]-'0')] = code
+	}
+	return out
+}
+
+// comparerExiges rejoue le dossier avec --exiger <n> pour chaque champ
+// exit_code_exiger_<n> et compare le code de retour.
+func comparerExiges(t *testing.T, o Options, exiges map[int]int) {
+	t.Helper()
+	for n, code := range exiges {
+		o.Exiger = []int{n}
+		if res := Verifier(o); res.Code != code {
+			t.Errorf("--exiger %d : code %d, attendu %d", n, res.Code, code)
+		}
+	}
+}
+
+// comparerErreur : attendu de code 2 (exit_code = 2, error_kind).
+func comparerErreur(t *testing.T, res *Resultat, genre *string) {
+	t.Helper()
+	if res.Code != 2 || res.Erreur == nil {
+		t.Errorf("code %d, attendu 2", res.Code)
+		return
+	}
+	if genre != nil && res.Erreur.Genre != *genre {
+		t.Errorf("error_kind %s, attendu %s", res.Erreur.Genre, *genre)
+	}
 }
 
 func lireJSON(t *testing.T, chemin string, v any) {
@@ -275,6 +324,7 @@ func TestVecteursCT1(t *testing.T) {
 		rep := filepath.Join(racineCT1, nom)
 		var att attenduCT1
 		lireJSON(t, filepath.Join(rep, "attendu.json"), &att)
+		exiges := exigesAttendus(t, filepath.Join(rep, "attendu.json"))
 		for _, avec := range []bool{false, true} {
 			sous := nom
 			if avec {
@@ -289,6 +339,10 @@ func TestVecteursCT1(t *testing.T) {
 					t.Skip(raison)
 				}
 				res := Verifier(o)
+				if att.ExitCode != nil && *att.ExitCode == 2 {
+					comparerErreur(t, res, att.ErrorKind)
+					return
+				}
 				if res.Erreur != nil {
 					t.Fatalf("erreur inattendue : %s", res.Erreur.Message.Fr)
 				}
@@ -296,6 +350,10 @@ func TestVecteursCT1(t *testing.T) {
 				if att.Valide {
 					code = 0
 				}
+				if att.ExitCode != nil && *att.ExitCode != code {
+					t.Fatalf("attendu incohérent : exit_code %d, valide %v", *att.ExitCode, att.Valide)
+				}
+				comparerExiges(t, o, exiges)
 				if res.Code != code {
 					t.Errorf("code %d, attendu %d", res.Code, code)
 				}
@@ -331,6 +389,7 @@ func TestVecteursCT6(t *testing.T) {
 		rep := filepath.Join(racineCT6, nom)
 		var att attenduCT6
 		lireJSON(t, filepath.Join(rep, "attendu.json"), &att)
+		exiges := exigesAttendus(t, filepath.Join(rep, "attendu.json"))
 		t.Run(nom, func(t *testing.T) {
 			o := Options{Repertoire: rep, Langue: "fr", Version: "0.0.0"}
 			if att.Anchors != nil {
@@ -344,6 +403,7 @@ func TestVecteursCT6(t *testing.T) {
 			if attente == "" {
 				comparerComplet(t, res, att)
 				rapportConforme(t, res, "fr")
+				comparerExiges(t, o, exiges)
 				return
 			}
 			// Comparaison partielle : ce qui ne relève pas des contrôles 4,
@@ -385,9 +445,7 @@ func TestVecteursCT6(t *testing.T) {
 func comparerComplet(t *testing.T, res *Resultat, att attenduCT6) {
 	t.Helper()
 	if att.ExitCode == 2 {
-		if res.Code != 2 {
-			t.Errorf("code %d, attendu 2", res.Code)
-		}
+		comparerErreur(t, res, att.ErrorKind)
 		return
 	}
 	if res.Erreur != nil {
@@ -471,10 +529,40 @@ func TestInventaireVecteurs(t *testing.T) {
 	for _, k := range cles {
 		t.Logf("  en attente du ou des contrôles %s : %d", k, parControle[k])
 	}
-	if ct1.total != 70 || ct6.total != 73 {
-		t.Errorf("nombre de dossiers inattendu : CT-1 %d (70 attendus), CT-6 %d (73 attendus)", ct1.total, ct6.total)
+	// Aucun nombre de dossiers n'est figé : les vecteurs publiés en
+	// parallèle s'ajoutent et sont rejoués de même ; un répertoire vide
+	// serait une erreur de chemin.
+	if ct1.total == 0 || ct6.total == 0 {
+		t.Errorf("aucun dossier trouvé : CT-1 %d, CT-6 %d", ct1.total, ct6.total)
 	}
 	if ct1.rejoues+ct1.attente != ct1.total || ct6.rejoues+ct6.attente != ct6.total {
 		t.Errorf("inventaire incohérent")
 	}
+}
+
+// TestLectureAttendus : le banc lit exit_code_exiger_<n> (rejoué avec
+// --exiger <n>) et, pour une entrée illisible, exit_code = 2 avec
+// error_kind (CT-6 EX-A.3, CT-1 §11.5) ; il ne fige aucun nombre de
+// dossiers.
+func TestLectureAttendus(t *testing.T) {
+	f := filepath.Join(t.TempDir(), "attendu.json")
+	os.WriteFile(f, []byte(`{"valid":true,"exit_code":0,"exit_code_exiger_4":3,"error_kind":null}`), 0o644)
+	if e := exigesAttendus(t, f); len(e) != 1 || e[4] != 3 {
+		t.Errorf("exit_code_exiger_4 mal lu : %v", e)
+	}
+	// Rejeu effectif : valide-seq-7 de CT-1, sans jeton, rend 3 avec
+	// --exiger 4.
+	comparerExiges(t, Options{Repertoire: racineCT1 + "/valide-seq-7", Langue: "fr", Version: "0.0.0"}, map[int]int{4: 3})
+	// Code 2 et error_kind : dossier.json qui n'est pas du JSON.
+	rep := t.TempDir()
+	os.WriteFile(filepath.Join(rep, "dossier.json"), []byte("{"), 0o644)
+	genre := "dossier_illisible"
+	comparerErreur(t, Verifier(Options{Repertoire: rep, Langue: "fr", Version: "0.0.0"}), &genre)
+	n := 0
+	for _, r := range []string{racineCT1, racineCT6} {
+		for _, d := range dossiers(t, r) {
+			n += len(exigesAttendus(t, filepath.Join(r, d, "attendu.json")))
+		}
+	}
+	t.Logf("cas « avec --exiger » publiés et rejoués : %d", n)
 }

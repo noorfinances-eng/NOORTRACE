@@ -6,6 +6,10 @@ import { concatener, estHex, hexVersOctets, octetsVersHex } from "./conventions.
 import { jcs, jcsOctets } from "./json-strict.mjs";
 import { PREFIXES, sha256, sha256Hex, signerEd25519, signerEip191, verifierEd25519 } from "./hachage.mjs";
 
+// Le hachage et la signature portent sur l'objet en mémoire : la borne de
+// profondeur de CT-1 §4 (règle 7) s'applique à la lecture et à E-1, non ici.
+const SANS_BORNE = Object.freeze({ profondeurMax: Infinity });
+
 /** Les quatre noms réservés de l'espace `noortrace.` (CT-1 §5.1). */
 export const NOMS_RESERVES = Object.freeze({
   ECHANGE: "noortrace.modele.echange",
@@ -70,7 +74,7 @@ export function corpsEvenement(evenement) {
  * @returns {string}
  */
 export function formeCanoniqueEvenement(evenement) {
-  return jcs(corpsEvenement(evenement));
+  return jcs(corpsEvenement(evenement), SANS_BORNE);
 }
 
 /**
@@ -79,7 +83,7 @@ export function formeCanoniqueEvenement(evenement) {
  * @returns {string}
  */
 export function hacherEvenement(evenement) {
-  return sha256Hex(concatener(PREFIXES.P_H, jcsOctets(corpsEvenement(evenement))));
+  return sha256Hex(concatener(PREFIXES.P_H, jcsOctets(corpsEvenement(evenement), SANS_BORNE)));
 }
 
 /**
@@ -88,7 +92,7 @@ export function hacherEvenement(evenement) {
  * @returns {Uint8Array}
  */
 export function messageSignatureEvenement(evenement) {
-  return concatener(PREFIXES.P_S, jcsOctets(corpsEvenement(evenement)));
+  return concatener(PREFIXES.P_S, jcsOctets(corpsEvenement(evenement), SANS_BORNE));
 }
 
 /**
@@ -151,7 +155,7 @@ export function objetApprobation(evenement) {
  * @returns {Uint8Array} 32 octets
  */
 export function condenseApprobation(A) {
-  return sha256(concatener(PREFIXES.P_A, jcsOctets(A)));
+  return sha256(concatener(PREFIXES.P_A, jcsOctets(A, SANS_BORNE)));
 }
 
 /**
@@ -186,7 +190,7 @@ export function creerReference(octets, options = {}) {
  * @returns {{sha256: string, length: number, redacted: false, value: unknown}}
  */
 export function creerReferenceEnLigne(value, options = {}) {
-  const octets = jcsOctets(value);
+  const octets = jcsOctets(value, SANS_BORNE);
   const ref = { sha256: sha256Hex(octets), length: octets.length, redacted: false };
   if (options.media_type !== undefined) ref.media_type = options.media_type;
   ref.value = value;
@@ -202,7 +206,7 @@ export function creerReferenceEnLigne(value, options = {}) {
 export function verifierReferenceEnLigne(ref) {
   if (ref === null || typeof ref !== "object" || !("value" in ref)) return true;
   try {
-    const octets = jcsOctets(ref.value);
+    const octets = jcsOctets(ref.value, SANS_BORNE);
     return ref.sha256 === sha256Hex(octets) && ref.length === octets.length;
   } catch {
     return false;

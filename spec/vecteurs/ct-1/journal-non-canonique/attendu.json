@@ -1,0 +1,24 @@
+{
+  "valide": false,
+  "description": "Le fichier porte \"duration_ms\": 530.0 pour seq 7 (même valeur, forme fractionnaire, interdite par JCS v0), hash et sig inchangés : E-2 pour seq 7, dont les autres règles ne s'exécutent pas (CT-1 §11.4, cas (d)) ; au troisième temps, le hash de seq 7 est incalculable et le couple (seq 7, seq 8) rapporte une rupture (C-2, CT-1 §7.2, révision 0.5). Le fichier reste lisible : seul l'événement fautif est sans forme canonique.",
+  "controles_en_echec": [
+    "E-2",
+    "C-2"
+  ],
+  "diagnostics": [
+    {
+      "type": "format",
+      "controle": "E-2",
+      "seq": 7
+    },
+    {
+      "type": "rupture",
+      "controle": "C-2",
+      "seq": 8
+    }
+  ],
+  "messages": [
+    "seq 7 : nombre non entier « 530.0 » : JCS v0 n'admet que les entiers (caractère 15571)",
+    "seq 8 (position 7) : hash de l'événement précédent dans le fichier incalculable (sans forme canonique) : chaînage non établi"
+  ]
+}

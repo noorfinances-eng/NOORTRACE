@@ -5,11 +5,15 @@
 // invalide (CT-6 EX-5.11).
 
 import { concatener, decoderBase64Canonique, decoderHorodatage, hexVersOctets, octetsVersHex } from "./conventions.mjs";
-import { ErreurJson, analyserJson, decoderUtf8, egaliteJson, jcsOctets } from "./json-strict.mjs";
+import { ErreurJson, PROFONDEUR_V0, analyserJson, decoderUtf8, egaliteJson, jcsOctets } from "./json-strict.mjs";
 import { PREFIXES, keccak256, recouvrerAdresseEip191, sha256Hex, signerEip191 } from "./hachage.mjs";
 import { controlerEvenement, hashRecalcule } from "./controles-evenement.mjs";
 import { NOMS_RESERVES } from "./evenement.mjs";
 import { validerSchema } from "./schemas.mjs";
+
+// Le hachage et la signature portent sur l'objet en mémoire : la borne de
+// profondeur de CT-1 §4 (règle 7) s'applique à la lecture et à E-1, non ici.
+const SANS_BORNE = Object.freeze({ profondeurMax: Infinity });
 
 /** Taille maximale de la partie attestation-perimetre.json : 4 Mio (CT-6 EX-4.15). */
 export const TAILLE_MAX_PARTIE = 4 * 1024 * 1024;
@@ -29,7 +33,7 @@ export const VERIFICATIONS_PERIMETRE = Object.freeze(["AT-1", "AT-2", "AT-3", "A
  * @returns {Uint8Array} 32 octets
  */
 export function condenseAttestation(attestation) {
-  return keccak256(concatener(PREFIXES.P_P, jcsOctets(attestation)));
+  return keccak256(concatener(PREFIXES.P_P, jcsOctets(attestation, SANS_BORNE)));
 }
 
 /**
@@ -150,8 +154,8 @@ export function verifierAttestationSignee(signee, jeu) {
  * @property {object|null} evenement l'événement prouvé, s'il est exploitable (E-1 et E-2 réussies sur evenement.json)
  * @property {{exploitable: boolean, cles: Map<string, object>}|null} indexCles cles.json lu
  * @property {object|null} approbations approbations.json exploitable, ou null
- * @property {number} [profondeurMax] borne d'imbrication des JSON lus (partie et document de politique) ;
- *   aucune par défaut (CT-1 §4 n'en fixe pas)
+ * @property {number} [profondeurMax] borne d'imbrication des JSON lus, la partie et le document de politique :
+ *   128 par défaut (CT-1 §4, règle 7, révision 0.5 : même borne et même comptage pour le document)
  */
 
 /**
@@ -273,7 +277,9 @@ function verifierInscription(inscription, evenement, indexCles, digest, profonde
     if (!valeur || sha256Hex(document) !== valeur.policy_sha256) ecarts.push("SHA-256 du document de politique différent de policy_sha256");
     let doc = null;
     try {
-      doc = analyserJson(decoderUtf8(document), { nombres: "libres", substituts: "admis", profondeurMax });
+      // Même borne et même comptage que les textes du format v0 (CT-1 §4,
+      // règle 7, révision 0.5), nombres libres.
+      doc = analyserJson(decoderUtf8(document), { nombres: "libres", substituts: "admis", profondeurMax: profondeurMax ?? PROFONDEUR_V0 });
     } catch (e) {
       if (!(e instanceof ErreurJson)) throw e;
       ecarts.push(`document de politique : ${e.message}`);

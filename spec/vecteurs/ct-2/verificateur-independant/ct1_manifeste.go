@@ -69,8 +69,13 @@ func ValiderSchemaManifeste(v *Value) []string {
 	} else if n, ok := estEntierJSON(ver.Num); !ok || n.Sign() != 0 {
 		m.add("$.version", "constante 0 attendue, reçu %s", ver.Num)
 	}
-	m.hex(v.Get("org_id"), "$.org_id", 32, false)
-	m.hex(v.Get("journal_id"), "$.journal_id", 32, false)
+	// org_id et journal_id : le schéma admet 32 octets nuls, le vérificateur
+	// les refuse (P-1, §3 et §11.4, révision 0.5).
+	for _, k := range []string{"org_id", "journal_id"} {
+		if s, ok := m.hex(v.Get(k), "$."+k, 32, false); ok && s == Zero32 {
+			m.add("$."+k, "32 octets nuls interdits (§3, révision 0.5)")
+		}
+	}
 	ps, okPs := m.entier(v.Get("period_start"), "$.period_start", 0, EntierSurMax)
 	pe, okPe := m.entier(v.Get("period_end"), "$.period_end", 3600, EntierSurMax)
 	if okPs && ps%3600 != 0 {
@@ -131,9 +136,12 @@ func ValiderSchemaManifesteSig(v *Value) []string {
 	return m.liste
 }
 
-// ControlerManifeste exécute P-1 (schéma et arithmétique), P-4 (racine nulle
-// ⇔ période vide) et P-5 (periodHash, signature, clé, generated_at) sur un
-// manifeste et sa signature. sig et cles peuvent être nil.
+// ControlerManifeste exécute P-1 (schéma, arithmétique, identifiants non
+// nuls), P-4 (racine nulle ⇔ période vide) et P-5 (periodHash, signature,
+// clé, generated_at) sur un manifeste et sa signature. sig et cles peuvent
+// être nil : P-5 n'est alors pas exécutée, sauf échec sur ce qu'elle lit.
+// Une relation dont un terme est absent, mal typé ou incalculable n'est pas
+// tenue (§11.4, révision 0.5).
 func ControlerManifeste(v, sig *Value, cles *JeuCles) *Resultats {
 	r := NouveauxResultats()
 	if v == nil || v.Kind != KindObject {
@@ -144,21 +152,26 @@ func ControlerManifeste(v, sig *Value, cles *JeuCles) *Resultats {
 		r.Echec("P-1", "%s", mq)
 	}
 	r.Passe("P-1")
-	m := LireManifeste(v)
-	nulle := m.Root == Zero32
-	if (m.Count == 0) != nulle {
-		r.Echec("P-4", "root %s pour count = %d (racine nulle si et seulement si la période est vide)", m.Root, m.Count)
+	// P-4
+	count, okCount := entierTypee(v, "count")
+	root, okRoot := chaineTypee(v, "root")
+	switch {
+	case !okCount || !okRoot:
+		r.Echec("P-4", "count ou root absent ou mal typé : relation non tenue")
+	case (count == 0) != (root == Zero32):
+		r.Echec("P-4", "root %s pour count = %d (racine nulle si et seulement si la période est vide)", root, count)
 	}
-	if m.Root == Hex0x(RacineVideRFC6962) {
+	if okRoot && root == Hex0x(RacineVideRFC6962) {
 		r.Echec("P-4", "root = SHA-256(\"\"), hachage de l'arbre vide RFC 6962 : la convention NOORTRACE est 32 octets nuls")
 	}
 	r.Passe("P-4")
+	// P-5
 	if _, err := Canonique(v); err != nil {
 		r.Echec("P-5", "manifeste non canonisable : %v", err)
 		return r
 	}
 	if sig == nil {
-		r.NonExecute("P-5", "manifeste.sig absent")
+		r.NonExecute("P-5", "manifeste.sig absent ou inexploitable")
 		return r
 	}
 	for _, mq := range ValiderSchemaManifesteSig(sig) {
@@ -172,9 +185,10 @@ func ControlerManifeste(v, sig *Value, cles *JeuCles) *Resultats {
 	if got, att := Hex0x(ph), chaineDe(sig, "period_hash"); got != att {
 		r.Echec("P-5", "periodHash recalculé %s ≠ manifeste.sig.period_hash %s", got, att)
 	}
-	keyID := chaineDe(sig, "recorder_key_id")
-	if keyID != m.KeyID {
-		r.Echec("P-5", "manifeste.recorder_key_id %q ≠ manifeste.sig.recorder_key_id %q", m.KeyID, keyID)
+	keyID, okK1 := chaineTypee(sig, "recorder_key_id")
+	mKeyID, okK2 := chaineTypee(v, "recorder_key_id")
+	if !okK1 || !okK2 || keyID != mKeyID {
+		r.Echec("P-5", "manifeste.recorder_key_id %q ≠ manifeste.sig.recorder_key_id %q", mKeyID, keyID)
 	}
 	sigOctets, err := OctetsHex(chaineDe(sig, "sig"), 64)
 	if err != nil {
@@ -182,7 +196,7 @@ func ControlerManifeste(v, sig *Value, cles *JeuCles) *Resultats {
 		return r
 	}
 	if cles == nil {
-		r.NonExecute("P-5", "signature non vérifiée : aucun jeu de clés fourni")
+		r.NonExecute("P-5", "signature non vérifiée : cles.json inexploitable ou non fourni")
 		return r
 	}
 	cle := cles.Trouver(keyID)
@@ -194,8 +208,12 @@ func ControlerManifeste(v, sig *Value, cles *JeuCles) *Resultats {
 	if err := VerifierEd25519(cle.PublicKey, msg, sigOctets); err != nil {
 		r.Echec("P-5", "signature du manifeste sous %s : %v", keyID, err)
 	}
-	if !m.GeneratedAt.IsZero() && !cle.Couvre(m.GeneratedAt) {
-		r.Echec("P-5", "generated_at %s hors de la validité annoncée %s de la clé %s", FormaterHorodatage(m.GeneratedAt), cle.Intervalle(), keyID)
+	if ga, ok := chaineTypee(v, "generated_at"); !ok {
+		r.Echec("P-5", "generated_at absent ou mal typé : validité de la clé non comparable")
+	} else if t, ok := ParseHorodatage(ga); !ok {
+		r.Echec("P-5", "generated_at %q n'est pas une date existante : validité de la clé non comparable", ga)
+	} else if !cle.Couvre(t) {
+		r.Echec("P-5", "generated_at %s hors de la validité annoncée %s de la clé %s", FormaterHorodatage(t), cle.Intervalle(), keyID)
 	}
 	r.Passe("P-5")
 	return r

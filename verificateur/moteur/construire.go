@@ -49,20 +49,26 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 	}
 	r.Lisible.ExigesNonReussis = exiges
 	ev := an.Evenement
-	// Désignation de l'événement (EX-6.13).
+	// Désignation de l'événement (EX-6.13, EX-6.22) : lue dans
+	// evenement.json exploitable seulement ; chacun des trois membres est
+	// jugé à part contre le format du schéma du rapport, et une valeur bien
+	// formée n'est pas effacée à cause de sa voisine.
 	if ev != nil {
 		seq, okS := ev.Seq()
 		h, ts := ev.V.Membre("hash").S(), ev.V.Membre("ts").S()
-		outil := ev.V.Chemin("execution", "tool")
-		if okS && seq >= 0 && motifHex32.MatchString(h) && motifHorodate.MatchString(ts) && (outil.EstChaine() || outil.EstNul()) {
+		_, okTs := commun.LireHorodatage(ts)
+		if okS && seq >= 0 && motifHex32.MatchString(h) && motifHorodate.MatchString(ts) && okTs {
 			e := &rapport.Evenement{Seq: seq, Hash: h, Ts: ts}
-			if outil.EstChaine() {
+			if outil := ev.V.Chemin("execution", "tool"); outil.EstChaine() {
 				e.Tool = ptr(outil.Chaine)
 			}
 			r.Event = e
 		}
-		if o, j := ev.V.Membre("org_id").S(), ev.V.Membre("journal_id").S(); motifHex32.MatchString(o) && motifHex32.MatchString(j) {
-			r.OrgID, r.JournalID = ptr(o), ptr(j)
+		if o := ev.V.Membre("org_id").S(); motifHex32.MatchString(o) {
+			r.OrgID = ptr(o)
+		}
+		if j := ev.V.Membre("journal_id").S(); motifHex32.MatchString(j) {
+			r.JournalID = ptr(j)
 		}
 	}
 	if m := an.Manifeste; m != nil && an.PeriodHashOK {

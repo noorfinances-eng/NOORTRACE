@@ -73,18 +73,39 @@ type Partie struct {
 	Lecture entree.Lecture
 	// Valeur : document JSON (parties JSON), nil s'il n'est pas du JSON.
 	Valeur *jsonv.Valeur
-	// ErrJSON : motif quand le fichier n'est pas du JSON.
+	// ErrJSON : motif quand le fichier n'est pas du JSON (EX-4.16, points 1
+	// à 3).
 	ErrJSON error
+	// ErrCanonique : le document JSON n'a pas de forme canonique de CT-1 §4
+	// (EX-4.16, point 4), nil sinon.
+	ErrCanonique error
 	// Sha256Flux : SHA-256 calculé en flux au-delà de la limite (attestation,
 	// EX-4.15).
 	Sha256Flux *[32]byte
 }
 
-// Exploitable dit si la partie est présente, lue dans sa limite et un objet
-// JSON.
-func (p *Partie) Exploitable() bool {
-	return p != nil && p.Present && p.Lecture.Etat == entree.Lu && p.Valeur.EstObjet()
+// Lue dit si la partie est déclarée présente, lue dans sa limite comme un
+// fichier ordinaire et du JSON au sens d'EX-4.16 (points 1 à 3).
+func (p *Partie) Lue() bool {
+	return p != nil && p.Present && p.Lecture.Etat == entree.Lu && p.Valeur != nil
 }
+
+// SansForme dit si la partie est du JSON sans forme canonique de CT-1 §4
+// (cas (d) de CT-1 §11.4, révision 0.5) : E-2 porte le défaut, et le
+// contrôle porteur n'est pas exécuté.
+func (p *Partie) SansForme() bool { return p.Lue() && p.ErrCanonique != nil }
+
+// ObjetLu dit si la partie est lue et que sa racine est un objet JSON, avec
+// ou sans forme canonique (attestation-perimetre.json, dont AT-1 juge tout
+// défaut, EX-4.15).
+func (p *Partie) ObjetLu() bool { return p.Lue() && p.Valeur.EstObjet() }
+
+// Exploitable dit si la partie est exploitable au sens de CT-6 §2 (révision
+// 0.4) et de CT-1 §11.4 (révision 0.5) : déclarée présente, fichier
+// ordinaire lu dans sa limite, du JSON (EX-4.16), racine objet, forme
+// canonique. Une partie exploitable peut enfreindre son schéma : les
+// vérifications qui la lisent s'exécutent sur ses valeurs (EX-5.13).
+func (p *Partie) Exploitable() bool { return p.ObjetLu() && p.ErrCanonique == nil }
 
 // Dossier : le répertoire et son index.
 type Dossier struct {
@@ -149,8 +170,8 @@ func Ouvrir(rep string) (*Dossier, *Defaut) {
 	// Un index sans forme canonique (clé en double, nombre non entier,
 	// substitut isolé) est du JSON : pas de code 2 (EX-4.12), mais E-2 en
 	// échec (CT-1 §4, §11.4), et rien n'en est lu, pas même son schéma :
-	// la lecture d'un nom en double serait arbitraire (« Lectures », point
-	// 20).
+	// la lecture d'un nom en double serait arbitraire (CT-6 EX-4.12,
+	// point 2, révision 0.4).
 	if err := jcs.Calculable(v); err != nil {
 		d.ErrCanonique = err
 		return d, nil
@@ -218,6 +239,9 @@ func (d *Dossier) LireParties() *Defaut {
 		}
 		if p.Lecture.Etat == entree.Lu && estJSON(p.Nom) {
 			p.Valeur, p.ErrJSON = jsonv.Analyser(p.Lecture.Octets)
+			if p.Valeur != nil {
+				p.ErrCanonique = jcs.Calculable(p.Valeur)
+			}
 		}
 	}
 	return nil

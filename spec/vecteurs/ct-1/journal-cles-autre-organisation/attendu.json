@@ -1,0 +1,83 @@
+{
+  "valide": false,
+  "description": "Le journal valide, vérifié avec un cles.json dont org_id est keccak256(« autre-organisation ») (mêmes clés, mêmes validités, porté par ce répertoire) : cles.json passe la première partie de E-8 lue sans événement (schéma, unicités, dates), puis son org_id est comparé à celui de chaque événement (CT-1 §7.2, révision 0.5) ; les signatures sont valides, mais chacun des douze événements porte un symptôme E-8 (type signature), et non le seul premier.",
+  "controles_en_echec": [
+    "E-8"
+  ],
+  "diagnostics": [
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 1
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 2
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 3
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 4
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 5
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 6
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 7
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 8
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 9
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 10
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 11
+    },
+    {
+      "type": "signature",
+      "controle": "E-8",
+      "seq": 12
+    }
+  ],
+  "messages": [
+    "seq 1 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 2 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 3 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 4 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 5 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 6 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 7 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 8 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 9 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 10 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 11 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal",
+    "seq 12 : org_id ou journal_id de l'événement différents de ceux de cles.json du journal"
+  ]
+}

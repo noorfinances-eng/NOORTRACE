@@ -1,10 +1,12 @@
 package dossier
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/noorfinances-eng/noortrace/verificateur/commun"
 	"github.com/noorfinances-eng/noortrace/verificateur/cryptographie"
@@ -135,6 +137,11 @@ func regleE1(e *Evt) resultatEvt {
 	if _, okTs := e.Ts(); !okTs {
 		return ko("ts n'est pas une date existante", "ts is not an existing date")
 	}
+	// org_id et journal_id non nuls (CT-1 §3, révision 0.5) : le schéma
+	// admet 32 octets nuls, le vérificateur les refuse.
+	if e.V.Membre("org_id").S() == zero32 || e.V.Membre("journal_id").S() == zero32 {
+		return ko("org_id ou journal_id nul (32 octets nuls)", "null org_id or journal_id (32 zero bytes)")
+	}
 	if a := e.V.Membre("approval"); a.EstObjet() {
 		if _, okAt := commun.LireHorodatage(a.Membre("at").S()); !okAt {
 			return ko("approval.at n'est pas une date existante", "approval.at is not an existing date")
@@ -149,101 +156,168 @@ func estReference(v *jsonv.Valeur) bool {
 	return v.EstObjet() && v.Membre("sha256").EstChaine() && v.A("length") && v.Membre("redacted").EstBooleen()
 }
 
+// LanceurJournal : delegation.launched_by d'un événement du journal sur
+// lui-même (rotation de clé, changement de politique ; CT-1 §5.3, E-3).
+const LanceurJournal = "noortrace-enregistreur"
+
+// tableauVide dit si la valeur est un tableau sans élément (une valeur
+// absente ou d'un autre genre ne l'est pas, CT-1 §5.3).
+func tableauVide(v *jsonv.Valeur) bool { return v.EstTableau() && len(v.Elements) == 0 }
+
+// entierPositif dit si la valeur est un entier ≥ 0 de l'intervalle sûr.
+func entierPositif(v *jsonv.Valeur) bool {
+	n, ok := v.Entier()
+	return ok && n >= 0
+}
+
+// regleE3 applique la règle exacte de E-3 (CT-1 §5.3, révision 0.5 ; CT-6
+// EX-5.17) : la sorte se lit sur execution.tool ; un nom en « noortrace. »
+// hors des quatre noms réservés met E-3 en échec et aucune autre règle ne
+// s'applique ; sinon chaque règle de la sorte doit tenir, et une valeur
+// absente, ou d'un autre genre que celui que la règle nomme, ne la tient
+// pas.
 func regleE3(e *Evt) resultatEvt {
 	outil := e.Outil()
 	exe := e.V.Membre("execution")
-	pol := e.V.Chemin("policy", "decision").S()
-	statut := exe.Membre("status").S()
+	polV := e.V.Chemin("policy", "decision")
+	pol, polChaine := polV.Str()
+	statut, statutChaine := exe.Membre("status").Str()
 	res, dur, err := exe.Membre("result"), exe.Membre("duration_ms"), exe.Membre("is_error")
+	ap := e.V.Membre("approval")
+	effets := e.V.Membre("effects")
 	nuls := func() bool { return res.EstNul() && dur.EstNul() && err.EstNul() }
-	reponse := func() bool {
-		_, entier := dur.Entier()
-		return estReference(res) && entier && err.EstBooleen()
-	}
+	reponse := func() bool { return estReference(res) && entierPositif(dur) && err.EstBooleen() }
 	var ecarts []string
 	ajoute := func(s string) { ecarts = append(ecarts, s) }
-	if strings.HasPrefix(outil, "noortrace.") {
-		switch outil {
-		case OutilEchange:
-			if pol != "sans_objet" {
-				ajoute("policy.decision ≠ sans_objet")
+	reservee := strings.HasPrefix(outil, "noortrace.")
+	switch {
+	case !exe.Membre("tool").EstChaine():
+		ajoute("execution.tool n'est pas une chaîne : sorte illisible")
+	case reservee && outil != OutilEchange && outil != OutilDecision && outil != OutilRotation && outil != OutilPolitique:
+		// Nom réservé inconnu : aucune autre règle ne s'applique.
+		ajoute("nom réservé « noortrace. » inconnu : " + outil)
+	case !reservee:
+		// 1. Appel d'outil.
+		if !polChaine || (pol != "autorise" && pol != "a_approuver" && pol != "refuse") {
+			ajoute("policy.decision d'un appel d'outil hors de { autorise, a_approuver, refuse }")
+		}
+		if !ap.EstNul() && pol != "a_approuver" {
+			ajoute("approval non nul sans policy.decision = a_approuver")
+		}
+		decisionAp, _ := ap.Membre("decision").Str()
+		switch {
+		case !statutChaine:
+			ajoute("execution.status illisible")
+		case statut == "retenue":
+			if pol != "a_approuver" || !ap.EstNul() {
+				ajoute("appel retenu sans policy.decision = a_approuver et approval nul")
 			}
-			if statut != "executee" {
-				ajoute("status ≠ executee")
+		case statut == "executee":
+			if !(pol == "autorise" || (pol == "a_approuver" && ap.EstObjet() && decisionAp == "approuve")) {
+				ajoute("appel exécuté sans policy.decision = autorise, ni a_approuver avec approval.decision = approuve")
 			}
-			if !reponse() {
-				ajoute("result, duration_ms ou is_error manquant")
-			}
-		case OutilDecision, OutilRotation, OutilPolitique:
-			if pol != "sans_objet" {
-				ajoute("policy.decision ≠ sans_objet")
-			}
-			if !e.V.Membre("intent").EstNul() {
-				ajoute("intent non nul")
-			}
-			if statut != "executee" {
-				ajoute("status ≠ executee")
-			}
-			if !nuls() {
-				ajoute("result, duration_ms ou is_error non nul")
-			}
-			if !exe.Chemin("arguments").A("value") {
-				ajoute("arguments sans valeur en ligne")
-			}
-			if outil == OutilDecision {
-				// arguments.value est la référence en ligne à l'objet signé A
-				// de la décision (CT-1 §5.1, table ; §5.3 ; §6.3), pour tout
-				// événement que E-3 contrôle, voisins compris.
-				ap := e.V.Membre("approval")
-				switch {
-				case !ap.EstObjet():
-					ajoute("approval nul pour une décision")
-				case !jsonv.Egales(exe.Chemin("arguments", "value"), objetA(ap, e.V.Membre("org_id").S(), e.V.Membre("journal_id").S())):
-					ajoute("arguments.value ≠ A = { decision, journal_id, org_id, request_hash, ticket } de la décision")
-				}
-			} else if !e.V.Membre("approval").EstNul() {
-				ajoute("approval non nul pour un événement du journal")
-			}
-			if outil == OutilRotation {
-				nk := e.NouvelleCle()
-				eff := e.V.Membre("effects")
-				attendu := jsonv.NouvelObjet(
-					jsonv.Membre{Nom: "system", Valeur: jsonv.NouvelleChaine("noortrace")},
-					jsonv.Membre{Nom: "action", Valeur: jsonv.NouvelleChaine("ecriture")},
-					jsonv.Membre{Nom: "object", Valeur: jsonv.NouvelleChaine("cle:" + nk)},
-					jsonv.Membre{Nom: "amount", Valeur: &jsonv.Valeur{Genre: jsonv.Nul}},
-					jsonv.Membre{Nom: "currency", Valeur: &jsonv.Valeur{Genre: jsonv.Nul}},
-				)
-				if !eff.EstTableau() || len(eff.Elements) != 1 || !jsonv.Egales(eff.Elements[0], attendu) {
-					ajoute("effects différent de l'effet de rotation (CT-1 §8, règle 4)")
-				}
-			}
-			if outil == OutilPolitique {
-				val := exe.Chemin("arguments", "value")
-				pv := val.Membre("policy_version").S()
-				_, okH := cryptographie.LireHex(val.Membre("policy_sha256").S(), 32)
-				if !val.EstObjet() || len(val.Noms()) != 2 || pv == "" || len([]rune(pv)) > 128 || !okH {
-					ajoute("arguments.value n'est pas { policy_version, policy_sha256 }")
-				}
+		case statut == "refusee":
+			if !(pol == "refuse" || (pol == "a_approuver" && ap.EstObjet() && (decisionAp == "refuse" || decisionAp == "expire"))) {
+				ajoute("appel refusé sans policy.decision = refuse, ni a_approuver avec approval.decision = refuse ou expire")
 			}
 		default:
-			ajoute("nom réservé « noortrace. » inconnu : " + outil)
-		}
-	} else {
-		if pol == "sans_objet" {
-			ajoute("policy.decision = sans_objet pour un appel d'outil")
+			ajoute("execution.status inconnu")
 		}
 		switch statut {
 		case "executee":
 			if !reponse() {
-				ajoute("appel exécuté sans result, duration_ms ou is_error")
+				ajoute("appel exécuté sans result (référence), duration_ms (entier ≥ 0) ou is_error (booléen)")
 			}
 		case "retenue", "refusee":
 			if !nuls() {
 				ajoute("appel " + statut + " avec result, duration_ms ou is_error non nul")
 			}
-		default:
-			ajoute("status inconnu")
+			if !tableauVide(effets) {
+				ajoute("appel " + statut + " avec des effets : un appel non relayé n'a pas d'effet")
+			}
+		}
+	case outil == OutilEchange:
+		// 2. Échange avec le modèle.
+		if pol != "sans_objet" || !polChaine {
+			ajoute("policy.decision ≠ sans_objet")
+		}
+		if !ap.EstNul() {
+			ajoute("approval non nul pour un échange avec le modèle")
+		}
+		if statut != "executee" || !statutChaine {
+			ajoute("status ≠ executee")
+		}
+		if !reponse() {
+			ajoute("result (référence), duration_ms (entier ≥ 0) ou is_error (booléen) manquant")
+		}
+	default:
+		// 3. Décision d'approbation, rotation de clé, changement de
+		// politique.
+		if pol != "sans_objet" || !polChaine {
+			ajoute("policy.decision ≠ sans_objet")
+		}
+		if statut != "executee" || !statutChaine {
+			ajoute("status ≠ executee")
+		}
+		if !nuls() {
+			ajoute("result, duration_ms ou is_error non nul")
+		}
+		if !e.V.Membre("intent").EstNul() {
+			ajoute("intent non nul")
+		}
+		if !exe.Membre("arguments").A("value") {
+			ajoute("arguments sans valeur en ligne")
+		}
+		lanceur, _ := e.V.Chemin("delegation", "launched_by").Str()
+		switch outil {
+		case OutilDecision:
+			// arguments.value a la même forme canonique que l'objet signé
+			// A construit depuis l'événement (CT-1 §6.3), pour tout
+			// événement que E-3 contrôle ; effets vides.
+			if !ap.EstObjet() {
+				ajoute("approval n'est pas un objet pour une décision")
+			} else {
+				ca, errA := jcs.Canonique(objetA(ap, e.V.Membre("org_id").S(), e.V.Membre("journal_id").S()))
+				cv, errV := jcs.Canonique(exe.Chemin("arguments", "value"))
+				if errA != nil || errV != nil || !bytes.Equal(ca, cv) {
+					ajoute("arguments.value n'a pas la forme canonique de A = { decision, journal_id, org_id, request_hash, ticket } de la décision")
+				}
+			}
+			if !tableauVide(effets) {
+				ajoute("décision d'approbation avec des effets (ils sont déclarés par l'appel relayé)")
+			}
+		case OutilRotation:
+			if !ap.EstNul() {
+				ajoute("approval non nul pour un événement du journal")
+			}
+			if lanceur != LanceurJournal {
+				ajoute("delegation.launched_by ≠ " + LanceurJournal)
+			}
+			nk := e.NouvelleCle()
+			attendu := jsonv.NouvelObjet(
+				jsonv.Membre{Nom: "system", Valeur: jsonv.NouvelleChaine("noortrace")},
+				jsonv.Membre{Nom: "action", Valeur: jsonv.NouvelleChaine("ecriture")},
+				jsonv.Membre{Nom: "object", Valeur: jsonv.NouvelleChaine("cle:" + nk)},
+				jsonv.Membre{Nom: "amount", Valeur: &jsonv.Valeur{Genre: jsonv.Nul}},
+				jsonv.Membre{Nom: "currency", Valeur: &jsonv.Valeur{Genre: jsonv.Nul}},
+			)
+			if !effets.EstTableau() || len(effets.Elements) != 1 || !jsonv.Egales(effets.Elements[0], attendu) || !exe.Chemin("arguments", "value", "new_key_id").EstChaine() {
+				ajoute("effects différent de l'effet de rotation (CT-1 §8, règle 4)")
+			}
+		case OutilPolitique:
+			if !ap.EstNul() {
+				ajoute("approval non nul pour un événement du journal")
+			}
+			if lanceur != LanceurJournal {
+				ajoute("delegation.launched_by ≠ " + LanceurJournal)
+			}
+			val := exe.Chemin("arguments", "value")
+			pv, okPV := val.Membre("policy_version").Str()
+			_, okH := cryptographie.LireHex(val.Membre("policy_sha256").S(), 32)
+			n := utf8.RuneCountInString(pv)
+			if !val.EstObjet() || val.Doublon || len(val.Noms()) != 2 || !okPV || n < 1 || n > 128 || !val.Membre("policy_sha256").EstChaine() || !okH {
+				ajoute("arguments.value n'est pas { policy_version (1 à 128 caractères), policy_sha256 (32 octets) }")
+			}
 		}
 	}
 	if len(ecarts) > 0 {
@@ -262,8 +336,10 @@ func regleE4(e *Evt) resultatEvt {
 			redige = true
 		}
 	}
-	if redige && !e.V.Chemin("policy", "redaction").EstChaine() {
-		return ko("référence rédigée sans policy.redaction", "redacted reference without policy.redaction")
+	// policy.redaction doit être une chaîne non vide au sens de CT-1 §3
+	// (révision 0.5) : null, "" et une chaîne de blancs ne suffisent pas.
+	if r, okR := e.V.Chemin("policy", "redaction").Str(); redige && (!okR || !commun.ChaineNonVide(r)) {
+		return ko("référence rédigée sans policy.redaction qui soit une chaîne non vide", "redacted reference without a policy.redaction that is a non-empty string")
 	}
 	return resultatEvt{statut: commun.Reussi}
 }
@@ -422,12 +498,14 @@ func regleE9(e *Evt) resultatEvt {
 	if err != nil {
 		return ko("objet signé A sans forme canonique", "signed object A without canonical form")
 	}
+	// E-9 parcourt toutes les signatures (CT-1 §11.4, révision 0.5 ; CT-6
+	// EX-5.19) : une signature sans approvers[i] la met en échec, en plus de
+	// E-5 ; un approbateur sans signature relève de E-5 seule.
 	adr, sigs := ap.Membre("approvers").Elements, ap.Membre("signatures").Elements
-	n := len(adr)
-	if len(sigs) < n {
-		n = len(sigs)
-	}
-	for i := 0; i < n; i++ {
+	for i := range sigs {
+		if i >= len(adr) {
+			return ko(fmt.Sprintf("signatures[%d] sans approvers[%d]", i, i), fmt.Sprintf("signatures[%d] without approvers[%d]", i, i))
+		}
 		s, okS := cryptographie.LireHex(sigs[i].S(), 65)
 		if !okS {
 			return ko(fmt.Sprintf("signatures[%d] illisible", i), fmt.Sprintf("signatures[%d] unreadable", i))

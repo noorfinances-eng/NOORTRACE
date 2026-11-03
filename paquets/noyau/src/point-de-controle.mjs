@@ -12,6 +12,12 @@ import { hashRecalcule, nouvelleCle } from "./controles-evenement.mjs";
 import { validerSchema } from "./schemas.mjs";
 import { ecartsManifeste } from "./manifeste.mjs";
 
+const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+// Le hachage et la signature portent sur l'objet en mémoire : la borne de
+// profondeur de CT-1 §4 (règle 7) s'applique à la lecture et à E-1, non ici.
+const SANS_BORNE = Object.freeze({ profondeurMax: Infinity });
+
 /** Noms des règles de série, dans l'ordre de CT-1 §10.5. */
 export const REGLES_SERIE = Object.freeze([
   "chainage",
@@ -43,7 +49,7 @@ export function corpsPoint(point) {
  * @returns {string}
  */
 export function formeCanoniquePoint(point) {
-  return jcs(corpsPoint(point));
+  return jcs(corpsPoint(point), SANS_BORNE);
 }
 
 /**
@@ -52,7 +58,7 @@ export function formeCanoniquePoint(point) {
  * @returns {string}
  */
 export function hacherPoint(point) {
-  return sha256Hex(concatener(PREFIXES.P_K, jcsOctets(corpsPoint(point))));
+  return sha256Hex(concatener(PREFIXES.P_K, jcsOctets(corpsPoint(point), SANS_BORNE)));
 }
 
 /**
@@ -61,7 +67,7 @@ export function hacherPoint(point) {
  * @returns {Uint8Array}
  */
 export function messageSignaturePoint(point) {
-  return concatener(PREFIXES.P_SK, jcsOctets(corpsPoint(point)));
+  return concatener(PREFIXES.P_SK, jcsOctets(corpsPoint(point), SANS_BORNE));
 }
 
 /**
@@ -138,13 +144,32 @@ export function cleEnVigueur(parSeq, lastSeq, contexte = {}) {
 
 /**
  * Vérifie une série de points de contrôle d'une période contre son manifeste,
- * les événements du journal et cles.json (règles 2 à 5 de CT-1 §10.5). La
+ * les événements fournis et cles.json (règles 2 à 5 de CT-1 §10.5). La
  * cadence (règle 1) n'est pas une règle de validité et n'est pas contrôlée.
+ *
+ * Chaque règle est évaluée point par point (révision 0.5). Elle est violée
+ * quand les données fournies la contredisent (`rules_failed`), non évaluée
+ * quand il manque pour ce point une donnée sans laquelle elle ne se décide
+ * pas (`rules_not_evaluated`, `{ rule, reason }`) : `root` (n ≥ 1) et
+ * `last_hash` (last_seq ≥ 1) exigent les événements fournis ; un événement
+ * manquant donne `piece_hors_dossier`, un événement fourni dont le hash ne se
+ * recalcule pas `prerequis_en_echec`. Un événement manquant ne rend jamais
+ * une règle violée, et aucune valeur par défaut ne le remplace. Une règle
+ * violée pour un point n'est pas aussi rapportée non évaluée pour ce point.
+ * Pour un même point et une même règle, un événement manquant et un autre
+ * sans forme canonique donnent `prerequis_en_echec`. `signature`,
+ * `validite_cle` et, sans l'événement last_seq, `cle_en_vigueur` lisent
+ * cles.json : sans lui (null ou absent), non évaluées (`piece_hors_dossier`) ;
+ * cles.json qui ne passe pas la première partie de E-8 sans référence à un
+ * événement, non évaluées (`prerequis_en_echec`). Les deux listes suivent
+ * l'ordre de REGLES_SERIE, puis, pour une règle, `prerequis_en_echec` avant
+ * `piece_hors_dossier`. La série n'est valide que si les deux listes sont
+ * vides.
  * @param {object[]} points la série, dans l'ordre
  * @param {object} manifeste manifeste de la période
- * @param {object[]} evenements événements du journal (au moins ceux de la période et le précédent)
- * @param {unknown} cles contenu de cles.json
- * @returns {{valide: boolean, rules_failed: string[], errors: string[]}}
+ * @param {object[]} evenements événements fournis (tout ou partie de la période, et le dernier de la précédente)
+ * @param {unknown} cles contenu de cles.json, ou null s'il n'est pas fourni
+ * @returns {{valide: boolean, rules_failed: string[], rules_not_evaluated: {rule: string, reason: string}[], errors: string[]}}
  * @throws {TypeError} manifeste non conforme à son schéma ou à ses relations (à vérifier d'abord)
  */
 export function verifierSeriePointsDeControle(points, manifeste, evenements, cles) {
@@ -154,23 +179,42 @@ export function verifierSeriePointsDeControle(points, manifeste, evenements, cle
   if (ecartsM.length) throw new TypeError(`manifeste non conforme : ${ecartsM.join(" ; ")}`);
   const erreurs = [];
   const regles = new Set();
+  const nonEvaluees = new Map();
+  let violeesIci = new Set();
   const ecart = (regle, message) => {
     regles.add(regle);
+    violeesIci.add(regle);
     erreurs.push(message);
   };
+  const nonEvaluee = (regle, raison) => {
+    if (violeesIci.has(regle)) return;
+    const cle = `${regle}|${raison}`;
+    if (!nonEvaluees.has(cle)) nonEvaluees.set(cle, { rule: regle, reason: raison });
+  };
   const parSeq = new Map();
-  for (const e of evenements) if (e && typeof e === "object") parSeq.set(e.seq, e);
-  const index = indexerCles(cles, { org_id: manifeste.org_id, journal_id: manifeste.journal_id });
-  // Hash recalculés des événements connus de la période, dans l'ordre des seq,
-  // jusqu'au premier qui manque.
-  const hashesPeriode = [];
-  for (let s = manifeste.first_seq; s <= manifeste.last_seq && parSeq.has(s); s++) hashesPeriode.push(hashRecalcule(parSeq.get(s)));
+  for (const e of evenements) if (e && typeof e === "object" && !Array.isArray(e)) parSeq.set(e.seq, e);
+  // Première partie de E-8 lue sans référence à un événement (CT-1 §10.5).
+  const sansCles = cles === null || cles === undefined;
+  const index = sansCles ? null : indexerCles(cles);
+  const raisonCles = sansCles ? "piece_hors_dossier" : index.exploitable ? null : "prerequis_en_echec";
+  /** Hash recalculé de l'événement seq : { hash } ; { raison } s'il manque ou ne se recalcule pas. */
+  const hashDe = (seq) => {
+    if (!parSeq.has(seq)) return { raison: "piece_hors_dossier" };
+    const h = hashRecalcule(parSeq.get(seq));
+    return h === null ? { raison: "prerequis_en_echec" } : { hash: h };
+  };
   const debutPeriode = manifeste.period_start * 1000;
 
   let precedent = null;
   points.forEach((p, i) => {
+    violeesIci = new Set();
     const ici = `point[${i}]`;
-    const schema = validerSchema("point-de-controle", p);
+    // Racine nulle pour tree_size ≥ 1, ou non nulle pour tree_size = 0 : le
+    // schéma la refuse aussi (allOf), mais CT-1 §10.5 (révision 0.5) la range
+    // sous root ; seul un autre défaut de schéma viole period_start.
+    const racineSeule = estObjet(p) && !validerSchema("point-de-controle", p).valide && Number.isSafeInteger(p.tree_size) && estHex(p.root, 32) &&
+      validerSchema("point-de-controle", { ...p, root: p.tree_size === 0 ? ZERO32 : "0x" + "11".repeat(32) }).valide;
+    const schema = racineSeule ? { valide: true } : validerSchema("point-de-controle", p);
     if (!schema.valide) {
       ecart("period_start", `${ici} : en-tête non conforme au schéma du point (${schema.erreurs[0]})`);
       precedent = null;
@@ -196,26 +240,64 @@ export function verifierSeriePointsDeControle(points, manifeste, evenements, cle
       ecart("checkpoint_ts_decroissant", `${ici} : checkpoint_ts ${p.checkpoint_ts} antérieur au précédent ${precedent.checkpoint_ts}`);
     }
 
-    if (p.tree_size > hashesPeriode.length || hashesPeriode.slice(0, p.tree_size).some((h) => h === null)) {
-      ecart("root", `${ici} : tree_size ${p.tree_size} au-delà des événements connus de la période`);
+    // root (règle 2) : n = 0 exige 32 octets nuls ; n ≥ 1, les événements
+    // first_seq à first_seq + n − 1 fournis, de hash recalculable.
+    const reportsRoot = [];
+    if (p.tree_size === 0) {
+      if (p.root !== ZERO32) ecart("root", `${ici} : root ${p.root} non nulle pour tree_size 0`);
+    } else if (p.root === ZERO32) {
+      ecart("root", `${ici} : root nulle pour tree_size ${p.tree_size}`);
     } else {
-      const racine = racineMerkle(hashesPeriode.slice(0, p.tree_size));
-      if (p.root !== racine) ecart("root", `${ici} : root ${p.root} différent de la racine des ${p.tree_size} premières feuilles (${racine})`);
+      const hashes = [];
+      let raison = null;
+      for (let s = manifeste.first_seq; s < manifeste.first_seq + p.tree_size; s++) {
+        const h = hashDe(s);
+        if (h.raison) {
+          // prerequis_en_echec l'emporte sur piece_hors_dossier (CT-6 EX-6.5).
+          if (raison !== "prerequis_en_echec") raison = h.raison;
+        } else hashes.push(h.hash);
+      }
+      if (raison) reportsRoot.push(raison);
+      else {
+        const racine = racineMerkle(hashes);
+        if (p.root !== racine) ecart("root", `${ici} : root ${p.root} différent de la racine recalculée ${racine}`);
+      }
     }
     const lastSeqAttendu = manifeste.first_seq + p.tree_size - 1;
     if (p.last_seq !== lastSeqAttendu) ecart("last_seq", `${ici} : last_seq ${p.last_seq} différent de first_seq + tree_size − 1 (${lastSeqAttendu})`);
-    const lastHash = p.last_seq === 0 ? ZERO32 : hashRecalcule(parSeq.get(p.last_seq));
-    if (lastHash === null) ecart("last_hash", `${ici} : événement ${p.last_seq} inconnu, last_hash invérifiable`);
-    else if (p.last_hash !== lastHash) ecart("last_hash", `${ici} : last_hash ${p.last_hash} différent du hash de l'événement ${p.last_seq} (${lastHash})`);
+    // tree_size supérieur à count : last_seq dépasse celui du manifeste.
+    if (p.tree_size > manifeste.count) ecart("last_seq", `${ici} : tree_size ${p.tree_size} supérieur à count ${manifeste.count}`);
+    // last_hash (règle 2) : last_seq = 0 exige 32 octets nuls ; sinon
+    // l'événement last_seq fourni, de hash recalculable, et 32 octets nuls ne
+    // le remplacent jamais.
+    const reportsLast = [];
+    if (p.last_seq === 0) {
+      if (p.last_hash !== ZERO32) ecart("last_hash", `${ici} : last_hash ${p.last_hash} non nul pour last_seq 0`);
+    } else {
+      const h = hashDe(p.last_seq);
+      if (h.raison) reportsLast.push(h.raison);
+      else if (p.last_hash !== h.hash) ecart("last_hash", `${ici} : last_hash ${p.last_hash} différent du hash de l'événement ${p.last_seq} (${h.hash})`);
+    }
 
-    const attendue = cleEnVigueur(parSeq, p.last_seq, { indexCles: index, instant: ts });
-    if (p.key_id !== attendue) ecart("cle_en_vigueur", `${ici} : key_id ${p.key_id}, clé en vigueur attendue ${attendue}`);
-    const cle = index.exploitable ? index.cles.get(p.key_id) : undefined;
-    if (!cle || !verifierSignaturePoint(p, cle.octets)) ecart("signature", `${ici} : signature invalide sous ${p.key_id}`);
-    if (cle && ts !== null && !dansValidite(cle, ts)) ecart("validite_cle", `${ici} : checkpoint_ts ${p.checkpoint_ts} hors de la validité de la clé ${p.key_id}`);
+    const reportsCles = [];
+    if (parSeq.has(p.last_seq) || !raisonCles) {
+      const attendue = cleEnVigueur(parSeq, p.last_seq, { indexCles: index, instant: ts });
+      if (p.key_id !== attendue) ecart("cle_en_vigueur", `${ici} : key_id ${p.key_id}, clé en vigueur attendue ${attendue}`);
+    } else reportsCles.push("cle_en_vigueur");
+    if (raisonCles) reportsCles.push("signature", "validite_cle");
+    else {
+      const cle = index.cles.get(p.key_id);
+      if (!cle) ecart("signature", `${ici} : clé ${p.key_id} absente du jeu de clés`);
+      else if (!verifierSignaturePoint(p, cle.octets)) ecart("signature", `${ici} : signature invalide sous ${p.key_id}`);
+      if (cle && ts !== null && !dansValidite(cle, ts)) ecart("validite_cle", `${ici} : checkpoint_ts ${p.checkpoint_ts} hors de la validité de la clé ${p.key_id}`);
+    }
+    for (const r of reportsRoot) nonEvaluee("root", r);
+    for (const r of reportsLast) nonEvaluee("last_hash", r);
+    for (const regle of reportsCles) nonEvaluee(regle, raisonCles);
     precedent = p;
   });
 
+  violeesIci = new Set();
   const dernier = points[points.length - 1];
   if (!dernier) {
     ecart("dernier_point", "série vide : aucun point ne rejoint le manifeste");
@@ -226,5 +308,14 @@ export function verifierSeriePointsDeControle(points, manifeste, evenements, cle
       ecart("dernier_point", `dernier point : last_seq ${dernier.last_seq} différent de celui du manifeste ${manifeste.last_seq}`);
     }
   }
-  return { valide: erreurs.length === 0, rules_failed: REGLES_SERIE.filter((r) => regles.has(r)), errors: erreurs };
+  const rangs = new Map(REGLES_SERIE.map((r, k) => [r, k]));
+  const rangRaison = (r) => (r === "prerequis_en_echec" ? 0 : 1);
+  const rulesNotEvaluated = [...nonEvaluees.values()].sort((x, y) => rangs.get(x.rule) - rangs.get(y.rule) || rangRaison(x.reason) - rangRaison(y.reason));
+  const rulesFailed = REGLES_SERIE.filter((r) => regles.has(r));
+  return {
+    valide: rulesFailed.length === 0 && rulesNotEvaluated.length === 0,
+    rules_failed: rulesFailed,
+    rules_not_evaluated: rulesNotEvaluated,
+    errors: erreurs,
+  };
 }

@@ -209,3 +209,20 @@ export function encoderBase64(octets) {
 export function utf8(texte) {
   return new TextEncoder().encode(texte);
 }
+
+// Blancs de CT-1 §3 (révision 0.5) : la propriété Unicode White_Space et
+// U+FEFF. Un caractère hors de cette classe rend une chaîne « non vide ».
+const NON_BLANC = /[^\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/u;
+
+/**
+ * Chaîne non vide au sens de CT-1 §3 (révision 0.5) : une chaîne qui contient
+ * au moins un caractère qui n'est pas un blanc (propriété Unicode White_Space,
+ * et U+FEFF). La chaîne vide, une chaîne de blancs et toute valeur qui n'est
+ * pas une chaîne n'en sont pas. S'applique à la raison d'absence d'une partie
+ * (D-2) et à `policy.redaction` (E-4).
+ * @param {unknown} valeur
+ * @returns {boolean}
+ */
+export function chaineNonVide(valeur) {
+  return typeof valeur === "string" && NON_BLANC.test(valeur);
+}

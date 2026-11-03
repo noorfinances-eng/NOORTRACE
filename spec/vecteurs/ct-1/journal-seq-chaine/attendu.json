@@ -1,0 +1,24 @@
+{
+  "valide": false,
+  "description": "Le seq de seq 11 est écrit en chaîne (\"11\"), événement rescellé, seq 12 rechaîné sur lui et rescellé : E-1 pour l'événement (schéma ; seq nul au symptôme, son seq n'étant pas un entier) ; au deuxième temps, seuls les seq entiers comptent (CT-1 §7.2, révision 0.5) : un trou entre seq 10 et seq 12 (suppression, C-1), et aucun réordonnancement, seq 12 étant comparé à seq 10, le dernier événement à seq entier qui le précède dans le fichier ; au troisième temps, les liens tiennent (hash, ts, identifiants et clés).",
+  "controles_en_echec": [
+    "E-1",
+    "C-1"
+  ],
+  "diagnostics": [
+    {
+      "type": "schema",
+      "controle": "E-1",
+      "seq": null
+    },
+    {
+      "type": "suppression",
+      "controle": "C-1",
+      "seq": 12
+    }
+  ],
+  "messages": [
+    "seq null : /seq : type integer attendu",
+    "trou entre seq 10 et seq 12 : 1 événement(s) supprimé(s)"
+  ]
+}

@@ -3,7 +3,10 @@
 
 // Résultats de contrôles numérotés (CT-1 §11.4). Un contrôle est passé,
 // échoué, non exécuté (pièce absente ou donnée non vérifiable, avec raison)
-// ou hors périmètre de ce vérificateur (E-9, signatures EIP-191).
+// ou hors périmètre (état gardé pour les codes qui réemploient ce module ;
+// depuis la révision 0.5, aucun contrôle de CT-1 n'est hors périmètre ici :
+// E-9 recouvre les adresses, et une partie réservée ou une ancre de point
+// non vérifiée est « non exécutée, sans raison admise »).
 
 package main
 

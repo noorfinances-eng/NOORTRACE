@@ -910,7 +910,13 @@ export async function collecterObservations({ profil, configuration = null, chem
 // Dimensionnement (CT-8 §9)
 // ---------------------------------------------------------------------------
 
-/** Coefficients par défaut de la table de 9.2 (EX-9.1). */
+/**
+ * Coefficients par défaut de la table de 9.2 (EX-9.1). `b_cap` (CT-8 0.2) :
+ * capture d'une transaction d'un bloc plein de 64 transactions, telle que
+ * CT-4 EX-9.2 l'écrit (en-tête, reçu de chaque transaction du bloc,
+ * certificat, index), mesure TM-31 de CT-9 du 2026-11-02 : 109 479 octets de
+ * fichiers JSON-RPC plus 14 282 octets d'index.
+ */
 export const COEFFICIENTS = Object.freeze({
   b_pt: 682,
   b_man: 916,
@@ -918,7 +924,7 @@ export const COEFFICIENTS = Object.freeze({
   b_der: 3114,
   b_tsr_sup: 9,
   b_ots: 233,
-  b_cap: 11096,
+  b_cap: 123761,
   gaz_ancre: 96977,
   gaz_cloture: 314256,
   tx_par_bloc: 64,

@@ -31,14 +31,19 @@ type verif struct {
 	res [12]commun.Verification // T-1 à T-11, index 1 à 11
 	j   *jeton
 
-	// T-4 : candidats (jeton puis ancre, sans doublon) et signataire S.
-	autorites []*certificat // certificat de chaque autorité, ou nil
-	cands     []*certificat
-	s         *certificat
+	// T-4 : candidats (jeton puis ancre, sans doublon) et signataire S ;
+	// candsJeton : nombre de candidats venus du jeton.
+	autorites  []*certificat // certificat de chaque autorité, ou nil
+	cands      []*certificat
+	candsJeton int
+	s          *certificat
 	// T-5
 	digest crypto.Hash
 	sig    signature
 	cleS   *cle
+	// horsVersion : cas 2 d'EX-9.24 avec rattachement (T-5
+	// hors_perimetre_version) ; le contrôle 4 n'établit aucune date.
+	horsVersion bool
 	// T-9
 	gen   instant
 	prec  *precision
@@ -250,6 +255,7 @@ func (v *verif) chargerCandidats() {
 	for _, c := range v.j.certificats {
 		ajouter(c)
 	}
+	v.candsJeton = len(v.cands)
 	if v.e.Ancres == nil {
 		return
 	}
@@ -296,11 +302,8 @@ func (v *verif) t4() {
 		}
 	}
 	switch {
-	case len(designes) == 0 && v.e.Ancres == nil:
-		v.poser(4, commun.NonExecute, commun.AncreAbsente, "aucun certificat du jeton n'est désigné par sid, et aucun fichier d'ancres n'est fourni", "no token certificate is designated by sid, and no anchors file is given")
-		return
 	case len(designes) == 0:
-		v.poser(4, commun.NonExecute, commun.AncreAbsente, "le certificat désigné par sid n'est ni dans le jeton ni dans le fichier d'ancres (intermediates)", "the certificate designated by sid is neither in the token nor in the anchors file (intermediates)")
+		v.t4SansCandidat()
 		return
 	case len(designes) > 1:
 		v.poser(4, commun.Echoue, "", fmt.Sprintf("%d certificats distincts désignés par sid", len(designes)), fmt.Sprintf("%d distinct certificates designated by sid", len(designes)))
@@ -352,6 +355,51 @@ func (v *verif) t4() {
 	v.s = s
 	sha := cryptographie.Hex32(s.sha256)
 	v.poser(4, commun.Reussi, "", "certificat signataire « "+unite(s)+" » ("+sha+") désigné par sid et par l'identifiant signé", "signer certificate “"+unite(s)+"” ("+sha+") designated by sid and by the signed identifier")
+}
+
+// autoriteHorodatage dit si le fichier d'ancres porte au moins une autorité
+// d'horodatage (tsa_authorities non vide).
+func (v *verif) autoriteHorodatage() bool {
+	return v.e.Ancres != nil && len(v.e.Ancres.Autorites) > 0
+}
+
+// sidTexte nomme le sid du jeton dans un détail : émetteur et numéro, ou
+// identifiant de clé.
+func (v *verif) sidTexte() (string, string) {
+	g := v.j.sig
+	if g.version == 1 {
+		em := cryptographie.Hex(g.sidEmetteur)
+		if cn, d := analyserNom(g.sidEmetteur); d == nil && cn != nil {
+			em = "CN=" + *cn
+		}
+		n := cryptographie.Hex(g.sidSerie)
+		return "issuerAndSerialNumber (émetteur " + em + ", numéro " + n + ")", "issuerAndSerialNumber (issuer " + em + ", serial " + n + ")"
+	}
+	k := cryptographie.Hex(g.sidSKI)
+	return "subjectKeyIdentifier " + k, "subjectKeyIdentifier " + k
+}
+
+// t4SansCandidat applique EX-9.10 (révision 0.4) quand sid ne désigne aucun
+// candidat : échec dès que le fichier d'ancres porte une autorité
+// d'horodatage, ou que le jeton porte le champ certificates ; ancre absente
+// seulement pour un jeton sans certificats vérifié sans aucune autorité.
+// Une falsification ne doit jamais passer pour une absence (EX-6.6).
+func (v *verif) t4SansCandidat() {
+	sidFr, sidEn := v.sidTexte()
+	nJ, nA := v.candsJeton, len(v.cands)-v.candsJeton
+	if !v.autoriteHorodatage() && !v.j.certificatsPresents {
+		v.poser(4, commun.NonExecute, commun.AncreAbsente,
+			"le jeton ne porte aucun certificat et aucune autorité d'horodatage n'est fournie : le signataire désigné par "+sidFr+" n'est pas identifiable (EX-9.10)",
+			"the token carries no certificate and no time-stamping authority is given: the signer designated by "+sidEn+" cannot be identified (EX-9.10)")
+		return
+	}
+	motif, motifEn := "le jeton porte le champ certificates sans le certificat de l'unité (RFC 3161 §2.4.1)", "the token carries the certificates field without the unit certificate (RFC 3161 §2.4.1)"
+	if v.autoriteHorodatage() {
+		motif, motifEn = "introuvable parmi les certificats du jeton et ceux des autorités d'horodatage fournies", "not found among the token certificates and those of the given time-stamping authorities"
+	}
+	v.poser(4, commun.Echoue, "",
+		fmt.Sprintf("%s ne désigne aucun des %d candidat(s) examiné(s) (%d du jeton, %d des ancres) : %s ; si vous tenez le certificat de l'unité pour authentique, ajoutez-le à vos intermediates (EX-9.10)", sidFr, nJ+nA, nJ, nA, motif),
+		fmt.Sprintf("%s designates none of the %d candidate(s) examined (%d from the token, %d from the anchors): %s; if you hold the unit certificate as authentic, add it to your intermediates (EX-9.10)", sidEn, nJ+nA, nJ, nA, motifEn))
 }
 
 // premiereValeur : la première valeur d'un attribut, ou nil (T-3 juge le
@@ -443,42 +491,102 @@ func (v *verif) t5() {
 		return
 	}
 	g := v.j.sig
-	var refus, hors []string
-	var refusEn, horsEn []string
-	noter := func(a admission, d *defaut) {
-		switch a {
-		case refuse:
-			refus, refusEn = append(refus, d.fr), append(refusEn, d.en)
-		case horsPerimetre:
-			hors, horsEn = append(hors, d.fr), append(horsEn, d.en)
-		}
-	}
+	var refus, refusEn []string
+	noter := func(d *defaut) { refus, refusEn = append(refus, d.fr), append(refusEn, d.en) }
 	dh, ok := empreinteParOID(g.digest.oid)
 	if !ok || !admise(dh) || !g.digest.paramsNulOuAbsents() {
-		noter(refuse, defF("digestAlgorithm %s non admis (SHA-256, SHA-384 ou SHA-512, paramètres absents ou NULL)", "digestAlgorithm %s not admitted (SHA-256, SHA-384 or SHA-512, parameters absent or NULL)", g.digest.oid.String()))
+		noter(defF("digestAlgorithm %s non admis (SHA-256, SHA-384 ou SHA-512, paramètres absents ou NULL)", "digestAlgorithm %s not admitted (SHA-256, SHA-384 or SHA-512, parameters absent or NULL)", g.digest.oid.String()))
 	}
 	sig, adm, d := analyserSignature(g.algoSig, dh)
-	noter(adm, d)
-	c, admC, dC := lireCle(v.s.spki)
-	noter(admC, dC)
-	if adm == admis && admC == admis && !c.accorde(sig) {
-		noter(refuse, def("le type de la clé du certificat signataire ne convient pas à "+sig.nom, "the signer certificate key type does not fit "+sig.nom))
+	if adm == refuse {
+		noter(d)
 	}
+	c, admC, dC := lireCle(v.s.spki)
+	if admC == refuse {
+		noter(dC)
+	}
+	genre := typeCle(v.s.spki)
+	oid := g.algoSig.oid.String()
 	switch {
-	case len(refus) > 0:
+	case adm == admis && admC == admis && !c.accorde(sig):
+		noter(def("le type de la clé du certificat signataire ne convient pas à "+sig.nom, "the signer certificate key type does not fit "+sig.nom))
+	case adm == horsPerimetre && admC == admis:
+		// EX-9.24, cas 1 : clé admise, algorithme qui ne l'est pas ;
+		// signatureAlgorithm n'est pas signé, seul un jeton altéré déclare
+		// autre chose.
+		noter(defF("signatureAlgorithm %s non admis sous une clé %s admise (EX-9.24, cas 1)", "signatureAlgorithm %s not admitted under an admitted %s key (EX-9.24, case 1)", oid, genre))
+	case adm == admis && admC == horsPerimetre:
+		// EX-9.24, cas 1, dans l'autre sens.
+		noter(defF("signatureAlgorithm %s admis sous une clé %s hors de la version 0 (EX-9.24, cas 1)", "signatureAlgorithm %s admitted under a %s key outside version 0 (EX-9.24, case 1)", sig.nom, genre))
+	}
+	if len(refus) > 0 {
 		v.poser(5, commun.Echoue, "", joindre(refus), joindre(refusEn))
 		return
-	case len(hors) > 0:
-		v.poser(5, commun.NonExecute, commun.HorsPerimetreVersion, joindre(hors), joindre(horsEn))
+	}
+	if adm == horsPerimetre || admC == horsPerimetre {
+		v.t5HorsVersion(genre, oid)
 		return
 	}
 	v.digest, v.sig, v.cleS = dh, sig, c
-	genre := "RSA"
+	nomGenre := "RSA"
 	if c.ecdsa != nil {
-		genre = "ECDSA"
+		nomGenre = "ECDSA"
 	}
-	v.poser(5, commun.Reussi, "", fmt.Sprintf("digestAlgorithm %s, signatureAlgorithm %s, clé %s de %d bits", nomEmpreinte(dh), sig.nom, genre, c.bits),
-		fmt.Sprintf("digestAlgorithm %s, signatureAlgorithm %s, %s key of %d bits", nomEmpreinte(dh), sig.nom, genre, c.bits))
+	v.poser(5, commun.Reussi, "", fmt.Sprintf("digestAlgorithm %s, signatureAlgorithm %s, clé %s de %d bits", nomEmpreinte(dh), sig.nom, nomGenre, c.bits),
+		fmt.Sprintf("digestAlgorithm %s, signatureAlgorithm %s, %s key of %d bits", nomEmpreinte(dh), sig.nom, nomGenre, c.bits))
+}
+
+// t5HorsVersion applique les cas 2 et 3 d'EX-9.24 (révision 0.4) : clé de S
+// d'un type que la version 0 ne vérifie pas, sous un algorithme qui ne
+// l'est pas non plus. Sans autorité d'horodatage : ancre_absente (cas 3).
+// Avec une autorité : rattachement de S à une autorité par les règles 1 à 7
+// d'EX-9.13, dates comparées au genTime déclaré, choix déterministe ;
+// trouvé : hors_perimetre_version (aucune date n'est établie) ; sinon :
+// échec.
+func (v *verif) t5HorsVersion(genre, oid string) {
+	if !v.autoriteHorodatage() {
+		v.poser(5, commun.NonExecute, commun.AncreAbsente,
+			"clé "+genre+" et algorithme "+oid+" hors de la version 0, sans autorité d'horodatage pour rattacher le certificat de l'unité (EX-9.24, cas 3)",
+			genre+" key and algorithm "+oid+" outside version 0, without a time-stamping authority to attach the unit certificate to (EX-9.24, case 3)")
+		return
+	}
+	if nom, ok := v.rattachement(); ok {
+		v.horsVersion = true
+		v.poser(5, commun.NonExecute, commun.HorsPerimetreVersion,
+			"clé "+genre+" et algorithme "+oid+" hors de la version 0 : signature du jeton non vérifiée ; certificat de l'unité rattaché à l'autorité "+nom+" ; aucune date n'est établie",
+			genre+" key and algorithm "+oid+" outside version 0: token signature not verified; unit certificate attached to authority "+nom+"; no time is established")
+		return
+	}
+	v.poser(5, commun.Echoue, "",
+		"clé "+genre+" et algorithme "+oid+" hors de la version 0, et le certificat de l'unité ne se rattache à aucune autorité du fichier d'ancres (EX-9.24, cas 2)",
+		genre+" key and algorithm "+oid+" outside version 0, and the unit certificate attaches to no authority of the anchors file (EX-9.24, case 2)")
+}
+
+// rattachement cherche, pour le cas 2 d'EX-9.24, la première autorité dans
+// l'ordre de tsa_authorities à laquelle S se rattache par les règles 1 à 7
+// d'EX-9.13 (signatures des certificats sous des algorithmes et des clés
+// admis, EX-9.23 compris ; dates comparées au genTime déclaré par le jeton,
+// que rien n'authentifie). Il rend le nom de l'autorité. L'état de T-7
+// (autorité et chemin retenus) n'est pas modifié.
+func (v *verif) rattachement() (string, bool) {
+	g, ok := lireGenTime(v.j.tst.genTime)
+	if !ok {
+		return "", false
+	}
+	sauve := v.gen
+	v.gen = g
+	defer func() { v.gen = sauve }()
+	politique := v.j.tst.politique.String()
+	for i, a := range v.e.Ancres.Autorites {
+		ac := v.autorites[i]
+		if ac == nil || (a.PolitiquesAdmises != nil && !contientPolitique(a.PolitiquesAdmises, politique)) {
+			continue
+		}
+		if chemin, _ := v.cheminPour(ac); chemin != nil {
+			return a.Nom, true
+		}
+	}
+	return "", false
 }
 
 func joindre(l []string) string {
@@ -712,6 +820,11 @@ func (v *verif) resultat() Resultat {
 				r.AncresEmployees = append(r.AncresEmployees, c.Pointeur)
 			}
 		}
+	}
+	if v.horsVersion && r.Statut == commun.NonExecute {
+		// EX-9.24, cas 2 avec rattachement : ce que dit le rapport pour
+		// qu'aucun lecteur ne croie l'horodatage vérifié.
+		r.Resume = commun.T("signature hors de la version 0, non vérifiée : aucune date établie", "signature outside version 0, not verified: no time established")
 	}
 	if r.Statut == commun.Reussi {
 		r.Faits = v.faits()

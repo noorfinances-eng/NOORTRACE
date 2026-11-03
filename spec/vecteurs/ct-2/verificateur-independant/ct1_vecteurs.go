@@ -394,25 +394,6 @@ func listeEvenements(v *Value) []*Value {
 	return nil
 }
 
-// clesDe charge un cles.json local s'il existe, sinon rend le jeu global.
-func clesDe(rap *Rapport, chemin string, global *JeuCles) *JeuCles {
-	if !fichierExiste(chemin) {
-		return global
-	}
-	v := lireFichierJSON(rap, chemin)
-	if v == nil {
-		return global
-	}
-	j, mq := ChargerCles(v)
-	for _, m := range mq {
-		rap.Erreur("%s : %s", chemin, m)
-	}
-	if j == nil {
-		return global
-	}
-	return j
-}
-
 // familleJournaux traite les répertoires journal-*/ (evenements.json,
 // attendu.json, cles.json facultatif) et, en repli, evenements/**/*.json et
 // chaines/*.json. Rend le journal valide de référence pour les manifestes.
@@ -439,14 +420,22 @@ func familleJournaux(rap *Rapport, racine string, cles *JeuCles, strict bool) []
 			rap.Erreur("%s/evenements.json : aucun événement reconnu", nom)
 			continue
 		}
-		clesLocales := clesDe(rap, filepath.Join(d, "cles.json"), cles)
+		// cles.json du journal (§7.2, révision 0.5) : lu d'abord ; ses
+		// manquements sont un symptôme E-8 de type cles, en tête.
+		clesLocales, defautsCles := cles, []string(nil)
+		if f := filepath.Join(d, "cles.json"); fichierExiste(f) {
+			if v := lireFichierJSON(rap, f); v != nil {
+				clesLocales, defautsCles = ChargerClesDossier(v)
+			}
+		}
 		var attendu *Value
 		if fichierExiste(filepath.Join(d, "attendu.json")) {
 			attendu = lireFichierJSON(rap, filepath.Join(d, "attendu.json"))
 		}
 		valide, ctrl, _ := lireAttendu(attendu)
-		res := ControlerChaine(evs, clesLocales)
+		res, symptomes := ControlerJournal(evs, clesLocales, defautsCles)
 		comparerVerdict(rap, "journaux", nom, valide, ctrl, res, strict)
+		comparerSymptomes(rap, nom, attendu, symptomes)
 		rap.Detail("[journaux] %s\n%s", nom, res.Resume("    "))
 		if valide {
 			journal = evs
@@ -496,6 +485,40 @@ func familleJournaux(rap *Rapport, racine string, cles *JeuCles, strict bool) []
 		rap.Note("famille journaux : aucun répertoire journal-*/ ni fichier evenements/ ou chaines/")
 	}
 	return journal
+}
+
+// comparerSymptomes confronte les symptômes d'un journal (type, contrôle,
+// seq, dans l'ordre de la règle exacte de §7.2, révision 0.5) aux
+// diagnostics de attendu.json ; le texte des messages n'est pas normatif et
+// n'est pas comparé.
+func comparerSymptomes(rap *Rapport, nom string, attendu *Value, symptomes []Symptome) {
+	var obtenus []string
+	for _, s := range symptomes {
+		obtenus = append(obtenus, s.Texte())
+	}
+	diag := attendu.Get("diagnostics")
+	if diag == nil || diag.Kind != KindArray {
+		if va := attendu.Get("valide"); va != nil && va.Kind == KindBool && va.Bool {
+			rap.Comparer("journaux", nom, "symptômes (§7.2)", "aucun", nonVide(strings.Join(obtenus, " "), "aucun"))
+		}
+		return
+	}
+	var att []string
+	for _, x := range diag.Arr {
+		seq := "null"
+		if v := x.Get("seq"); v != nil && v.Kind == KindNumber {
+			seq = v.Num
+		}
+		att = append(att, chaineDe(x, "type")+"/"+chaineDe(x, "controle")+"/"+seq)
+	}
+	rap.Comparer("journaux", nom, "symptômes : type/contrôle/seq dans l'ordre (§7.2, révision 0.5)", nonVide(strings.Join(att, " "), "aucun"), nonVide(strings.Join(obtenus, " "), "aucun"))
+}
+
+func nonVide(s, defaut string) string {
+	if s == "" {
+		return defaut
+	}
+	return s
 }
 
 // valeursJournal confronte les valeurs attendues d'un journal valide : hash,
@@ -1140,6 +1163,17 @@ func familleDossiers(rap *Rapport, racine string, strict bool) {
 		}
 		res := VerifierDossier(d)
 		etiq := "dossiers/" + nom
+		comparerExiger4(rap, etiq, attenduV)
+		if res.Illisible != "" || attenduCode2(attenduV) {
+			// Entrée inutilisable (code 2, sans verdict, §11.4 et §11.5,
+			// révision 0.5) : attendu exit_code = 2 et error_kind.
+			obtenu := "verdict rendu"
+			if res.Illisible != "" {
+				obtenu = "code 2, " + res.TypeErreur
+			}
+			rap.Comparer("dossiers", etiq+" (attendu : "+source+")", "entrée inutilisable (exit_code, error_kind)", verdictAttenduTexte(attenduV, valide, ctrl), obtenu)
+			continue
+		}
 		if nonAdmis := res.NonExecutesNonAdmis(); valide && res.Resultats.Valide() && len(nonAdmis) > 0 {
 			// Aucun échec, mais un contrôle non exécuté sans raison admise rend le dossier invalide (CT-1 §11.4).
 			rap.ComparerAvecNote("dossiers", etiq+" (attendu : "+source+")", "verdict", "valide", "non exécuté sans raison admise : "+strings.Join(nonAdmis, ","), false, "")
@@ -1154,6 +1188,36 @@ func familleDossiers(rap *Rapport, racine string, strict bool) {
 		for _, b := range res.Bornes {
 			rap.Detail("    %s", b)
 		}
+	}
+}
+
+// attenduCode2 dit si un attendu déclare une entrée inutilisable : exit_code
+// = 2 (CT-1 §11.5, révision 0.5 ; aucun autre nom n'est employé).
+func attenduCode2(v *Value) bool {
+	n, ok := entierTypee(v, "exit_code")
+	return ok && n == 2
+}
+
+// verdictAttenduTexte décrit le verdict attendu : « code 2, <error_kind> »
+// pour une entrée inutilisable.
+func verdictAttenduTexte(v *Value, valide bool, ctrl []string) string {
+	if attenduCode2(v) {
+		return "code 2, " + chaineDe(v, "error_kind")
+	}
+	if valide {
+		return "verdict rendu (valide)"
+	}
+	return "verdict rendu (" + strings.Join(ctrl, ",") + ")"
+}
+
+// comparerExiger4 rapporte exit_code_exiger_4 (CT-6 EX-A.3, facultatif) :
+// le code de retour avec --exiger 4, option du vérificateur de CT-6, que ce
+// vérificateur de CT-1 seul n'a pas ; hors périmètre.
+func comparerExiger4(rap *Rapport, etiq string, attendu *Value) {
+	if v := attendu.Get("exit_code_exiger_4"); v != nil {
+		c, _ := Canonique(v)
+		rap.Comparaisons = append(rap.Comparaisons, Comparaison{Famille: "dossiers", Vecteur: etiq, Grandeur: "exit_code_exiger_4", Attendu: string(c), Obtenu: "non recalculé",
+			HorsPerimetre: true, Note: "option --exiger 4 du vérificateur de CT-6 (EX-A.3), hors du texte de CT-1"})
 	}
 }
 
@@ -1354,15 +1418,15 @@ func famillePointsDeControle(rap *Rapport, racine string, cles *JeuCles, journal
 				rap.Comparer("points", nom, "nombre de points", fmt.Sprint(c), fmt.Sprint(len(points)))
 			}
 			rap.Comparer("points", nom, "period_start", fmt.Sprint(entierOuZero(pe, "period_start")), fmt.Sprint(mf.PeriodStart))
-			regles, erreurs := ControlerSerie(points, mf, journal, cles)
+			regles, erreurs, nonEval := ControlerSerie(points, mf, journal, cles, false)
 			obtenu := "valide"
-			if len(regles) > 0 {
-				obtenu = strings.Join(regles, ",") + " (" + strings.Join(erreurs, " ; ") + ")"
+			if len(regles) > 0 || len(nonEval) > 0 {
+				obtenu = strings.Join(regles, ",") + " (" + strings.Join(erreurs, " ; ") + ") ; non évaluées : " + texteNonEvaluees(nonEval)
 			}
-			rap.Comparer("points", nom, "série (§10.5, règles 2 à 5)", "valide", obtenu)
+			rap.Comparer("points", nom, "série (§10.5, règles 2 à 5 ; rules_failed et rules_not_evaluated vides)", "valide", obtenu)
 			var D [][]byte
 			if journal != nil {
-				D, _ = hashesPeriode(journal, mf)
+				D = hashesPeriode(journal, mf)
 			}
 			if last := pe.Get("last"); last != nil && len(points) > 0 {
 				d := LirePoint(points[len(points)-1])
@@ -1397,8 +1461,8 @@ func famillePointsDeControle(rap *Rapport, racine string, cles *JeuCles, journal
 				rap.Comparer("points", etiq, "tree_size", fmt.Sprint(entierOuZero(a, "tree_size")), fmt.Sprint(pt.TreeSize))
 				rap.Comparer("points", etiq, "last_seq", fmt.Sprint(entierOuZero(a, "last_seq")), fmt.Sprint(pt.LastSeq))
 				if journal != nil {
-					if en := CleEnVigueur(journal, pt.LastSeq); en != "" {
-						rap.Comparer("points", etiq, "clé en vigueur (§10.5, règle 5)", chaineDe(a, "key_id"), en)
+					if en, ok := CleEnVigueurPoint(journal, cles, pt.LastSeq, pt.CheckpointTs, pt.TsOK); ok {
+						rap.Comparer("points", etiq, "clé en vigueur (§10.5, règle 5, révision 0.5)", chaineDe(a, "key_id"), en)
 					}
 				}
 				rap.Comparer("points", etiq, "key_id du point", chaineDe(a, "key_id"), pt.KeyID)
@@ -1450,6 +1514,7 @@ func famillePointsDeControle(rap *Rapport, racine string, cles *JeuCles, journal
 			}
 		}
 	}
+	evenementsPartiels(rap, racine, dir, attendu, lirePoints)
 	if invalides := attendu.Get("invalides"); invalides != nil && invalides.Kind == KindArray {
 		for _, inv := range invalides.Arr {
 			nom := "points-de-controle/" + chaineDe(inv, "file")
@@ -1464,9 +1529,82 @@ func famillePointsDeControle(rap *Rapport, racine string, cles *JeuCles, journal
 					attendues = append(attendues, chaineDe(x, ""))
 				}
 			}
-			regles, _ := ControlerSerie(points, mf, journal, cles)
+			regles, _, nonEval := ControlerSerie(points, mf, journal, cles, false)
 			rap.Comparer("points", nom, "règles violées (§10.5)", strings.Join(attendues, ","), strings.Join(regles, ","))
+			// Révision 0.5 : rules_not_evaluated absent vaut liste vide.
+			rap.Comparer("points", nom, "règles non évaluées (§10.5, révision 0.5)", texteNonEvalueesAttendu(inv.Get("rules_not_evaluated")), texteNonEvaluees(nonEval))
 		}
+	}
+}
+
+// texteNonEvaluees rend « règle:raison » séparés par des virgules (« aucune »
+// pour une liste vide).
+func texteNonEvaluees(l []RegleNonEvaluee) string {
+	if len(l) == 0 {
+		return "aucune"
+	}
+	var out []string
+	for _, x := range l {
+		out = append(out, x.Regle+":"+x.Raison)
+	}
+	return strings.Join(out, ",")
+}
+
+// texteNonEvalueesAttendu lit rules_not_evaluated d'un attendu.json ([{ rule,
+// reason }] ; absent : liste vide, §10.5).
+func texteNonEvalueesAttendu(v *Value) string {
+	var l []RegleNonEvaluee
+	if v != nil && v.Kind == KindArray {
+		for _, x := range v.Arr {
+			l = append(l, RegleNonEvaluee{chaineDe(x, "rule"), chaineDe(x, "reason")})
+		}
+	}
+	return texteNonEvaluees(l)
+}
+
+// evenementsPartiels rejoue les entrées evenements_partiels de
+// points-de-controle/attendu.json (révision 0.5, CT-1 §13) : { file,
+// manifest, events, keys, rules_failed, rules_not_evaluated }. La série est
+// vérifiée avec les seuls événements du fichier events (absent : aucun) et le
+// cles.json de keys (absent : piece_hors_dossier ; ne passant pas la
+// première partie de E-8 sans événement : prerequis_en_echec).
+func evenementsPartiels(rap *Rapport, racine, dir string, attendu *Value, lirePoints func(string) []*Value) {
+	ep := attendu.Get("evenements_partiels")
+	if ep == nil || ep.Kind != KindArray {
+		return
+	}
+	for i, e := range ep.Arr {
+		nom := fmt.Sprintf("points-de-controle/evenements_partiels[%d] (%s, %s)", i, chaineDe(e, "file"), nonVide(chaineDe(e, "events"), "aucun événement"))
+		points := lirePoints(filepath.Join(dir, chaineDe(e, "file")))
+		mv := lireFichierJSON(rap, filepath.Join(dir, chaineDe(e, "manifest")))
+		if points == nil || mv == nil {
+			continue
+		}
+		var evs []*Value
+		if f, ok := chaineTypee(e, "events"); ok {
+			evs = listeEvenements(lireFichierJSON(rap, filepath.Join(dir, f)))
+			if evs == nil {
+				evs = []*Value{}
+			}
+		}
+		var jeu *JeuCles
+		defectueux := false
+		if f, ok := chaineTypee(e, "keys"); ok {
+			if v := lireFichierJSON(rap, filepath.Join(dir, f)); v != nil {
+				var mq []string
+				jeu, mq = ChargerClesDossier(v)
+				defectueux = len(mq) > 0
+			}
+		}
+		var attendues []string
+		if rf := e.Get("rules_failed"); rf != nil && rf.Kind == KindArray {
+			for _, x := range rf.Arr {
+				attendues = append(attendues, chaineDe(x, ""))
+			}
+		}
+		regles, _, nonEval := ControlerSerie(points, LireManifeste(mv), evs, jeu, defectueux)
+		rap.Comparer("points", nom, "règles violées (§10.5)", nonVide(strings.Join(attendues, ","), "aucune"), nonVide(strings.Join(regles, ","), "aucune"))
+		rap.Comparer("points", nom, "règles non évaluées (§10.5, révision 0.5)", texteNonEvalueesAttendu(e.Get("rules_not_evaluated")), texteNonEvaluees(nonEval))
 	}
 }
 

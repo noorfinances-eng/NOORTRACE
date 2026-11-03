@@ -13,7 +13,7 @@
 //                observations d'un hôte et évaluation IP-1 à IP-13 attendue
 //                (A.4) ;
 //   dimensionnement/
-//                entrées et sorties exactes du calculateur, quinze cas de 9.6
+//                entrées et sorties exactes du calculateur, seize cas de 9.6
 //                (A.5) ;
 //   observation/ marques, correspondance avec CT-3, réponses du service,
 //                journal d'exemple de 12.4, rapport attendu et suites

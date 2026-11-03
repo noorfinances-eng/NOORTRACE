@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "C-1",
+  "controles_en_echec": [
+    "C-1"
+  ],
+  "description": "Dossier de la rotation (seq 9) avec le point de clôture de la période 1 (2026-11-05T10:00:00.300Z, tree_size 9, last_seq 9), dont voisins.json est le littéral null, index recalculé : C-1, qui porte la partie, échoue ; C-2 (sauf la règle d'origine, tenue), C-3, P-3 et les règles E- des voisins ne sont pas exécutées, sans raison admise. last_seq étant le seq de l'événement prouvé, K-6 se juge sur lui seul, quel que soit l'état de voisins.json (CT-1 §10.5, révision 0.5 ; CT-6 EX-5.9) : last_hash égale le hash recalculé de seq 9, K-6 réussie."
+}

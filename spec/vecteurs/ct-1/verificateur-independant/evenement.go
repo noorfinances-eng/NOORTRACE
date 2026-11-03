@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -523,13 +524,132 @@ func NouvelleCleRotation(ev *Value) string {
 	return chaineDe(ev, "execution", "arguments", "value", "new_key_id")
 }
 
-// ControlerEvenement exécute E-1 à E-8, E-10 et E-11 sur un événement isolé.
-// cles peut être nil : les contrôles qui en dépendent sont alors non exécutés.
-// E-9 (EIP-191) est hors périmètre de ce vérificateur.
+// ---------------------------------------------------------------- accès typés
+//
+// CT-1 §11.4 (révision 0.5) : une relation dont un terme est absent, n'a pas
+// le type JSON que le schéma lui donne ou ne se calcule pas n'est pas tenue,
+// et le contrôle qui l'évalue échoue. Les accès ci-dessous disent donc si le
+// terme a le bon type, au lieu de rendre une valeur par défaut.
+
+// valeurAu suit un chemin de membres d'objets ; nil si un maillon manque.
+func valeurAu(v *Value, chemin ...string) *Value {
+	for _, k := range chemin {
+		v = v.Get(k)
+	}
+	return v
+}
+
+// chaineTypee rend la chaîne au chemin donné, et false si le terme est
+// absent ou n'est pas une chaîne.
+func chaineTypee(v *Value, chemin ...string) (string, bool) {
+	v = valeurAu(v, chemin...)
+	if v == nil || v.Kind != KindString {
+		return "", false
+	}
+	return v.Str, true
+}
+
+// entierTypee rend la valeur d'un nombre entier (dans int64), et false sinon.
+func entierTypee(v *Value, chemin ...string) (int64, bool) {
+	v = valeurAu(v, chemin...)
+	if v == nil || v.Kind != KindNumber {
+		return 0, false
+	}
+	n, ok := estEntierJSON(v.Num)
+	if !ok || !n.IsInt64() {
+		return 0, false
+	}
+	return n.Int64(), true
+}
+
+// estObjet dit si la valeur est un objet JSON.
+func estObjet(v *Value) bool { return v != nil && v.Kind == KindObject }
+
+// estNul dit si la valeur est présente et vaut null.
+func estNul(v *Value) bool { return v != nil && v.Kind == KindNull }
+
+// SeqTypee rend le seq d'un événement s'il est un entier.
+func SeqTypee(ev *Value) (int64, bool) { return entierTypee(ev, "seq") }
+
+// TsTypee rend le ts d'un événement s'il est une date existante (§3).
+func TsTypee(ev *Value) (time.Time, bool) {
+	s, ok := chaineTypee(ev, "ts")
+	if !ok {
+		return time.Time{}, false
+	}
+	return ParseHorodatage(s)
+}
+
+// estBlanc dit si r est un blanc au sens de CT-1 §3 (révision 0.5) : les
+// points de code de la propriété Unicode White_Space, et U+FEFF.
+func estBlanc(r rune) bool {
+	switch {
+	case r >= 0x09 && r <= 0x0D, r == 0x20, r == 0x85, r == 0xA0, r == 0x1680,
+		r >= 0x2000 && r <= 0x200A, r == 0x2028, r == 0x2029, r == 0x202F,
+		r == 0x205F, r == 0x3000, r == 0xFEFF:
+		return true
+	}
+	return false
+}
+
+// ChaineNonVide dit si s contient au moins un caractère qui n'est pas un
+// blanc (CT-1 §3, révision 0.5) : la chaîne vide et une chaîne de blancs ne
+// sont pas des chaînes non vides.
+func ChaineNonVide(s string) bool {
+	for _, r := range s {
+		if !estBlanc(r) {
+			return true
+		}
+	}
+	return false
+}
+
+// HashCalculable recalcule le hash d'un événement qui est un objet dont la
+// forme canonique se calcule ; false sinon (le hash d'un voisin qui n'est pas
+// un objet ne se calcule pas, §11.4).
+func HashCalculable(ev *Value) ([]byte, bool) {
+	if !estObjet(ev) {
+		return nil, false
+	}
+	h, _, err := HashEvenement(ev)
+	if err != nil {
+		return nil, false
+	}
+	return h, true
+}
+
+// ObjetA construit l'objet signé A = { decision, journal_id, org_id,
+// request_hash, ticket } depuis l'événement (§6.3), avec les valeurs lues ;
+// false si l'un des termes est absent ou n'est pas une chaîne.
+func ObjetA(ev *Value) (*Value, bool) {
+	a := ev.Get("approval")
+	var obj []Member
+	for _, k := range []struct{ cle, ou string }{{"decision", "approval"}, {"journal_id", ""}, {"org_id", ""}, {"request_hash", "approval"}, {"ticket", "approval"}} {
+		src := ev
+		if k.ou == "approval" {
+			src = a
+		}
+		s, ok := chaineTypee(src, k.cle)
+		if !ok {
+			return nil, false
+		}
+		obj = append(obj, Member{Key: k.cle, Val: &Value{Kind: KindString, Str: s}})
+	}
+	return &Value{Kind: KindObject, Obj: obj}, true
+}
+
+// ControlerEvenement exécute E-1 à E-11 sur un événement isolé (E-9 :
+// forme des signatures et recouvrement des adresses, révision 0.5). cles peut
+// être nil : les contrôles qui en dépendent sont alors non exécutés. Un
+// événement qui n'est pas un objet met E-1 en échec, et E-2 à E-11 ne s'y
+// exécutent pas (§11.4).
 func ControlerEvenement(ev *Value, cles *JeuCles) *Resultats {
 	r := NouveauxResultats()
 	if ev == nil || ev.Kind != KindObject {
 		r.Echec("E-1", "l'événement n'est pas un objet JSON")
+		for _, id := range []string{"E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11"} {
+			r.NonExecute(id, "l'événement n'est pas un objet JSON (prerequis_en_echec)")
+		}
 		return r
 	}
 	// E-1
@@ -546,7 +666,7 @@ func ControlerEvenement(ev *Value, cles *JeuCles) *Resultats {
 	controlerSorte(r, ev)
 	// E-4
 	controlerRedaction(r, ev)
-	// E-5
+	// E-5 et E-9
 	controlerApprobationForme(r, ev)
 	// E-6
 	controlerReferencesEnLigne(r, ev)
@@ -556,8 +676,8 @@ func ControlerEvenement(ev *Value, cles *JeuCles) *Resultats {
 		r.NonExecute("E-7", "forme canonique impossible")
 		r.NonExecute("E-8", "forme canonique impossible")
 	} else {
-		if got := Hex0x(hash); got != chaineDe(ev, "hash") {
-			r.Echec("E-7", "hash recalculé %s ≠ hash porté %s", got, chaineDe(ev, "hash"))
+		if got, porte := Hex0x(hash), chaineDe(ev, "hash"); got != porte {
+			r.Echec("E-7", "hash recalculé %s ≠ hash porté %s", got, porte)
 		}
 		r.Passe("E-7")
 		// E-8
@@ -572,118 +692,176 @@ func ControlerEvenement(ev *Value, cles *JeuCles) *Resultats {
 	return r
 }
 
+// controlerSorte applique la règle exacte de E-3 (CT-1 §5.3, révision 0.5).
 func controlerSorte(r *Resultats, ev *Value) {
+	echec := func(format string, args ...any) { r.Echec("E-3", format, args...) }
+	defer r.Passe("E-3")
 	x := ev.Get("execution")
-	tool := Outil(ev)
+	tool, okTool := chaineTypee(x, "tool")
+	if !okTool {
+		// execution.tool qui n'est pas une chaîne : la sorte ne se lit pas
+		// (§11.4, « Autres termes mal typés », révision 0.5).
+		echec("execution.tool absent ou qui n'est pas une chaîne : sorte illisible")
+		return
+	}
 	sorte := SorteDe(tool)
-	status := chaineDe(x, "status")
-	res := x.Get("result")
-	val := x.Get("arguments").Get("value")
+	if sorte == SorteReserveInconnue {
+		// Aucune autre règle de E-3 ne s'applique à cet événement.
+		echec("execution.tool %q dans l'espace réservé noortrace. sans être l'un des quatre noms", tool)
+		return
+	}
+	quoi := "appel d'outil"
+	if sorte != SorteOutil {
+		quoi = tool
+	}
+	decision, okDec := chaineTypee(ev, "policy", "decision")
 	approval := ev.Get("approval")
-	decisionPol := chaineDe(ev, "policy", "decision")
+	status, okSt := chaineTypee(x, "status")
+	res, dur, ise := valeurAu(x, "result"), valeurAu(x, "duration_ms"), valeurAu(x, "is_error")
+	effets := ev.Get("effects")
+	effetsVides := func() {
+		if effets == nil || effets.Kind != KindArray || len(effets.Arr) != 0 {
+			echec("%s : effects doit être un tableau vide", quoi)
+		}
+	}
+	executee := func() {
+		if !estObjet(res) {
+			echec("%s : execution.result doit être une référence", quoi)
+		}
+		if n, ok := entierTypee(dur); !ok || n < 0 {
+			echec("%s : execution.duration_ms doit être un entier ≥ 0", quoi)
+		}
+		if ise == nil || ise.Kind != KindBool {
+			echec("%s : execution.is_error doit être un booléen", quoi)
+		}
+	}
+	nuls := func() {
+		if !estNul(res) || !estNul(dur) || !estNul(ise) {
+			echec("%s : execution.result, duration_ms et is_error doivent être null", quoi)
+		}
+	}
+	approvalNul := func() {
+		if !estNul(approval) {
+			echec("%s : approval doit être null", quoi)
+		}
+	}
+	sansObjet := func() {
+		if !okDec || decision != "sans_objet" {
+			echec("%s : policy.decision doit valoir sans_objet", quoi)
+		}
+	}
+	statutExecute := func() {
+		if !okSt || status != "executee" {
+			echec("%s : execution.status doit valoir executee", quoi)
+		}
+	}
 	switch sorte {
-	case SorteReserveInconnue:
-		r.Echec("E-3", "execution.tool %q dans l'espace réservé noortrace. sans être l'un des quatre noms", tool)
-	case SorteApprobation, SorteRotation, SortePolitique:
-		if val == nil {
-			r.Echec("E-3", "%s : execution.arguments doit être une référence en ligne (value)", tool)
+	case SorteOutil:
+		// Règle 1 : appel d'outil.
+		if !okDec || !dansEnum(decision, []string{"autorise", "a_approuver", "refuse"}) {
+			echec("appel d'outil : policy.decision doit valoir autorise, a_approuver ou refuse")
 		}
-		if res != nil && res.Kind != KindNull {
-			r.Echec("E-3", "%s : execution.result doit être null", tool)
+		if approval == nil {
+			echec("appel d'outil : approval absent")
+		} else if !estNul(approval) && decision != "a_approuver" {
+			echec("appel d'outil : approval non nul avec policy.decision %q (seulement avec a_approuver)", decision)
 		}
-		if d := x.Get("duration_ms"); d != nil && d.Kind != KindNull {
-			r.Echec("E-3", "%s : execution.duration_ms doit être null", tool)
-		}
-		if e := x.Get("is_error"); e != nil && e.Kind != KindNull {
-			r.Echec("E-3", "%s : execution.is_error doit être null", tool)
-		}
-		if status != "" && status != "executee" {
-			r.Echec("E-3", "%s : execution.status doit valoir executee", tool)
-		}
-		if it := ev.Get("intent"); it != nil && it.Kind != KindNull {
-			r.Echec("E-3", "%s : intent doit être null", tool)
-		}
-		if decisionPol != "" && decisionPol != "sans_objet" {
-			r.Echec("E-3", "%s : policy.decision doit valoir sans_objet", tool)
-		}
-		if sorte == SorteApprobation {
-			if approval == nil || approval.Kind == KindNull {
-				r.Echec("E-3", "%s : approval ne peut pas être null", tool)
-			} else if val != nil {
-				controlerObjetSigneApprobation(r, ev, val)
+		decApp, okDecApp := chaineTypee(approval, "decision")
+		switch {
+		case !okSt:
+			echec("appel d'outil : execution.status absent ou mal typé")
+		case status == "retenue":
+			if decision != "a_approuver" || !estNul(approval) {
+				echec("appel d'outil retenu : policy.decision a_approuver et approval nul attendus")
 			}
-		} else {
-			if approval != nil && approval.Kind != KindNull {
-				r.Echec("E-3", "%s : approval doit être null", tool)
+			nuls()
+			effetsVides()
+		case status == "executee":
+			if !(decision == "autorise" || (decision == "a_approuver" && estObjet(approval) && okDecApp && decApp == "approuve")) {
+				echec("appel d'outil exécuté : policy.decision autorise, ou a_approuver avec approval.decision approuve, attendus")
 			}
-			if lb := chaineDe(ev, "delegation", "launched_by"); lb != "" && lb != "noortrace-enregistreur" {
-				r.Echec("E-3", "%s : delegation.launched_by doit valoir \"noortrace-enregistreur\", reçu %q", tool, lb)
+			executee()
+		case status == "refusee":
+			if !(decision == "refuse" || (decision == "a_approuver" && estObjet(approval) && okDecApp && (decApp == "refuse" || decApp == "expire"))) {
+				echec("appel d'outil refusé : policy.decision refuse, ou a_approuver avec approval.decision refuse ou expire, attendus")
 			}
-		}
-		if sorte == SorteRotation && val != nil {
-			controlerEffetsRotation(r, ev, val)
-		}
-		if sorte == SortePolitique && val != nil {
-			if val.Kind != KindObject || !val.Has("policy_version") || !val.Has("policy_sha256") || len(val.Obj) != 2 {
-				r.Echec("E-3", "%s : value doit porter exactement policy_version et policy_sha256", tool)
-			} else if s := chaineDe(val, "policy_sha256"); !EstHex(s, 32) {
-				r.Echec("E-3", "%s : policy_sha256 doit être 32 octets hexadécimaux", tool)
-			}
+			nuls()
+			effetsVides()
+		default:
+			echec("appel d'outil : execution.status %q inconnu", status)
 		}
 	case SorteModele:
-		// Table 5.3 : l'échange avec le modèle est exécuté et porte la référence à
-		// la réponse, la durée et le drapeau d'erreur.
-		if decisionPol != "" && decisionPol != "sans_objet" {
-			r.Echec("E-3", "%s : policy.decision doit valoir sans_objet", tool)
+		// Règle 2 : échange avec le modèle ; intent et effects non contraints.
+		sansObjet()
+		approvalNul()
+		statutExecute()
+		executee()
+	default:
+		// Règle 3 : décision d'approbation, rotation de clé, changement de politique.
+		sansObjet()
+		statutExecute()
+		nuls()
+		if !estNul(ev.Get("intent")) {
+			echec("%s : intent doit être null", quoi)
 		}
-		if approval != nil && approval.Kind != KindNull {
-			r.Echec("E-3", "%s : approval doit être null", tool)
+		val := valeurAu(x, "arguments", "value")
+		if val == nil {
+			echec("%s : execution.arguments doit être une référence en ligne (membre value)", quoi)
 		}
-		if status != "" && status != "executee" {
-			r.Echec("E-3", "%s : execution.status doit valoir executee", tool)
-		}
-		if res == nil || res.Kind != KindObject {
-			r.Echec("E-3", "%s : execution.result doit référencer la réponse", tool)
-		}
-		if d := x.Get("duration_ms"); d == nil || d.Kind != KindNumber {
-			r.Echec("E-3", "%s : execution.duration_ms doit être un entier", tool)
-		}
-		if e := x.Get("is_error"); e == nil || e.Kind != KindBool {
-			r.Echec("E-3", "%s : execution.is_error doit être un booléen", tool)
-		}
-	case SorteOutil:
-		if decisionPol == "sans_objet" {
-			r.Echec("E-3", "appel d'outil : policy.decision ne peut pas valoir sans_objet")
-		}
-		aApproval := approval != nil && approval.Kind != KindNull
-		if aApproval && decisionPol != "" && decisionPol != "a_approuver" {
-			r.Echec("E-3", "appel d'outil avec approval : policy.decision doit valoir a_approuver")
-		}
-		switch decisionPol {
-		case "autorise":
-			if status != "" && status != "executee" {
-				r.Echec("E-3", "policy.decision autorise : status executee attendu, reçu %s", status)
+		lanceParEnregistreur := func() {
+			if lb, ok := chaineTypee(ev, "delegation", "launched_by"); !ok || lb != "noortrace-enregistreur" {
+				echec("%s : delegation.launched_by doit valoir \"noortrace-enregistreur\"", quoi)
 			}
-		case "refuse":
-			if status != "" && status != "refusee" {
-				r.Echec("E-3", "policy.decision refuse : status refusee attendu, reçu %s", status)
+		}
+		switch sorte {
+		case SorteApprobation:
+			if !estObjet(approval) {
+				echec("%s : approval doit être un objet", quoi)
 			}
-		case "a_approuver":
-			switch {
-			case !aApproval && status != "" && status != "retenue":
-				r.Echec("E-3", "a_approuver sans approval : status retenue attendu, reçu %s", status)
-			case aApproval && chaineDe(approval, "decision") == "approuve" && status != "" && status != "executee":
-				r.Echec("E-3", "approval approuve : status executee attendu, reçu %s", status)
-			case aApproval && chaineDe(approval, "decision") != "approuve" && status != "" && status != "refusee":
-				r.Echec("E-3", "approval %s : status refusee attendu, reçu %s", chaineDe(approval, "decision"), status)
+			if val != nil {
+				if a, ok := ObjetA(ev); !ok || !memeCanonique(val, a) {
+					ca, _ := Canonique(val)
+					echec("%s : execution.arguments.value (%s) n'a pas la forme canonique de A construit depuis approval", quoi, ca)
+				}
+			}
+			effetsVides()
+		case SorteRotation:
+			approvalNul()
+			lanceParEnregistreur()
+			nouvelle, ok := chaineTypee(val, "new_key_id")
+			attendu := &Value{Kind: KindArray, Arr: []*Value{{Kind: KindObject, Obj: []Member{
+				{Key: "system", Val: &Value{Kind: KindString, Str: "noortrace"}},
+				{Key: "action", Val: &Value{Kind: KindString, Str: "ecriture"}},
+				{Key: "object", Val: &Value{Kind: KindString, Str: "cle:" + nouvelle}},
+				{Key: "amount", Val: &Value{Kind: KindNull}},
+				{Key: "currency", Val: &Value{Kind: KindNull}},
+			}}}}
+			if !ok || !memeCanonique(effets, attendu) {
+				echec("rotation : effects doit être exactement [{noortrace, ecriture, \"cle:<new_key_id>\", null, null}] (§8, règle 4)")
+			}
+		case SortePolitique:
+			approvalNul()
+			lanceParEnregistreur()
+			if val != nil {
+				pv, okPv := chaineTypee(val, "policy_version")
+				ps, okPs := chaineTypee(val, "policy_sha256")
+				switch {
+				case !estObjet(val) || len(val.Obj) != 2 || !okPv || !okPs:
+					echec("%s : value doit être un objet de deux membres exactement, policy_version et policy_sha256 (chaînes)", quoi)
+				case longueurChaine(pv) < 1 || longueurChaine(pv) > 128:
+					echec("%s : policy_version de %d caractères, attendu de 1 à 128", quoi, longueurChaine(pv))
+				case !EstHex(ps, 32):
+					echec("%s : policy_sha256 doit être 32 octets en hexadécimal", quoi)
+				}
 			}
 		}
 	}
-	r.Passe("E-3")
 }
 
 // ObjetSigneApprobation construit A = { decision, journal_id, org_id,
-// request_hash, ticket } depuis l'événement (§6.3).
+// request_hash, ticket } depuis l'événement (§6.3) ; un terme qui n'est pas
+// une chaîne y devient la chaîne vide (pour l'affichage des valeurs des
+// vecteurs ; les contrôles emploient ObjetA).
 func ObjetSigneApprobation(ev *Value) *Value {
 	a := ev.Get("approval")
 	return &Value{Kind: KindObject, Obj: []Member{
@@ -702,32 +880,6 @@ func CondenseApprobation(a *Value) ([]byte, error) {
 		return nil, err
 	}
 	return SHA256Prefixe(PrefixeApprobation, c), nil
-}
-
-func controlerObjetSigneApprobation(r *Resultats, ev *Value, val *Value) {
-	attendu, err1 := Canonique(ObjetSigneApprobation(ev))
-	recu, err2 := Canonique(val)
-	if err1 != nil || err2 != nil {
-		r.Echec("E-3", "objet signé A non canonisable")
-		return
-	}
-	if !bytes.Equal(attendu, recu) {
-		r.Echec("E-3", "execution.arguments.value ≠ A construit depuis approval : %s ≠ %s", recu, attendu)
-	}
-}
-
-func controlerEffetsRotation(r *Resultats, ev *Value, val *Value) {
-	ef := ev.Get("effects")
-	if ef == nil || ef.Kind != KindArray || len(ef.Arr) != 1 {
-		r.Echec("E-3", "rotation : effects doit porter exactement un effet")
-		return
-	}
-	e := ef.Arr[0]
-	objet := "cle:" + chaineDe(val, "new_key_id")
-	if chaineDe(e, "system") != "noortrace" || chaineDe(e, "action") != "ecriture" || chaineDe(e, "object") != objet ||
-		!e.Get("amount").IsNull() || !e.Get("currency").IsNull() {
-		r.Echec("E-3", "rotation : effets attendus {noortrace, ecriture, %q, null, null}", objet)
-	}
 }
 
 // referenceSituee est une référence de charge utile et son chemin.
@@ -755,32 +907,122 @@ func references(ev *Value) []referenceSituee {
 	return out
 }
 
+// controlerRedaction applique E-4 (révision 0.5) : toute référence
+// redacted: true (intent, execution.arguments, execution.result, éléments de
+// context) exige un policy.redaction qui est une chaîne non vide au sens de
+// §3 ; null, "" et une chaîne de blancs mettent E-4 en échec.
 func controlerRedaction(r *Resultats, ev *Value) {
-	red := ev.Get("policy").Get("redaction")
-	for _, rf := range references(ev) {
-		if b := rf.ref.Get("redacted"); b != nil && b.Kind == KindBool && b.Bool {
-			if red == nil || red.Kind != KindString {
-				r.Echec("E-4", "%s rédigée sans policy.redaction", rf.chemin)
-			}
+	red, ok := chaineTypee(ev, "policy", "redaction")
+	var objets []referenceSituee
+	ajouter := func(ch string, v *Value) {
+		if estObjet(v) {
+			objets = append(objets, referenceSituee{ch, v})
+		}
+	}
+	ajouter("intent", ev.Get("intent"))
+	ajouter("execution.arguments", valeurAu(ev, "execution", "arguments"))
+	ajouter("execution.result", valeurAu(ev, "execution", "result"))
+	if cx := ev.Get("context"); cx != nil && cx.Kind == KindArray {
+		for i, c := range cx.Arr {
+			ajouter(fmt.Sprintf("context[%d]", i), c)
+		}
+	}
+	for _, rf := range objets {
+		if b := rf.ref.Get("redacted"); b != nil && b.Kind == KindBool && b.Bool && (!ok || !ChaineNonVide(red)) {
+			r.Echec("E-4", "%s rédigée sans policy.redaction chaîne non vide (§3)", rf.chemin)
 		}
 	}
 	r.Passe("E-4")
 }
 
+// controlerApprobationForme applique E-5 et E-9 à un événement dont approval
+// n'est pas nul (CT-1 §6.3 et §11.4 révision 0.5, CT-6 EX-5.19) :
+// approvers ou signatures qui n'est pas un tableau met E-5 et E-9 en échec ;
+// E-9 parcourt les signatures : une signature sans approvers[i], non
+// canonique (65 octets, s dans la moitié basse, v ∈ {27, 28}), ou dont
+// l'adresse recouvrée sur M = keccak256("\x19Ethereum Signed Message:\n32" ‖
+// D_A) n'est pas approvers[i], la met en échec ; un approbateur sans
+// signature relève de E-5 seule.
 func controlerApprobationForme(r *Resultats, ev *Value) {
 	a := ev.Get("approval")
-	if a == nil || a.Kind != KindObject {
+	if a == nil || a.Kind == KindNull {
+		return
+	}
+	if a.Kind != KindObject {
+		r.Echec("E-5", "approval n'est ni null ni un objet")
+		r.Echec("E-9", "approval n'est ni null ni un objet : aucune signature lisible")
 		return
 	}
 	ap, sg := a.Get("approvers"), a.Get("signatures")
-	if ap != nil && sg != nil && ap.Kind == KindArray && sg.Kind == KindArray && len(ap.Arr) != len(sg.Arr) {
+	tableaux := ap != nil && sg != nil && ap.Kind == KindArray && sg.Kind == KindArray
+	if !tableaux {
+		r.Echec("E-5", "approval.approvers et approval.signatures doivent être des tableaux")
+	} else if len(ap.Arr) != len(sg.Arr) {
 		r.Echec("E-5", "approvers (%d) et signatures (%d) de longueurs différentes", len(ap.Arr), len(sg.Arr))
 	}
-	if t1, t2 := chaineDe(a, "ticket"), chaineDe(ev, "policy", "ticket"); t1 != t2 {
+	t1, ok1 := chaineTypee(a, "ticket")
+	t2, ok2 := chaineTypee(ev, "policy", "ticket")
+	if !ok1 || !ok2 || t1 != t2 {
 		r.Echec("E-5", "approval.ticket %q ≠ policy.ticket %q", t1, t2)
 	}
 	r.Passe("E-5")
-	r.HorsPerimetre("E-9", "signatures EIP-191 (secp256k1, keccak256) hors périmètre de ce vérificateur ; structure contrôlée par E-1 et E-5")
+
+	// E-9 : signatures EIP-191 (§6.3).
+	if !tableaux {
+		r.Echec("E-9", "approval.approvers ou approval.signatures n'est pas un tableau (CT-6 EX-5.19)")
+		return
+	}
+	var m []byte
+	if obj, ok := ObjetA(ev); ok {
+		if da, err := CondenseApprobation(obj); err == nil {
+			m = MessageEIP191(da)
+		}
+	}
+	for i, s := range sg.Arr {
+		if i >= len(ap.Arr) {
+			r.Echec("E-9", "signatures[%d] sans approvers[%d]", i, i)
+			continue
+		}
+		hexsig, ok := chaineTypee(s)
+		if !ok {
+			r.Echec("E-9", "signatures[%d] : chaîne attendue", i)
+			continue
+		}
+		if err := FormeSignatureEIP191(hexsig); err != nil {
+			r.Echec("E-9", "signatures[%d] : %v", i, err)
+			continue
+		}
+		if m == nil {
+			r.Echec("E-9", "signatures[%d] : D_A non calculable (terme de A absent ou mal typé)", i)
+			continue
+		}
+		rec, err := recouvrerSignatureEIP191(m, hexsig)
+		if err != nil {
+			r.Echec("E-9", "signatures[%d] : %v", i, err)
+			continue
+		}
+		if ad, ok := chaineTypee(ap.Arr[i]); !ok || ad != rec {
+			r.Echec("E-9", "signatures[%d] : adresse recouvrée %s ≠ approvers[%d] %s", i, rec, i, ad)
+		}
+	}
+	r.Passe("E-9")
+}
+
+// FormeSignatureEIP191 contrôle la forme d'une signature d'approbateur (§6.3) :
+// 65 octets, s dans la moitié basse de l'ordre de secp256k1, v de 27 ou 28.
+func FormeSignatureEIP191(hexsig string) error {
+	b, err := OctetsHex(hexsig, 65)
+	if err != nil {
+		return err
+	}
+	s, v := new(big.Int).SetBytes(b[32:64]), int(b[64])
+	switch {
+	case v != 27 && v != 28:
+		return fmt.Errorf("v = %d hors de {27, 28}", v)
+	case s.Cmp(secpDemiN) > 0:
+		return fmt.Errorf("s dans la moitié haute de l'ordre : signature non canonique")
+	}
+	return nil
 }
 
 func controlerReferencesEnLigne(r *Resultats, ev *Value) {
@@ -794,8 +1036,8 @@ func controlerReferencesEnLigne(r *Resultats, ev *Value) {
 			r.Echec("E-6", "%s.value non canonisable : %v", rf.chemin, err)
 			continue
 		}
-		if got := Hex0x(SHA256(c)); got != chaineDe(rf.ref, "sha256") {
-			r.Echec("E-6", "%s : sha256 recalculé %s ≠ %s", rf.chemin, got, chaineDe(rf.ref, "sha256"))
+		if got, att := Hex0x(SHA256(c)), chaineDe(rf.ref, "sha256"); got != att {
+			r.Echec("E-6", "%s : sha256 recalculé %s ≠ %s", rf.chemin, got, att)
 		}
 		if n, ok := entierDe(rf.ref, "length"); !ok || n != int64(len(c)) {
 			r.Echec("E-6", "%s : length %d attendu", rf.chemin, len(c))
@@ -805,18 +1047,18 @@ func controlerReferencesEnLigne(r *Resultats, ev *Value) {
 }
 
 func controlerSignatureEvenement(r *Resultats, ev *Value, canonique []byte, cles *JeuCles) {
-	keyID := chaineDe(ev, "recorder_key_id")
+	keyID, okKey := chaineTypee(ev, "recorder_key_id")
 	sig, err := OctetsHex(chaineDe(ev, "sig"), 64)
 	if err != nil {
 		r.Echec("E-8", "sig : %v", err)
 		return
 	}
 	if cles == nil {
-		r.NonExecute("E-8", "aucun jeu de clés fourni")
+		r.NonExecute("E-8", "cles.json inexploitable ou non fourni")
 		return
 	}
 	cle := cles.Trouver(keyID)
-	if cle == nil {
+	if !okKey || cle == nil {
 		r.Echec("E-8", "clé %q absente de cles.json", keyID)
 		return
 	}
@@ -827,6 +1069,8 @@ func controlerSignatureEvenement(r *Resultats, ev *Value, canonique []byte, cles
 	r.Passe("E-8")
 }
 
+// controlerRotation applique E-10 ; chaque égalité porte sur les valeurs
+// lues, et un terme absent ou mal typé la met en échec (§11.4).
 func controlerRotation(r *Resultats, ev *Value, cles *JeuCles) {
 	val := ev.Get("execution").Get("arguments").Get("value")
 	if val == nil || val.Kind != KindObject {
@@ -844,22 +1088,25 @@ func controlerRotation(r *Resultats, ev *Value, cles *JeuCles) {
 			r.Echec("E-10", "annonce de rotation : clé inattendue %q", k)
 		}
 	}
-	if a, b := chaineDe(val, "old_key_id"), chaineDe(ev, "recorder_key_id"); a != b {
-		r.Echec("E-10", "old_key_id %q ≠ recorder_key_id %q", a, b)
+	egal := func(a, b string, okA, okB bool) bool { return okA && okB && a == b }
+	if a, okA := chaineTypee(val, "old_key_id"); !func() bool { b, okB := chaineTypee(ev, "recorder_key_id"); return egal(a, b, okA, okB) }() {
+		r.Echec("E-10", "old_key_id %q ≠ recorder_key_id %q", a, chaineDe(ev, "recorder_key_id"))
 	}
-	if a, b := chaineDe(val, "valid_from"), chaineDe(ev, "ts"); a != b {
-		r.Echec("E-10", "valid_from %q ≠ ts %q", a, b)
+	if a, okA := chaineTypee(val, "valid_from"); !func() bool { b, okB := chaineTypee(ev, "ts"); return egal(a, b, okA, okB) }() {
+		r.Echec("E-10", "valid_from %q ≠ ts %q", a, chaineDe(ev, "ts"))
 	}
-	if a, b := chaineDe(val, "org_id"), chaineDe(ev, "org_id"); a != b {
-		r.Echec("E-10", "org_id de l'annonce ≠ org_id de l'événement")
+	for _, k := range []string{"org_id", "journal_id"} {
+		a, okA := chaineTypee(val, k)
+		b, okB := chaineTypee(ev, k)
+		if !egal(a, b, okA, okB) {
+			r.Echec("E-10", "%s de l'annonce ≠ %s de l'événement", k, k)
+		}
 	}
-	if a, b := chaineDe(val, "journal_id"), chaineDe(ev, "journal_id"); a != b {
-		r.Echec("E-10", "journal_id de l'annonce ≠ journal_id de l'événement")
-	}
-	newID := chaineDe(val, "new_key_id")
+	newID, _ := chaineTypee(val, "new_key_id")
+	oldID, _ := chaineTypee(val, "old_key_id")
 	if !EstIdentifiantCle(newID) {
 		r.Echec("E-10", "new_key_id %q n'est pas un identifiant de clé", newID)
-	} else if newID == chaineDe(val, "old_key_id") {
+	} else if newID == oldID {
 		r.Echec("E-10", "new_key_id égal à old_key_id")
 	}
 	pub, err := OctetsHex(chaineDe(val, "new_public_key"), 32)
@@ -888,21 +1135,26 @@ func controlerRotation(r *Resultats, ev *Value, cles *JeuCles) {
 		r.Echec("E-10", "contresignature de la nouvelle clé : %v", err)
 	}
 	// §8 règle 3 : cles.json annonce valid_from(nouvelle) = valid_to(ancienne) = ts de la rotation.
-	ts, okTs := Ts(ev)
 	if cles == nil {
-		r.NonExecute("E-10", "new_public_key non confrontée à cles.json (aucun jeu de clés fourni)")
+		r.NonExecute("E-10", "new_public_key non confrontée à cles.json (cles.json inexploitable ou non fourni)")
 	} else {
+		ts, okTs := TsTypee(ev)
 		if cle := cles.Trouver(newID); cle == nil {
 			r.Echec("E-10", "new_key_id %q absent de cles.json", newID)
 		} else if !bytes.Equal(cle.PublicKey, pub) {
 			r.Echec("E-10", "new_public_key ≠ clé publique de %q dans cles.json", newID)
-		} else if okTs && !cle.ValidFrom.Equal(ts) {
+		} else if !okTs {
+			r.Echec("E-10", "ts de la rotation n'est pas une date existante : valid_from de %s non comparable", newID)
+		} else if !cle.ValidFrom.Equal(ts) {
 			r.Echec("E-10", "valid_from de %s annoncé dans cles.json (%s) ≠ ts de la rotation (%s)", newID, FormaterHorodatage(cle.ValidFrom), FormaterHorodatage(ts))
 		}
-		if ancienne := cles.Trouver(chaineDe(val, "old_key_id")); ancienne != nil && okTs {
-			if ancienne.ValidTo == nil {
+		if ancienne := cles.Trouver(oldID); ancienne != nil {
+			switch {
+			case !okTs:
+				r.Echec("E-10", "ts de la rotation n'est pas une date existante : valid_to de %s non comparable", ancienne.KeyID)
+			case ancienne.ValidTo == nil:
 				r.Echec("E-10", "valid_to de %s dans cles.json est null : attendu le ts de la rotation (%s)", ancienne.KeyID, FormaterHorodatage(ts))
-			} else if !ancienne.ValidTo.Equal(ts) {
+			case !ancienne.ValidTo.Equal(ts):
 				r.Echec("E-10", "valid_to de %s annoncé dans cles.json (%s) ≠ ts de la rotation (%s)", ancienne.KeyID, FormaterHorodatage(*ancienne.ValidTo), FormaterHorodatage(ts))
 			}
 		}
@@ -910,89 +1162,311 @@ func controlerRotation(r *Resultats, ev *Value, cles *JeuCles) {
 	r.Passe("E-10")
 }
 
+// controlerValiditeCle applique E-11 : un ts qui n'est pas une date
+// existante met E-11 en échec (relation incalculable, §11.4, révision 0.5) ;
+// clé absente de cles.json : non exécuté, l'échec est porté par E-8.
 func controlerValiditeCle(r *Resultats, ev *Value, cles *JeuCles) {
 	if cles == nil {
-		r.NonExecute("E-11", "aucun jeu de clés fourni")
+		r.NonExecute("E-11", "cles.json inexploitable ou non fourni")
 		return
 	}
-	keyID := chaineDe(ev, "recorder_key_id")
+	keyID, _ := chaineTypee(ev, "recorder_key_id")
 	cle := cles.Trouver(keyID)
 	if cle == nil {
-		r.NonExecute("E-11", fmt.Sprintf("clé %q absente de cles.json", keyID))
+		r.NonExecute("E-11", fmt.Sprintf("clé %q absente de cles.json (échec porté par E-8)", keyID))
 		return
 	}
-	ts, ok := Ts(ev)
+	ts, ok := TsTypee(ev)
 	if !ok {
-		r.NonExecute("E-11", "ts illisible")
-		return
-	}
-	if !cle.Couvre(ts) {
+		r.Echec("E-11", "ts n'est pas une date existante : validité de la clé %s non comparable", keyID)
+	} else if !cle.Couvre(ts) {
 		r.Echec("E-11", "ts %s hors de la validité annoncée %s de la clé %s", FormaterHorodatage(ts), cle.Intervalle(), keyID)
 	}
 	r.Passe("E-11")
 }
 
-// ControlerPaire exécute C-1, C-2 et C-3 entre deux événements consécutifs a
-// (seq n) et b (seq n + 1). Les hachages sont recalculés, jamais lus.
-func ControlerPaire(r *Resultats, a, b *Value, etiquette string) {
-	sa, sb := Seq(a), Seq(b)
-	if sa < 0 || sb < 0 || sb != sa+1 {
-		r.Echec("C-1", "%s : seq %d puis %d, attendu %d", etiquette, sa, sb, sa+1)
+// cleAttendueApres rend la clé qui doit signer l'événement suivant a : le
+// new_key_id de a s'il est une rotation, sinon son recorder_key_id (C-3).
+func cleAttendueApres(a *Value) (string, bool) {
+	if EstRotation(a) {
+		return chaineTypee(a, "execution", "arguments", "value", "new_key_id")
 	}
-	ta, oka := Ts(a)
-	tb, okb := Ts(b)
-	if oka && okb && tb.Before(ta) {
+	return chaineTypee(a, "recorder_key_id")
+}
+
+// ControlerPaire exécute C-1, C-2 et C-3 entre deux événements consécutifs a
+// (seq n) et b (seq n + 1) d'un dossier (voisins, §11.4). Les hachages sont
+// recalculés, jamais lus ; un terme absent, mal typé ou incalculable (seq
+// qui n'est pas un entier, ts qui n'est pas une date existante, hash d'un
+// voisin qui n'est pas un objet) met le contrôle qui l'évalue en échec
+// (révision 0.5).
+func ControlerPaire(r *Resultats, a, b *Value, etiquette string) {
+	sa, okA := SeqTypee(a)
+	sb, okB := SeqTypee(b)
+	if !okA || !okB || sb != sa+1 {
+		r.Echec("C-1", "%s : seq %s puis %s, attendus consécutifs", etiquette, texteTerme(a, "seq"), texteTerme(b, "seq"))
+	}
+	ta, oka := TsTypee(a)
+	tb, okb := TsTypee(b)
+	if !oka || !okb {
+		r.Echec("C-1", "%s : ts qui n'est pas une date existante, ordre non comparable", etiquette)
+	} else if tb.Before(ta) {
 		r.Echec("C-1", "%s : ts décroît (%s puis %s)", etiquette, FormaterHorodatage(ta), FormaterHorodatage(tb))
 	}
-	if chaineDe(a, "org_id") != chaineDe(b, "org_id") {
-		r.Echec("C-1", "%s : org_id différents", etiquette)
-	}
-	if chaineDe(a, "journal_id") != chaineDe(b, "journal_id") {
-		r.Echec("C-1", "%s : journal_id différents", etiquette)
+	for _, k := range []string{"org_id", "journal_id"} {
+		x, okx := chaineTypee(a, k)
+		y, oky := chaineTypee(b, k)
+		if !okx || !oky || x != y {
+			r.Echec("C-1", "%s : %s différents", etiquette, k)
+		}
 	}
 	r.Passe("C-1")
-	if hash, _, err := HashEvenement(a); err != nil {
-		r.NonExecute("C-2", etiquette+" : hash du précédent non calculable")
-	} else if got := Hex0x(hash); got != chaineDe(b, "prev_hash") {
-		r.Echec("C-2", "%s : prev_hash %s ≠ hash recalculé du précédent %s", etiquette, chaineDe(b, "prev_hash"), got)
+	ph, okPh := chaineTypee(b, "prev_hash")
+	if hash, ok := HashCalculable(a); !ok {
+		r.Echec("C-2", "%s : hash du précédent non calculable", etiquette)
+	} else if got := Hex0x(hash); !okPh || got != ph {
+		r.Echec("C-2", "%s : prev_hash %s ≠ hash recalculé du précédent %s", etiquette, ph, got)
 	}
-	if chaineDe(b, "prev_hash") == Zero32 {
-		r.Echec("C-2", "%s : prev_hash nul pour seq %d", etiquette, sb)
+	if ph == Zero32 {
+		r.Echec("C-2", "%s : prev_hash nul pour seq %s", etiquette, texteTerme(b, "seq"))
 	}
 	r.Passe("C-2")
-	attendu := chaineDe(a, "recorder_key_id")
-	if EstRotation(a) {
-		attendu = NouvelleCleRotation(a)
-	}
-	if got := chaineDe(b, "recorder_key_id"); got != attendu {
+	attendu, okAtt := cleAttendueApres(a)
+	if got, ok := chaineTypee(b, "recorder_key_id"); !ok || !okAtt || got != attendu {
 		r.Echec("C-3", "%s : recorder_key_id %q, attendu %q", etiquette, got, attendu)
 	}
 	r.Passe("C-3")
 }
 
+// texteTerme rend le texte d'un terme pour les messages (canonique, ou
+// « absent »).
+func texteTerme(v *Value, cle string) string {
+	x := v.Get(cle)
+	if x == nil {
+		return "absent"
+	}
+	c, err := Canonique(x)
+	if err != nil {
+		return "?"
+	}
+	return string(c)
+}
+
 // ControlerPremier exécute la règle « prev_hash nul si et seulement si seq = 1 »
 // (C-2) sur un événement dont on ne tient pas le précédent.
 func ControlerPremier(r *Resultats, ev *Value, etiquette string) {
-	seq := Seq(ev)
-	nul := chaineDe(ev, "prev_hash") == Zero32
-	if (seq == 1) != nul {
-		r.Echec("C-2", "%s : prev_hash %s pour seq %d (nul si et seulement si seq = 1)", etiquette, chaineDe(ev, "prev_hash"), seq)
+	if m, ok := origineFausse(ev); ok {
+		r.Echec("C-2", "%s : %s", etiquette, m)
 	}
 	r.Passe("C-2")
 }
 
-// ControlerChaine exécute les contrôles d'événement sur chaque élément et les
-// contrôles de paire sur chaque couple consécutif.
+// origineFausse applique « prev_hash nul si et seulement si seq = 1 » ; rend
+// le message et true quand la règle n'est pas tenue (terme absent, mal typé,
+// ou équivalence fausse).
+//
+// Exception (CT-1 §7.2 temps 1 et §11.4 « Autres termes mal typés », CT-6
+// EX-5.13, révision 0.5) : la règle n'est évaluée que pour un événement dont
+// seq est un entier ; sinon elle n'est ni tenue ni violée, et E-1 seule porte
+// le défaut. Même règle dans un journal et dans un dossier.
+func origineFausse(ev *Value) (string, bool) {
+	seq, okSeq := SeqTypee(ev)
+	if !okSeq {
+		return "", false
+	}
+	ph, okPh := chaineTypee(ev, "prev_hash")
+	if !okPh {
+		return fmt.Sprintf("seq %d, prev_hash %s : règle d'origine non tenue (terme absent ou mal typé)", seq, texteTerme(ev, "prev_hash")), true
+	}
+	if (seq == 1) != (ph == Zero32) {
+		return fmt.Sprintf("prev_hash %s pour seq %d (nul si et seulement si seq = 1)", ph, seq), true
+	}
+	return "", false
+}
+
+// ---------------------------------------------------------------- journal
+
+// Symptome est un symptôme rapporté par la vérification d'un journal (CT-1
+// §7.2, règle exacte de la révision 0.5) : un type, un contrôle et le seq de
+// l'événement désigné (nil quand aucun).
+type Symptome struct {
+	Type     string
+	Controle string
+	Seq      *int64
+	Message  string
+}
+
+// Texte rend « type/contrôle/seq » (seq « null » quand aucun).
+func (s Symptome) Texte() string {
+	seq := "null"
+	if s.Seq != nil {
+		seq = fmt.Sprint(*s.Seq)
+	}
+	return s.Type + "/" + s.Controle + "/" + seq
+}
+
+// typesSymptomes associe à E-1 à E-11 le type de leurs symptômes (§7.2).
+var typesSymptomes = map[string]string{
+	"E-1": "schema", "E-2": "format", "E-3": "sorte", "E-4": "redaction", "E-5": "approbation",
+	"E-6": "reference", "E-7": "modification", "E-8": "signature", "E-9": "approbateur",
+	"E-10": "rotation", "E-11": "validite_cle",
+}
+
+// ControlerChaine vérifie un journal (CT-1 §7.2) et rend les contrôles ; cles
+// est le cles.json du journal, réputé conforme (voir ControlerJournal).
 func ControlerChaine(evs []*Value, cles *JeuCles) *Resultats {
-	r := NouveauxResultats()
-	for i, ev := range evs {
-		r.Fusionner(ControlerEvenement(ev, cles), fmt.Sprintf("événement %d (seq %d)", i, Seq(ev)))
-	}
-	if len(evs) > 0 {
-		ControlerPremier(r, evs[0], fmt.Sprintf("événement 0 (seq %d)", Seq(evs[0])))
-	}
-	for i := 0; i+1 < len(evs); i++ {
-		ControlerPaire(r, evs[i], evs[i+1], fmt.Sprintf("seq %d → %d", Seq(evs[i]), Seq(evs[i+1])))
-	}
+	r, _ := ControlerJournal(evs, cles, nil)
 	return r
+}
+
+// ControlerJournal applique la règle exacte de la vérification d'un journal
+// (CT-1 §7.2, révision 0.5), en trois temps, et rend les contrôles et les
+// symptômes dans l'ordre de la règle :
+//
+//  1. chaque événement pour lui-même, dans l'ordre du fichier : E-1 à E-11
+//     (profondeur d'au plus 128 comptée depuis l'objet de l'événement, E-1),
+//     puis l'origine (C-2, type origine). cles.json est lu d'abord :
+//     defautsCles porte ses manquements (schéma, dates, unicité, validités) ;
+//     s'il en a, un symptôme E-8 de type cles et de seq nul est rapporté en
+//     tête et E-8 n'est rapporté pour aucun événement (le jeu n'est pas
+//     employé). Sinon son org_id et son journal_id sont comparés à ceux de
+//     chaque événement (E-8, type signature) ;
+//  2. la suite des seq sur tout le fichier (C-1) : insertion, suppression,
+//     réordonnancement ;
+//  3. chaque couple consécutif dans l'ordre du fichier : rupture (C-2),
+//     horodatage, journal (C-1), cle (C-3).
+func ControlerJournal(evs []*Value, cles *JeuCles, defautsCles []string) (*Resultats, []Symptome) {
+	r := NouveauxResultats()
+	var symptomes []Symptome
+	ajouter := func(typ, ctrl string, ev *Value, format string, args ...any) {
+		var seq *int64
+		if ev != nil {
+			if s, ok := SeqTypee(ev); ok {
+				seq = &s
+			}
+		}
+		msg := fmt.Sprintf(format, args...)
+		symptomes = append(symptomes, Symptome{Type: typ, Controle: ctrl, Seq: seq, Message: msg})
+		r.Echec(ctrl, "%s", msg)
+	}
+	etiq := func(i int, ev *Value) string { return fmt.Sprintf("position %d (seq %s)", i, texteTerme(ev, "seq")) }
+
+	// Temps 1.
+	if len(defautsCles) > 0 {
+		ajouter("cles", "E-8", nil, "cles.json : %s", strings.Join(defautsCles, " ; "))
+		cles = nil
+	}
+	for i, ev := range evs {
+		res := ControlerEvenement(ev, cles)
+		if estObjet(ev) {
+			if p := Profondeur(ev); p > ProfondeurV0 {
+				res.Echec("E-1", "profondeur %d de l'événement au-delà de %d (§4, règle 7)", p, ProfondeurV0)
+			}
+			if cles != nil {
+				for _, k := range []string{"org_id", "journal_id"} {
+					attendu := cles.OrgID
+					if k == "journal_id" {
+						attendu = cles.JournalID
+					}
+					if s, ok := chaineTypee(ev, k); !ok || s != attendu {
+						res.Echec("E-8", "%s de l'événement différent de celui de cles.json", k)
+					}
+				}
+			}
+		}
+		for _, id := range []string{"E-1", "E-2", "E-3", "E-4", "E-5", "E-6", "E-7", "E-8", "E-9", "E-10", "E-11"} {
+			c := res.parID[id]
+			if c == nil {
+				continue
+			}
+			if c.Etat == EtatEchoue {
+				ajouter(typesSymptomes[id], id, ev, "%s : %s", etiq(i, ev), strings.Join(c.Details, " ; "))
+				continue
+			}
+			sous := NouveauxResultats()
+			sous.parID[id], sous.ordre = c, []string{id}
+			r.Fusionner(sous, etiq(i, ev))
+		}
+		if estObjet(ev) {
+			if m, faux := origineFausse(ev); faux {
+				ajouter("origine", "C-2", ev, "%s : %s", etiq(i, ev), m)
+			}
+		}
+	}
+
+	// Temps 2 : la suite des seq sur tout le fichier, parmi les seq entiers.
+	type pos struct {
+		i   int
+		seq int64
+		ev  *Value
+	}
+	var entiers []pos
+	for i, ev := range evs {
+		if s, ok := SeqTypee(ev); ok {
+			entiers = append(entiers, pos{i, s, ev})
+		}
+	}
+	occurrences := map[int64][]int{}
+	var ordre []int64
+	for _, p := range entiers {
+		if len(occurrences[p.seq]) == 0 {
+			ordre = append(ordre, p.seq)
+		}
+		occurrences[p.seq] = append(occurrences[p.seq], p.i)
+	}
+	for _, s := range ordre {
+		if o := occurrences[s]; len(o) > 1 {
+			var positions []string
+			for _, i := range o {
+				positions = append(positions, fmt.Sprint(i))
+			}
+			ajouter("insertion", "C-1", evs[o[0]], "seq %d présent %d fois (positions %s) : événement inséré", s, len(o), strings.Join(positions, ", "))
+		}
+	}
+	tries := append([]int64{}, ordre...)
+	sort.Slice(tries, func(i, j int) bool { return tries[i] < tries[j] })
+	for k := 1; k < len(tries); k++ {
+		if tries[k] != tries[k-1]+1 {
+			ajouter("suppression", "C-1", evs[occurrences[tries[k]][0]], "seq %d à %d absents avant seq %d : événement supprimé", tries[k-1]+1, tries[k]-1, tries[k])
+		}
+	}
+	for k := 1; k < len(entiers); k++ {
+		if entiers[k].seq < entiers[k-1].seq {
+			ajouter("reordonnancement", "C-1", entiers[k].ev, "seq %d (position %d) après seq %d (position %d) : ordre du journal non respecté", entiers[k].seq, entiers[k].i, entiers[k-1].seq, entiers[k-1].i)
+		}
+	}
+	r.Passe("C-1")
+
+	// Temps 3 : chaque couple consécutif dans l'ordre du fichier.
+	for i := 0; i+1 < len(evs); i++ {
+		a, b := evs[i], evs[i+1]
+		ph, okPh := chaineTypee(b, "prev_hash")
+		if h, ok := HashCalculable(a); !ok {
+			ajouter("rupture", "C-2", b, "%s : hash de l'événement précédent dans le fichier non calculable", etiq(i+1, b))
+		} else if got := Hex0x(h); !okPh || got != ph {
+			ajouter("rupture", "C-2", b, "%s : prev_hash %s différent du hash recalculé de l'événement précédent dans le fichier, %s (%s)", etiq(i+1, b), ph, etiq(i, a), got)
+		}
+		ta, oka := TsTypee(a)
+		tb, okb := TsTypee(b)
+		if !oka || !okb {
+			ajouter("horodatage", "C-1", b, "%s : ts qui n'est pas une date existante, ordre non comparable avec %s", etiq(i+1, b), etiq(i, a))
+		} else if tb.Before(ta) {
+			ajouter("horodatage", "C-1", b, "%s : ts %s antérieur à celui de %s (%s)", etiq(i+1, b), FormaterHorodatage(tb), etiq(i, a), FormaterHorodatage(ta))
+		}
+		for _, k := range []string{"org_id", "journal_id"} {
+			x, okx := chaineTypee(a, k)
+			y, oky := chaineTypee(b, k)
+			if !okx || !oky || x != y {
+				ajouter("journal", "C-1", b, "%s : org_id ou journal_id différent de celui de %s", etiq(i+1, b), etiq(i, a))
+				break
+			}
+		}
+		attendu, okAtt := cleAttendueApres(a)
+		if got, ok := chaineTypee(b, "recorder_key_id"); !ok || !okAtt || got != attendu {
+			ajouter("cle", "C-3", b, "%s : recorder_key_id %q, attendu %q", etiq(i+1, b), got, attendu)
+		}
+	}
+	r.Passe("C-2")
+	r.Passe("C-3")
+	return r, symptomes
 }

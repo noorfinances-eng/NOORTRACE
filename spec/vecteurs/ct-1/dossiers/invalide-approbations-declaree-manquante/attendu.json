@@ -1,0 +1,9 @@
+{
+  "valide": false,
+  "controle": "A-1",
+  "controles_en_echec": [
+    "D-2",
+    "A-1"
+  ],
+  "description": "invalide-a1-autre-raison (seq 8, approval nul) dont l'index déclare approbations.json présente (SHA-256 quelconque), sans fichier dans le répertoire : D-2 échoue (cas (a)), et A-1, qui juge aussi la déclaration de la partie, échoue que le fichier existe ou non (CT-1 §11.4, cas (a), exception de la révision 0.5 ; CT-6 EX-4.11 point 1, EX-5.16) ; A-2 à A-4 ne sont pas exécutées, sans raison admise."
+}

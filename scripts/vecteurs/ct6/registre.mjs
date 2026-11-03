@@ -126,7 +126,7 @@ function sourceRegistre(capture) {
 }
 
 /** Jeu de validateurs du réseau, dans la forme de validateurs.json et de l'ancre (hauteurs 1 et suivantes). */
-function jeuReseau(capture, validators = capture.validators.validators) {
+export function jeuReseau(capture, validators = capture.validators.validators) {
   return { from_height: 1, to_height: null, validators: validators.map((v) => ({ id: v.id, pubKeyHex: v.pubKeyHex.toLowerCase() })), source: SOURCE_JEU };
 }
 
@@ -318,6 +318,60 @@ function reSigner(certificat) {
   if ("validatorSet" in c) c.validatorSet = jeu;
   if ("validatorSetHash" in c) c.validatorSetHash = hachage;
   return c;
+}
+
+/**
+ * Parties du registre de dossiers de la révision 0.4 de CT-6 (EX-A.23,
+ * valide-precommit-type-tolere et invalide-precommit-type-chaine) : celles de
+ * la variante invalide-r2-jeu-substitue (certificats signés par le jeu
+ * substitué, de clés connues), dans lesquelles le corps de la première ligne
+ * de precommit du certificat de la clôture porte `premier` à la place de
+ * "Type":2 (texte JSON brut, par exemple "\"Type\":1"), et celui de la deuxième
+ * n'a plus de membre Type ; ces deux lignes sont re-signées par le validateur
+ * substitué qu'elles nomment. Rend { registre, certificat_commit, validateurs }.
+ */
+export function partiesPrecommitType(capture, premier) {
+  const v = variantes(capture).find((x) => x.nom === "invalide-r2-jeu-substitue");
+  exiger(v, "variante invalide-r2-jeu-substitue introuvable");
+  const p = copie(v.parties);
+  const hauteurCloture = p.registre.entries.find((e) => e.role === "cloture").block.number;
+  const c = p.certificat_commit.certificates.find((x) => x.height === hauteurCloture);
+  exiger(c && c.precommits.length >= 2, "certificat de la clôture à deux precommits au moins");
+  const cles = new Map([1, 2, 3, 4].map((n) => [`v${n}`, clePriveeSubstitut(n)]));
+  const resigner = (pc, transformer) => {
+    const env = analyserEnveloppe(pc.line);
+    exiger(env.corpsBrut.includes('"Type":2'), "corps de precommit sans \"Type\":2");
+    const corps = transformer(env.corpsBrut);
+    pc.line = signerEnveloppe({ type: env.type, chainId: env.chainId, valsetHash: env.valsetHash, validatorId: env.validatorId, height: env.height, round: env.round, blockHash: env.blockHash, body: corps }, cles.get(env.validatorId));
+    if ("sig" in pc) pc.sig = "0x" + analyserEnveloppe(pc.line).sig.toString("hex");
+  };
+  resigner(c.precommits[0], (corps) => corps.replace('"Type":2', premier));
+  resigner(c.precommits[1], (corps) => corps.replace(',"Type":2', "").replace('"Type":2,', ""));
+  return p;
+}
+
+/**
+ * Parties du registre du dossier invalide-proposition-membre-mal-type (CT-6
+ * EX-11.6, ligne « types des membres connus d'un corps », révision 0.4) :
+ * celles de la variante invalide-r2-jeu-substitue, dont le corps de la ligne
+ * de proposition du certificat de la clôture porte "txsRaw":5 (un nombre à la
+ * place du tableau de chaînes base64), ligne re-signée par le validateur
+ * substitué qu'elle nomme. Rend { registre, certificat_commit, validateurs }.
+ */
+export function partiesPropositionMembreMalType(capture) {
+  const v = variantes(capture).find((x) => x.nom === "invalide-r2-jeu-substitue");
+  exiger(v, "variante invalide-r2-jeu-substitue introuvable");
+  const p = copie(v.parties);
+  const hauteurCloture = p.registre.entries.find((e) => e.role === "cloture").block.number;
+  const c = p.certificat_commit.certificates.find((x) => x.height === hauteurCloture);
+  exiger(c && c.proposal, "certificat de la clôture avec sa proposition");
+  const env = analyserEnveloppe(c.proposal.line);
+  const corps = env.corpsBrut.replace(/"txsRaw":\[[^\]]*\]/, '"txsRaw":5');
+  exiger(corps !== env.corpsBrut && corps.includes('"txsRaw":5'), "corps de proposition sans txsRaw");
+  const cles = new Map([1, 2, 3, 4].map((n) => [`v${n}`, clePriveeSubstitut(n)]));
+  c.proposal.line = signerEnveloppe({ type: env.type, chainId: env.chainId, valsetHash: env.valsetHash, validatorId: env.validatorId, height: env.height, round: env.round, blockHash: env.blockHash, body: corps }, cles.get(env.validatorId));
+  if ("sig" in c.proposal) c.proposal.sig = "0x" + analyserEnveloppe(c.proposal.line).sig.toString("hex");
+  return p;
 }
 
 function quantiteHex(n) {

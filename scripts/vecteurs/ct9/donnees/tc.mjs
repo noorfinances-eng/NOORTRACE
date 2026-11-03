@@ -9,6 +9,16 @@ export const TC_REPONSES = [
     "response": "§8 (TI- d'export, à écrire, étape 8) ; SCITT : justification NC- hors version 0 (§5.3) ; proposition PD- sur RFC 9942 (§17.2)."
   },
   {
+    "key": "CT-1 §17",
+    "delegated": "Alignement de la révision 0.5 de CT-1 : CT-9 à mettre à jour (table de la section 5.2 et ligne TC-1), avec `spec/README.md`.",
+    "response": "§5.2 : CT-1 en version 0.5 dans l'inventaire ; TC-1 régénérée (§0.2) ; révision 0.3 de ce document (§0.4)."
+  },
+  {
+    "key": "CT-1 §17",
+    "delegated": "Ligne de l'occurrence de « CT-9 » de CT-1 §12 après la révision 0.5 (renvoi de TC-1, ligne 2160 en version 0.4).",
+    "response": "TC-1 (§0.2) : ligne relue sur le texte révisé par le générateur (EX-0.1)."
+  },
+  {
     "key": "CT-2 §0.1",
     "delegated": "Rattachement des tests aux identifiants EX-.",
     "response": "§5.1, règle (a) ; membre `covers` de chaque entrée (§4.1)."
@@ -79,6 +89,16 @@ export const TC_REPONSES = [
     "response": "TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9)."
   },
   {
+    "key": "CT-4 §9.2",
+    "delegated": "Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré.",
+    "response": "TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
+  },
+  {
+    "key": "CT-4 §B.1",
+    "delegated": "Point non vérifié 14 de R1 (taille d'un certificat de bloc plein) clos par la mesure TM-31 de CT-9 et son rapport.",
+    "response": "TM-31 (§11) : rapport du 2026-11-02, certificat de 32 587 octets pour 64 transactions d'ancre (`notes`)."
+  },
+  {
     "key": "CT-5 §0",
     "delegated": "Rattachement aux EX-.",
     "response": "§5.1, règle (a)."
@@ -114,8 +134,13 @@ export const TC_REPONSES = [
     "response": "TM-18 (AN-26, épreuve de redémarrage du serveur interne) et TM-19 (AN-24) en §11."
   },
   {
+    "key": "CT-5 §9.3",
+    "delegated": "Capture d'une ancre de point (EX-9.9) : 123 761 octets pour une transaction d'un bloc plein de 64 ancres, mesure TM-31 de CT-9 du 2026-11-02 (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
+    "response": "TM-31 (§11, ligne `b_cap_bloc_plein` et `notes` du rapport du 2026-11-02) ; bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
+  },
+  {
     "key": "CT-5 §14",
-    "delegated": "Même test que la ligne 1120.",
+    "delegated": "Même test que l'occurrence de §5.3 : relève par le secours qualifié après retrait de `qualified` (EX-5.9).",
     "response": "TM-10 à TM-17 (P-1 à P-6, mesures en charge) en §11 ; TR-4 et TR-5 en §12 ; l'état « proposition » est levé par ce document."
   },
   {
@@ -385,8 +410,8 @@ export const TC_REPONSES = [
   },
   {
     "key": "CT-8 §9.2",
-    "delegated": "Coefficients sans source : « à mesurer (CT-9) ».",
-    "response": "TM-30 à TM-33 (coefficients marqués « à mesurer (CT-9) ») et TM-9 (m_0)."
+    "delegated": "EX-9.1 : chaque coefficient a une source citée ou est marqué « à mesurer (CT-9) ».",
+    "response": "Coefficients marqués « à mesurer (CT-9) » : TM-30 (`b_ots` mis à niveau), TM-32 (`blocs_par_s` en production), TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`) ; `b_cap` a pour source la mesure TM-31 (§11)."
   },
   {
     "key": "CT-8 §9.2",
@@ -395,8 +420,8 @@ export const TC_REPONSES = [
   },
   {
     "key": "CT-8 §9.2",
-    "delegated": "`b_cap` bloc plein.",
-    "response": "TM-31 (octets de la capture d'une transaction d'un bloc plein)."
+    "delegated": "`b_cap` = 123 761 octets : mesure TM-31 de CT-9 du 2026-11-02, transaction d'un bloc plein de 64 ancres (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
+    "response": "TM-31 (rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, index relevé dans `notes`) ; réserve du bloc plein qui mêle des clôtures : TM-44 (à écrire, étape 8)."
   },
   {
     "key": "CT-8 §9.2",
@@ -405,8 +430,8 @@ export const TC_REPONSES = [
   },
   {
     "key": "CT-8 §9.2",
-    "delegated": "Six coefficients à mesurer.",
-    "response": "TM-30 à TM-33 (b_ots, b_cap, blocs_par_s, f_pic, b_o, b_acq, b_crl, n_crl) et TM-9 (m_0)."
+    "delegated": "Six coefficients sans valeur par défaut à mesurer : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`, `m_0`.",
+    "response": "TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`)."
   },
   {
     "key": "CT-8 §9.3",
@@ -540,12 +565,12 @@ export const TC_REPONSES = [
   },
   {
     "key": "`spec/README.md` « Spécifications »",
-    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.2, contenu, figée en conception v1.0).",
+    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.3, révisions 0.3 et 0.2, contenu, figée en conception v1.0).",
     "response": "Ce document (en-tête) ; rien n'est délégué."
   },
   {
     "key": "`spec/README.md` « Spécifications »",
-    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.2, contenu, figée en conception v1.0).",
+    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.3, révisions 0.3 et 0.2, contenu, figée en conception v1.0).",
     "response": "Ce document (en-tête) ; rien n'est délégué."
   },
   {

@@ -523,9 +523,12 @@ describe("CT-1 : chaînage", function () {
   });
 
   it("suppression, modification, insertion, réordonnancement : diagnostics nommés des vecteurs", function () {
-    for (const nom of ["journal-supprime", "journal-modifie", "journal-insere", "journal-insere-sans-cle", "journal-reordonne"]) {
+    for (const nom of ["journal-supprime", "journal-modifie", "journal-insere", "journal-insere-sans-cle", "journal-reordonne", "journal-cles-autre-organisation", "journal-ts-inexistant", "journal-seq-chaine", "journal-non-canonique"]) {
       const attendu = lireJSON(path.join(VECTEURS, nom, "attendu.json"));
-      const r = J.verifierChaine(lireJSON(path.join(VECTEURS, nom, "evenements.json")), { clesPubliques: cles() });
+      // Révision 0.5 : le vecteur qui porte son cles.json est vérifié avec lui, les autres avec celui de journal-valide.
+      const clesJournal = fs.existsSync(path.join(VECTEURS, nom, "cles.json")) ? lireJSON(path.join(VECTEURS, nom, "cles.json")) : cles();
+      // Le fichier d'événements se lit élément par élément (un événement sans forme canonique n'invalide pas le fichier).
+      const r = J.verifierChaine(J.lireJournalJSON(fs.readFileSync(path.join(VECTEURS, nom, "evenements.json"))), { clesPubliques: clesJournal, schemas: SCHEMAS });
       expect(r.valide, nom).to.equal(false);
       expect(r.diagnostics.map(({ type, controle, seq }) => ({ type, controle, seq })), nom).to.deep.equal(attendu.diagnostics);
       expect(r.diagnostics.map((d) => d.message), nom).to.deep.equal(attendu.messages);
@@ -542,8 +545,9 @@ describe("CT-1 : chaînage", function () {
     const resceller = (ev) => J.scellerEvenement(J.corpsEvenement(ev), ev.recorder_key_id === "rec-test-01" ? CLE_01.clePrivee : CLE_02.clePrivee);
     const types = (evs) => J.verifierChaine(evs, { clesPubliques: cles() }).diagnostics.map((d) => `${d.type}:${d.controle}:${d.seq}`);
     expect(types(E.map((e) => (e.seq === 3 ? resceller({ ...e, ts: "2026-11-05T09:00:00.000Z" }) : e)))).to.deep.equal(["horodatage:C-1:3", "rupture:C-2:4"]);
-    expect(types(E.map((e) => (e.seq === 2 ? resceller({ ...e, journal_id: keccak256(toUtf8Bytes("autre")) }) : e)))).to.deep.equal(["journal:C-1:2", "rupture:C-2:3", "journal:C-1:3"], "les deux liens autour de seq 2 changent de journal");
-    expect(types(E.map((e) => (e.seq === 10 ? resceller({ ...e, recorder_key_id: "rec-test-01" }) : e)))).to.deep.equal(["cle:C-3:10", "rupture:C-2:11", "cle:C-3:11"], "seq 10 n'a pas la clé issue de la rotation, et seq 11 n'a plus celle de seq 10");
+    // Révision 0.5 (CT-1 §7.2, règle exacte) : cles.json du journal est comparé à chaque événement (E-8), et E-1 à E-11 s'appliquent à chacun (E-11 ici).
+    expect(types(E.map((e) => (e.seq === 2 ? resceller({ ...e, journal_id: keccak256(toUtf8Bytes("autre")) }) : e)))).to.deep.equal(["signature:E-8:2", "journal:C-1:2", "rupture:C-2:3", "journal:C-1:3"], "les deux liens autour de seq 2 changent de journal, et seq 2 n'est pas du journal de cles.json");
+    expect(types(E.map((e) => (e.seq === 10 ? resceller({ ...e, recorder_key_id: "rec-test-01" }) : e)))).to.deep.equal(["validite_cle:E-11:10", "cle:C-3:10", "rupture:C-2:11", "cle:C-3:11"], "seq 10 n'a pas la clé issue de la rotation (et rec-test-01 n'est plus valide à son ts), et seq 11 n'a plus celle de seq 10");
     expect(types([resceller({ ...E[0], prev_hash: E[1].hash }), ...E.slice(1)])).to.deep.equal(["origine:C-2:1", "rupture:C-2:2"]);
     expect(types(E.slice(3))).to.deep.equal([], "une tranche de journal qui commence après seq 1 est acceptée");
     expect(J.verifierChaine(E.slice(0, 11), { clesPubliques: cles() }).valide).to.equal(true, "la troncature de la fin n'est pas détectable par la chaîne seule");
@@ -779,9 +783,18 @@ describe("CT-1 : preuve de cohérence RFC 9162 §2.1.4 et points de contrôle (r
     expect(blocs.some((b) => JSON.stringify(b) === JSON.stringify(points.K2)), "K2 complet de §10.5").to.equal(true);
     for (const b of blocs) expect(J.validerSchema(b, SCHEMAS[J.ID_SCHEMA_POINT_DE_CONTROLE], { registre: SCHEMAS })).to.deep.equal([]);
     // Série de l'annexe A (période 1 : K1 à K4) : valide sous le manifeste ; une série sans le point de clôture ne l'est pas.
-    expect(J.verifierSeriePointsDeControle([points.K1, points.K2, points.K3, points.K4], m1).valide).to.equal(true);
-    expect(J.verifierSeriePointsDeControle([points.K5, points.K6], m2).valide).to.equal(true);
-    const sansCloture = J.verifierSeriePointsDeControle([points.K1, points.K2, points.K3], m1);
+    // Révision 0.5 (CT-1 §10.5) : sans les événements, root et last_hash ne sont pas évaluées ; la série n'est pas
+    // déclarée valide (ce test figeait l'ancien comportement, qui sautait ces règles et rendait la série valide).
+    // Compléments de la révision 0.5 : sans cles.json, signature, validite_cle et cle_en_vigueur (événement last_seq
+    // non fourni) ne sont pas évaluées non plus ; une série n'est valide qu'avec ses événements et cles.json (ce test
+    // vérifiait les séries valides sans cles.json, que la règle complétée ne déclare plus valides).
+    const sansEvenements = J.verifierSeriePointsDeControle([points.K1, points.K2, points.K3, points.K4], m1, { cles: EXEMPLE.cles });
+    expect([sansEvenements.valide, sansEvenements.rules_failed, sansEvenements.rules_not_evaluated]).to.deep.equal([false, [], [{ rule: "root", reason: "piece_hors_dossier" }, { rule: "last_hash", reason: "piece_hors_dossier" }]]);
+    const sansCles = J.verifierSeriePointsDeControle([points.K1, points.K2, points.K3, points.K4], m1, { evenements: EXEMPLE.evenements });
+    expect([sansCles.valide, sansCles.rules_failed, sansCles.rules_not_evaluated.map((x) => x.rule)]).to.deep.equal([false, [], ["signature", "validite_cle"]]);
+    expect(J.verifierSeriePointsDeControle([points.K1, points.K2, points.K3, points.K4], m1, { evenements: EXEMPLE.evenements, cles: EXEMPLE.cles }).valide).to.equal(true);
+    expect(J.verifierSeriePointsDeControle([points.K5, points.K6], m2, { evenements: EXEMPLE.evenements, cles: EXEMPLE.cles }).valide).to.equal(true);
+    const sansCloture = J.verifierSeriePointsDeControle([points.K1, points.K2, points.K3], m1, { evenements: EXEMPLE.evenements, cles: EXEMPLE.cles });
     expect(sansCloture.valide).to.equal(false);
     expect(sansCloture.erreurs.join(" ; ")).to.match(/dernier point/);
   });
@@ -821,7 +834,7 @@ describe("CT-1 : preuve de cohérence RFC 9162 §2.1.4 et points de contrôle (r
       const points = lireJSON(path.join(repertoire, p.file));
       const manifeste = lireJSON(path.join(repertoire, p.manifest));
       expect(points, p.file).to.have.length(p.count);
-      expect(J.verifierSeriePointsDeControle(points, manifeste, { evenements, cles }), p.file).to.deep.equal({ valide: true, erreurs: [] });
+      expect(J.verifierSeriePointsDeControle(points, manifeste, { evenements, cles }), p.file).to.deep.equal({ valide: true, erreurs: [], rules_failed: [], rules_not_evaluated: [] });
       const feuilles = evenements.filter((e) => e.seq >= manifeste.first_seq && e.seq <= manifeste.last_seq).sort((a, b) => a.seq - b.seq).map((e) => e.hash);
       points.forEach((pt, i) => {
         const a = p.points[i];
@@ -842,6 +855,15 @@ describe("CT-1 : preuve de cohérence RFC 9162 §2.1.4 et points de contrôle (r
       const r = J.verifierSeriePointsDeControle(lireJSON(path.join(repertoire, inv.file)), lireJSON(path.join(repertoire, inv.manifest)), { evenements, cles });
       expect(r.valide, inv.file).to.equal(false);
       expect(r.erreurs, inv.file).to.deep.equal(inv.errors);
+      expect([r.rules_failed, r.rules_not_evaluated], inv.file).to.deep.equal([inv.rules_failed, inv.rules_not_evaluated ?? []]);
+    }
+    // Révision 0.5 : séries vérifiées avec une partie des événements (root et last_hash non évaluées, ou violées sur un événement altéré).
+    expect(v.evenements_partiels.map((x) => x.events)).to.deep.equal(["evenements/sans-5-a-9.json", "evenements/evenement-5-altere.json", "evenements/sans-5-seq-7-non-canonique.json", null]);
+    for (const x of v.evenements_partiels) {
+      // events ou keys nul : aucun événement, ou aucun cles.json (révision 0.5) ; fichier d'événements lu élément par élément.
+      const evenementsFournis = x.events === null ? null : J.lireJournalJSON(fs.readFileSync(path.join(repertoire, x.events)));
+      const r = J.verifierSeriePointsDeControle(lireJSON(path.join(repertoire, x.file)), lireJSON(path.join(repertoire, x.manifest)), { evenements: evenementsFournis, cles: x.keys === null ? null : lireJSON(path.join(repertoire, x.keys)) });
+      expect([r.valide, r.rules_failed, r.rules_not_evaluated, r.erreurs], x.events).to.deep.equal([false, x.rules_failed, x.rules_not_evaluated, x.errors]);
     }
   });
 
@@ -1032,7 +1054,9 @@ describe("CT-1 : dossier de preuve", function () {
         if (file === "evenement.json") {
           expect(r.evenement, "rien n'est repris de l'index à la place de evenement.json").to.equal(null);
           expect(r.nonExecutesBloquants).to.include.members(["C-1", "C-2", "C-3", "M-1", "M-3", "P-2", "A-2", "A-3"]);
-          expect(r.nonExecutesBloquants).to.not.include("A-4", "A-4 non exécuté est toujours admis");
+          // Révision 0.5 (CT-1 §11.4 ; CT-6 EX-5.15) : A-4 lit l'événement prouvé ; evenement.json inexploitable, elle n'est
+          // pas exécutée sans raison admise (ce test admettait A-4 dans ce cas, comportement des versions 0.3 et 0.4).
+          expect(r.nonExecutesBloquants).to.include("A-4");
         }
         if (file === "cles.json") expect(r.nonExecutesBloquants).to.include.members(["E-11", "P-5"]);
       }
@@ -1145,6 +1169,12 @@ describe("CT-1 : dossier de preuve", function () {
     expect(noms.filter((n) => n.startsWith("invalide-")).length).to.be.at.least(6);
     for (const nom of noms) {
       const attendu = lireJSON(path.join(racine, nom, "attendu.json"));
+      // Révision 0.5 (CT-1 §11.5) : une entrée en code 2 porte exit_code 2 et error_kind, sans verdict.
+      if (attendu.exit_code === 2) {
+        expect([attendu.valide, attendu.controle, attendu.controles_en_echec, attendu.error_kind], nom).to.deep.equal([null, null, [], "dossier_illisible"]);
+        expect(() => J.verifierDossier(lireDossier(path.join(racine, nom)), { schemas: SCHEMAS }), nom).to.throw(J.DossierInutilisable);
+        continue;
+      }
       const rapport = J.verifierDossier(lireDossier(path.join(racine, nom)), { schemas: SCHEMAS });
       expect(rapport.valide, nom).to.equal(attendu.valide);
       expect(J.controlesEnEchec(rapport), nom).to.deep.equal(attendu.controles_en_echec);
@@ -1165,7 +1195,7 @@ describe("CT-1 : dossier de preuve", function () {
     const cibles = noms.map((n) => lireJSON(path.join(racine, n, "attendu.json")).controle).filter(Boolean);
     // K-7 à K-9 sont les vérifications des ancres du point (CT-6 révision 0.2) : aucun dossier de CT-1 ne les vise.
     for (const c of J.CONTROLES_DOSSIER.filter((x) => !["K-7", "K-8", "K-9"].includes(x.id))) expect(cibles, `au moins un dossier vise ${c.id} (section 11.5)`).to.include(c.id);
-    expect(noms.filter((n) => n.startsWith("valide-") && !/attestation|^valide-at|at7/.test(n))).to.deep.equal(["valide-seq-6", "valide-seq-7", "valide-seq-7-partie-declaree-absente", "valide-seq-7-point-de-cloture", "valide-seq-7-point-de-controle"]);
+    expect(noms.filter((n) => n.startsWith("valide-") && !/attestation|^valide-at|at7/.test(n))).to.deep.equal(["valide-profondeur-128", "valide-seq-6", "valide-seq-7", "valide-seq-7-partie-declaree-absente", "valide-seq-7-point-de-cloture", "valide-seq-7-point-de-controle"]);
     // Révision 0.4 (CT-1 §11.5, CT-7 annexe A.7) : chaque vérification AT- est visée par au moins un dossier.
     const ciblesAT = noms.map((n) => lireJSON(path.join(racine, n, "attendu.json")).perimeter_target).filter(Boolean);
     for (const id of ["AT-1", "AT-2", "AT-3", "AT-4", "AT-5", "AT-6", "AT-7"]) expect(ciblesAT, id).to.include(id);
@@ -1361,6 +1391,271 @@ describe("CT-1 : ligne de commande scripts/verify/dossier.mjs", function () {
     expect(lancer(["verify", "dossier.mjs"], []).code).to.equal(2);
     expect(lancer(["verify", "dossier.mjs"], ["--aide"]).code).to.equal(0);
     fs.rmSync(vide, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Révision 0.5 : passages tranchés dans le texte (CT-1 §3, §4, §5.3, §7.2,
+// §10.5, §11.1, §11.4 ; table d'alignement de la section 17).
+describe("CT-1 révision 0.5 : règles tranchées", function () {
+  const journal = () => lireJSON(path.join(VECTEURS, "journal-valide", "evenements.json"));
+  const clesJournal = () => lireJSON(path.join(VECTEURS, "journal-valide", "cles.json"));
+  const cle = (id) => (id === "rec-test-01" ? CLE_01 : CLE_02).clePrivee;
+  const resceller = (ev) => J.scellerEvenement(J.corpsEvenement(ev), cle(ev.recorder_key_id));
+  const echecs = (ev) => Object.entries(J.controlesEvenement(ev, { schemas: SCHEMAS, cles: clesJournal() })).filter(([, c]) => c.ok === false).map(([id]) => id);
+  const seq = (n) => journal().find((e) => e.seq === n);
+  const avecIndex = (fichiers, nom, octets) => {
+    const idx = J.analyserJSONStrict(fichiers["dossier.json"]);
+    idx.parts.find((p) => p.file === nom).sha256 = J.sha256(Buffer.from(octets));
+    return { ...fichiers, [nom]: Buffer.from(octets), "dossier.json": J.texteJSON(idx) };
+  };
+  const base = () => lireDossier(path.join(VECTEURS, "dossiers", "valide-seq-7"));
+  const statut = (r, id) => {
+    const c = r.controles.find((x) => x.id === id);
+    return c.ok === false ? "echoue" : c.execute ? "reussi" : "non_execute";
+  };
+
+  it("§3, §4 : codage (marque d'ordre d'octets, UTF-8 mal formé : pas du JSON), substitut écrit en octets (forme canonique), profondeur 128 admise et 129 refusée, défaut de forme canonique levé après la syntaxe", function () {
+    const leve = (entree, options) => {
+      try {
+        J.analyserJSONStrict(entree, options);
+        return "accepte";
+      } catch (err) {
+        return err.canonique ? "canonique" : "pas_json";
+      }
+    };
+    expect(leve(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("{}")]))).to.equal("pas_json");
+    expect(leve(Buffer.from([0x22, 0xff, 0x22]))).to.equal("pas_json");
+    expect(leve(Buffer.from([0x22, 0xc0, 0x80, 0x22]))).to.equal("pas_json", "forme trop longue");
+    expect(leve(Buffer.from([0x22, 0xed, 0xa0, 0x80, 0x22]))).to.equal("canonique", "U+D800 écrit en octets");
+    expect(leve(Buffer.from([0x22, 0xed, 0xa0, 0xbd, 0xed, 0xb8, 0x80, 0x22]))).to.equal("canonique", "paire à la manière de CESU-8");
+    expect(leve(Buffer.from('"\u{1F600}"', "utf8"))).to.equal("accepte", "paire écrite en UTF-8 sur quatre octets");
+    expect(leve('{"a":1.0')).to.equal("pas_json", "la syntaxe précède la forme canonique (EX-4.16)");
+    expect(leve('{"a":1,"a":2}')).to.equal("canonique");
+    const imbrique = (n) => "[".repeat(n) + "]".repeat(n);
+    expect(leve(imbrique(128), { profondeurMax: J.PROFONDEUR_JSON_MAX })).to.equal("accepte");
+    expect(leve(imbrique(129), { profondeurMax: J.PROFONDEUR_JSON_MAX })).to.equal("pas_json");
+    expect(leve(`{"a":${imbrique(127)}}`, { profondeurMax: 128 })).to.equal("accepte", "objet racine et 127 tableaux : profondeur 128");
+    expect(leve(`{"a":${imbrique(128)}}`, { profondeurMax: 128 })).to.equal("pas_json");
+    expect([J.profondeurValeur(1), J.profondeurValeur([]), J.profondeurValeur([[1]]), J.profondeurValeur({ a: [] })]).to.deep.equal([0, 1, 2, 2]);
+  });
+
+  it("§3 : chaîne non vide — U+0085, U+FEFF, U+3000 et la chaîne vide ne le sont pas", function () {
+    for (const v of ["", " ", "\u0085", "﻿", "　  ", null, 3]) expect(J.estChaineNonVide(v), JSON.stringify(v)).to.equal(false);
+    for (const v of ["pii-v1", " x ", "\u0085a"]) expect(J.estChaineNonVide(v), JSON.stringify(v)).to.equal(true);
+    expect(echecs(resceller({ ...seq(8), policy: { ...seq(8).policy, redaction: " \u0085" } }))).to.deep.equal(["E-4"]);
+    expect(echecs(resceller({ ...seq(8), policy: { ...seq(8).policy, redaction: "" } }))).to.deep.equal(["E-4"]);
+  });
+
+  it("§5.3 : règle exacte de E-3 (appel d'outil, échange, décision, rotation, politique) ; le ticket relève de E-5 seule", function () {
+    const effet = { system: "SAP", action: "ecriture", object: "PAY-1", amount: null, currency: null };
+    expect(echecs(resceller({ ...seq(6), effects: [effet] }))).to.deep.equal(["E-3"], "décision à effets");
+    expect(echecs(resceller({ ...seq(5), effects: [effet] }))).to.deep.equal(["E-3"], "appel retenu à effets");
+    expect(echecs(resceller({ ...seq(11), effects: [effet] }))).to.deep.equal(["E-3"], "appel refusé à effets");
+    expect(echecs(resceller({ ...seq(7), approval: null }))).to.deep.equal(["E-3"], "a_approuver exécuté sans approbation");
+    expect(echecs(resceller({ ...seq(11), approval: seq(7).approval }))).to.include("E-3", "refuse avec une approbation liée");
+    expect(echecs(resceller({ ...seq(1), approval: seq(7).approval }))).to.include("E-3", "échange avec approbation");
+    const lanceur = { ...seq(9).delegation, launched_by: "u.martin@assureur-demo.example" };
+    expect(echecs(resceller({ ...seq(9), delegation: lanceur }))).to.deep.equal(["E-3"], "rotation non lancée par l'enregistreur");
+    expect(echecs(resceller({ ...seq(12), delegation: lanceur }))).to.deep.equal(["E-3"], "politique non lancée par l'enregistreur");
+    const politique = (v) => resceller({ ...seq(12), execution: { ...seq(12).execution, arguments: J.referenceEnLigne({ ...seq(12).execution.arguments.value, policy_version: v }) } });
+    expect(echecs(politique("x".repeat(128)))).to.deep.equal([]);
+    expect(echecs(politique("x".repeat(129)))).to.deep.equal(["E-3"]);
+    expect(echecs(politique(""))).to.deep.equal(["E-3"]);
+    expect(echecs(resceller({ ...seq(6), policy: { ...seq(6).policy, ticket: "apr-9999" } }))).to.deep.equal(["E-5"], "approval.ticket = policy.ticket relève de E-5 seule");
+    // Le contenu de l'annonce de rotation relève de E-10 : un membre de plus n'est pas un défaut de E-3 (la contresignature ne le couvre plus : E-10).
+    const v9 = seq(9).execution.arguments.value;
+    expect(echecs(resceller({ ...seq(9), execution: { ...seq(9).execution, arguments: J.referenceEnLigne({ ...v9, note: "x" }) } }))).to.deep.equal(["E-10"]);
+    expect(J.regleE3({ ...seq(2), execution: { ...seq(2).execution, tool: "noortrace.autre" } })).to.deep.equal(["outil réservé inconnu : noortrace.autre"], "nom réservé inconnu : aucune autre règle de E-3");
+  });
+
+  it("§11.4 : E-1 (identifiants nuls, valid_from de l'annonce hors E-1), E-9 (signature sans approbateur)", function () {
+    expect(echecs(resceller({ ...seq(2), org_id: J.HASH_NUL }))).to.include("E-1");
+    expect(echecs(resceller({ ...seq(2), journal_id: J.HASH_NUL }))).to.include("E-1");
+    const v9 = seq(9).execution.arguments.value;
+    const r9 = echecs(resceller({ ...seq(9), execution: { ...seq(9).execution, arguments: J.referenceEnLigne({ ...v9, valid_from: "2026-11-31T09:59:58.000Z" }) } }));
+    expect(r9).to.include("E-10");
+    expect(r9).to.not.include("E-1", "la date de l'annonce relève de E-10, non de E-1");
+    const a = seq(7).approval;
+    const s3 = J.signerApprobation(HARDHAT[3], J.objetApprobation(seq(7)));
+    expect(echecs(resceller({ ...seq(7), approval: { ...a, signatures: [...a.signatures, s3] } }))).to.deep.equal(["E-5", "E-9"]);
+    expect(echecs(resceller({ ...seq(7), approval: { ...a, approvers: [...a.approvers, "0x90f79bf6eb2c4f870365e785982e1f101e93b906"] } }))).to.deep.equal(["E-5"], "un approbateur sans signature relève de E-5 seule");
+  });
+
+  it("§7.2 : cles.json du journal lu d'abord (symptôme cles en tête, aucun E-8 par événement), comparé sinon à chaque événement ; E-1 à E-11 pour chaque événement", function () {
+    const E = journal();
+    const c = clesJournal();
+    const types = (evs, cles) => J.verifierChaine(evs, { clesPubliques: cles, schemas: SCHEMAS }).diagnostics.map((d) => `${d.type}:${d.controle}:${d.seq}`);
+    expect(types(E, c)).to.deep.equal([]);
+    expect(types(E, { ...c, keys: [...c.keys, c.keys[0]] })).to.deep.equal(["cles:E-8:null"]);
+    expect(types(E, { ...c, journal_id: J.HASH_NUL })).to.deep.equal(E.map((e) => `signature:E-8:${e.seq}`));
+    expect(types(E.map((e) => (e.seq === 5 ? resceller({ ...e, effects: [{ system: "SAP", action: "ecriture", object: "PAY-1", amount: null, currency: null }] }) : e)), c)).to.deep.equal(["sorte:E-3:5", "rupture:C-2:6"]);
+    // Les seq sur tout le fichier : un réordonnancement n'est pas aussi deux trous.
+    expect(types([...E.slice(0, 4), E[5], E[4], ...E.slice(6)], c).filter((t) => t.startsWith("suppression"))).to.deep.equal([]);
+  });
+
+  it("§10.5 : clé en vigueur sans l'événement last_seq (règle de la section 10.1 sur cles.json) ; root et last_hash non évaluées, jamais violées, faute d'événement", function () {
+    const E = journal();
+    const c = clesJournal();
+    expect(J.cleEnVigueurPoint(E, 0, { cles: c, checkpoint_ts: "2026-11-05T09:00:00.000Z" })).to.equal("rec-test-01");
+    expect(J.cleEnVigueurPoint(E, 9)).to.equal("rec-test-02", "événement last_seq fourni : rotation");
+    expect(J.cleEnVigueurPoint(E.filter((e) => e.seq !== 9), 9)).to.equal(null, "un événement de seq inférieur ne remplace pas l'événement last_seq manquant");
+    expect(J.cleEnVigueurPoint(E.filter((e) => e.seq !== 9), 9, { cles: c, checkpoint_ts: "2026-11-05T10:00:00.300Z" })).to.equal("rec-test-02");
+    expect(J.cleEnVigueurPoint([], 1, { cles: c, checkpoint_ts: "2026-10-01T00:00:00.000Z" })).to.equal(null, "aucune clé de valid_from antérieur");
+    const points = lireJSON(path.join(VECTEURS, "points-de-controle", "periode-1.json"));
+    const m = lireJSON(path.join(VECTEURS, "manifestes", "periode-1.json"));
+    const partiel = J.verifierSeriePointsDeControle(points, m, { evenements: E.filter((e) => e.seq < 5 || e.seq > 9), cles: c });
+    expect([partiel.valide, partiel.rules_failed, partiel.rules_not_evaluated]).to.deep.equal([false, [], [{ rule: "root", reason: "piece_hors_dossier" }, { rule: "last_hash", reason: "piece_hors_dossier" }]]);
+    // Un événement fourni sans forme canonique : prerequis_en_echec.
+    const sansForme = E.map((e) => (e.seq === 5 ? { ...e, execution: { ...e.execution, duration_ms: 0.5 } } : e));
+    expect(J.verifierSeriePointsDeControle(points, m, { evenements: sansForme, cles: c }).rules_not_evaluated).to.deep.equal([{ rule: "root", reason: "prerequis_en_echec" }, { rule: "last_hash", reason: "prerequis_en_echec" }]);
+  });
+
+  it("§11.4 : dossier.json au-delà de 1 Mio (D-1) ou sans forme canonique (E-2) : rien d'autre n'est exécuté ; profondeur au-delà de 128 : entrée inutilisable", function () {
+    const F = base();
+    const texte = F["dossier.json"].toString("utf8");
+    const grand = J.verifierDossier({ ...F, "dossier.json": texte.slice(0, -1) + " ".repeat(J.LIMITES_DOSSIER["dossier.json"] + 1 - Buffer.byteLength(texte)) + "\n" }, { schemas: SCHEMAS });
+    expect([J.controlesEnEchec(grand), grand.indexExploitable, grand.controles.filter((x) => x.execute).map((x) => x.id)]).to.deep.equal([["D-1"], false, ["D-1"]]);
+    const double = J.verifierDossier({ ...F, "dossier.json": texte.replace('"version": 0,', '"version": 0, "version": 0,') }, { schemas: SCHEMAS });
+    expect([J.controlesEnEchec(double), statut(double, "D-1"), double.indexExploitable, double.partiesAbsentes]).to.deep.equal([["E-2"], "non_execute", false, []]);
+    expect(() => J.verifierDossier({ ...F, "dossier.json": `{"a":${"[".repeat(128)}${"]".repeat(128)}}` }, { schemas: SCHEMAS })).to.throw(J.DossierInutilisable, /128/);
+  });
+
+  it("§11.4 : partie manquante (D-2 seule), au-delà de sa limite (D-2 ne compare pas), marque d'ordre d'octets (porteur, non E-2), voisins.json inexploitable (A-4 et K-6 sans raison admise)", function () {
+    const F = base();
+    const sans = { ...F };
+    delete sans["approbations.json"];
+    const r = J.verifierDossier(sans, { schemas: SCHEMAS });
+    expect([J.controlesEnEchec(r), statut(r, "A-1"), statut(r, "A-4")]).to.deep.equal([["D-2"], "non_execute", "non_execute"]);
+    expect(r.nonExecutesBloquants).to.include.members(["A-1", "A-2", "A-3"]).and.not.include("A-4");
+    const bom = J.verifierDossier(avecIndex(F, "evenement.json", Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), F["evenement.json"]])), { schemas: SCHEMAS });
+    expect(J.controlesEnEchec(bom)).to.deep.equal(["E-1"]);
+    const nonLu = J.verifierDossier(F, { schemas: SCHEMAS, inexploitables: new Map([["chemin.json", "fichier de 16777217 octets, au-delà de la limite, non lu"]]) });
+    const sansChemin = { ...F };
+    delete sansChemin["chemin.json"];
+    const nonLu2 = J.verifierDossier(sansChemin, { schemas: SCHEMAS, inexploitables: new Map([["chemin.json", "fichier de 16777217 octets, au-delà de la limite, non lu"]]) });
+    expect([J.controlesEnEchec(nonLu), J.controlesEnEchec(nonLu2), statut(nonLu2, "D-2")]).to.deep.equal([[], ["M-2"], "reussi"]);
+    const voisins = J.verifierDossier(avecIndex(F, "voisins.json", "[]\n"), { schemas: SCHEMAS });
+    expect(J.controlesEnEchec(voisins)).to.deep.equal(["C-1"]);
+    expect(voisins.nonExecutesBloquants).to.include("A-4");
+  });
+
+  it("§11.4 : relations à terme mal typé ou incalculable en échec (seq en chaîne, ts qui n'est pas une date existante) ; org_id nul de l'événement et du manifeste", function () {
+    const F = base();
+    const v = J.analyserJSONStrict(F["voisins.json"]);
+    v.next = resceller({ ...v.next, ts: "2026-11-31T09:31:49.120Z" });
+    const ts = J.verifierDossier(J.reindexerDossier({ ...F, "voisins.json": J.texteJSON(v) }).fichiers, { schemas: SCHEMAS });
+    expect(J.controlesEnEchec(ts)).to.include.members(["E-1", "C-1", "P-3"]);
+    const r = J.verifierDossier(lireDossier(path.join(VECTEURS, "dossiers", "invalide-seq-chaine")), { schemas: SCHEMAS });
+    expect(J.controlesEnEchec(r)).to.deep.equal(["D-1", "E-1", "E-7", "E-8", "C-1", "C-2", "M-1", "M-3", "P-2", "A-2"]);
+    const m = J.analyserJSONStrict(F["manifeste.json"]);
+    const nul = J.verifierDossier(J.reindexerDossier({ ...F, "manifeste.json": J.texteJSON({ ...m, org_id: J.HASH_NUL }) }).fichiers, { schemas: SCHEMAS });
+    expect(J.controlesEnEchec(nul)).to.include("P-1");
+  });
+
+  it("§11.4 : une bibliothèque de CT-1 seule ne rend jamais valide un dossier à partie réservée présente ou à ancre non nulle du point", function () {
+    const F = base();
+    const idx = J.analyserJSONStrict(F["dossier.json"]);
+    Object.assign(idx.parts.find((p) => p.name === "jeton_rfc3161"), { present: true, sha256: J.sha256(Buffer.from("jeton")), reason_if_absent: null });
+    const r = J.verifierDossier({ ...F, "jeton-rfc3161.der": Buffer.from("jeton"), "dossier.json": J.texteJSON(idx) }, { schemas: SCHEMAS });
+    expect([r.valide, J.controlesEnEchec(r), r.partiesNonVerifiees]).to.deep.equal([false, [], ["jeton_rfc3161"]]);
+    const Fk = lireDossier(path.join(VECTEURS, "dossiers", "valide-seq-7-point-de-controle"));
+    const pk = J.analyserJSONStrict(Fk["points-de-controle.json"]);
+    const k7 = J.verifierDossier(J.reindexerDossier({ ...Fk, "points-de-controle.json": J.texteJSON({ ...pk, anchors: { ...pk.anchors, rfc3161: { token: "AAAA" } } }) }).fichiers, { schemas: SCHEMAS });
+    expect([k7.valide, statut(k7, "K-7"), k7.nonExecutesBloquants]).to.deep.equal([false, "non_execute", ["K-7"]]);
+    // Dossier de CT-6 dont la référence au registre du point porte une autre empreinte : K-8 échoue même sans CT-6 ;
+    // les ancres K-7 et K-9 ne sont pas vérifiées, sans raison admise, et les parties réservées présentes ne sont pas vérifiées.
+    const k8 = J.verifierDossier(lireDossier(path.join(SPEC, "vecteurs", "ct-6", "dossiers", "invalide-k8-empreinte")), { schemas: SCHEMAS });
+    expect([k8.valide, J.controlesEnEchec(k8), k8.nonExecutesBloquants, k8.partiesNonVerifiees]).to.deep.equal([false, ["K-8"], ["K-7", "K-9"], ["jeton_rfc3161", "preuve_ots", "registre", "certificat_commit", "validateurs"]]);
+    // Révision 0.5, complément : raison prerequis_en_echec et détail fixé, aucune autre valeur (verification_ct6_requise…).
+    expect(r.verificationsCT6NonExecutees).to.deep.equal([{ part: "jeton_rfc3161", reason: "prerequis_en_echec", detail: "vérification de CT-6 non exécutée par ce vérificateur" }]);
+    expect(k7.controles.find((c) => c.id === "K-7").detail).to.include("vérification de CT-6 non exécutée par ce vérificateur");
+    expect(JSON.stringify(k8)).to.not.include("verification_ct6_requise");
+  });
+
+  // Compléments de la révision 0.5 (trente-cinq passages tranchés après l'alignement des implémentations).
+  it("compléments, §7.2 : réordonnancement comparé au dernier seq entier ; événement qui n'est pas un objet ; événement sans forme canonique lu élément par élément (E-2, rupture)", function () {
+    const E = journal();
+    const types = (evs) => J.verifierChaine(evs, { clesPubliques: clesJournal(), schemas: SCHEMAS }).diagnostics.map((d) => `${d.type}:${d.controle}:${d.seq}`);
+    // seq 3 après seq 4, un événement à seq en chaîne entre les deux : comparé à seq 4, réordonnancement rapporté.
+    const X = resceller({ ...E[4], seq: "5" });
+    const t = types([E[0], E[1], E[3], X, E[2]]);
+    expect(t).to.include("reordonnancement:C-1:3");
+    expect(t.filter((x) => x.startsWith("reordonnancement"))).to.deep.equal(["reordonnancement:C-1:3"]);
+    // Un événement qui n'est pas un objet : E-1 pour lui ; ses deux couples rapportent rupture, horodatage, journal et cle.
+    const u = types([E[0], 5, E[2]]);
+    expect(u).to.include.members(["schema:E-1:null", "rupture:C-2:null", "horodatage:C-1:null", "journal:C-1:null", "cle:C-3:null", "rupture:C-2:3", "horodatage:C-1:3", "journal:C-1:3", "cle:C-3:3"]);
+    // Sans forme canonique : le fichier reste lisible, E-2 seule pour l'événement, rupture sur le suivant.
+    const texte = J.texteJSON(E).replace('"duration_ms": 530,', '"duration_ms": 530.0,');
+    expect(() => J.analyserJSONStrict(texte)).to.throw(J.ErreurJSON);
+    const lus = J.lireJournalJSON(texte);
+    expect(J.defautFormeCanonique(lus[6])).to.match(/530\.0/);
+    expect(J.defautFormeCanonique(lus[5])).to.equal(null);
+    expect(() => J.hachageEvenement(lus[6])).to.throw(J.ErreurJSON);
+    expect(types(lus)).to.deep.equal(["format:E-2:7", "rupture:C-2:8"]);
+    expect(types(E)).to.deep.equal([]);
+  });
+
+  it("compléments, §10.5 : ordre des listes (noms de règle, puis prerequis_en_echec avant piece_hors_dossier) ; cles.json absent ou défectueux ; root évaluée au-delà de count", function () {
+    const v = lireJSON(path.join(VECTEURS, "points-de-controle", "attendu.json"));
+    const rep = path.join(VECTEURS, "points-de-controle");
+    const serie = lireJSON(path.join(rep, "periode-1.json"));
+    const manifeste = lireJSON(path.join(rep, "..", "manifestes", "periode-1.json"));
+    const E = journal();
+    // cles.json absent : signature, validite_cle et cle_en_vigueur (points de last_seq 0, sans événement) non évaluées, piece_hors_dossier.
+    const sans = J.verifierSeriePointsDeControle(serie, manifeste, { evenements: E, cles: null });
+    expect([sans.rules_failed, sans.rules_not_evaluated]).to.deep.equal([[], [{ rule: "cle_en_vigueur", reason: "piece_hors_dossier" }, { rule: "signature", reason: "piece_hors_dossier" }, { rule: "validite_cle", reason: "piece_hors_dossier" }]]);
+    const rien = J.verifierSeriePointsDeControle(serie, manifeste, { evenements: [], cles: null });
+    expect(rien.rules_not_evaluated.map((x) => x.rule)).to.deep.equal(["root", "last_hash", "cle_en_vigueur", "signature", "validite_cle"]);
+    // cles.json défectueux (key_id en double) : les mêmes règles, prerequis_en_echec ; aucune violée.
+    const c = clesJournal();
+    const double = { ...c, keys: [...c.keys, { ...c.keys[0] }] };
+    const def = J.verifierSeriePointsDeControle(serie, manifeste, { evenements: [], cles: double });
+    expect([def.rules_failed, def.rules_not_evaluated.filter((x) => x.reason === "prerequis_en_echec").map((x) => x.rule)]).to.deep.equal([[], ["cle_en_vigueur", "signature", "validite_cle"]]);
+    // Ordre : rules_failed suit la liste fermée des noms, non l'ordre d'apparition.
+    expect(J.REGLES_SERIE).to.deep.equal(["chainage", "tree_size_decroissant", "checkpoint_ts_decroissant", "period_start", "root", "last_seq", "last_hash", "dernier_point", "cle_en_vigueur", "signature", "validite_cle"]);
+    for (const inv of v.invalides) expect([...inv.rules_failed].sort((a, b) => J.REGLES_SERIE.indexOf(a) - J.REGLES_SERIE.indexOf(b)), inv.file).to.deep.equal(inv.rules_failed);
+    // Point de tree_size supérieur à count : root se décide sur les événements fournis (seq 1 à 10), last_seq porte l'écart ;
+    // sans seq 10, root et last_hash (last_seq 10) ne sont pas évaluées pour ce point.
+    const trop = v.invalides.find((x) => x.file === "invalides/periode-1-tree-size-trop-grand.json");
+    expect(trop.rules_failed).to.deep.equal(["last_seq", "dernier_point"]);
+    expect(J.verifierSeriePointsDeControle(lireJSON(path.join(rep, trop.file)), manifeste, { evenements: E.filter((e) => e.seq <= 9), cles: c }).rules_not_evaluated).to.deep.equal([{ rule: "root", reason: "piece_hors_dossier" }, { rule: "last_hash", reason: "piece_hors_dossier" }]);
+  });
+
+  it("compléments, §11.4 : voisin absent (C-1, C-2, C-3, P-3, pas E-1) ; approval = 5 (A-4 en échec) ; execution.tool = 5 (E-3) ; K-6 jugée sur l'événement prouvé, voisins.json nul", function () {
+    const F = base();
+    const v = J.analyserJSONStrict(F["voisins.json"]);
+    delete v.next;
+    const absent = J.verifierDossier(avecIndex(F, "voisins.json", J.texteJSON(v)), { schemas: SCHEMAS });
+    expect(J.controlesEnEchec(absent)).to.deep.equal(["C-1", "C-2", "C-3", "P-3"]);
+    expect(statut(absent, "E-1")).to.equal("reussi");
+    const ev = J.analyserJSONStrict(F["evenement.json"]);
+    const a5 = J.verifierDossier(avecIndex(F, "evenement.json", J.texteJSON({ ...ev, approval: 5 })), { schemas: SCHEMAS });
+    expect(statut(a5, "A-4")).to.equal("echoue");
+    expect(J.regleE3({ ...ev, execution: { ...ev.execution, tool: 5 } })).to.have.length(1);
+    expect(J.regleE3({ ...ev, execution: { ...ev.execution, tool: 5 } })[0]).to.match(/n'est pas une chaîne/);
+    const k6 = J.verifierDossier(lireDossier(path.join(VECTEURS, "dossiers", "invalide-k6-voisins-nul-seq-9")), { schemas: SCHEMAS });
+    expect([statut(k6, "K-6"), J.controlesEnEchec(k6), statut(k6, "C-2"), statut(k6, "A-4")]).to.deep.equal(["reussi", ["C-1"], "non_execute", "non_execute"]);
+  });
+
+  it("compléments, §4 règle 7 : le document de politique d'une attestation (AT-6) suit la même borne de 128 et le même comptage", function () {
+    const d = (n) => "[".repeat(n) + "]".repeat(n);
+    expect(() => S.analyserJSONSansDoublon(d(128))).to.not.throw();
+    expect(() => S.analyserJSONSansDoublon(`{"a":${d(127)}}`)).to.not.throw();
+    expect(() => S.analyserJSONSansDoublon(d(129))).to.throw(/au-delà de 128/);
+    expect(() => S.analyserJSONSansDoublon(`{"a":${d(128)}}`)).to.throw(/au-delà de 128/);
+    expect(() => S.analyserJSONSansDoublon(`{"a":1.50,"b":1e400}`)).to.not.throw();
+  });
+
+  it("compléments, §11.5 : dossier.json qui n'est pas un texte JSON : code 2, dossier_illisible ; attendu sans verdict (exit_code, error_kind)", function () {
+    const rep = path.join(VECTEURS, "dossiers", "illisible-index-non-json");
+    const attendu = lireJSON(path.join(rep, "attendu.json"));
+    expect(attendu).to.include({ valide: null, controle: null, exit_code: 2, error_kind: "dossier_illisible" });
+    expect(attendu.controles_en_echec).to.deep.equal([]);
+    expect(Object.keys(attendu)).to.not.include.members(["code", "code_retour"]);
+    const r = lancer(["verify", "dossier.mjs"], [rep, "--json"]);
+    expect(r.code, r.stderr).to.equal(2);
+    expect(JSON.parse(r.stdout).error.kind).to.equal("dossier_illisible");
   });
 });
 

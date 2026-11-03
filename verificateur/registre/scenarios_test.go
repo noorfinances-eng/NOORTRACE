@@ -7,6 +7,7 @@ package registre
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -304,15 +305,81 @@ func TestScenarios(t *testing.T) {
 		{nom: "R-5 votant du corps", prep: avantSignature(112, 1, func(e *enveloppe) {
 			corps(e, corpsVote{Height: e.Height, Voter: "v2", Type: 2, BlockHash: cryptographie.Hex(e.BlockHash)})
 		}), modifs: map[string]string{"R-5": E}, statut: E},
+		// Révision 0.4 (EX-11.14, EX-11.6) : le type du vote est celui de
+		// l'enveloppe ; Type du corps absent, null ou entier de 0 à 255
+		// différent de 2 est accepté et lève AV-R-2 (ce cas figeait
+		// l'ancienne règle : R-5 en échec) ; non entier, chaîne, négatif ou
+		// au-delà de 255 rend la ligne invalide.
 		{nom: "R-5 vote de type 1", prep: avantSignature(112, 1, func(e *enveloppe) {
 			corps(e, corpsVote{Height: e.Height, Voter: e.ValidatorID, Type: 1, BlockHash: cryptographie.Hex(e.BlockHash)})
+		}), avert: []string{"AV-R-2"}},
+		{nom: "R-5 vote sans Type", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":"`+e.ValidatorID+`","BlockHash":"`+cryptographie.Hex(e.BlockHash)+`","Sig":null}`))
+		}), avert: []string{"AV-R-2"}},
+		{nom: "R-5 vote de Type null", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":"`+e.ValidatorID+`","Type":null,"BlockHash":"`+cryptographie.Hex(e.BlockHash)+`","Sig":null}`))
+		}), avert: []string{"AV-R-2"}},
+		{nom: "R-5 vote de Type 255", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, corpsVote{Height: e.Height, Voter: e.ValidatorID, Type: 255, BlockHash: cryptographie.Hex(e.BlockHash)})
+		}), avert: []string{"AV-R-2"}},
+		{nom: "R-5 vote de Type 2.0", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":"`+e.ValidatorID+`","Type":2.0,"BlockHash":"`+cryptographie.Hex(e.BlockHash)+`","Sig":null}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 vote de Type chaîne", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":"`+e.ValidatorID+`","Type":"2","BlockHash":"`+cryptographie.Hex(e.BlockHash)+`","Sig":null}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 vote de Type 256", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":"`+e.ValidatorID+`","Type":256,"BlockHash":"`+cryptographie.Hex(e.BlockHash)+`","Sig":null}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 vote de Type négatif", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":"`+e.ValidatorID+`","Type":-1,"BlockHash":"`+cryptographie.Hex(e.BlockHash)+`","Sig":null}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 votant fait d'espaces", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, corpsVote{Height: e.Height, Voter: "  ", Type: 2, BlockHash: cryptographie.Hex(e.BlockHash)})
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		// proposer fait de blancs au sens de strings.TrimSpace : le
+		// signataire est le validatorId (EX-11.6, révision 0.4) ; ce cas
+		// était refusé.
+		{nom: "R-5 proposant fait d'espaces", prep: avantSignature(112, 0, func(e *enveloppe) {
+			corps(e, corpsProposition{Height: e.Height, Proposer: " \t ", BlockHash: cryptographie.Hex(e.BlockHash)})
+		}), avert: []string{"AV-R-2"}},
+		// Types des membres connus des corps (EX-11.6, révision 0.4) : un
+		// membre connu mal typé, ou null pour un hachage, fait refuser la
+		// ligne ; null ailleurs est lu comme la valeur nulle ; un membre
+		// inconnu est ignoré (et la ligne n'est pas canonique, AV-R-2).
+		{nom: "R-5 proposition, txsRaw nombre", prep: avantSignature(112, 0, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"height":`+fmt.Sprint(e.Height)+`,"round":0,"proposer":"v1","blockHash":"`+cryptographie.Hex(e.BlockHash)+`","txsRaw":5}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 proposition, parentHash null", prep: avantSignature(112, 0, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"height":`+fmt.Sprint(e.Height)+`,"round":0,"proposer":"v1","blockHash":"`+cryptographie.Hex(e.BlockHash)+`","parentHash":null}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 proposition, gasUsed chaîne", prep: avantSignature(112, 0, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"height":`+fmt.Sprint(e.Height)+`,"round":0,"proposer":"v1","blockHash":"`+cryptographie.Hex(e.BlockHash)+`","gasUsed":"1"}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 proposition, sig base64 invalide", prep: avantSignature(112, 0, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"height":`+fmt.Sprint(e.Height)+`,"round":0,"proposer":"v1","blockHash":"`+cryptographie.Hex(e.BlockHash)+`","sig":"!!"}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 proposition, txsRaw et polkaLines null, membre inconnu", prep: avantSignature(112, 0, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"height":`+fmt.Sprint(e.Height)+`,"round":0,"proposer":"v1","blockHash":"`+cryptographie.Hex(e.BlockHash)+`","txsRaw":null,"polkaLines":null,"inconnu":{"x":1}}`))
+		}), avert: []string{"AV-R-2"}},
+		{nom: "R-5 vote, Voter nombre", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":5,"Type":2,"BlockHash":"`+cryptographie.Hex(e.BlockHash)+`","Sig":null}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 vote, Sig nombre", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":"`+e.ValidatorID+`","Type":2,"BlockHash":"`+cryptographie.Hex(e.BlockHash)+`","Sig":5}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 vote, BlockHash null", prep: avantSignature(112, 1, func(e *enveloppe) {
+			corps(e, json.RawMessage(`{"Height":`+fmt.Sprint(e.Height)+`,"Round":0,"Voter":"`+e.ValidatorID+`","Type":2,"BlockHash":null,"Sig":null}`))
+		}), modifs: map[string]string{"R-5": E}, statut: E},
+		{nom: "R-5 proposant autre", prep: avantSignature(112, 0, func(e *enveloppe) {
+			corps(e, corpsProposition{Height: e.Height, Proposer: "v2", BlockHash: cryptographie.Hex(e.BlockHash)})
 		}), modifs: map[string]string{"R-5": E}, statut: E},
 		{nom: "R-5 bloc du corps", prep: avantSignature(112, 0, func(e *enveloppe) {
 			corps(e, corpsProposition{Height: e.Height, Proposer: "v1", BlockHash: cryptographie.Hex32(octets32("x"))})
 		}), modifs: map[string]string{"R-5": E}, statut: E},
 		{nom: "R-5 votant non renseigné", prep: avantSignature(112, 1, func(e *enveloppe) {
 			corps(e, corpsVote{Height: e.Height, Type: 2, BlockHash: cryptographie.Hex(e.BlockHash)})
-		})},
+		}), avert: []string{"AV-R-2"}},
 		{nom: "R-5 ligne illisible", prep: func(m *monde) {
 			m.certAltere = func(c map[string]any) {
 				if c["height"] == "0x70" {
@@ -470,7 +537,10 @@ func TestScenarios(t *testing.T) {
 				m[id] = ""
 			}
 			return m
-		}(), statut: E, avert: []string{"AV-K-1"}},
+		}(), statut: E}, // Révision 0.4 (EX-11.25) : pas d'AV-K-1 quand K-8 échoue ; ce cas figeait l'ancienne règle.
+		{nom: "K-8 en échec, entrée absente", prep: func(m *monde) { m.retirer(rolePoint) }, post: func(e *Entree) {
+			e.Point.Reference.Fingerprint = cryptographie.Hex32(octets32("x"))
+		}, modifs: map[string]string{"R-11": PA, "K-8": E}, statut: E},
 		// Proposition à deux groupes.
 		{nom: "deux jeux de validateurs", post: func(e *Entree) {
 			j1 := e.Ancres.Registre.Jeux[0]

@@ -2,8 +2,8 @@
   "version": 0,
   "family": "matrice-conformite",
   "spec": "CT-7",
-  "spec_version": "0.1",
-  "date": "2026-10-26",
+  "spec_version": "0.2",
+  "date": "2026-11-03",
   "warning": "Cette matrice établit une correspondance technique entre des passages de textes et des pièces de preuve produites par NOORTRACE. Elle n'est pas un avis juridique et ne dit jamais qu'un client est conforme : la qualification du client, l'applicabilité de chaque texte et la conformité relèvent du client et de ses conseils.",
   "texts": [
     {
@@ -28,12 +28,12 @@
       "nature": "circulaire",
       "version": "du 21 septembre 2017, en vigueur le 1er avril 2018, dernière modification du 4 novembre 2020",
       "url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "addressee": "entreprises assujetties qui externalisent une fonction essentielle (Cm 3 et 4)",
       "applicability": {
         "status": "vigueur_a_confirmer",
         "from": [],
-        "note": "Vigueur au 2026-10-26 déduite de deux documents de la FINMA, non lue dans un acte (R6-F13, NV-1). Les chiffres marginaux ont été lus sur le rendu des pages. Les catégories d'assujettis visées par la circulaire, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) : savoir si elle s'applique au client relève de lui (NV-8)."
+        "note": "Vigueur déduite de documents de la FINMA, non lue dans un acte (R6-F13, NV-1). Relue le 2026-11-03 (EX-8.20, annexe B.2) : fichier de la circulaire identique à celui lu le 2026-10-26 ; la circulaire figure, avec sa dernière modification du 4 novembre 2020, dans l'aperçu des circulaires actuelles de la FINMA (S18) ; aucune audition en cours (S20) ni aucun projet réglementaire de la FINMA (S4) ne la vise. Les chiffres marginaux ont été lus sur le rendu des pages. Les catégories d'assujettis visées par la circulaire, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) : savoir si elle s'applique au client relève de lui (NV-8)."
       }
     },
     {
@@ -126,9 +126,9 @@
       "source": "S12",
       "title": "Règlement (UE) 2024/1689 sur l'intelligence artificielle",
       "nature": "reglement_ue",
-      "version": "JO L du 12.7.2024 ; consolidation du 27.07.2026 (règlement (UE) 2026/1744), articles cités identiques",
+      "version": "JO L du 12.7.2024 ; consolidation du 27.07.2026 (règlement (UE) 2026/1744), dernière au 2026-11-03, articles cités identiques",
       "url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "addressee": "fournisseurs (art. 12, 14, 19) et déployeurs (art. 26) de systèmes d'IA à haut risque",
       "applicability": {
         "status": "pas_encore_applicable",
@@ -146,7 +146,7 @@
             "scope": "systèmes à haut risque de l'annexe I"
           }
         ],
-        "note": "Art. 113 point c), tel que modifié par le règlement (UE) 2026/1744 : aucun des art. 12, 14, 19 et 26 ne s'applique au 2026-10-26 (R6-F55, R6-F56). Le classement d'un système à haut risque relève du client (NV-8). L'art. 12 ne mentionne ni intégrité ni protection contre la manipulation des journaux (constat de lecture, R6-F50) ; NV-10 reste un point non vérifié parce que les normes harmonisées qui préciseraient ce point n'ont pas été lues. L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8)."
+        "note": "Art. 113 point c), tel que modifié par le règlement (UE) 2026/1744 : aucun des art. 12, 14, 19 et 26 ne s'applique au 2026-11-03 (R6-F55, R6-F56). Relu le 2026-11-03 (EX-8.20, annexe B.2) : aucun acte modificatif publié après le règlement (UE) 2026/1744, qui a adopté la proposition COM(2025) 836 (S21) ; la proposition COM(2025) 1023 (S25), non adoptée, ferait passer les dispositifs médicaux de la section A à la section B de l'annexe I, hors des art. 12, 14, 19 et 26 (art. 2 § 2). Le classement d'un système à haut risque relève du client (NV-8). L'art. 12 ne mentionne ni intégrité ni protection contre la manipulation des journaux (constat de lecture, R6-F50) ; NV-10 reste un point non vérifié parce que les normes harmonisées qui préciseraient ce point n'ont pas été lues. L'applicabilité territoriale de ce texte à une entreprise établie en Suisse n'a pas été recherchée (non vérifié) ; elle relève du client et de ses conseils (EX-8.1, NV-8)."
       }
     },
     {
@@ -486,7 +486,7 @@
       ],
       "quote": "Un inventaire des fonctions externalisées doit être établi et tenu à jour. Il comprendra une description de la fonction externalisée, le fournisseur (y compris les sous-traitants), le bénéficiaire et l'organe responsable au sein de l’entreprise (cf. Cm 20).",
       "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Inventaire tenu à jour des fonctions externalisées : fonction, fournisseur et sous-traitants, bénéficiaire, organe responsable.",
       "applicability": "vigueur_a_confirmer",
       "elements": [
@@ -525,7 +525,7 @@
       ],
       "quote": "Lors de la décision statuant sur l’outsourcing et du choix du prestataire, les possibilités et les conséquences d’un changement doivent être prises en considération. Le prestataire doit offrir la garantie d’un exercice durable de la fonction. […] La réintégration ordonnée de la fonction externalisée ou le transfert à un autre prestataire doivent être garantis.",
       "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Prendre en compte les possibilités et conséquences d'un changement ; garantir la réintégration ordonnée ou le transfert à un autre prestataire.",
       "applicability": "vigueur_a_confirmer",
       "elements": [
@@ -581,7 +581,7 @@
       ],
       "quote": "Le système de contrôle interne de l’entreprise doit s’étendre à la fonction externalisée. […] L’entreprise s’assure que le prestataire lui reconnaisse le droit de lui donner des instructions et de procéder aux contrôles nécessaires à cet effet.",
       "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Étendre le contrôle interne à la fonction externalisée ; droit de donner des instructions et de procéder aux contrôles nécessaires.",
       "applicability": "vigueur_a_confirmer",
       "elements": [
@@ -632,7 +632,7 @@
       ],
       "quote": "En cas d’externalisations déterminantes pour la sécurité (notamment dans le domaine informatique), l’entreprise et le prestataire fixent par contrat les exigences en matière de sécurité. L’entreprise doit veiller à leur respect. […] L’entreprise et le prestataire élaborent un dispositif de sécurité qui permet en cas d’urgence la continuité de la fonction externalisée.",
       "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Exigences de sécurité fixées par contrat et respectées ; dispositif de continuité en cas d'urgence.",
       "applicability": "vigueur_a_confirmer",
       "elements": [
@@ -715,7 +715,7 @@
       ],
       "quote": "L’entreprise, sa société d’audit et la FINMA doivent être en mesure de vérifier le respect des dispositions prudentielles auprès du prestataire. Un droit de regard et d’examen intégral, permanent et sans entraves sur la fonction externalisée doit leur être reconnu par contrat.",
       "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Droit de regard et d'examen intégral, permanent et sans entraves de l'entreprise, de sa société d'audit et de la FINMA, reconnu par contrat.",
       "applicability": "vigueur_a_confirmer",
       "elements": [
@@ -771,7 +771,7 @@
       ],
       "quote": "Si le prestataire n’est pas assujetti à la surveillance de la FINMA, il doit s’engager par contrat envers l’entreprise à mettre à la disposition de la FINMA tous les renseignements et documents relatifs au domaine d’activités transféré dont la FINMA a besoin pour remplir ses tâches de surveillance.",
       "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Engagement contractuel du prestataire non assujetti de mettre à disposition de la FINMA tous les renseignements et documents nécessaires.",
       "applicability": "vigueur_a_confirmer",
       "elements": [
@@ -805,7 +805,7 @@
       ],
       "quote": "Un transfert à l’étranger est autorisé à condition que l’entreprise puisse expressément garantir qu’elle-même, sa société d’audit ainsi que la FINMA peuvent exercer et faire appliquer leurs droits de regard et d’examen. La capacité d’assainissement et de liquidation de l’entreprise en Suisse doit être garantie. Il faut que l’accès aux informations nécessaires à cet effet soit possible à tout moment en Suisse.",
       "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Transfert à l'étranger seulement si les droits de regard et d'examen restent exerçables et si l'accès aux informations nécessaires est possible à tout moment en Suisse.",
       "applicability": "vigueur_a_confirmer",
       "elements": [
@@ -856,7 +856,7 @@
       ],
       "quote": "L’entreprise s’assure d'être informée suffisamment tôt du recours, ou du changement de recours, à des sous-traitants exerçant des fonctions essentielles et de pouvoir mettre un terme à l’outsourcing de manière ordonnée au sens du Cm 18.1. En cas de recours à des sous-traitants, les obligations et les garanties du prestataire nécessaires au respect de la présente circulaire doivent leur être transférées.",
       "source_url": "https://www.finma.ch/fr/~/media/finma/dokumente/dokumentencenter/myfinma/rundschreiben/finma-rs-2018-03-01012021_de.pdf?sc_lang=fr",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Information précoce sur le recours à des sous-traitants exerçant des fonctions essentielles ; transfert des obligations et garanties aux sous-traitants.",
       "applicability": "vigueur_a_confirmer",
       "elements": [
@@ -2381,7 +2381,7 @@
       ],
       "quote": "1. Les systèmes d’IA à haut risque permettent, techniquement, l’enregistrement automatique des événements (journaux) tout au long de la durée de vie du système.",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Enregistrement automatique des événements tout au long de la durée de vie du système.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -2437,7 +2437,7 @@
       ],
       "quote": "2. Afin de garantir un degré de traçabilité du fonctionnement d’un système d’IA qui soit adapté à la destination du système, les fonctionnalités de journalisation permettent l’enregistrement des événements pertinents pour: a) repérer les situations susceptibles d’avoir pour effet que le système d’IA à haut risque présente un risque au sens de l’article 79, paragraphe 1, ou d’entraîner une modification substantielle; b) faciliter la surveillance après commercialisation visée à l’article 72; et c) surveiller le fonctionnement du système d’IA à haut risque comme prévu à l’article 26, paragraphe 5.",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Événements pertinents pour repérer les risques, la surveillance après commercialisation et la surveillance par le déployeur.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -2476,7 +2476,7 @@
       ],
       "quote": "d) de décider, dans une situation particulière, de ne pas utiliser le système d’IA à haut risque ou d’ignorer, remplacer ou inverser la sortie du système d’IA à haut risque;",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Les personnes chargées du contrôle humain peuvent décider de ne pas utiliser le système, ou ignorer, remplacer ou inverser sa sortie.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -2526,7 +2526,7 @@
       ],
       "quote": "e) d’intervenir dans le fonctionnement du système d’IA à haut risque ou d’interrompre le système au moyen d’un bouton d’arrêt ou d’une procédure similaire permettant au système de s’arrêter de manière sécurisée.",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Intervenir dans le fonctionnement ou interrompre le système de manière sécurisée.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -2554,7 +2554,7 @@
       ],
       "quote": "[…] aucune mesure ou décision n’est prise par le déployeur sur la base de l’identification résultant du système sans vérification et confirmation distinctes de cette identification par au moins deux personnes physiques disposant des compétences, de la formation et de l’autorité nécessaires.",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "La première phrase du § 5, coupée dans la citation (« […] ») et lue dans S12 (R6-F51), limite la règle aux systèmes visés à l'annexe III, point 1 a) : pour eux, vérification et confirmation distinctes par au moins deux personnes physiques.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -2598,7 +2598,7 @@
       ],
       "quote": "1. Les fournisseurs de systèmes d’IA à haut risque assurent la tenue des journaux générés automatiquement par leurs systèmes d’IA à haut risque, visés à l’article 12, paragraphe 1, dans la mesure où ces journaux se trouvent sous leur contrôle. Sans préjudice du droit de l’Union ou du droit national applicable, les journaux sont conservés pendant une période adaptée à la destination du système d’IA à haut risque, d’au moins six mois, sauf disposition contraire dans le droit de l’Union ou le droit national applicable, en particulier dans le droit de l’Union sur la protection des données à caractère personnel.",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Le fournisseur tient les journaux sous son contrôle pendant une période adaptée, d'au moins six mois.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -2666,7 +2666,7 @@
       ],
       "quote": "2. Les déployeurs confient le contrôle humain à des personnes physiques qui disposent des compétences, de la formation et de l’autorité nécessaires ainsi que du soutien nécessaire.",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Confier le contrôle humain à des personnes physiques compétentes, formées et dotées de l'autorité nécessaire.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -2705,7 +2705,7 @@
       ],
       "quote": "Les déployeurs surveillent le fonctionnement du système d’IA à haut risque sur la base de la notice d’utilisation et, le cas échéant, informent les fournisseurs conformément à l’article 72. Lorsque les déployeurs ont des raisons de considérer que l’utilisation du système d’IA à haut risque conformément à la notice d’utilisation pourrait conduire à ce que le système d’IA présente un risque au sens de l’article 79, paragraphe 1, ils en informent, sans retard injustifié, le fournisseur ou le distributeur ainsi que l’autorité de surveillance du marché concernée, et suspendent l’utilisation de ce système.",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Surveiller le fonctionnement selon la notice, informer et suspendre en cas de risque.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -2744,7 +2744,7 @@
       ],
       "quote": "6. Les déployeurs de systèmes d’IA à haut risque assurent la tenue des journaux générés automatiquement par ce système d’IA à haut risque dans la mesure où ces journaux se trouvent sous leur contrôle, pendant une période adaptée à la destination du système d’IA à haut risque, d’au moins six mois, sauf disposition contraire dans le droit de l’Union ou le droit national applicable, en particulier dans le droit de l’Union sur la protection des données à caractère personnel.",
       "source_url": "http://publications.europa.eu/resource/celex/32024R1689",
-      "read_on": "2026-10-26",
+      "read_on": "2026-11-03",
       "requirement": "Le déployeur tient les journaux sous son contrôle pendant une période adaptée, d'au moins six mois.",
       "applicability": "pas_encore_applicable",
       "elements": [
@@ -3386,7 +3386,7 @@
     },
     {
       "id": "L-8",
-      "title": "Vigueur de la circulaire FINMA 2018/3 au 2026-10-26 non lue dans un acte",
+      "title": "Vigueur de la circulaire FINMA 2018/3 au 2026-11-03 non lue dans un acte",
       "rows": [
         "MC-7",
         "MC-8",
@@ -3398,7 +3398,7 @@
         "MC-14"
       ],
       "response": "renvoi",
-      "bound": "Les lignes restent valables comme correspondance technique ; leur statut juridique est à confirmer. Pour la circulaire FINMA 2018/3, la vigueur au 2026-10-26 n'a pas été lue dans un acte (NV-1), et les catégories d'assujettis visées, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) ; savoir si elle s'applique au client relève de lui (NV-8).",
+      "bound": "Les lignes restent valables comme correspondance technique ; leur statut juridique est à confirmer. Pour la circulaire FINMA 2018/3, la vigueur au 2026-11-03 n'a pas été lue dans un acte (NV-1 ; relecture d'EX-8.20, annexe B.2), et les catégories d'assujettis visées, dont les entreprises d'assurance, n'ont pas été lues (non vérifié) ; savoir si elle s'applique au client relève de lui (NV-8).",
       "owner": "prochaine révision de CT-7 (NV-1)",
       "rule": "EX-8.4"
     },

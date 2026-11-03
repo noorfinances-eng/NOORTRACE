@@ -8,6 +8,10 @@ import { PREFIXES, keccak256, sha256Hex, signerEd25519, verifierEd25519 } from "
 import { racineMerkle } from "./merkle.mjs";
 import { validerSchema } from "./schemas.mjs";
 
+// Le hachage et la signature portent sur l'objet en mémoire : la borne de
+// profondeur de CT-1 §4 (règle 7) s'applique à la lecture et à E-1, non ici.
+const SANS_BORNE = Object.freeze({ profondeurMax: Infinity });
+
 /** Durée d'une période : une heure UTC pleine, en secondes. */
 export const DUREE_PERIODE = 3600;
 
@@ -17,7 +21,7 @@ export const DUREE_PERIODE = 3600;
  * @returns {string}
  */
 export function formeCanoniqueManifeste(manifeste) {
-  return jcs(manifeste);
+  return jcs(manifeste, SANS_BORNE);
 }
 
 /**
@@ -26,7 +30,7 @@ export function formeCanoniqueManifeste(manifeste) {
  * @returns {string}
  */
 export function hacherManifeste(manifeste) {
-  return sha256Hex(concatener(PREFIXES.P_M, jcsOctets(manifeste)));
+  return sha256Hex(concatener(PREFIXES.P_M, jcsOctets(manifeste, SANS_BORNE)));
 }
 
 /**
@@ -35,7 +39,7 @@ export function hacherManifeste(manifeste) {
  * @returns {Uint8Array}
  */
 export function messageSignatureManifeste(manifeste) {
-  return concatener(PREFIXES.P_SM, jcsOctets(manifeste));
+  return concatener(PREFIXES.P_SM, jcsOctets(manifeste, SANS_BORNE));
 }
 
 /**

@@ -90,7 +90,7 @@ node scripts/deploiement/verifier-conteneurs.mjs spec/vecteurs/ct-8/conteneurs/<
 Évaluation du contrôle préalable de CT-8 §6, annexe A.4. Chaque
 `<cas>.json` (schéma `controle-prealable-v0#/$defs/cas`) porte le profil,
 les observations d'un hôte (celles de 6.3, ou leur variante de production :
-8 processeurs, 16 Gio, 600 Gio libres, ports publiés sur `192.0.2.40`, images
+8 processeurs, 16 Gio, 1 200 Gio libres, ports publiés sur `192.0.2.40`, images
 par condensé, cache déclaré), le seuil d'espace (`storage_free_min_bytes`)
 ou la liste `only` quand le cas les fixe, et le rapport attendu. Chaque cas
 change un relevé.
@@ -110,7 +110,7 @@ node scripts/deploiement/controle-prealable.mjs --profil <profil> \
 | `pret-production` | `production` | Variante de production, seuil d'espace égal à local_bytes de l'exemple de 9.5 : prêt. | 0 | `pret` | — |
 | `architecture-non-prise-en-charge` | `rapide` | Architecture ia32 au lieu de x64 : IP-1 échoue. | 1 | `non_pret` | IP-1 `echoue` (`architecture_non_prise_en_charge`) ; IP-13 `non_execute` (`declaration_absente`), non bloquante |
 | `memoire-insuffisante` | `rapide` | 2 Gio de mémoire, sous la cible de 4 Gio : IP-2 échoue. | 1 | `non_pret` | IP-2 `echoue` (`memoire_insuffisante`) ; IP-13 `non_execute` (`declaration_absente`), non bloquante |
-| `espace-insuffisant` | `production` | Seuil d'espace de 1 000 Gio, au-delà des 600 Gio libres : IP-3 échoue. | 1 | `non_pret` | IP-3 `echoue` (`espace_insuffisant`) |
+| `espace-insuffisant` | `production` | Seuil d'espace de 2 000 Gio, au-delà des 1 200 Gio libres : IP-3 échoue. | 1 | `non_pret` | IP-3 `echoue` (`espace_insuffisant`) |
 | `production-sans-dimensionnement` | `production` | Production sans dimensionnement : IP-3 non exécutée (dimensionnement_absent), bloquante. | 1 | `non_pret` | IP-3 `non_execute` (`dimensionnement_absent`) |
 | `stockage-nfs` | `rapide` | Stockage sur nfs4, système de fichiers refusé : IP-4 échoue. | 1 | `non_pret` | IP-4 `echoue` (`systeme_de_fichiers_refuse`) ; IP-13 `non_execute` (`declaration_absente`), non bloquante |
 | `systeme-de-fichiers-non-eprouve` | `rapide` | Stockage sur zfs, ni admis ni refusé : IP-4 en avertissement. | 0 | `pret_avec_avertissements` | IP-4 `avertissement` (`systeme_de_fichiers_non_eprouve`) ; IP-13 `non_execute` (`declaration_absente`), non bloquante |
@@ -142,7 +142,7 @@ node scripts/deploiement/controle-prealable.mjs --profil <profil> \
 
 ## dimensionnement
 
-Calculateur de CT-8 §9, annexe A.5 : les quinze cas de 9.6, qui font varier
+Calculateur de CT-8 §9, annexe A.5 : les seize cas de 9.6, qui font varier
 l'exemple de 9.5 un paramètre à la fois. Chaque `<cas>.json` (schéma
 `dimensionnement-v0#/$defs/cas`) porte les entrées et la sortie exacte
 (`attendu`).
@@ -157,19 +157,19 @@ node scripts/deploiement/dimensionner.mjs --entrees spec/vecteurs/ct-8/dimension
 
 | Cas | Ce qui change | Code | `local_bytes` (Gio) | `worm_bytes` (Gio) | Jetons qualifiés / autres par an | Transactions par heure ; part |
 |---|---|---|---|---|---|---|
-| `reference` | Exemple de 9.5, sans changement. | 0 | 388,581 | 169,431 | 8 760 / 96 360 | 63 ; 0,000249 |
-| `sans-worm` | Aucun support WORM (storage.worm = null). | 0 | 388,581 | 0 | 8 760 / 96 360 | 63 ; 0,000249 |
-| `deux-copies-worm-et-pieces` | Deux copies WORM sur des supports distincts, pièces copiées. | 0 | 388,581 | 780,293 | 8 760 / 96 360 | 63 ; 0,000249 |
-| `points-chez-principal` | Points contresignés par le prestataire principal (provider_role = principal). | 0 | 388,581 | 169,431 | 105 120 / 0 | 63 ; 0,000249 |
-| `contresignature-a-la-minute` | Contresignature à la minute (c_T = 60) par le prestataire principal. | 0 | 427,992 | 212,816 | 525 600 / 0 | 63 ; 0,000249 |
-| `ots-mi-periode` | Preuve OpenTimestamps d'un point à mi-période. | 0 | 388,600 | 169,452 | 8 760 / 96 360 | 63 ; 0,000249 |
-| `sans-ancre-des-points` | Aucune ancre des points au registre (registry.checkpoints = aucun), c_T = 3 600. | 0 | 324,329 | 98,701 | 8 760 / 0 | 2 ; 0,000008 |
-| `pieces-purgees` | Pièces conservées localement 365 jours (D_lp = 365). | 0 | 187,916 | 169,431 | 8 760 / 96 360 | 63 ; 0,000249 |
-| `debit-au-dela-de-la-cible` | 50 agents, 10 000 événements par heure, actifs 8 760 heures : pointe au-delà de la cible de 500 événements par seconde. | 0 | 390 925,968 | 115 033,369 | 8 760 / 96 360 | 63 ; 0,000249 |
-| `cent-journaux` | Cent journaux de ce type (J = 100). | 0 | 38 858,101 | 16 943,126 | 876 000 / 9 636 000 | 6 300 ; 0,024858 |
-| `deux-types-de-journaux` | Plus trois journaux souscription de deux agents à 30 événements par heure. | 0 | 663,186 | 415,626 | 35 040 / 385 440 | 252 ; 0,000994 |
-| `journal-inactif` | Journal sans activité (e = 0, a = 0) : le maximum d'ancres est gardé (DM-7 est une borne). | 0 | 66,869 | 67,524 | 8 760 / 0 | 63 ; 0,000249 |
-| `points-toutes-les-dix-secondes` | Un point toutes les dix secondes (c_K = 10). | 0 | 678,532 | 486,763 | 8 760 / 96 360 | 363 ; 0,001432 |
+| `reference` | Exemple de 9.5, sans changement. | 0 | 967,655 | 806,888 | 8 760 / 96 360 | 63 ; 0,000249 |
+| `sans-worm` | Aucun support WORM (storage.worm = null). | 0 | 967,655 | 0 | 8 760 / 96 360 | 63 ; 0,000249 |
+| `deux-copies-worm-et-pieces` | Deux copies WORM sur des supports distincts, pièces copiées. | 0 | 967,655 | 2 055,207 | 8 760 / 96 360 | 63 ; 0,000249 |
+| `points-chez-principal` | Points contresignés par le prestataire principal (provider_role = principal). | 0 | 967,655 | 806,888 | 105 120 / 0 | 63 ; 0,000249 |
+| `contresignature-a-la-minute` | Contresignature à la minute (c_T = 60) par le prestataire principal. | 0 | 1 007,066 | 850,273 | 525 600 / 0 | 63 ; 0,000249 |
+| `ots-mi-periode` | Preuve OpenTimestamps d'un point à mi-période. | 0 | 967,674 | 806,909 | 8 760 / 96 360 | 63 ; 0,000249 |
+| `sans-ancre-des-points` | Aucune ancre des points au registre (registry.checkpoints = aucun), c_T = 3 600. | 0 | 342,712 | 118,938 | 8 760 / 0 | 2 ; 0,000008 |
+| `pieces-purgees` | Pièces conservées localement 365 jours (D_lp = 365). | 0 | 766,989 | 806,888 | 8 760 / 96 360 | 63 ; 0,000249 |
+| `debit-au-dela-de-la-cible` | 50 agents, 10 000 événements par heure, actifs 8 760 heures : pointe au-delà de la cible de 500 événements par seconde. | 0 | 391 505,042 | 115 670,826 | 8 760 / 96 360 | 63 ; 0,000249 |
+| `cent-journaux` | Cent journaux de ce type (J = 100). | 0 | 96 765,467 | 80 688,823 | 876 000 / 9 636 000 | 6 300 ; 0,024858 |
+| `deux-types-de-journaux` | Plus trois journaux souscription de deux agents à 30 événements par heure. | 0 | 2 979,481 | 2 965,453 | 35 040 / 385 440 | 252 ; 0,000994 |
+| `journal-inactif` | Journal sans activité (e = 0, a = 0) : le maximum d'ancres est gardé (DM-7 est une borne). | 0 | 645,943 | 704,981 | 8 760 / 0 | 63 ; 0,000249 |
+| `points-toutes-les-dix-secondes` | Un point toutes les dix secondes (c_K = 10). | 0 | 4 015,100 | 4 159,730 | 8 760 / 96 360 | 363 ; 0,001432 |
 | `refus-cadence-non-diviseur` | c_K = 70, qui ne divise pas 3 600 : refus (EX-9.3). | 1 | refus : `checkpoint_interval_s_non_diviseur`, `rfc3161_interval_s_invalide` | | | |
 | `refus-retention-ancres` | Rétention des pièces d'horodatage de 5 ans, sous 10 : refus (EX-9.3). | 1 | refus : `retention_years_inferieure_a_10` | | | |
 | `refus-depassement-capacite` | Un million d'agents à 100 000 événements par heure, mille journaux : une sortie entière dépasserait 2^53 − 1 : refus (EX-9.3, depassement_capacite). | 1 | refus : `depassement_capacite` | | | |

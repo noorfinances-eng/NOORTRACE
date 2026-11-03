@@ -1,0 +1,12 @@
+{
+  "valide": false,
+  "controle": "C-1",
+  "controles_en_echec": [
+    "E-1",
+    "C-1",
+    "C-2",
+    "C-3",
+    "P-3"
+  ],
+  "description": "voisins.json dont next vaut 5, index recalculé : voisin qui n'est pas un objet (CT-1 §11.4, révision 0.5, règle unique) : E-1 échoue pour lui, E-2 à E-11 ne s'y exécutent pas ; C-1 (enveloppe et relation de seq), C-2 (next.prev_hash), C-3 (clé de next) et P-3 (appartenance à la période) échouent ; voisins.json reste exploitable, le voisin précédent est contrôlé normalement."
+}

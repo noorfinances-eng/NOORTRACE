@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-1",
+  "controles_en_echec": [
+    "E-1"
+  ],
+  "description": "evenement.json précédé de la marque d'ordre d'octets EF BB BF (SHA-256 de l'index reporté) : ce n'est pas un texte JSON (CT-1 §3, révision 0.5), la partie est inexploitable et E-1, qui la porte, échoue (et non E-2) ; les contrôles qui lisent l'événement ne sont pas exécutés, sans raison admise."
+}

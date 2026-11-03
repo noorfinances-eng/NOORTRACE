@@ -1,0 +1,39 @@
+{
+  "valid": false,
+  "target": "R-5",
+  "failed_checks": [
+    "R-5"
+  ],
+  "control_statuses": {
+    "1": "reussi",
+    "2": "reussi",
+    "3": "reussi",
+    "4": "reussi",
+    "5": "reussi",
+    "6": "reussi",
+    "7": "reussi",
+    "8": "echoue"
+  },
+  "not_executed": [
+    {
+      "id": "A-4",
+      "reason": "piece_hors_dossier"
+    },
+    {
+      "id": "T-11",
+      "reason": "ancre_absente"
+    }
+  ],
+  "warnings": [
+    "AV-O-3"
+  ],
+  "anchors": "../../ancres/ancres-jeu-substitue.json",
+  "bitcoin_headers": "../../ots/entetes/chaine.json",
+  "exit_code": 1,
+  "statement": {
+    "fr": "Dossier invalide : vérification(s) en échec : R-5 ; le vérificateur n'affirme rien sur cet événement.",
+    "en": "Invalid dossier: failed check(s): R-5; the verifier asserts nothing about this event."
+  },
+  "bound": null,
+  "description": "Parties du registre de registre/variantes/invalide-r2-jeu-substitue/ dont le corps de la ligne de proposition du certificat de la clôture porte \"txsRaw\":5 (un nombre à la place du tableau de chaînes base64), ligne re-signée par le validateur substitué ; vérifié avec ancres-jeu-substitue.json : un membre connu d'un corps de proposition d'un autre type fait refuser la ligne, comme le nœud refuse de la décoder (EX-11.6, ligne « types des membres connus d'un corps », révision 0.4) : R-5 échoue, contrôle 8 en échec."
+}

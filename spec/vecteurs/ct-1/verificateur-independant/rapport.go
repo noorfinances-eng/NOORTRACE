@@ -13,8 +13,9 @@ import (
 
 // Comparaison est une valeur attendue confrontée à une valeur recalculée.
 // HorsPerimetre marque une valeur que ce vérificateur ne peut pas recalculer
-// (contrôle E-9, signatures EIP-191 ; notions de CT-6 et de CT-7 portées
-// par les attendus de la révision 0.4) : ni concordante ni discordante.
+// (notions de CT-6 et de CT-7 portées par les attendus : vérification
+// visée, attestation retenue, avertissements, --exiger 4) : ni concordante
+// ni discordante.
 type Comparaison struct {
 	Famille       string `json:"famille"`
 	Vecteur       string `json:"vecteur"`
@@ -156,7 +157,7 @@ func (r *Rapport) EcrireTexte(w io.Writer, verbeux bool) {
 	if r.ToutConcorde() {
 		fmt.Fprintln(w, "Résultat : tout concorde.")
 		if hp > 0 {
-			fmt.Fprintln(w, "Les valeurs hors périmètre (signatures EIP-191 des approbateurs, contrôle 7 / E-9 ; vérification visée, attestation retenue et avertissements AV-AT- des dossiers de la révision 0.4, définis par CT-6 et CT-7) ne sont pas vérifiées par ce vérificateur et restent à confronter par l'implémentation de référence.")
+			fmt.Fprintln(w, "Les valeurs hors périmètre (vérification visée, attestation retenue et avertissements AV-AT- des dossiers de la révision 0.4, définis par CT-6 et CT-7 ; code de retour avec --exiger 4 de CT-6) ne sont pas vérifiées par ce vérificateur et restent à confronter par l'implémentation de référence.")
 		}
 	} else {
 		fmt.Fprintln(w, "Résultat : DISCORDANCE ou erreur.")
@@ -195,8 +196,9 @@ func verdictTexte(echecs []string) string {
 // contrôles : chacun doit être en échec ; en mode strict, aucun autre. Les
 // échecs supplémentaires hors mode strict sont rapportés en note, car la
 // spécification admet les cascades (§11.5 : « E-7, puis C-2 sur next »). Un
-// contrôle attendu que ce vérificateur déclare hors périmètre (E-9) rend la
-// comparaison « hors périmètre », ni concordante ni discordante.
+// contrôle attendu que les résultats déclarent hors périmètre rend la
+// comparaison « hors périmètre », ni concordante ni discordante (depuis la
+// révision 0.5, aucun contrôle de CT-1 ne l'est : E-9 recouvre les adresses).
 func comparerVerdict(rap *Rapport, famille, vecteur string, attenduValide bool, attendus []string, res *Resultats, strict bool) bool {
 	echecs := res.Echecs()
 	obtenu := verdictTexte(echecs)
@@ -210,7 +212,7 @@ func comparerVerdict(rap *Rapport, famille, vecteur string, attenduValide bool, 
 	horsPerimetre := []string{}
 	for _, a := range ids {
 		if !dansEnum(a, echecs) {
-			if c := res.parID[a]; (c != nil && c.Etat == EtatHorsPerimetre) || a == "E-9" {
+			if c := res.parID[a]; c != nil && c.Etat == EtatHorsPerimetre {
 				horsPerimetre = append(horsPerimetre, a)
 				continue
 			}
@@ -219,7 +221,7 @@ func comparerVerdict(rap *Rapport, famille, vecteur string, attenduValide bool, 
 	}
 	if len(manquants) == 0 && len(horsPerimetre) > 0 {
 		rap.Comparaisons = append(rap.Comparaisons, Comparaison{Famille: famille, Vecteur: vecteur, Grandeur: "verdict", Attendu: attendu, Obtenu: obtenu,
-			HorsPerimetre: true, Note: "contrôle(s) hors périmètre de ce vérificateur (signatures EIP-191) : " + strings.Join(horsPerimetre, ",") + " ; non vérifiable ici"})
+			HorsPerimetre: true, Note: "contrôle(s) hors périmètre de ce vérificateur : " + strings.Join(horsPerimetre, ",") + " ; non vérifiable ici"})
 		return false
 	}
 	supplementaires := []string{}

@@ -59,6 +59,8 @@ ct-1/dossiers | invalide-d2-attestation-sha256 | 0 | 0x70997970c51812dc3a010c7d0
 ct-1/dossiers | invalide-d2-attestation-sha256 | 1 | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | concorde
 ct-1/dossiers | invalide-e1-attestation-non-executee | 0 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | concorde
 ct-1/dossiers | invalide-e1-attestation-non-executee | 1 | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | concorde
+ct-1/dossiers | valide-at1-inscription-date-inexistante | 0 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | concorde
+ct-1/dossiers | valide-at1-inscription-date-inexistante | 1 | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | concorde
 ct-1/dossiers | valide-at1-taille | 0 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | concorde
 ct-1/dossiers | valide-at1-taille | 1 | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | concorde
 ct-1/dossiers | valide-at2-condense-faux | 0 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | concorde
@@ -100,4 +102,4 @@ ct-6/dossiers | valide-seq-7-complet-attestation-cle-non-ancree | 0 | 0x70997970
 ct-6/dossiers | valide-seq-7-complet-attestation-cle-non-ancree | 1 | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc | concorde
 ct-6/dossiers | valide-seq-7-complet-attestation-non-retenue | 0 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 | concorde
 ct-6/dossiers | valide-seq-7-complet-attestation-non-retenue | 1 | 0x90f79bf6eb2c4f870365e785982e1f101e93b906 | 0x90f79bf6eb2c4f870365e785982e1f101e93b906 | concorde
-# bilan : 100 signatures ; concorde 98, acceptee_par_la_bibliotheque 2, refusee_par_la_bibliotheque 0, discordance 0
+# bilan : 102 signatures ; concorde 100, acceptee_par_la_bibliotheque 2, refusee_par_la_bibliotheque 0, discordance 0

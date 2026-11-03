@@ -50,7 +50,8 @@ import { dossiersDecisions } from "./ct6/decisions.mjs";
 import crypto from "node:crypto";
 import { construireJeton, genererRfc3161 } from "./ct6/rfc3161.mjs";
 import { genererOts } from "./ct6/ots.mjs";
-import { ancreRegistre, ancresEnregistreurs, appliquerModifications, genererRegistre, lireCapture, modificationsAncres, referenceAncreDePeriodeCommePoint, referencePoint, sectionIndex, transactionPoint } from "./ct6/registre.mjs";
+import * as OTS from "../lib/ots.mjs";
+import { ancreRegistre, ancresEnregistreurs, appliquerModifications, genererRegistre, jeuReseau, jeuSubstitue, lireCapture, modificationsAncres, octetsParties, partiesPrecommitType, partiesPropositionMembreMalType, referenceAncreDePeriodeCommePoint, referencePoint, sectionIndex, transactionPoint } from "./ct6/registre.mjs";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 export const REPERTOIRE_CT6 = path.join(PROJECT_ROOT, "spec", "vecteurs", "ct-6");
@@ -106,6 +107,9 @@ export function fichiersAncres({ fragments, ancreBitcoin, capture }) {
     "ancres-deux-jeux.json": { objet: variante("ancres-deux-jeux.json", mods["ancres-deux-jeux.json"]), description: "idem, registry.validator_sets coupé en deux jeux de mêmes clés, l'un jusqu'au bloc de l'ancre de la période 1, l'autre au-delà (EX-11.22)" },
     "ancres-unite-epinglee-revoquee.json": { objet: base("Ancres de test CT-6 (ancres-unite-epinglee-revoquee.json)", fragments.unite_epinglee_revoquee), description: "idem, autorité = l'unité tsa-test.pem elle-même (« Unité TSA épinglée de test CT-6 ») et crl-tsa-revoquee.pem, qui la révoque pour keyCompromise : T-10 échoue (EX-9.16)" },
     "ancres-deux-autorites.json": { objet: base("Ancres de test CT-6 (ancres-deux-autorites.json)", fragments.deux_autorites), description: "idem, deux autorités : l'unité tsa-test.pem épinglée (qualified eidas déclaré), puis ac-test.pem ; crl-vide.pem. T-7 retient la première (EX-9.13)" },
+    // Révision 0.4 (EX-A.22, EX-A.23).
+    "ancres-unite-intermediaire.json": { objet: base("Ancres de test CT-6 (ancres-unite-intermediaire.json)", fragments.unite_intermediaire), description: "révision 0.4 (EX-A.22) : ancres-test.json dont l'autorité ac-test.pem porte tsa-test.pem dans intermediates : un jeton sans certificats y trouve le certificat de l'unité (T-4)" },
+    "ancres-jeu-substitue.json": { objet: variante("ancres-jeu-substitue.json", [{ pointer: "/registry/validator_sets", value: [{ ...jeuReseau(capture, jeuSubstitue()), source: "jeu substitué des vecteurs CT-6 (graines publiées), déclaré par le réviseur pour les dossiers *-precommit-type-*" }] }]), description: "révision 0.4 (EX-A.23) : ancres-test.json dont registry.validator_sets déclare le jeu substitué v1 à v4 (clés de graines publiées, registre/variantes/invalide-r2-jeu-substitue/)" },
   };
   return out;
 }
@@ -131,12 +135,12 @@ const HORS_CT1 = { 4: "hors_perimetre_version", 5: "hors_perimetre_version", 8: 
  */
 export function conceptionDossiers() {
   const d = [];
-  const ajouter = (nom, { base = "complet", jeton = "periode-1", preuve = "periode-1", registre = null, partiesRegistre = null, manifeste = null, point = null, attestation = null, ancres = "ancres-test.json", entetes = "chaine.json", cible = null, echecs = null, statuts = {}, raisons = {}, avertissements = ["AV-O-3"], description }) => {
+  const ajouter = (nom, { base = "complet", jeton = "periode-1", preuve = "periode-1", registre = null, partiesRegistre = null, manifeste = null, point = null, attestation = null, evenement = null, precommitType = null, absentes = null, exiger4 = false, ancres = "ancres-test.json", entetes = "chaine.json", cible = null, echecs = null, statuts = {}, raisons = {}, avertissements = ["AV-O-3"], description }) => {
     const control_statuses = { ...TOUS_REUSSIS, ...statuts };
     if (cible && !statuts[CONTROLE_DE(cible)]) control_statuses[CONTROLE_DE(cible)] = "echoue";
     for (const n of Object.keys(raisons)) if (control_statuses[n] !== "non_execute") throw new Error(`conception ${nom} : raison pour le contrôle ${n}, qui n'est pas non exécuté`);
     for (const [n, st] of Object.entries(control_statuses)) if (st === "non_execute" && !raisons[n]) throw new Error(`conception ${nom} : contrôle ${n} non exécuté sans raison posée`);
-    d.push({ nom, base, jeton, preuve, registre, partiesRegistre: partiesRegistre ?? (registre ? `variantes/${registre}` : "periode-1"), manifeste, point, attestation, ancres, entetes, cible, failed_checks: echecs ?? (cible ? [cible] : []), control_statuses, control_reasons: raisons, warnings: avertissements, description });
+    d.push({ nom, base, jeton, preuve, registre, partiesRegistre: partiesRegistre ?? (registre ? `variantes/${registre}` : "periode-1"), manifeste, point, attestation, evenement, precommitType, absentes, exiger4, ancres, entetes, cible, failed_checks: echecs ?? (cible ? [cible] : []), control_statuses, control_reasons: raisons, warnings: avertissements, description });
   };
   ajouter("valide-seq-7-complet", { description: "Dossier valide-seq-7 de CT-1, ses sept parties inchangées, complété du jeton de la période 1 (rfc3161/jetons/periode-1.der), de sa preuve OpenTimestamps (ots/preuves/periode-1.ots) et des trois parties du registre de la période 1 (registre/periode-1/ : inscriptions de rec-test-01 et rec-test-02, ancre et clôture). Les huit contrôles réussissent ; T-11 n'est pas exécutée (aucun statut qualifié déclaré), l'énoncé ne dit pas « qualifié »." });
   ajouter("valide-seq-7-complet-sans-ancres", { ancres: null, statuts: { 4: "non_execute", 5: "non_execute", 8: "non_execute" }, raisons: { 4: "ancre_absente", 5: "ancre_absente", 8: "ancre_absente" }, avertissements: [], description: "Le même dossier, vérifié sans fichier d'ancres (avec chaine.json) : les contrôles 4, 5 et 8 ne sont pas exécutés (ancre_absente) ; N-3 et N-4 ne figurent pas au rapport ; aucun avertissement (AV-O-3 exige O-5 exécutée)." });
@@ -239,6 +243,33 @@ export function conceptionDossiers() {
   ajouter("valide-seq-7-complet-attestation-cle-non-ancree", { attestation: { mode: "cle-non-ancree", checks: ["reussi", "reussi", "reussi", "reussi", "reussi", "ancre_absente", "prerequis_en_echec"], retenue: true }, description: "valide-seq-7-complet-attestation où l'exportateur ajoute à cles.json une clé rec-forge-01 (graine = SHA-256 de « noortrace/vecteurs/ct7/rec-forge-01 ») et joint une inscription forgée (seq 2, 09:10:00.000Z, signée par rec-forge-01, document de politique portant D_P sous la version de l'événement prouvé). N-3 ne compare que les clés qui signent le dossier : il réussit comme dans valide-seq-7-complet. La clé de l'inscription n'est pas celle de l'événement prouvé (rec-test-01) : AT-6 n'est pas exécutée (ancre_absente), AT-7 non plus ; l'attestation est retenue et FP dit que l'inscription jointe n'est pas signée par la clé de l'événement prouvé, sans date ni rang (CT-6 EX-6.19 ; CT-7 MN-84, MN-90)." });
   ajouter("invalide-t6-signature-attestation", { jeton: "t6-signature", cible: "T-6", attestation: { mode: "exemple", checks: AT_SANS_INSCRIPTION, retenue: true }, description: "invalide-t6-signature (jeton-rfc3161.der = rfc3161/jetons/t6-signature.der, dernier octet de la signature inversé) avec la partie de valide-seq-7-complet-attestation : T-6 échoue, verdict invalide ; l'énoncé est celui d'EX-6.9, sans FP ; l'attestation est retenue et facts.perimeter est gardé pour le diagnostic (EX-6.13, EX-6.20)." });
   avecPoint("invalide-r11-ancre-de-periode", { registre: "ancre-de-periode" }, { partiesRegistre: "variantes/invalide-r11-ancre-de-periode", cible: "R-11", avertissements: DEUX_AV_O3, description: "Parties du registre de registre/variantes/invalide-r11-ancre-de-periode/ (entrée ancre de la période 1, bloc 16660, dupliquée sous le rôle ancre_point_de_controle) ; anchors.registry de la partie porte l'empreinte et le docType du point mais désigne ce bloc et cette transaction : R-11 échoue (règle 1 : docType de période), R-6 et R-7 réussies (bloc authentique), K-8 réussie, contrôle 8 en échec." });
+  // Révision 0.4 (EX-A.23) : jetons de EX-A.22 (T-4, T-5, T-7, numéro de série), precommit de Type toléré
+  // ou refusé, K-8 en échec sans les parties du contrôle 8.
+  const SANS_ANCRES = { ancres: null, avertissements: [] };
+  ajouter("invalide-t4-sid-introuvable", { jeton: "t4-sid-introuvable", cible: "T-4", description: "jeton-rfc3161.der = rfc3161/jetons/t4-sid-introuvable.der : le sid désigne l'AC et le numéro 0x7f, que ne porte aucun certificat du jeton ni des ancres ; le jeton porte des certificats : T-4 échoue (EX-9.10, révision 0.4), T-5 à T-11 non exécutées (prerequis_en_echec), contrôle 4 en échec. En version 0.3, T-4 était non exécutée (ancre_absente) et le dossier valide, code 0." });
+  ajouter("invalide-t4-sid-introuvable-sans-ancres", { jeton: "t4-sid-introuvable", cible: "T-4", ...SANS_ANCRES, statuts: { 4: "echoue", 5: "non_execute", 8: "non_execute" }, raisons: { 5: "ancre_absente", 8: "ancre_absente" }, description: "Le même jeton, vérifié sans fichier d'ancres : le jeton porte des certificats, T-4 échoue quand même (EX-9.10) ; contrôles 5 et 8 non exécutés (ancre_absente)." });
+  ajouter("invalide-t4-jeton-sans-certificat", { jeton: "t4-sans-certificat", cible: "T-4", description: "jeton-rfc3161.der = rfc3161/jetons/t4-sans-certificat.der (sans champ certificates) vérifié avec ancres-test.json, dont l'autorité ne fournit pas tsa-test.pem : T-4 échoue (EX-9.10, révision 0.4)." });
+  ajouter("valide-t4-jeton-sans-certificat-sans-ancres", { jeton: "t4-sans-certificat", ...SANS_ANCRES, statuts: { 4: "non_execute", 5: "non_execute", 8: "non_execute" }, raisons: { 4: "ancre_absente", 5: "ancre_absente", 8: "ancre_absente" }, description: "Le même jeton sans certificats, vérifié sans fichier d'ancres : la seule absence légitime (EX-9.10) ; T-4 à T-11 non exécutées (ancre_absente), contrôles 4, 5 et 8 non exécutés (ancre_absente), code 0, verdict borné." });
+  ajouter("valide-t4-unite-en-intermediaire", { jeton: "t4-sans-certificat", ancres: "ancres-unite-intermediaire.json", description: "Le même jeton sans certificats, vérifié avec ancres-unite-intermediaire.json, dont l'autorité porte tsa-test.pem dans intermediates : T-4 trouve le certificat de l'unité parmi les ancres ; les huit contrôles réussissent." });
+  ajouter("invalide-t5-rsa-8200", { jeton: "t5-rsa-8200", cible: "T-5", description: "jeton-rfc3161.der = rfc3161/jetons/t5-rsa-8200.der (unité RSA de 8200 bits) : T-5 échoue avant tout calcul (EX-9.23), T-6, T-7, T-10 et T-11 non exécutées (prerequis_en_echec), contrôle 4 en échec." });
+  ajouter("invalide-t5-exposant", { jeton: "t5-exposant", cible: "T-5", description: "jeton-rfc3161.der = rfc3161/jetons/t5-exposant.der (unité RSA 3072 d'exposant 2^31 + 1) : exposant hors de 3 à 2^31 − 1, T-5 échoue (EX-9.23)." });
+  ajouter("invalide-t7-intermediaire-rsa-8200", { jeton: "t7-intermediaire-rsa-8200", cible: "T-7", description: "jeton-rfc3161.der = rfc3161/jetons/t7-intermediaire-rsa-8200.der : l'unité est émise par une AC intermédiaire de clé RSA 8200 bits ; la signature de son certificat ne compte pas (EX-9.23), aucun chemin ne satisfait EX-9.13 : T-7 échoue." });
+  ajouter("valide-rsa-8192", { jeton: "rsa-8192", description: "jeton-rfc3161.der = rfc3161/jetons/rsa-8192.der (unité RSA de 8192 bits, la borne d'EX-9.23, admise) : les huit contrôles réussissent ; facts.timestamp.key_bits vaut 8192." });
+  ajouter("valide-precommit-type-tolere", { precommitType: '"Type":1', partiesRegistre: "variantes/invalide-r2-jeu-substitue", ancres: "ancres-jeu-substitue.json", avertissements: ["AV-O-3", "AV-R-2", "AV-R-2"], description: "Parties du registre de registre/variantes/invalide-r2-jeu-substitue/ (certificats signés par le jeu substitué, de clés connues), dont la première ligne de precommit du certificat de la clôture porte un corps de \"Type\":1 et la deuxième un corps sans Type, re-signées ; vérifié avec ancres-jeu-substitue.json : le type du vote est celui de l'enveloppe (EX-11.14, révision 0.4), les deux lignes sont acceptées sous une forme non canonique, R-5 réussie, AV-R-2 pour chacune ; contrôle 8 réussi." });
+  ajouter("invalide-t5-algorithme-inconnu", { jeton: "t5-algorithme-inconnu", cible: "T-5", exiger4: true, description: "jeton-rfc3161.der = rfc3161/jetons/t5-algorithme-inconnu.der : signatureAlgorithm récrit en 1.2.840.113549.1.1.127 sous la clé RSA authentique de l'unité, signature altérée : la clé admise et l'algorithme ne vont pas ensemble, T-5 échoue (EX-9.24, cas 1) ; code 1, aussi avec --exiger 4. En version 0.3 : hors_perimetre_version et code 0." });
+  ajouter("valide-t5-cle-ed25519", { jeton: "t5-cle-ed25519", exiger4: true, statuts: { 4: "non_execute" }, raisons: { 4: "hors_perimetre_version" }, description: "jeton-rfc3161.der = rfc3161/jetons/t5-cle-ed25519.der (unité Ed25519 émise par l'AC de test) : clé et algorithme hors de la version 0, certificat de l'unité rattaché à l'autorité (EX-9.24, cas 2) : T-5, T-6, T-7, T-10 et T-11 non exécutées (hors_perimetre_version), contrôle 4 non exécuté pour cette raison admise ; aucune date établie, facts.timestamp nul, aucune proposition du contrôle 4 dans l'énoncé ; code 0, code 3 avec --exiger 4." });
+  ajouter("invalide-t5-cle-ed25519-non-rattachee", { jeton: "t5-cle-ed25519-non-rattachee", cible: "T-5", description: "jeton-rfc3161.der = rfc3161/jetons/t5-cle-ed25519-non-rattachee.der (même unité Ed25519, certificat auto-signé) : aucun rattachement à une autorité du fichier d'ancres, T-5 échoue (EX-9.24, cas 2)." });
+  ajouter("valide-serie-168-bits", { jeton: "serie-168-bits", description: "jeton-rfc3161.der = rfc3161/jetons/serie-168-bits.der (serialNumber de 21 octets) : ni la taille ni le signe du numéro ne sont contrôlés (EX-9.15, révision 0.4) ; les huit contrôles réussissent, facts.timestamp.serial_number porte les 21 octets." });
+  avecPoint("invalide-k8-empreinte-sans-registre", { modif: "k8-empreinte" }, { absentes: { registre: "inclusion au registre non exportée", certificat_commit: "inclusion au registre non exportée" }, cible: "K-8", avertissements: DEUX_AV_O3, description: "Dossier invalide-k8-empreinte dont registre.json et certificat-commit.json sont déclarées absentes (raison « inclusion au registre non exportée »), validateurs.json restant présente : K-8 échoue et rend le contrôle 8 en échec malgré ses parties absentes (EX-11.20) ; aucun AV-K-1, levé seulement quand K-8 réussit (EX-11.25, révision 0.4)." });
+  ajouter("invalide-precommit-type-chaine", { precommitType: '"Type":"2"', partiesRegistre: "variantes/invalide-r2-jeu-substitue", ancres: "ancres-jeu-substitue.json", cible: "R-5", avertissements: ["AV-O-3", "AV-R-2"], description: "Comme valide-precommit-type-tolere, mais le corps de la première ligne de precommit de la clôture porte \"Type\":\"2\" (chaîne) : la ligne est refusée (table d'EX-11.6), R-5 échoue, contrôle 8 en échec ; la deuxième ligne, sans Type, reste acceptée sous une forme non canonique (AV-R-2)." });
+  // Révision 0.4, compléments du 2026-11-03 (EX-10.12, EX-11.6).
+  ajouter("valide-o3-hors-profil-seul", { preuve: PREUVE_HORS_PROFIL_SEUL, statuts: { 5: "non_execute" }, raisons: { 5: "hors_perimetre_version" }, avertissements: ["AV-O-2", "AV-O-3"], description: "preuve.ots (écrite dans ce dossier seulement) dont la seule branche passe par l'opération 03 (ripemd160, hors du profil de la version 0) avant une attestation Bitcoin à la hauteur 1001, sur le periodHash de la période 1 : aucune attestation Bitcoin n'est atteinte par les seules opérations du profil (EX-10.7), le contrôle 5 n'est pas exécuté, hors_perimetre_version, raison admise (EX-10.12, révision 0.4) ; O-3 dit « attestation sous une opération hors du profil de la version 0 : non vérifiée ; aucune date n'est établie », le résumé du contrôle 5 « preuve hors du profil de la version 0, non vérifiée : aucune date établie », facts.bitcoin nul, aucune proposition du contrôle 5 dans l'énoncé, borne qui nomme le contrôle 5 ; code 0." });
+  ajouter("invalide-proposition-membre-mal-type", { precommitType: PROPOSITION_TXSRAW, partiesRegistre: "variantes/invalide-r2-jeu-substitue", ancres: "ancres-jeu-substitue.json", cible: "R-5", description: "Parties du registre de registre/variantes/invalide-r2-jeu-substitue/ dont le corps de la ligne de proposition du certificat de la clôture porte \"txsRaw\":5 (un nombre à la place du tableau de chaînes base64), ligne re-signée par le validateur substitué ; vérifié avec ancres-jeu-substitue.json : un membre connu d'un corps de proposition d'un autre type fait refuser la ligne, comme le nœud refuse de la décoder (EX-11.6, ligne « types des membres connus d'un corps », révision 0.4) : R-5 échoue, contrôle 8 en échec." });
+  // Révision 0.4 (EX-A.24) : événement prouvé inexploitable, parties réservées présentes (EX-5.15).
+  const NON_EXECUTES = (de) => Object.fromEntries(de.map((n) => [n, "non_execute"]));
+  const PREREQUIS = (de) => Object.fromEntries(de.map((n) => [n, "prerequis_en_echec"]));
+  ajouter("invalide-evenement-nul-complet", { evenement: "nul", cible: "E-1", statuts: { 1: "echoue", ...NON_EXECUTES([2, 3, 4, 5, 6, 7, 8]) }, raisons: PREREQUIS([2, 3, 4, 5, 6, 7, 8]), description: "valide-seq-7-complet dont evenement.json est le littéral null, index au SHA-256 exact : E-1 échoue ; P-1 n'est jamais réussie sans l'événement (EX-5.4), T-2, O-2, R-9 et R-10 ne sont pas exécutées, N-4 ne figure pas ; les contrôles 2 à 8 sont non exécutés (prerequis_en_echec), jamais réussis (EX-5.15) ; event, org_id et journal_id nuls." });
+  ajouter("invalide-evenement-retire-complet", { evenement: "retire", cible: "D-2", statuts: NON_EXECUTES([1, 2, 3, 4, 5, 6, 7, 8]), raisons: PREREQUIS([1, 2, 3, 4, 5, 6, 7, 8]), description: "valide-seq-7-complet dont evenement.json est retiré du répertoire, l'index inchangé : D-2 échoue, et elle seule (EX-4.11, point 1) ; E-1 n'est pas exécutée ; les contrôles 1 à 8 sont non exécutés (prerequis_en_echec) ; P-1, T-2, O-2, R-9 et R-10 non exécutées, N-4 absente (EX-5.15)." });
   return d;
 }
 
@@ -275,14 +306,56 @@ function base64NonCanonique(b64) {
  * { point, feuilles, referenceRegistre, referenceAncreDePeriode } pour la
  * treizième partie des dossiers qui la déclarent (EX-A.16).
  */
-function fichiersDossier(base, { base: origine, jeton, preuve, partiesRegistre, manifeste, point, attestation }, racine, decisions, contextePoint) {
+function fichiersDossier(base, { base: origine, jeton, preuve, partiesRegistre, manifeste, point, attestation, evenement, precommitType, absentes }, racine, decisions, contextePoint) {
   if (origine !== "complet") return decisions[origine];
+  const reindexes = fichiersDossierComplet(base, { jeton, preuve, partiesRegistre, manifeste, point, attestation, precommitType }, racine, contextePoint);
+  if (!absentes && !evenement) return reindexes;
+  // Révision 0.4 (EX-A.23, EX-A.24) : parties déclarées absentes avec une raison ; evenement.json nul ou retiré.
+  const index = J.analyserJSONStrict(reindexes["dossier.json"]);
+  const sortie = { ...reindexes };
+  for (const [name, raison] of Object.entries(absentes ?? {})) {
+    const p = index.parts.find((x) => x.name === name);
+    delete sortie[p.file];
+    Object.assign(p, { sha256: null, present: false, reason_if_absent: raison });
+  }
+  if (evenement === "nul") {
+    sortie["evenement.json"] = Buffer.from("null\n");
+    index.parts.find((x) => x.name === "evenement").sha256 = J.sha256(sortie["evenement.json"]);
+  }
+  if (evenement === "retire") delete sortie["evenement.json"];
+  sortie["dossier.json"] = Buffer.from(texteJSON(index));
+  return sortie;
+}
+
+/**
+ * Révision 0.4 (EX-10.12, complément) : preuve dont la seule branche passe par l'opération 03 (ripemd160,
+ * hors du profil de la version 0) avant son attestation Bitcoin (hauteur 1001), sur le periodHash du
+ * manifeste du dossier. Elle n'est écrite que dans le dossier valide-o3-hors-profil-seul, et non dans
+ * ots/preuves, dont les cas et la confrontation restent inchangés.
+ */
+const PREUVE_HORS_PROFIL_SEUL = "(hors-profil-seul)";
+const PROPOSITION_TXSRAW = "(proposition-txsRaw)";
+function preuveHorsProfilSeul(manifeste, racine) {
+  exiger(!fs.existsSync(path.join(racine, "ots", "preuves", "hors-profil-seul.ots")), "ots/preuves/hors-profil-seul.ots ne doit pas exister");
+  const ph = J.hachageManifeste(J.analyserJSONStrict(manifeste));
+  return OTS.encoderOts(Buffer.from(ph.slice(2), "hex"), OTS.chemin([{ op: OTS.OP.ripemd160 }], [{ type: "attestation", attestation: { genre: "bitcoin", hauteur: 1001 } }]));
+}
+
+function fichiersDossierComplet(base, { jeton, preuve, partiesRegistre, manifeste, point, attestation, precommitType }, racine, contextePoint) {
   const fichiers = { ...base };
   delete fichiers["dossier.json"];
   if (manifeste) fichiers["manifeste.json"] = MODIFICATIONS_MANIFESTE[manifeste](fichiers["manifeste.json"]);
   fichiers["jeton-rfc3161.der"] = fs.readFileSync(path.join(racine, "rfc3161", "jetons", `${jeton}.der`));
-  fichiers["preuve.ots"] = fs.readFileSync(path.join(racine, "ots", "preuves", `${preuve}.ots`));
+  fichiers["preuve.ots"] = preuve === PREUVE_HORS_PROFIL_SEUL ? preuveHorsProfilSeul(fichiers["manifeste.json"], racine) : fs.readFileSync(path.join(racine, "ots", "preuves", `${preuve}.ots`));
   for (const f of ["registre.json", "certificat-commit.json", "validateurs.json"]) fichiers[f] = fs.readFileSync(path.join(racine, "registre", partiesRegistre, f));
+  if (precommitType) {
+    // EX-A.23 : lignes de precommit au corps de Type toléré ou refusé, re-signées par le jeu substitué ;
+    // « proposition-txsRaw » : corps de proposition à membre connu mal typé (EX-11.6, révision 0.4).
+    const o = octetsParties(precommitType === PROPOSITION_TXSRAW ? partiesPropositionMembreMalType(contextePoint.capture) : partiesPrecommitType(contextePoint.capture, precommitType));
+    fichiers["registre.json"] = o.registre.octets;
+    fichiers["certificat-commit.json"] = o.certificat_commit.octets;
+    fichiers["validateurs.json"] = o.validateurs.octets;
+  }
   if (point && point.absent) {
     // Treize parties déclarées, la treizième absente avec sa raison (CT-1 §11.1).
     const ancien = J.analyserJSONStrict(base["dossier.json"]);
@@ -435,12 +508,58 @@ export function chargerSchemas() {
  * Vérifie un dossier du répertoire `repertoire` comme la ligne de commande le
  * ferait, sans --pieces ni --second-manifeste : rend le corps du rapport.
  */
-export function verifierRepertoire(repertoire, { ancres = null, entetes = null, schemas = chargerSchemas(), langue = "fr" } = {}) {
+export function verifierRepertoire(repertoire, { ancres = null, entetes = null, schemas = chargerSchemas(), langue = "fr", exiger = [] } = {}) {
   const fichiers = {};
   for (const f of fs.readdirSync(repertoire)) if (V.FICHIERS_DOSSIER.includes(f)) fichiers[f] = fs.readFileSync(path.join(repertoire, f));
   const a = ancres ? V.controlerAncres(fs.readFileSync(ancres), schemas) : null;
   const e = entetes ? V.controlerEntetes(fs.readFileSync(entetes), schemas) : null;
-  return V.verifierDossierComplet({ fichiers, schemas, ancres: a, entetes: e, langue });
+  return V.verifierDossierComplet({ fichiers, schemas, ancres: a, entetes: e, langue, exiger });
+}
+
+/**
+ * Attendus de EX-A.23 et EX-A.24 que la confrontation générique ne porte pas
+ * (révision 0.4) : faits, statuts de vérifications nommées, désignation.
+ */
+function controlesRevision04(nom, corps) {
+  const statut = (id) => corps.checks.find((x) => x.id === id) ?? null;
+  const prerequis = (ids) => ids.every((id) => statut(id)?.status === "non_execute" && statut(id).reason === "prerequis_en_echec");
+  switch (nom) {
+    case "invalide-t4-sid-introuvable":
+    case "invalide-t4-sid-introuvable-sans-ancres":
+      exiger(prerequis(["T-5", "T-6", "T-7", "T-8", "T-9", "T-10", "T-11"]), `${nom} : T-5 à T-11 non exécutées (prerequis_en_echec) attendues`);
+      break;
+    case "valide-t4-jeton-sans-certificat-sans-ancres":
+      exiger(["T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-10", "T-11"].every((id) => statut(id)?.reason === "ancre_absente"), `${nom} : T-4 à T-11 ancre_absente attendues`);
+      break;
+    case "valide-rsa-8192":
+      exiger(corps.facts.timestamp?.key_bits === 8192, `${nom} : facts.timestamp.key_bits 8192 attendu`);
+      break;
+    case "valide-serie-168-bits":
+      exiger(corps.facts.timestamp?.serial_number === "0x01" + "ab".repeat(20), `${nom} : serial_number de 21 octets attendu (${corps.facts.timestamp?.serial_number})`);
+      break;
+    case "valide-t5-cle-ed25519":
+      exiger(corps.facts.timestamp === null && corps.controls[3].summary === "signature hors de la version 0, non vérifiée : aucune date établie" && corps.controls[3].anchors_used.length === 0 && !corps.statement.fr.includes("existait au plus tard"), `${nom} : aucune date établie, résumé et énoncé d'EX-9.24`);
+      exiger(["T-5", "T-6", "T-7", "T-10", "T-11"].every((id) => statut(id)?.reason === "hors_perimetre_version"), `${nom} : T-5, T-6, T-7, T-10, T-11 hors_perimetre_version attendues`);
+      break;
+    case "valide-precommit-type-tolere":
+      exiger(statut("R-5")?.status === "reussi", `${nom} : R-5 réussie attendue`);
+      break;
+    case "valide-o3-hors-profil-seul":
+      exiger(corps.facts.bitcoin === null && corps.controls[4].summary === "preuve hors du profil de la version 0, non vérifiée : aucune date établie" && statut("O-3")?.detail === "attestation sous une opération hors du profil de la version 0 : non vérifiée ; aucune date n'est établie" && JSON.stringify(corps.bound).includes("contrôle 5 non exécuté (hors_perimetre_version)") && !corps.statement.fr.includes("existait avant la création du bloc Bitcoin"), `${nom} : textes d'EX-10.12 (révision 0.4) attendus`);
+      break;
+    case "invalide-proposition-membre-mal-type":
+      exiger(statut("R-5")?.status === "echoue", `${nom} : R-5 en échec attendue`);
+      break;
+    case "invalide-k8-empreinte-sans-registre":
+      exiger(!corps.warnings.some((w) => w.id === "AV-K-1"), `${nom} : aucun AV-K-1 attendu`);
+      break;
+    case "invalide-evenement-nul-complet":
+    case "invalide-evenement-retire-complet":
+      exiger(prerequis(["P-1", "T-2", "O-2", "R-9", "R-10", ...(nom.includes("nul") ? ["D-1"] : ["E-1"])]) && !statut("N-4") && corps.event === null && corps.org_id === null && corps.journal_id === null, `${nom} : P-1, T-2, O-2, R-9, R-10 non exécutées, N-4 absente, événement non désigné (EX-5.15)`);
+      break;
+    default:
+      break;
+  }
 }
 
 /** Confronte les attendus posés par construction au vérificateur de référence. */
@@ -485,6 +604,8 @@ function index({ rfc, ots, attenduRegistre, ancres, dossiers }) {
   L.push("Révision 0.2 : les dossiers `valide-point-de-controle-*`, `invalide-k*` et `invalide-r11-*` portent la treizième partie `points-de-controle.json` (CT-1 révision 0.3) bâtie sur le point de contrôle couvrant seq 7 de `spec/vecteurs/ct-1/points-de-controle/periode-1.json` (09:32:00.000Z, `tree_size` 8) ; ils se vérifient avec `ots/entetes/chaine-points.json` (EX-A.14) et, quand la référence au registre est non nulle, les parties de `registre/periode-1-point/` (EX-A.15). Exceptions : `valide-point-de-controle-point-contresigne` (point de 09:35:00.000Z, contresigné à D_7) et `valide-point-de-controle-point-de-cloture` (point de clôture, `tree_size` 9) portent un point plus tardif de la série avec un jeton construit par le générateur sur son `checkpoint_hash` (TSA de test, numéros de série 1002 et 1003, absent de `rfc3161/jetons`), `registry` et `ots` nuls : ils illustrent le choix du point couvrant d'EX-10.2 de CT-5 (AN-51), qui retient le point porteur d'un jeton plutôt que le point de 09:32, ancré au registre seul. Les cinquante dossiers antérieurs ne changent pas (EX-6.18).");
   L.push("");
   L.push("Révision 0.3 : les dossiers `*-attestation`, `*-attestation-non-retenue` et `*-attestation-cle-non-ancree` portent la quatorzième partie `attestation-perimetre.json` (CT-1 révision 0.4, CT-7 annexe A.7), la treizième étant présente ou déclarée absente : l'attestation de CT-7 §7.1 signée par les comptes Hardhat 1 et 2, le jeu des comptes 1 à 3 au seuil de 2, sans inscription (pour `*-cle-non-ancree`, une inscription forgée sous une clé que le dossier déclare lui-même). Leur `attendu.json` donne en plus `perimeter_checks` (statut et raison de AT-1 à AT-7) et `perimeter_retained` (EX-A.19) ; les AT- ne changent ni les statuts des huit contrôles, ni le verdict, ni le code de retour (EX-5.11, V-10). Les soixante-huit dossiers antérieurs ne changent pas (EX-A.21).");
+  L.push("");
+  L.push("Révision 0.4 (EX-A.22 à EX-A.24) : `rfc3161/` reçoit les clés de test conservées `tsa-8200.cle.pem`, `tsa-8192.cle.pem`, `tsa-exposant.cle.pem`, `intermediaire-8200.cle.pem` et `tsa-ed25519.cle.pem` (graines et paramètres dans `rfc3161/attendu.json`, `keys.revision_04`), leurs certificats et les jetons `t4-*`, `t5-*`, `t7-intermediaire-rsa-8200`, `rsa-8192` et `serie-168-bits` ; `ancres/` reçoit `ancres-unite-intermediaire.json` et `ancres-jeu-substitue.json` ; `dossiers/` reçoit les dix-huit dossiers d'EX-A.23 et d'EX-A.24 (`sid` introuvable, bornes des clés RSA, clé ou algorithme hors de la version 0, numéro de série de 168 bits, `Type` d'un precommit, K-8 sans les parties du contrôle 8, événement prouvé inexploitable). `exit_code_exiger_4` donne, quand il figure, le code de retour avec `--exiger 4`. Les soixante-treize dossiers antérieurs ne changent pas. Compléments du 2026-11-03 : `valide-o3-hors-profil-seul` (preuve écrite dans le dossier seulement, dont la seule branche passe par l'opération 03 : contrôle 5 non exécuté, `hors_perimetre_version`, textes d'EX-10.12 qui disent qu'aucune date n'est établie, code 0) et `invalide-proposition-membre-mal-type` (`\"txsRaw\":5` dans le corps de la proposition de la clôture, re-signée par le jeu substitué : R-5 en échec, EX-11.6). Un cas en code 2 porterait `exit_code` 2 et `error_kind` (EX-A.3) ; aucun dossier de `dossiers/` n'en est un.");
   L.push("");
   L.push("## dossiers/");
   L.push("");
@@ -554,6 +675,7 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
   const repCapture = fs.existsSync(path.join(racine, "registre", "capture", "capture.json")) ? path.join(racine, "registre", "capture") : path.join(REPERTOIRE_CT6, "registre", "capture");
   const capture = lireCapture(repCapture);
   const contextePoint = pointCouvrant(capture);
+  contextePoint.capture = capture;
   const rfc = genererRfc3161({ racine, repertoireCT1: REPERTOIRE_CT1, point: contextePoint });
   contextePoint.autres = autresPoints(contextePoint, rfc.materiel);
   const ots = genererOts({ racine, repertoireCT1: REPERTOIRE_CT1, point: contextePoint });
@@ -592,6 +714,7 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
       exiger(JSON.stringify(perimeter_checks) === JSON.stringify(attendus), `dossier ${c.nom} : AT- ${JSON.stringify(perimeter_checks)}, attendues ${JSON.stringify(attendus)}`);
       exiger((corps.facts.perimeter !== null) === c.attestation.retenue, `dossier ${c.nom} : facts.perimeter ${corps.facts.perimeter === null ? "nul" : "rempli"}, attestation ${c.attestation.retenue ? "retenue" : "non retenue"} attendue`);
     } else exiger(perimeter_checks.length === 0 && corps.facts.perimeter === null, `dossier ${c.nom} : AT- ou facts.perimeter sans la partie`);
+    controlesRevision04(c.nom, corps);
     const corpsEn = verifierRepertoire(rep, { ancres: cheminAncres, entetes: cheminEntetes, schemas, langue: "en" });
     exiger(JSON.stringify(corpsEn.statement) === JSON.stringify(corps.statement), `dossier ${c.nom} : l'énoncé dépend de --langue`);
     // La borne est posée par la conception (EX-6.12) et confrontée au vérificateur.
@@ -610,6 +733,7 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
       statement: corps.statement,
       bound: borne,
       ...(c.attestation ? { perimeter_checks, perimeter_retained: c.attestation.retenue } : {}),
+      ...(c.exiger4 ? { exit_code_exiger_4: verifierRepertoire(rep, { ancres: cheminAncres, entetes: cheminEntetes, schemas, exiger: [4] }).exit_code } : {}),
       description: c.description,
     };
     fs.writeFileSync(path.join(rep, "attendu.json"), texteJSON(attendu));

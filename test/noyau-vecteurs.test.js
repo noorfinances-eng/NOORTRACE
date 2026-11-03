@@ -17,21 +17,15 @@ import { lireRepertoireDossier } from "@noortrace/noyau/dossier-fichiers";
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const V = path.join(RACINE, "spec", "vecteurs", "ct-1");
 
-const FAMILLES = [
-  "cles",
-  "jcs",
-  "journal-valide",
-  "journal-supprime",
-  "journal-modifie",
-  "journal-insere",
-  "journal-insere-sans-cle",
-  "journal-reordonne",
-  "merkle",
-  "manifestes",
-  "points-de-controle",
-  "dossiers",
-];
-const JOURNAUX_ALTERES = ["journal-supprime", "journal-modifie", "journal-insere", "journal-insere-sans-cle", "journal-reordonne"];
+// Les journaux altérés se comptent sur le disque (journal-* autre que
+// journal-valide) : des journaux s'ajoutent d'une révision à l'autre, et
+// chacun doit porter evenements.json et attendu.json.
+const JOURNAUX_ALTERES = fs
+  .readdirSync(V, { withFileTypes: true })
+  .filter((e) => e.isDirectory() && e.name.startsWith("journal-") && e.name !== "journal-valide")
+  .map((e) => e.name)
+  .sort();
+const FAMILLES = ["cles", "jcs", "journal-valide", ...JOURNAUX_ALTERES, "merkle", "manifestes", "points-de-controle", "dossiers"];
 
 /** Fichiers de données consommés par les tests, chemins relatifs à V. */
 const consommes = new Set();
@@ -42,6 +36,8 @@ const octets = (rel) => {
 };
 /** Lit un fichier de vecteur avec la lecture stricte du noyau (JCS v0). */
 const lire = (rel) => N.analyserJson(octets(rel));
+/** Lit un tableau d'événements : un élément sans forme canonique reste lisible (N.lireJournal). */
+const lireEvenements = (rel) => N.lireJournal(octets(rel));
 const hex = (o) => N.octetsVersHex(o);
 const texte = (s) => N.utf8(s);
 
@@ -168,14 +164,24 @@ describe("Noyau : rejeu des vecteurs CT-1", function () {
   });
 
   describe("journaux altérés (table 7.2 de CT-1)", function () {
+    it("les cinq journaux de la version 0.2 au moins, chacun avec evenements.json et attendu.json", function () {
+      expect(JOURNAUX_ALTERES).to.include.members(["journal-supprime", "journal-modifie", "journal-insere", "journal-insere-sans-cle", "journal-reordonne"]);
+      for (const rep of JOURNAUX_ALTERES) {
+        for (const f of ["evenements.json", "attendu.json"]) expect(fs.existsSync(path.join(V, rep, f)), `${rep}/${f}`).to.equal(true);
+      }
+    });
+
     for (const rep of JOURNAUX_ALTERES) {
       it(`${rep}/ : contrôles en échec, diagnostics et messages exacts`, function () {
         const a = lire(`${rep}/attendu.json`);
-        const r = N.verifierJournal(lire(`${rep}/evenements.json`), clesJournal());
+        // Un journal peut porter son propre cles.json (journal-cles-autre-organisation).
+        const cles = fs.existsSync(path.join(V, rep, "cles.json")) ? lire(`${rep}/cles.json`) : clesJournal();
+        const r = N.verifierJournal(lireEvenements(`${rep}/evenements.json`), cles);
         expect(r.valide).to.equal(a.valide).and.to.equal(false);
         expect(r.controles_en_echec).to.deep.equal(a.controles_en_echec);
         expect(r.diagnostics.map(({ type, controle, seq }) => ({ type, controle, seq }))).to.deep.equal(a.diagnostics);
-        expect(r.diagnostics.map((d) => d.message)).to.deep.equal(a.messages);
+        // Le texte des messages n'est pas normatif (CT-1 §7.2) : un message par symptôme.
+        expect(r.diagnostics.map((d) => d.message)).to.have.length(a.messages.length);
       });
     }
   });
@@ -312,13 +318,15 @@ describe("Noyau : rejeu des vecteurs CT-1", function () {
         const dernier = points[points.length - 1];
         expect({ tree_size: dernier.tree_size, root: dernier.root, last_seq: dernier.last_seq }).to.deep.equal(per.last);
         const r = N.verifierSeriePointsDeControle(points, m, evs, clesJournal());
-        expect(r, per.file).to.deep.equal({ valide: true, rules_failed: [], errors: [] });
+        expect(r, per.file).to.deep.equal({ valide: true, rules_failed: [], rules_not_evaluated: [], errors: [] });
       }
     });
 
     it("séries invalides : règles violées et erreurs exactes", function () {
       const a = lire("points-de-controle/attendu.json");
-      expect(a.invalides).to.have.length(7);
+      // Chaque fichier de invalides/ a son entrée, et inversement.
+      const fichiers = fs.readdirSync(path.join(V, "points-de-controle", "invalides")).map((f) => `invalides/${f}`).sort();
+      expect(a.invalides.map((x) => x.file).sort()).to.deep.equal(fichiers);
       for (const inv of a.invalides) {
         const r = N.verifierSeriePointsDeControle(
           lire(`points-de-controle/${inv.file}`),
@@ -328,7 +336,35 @@ describe("Noyau : rejeu des vecteurs CT-1", function () {
         );
         expect(r.valide, inv.file).to.equal(false);
         expect(r.rules_failed, inv.file).to.deep.equal(inv.rules_failed);
+        // CT-1 §10.5 (révision 0.5) : rules_not_evaluated absent de l'attendu vaut liste vide.
+        expect(r.rules_not_evaluated, inv.file).to.deep.equal(inv.rules_not_evaluated ?? []);
         expect(r.errors, inv.file).to.deep.equal(inv.errors);
+      }
+    });
+  });
+
+  describe("points-de-controle/ : evenements_partiels", function () {
+    it("la série vérifiée avec une partie des événements (ou sans cles.json) : règles violées, non évaluées et erreurs exactes", function () {
+      const a = lire("points-de-controle/attendu.json");
+      const cas = a.evenements_partiels ?? [];
+      // Chaque fichier de evenements/ est employé par une entrée.
+      const rep = path.join(V, "points-de-controle", "evenements");
+      const fichiers = fs.existsSync(rep) ? fs.readdirSync(rep).map((f) => `evenements/${f}`).sort() : [];
+      expect([...new Set(cas.map((x) => x.events).filter((x) => x !== null && x !== undefined))].sort()).to.deep.equal(fichiers);
+      for (const x of cas) {
+        const evs = x.events === null || x.events === undefined ? [] : lireEvenements(path.posix.join("points-de-controle", x.events));
+        const cles = x.keys === null || x.keys === undefined ? null : lire(path.posix.normalize(path.posix.join("points-de-controle", x.keys)));
+        const r = N.verifierSeriePointsDeControle(
+          lire(path.posix.join("points-de-controle", x.file)),
+          lire(path.posix.normalize(path.posix.join("points-de-controle", x.manifest))),
+          evs,
+          cles,
+        );
+        const libelle = `${x.file} avec ${x.events ?? "aucun événement"}, ${x.keys ?? "sans cles.json"}`;
+        expect(r.rules_failed, libelle).to.deep.equal(x.rules_failed);
+        expect(r.rules_not_evaluated, libelle).to.deep.equal(x.rules_not_evaluated ?? []);
+        if (x.errors) expect(r.errors, libelle).to.deep.equal(x.errors);
+        expect(r.valide, libelle).to.equal(x.rules_failed.length === 0 && (x.rules_not_evaluated ?? []).length === 0);
       }
     });
   });
@@ -336,8 +372,9 @@ describe("Noyau : rejeu des vecteurs CT-1", function () {
   describe("dossiers/", function () {
     const repertoires = fs.readdirSync(path.join(V, "dossiers")).sort();
 
-    it("soixante-dix dossiers publiés, chacun avec son attendu.json", function () {
-      expect(repertoires).to.have.length(70);
+    it("au moins les soixante-dix dossiers des révisions 0.2 à 0.4, chacun avec son attendu.json", function () {
+      expect(repertoires.length).to.be.at.least(70);
+      for (const d of repertoires) expect(fs.existsSync(path.join(V, "dossiers", d, "attendu.json")), d).to.equal(true);
     });
 
     for (const d of repertoires) {
@@ -347,6 +384,12 @@ describe("Noyau : rejeu des vecteurs CT-1", function () {
         const fichiers = lireRepertoireDossier(path.join(V, rel));
         for (const nom of fichiers.keys()) noter(`${rel}/${nom}`);
         const r = N.verifierDossier(fichiers);
+        // Entrée inutilisable (CT-1 §11.5) : exit_code 2 et error_kind, sans verdict.
+        if (a.exit_code === 2) {
+          expect(r).to.include({ utilisable: false, verdict: null, type_erreur: a.error_kind });
+          expect([a.valide, a.controle, a.controles_en_echec]).to.deep.equal([null, null, []]);
+          return;
+        }
         expect(r.utilisable).to.equal(true);
         expect(r.valide, `${d} : ${JSON.stringify(r.controles.filter((c) => c.statut !== "reussi"))}`).to.equal(a.valide);
         expect(r.verdict).to.equal(a.valide ? "valide" : "invalide");
@@ -371,6 +414,49 @@ describe("Noyau : rejeu des vecteurs CT-1", function () {
     }
   });
 
+  // Les dossiers de CT-6 portent des parties réservées que la bibliothèque ne
+  // vérifie pas (T-, O-, R-, N-) : seules les vérifications de CT-1 (D-1 à
+  // A-4, K-1 à K-9) de leur attendu.json sont comparées, statut et raison.
+  // K-7, K-8 et K-9 qu'une ancre non nulle laisse à CT-6 (prerequis_en_echec,
+  // détail VERIFICATION_CT6_NON_EXECUTEE) ne sont pas comparées ; une partie réservée
+  // présente rend toujours le verdict de la bibliothèque invalide (CT-1 §11.4,
+  // révision 0.5).
+  describe("dossiers de CT-6 : vérifications de CT-1", function () {
+    const V6 = path.join(RACINE, "spec", "vecteurs", "ct-6", "dossiers");
+    const ids = N.ORDRE_CONTROLES;
+    const repertoires = fs.readdirSync(V6).sort();
+
+    it("au moins soixante-treize dossiers publiés", function () {
+      expect(repertoires.length).to.be.at.least(73);
+    });
+
+    for (const d of repertoires) {
+      it(`${d} : statut et raison de chaque vérification de CT-1`, function () {
+        const a = N.analyserJson(Uint8Array.from(fs.readFileSync(path.join(V6, d, "attendu.json"))));
+        const r = N.verifierDossier(lireRepertoireDossier(path.join(V6, d)));
+        const ct6 = (c) => c.statut === "non_execute" && c.details.includes(N.VERIFICATION_CT6_NON_EXECUTEE);
+        expect(r.utilisable).to.equal(a.exit_code !== 2);
+        if (!r.utilisable) return;
+        const echecs = new Set(a.failed_checks);
+        const nonExecutes = new Map(a.not_executed.map((x) => [x.id, x.reason]));
+        const ecarts = [];
+        for (const c of r.controles) {
+          const attendu = echecs.has(c.id) ? "echoue" : nonExecutes.has(c.id) ? `non_execute:${nonExecutes.get(c.id)}` : "reussi";
+          const obtenu = c.statut === "non_execute" ? `non_execute:${c.raison}` : c.statut;
+          if (["K-7", "K-8", "K-9"].includes(c.id) && ct6(c)) {
+            expect(c.raison, c.id).to.equal("prerequis_en_echec");
+            continue;
+          }
+          if (attendu !== obtenu) ecarts.push(`${c.id} : attendu ${attendu}, obtenu ${obtenu}`);
+        }
+        const rapportes = new Set(r.controles.map((c) => c.id));
+        for (const id of [...echecs, ...nonExecutes.keys()]) if (ids.includes(id) && !rapportes.has(id)) ecarts.push(`${id} absent du rapport`);
+        expect(ecarts, d).to.deep.equal([]);
+        if (!a.valid) expect(r.verdict).to.equal("invalide");
+      });
+    }
+  });
+
   describe("inventaire", function () {
     it("chaque fichier de données des familles de spec/vecteurs/ct-1 est consommé par un test", function () {
       // Les entrées du répertoire : les familles, l'index et le vérificateur
@@ -390,7 +476,6 @@ describe("Noyau : rejeu des vecteurs CT-1", function () {
       const nonConsommes = enumeres.filter((f) => !consommes.has(f));
       expect(nonConsommes, "fichiers non consommés").to.deep.equal([]);
       expect(consommes.size).to.equal(enumeres.length);
-      expect(enumeres.length).to.equal(684);
     });
   });
 });

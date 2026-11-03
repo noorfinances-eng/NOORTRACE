@@ -556,7 +556,9 @@ export const TU = [
       "CT-6 EX-9.14",
       "CT-6 EX-9.17",
       "CT-6 EX-9.18",
-      "CT-6 EX-9.22"
+      "CT-6 EX-9.22",
+      "CT-6 EX-9.23",
+      "CT-6 EX-9.24"
     ],
     "preconditions": [
       "Dépôt au commit éprouvé, `npm ci` fait ; `scripts/lib/horodatage.mjs` et les clés de test de `spec/vecteurs/ct-6/rfc3161/cles/` présent.",
@@ -564,6 +566,7 @@ export const TU = [
     ],
     "steps": [
       "Construire des jetons qui violent une seule vérification à la fois (structure, empreinte, ESS, certificat, algorithme, signature, chemin, EKU, TSTInfo, révocation, qualification).",
+      "Règles de la révision 0.4 de CT-6 : `sid` qui ne désigne aucun candidat (T-4 en échec dès que le jeton porte des certificats ou que les ancres portent une autorité, EX-9.10) ; clés RSA aux bornes d'EX-9.23 (8192 bits admise ; 8200 bits et exposant 2³¹ + 1 refusés par T-5, T-6 non exécutée ; intermédiaire de 8200 bits : T-7 en échec) ; clé Ed25519 rattachée à l'autorité (`hors_perimetre_version`), sans autorité (`ancre_absente`), avec un `genTime` illisible ou un algorithme admis (T-5 en échec), algorithme inconnu sous la clé RSA de l'unité (T-5 en échec, EX-9.24).",
       "Soumettre des CRL antérieures, mal signées, d'un autre émetteur ; des ancres fautives à `controlerAncresTsa`.",
       "Fuzzing déterministe du jeton."
     ],

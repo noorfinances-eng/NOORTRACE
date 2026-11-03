@@ -4,32 +4,33 @@
 // Le module est pur : il reçoit le contenu des fichiers du répertoire
 // (nom → octets) ; la lecture d'un répertoire est dans dossier-fichiers.mjs.
 //
-// Règles de lecture appliquées (CT-1 §11.4 et vecteurs de §11.5) :
-// - une partie présente qui n'est pas du JSON, dont le JSON n'est pas un
-//   objet, ou qui dépasse sa limite de taille (CT-6 EX-4.13, TAILLES_MAX),
-//   met en échec le contrôle qui porte la partie ; un fichier sans forme
-//   canonique (clé en double, substitut isolé, nombre non entier ou hors de
-//   l'intervalle sûr) met en échec E-2, quelle que soit la partie, la
-//   treizième comprise ; dans ces cas, les contrôles qui dépendent de la
-//   partie ne sont pas exécutés, sans raison admise. Seule exception, la
-//   quatorzième partie : tout défaut d'attestation-perimetre.json, forme
-//   canonique comprise, est porté par AT-1 et ne change aucun autre contrôle
-//   (CT-1 §11.4, révision 0.4) ;
-// - une partie déclarée présente dont le fichier manque (ou n'est pas un
-//   fichier ordinaire) met D-2 en échec, et D-2 seul : le contrôle qui la
-//   porte et ceux qui en dépendent ne sont pas exécutés (raison
-//   prerequis_en_echec, D-2 étant en échec : liste fermée de CT-6 §6.2,
-//   EX-4.11) ;
-// - une partie qui est un objet JSON mais enfreint son schéma met en échec le
-//   contrôle qui la porte, et les autres contrôles s'exécutent sur les champs
-//   bien typés qu'ils lisent (cascades publiées par les vecteurs : E-1 et E-3,
-//   E-1 et A-3, M-3, P-1 et P-4, E-1, E-7, E-8, C-2 et M-1) ;
-// - cles.json qui enfreint la première partie de E-8 (schéma, identifiants,
-//   unicité, ordre des validités) est inexploitable : E-8 échoue, et E-11,
-//   P-5, K-3 ne sont pas exécutés ;
+// Règles appliquées (CT-1 §11.4, révision 0.5, et CT-6 §4.5 et §5.6) :
+// - contrôle porteur de chaque partie : dossier.json → D-1 ; evenement.json →
+//   E-1 ; voisins.json → C-1 ; chemin.json → M-2 ; manifeste.json → P-1 ;
+//   manifeste.sig → P-5 ; cles.json → E-8 ; approbations.json → A-1 ;
+//   points-de-controle.json → K-1 ; attestation-perimetre.json → AT-1 ;
+// - partie inexploitable, cinq cas : (a) pas de fichier ordinaire de ce nom :
+//   D-2 échoue, le porteur n'est pas exécuté ; (b) au-delà de sa limite
+//   (TAILLES_MAX, CT-6 EX-4.13) : le porteur échoue, D-2 ne compare pas son
+//   SHA-256 ; (c) pas un texte JSON (UTF-8 mal formé, marque d'ordre d'octets,
+//   syntaxe, profondeur au-delà de 128) : le porteur échoue ; (d) sans forme
+//   canonique : E-2 échoue, le porteur n'est pas exécuté ; (e) pas un objet :
+//   le porteur échoue. Tout contrôle qui lit la partie n'est alors pas
+//   exécuté, sans raison admise, sauf s'il échoue sur ce qu'il lit des autres
+//   parties : l'échec l'emporte. Seule exception, attestation-perimetre.json,
+//   dont tout défaut est porté par AT-1 sans changer le verdict ;
+// - partie contraire à son schéma : le porteur échoue et la partie reste
+//   exploitable ; chaque relation porte sur les valeurs lues, et une relation
+//   dont un terme est absent, mal typé ou incalculable n'est pas tenue : le
+//   contrôle qui l'évalue échoue ;
+// - cles.json est exploitable si et seulement si la première partie de E-8
+//   réussit, ce qu'elle ne peut faire sans evenement.json exploitable ;
+// - E-1 à E-11 : en échec si la règle échoue pour au moins un événement, sinon
+//   non exécutées si evenement.json est inexploitable ou si elles ne le sont
+//   pas pour un événement, sinon réussies ;
 // - le hash d'un événement n'est jamais lu : il est toujours recalculé.
 
-import { ZERO32, decoderHorodatage, estEntierSur, estHex, octetsVersHex, utf8 } from "./conventions.mjs";
+import { ZERO32, chaineNonVide, decoderHorodatage, estEntierSur, estHex, octetsVersHex, utf8 } from "./conventions.mjs";
 import { ErreurJson, analyserJson, egaliteJson } from "./json-strict.mjs";
 import { keccak256, sha256Hex } from "./hachage.mjs";
 import { NOMS_RESERVES, objetApprobation, sorteEvenement } from "./evenement.mjs";
@@ -120,6 +121,12 @@ export const BORNE =
   "cet événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste signé par cette clé, " +
   "et approuvé par ces adresses ; ce dossier ne dit rien sur la date ni sur l'ancre (contrôles 4, 5 et 8 non exécutés)";
 
+/**
+ * Détail d'une vérification de CT-6 qu'un vérificateur de CT-1 seul n'exécute
+ * pas (CT-1 §11.4, révision 0.5) : raison prerequis_en_echec, non admise.
+ */
+export const VERIFICATION_CT6_NON_EXECUTEE = "vérification de CT-6 non exécutée par ce vérificateur";
+
 /** doc_type de l'ancre d'un point au registre : keccak256("noortrace/point-de-controle/v0"). */
 export const DOC_TYPE_POINT = octetsVersHex(keccak256(utf8("noortrace/point-de-controle/v0")));
 
@@ -138,7 +145,9 @@ const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
 /**
  * @typedef {object} RapportDossier
  * @property {boolean} utilisable false si dossier.json est absent ou n'est pas du JSON (CT-6 EX-4.12 : code 2, sans verdict)
- * @property {string|null} erreur raison d'inutilisabilité
+ * @property {"dossier_illisible"|"taille_depassee"|null} type_erreur type d'erreur de CT-6 §8 d'une entrée
+ *   inutilisable (error_kind de attendu.json, CT-1 §11.5), null sinon
+ * @property {string|null} erreur raison d'inutilisabilité, en clair
  * @property {"valide"|"invalide"|null} verdict
  * @property {boolean|null} valide
  * @property {{seq: number, hash: string}|null} evenement seq et hash recalculé, lus dans evenement.json exploitable seulement
@@ -171,8 +180,9 @@ const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v)
  * @param {{rfc3161?: Function, registry?: Function, ots?: Function}} [options.verificateursAncres]
  *   vérifications des ancres d'un point (K-7, K-8, K-9) déléguées à CT-6 ; chaque fonction reçoit
  *   (ancre, { checkpoint_hash, partie }) et rend { statut, raison?, details? }
- * @param {number} [options.profondeurMax] borne d'imbrication des JSON lus (aucune par défaut, CT-1 §4 n'en
- *   fixe pas ; PROFONDEUR_CT6 = 128 applique celle de CT-6 EX-4.13) ; une partie au-delà est inexploitable
+ * @param {number} [options.profondeurMax] borne d'imbrication des JSON lus (PROFONDEUR_V0 = 128 par défaut, CT-1 §4
+ *   règle 7 et CT-6 EX-4.13 ; Infinity : aucune) ; une partie au-delà est inexploitable (cas (c), contrôle porteur) ;
+ *   la même borne vaut pour le document de politique d'une inscription (AT-6)
  * @returns {RapportDossier}
  */
 export function verifierDossier(fichiers, options = {}) {
@@ -217,13 +227,13 @@ export function verifierDossier(fichiers, options = {}) {
     echoue("D-1", [tropGrand("dossier.json", xIndex)]);
     return conclure(null, false, false, [], null);
   }
-  if (!xIndex?.octets) return inutilisable("dossier.json absent");
+  if (!xIndex?.octets) return inutilisable("dossier_illisible", "dossier.json absent (ou pas un fichier ordinaire)");
   let index;
   try {
     index = analyserJson(xIndex.octets, optionsJson);
   } catch (e) {
     if (!(e instanceof ErreurJson)) throw e;
-    if (!e.formeCanonique) return inutilisable(`dossier.json n'est pas du JSON : ${e.message}`);
+    if (!e.formeCanonique) return inutilisable("dossier_illisible", `dossier.json n'est pas du JSON : ${e.message}`);
     echoue("E-2", [`dossier.json sans forme canonique : ${e.message}`]);
     nonExecute("D-1", "prerequis_en_echec");
     return conclure(null, false, false, [], null);
@@ -246,7 +256,7 @@ export function verifierDossier(fichiers, options = {}) {
   if (avecAttestation) {
     const x = entree(PARTIE_ATTESTATION_PERIMETRE.file);
     if (x?.tropGrand && x.taille > PLAFOND_LECTURE) {
-      return inutilisable(`taille_depassee : ${PARTIE_ATTESTATION_PERIMETRE.file} de ${x.taille} octets, au-delà du plafond de lecture de ${PLAFOND_LECTURE} octets (CT-6 EX-4.15)`);
+      return inutilisable("taille_depassee", `${PARTIE_ATTESTATION_PERIMETRE.file} de ${x.taille} octets, au-delà du plafond de lecture de ${PLAFOND_LECTURE} octets (CT-6 EX-4.15)`);
     }
   }
 
@@ -262,8 +272,11 @@ export function verifierDossier(fichiers, options = {}) {
         if (empreinte === null) notesD2.push(`${tropGrand(p.file, x)} ; SHA-256 non calculé, la limite interdisant de lire au-delà`);
         else if (empreinte !== p.sha256) ecartsD2.push(`${p.file} : SHA-256 ${empreinte} différent de celui de l'index ${p.sha256}`);
       }
-    } else if (x) {
-      ecartsD2.push(`${p.file} déclaré absent, présent dans le répertoire`);
+    } else {
+      if (x && !x.manquant) ecartsD2.push(`${p.file} déclaré absent, présent dans le répertoire`);
+      // Raison d'absence : chaîne non vide au sens de CT-1 §3 (révision 0.5) ;
+      // la chaîne vide est déjà refusée par le schéma de l'index (D-1).
+      if (!chaineNonVide(p.reason_if_absent)) ecartsD2.push(`${p.file} déclaré absent avec une raison faite de blancs (${JSON.stringify(p.reason_if_absent)})`);
     }
   }
   selon("D-2", ecartsD2, notesD2);
@@ -323,28 +336,43 @@ export function verifierDossier(fichiers, options = {}) {
   const next = voisins && estObjet(voisins.next) ? voisins.next : null;
   const hashEvt = hashRecalcule(evt);
 
-  // cles.json : première partie de E-8.
+  // cles.json : première partie de E-8. Elle compare org_id et journal_id à
+  // ceux de l'événement prouvé : sans evenement.json exploitable, elle ne peut
+  // pas réussir, et cles.json est inexploitable pour E-8 (événements des
+  // autres parties), E-10 (comparaisons), E-11, P-5, K-3 et AT-6 ; E-8 échoue
+  // alors seulement sur ce qui ne dépend pas de l'événement (CT-1 §11.4,
+  // révision 0.5).
   let indexCles = null;
   const ecartsE8 = [];
   if (lCles.etat === "objet") {
     indexCles = indexerCles(lCles.valeur, evt ? { org_id: evt.org_id, journal_id: evt.journal_id } : {});
     ecartsE8.push(...indexCles.erreurs);
+    if (!evt) indexCles = { ...indexCles, exploitable: false };
   } else if (porteur("E-8", lCles)) {
     ecartsE8.push(lCles.message);
   }
   const clesExploitables = indexCles?.exploitable === true;
 
-  // ------------------------------------------------------------ D-1 (fin) : event de l'index
+  // ------------------------------------------------------------ D-1 (fin) : event, org_id, journal_id de l'index
   if (evt) {
     const ecartsD1 = [];
-    if (index.event.seq !== evt.seq) ecartsD1.push(`event.seq ${index.event.seq} de l'index différent de seq ${evt.seq} de evenement.json`);
-    if (index.event.hash !== evt.hash) ecartsD1.push(`event.hash ${index.event.hash} de l'index différent de hash ${evt.hash} de evenement.json`);
+    if (index.event.seq !== evt.seq) ecartsD1.push(`event.seq ${index.event.seq} de l'index différent de seq ${JSON.stringify(evt.seq)} de evenement.json`);
+    if (index.event.hash !== evt.hash) ecartsD1.push(`event.hash ${index.event.hash} de l'index différent de hash ${JSON.stringify(evt.hash)} de evenement.json`);
+    if (index.org_id !== evt.org_id) ecartsD1.push(`org_id ${index.org_id} de l'index différent de org_id ${JSON.stringify(evt.org_id)} de evenement.json`);
+    if (index.journal_id !== evt.journal_id) ecartsD1.push(`journal_id ${index.journal_id} de l'index différent de journal_id ${JSON.stringify(evt.journal_id)} de evenement.json`);
     selon("D-1", ecartsD1);
   } else {
-    nonExecute("D-1", "prerequis_en_echec", ["evenement.json inexploitable : event de l'index non comparé"]);
+    nonExecute("D-1", "prerequis_en_echec", ["evenement.json inexploitable : l'index n'est pas comparé à l'événement"]);
   }
 
   // ------------------------------------------------------------ E-1 à E-11
+  // E-1 à E-11 s'appliquent à chaque événement lu dans une partie exploitable.
+  // Statut au rapport (CT-1 §11.4, révision 0.5) : en échec si la règle échoue
+  // pour au moins un événement (ou sur une partie : E-1 porteur de
+  // evenement.json, E-2 forme canonique, E-8 cles.json) ; sinon non exécutée
+  // si evenement.json est inexploitable, ou si elle ne l'est pas pour au moins
+  // un événement (raison du premier : événement prouvé, previous, next,
+  // events) ; sinon réussie.
   const evenements = [];
   if (evt) evenements.push({ role: "evenement", e: evt });
   if (voisins) {
@@ -356,7 +384,8 @@ export function verifierDossier(fichiers, options = {}) {
   if (approbations && Array.isArray(approbations.events)) {
     approbations.events.forEach((e, k) => evenements.push({ role: `approbations.events[${k}]`, e }));
   }
-  const parEvenement = evenements.map(({ role, e }) => ({ role, e, ...controlerEvenement(e, { indexCles: indexCles ?? null }) }));
+  const contexteEvenement = { indexCles: indexCles ?? null, profondeurMax: options.profondeurMax ?? Infinity };
+  const parEvenement = evenements.map(({ role, e }) => ({ role, e, ...controlerEvenement(e, contexteEvenement) }));
   const resultatProuve = parEvenement.find((x) => x.role === "evenement");
   const ecartsParPartie = { "E-1": [], "E-2": ecartsE2, "E-8": ecartsE8 };
   const pe = porteur("E-1", lEvt);
@@ -368,19 +397,17 @@ export function verifierDossier(fichiers, options = {}) {
       const r = x.controles[id];
       if (r.statut === "echoue") {
         if (id === "E-8" && indexCles && !indexCles.exploitable) continue;
-        ecarts.push(...r.details.map((d) => `${x.role} (seq ${x.e?.seq}) : ${d}`));
+        ecarts.push(...r.details.map((d) => `${x.role} (seq ${JSON.stringify(x.e?.seq)}) : ${d}`));
       } else if (r.statut === "non_execute" && !nonExec) {
         nonExec = r.raison;
       }
     }
     if (ecarts.length) echoue(id, ecarts);
-    else if (nonExec || (id !== "E-1" && id !== "E-2" && !evt)) nonExecute(id, nonExec ?? "prerequis_en_echec");
+    else if (!evt) nonExecute(id, "prerequis_en_echec", ["evenement.json inexploitable"]);
+    else if (nonExec) nonExecute(id, nonExec === "cles_absent" ? "prerequis_en_echec" : nonExec);
     else reussi(id);
   }
-  // L'événement prouvé n'a pas été lu (fichier manquant ou sans forme
-  // canonique) : E-1 ne peut pas l'avoir validé.
-  if (!evt && statutDe("E-1") === "reussi") nonExecute("E-1", raisonPorteur(lEvt));
-  if (!indexCles && ecartsE8.length === 0) nonExecute("E-8", raisonPorteur(lCles), [lCles.etat === "manquante" ? "cles.json manquant" : "cles.json inexploitable"]);
+  if (statutDe("E-8") === "non_execute" && !indexCles) R.get("E-8").details.push(lCles.etat === "manquante" ? "cles.json manquant" : "cles.json inexploitable");
 
   // E-6 : pièces fournies à part.
   if (Array.isArray(options.pieces) && options.pieces.length) {
@@ -402,84 +429,122 @@ export function verifierDossier(fichiers, options = {}) {
   const evtExploitable =
     evt !== null && resultatProuve.controles["E-1"].statut === "reussi" && resultatProuve.controles["E-2"].statut === "reussi";
 
+  // Règle commune (CT-1 §11.4, révision 0.5) : un contrôle qui lit une partie
+  // inexploitable n'est pas exécuté, sans raison admise, sauf s'il échoue sur
+  // ce qu'il lit des autres parties : l'échec l'emporte. Chaque relation porte
+  // sur les valeurs lues ; un terme absent, mal typé ou incalculable (hash
+  // d'un voisin qui n'est pas un objet, date inexistante) ne la tient pas.
+  const partiel = (id, ecarts, motif) => (ecarts.length ? echoue(id, ecarts) : nonExecute(id, "prerequis_en_echec", [motif]));
+  const entier = (v) => estEntierSur(v);
+  const chaine = (v) => typeof v === "string";
+  const memeChaine = (a, b) => chaine(a) && a === b;
+  // Un voisin du dossier : objet, null (pas de voisin), ou autre valeur (terme mal typé).
+  const voisinDe = (role) => (voisins && Object.prototype.hasOwnProperty.call(voisins, role) ? voisins[role] : undefined);
+  const origine = (nom, v) => {
+    if (!entier(v.seq) || !chaine(v.prev_hash)) return [`${nom} : seq ou prev_hash mal typé, règle d'origine non tenue`];
+    if (v.seq === 1 && v.prev_hash !== ZERO32) return [`${nom} : seq 1 et prev_hash non nul`];
+    if (v.seq !== 1 && v.prev_hash === ZERO32) return [`${nom} : prev_hash nul alors que seq vaut ${v.seq}`];
+    return [];
+  };
+
   // ------------------------------------------------------------ C-1 à C-3
   const voisinsUtilisables = voisins !== null;
-  if (!evt || !voisinsUtilisables) {
+  if (!voisinsUtilisables) {
+    // voisins.json inexploitable : C-1 porte la partie ; C-2 n'échoue que sur
+    // l'origine de l'événement prouvé ; C-3 n'est pas exécuté.
     const pc = porteur("C-1", lVoisins);
     if (pc) echoue("C-1", [pc.ecart]);
-    else nonExecute("C-1", evt ? raisonPorteur(lVoisins) : "prerequis_en_echec");
-    nonExecute("C-2", "prerequis_en_echec");
-    nonExecute("C-3", "prerequis_en_echec");
+    else nonExecute("C-1", "prerequis_en_echec", ["voisins.json inexploitable"]);
+    partiel("C-2", evt ? origine("evenement", evt) : [], "voisins.json inexploitable");
+    nonExecute("C-3", "prerequis_en_echec", ["voisins.json inexploitable"]);
   } else {
-    const ecarts1 = [];
-    const env = validerSchema("enveloppe-voisins", voisins);
-    if (!env.valide) ecarts1.push(...env.erreurs.map((e) => `voisins.json : ${e}`));
-    if (voisins.previous === null) {
-      if (evt.seq !== 1) ecarts1.push(`previous nul alors que seq vaut ${evt.seq}`);
-    } else if (previous && previous.seq !== evt.seq - 1) {
-      ecarts1.push(`previous.seq ${previous.seq} différent de seq − 1 (${evt.seq - 1})`);
-    }
-    if (next && next.seq !== evt.seq + 1) ecarts1.push(`next.seq ${next.seq} différent de seq + 1 (${evt.seq + 1})`);
-    const t = decoderHorodatage(evt.ts);
-    const tp = previous ? decoderHorodatage(previous.ts) : null;
-    const tn = next ? decoderHorodatage(next.ts) : null;
-    if (t !== null && tp !== null && tp > t) ecarts1.push(`ts de previous (${previous.ts}) postérieur à celui de l'événement (${evt.ts})`);
-    if (t !== null && tn !== null && tn < t) ecarts1.push(`ts de next (${next.ts}) antérieur à celui de l'événement (${evt.ts})`);
-    for (const v of [previous, next]) {
-      if (v && (v.org_id !== evt.org_id || v.journal_id !== evt.journal_id)) ecarts1.push(`voisin seq ${v.seq} : org_id ou journal_id différent`);
-    }
-    selon("C-1", ecarts1);
+    const previousBrut = voisinDe("previous");
+    const nextBrut = voisinDe("next");
+    const ecartsEnveloppe = validerSchema("enveloppe-voisins", voisins).erreurs.map((e) => `voisins.json : ${e}`);
+    if (!evt) {
+      partiel("C-1", ecartsEnveloppe, "evenement.json inexploitable");
+      const ecarts2 = [];
+      if (previous) ecarts2.push(...origine("previous", previous));
+      if (next) ecarts2.push(...origine("next", next));
+      partiel("C-2", ecarts2, "evenement.json inexploitable");
+      nonExecute("C-3", "prerequis_en_echec", ["evenement.json inexploitable"]);
+    } else {
+      const ecarts1 = [...ecartsEnveloppe];
+      const seqEntier = entier(evt.seq);
+      if (previousBrut === null) {
+        if (evt.seq !== 1) ecarts1.push(`previous nul alors que seq vaut ${JSON.stringify(evt.seq)}`);
+      } else if (!previous) {
+        ecarts1.push("previous n'est ni un objet ni null");
+      } else if (!seqEntier || !entier(previous.seq) || previous.seq !== evt.seq - 1) {
+        ecarts1.push(`previous.seq ${JSON.stringify(previous.seq)} différent de seq − 1 (seq ${JSON.stringify(evt.seq)})`);
+      }
+      if (nextBrut !== null) {
+        if (!next) ecarts1.push("next n'est ni un objet ni null");
+        else if (!seqEntier || !entier(next.seq) || next.seq !== evt.seq + 1) ecarts1.push(`next.seq ${JSON.stringify(next.seq)} différent de seq + 1 (seq ${JSON.stringify(evt.seq)})`);
+      }
+      const t = decoderHorodatage(evt.ts);
+      for (const [nom, v] of [["previous", previous], ["next", next]]) {
+        if (!v) continue;
+        const tv = decoderHorodatage(v.ts);
+        if (t === null || tv === null) ecarts1.push(`ts de ${nom} (${v.ts}) ou de l'événement (${evt.ts}) qui n'est pas une date existante : ordre invérifiable`);
+        else if (nom === "previous" && tv > t) ecarts1.push(`ts de previous (${v.ts}) postérieur à celui de l'événement (${evt.ts})`);
+        else if (nom === "next" && tv < t) ecarts1.push(`ts de next (${v.ts}) antérieur à celui de l'événement (${evt.ts})`);
+        if (!memeChaine(v.org_id, evt.org_id) || !memeChaine(v.journal_id, evt.journal_id)) ecarts1.push(`voisin ${nom} (seq ${JSON.stringify(v.seq)}) : org_id ou journal_id différent`);
+      }
+      selon("C-1", ecarts1);
 
-    const ecarts2 = [];
-    for (const [nom, v] of [["evenement", evt], ["previous", previous], ["next", next]]) {
-      if (!v) continue;
-      if (v.seq === 1 && v.prev_hash !== ZERO32) ecarts2.push(`${nom} : seq 1 et prev_hash non nul`);
-      if (v.seq !== 1 && v.prev_hash === ZERO32) ecarts2.push(`${nom} : prev_hash nul alors que seq vaut ${v.seq}`);
-    }
-    if (previous) {
-      const hp = hashRecalcule(previous);
-      if (hp === null || evt.prev_hash !== hp) ecarts2.push(`prev_hash ${evt.prev_hash} différent du hash recalculé de previous (${hp})`);
-    }
-    if (next && (hashEvt === null || next.prev_hash !== hashEvt)) {
-      ecarts2.push(`next.prev_hash ${next.prev_hash} différent du hash recalculé de l'événement (${hashEvt})`);
-    }
-    selon("C-2", ecarts2);
+      const ecarts2 = [...origine("evenement", evt)];
+      if (previous) ecarts2.push(...origine("previous", previous));
+      if (next) ecarts2.push(...origine("next", next));
+      if (previousBrut !== null) {
+        const hp = hashRecalcule(previousBrut);
+        if (hp === null || evt.prev_hash !== hp) ecarts2.push(`prev_hash ${evt.prev_hash} différent du hash recalculé de previous (${hp})`);
+      }
+      if (nextBrut !== null && (hashEvt === null || !next || next.prev_hash !== hashEvt)) {
+        ecarts2.push(`next.prev_hash ${next?.prev_hash} différent du hash recalculé de l'événement (${hashEvt})`);
+      }
+      selon("C-2", ecarts2);
 
-    const ecarts3 = [];
-    if (previous) {
-      const attendue = nouvelleCle(previous) ?? previous.recorder_key_id;
-      if (evt.recorder_key_id !== attendue) ecarts3.push(`recorder_key_id ${evt.recorder_key_id}, ${attendue} attendue après previous`);
+      const ecarts3 = [];
+      if (previousBrut !== null) {
+        const attendue = previous ? (nouvelleCle(previous) ?? previous.recorder_key_id) : undefined;
+        if (!memeChaine(evt.recorder_key_id, attendue)) ecarts3.push(`recorder_key_id ${evt.recorder_key_id}, ${attendue} attendue après previous`);
+      }
+      if (nextBrut !== null) {
+        const attendue = nouvelleCle(evt) ?? evt.recorder_key_id;
+        if (!next || !memeChaine(next.recorder_key_id, attendue)) ecarts3.push(`next.recorder_key_id ${next?.recorder_key_id}, ${attendue} attendue`);
+      }
+      selon("C-3", ecarts3);
     }
-    if (next) {
-      const attendue = nouvelleCle(evt) ?? evt.recorder_key_id;
-      if (next.recorder_key_id !== attendue) ecarts3.push(`next.recorder_key_id ${next.recorder_key_id}, ${attendue} attendue`);
-    }
-    selon("C-3", ecarts3);
   }
 
   // ------------------------------------------------------------ M-1 à M-3
   const pm = porteur("M-2", lChemin);
   if (!chemin) {
-    nonExecute("M-1", "prerequis_en_echec");
+    nonExecute("M-1", "prerequis_en_echec", ["chemin.json inexploitable"]);
     if (pm) echoue("M-2", [pm.ecart]);
-    else nonExecute("M-2", raisonPorteur(lChemin));
-    nonExecute("M-3", "prerequis_en_echec");
+    else nonExecute("M-2", raisonPorteur(lChemin), ["chemin.json inexploitable"]);
+    nonExecute("M-3", "prerequis_en_echec", ["chemin.json inexploitable"]);
   } else {
-    if (!evt || hashEvt === null || !estHex(chemin.leaf_hash, 32)) nonExecute("M-1", "prerequis_en_echec");
+    if (!evt) nonExecute("M-1", "prerequis_en_echec", ["evenement.json inexploitable"]);
     else {
       const f = feuille(hashEvt);
-      selon("M-1", chemin.leaf_hash === f ? [] : [`leaf_hash ${chemin.leaf_hash} différent de SHA-256(0x00 || hash recalculé) ${f}`]);
+      selon("M-1", chemin.leaf_hash === f ? [] : [`leaf_hash ${JSON.stringify(chemin.leaf_hash)} différent de SHA-256(0x00 || hash recalculé) ${f}`]);
     }
     const ecartsM2 = validerSchema("chemin", chemin).erreurs.map((e) => `chemin.json : ${e}`);
     if (!verifierInclusion(chemin)) ecartsM2.push("l'algorithme de CT-1 §9.3 ne mène pas à chemin.root");
     selon("M-2", ecartsM2);
-    if (!manifeste || !evt) nonExecute("M-3", "prerequis_en_echec");
+    if (!manifeste) nonExecute("M-3", "prerequis_en_echec", ["manifeste.json inexploitable"]);
     else {
       const ecarts = [];
-      if (chemin.root !== manifeste.root) ecarts.push(`chemin.root ${chemin.root} différent de manifeste.root ${manifeste.root}`);
-      if (chemin.tree_size !== manifeste.count) ecarts.push(`chemin.tree_size ${chemin.tree_size} différent de manifeste.count ${manifeste.count}`);
-      if (chemin.leaf_index !== evt.seq - manifeste.first_seq) ecarts.push(`leaf_index ${chemin.leaf_index} différent de seq − first_seq (${evt.seq - manifeste.first_seq})`);
-      selon("M-3", ecarts);
+      if (!memeChaine(chemin.root, manifeste.root)) ecarts.push(`chemin.root ${JSON.stringify(chemin.root)} différent de manifeste.root ${JSON.stringify(manifeste.root)}`);
+      if (!entier(chemin.tree_size) || chemin.tree_size !== manifeste.count) ecarts.push(`chemin.tree_size ${JSON.stringify(chemin.tree_size)} différent de manifeste.count ${JSON.stringify(manifeste.count)}`);
+      if (!evt) partiel("M-3", ecarts, "evenement.json inexploitable : leaf_index non comparé");
+      else {
+        const attendu = entier(evt.seq) && entier(manifeste.first_seq) ? evt.seq - manifeste.first_seq : null;
+        if (!entier(chemin.leaf_index) || chemin.leaf_index !== attendu) ecarts.push(`leaf_index ${JSON.stringify(chemin.leaf_index)} différent de seq − first_seq (${attendu === null ? "incalculable" : attendu})`);
+        selon("M-3", ecarts);
+      }
     }
   }
 
@@ -487,36 +552,48 @@ export function verifierDossier(fichiers, options = {}) {
   if (!manifeste) {
     const pp = porteur("P-1", lManifeste);
     if (pp) echoue("P-1", [pp.ecart]);
-    else nonExecute("P-1", raisonPorteur(lManifeste));
-    for (const id of ["P-2", "P-3", "P-4", "P-5"]) nonExecute(id, "prerequis_en_echec");
+    else nonExecute("P-1", raisonPorteur(lManifeste), ["manifeste.json inexploitable"]);
+    for (const id of ["P-2", "P-3", "P-4", "P-5"]) nonExecute(id, "prerequis_en_echec", ["manifeste.json inexploitable"]);
   } else {
+    // P-1 compare org_id et journal_id à ceux de l'événement : sans lui, elle
+    // n'est jamais réussie (CT-6 EX-5.4, EX-5.15), et n'échoue que sur le
+    // manifeste lui-même.
     const ecartsP1 = ecartsManifeste(manifeste);
-    if (evt) {
-      if (manifeste.org_id !== evt.org_id) ecartsP1.push("org_id du manifeste différent de celui de l'événement");
-      if (manifeste.journal_id !== evt.journal_id) ecartsP1.push("journal_id du manifeste différent de celui de l'événement");
+    if (!evt) partiel("P-1", ecartsP1, "evenement.json inexploitable : org_id et journal_id non comparés");
+    else {
+      if (!memeChaine(manifeste.org_id, evt.org_id)) ecartsP1.push("org_id du manifeste différent de celui de l'événement");
+      if (!memeChaine(manifeste.journal_id, evt.journal_id)) ecartsP1.push("journal_id du manifeste différent de celui de l'événement");
+      selon("P-1", ecartsP1);
     }
-    selon("P-1", ecartsP1);
 
-    const debut = estEntierSur(manifeste.period_start) ? manifeste.period_start * 1000 : null;
-    const fin = estEntierSur(manifeste.period_end) ? manifeste.period_end * 1000 : null;
-    const typesSeq = estEntierSur(manifeste.first_seq) && estEntierSur(manifeste.last_seq);
-    if (!evt || debut === null || fin === null || !typesSeq) nonExecute("P-2", "prerequis_en_echec");
+    const debut = entier(manifeste.period_start) ? manifeste.period_start * 1000 : null;
+    const fin = entier(manifeste.period_end) ? manifeste.period_end * 1000 : null;
+    const typesSeq = entier(manifeste.first_seq) && entier(manifeste.last_seq);
+    if (!evt) nonExecute("P-2", "prerequis_en_echec", ["evenement.json inexploitable"]);
     else {
       const ecarts = [];
       const t = decoderHorodatage(evt.ts);
-      if (!(manifeste.first_seq <= evt.seq && evt.seq <= manifeste.last_seq)) ecarts.push(`seq ${evt.seq} hors de [${manifeste.first_seq}, ${manifeste.last_seq}]`);
-      if (t === null || t < debut || t >= fin) ecarts.push(`ts ${evt.ts} hors de la période [${manifeste.period_start}, ${manifeste.period_end})`);
+      if (!typesSeq || !entier(evt.seq)) ecarts.push(`seq ${JSON.stringify(evt.seq)}, first_seq ${JSON.stringify(manifeste.first_seq)} ou last_seq ${JSON.stringify(manifeste.last_seq)} mal typé`);
+      else if (!(manifeste.first_seq <= evt.seq && evt.seq <= manifeste.last_seq)) ecarts.push(`seq ${evt.seq} hors de [${manifeste.first_seq}, ${manifeste.last_seq}]`);
+      if (debut === null || fin === null) ecarts.push(`period_start ou period_end mal typé`);
+      else if (t === null || t < debut || t >= fin) ecarts.push(`ts ${evt.ts} hors de la période [${manifeste.period_start}, ${manifeste.period_end})`);
       selon("P-2", ecarts);
     }
 
-    if (!voisinsUtilisables || debut === null || fin === null || !typesSeq) nonExecute("P-3", "prerequis_en_echec");
+    if (!voisinsUtilisables) nonExecute("P-3", "prerequis_en_echec", ["voisins.json inexploitable"]);
     else {
       const ecarts = [];
-      for (const v of [previous, next]) {
-        if (!v) continue;
+      for (const role of ["previous", "next"]) {
+        const v = voisinDe(role);
+        if (v === null) continue;
+        if (!estObjet(v)) {
+          ecarts.push(`${role} n'est ni un objet ni null : sa période est invérifiable`);
+          continue;
+        }
         const t = decoderHorodatage(v.ts);
-        if (t === null) continue;
-        if (manifeste.first_seq <= v.seq && v.seq <= manifeste.last_seq) {
+        if (!entier(v.seq) || !typesSeq || debut === null || fin === null || t === null) {
+          ecarts.push(`voisin ${role} : seq ${JSON.stringify(v.seq)}, ts ${JSON.stringify(v.ts)} ou bornes du manifeste mal typés ou incalculables`);
+        } else if (manifeste.first_seq <= v.seq && v.seq <= manifeste.last_seq) {
           if (t < debut || t >= fin) ecarts.push(`voisin seq ${v.seq} de la période horodaté hors de la période (${v.ts})`);
         } else if (!((v.seq === manifeste.first_seq - 1 && t < debut) || (v.seq === manifeste.last_seq + 1 && t >= fin))) {
           ecarts.push(`voisin seq ${v.seq} hors de la période par seq mais horodaté ${v.ts} : le manifeste a tronqué sa période`);
@@ -526,17 +603,20 @@ export function verifierDossier(fichiers, options = {}) {
     }
 
     const ecartsP4 = [];
-    if ((manifeste.root === ZERO32) !== (manifeste.count === 0)) ecartsP4.push(`root ${manifeste.root} et count ${manifeste.count} : racine nulle si et seulement si count = 0`);
-    if (!(estEntierSur(manifeste.count) && manifeste.count >= 1)) ecartsP4.push("count ≥ 1 attendu dans un dossier");
+    if (!chaine(manifeste.root) || !entier(manifeste.count)) ecartsP4.push(`root ${JSON.stringify(manifeste.root)} ou count ${JSON.stringify(manifeste.count)} mal typé`);
+    else {
+      if ((manifeste.root === ZERO32) !== (manifeste.count === 0)) ecartsP4.push(`root ${manifeste.root} et count ${manifeste.count} : racine nulle si et seulement si count = 0`);
+      if (!(manifeste.count >= 1)) ecartsP4.push("count ≥ 1 attendu dans un dossier");
+    }
     selon("P-4", ecartsP4);
 
     if (!msig) {
       const ps = porteur("P-5", lSig);
       if (ps) echoue("P-5", [ps.ecart]);
-      else nonExecute("P-5", raisonPorteur(lSig));
-    } else if (!clesExploitables) {
-      nonExecute("P-5", "prerequis_en_echec", ["cles.json inexploitable"]);
+      else nonExecute("P-5", raisonPorteur(lSig), ["manifeste.sig inexploitable"]);
     } else {
+      // Relations qui ne lisent pas cles.json, puis celles qui le lisent ;
+      // cles.json inexploitable : non exécuté, sauf échec des premières.
       const ecarts = validerSchema("manifeste_sig", msig).erreurs.map((e) => `manifeste.sig : ${e}`);
       let ph = null;
       try {
@@ -544,51 +624,80 @@ export function verifierDossier(fichiers, options = {}) {
       } catch (e) {
         ecarts.push(`periodHash incalculable : ${e.message}`);
       }
-      if (ph !== null && msig.period_hash !== ph) ecarts.push(`period_hash ${msig.period_hash} différent du periodHash recalculé ${ph}`);
-      if (manifeste.recorder_key_id !== msig.recorder_key_id) ecarts.push(`recorder_key_id du manifeste (${manifeste.recorder_key_id}) différent de celui de manifeste.sig (${msig.recorder_key_id})`);
-      const cle = indexCles.cles.get(msig.recorder_key_id);
-      if (!cle) ecarts.push(`clé ${msig.recorder_key_id} absente de cles.json`);
-      else {
-        if (!cle.admise || !verifierSignatureManifeste(manifeste, msig.sig, cle.octets)) ecarts.push(`signature du manifeste invalide sous ${msig.recorder_key_id}`);
-        const g = decoderHorodatage(manifeste.generated_at);
-        if (g === null || !dansValidite(cle, g)) ecarts.push(`generated_at ${manifeste.generated_at} hors de la validité de la clé ${msig.recorder_key_id}`);
-      }
+      if (ph !== null && msig.period_hash !== ph) ecarts.push(`period_hash ${JSON.stringify(msig.period_hash)} différent du periodHash recalculé ${ph}`);
+      if (!memeChaine(manifeste.recorder_key_id, msig.recorder_key_id)) ecarts.push(`recorder_key_id du manifeste (${manifeste.recorder_key_id}) différent de celui de manifeste.sig (${msig.recorder_key_id})`);
       if (options.manifestePrecedent) ecarts.push(...verifierContinuite(options.manifestePrecedent, manifeste).erreurs.map((e) => `continuité avec le précédent : ${e}`));
       if (options.manifesteSuivant) ecarts.push(...verifierContinuite(manifeste, options.manifesteSuivant).erreurs.map((e) => `continuité avec le suivant : ${e}`));
-      selon("P-5", ecarts);
+      if (!clesExploitables) partiel("P-5", ecarts, "cles.json inexploitable (E-8)");
+      else {
+        const cle = chaine(msig.recorder_key_id) ? indexCles.cles.get(msig.recorder_key_id) : undefined;
+        if (!cle) ecarts.push(`clé ${msig.recorder_key_id} absente de cles.json`);
+        else {
+          if (!cle.admise || !estHex(msig.sig, 64) || !verifierSignatureManifeste(manifeste, msig.sig, cle.octets)) ecarts.push(`signature du manifeste invalide sous ${msig.recorder_key_id}`);
+          const g = decoderHorodatage(manifeste.generated_at);
+          if (g === null || !dansValidite(cle, g)) ecarts.push(`generated_at ${manifeste.generated_at} hors de la validité de la clé ${msig.recorder_key_id}`);
+        }
+        selon("P-5", ecarts);
+      }
     }
   }
 
   // ------------------------------------------------------------ A-1 à A-4
-  if (!evt || !(evt.approval === null || estObjet(evt.approval))) {
-    for (const id of ["A-1", "A-2", "A-3", "A-4"]) nonExecute(id, "prerequis_en_echec");
+  const declApprob = parties.get("approbations");
+  const RAISON_SANS_APPROBATION = "aucune approbation liée";
+  // Relations d'A-2 et A-3 qui ne lisent pas l'événement prouvé (règle commune).
+  const ecartsA2SansEvenement = () =>
+    !approbations ? [] : !Array.isArray(approbations.events) ? ["events n'est pas un tableau"]
+      : approbations.events.flatMap((d, k) => (!estObjet(d) ? [`events[${k}] n'est pas un objet`] : d.execution?.tool !== NOMS_RESERVES.DECISION ? [`events[${k}] : execution.tool ${d.execution?.tool}, ${NOMS_RESERVES.DECISION} attendu`] : []));
+  const ecartsJeu = (jeu) => {
+    if (!estObjet(jeu) || !Array.isArray(jeu.members) || !estObjet(jeu.threshold) || !entier(jeu.threshold.required) || !entier(jeu.threshold.size)) {
+      return ["approver_set illisible : members, threshold.required ou threshold.size mal typé"];
+    }
+    const ecarts = [];
+    if (!(jeu.threshold.required <= jeu.threshold.size)) ecarts.push("required supérieur à size");
+    if (jeu.threshold.size !== jeu.members.length) ecarts.push(`size ${jeu.threshold.size} différent du nombre de membres ${jeu.members.length}`);
+    return ecarts;
+  };
+  if (!evt) {
+    const pa = approbations ? null : porteur("A-1", lApprob);
+    if (pa) echoue("A-1", [pa.ecart]);
+    else partiel("A-1", approbations ? validerSchema("enveloppe-approbations", approbations).erreurs.map((e) => `approbations.json : ${e}`) : [], "evenement.json inexploitable");
+    partiel("A-2", ecartsA2SansEvenement(), "evenement.json inexploitable");
+    partiel("A-3", approbations ? ecartsJeu(approbations.approver_set) : [], "evenement.json inexploitable");
+    nonExecute("A-4", "prerequis_en_echec", ["evenement.json inexploitable"]);
   } else if (evt.approval === null) {
-    if (lApprob.etat === "absente") {
+    // approval nul : la partie doit être déclarée absente avec la raison
+    // exacte « aucune approbation liée » (CT-1 §11.1, A-1, révision 0.5).
+    if (declApprob?.present === false && declApprob.reason_if_absent === RAISON_SANS_APPROBATION) {
       reussi("A-1");
-      for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "partie_absente", ["aucune approbation liée"]);
-    } else if (lApprob.etat === "manquante") {
-      nonExecute("A-1", "prerequis_en_echec", ["approbations.json déclaré présent mais manquant (D-2)"]);
-      for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "prerequis_en_echec");
+      for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "partie_absente", [RAISON_SANS_APPROBATION]);
     } else {
-      echoue("A-1", ["approbations.json présent alors que approval est nul"]);
-      for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "prerequis_en_echec");
+      echoue("A-1", [
+        declApprob?.present
+          ? "approval nul alors que approbations.json est déclaré présent"
+          : `approval nul et approbations.json déclaré absent avec la raison ${JSON.stringify(declApprob?.reason_if_absent)}, « ${RAISON_SANS_APPROBATION} » attendue`,
+      ]);
+      for (const id of ["A-2", "A-3", "A-4"]) nonExecute(id, "prerequis_en_echec", ["A-1 en échec"]);
     }
   } else {
-    const approbation = evt.approval;
+    // approval non nul (objet, ou valeur mal typée dont les termes manquent).
+    const approbation = estObjet(evt.approval) ? evt.approval : {};
     // A-1
     if (lApprob.etat === "absente") echoue("A-1", ["approbations.json absent alors que approval n'est pas nul"]);
     else if (!approbations) {
       const pa = porteur("A-1", lApprob);
       if (pa) echoue("A-1", [pa.ecart]);
-      else nonExecute("A-1", raisonPorteur(lApprob));
+      else nonExecute("A-1", raisonPorteur(lApprob), ["approbations.json inexploitable"]);
     } else {
       const ecarts = validerSchema("enveloppe-approbations", approbations).erreurs.map((e) => `approbations.json : ${e}`);
-      if (approbations.ticket !== approbation.ticket) ecarts.push(`ticket ${approbations.ticket} différent de approval.ticket ${approbation.ticket}`);
-      if (approbations.request_hash !== approbation.request_hash) ecarts.push("request_hash différent de celui de approval");
+      if (!estObjet(evt.approval)) ecarts.push("approval n'est ni nul ni un objet");
+      if (!memeChaine(approbations.ticket, approbation.ticket)) ecarts.push(`ticket ${JSON.stringify(approbations.ticket)} différent de approval.ticket ${JSON.stringify(approbation.ticket)}`);
+      if (!memeChaine(approbations.request_hash, approbation.request_hash)) ecarts.push("request_hash différent de celui de approval");
       selon("A-1", ecarts);
     }
     // A-2
-    if (!approbations || !Array.isArray(approbations.events)) nonExecute("A-2", "prerequis_en_echec");
+    if (!approbations) nonExecute("A-2", "prerequis_en_echec", ["approbations.json absent ou inexploitable"]);
+    else if (!Array.isArray(approbations.events)) echoue("A-2", ["events n'est pas un tableau"]);
     else {
       const ecarts = [];
       let A = null;
@@ -602,12 +711,12 @@ export function verifierDossier(fichiers, options = {}) {
       approbations.events.forEach((d, k) => {
         if (!estObjet(d)) return ecarts.push(`events[${k}] n'est pas un objet`);
         if (d.execution?.tool !== NOMS_RESERVES.DECISION) ecarts.push(`events[${k}] : execution.tool ${d.execution?.tool}, ${NOMS_RESERVES.DECISION} attendu`);
-        if (!egaliteJson(d.approval, approbation)) ecarts.push(`events[${k}] : approval différent, clé pour clé, de celui de l'événement prouvé`);
+        if (!estObjet(evt.approval) || !egaliteJson(d.approval, evt.approval)) ecarts.push(`events[${k}] : approval différent, clé pour clé, de celui de l'événement prouvé`);
         if (A === null || !egaliteJson(d.execution?.arguments?.value, A)) ecarts.push(`events[${k}] : execution.arguments.value différent de A`);
         if (!decision) {
-          if (!(d.seq < evt.seq)) ecarts.push(`events[${k}] : seq ${d.seq} non antérieur à celui de l'événement prouvé (${evt.seq})`);
+          if (!entier(d.seq) || !entier(evt.seq) || !(d.seq < evt.seq)) ecarts.push(`events[${k}] : seq ${JSON.stringify(d.seq)} non antérieur à celui de l'événement prouvé (${JSON.stringify(evt.seq)})`);
           const at = decoderHorodatage(d.approval?.at);
-          if (at === null || tsEvt === null || at > tsEvt) ecarts.push(`events[${k}] : approval.at postérieur au ts de l'événement prouvé`);
+          if (at === null || tsEvt === null || at > tsEvt) ecarts.push(`events[${k}] : approval.at postérieur au ts de l'événement prouvé, ou date inexistante`);
         }
       });
       if (decision && !approbations.events.some((d) => hashEvt !== null && hashRecalcule(d) === hashEvt)) {
@@ -616,31 +725,31 @@ export function verifierDossier(fichiers, options = {}) {
       selon("A-2", ecarts);
     }
     // A-3
-    const jeu = approbations?.approver_set;
-    const jeuLisible =
-      estObjet(jeu) && Array.isArray(jeu.members) && estObjet(jeu.threshold) && Array.isArray(approbation.approvers) && estObjet(approbation.threshold);
-    if (!jeuLisible) nonExecute("A-3", "prerequis_en_echec");
+    if (!approbations) nonExecute("A-3", "prerequis_en_echec", ["approbations.json absent ou inexploitable"]);
     else {
-      const ecarts = [];
-      const approbateurs = approbation.approvers;
-      const distincts = new Set(approbateurs);
-      if (distincts.size !== approbateurs.length) ecarts.push("approbateurs en double");
-      for (const a of distincts) if (!jeu.members.includes(a)) ecarts.push(`${a} n'est pas membre du jeu déclaré`);
-      if (approbation.decision === "expire") {
-        if (approbateurs.length !== 0 || (Array.isArray(approbation.signatures) && approbation.signatures.length !== 0)) {
-          ecarts.push("décision expire : aucune signature attendue");
+      const jeu = approbations.approver_set;
+      const ecarts = ecartsJeu(jeu);
+      if (!Array.isArray(approbation.approvers) || !estObjet(approbation.threshold)) ecarts.push("approval.approvers ou approval.threshold mal typé");
+      else if (ecarts.length === 0) {
+        const approbateurs = approbation.approvers;
+        const distincts = new Set(approbateurs);
+        if (distincts.size !== approbateurs.length) ecarts.push("approbateurs en double");
+        for (const a of distincts) if (!jeu.members.includes(a)) ecarts.push(`${a} n'est pas membre du jeu déclaré`);
+        if (approbation.decision === "expire") {
+          if (approbateurs.length !== 0 || !Array.isArray(approbation.signatures) || approbation.signatures.length !== 0) {
+            ecarts.push("décision expire : aucune signature attendue");
+          }
+        } else {
+          const membres = [...distincts].filter((a) => jeu.members.includes(a)).length;
+          if (membres < jeu.threshold.required) ecarts.push(`${membres} approbateur(s) distinct(s) membre(s), seuil ${jeu.threshold.required}`);
         }
-      } else {
-        const membres = [...distincts].filter((a) => jeu.members.includes(a)).length;
-        if (membres < jeu.threshold.required) ecarts.push(`${membres} approbateur(s) distinct(s) membre(s), seuil ${jeu.threshold.required}`);
+        if (!egaliteJson(approbation.threshold, jeu.threshold)) ecarts.push("threshold de l'événement différent de celui du jeu déclaré");
       }
-      if (!egaliteJson(approbation.threshold, jeu.threshold)) ecarts.push("threshold de l'événement différent de celui du jeu déclaré");
-      if (!(jeu.threshold.required <= jeu.threshold.size)) ecarts.push("required supérieur à size");
-      if (jeu.threshold.size !== jeu.members.length) ecarts.push(`size ${jeu.threshold.size} différent du nombre de membres ${jeu.members.length}`);
       selon("A-3", ecarts);
     }
-    // A-4
-    if (!voisinsUtilisables) nonExecute("A-4", "prerequis_en_echec");
+    // A-4 : voisins.json inexploitable, non exécuté sans raison admise.
+    if (!voisinsUtilisables) nonExecute("A-4", "prerequis_en_echec", ["voisins.json inexploitable"]);
+    else if (!estHex(approbation.request_hash, 32)) echoue("A-4", [`request_hash ${JSON.stringify(approbation.request_hash)} mal typé`]);
     else {
       const demande = [previous, next].find((v) => v && hashRecalcule(v) === approbation.request_hash);
       if (!demande) nonExecute("A-4", "piece_hors_dossier", ["l'événement de demande n'est pas un voisin : request_hash non vérifiable"]);
@@ -755,12 +864,21 @@ export function verifierDossier(fichiers, options = {}) {
     const vc = verifierCoherence(c);
     if (!vc.valide) ecarts5.push(`preuve de cohérence refusée : ${vc.raison}`);
     selon("K-5", ecarts5);
-    // K-6
-    const porteurLast = [evt, previous, next].find((v) => v && v.seq === k.last_seq);
-    if (!porteurLast) nonExecute("K-6", "piece_hors_dossier", [`l'événement seq ${k.last_seq} n'est pas dans le dossier`]);
+    // K-6 : quand last_seq est le seq de l'événement prouvé, K-6 se juge sur
+    // lui seul, quel que soit l'état de voisins.json ; sinon l'événement
+    // last_seq est cherché parmi les voisins objets : absent,
+    // piece_hors_dossier (admise) ; voisins.json inexploitable,
+    // prerequis_en_echec (CT-1 §10.5 et §11.4, révision 0.5 ; CT-6 EX-5.9).
+    const ecartLast = (v) => {
+      const h = hashRecalcule(v);
+      return h === k.last_hash ? [] : [`last_hash ${k.last_hash} différent du hash recalculé de seq ${k.last_seq} (${h})`];
+    };
+    if (evt.seq === k.last_seq) selon("K-6", ecartLast(evt));
+    else if (!voisinsUtilisables) nonExecute("K-6", "prerequis_en_echec", ["voisins.json inexploitable : l'événement last_seq ne peut être cherché parmi les voisins"]);
     else {
-      const h = hashRecalcule(porteurLast);
-      selon("K-6", h === k.last_hash ? [] : [`last_hash ${k.last_hash} différent du hash recalculé de seq ${k.last_seq} (${h})`]);
+      const porteurLast = [previous, next].find((v) => v && v.seq === k.last_seq);
+      if (!porteurLast) nonExecute("K-6", "piece_hors_dossier", [`l'événement seq ${k.last_seq} n'est pas dans le dossier`]);
+      else selon("K-6", ecartLast(porteurLast));
     }
     // K-7 à K-9 : ancres.
     const ancres = partie.anchors;
@@ -770,7 +888,7 @@ export function verifierDossier(fichiers, options = {}) {
       const prealable = verifPrealable ? verifPrealable(ancre) : [];
       if (prealable.length) return echoue(id, prealable);
       const f = options.verificateursAncres?.[cle];
-      if (typeof f !== "function") return nonExecute(id, "verification_ct6_requise", ["vérification de l'ancre fixée par CT-6, hors de cette bibliothèque"]);
+      if (typeof f !== "function") return nonExecute(id, "prerequis_en_echec", [VERIFICATION_CT6_NON_EXECUTEE]);
       const r = f(ancre, { checkpoint_hash: ch, partie });
       poser(id, r.statut, r.details ?? [], r.raison ?? null);
     };
@@ -785,9 +903,10 @@ export function verifierDossier(fichiers, options = {}) {
     deleguer("K-9", "ots");
   }
 
-  function inutilisable(erreur) {
+  function inutilisable(type, erreur) {
     return {
       utilisable: false,
+      type_erreur: type,
       erreur,
       verdict: null,
       valide: null,
@@ -810,11 +929,12 @@ export function verifierDossier(fichiers, options = {}) {
     const controles = ORDRE_CONTROLES.filter((id) => R.has(id) && (avecK || !CONTROLES_K.includes(id))).map((id) => R.get(id));
     const enEchec = trierControles(controles.filter((c) => c.statut === "echoue").map((c) => c.id));
     const bloquants = controles.filter((c) => c.statut === "non_execute" && !c.admise).map((c) => c.id);
-    for (const n of reservees) bloquants.push(`partie ${n} (vérification CT-6)`);
+    for (const n of reservees) bloquants.push(`partie ${n} : ${VERIFICATION_CT6_NON_EXECUTEE}`);
     const valide = enEchec.length === 0 && bloquants.length === 0;
     const sansAncre = absentes.some((p) => ["jeton_rfc3161", "preuve_ots", "registre"].includes(p.name));
     return {
       utilisable: true,
+      type_erreur: null,
       erreur: null,
       verdict: valide ? "valide" : "invalide",
       valide,

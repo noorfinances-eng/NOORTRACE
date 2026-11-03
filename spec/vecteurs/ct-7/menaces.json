@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "modele-menace",
   "spec": "CT-7",
-  "spec_version": "0.1",
-  "date": "2026-10-26",
+  "spec_version": "0.2",
+  "date": "2026-11-03",
   "components": [
     {
       "id": "hote_agent",
@@ -159,7 +159,7 @@
     {
       "spec": "CT-6",
       "section": "15.5",
-      "rows": 23
+      "rows": 26
     },
     {
       "spec": "CT-2",
@@ -3280,11 +3280,11 @@
         "alteration",
         "usurpation"
       ],
-      "actor": "Qui présente une pièce d'ancrage d'une autre donnée : jeton, preuve OpenTimestamps, chaîne d'en-têtes, attestation.",
+      "actor": "Qui présente une pièce d'ancrage d'une autre donnée ou d'une autre autorité, ou une pièce forgée : jeton, preuve OpenTimestamps, chaîne d'en-têtes, attestation.",
       "asset": "Lien entre une ancre et le `periodHash` ou le `checkpointHash` qu'elle doit porter.",
-      "effect": "Une ancre d'un autre manifeste, d'un autre point, d'une autre autorité ou d'un autre bloc passe pour celle de la période.",
+      "effect": "Une ancre d'un autre manifeste, d'un autre point, d'une autre autorité ou d'un autre bloc passe pour celle de la période ; un jeton forgé dont le `sid` ne désigne aucun certificat, ou qui déclare un algorithme ou une clé hors de la version 0, passe pour une ancre absente ou pour un jeton hors du périmètre de la version 0, et sa signature n'est pas jugée.",
       "response": {
-        "text": "Nonce frais et égalité stricte à l'acquisition (CT-5 EX-5.3) ; T-2, T-5, T-7, O-2, O-4, O-5 sur l'empreinte recalculée (CT-6 T-2, CT-6 T-5, CT-6 T-7, CT-6 O-2, CT-6 O-4, CT-6 O-5) ; K-7 et K-9 pour un point (CT-1 K-7, CT-1 K-9) ; `non_execute` jamais compté comme réussi (CT-6 §6).",
+        "text": "Nonce frais et égalité stricte à l'acquisition (CT-5 EX-5.3) ; T-2, T-5, T-7, O-2, O-4, O-5 sur l'empreinte recalculée (CT-6 T-2, CT-6 T-5, CT-6 T-7, CT-6 O-2, CT-6 O-4, CT-6 O-5) ; K-7 et K-9 pour un point (CT-1 K-7, CT-1 K-9) ; `non_execute` jamais compté comme réussi (CT-6 §6) ; un `sid` qui ne désigne aucun certificat fait échouer T-4 dès que le jeton porte des certificats ou que le fichier d'ancres porte une autorité d'horodatage (CT-6 T-4, CT-6 EX-9.10) ; une clé et un algorithme qui ne vont pas ensemble, ou une clé hors de la version 0 qu'aucun chemin ne rattache à une autorité du fichier d'ancres, font échouer T-5 (CT-6 EX-9.24).",
         "refs": [
           "CT-5 EX-5.3",
           "CT-6 T-2",
@@ -3295,7 +3295,10 @@
           "CT-6 O-5",
           "CT-1 K-7",
           "CT-1 K-9",
-          "CT-6 §6"
+          "CT-6 §6",
+          "CT-6 T-4",
+          "CT-6 EX-9.10",
+          "CT-6 EX-9.24"
         ]
       },
       "detection": {
@@ -3305,7 +3308,7 @@
         ]
       },
       "residual": {
-        "text": "Aucun au-delà des hypothèses H1 à H5 de CT-6.",
+        "text": "Aucun au-delà des hypothèses H1 à H5 de CT-6. Un jeton qui reste `non_execute` pour une raison admise (`ancre_absente` : fichier d'ancres absent ou sans autorité d'horodatage ; `hors_perimetre_version` : clé hors de la version 0 rattachée à une autorité du fichier d'ancres) ne prouve aucune date, qu'il soit authentique ou forgé : le contrôle 4 n'est pas compté comme réussi.",
         "accepted_risk": null
       },
       "test": "Le test échoue si la réponse est retirée : les dossiers `invalide-t2-jeton-autre-manifeste`, `invalide-o2-preuve-autre-manifeste` et `invalide-k7-jeton-autre-empreinte` échouent à la vérification nommée ; si l'empreinte n'est plus recalculée, ils passent et le test échoue.",
@@ -3329,6 +3332,16 @@
           "spec": "CT-6",
           "section": "15.5",
           "row": "Rétrogradation d'algorithme"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.4) Faux jeton dont le `sid` ne désigne aucun certificat, pour soustraire le jeton à T-5, T-6 et T-7 et le faire passer pour une ancre absente"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.4) Faux jeton qui déclare un algorithme ou une clé hors de la version 0, pour échapper à T-6 et T-7 et passer pour un hors-périmètre admis"
         },
         {
           "spec": "CT-6",
@@ -3622,26 +3635,28 @@
         "deni_de_service",
         "elevation_de_privilege"
       ],
-      "actor": "Qui fabrique un dossier, un jeton ou une réponse piégés pour l'analyseur.",
-      "asset": "Sûreté du vérificateur et du composant d'ancrage.",
-      "effect": "Longueurs, profondeur, octets en trop ou formes non minimales font paniquer, boucler ou mal lire.",
+      "actor": "Qui fabrique un dossier, un jeton ou une réponse piégés pour l'analyseur, ou pour la vérification des signatures (clé RSA démesurée).",
+      "asset": "Sûreté du vérificateur et du composant d'ancrage ; accord des implémentations sur le verdict.",
+      "effect": "Longueurs, profondeur, octets en trop ou formes non minimales font paniquer, boucler ou mal lire ; une clé RSA de module démesuré ou d'exposant géant fait durer chaque vérification de signature, ou fait diverger deux implémentations dont les bibliothèques n'ont pas les mêmes limites.",
       "response": {
-        "text": "Bornes, aucune récursion non bornée, cibles de fuzzing (CT-6 EX-15.1, CT-6 EX-15.2, CT-6 EX-15.3) ; corps de réponse bornés à l'acquisition (CT-5 EX-5.12).",
+        "text": "Bornes, aucune récursion non bornée, cibles de fuzzing (CT-6 EX-15.1, CT-6 EX-15.2, CT-6 EX-15.3) ; corps de réponse bornés à l'acquisition (CT-5 EX-5.12) ; clé RSA admise seulement avec un module de 2048 à 8192 bits et un exposant public impair de 3 à 2³¹ − 1, contrôlés sur la clé avant tout calcul (CT-6 EX-9.23).",
         "refs": [
           "CT-6 EX-15.1",
           "CT-6 EX-15.2",
           "CT-6 EX-15.3",
-          "CT-5 EX-5.12"
+          "CT-5 EX-5.12",
+          "CT-6 EX-9.23"
         ]
       },
       "detection": {
-        "text": "Code 2 ou échec T-1 et O-1 au rapport (CT-6 §8.3).",
+        "text": "Code 2 ou échec T-1 et O-1 au rapport (CT-6 §8.3) ; échec de T-5 dont le détail nomme la taille ou l'exposant de la clé, ou de T-7 quand le seul chemin passe par une clé hors bornes (CT-6 EX-9.23).",
         "refs": [
-          "CT-6 §8.3"
+          "CT-6 §8.3",
+          "CT-6 EX-9.23"
         ]
       },
       "residual": {
-        "text": "Aucun au-delà des bornes de CT-6 §15.1.",
+        "text": "Aucun au-delà des bornes de CT-6 §15.1 et de CT-6 EX-9.23.",
         "accepted_risk": null
       },
       "test": "Le test échoue si la réponse est retirée : les dossiers `invalide-t1-octet-en-trop` et `invalide-o1-octet-en-trop` échouent à T-1 et O-1 ; si la lecture DER redevient permissive, ils passent et le test échoue.",
@@ -3650,6 +3665,11 @@
           "spec": "CT-5",
           "section": "13",
           "row": "Réponse surdimensionnée ou malformée d'un prestataire ou d'un calendrier"
+        },
+        {
+          "spec": "CT-6",
+          "section": "15.5",
+          "row": "(révision 0.4) Clé RSA démesurée (module de plus de 8192 bits, exposant géant) pour faire durer la vérification, ou pour faire diverger deux implémentations"
         },
         {
           "spec": "CT-6",

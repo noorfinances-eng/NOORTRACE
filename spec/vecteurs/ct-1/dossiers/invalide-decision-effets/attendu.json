@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-3",
+  "controles_en_echec": [
+    "E-3"
+  ],
+  "description": "Journal rejoué où la décision d'approbation (seq 6) déclare l'effet du paiement (SAP, ecriture, PAY-2026-61877) : les effets de l'appel approuvé sont déclarés par l'appel relayé, une décision a des effets vides (CT-1 §5.3, règle 3, révision 0.5) ; dossier de seq 7, la décision étant le voisin précédent et l'événement de approbations.json."
+}

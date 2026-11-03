@@ -53,8 +53,8 @@ func TestRefusN1(t *testing.T) {
 		"clé de validateur":    strings.Replace(base, `"pubKeyHex": "0x0405de9b`, `"pubKeyHex": "0x0505de9b`, 1),
 		"validateur en double": strings.Replace(base, `"id": "v2"`, `"id": "v1"`, 1),
 		"PEM tronqué":          strings.Replace(base, `MII`, `MIJ`, 1),
-		// Sans forme canonique (« Lectures », point 21 du LISEZMOI du
-		// module) : refusé au lieu d'être lu par arrondi ou en dernière
+		// Sans forme canonique (CT-6 EX-4.12, point 3, révision
+		// 0.4) : refusé au lieu d'être lu par arrondi ou en dernière
 		// occurrence.
 		"nombre non entier":     strings.Replace(base, `"height": 1000,`, `"height": 1000.0,`, 1),
 		"exposant":              strings.Replace(base, `"height": 1000,`, `"height": 1e3,`, 1),

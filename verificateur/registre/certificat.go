@@ -67,13 +67,147 @@ type corpsProposition struct {
 	BlockHash string `json:"blockHash"`
 }
 
-// corpsVote : les membres du corps d'un precommit (objet Vote du nœud).
+// corpsVote : le corps d'un precommit (objet Vote du nœud, CT-4 §9.2),
+// membres dans l'ordre de l'encodeur du nœud. Type est lu comme un entier
+// de 0 à 255 (CT-6 EX-11.6, révision 0.4) : absent ou null, il vaut 0 ; un
+// nombre non entier, une chaîne, un négatif ou une valeur au-delà de 255
+// sont refusés par le décodeur. Il n'est pas comparé au type de
+// l'enveloppe (EX-11.14, révision 0.4).
 type corpsVote struct {
 	Height    uint64 `json:"Height"`
 	Round     uint64 `json:"Round"`
 	Voter     string `json:"Voter"`
-	Type      int64  `json:"Type"`
+	Type      uint8  `json:"Type"`
 	BlockHash string `json:"BlockHash"`
+	Sig       []byte `json:"Sig"`
+}
+
+// hachageNoeud : un hachage d'un corps (EX-11.6, révision 0.4, ligne
+// « types des membres connus ») : chaîne « 0x » ou « 0X » suivie de 64
+// chiffres hexadécimaux ; null, un autre genre ou une autre forme fait
+// refuser la ligne, comme le nœud refuse de la décoder.
+type hachageNoeud struct{}
+
+func (h *hachageNoeud) UnmarshalJSON(b []byte) error {
+	var s string
+	if string(b) == "null" || json.Unmarshal(b, &s) != nil {
+		return fmt.Errorf("hachage attendu, %s lu", string(b))
+	}
+	if _, ok := hachageCorps(s); !ok {
+		return fmt.Errorf("hachage mal formé")
+	}
+	return nil
+}
+
+// typesProposition et typesVote : types des membres connus des corps
+// Proposal et Vote du nœud (EX-11.6, révision 0.4). Le décodeur de Go
+// compare les noms sans la casse, ignore les membres inconnus, refuse un
+// membre connu d'un autre genre et lit null comme la valeur nulle du type,
+// sauf pour un hachage (hachageNoeud). Les champs d'octets sont en base64
+// standard.
+type typesProposition struct {
+	Height       uint64       `json:"height"`
+	Round        uint64       `json:"round"`
+	Proposer     string       `json:"proposer"`
+	BlockHash    hachageNoeud `json:"blockHash"`
+	ParentHash   hachageNoeud `json:"parentHash"`
+	Timestamp    uint64       `json:"timestamp"`
+	StateRoot    hachageNoeud `json:"stateRoot"`
+	ReceiptsRoot hachageNoeud `json:"receiptsRoot"`
+	TxRoot       hachageNoeud `json:"txRoot"`
+	GasUsed      uint64       `json:"gasUsed"`
+	GasLimit     uint64       `json:"gasLimit"`
+	BaseFeeHex   string       `json:"baseFeeHex"`
+	TxsRaw       [][]byte     `json:"txsRaw"`
+	PolkaRound   uint64       `json:"polkaRound"`
+	PolkaLines   []string     `json:"polkaLines"`
+	Sig          []byte       `json:"sig"`
+}
+
+type typesVote struct {
+	Height    uint64       `json:"Height"`
+	Round     uint64       `json:"Round"`
+	Voter     string       `json:"Voter"`
+	Type      uint8        `json:"Type"`
+	BlockHash hachageNoeud `json:"BlockHash"`
+	Sig       []byte       `json:"Sig"`
+}
+
+// voteCanonique dit si les octets d'un corps de precommit sont ceux que
+// l'encodeur du nœud produirait pour les mêmes valeurs (EX-11.6) : membres
+// dans l'ordre et la casse du nœud, sans doublon, inconnu ni espace,
+// entiers présents, Voter non vide, Type égal à 2, BlockHash en « 0x » et
+// hexadécimal minuscule. Sinon la ligne acceptée lève AV-R-2.
+func voteCanonique(corps []byte, v corpsVote) bool {
+	if v.Voter == "" || v.Type != typeVotePrecommit {
+		return false
+	}
+	b, ok := hachageCorps(v.BlockHash)
+	if !ok {
+		return false
+	}
+	v.BlockHash = "0x" + hex.EncodeToString(b)
+	attendu, err := json.Marshal(&v)
+	return err == nil && bytes.Equal(attendu, corps)
+}
+
+// membresProposition : membres du corps Proposal du nœud, dans l'ordre de
+// son encodeur (CT-4 §9.2).
+var membresProposition = []string{"height", "round", "proposer", "blockHash", "parentHash", "timestamp", "stateRoot", "receiptsRoot", "txRoot", "gasUsed", "gasLimit", "baseFeeHex", "txsRaw", "polkaRound", "polkaLines", "sig"}
+
+// propositionCanonique applique au corps d'une proposition ce qu'EX-11.6
+// nomme d'une forme non canonique (casse, doublon, membre inconnu, espaces
+// ou ordre, proposer vide ou fait de blancs, height ou round absent ou
+// null, blockHash en « 0X » ou en majuscules). Les valeurs des autres
+// membres ne sont pas réencodées : le paquet ne porte pas le type Proposal
+// complet du nœud.
+func propositionCanonique(corps []byte, p corpsProposition) bool {
+	var compact bytes.Buffer
+	if json.Compact(&compact, corps) != nil || !bytes.Equal(compact.Bytes(), corps) {
+		return false
+	}
+	var membres []string
+	dec := json.NewDecoder(bytes.NewReader(corps))
+	dec.UseNumber()
+	if t, err := dec.Token(); err != nil || t != json.Delim('{') {
+		return false
+	}
+	valeurs := map[string]json.RawMessage{}
+	for dec.More() {
+		t, err := dec.Token()
+		nom, ok := t.(string)
+		if err != nil || !ok {
+			return false
+		}
+		var v json.RawMessage
+		if dec.Decode(&v) != nil {
+			return false
+		}
+		if _, deja := valeurs[nom]; deja {
+			return false
+		}
+		valeurs[nom] = v
+		membres = append(membres, nom)
+	}
+	k := 0
+	for _, nom := range membres {
+		for k < len(membresProposition) && membresProposition[k] != nom {
+			k++
+		}
+		if k == len(membresProposition) {
+			return false
+		}
+	}
+	for _, nom := range []string{"height", "round"} {
+		if v, ok := valeurs[nom]; !ok || string(v) == "null" {
+			return false
+		}
+	}
+	if strings.TrimSpace(p.Proposer) == "" {
+		return false
+	}
+	b, ok := hachageCorps(p.BlockHash)
+	return ok && p.BlockHash == "0x"+hex.EncodeToString(b)
 }
 
 // lireLigne décode une ligne comme le nœud ; canonique dit si la ligne est
@@ -229,24 +363,40 @@ func verifierLigne(ligne string, attendu string, c *certificat, cles map[string]
 	if !bytes.Equal(env.BodyHash, corps[:]) {
 		return ko("bodyHash différent du SHA-256 des octets du corps", "bodyHash differs from the SHA-256 of the body bytes")
 	}
-	// Cohérence du corps.
+	// Cohérence du corps (table d'EX-11.6, révision 0.4). Le type du vote
+	// est celui de l'enveloppe, que la signature couvre (EX-11.14) : Type
+	// du corps n'est pas comparé.
 	var h, t uint64
 	var bloc, signataire string
 	if attendu == typeProposition {
 		var p corpsProposition
+		var tp typesProposition
+		if err := json.Unmarshal(env.Body, &tp); err != nil {
+			return ko("corps de proposition dont un membre connu est mal typé ("+err.Error()+", EX-11.6)", "proposal body with an ill-typed known member ("+err.Error()+", EX-11.6)")
+		}
 		if err := json.Unmarshal(env.Body, &p); err != nil {
 			return ko("corps de proposition illisible ("+err.Error()+")", "unreadable proposal body ("+err.Error()+")")
 		}
-		h, t, bloc, signataire = p.Height, p.Round, p.BlockHash, p.Proposer
+		// proposer vide, null ou fait de blancs au sens de
+		// strings.TrimSpace : le signataire est le validatorId.
+		h, t, bloc, signataire = p.Height, p.Round, p.BlockHash, strings.TrimSpace(p.Proposer)
+		if signataire != "" {
+			signataire = p.Proposer
+		}
+		r.canonique = r.canonique && propositionCanonique(env.Body, p)
 	} else {
 		var v corpsVote
+		var tv typesVote
+		if err := json.Unmarshal(env.Body, &tv); err != nil {
+			return ko("corps de precommit dont un membre connu est mal typé ("+err.Error()+", EX-11.6)", "precommit body with an ill-typed known member ("+err.Error()+", EX-11.6)")
+		}
 		if err := json.Unmarshal(env.Body, &v); err != nil {
 			return ko("corps de precommit illisible ("+err.Error()+")", "unreadable precommit body ("+err.Error()+")")
 		}
-		if v.Type != typeVotePrecommit {
-			return ko(fmt.Sprintf("vote de type %d au lieu de 2", v.Type), fmt.Sprintf("vote of type %d instead of 2", v.Type))
-		}
+		// Voter vide ou null : le signataire est le validatorId ; présent
+		// et différent, même fait d'espaces : refusé.
 		h, t, bloc, signataire = v.Height, v.Round, v.BlockHash, v.Voter
+		r.canonique = r.canonique && voteCanonique(env.Body, v)
 	}
 	if h != c.hauteur || t != c.tour {
 		return ko("hauteur ou tour du corps différents du certificat", "body height or round differ from the certificate")

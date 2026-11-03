@@ -6,7 +6,7 @@ produit exactement les mêmes octets. Les clés JSON sont en anglais (formats de
 CT-1) ; les descriptions, en français. Chaque répertoire porte un `attendu.json`
 qui dit ce qu'un vérificateur conforme doit obtenir.
 
-Le générateur n'écrit que les entrées décrites ici (`INDEX.md`, `cles`, `jcs`, `journal-valide`, `journal-supprime`, `journal-modifie`, `journal-insere`, `journal-insere-sans-cle`, `journal-reordonne`, `merkle`, `manifestes`, `points-de-controle`, `dossiers`),
+Le générateur n'écrit que les entrées décrites ici (`INDEX.md`, `cles`, `jcs`, `journal-valide`, `journal-supprime`, `journal-modifie`, `journal-insere`, `journal-insere-sans-cle`, `journal-reordonne`, `journal-cles-autre-organisation`, `journal-ts-inexistant`, `journal-seq-chaine`, `journal-non-canonique`, `merkle`, `manifestes`, `points-de-controle`, `dossiers`),
 qu'il efface et réécrit à chaque exécution ; toute autre entrée du répertoire
 est laissée telle quelle (le vérificateur indépendant Go de
 `verificateur-independant/`, par exemple, qui confronte tous ces vecteurs).
@@ -49,13 +49,17 @@ hash, signature, `prev_hash` et longueur canonique de chaque événement, objet
 d'approbation `A` et son condensé `D_A`. `pieces.json` : les pièces référencées
 (octets UTF-8, `sha256`, `length`). `cles.json` : les clés publiques nécessaires.
 
-## `journal-supprime/`, `journal-modifie/`, `journal-insere/`, `journal-insere-sans-cle/`, `journal-reordonne/`
+## `journal-supprime/`, `journal-modifie/`, `journal-insere/`, `journal-insere-sans-cle/`, `journal-reordonne/`, `journal-cles-autre-organisation/`, `journal-ts-inexistant/`, `journal-seq-chaine/`, `journal-non-canonique/`
 
 Le même journal altéré ; `attendu.json` donne la liste exacte des contrôles en
-échec (`controles_en_echec`, table 7.2 de CT-1 : tous les symptômes sont
-rapportés, chaque événement pour lui-même puis chaque couple consécutif dans
-l'ordre du fichier), les diagnostics nommés de l'implémentation de référence
-(`type`, `controle`, `seq`) et les messages produits.
+échec (`controles_en_echec`), les diagnostics nommés de l'implémentation de
+référence (`type`, `controle`, `seq`), dans l'ordre de la règle exacte de
+CT-1 §7.2 (révision 0.5 : chaque événement pour lui-même, E-1 à E-11 puis
+l'origine ; la suite des `seq` sur tout le fichier, insertions, suppressions,
+réordonnancements ; chaque couple consécutif dans l'ordre du fichier), et les
+messages produits, dont le texte n'est pas normatif. Chaque journal est
+vérifié avec `journal-valide/cles.json`, sauf `journal-cles-autre-organisation/`,
+qui porte son propre `cles.json`.
 
 | Répertoire | Altération | Contrôles en échec | Diagnostics |
 |---|---|---|---|
@@ -64,6 +68,14 @@ l'ordre du fichier), les diagnostics nommés de l'implémentation de référence
 | `journal-insere/` | événement forgé, signé avec la clé de l'enregistreur, inséré entre seq 4 et seq 5 avec seq 5 | C-1, C-2 | `insertion` (C-1), `rupture` (C-2) et `horodatage` (C-1) en seq 5 |
 | `journal-insere-sans-cle/` | même insertion, signée par une autre clé que celle annoncée | E-8, C-1, C-2 | `signature` (E-8) en plus des trois précédents |
 | `journal-reordonne/` | seq 5 et seq 6 échangés de place | C-1, C-2 | `reordonnancement` (C-1) en seq 5, `rupture` (C-2) en seq 6, 5 et 7, `horodatage` (C-1) en seq 5 |
+| `journal-cles-autre-organisation/` | aucune sur les événements ; `cles.json` (porté par le répertoire) d'une autre organisation, mêmes clés (révision 0.5) | E-8 | `signature` (E-8) pour chacun des douze événements |
+| `journal-ts-inexistant/` | `ts` de seq 12 au 2026-02-30, rescellé (révision 0.5) | E-1, E-11, C-1 | `schema` (E-1) et `validite_cle` (E-11) en seq 12, `horodatage` (C-1) en seq 12 (date qui n'est pas une date existante) |
+| `journal-seq-chaine/` | `seq` de seq 11 écrit `"11"`, rescellé, seq 12 rechaîné (révision 0.5) | E-1, C-1 | `schema` (E-1) de `seq` nul, `suppression` (C-1) en seq 12 ; aucun `reordonnancement` : seq 12 est comparé à seq 10, le dernier `seq` entier qui le précède |
+| `journal-non-canonique/` | `"duration_ms": 530.0` pour seq 7 dans le fichier, `hash` et `sig` inchangés (révision 0.5) | E-2, C-2 | `format` (E-2) en seq 7, `rupture` (C-2) en seq 8 : hash de seq 7 incalculable |
+
+Révision 0.5 : un fichier d'événements se lit élément par élément ; un
+événement sans forme canonique (`journal-non-canonique`) est rapporté par
+E-2 seule, ses autres règles ne s'exécutant pas, et le fichier reste lisible.
 
 La troncature de la fin du journal n'est pas détectable par la chaîne seule
 (CT-1 §7.2) : elle relève du manifeste (P-3, P-4) ; le dossier
@@ -111,8 +123,31 @@ la racine du manifeste (`null` pour `tree_size = 0`), et pour chaque série
 invalide de `invalides/` (dérivée de la période 1) les règles violées
 (`rules_failed` : `chainage`, `tree_size_decroissant`,
 `checkpoint_ts_decroissant`, `dernier_point`, `cle_en_vigueur`,
-`validite_cle`, `signature`, `last_hash`) et les erreurs de l'implémentation
-de référence.
+`validite_cle`, `signature`, `last_hash`, `last_seq`) et les erreurs de l'implémentation
+de référence ; ces séries sont vérifiées avec tout `journal-valide/evenements.json`
+et `journal-valide/cles.json`. Révision 0.5 : `invalides/periode-1-cle-last-seq-0.json`
+porte un point de `last_seq = 0` signé par une autre clé que celle que la
+règle de la section 10.1 tire de `cles.json` (`cle_en_vigueur`,
+`validite_cle`) ; `evenements_partiels` vérifie la série de la période 1 avec
+les seuls événements d'un fichier de `evenements/` (`events`, et `keys` pour
+`cles.json`) : sans les événements 5 à 9, `root` et `last_hash` figurent dans
+`rules_not_evaluated` (`{ rule, reason }`, raison `piece_hors_dossier`), aucune
+règle n'est violée ; avec seq 5 altéré, `root` et `last_hash` sont violées.
+Une série n'est valide que si `rules_failed` et `rules_not_evaluated` sont
+vides ; un `rules_not_evaluated` absent vaut liste vide. Compléments de la
+révision 0.5 (liste fermée des noms de règle, ordre des entrées) :
+`invalides/periode-1-tree-size-trop-grand.json` (point de clôture de
+`tree_size` 10 pour `count` 9 : `last_seq`, `dernier_point`) et
+`invalides/periode-1-cle-inconnue.json` (clé `rec-test-03` absente de
+`cles.json` : `cle_en_vigueur`, `signature`) ; dans `evenements_partiels`,
+`evenements/sans-5-seq-7-non-canonique.json` (seq 5 retiré, seq 7 écrit avec
+`"duration_ms": 530.0` : `root` non évaluée, `prerequis_en_echec` pour les
+points de `tree_size` 8 et 9, `piece_hors_dossier` pour ceux de `tree_size`
+5, et `last_hash` `piece_hors_dossier`) et une entrée sans événement ni
+`cles.json` (`events` et `keys` nuls : `root`, `last_hash`,
+`cle_en_vigueur`, `signature` et `validite_cle` non évaluées,
+`piece_hors_dossier`). Les deux listes suivent l'ordre des noms de règle de
+CT-1 §10.5, puis `prerequis_en_echec` avant `piece_hors_dossier`.
 
 ## `dossiers/`
 
@@ -134,6 +169,31 @@ de `valide-seq-7` et leur index est recalculé après l'altération, pour que se
 le contrôle visé échoue ; quand une cascade est inévitable, elle est listée.
 « Journal rejoué » : l'altération est faite à la source et la chaîne, les
 manifestes et le dossier sont recalculés.
+
+Révision 0.5 (CT-1 §3, §4, §5.3, §11.1, §11.4 ; table d'alignement de la
+section 17) : un dossier par règle tranchée qu'aucun vecteur ne fixait —
+`invalide-raison-blancs` (D-2), `invalide-a1-autre-raison` (A-1),
+`invalide-index-autre-journal` (D-1), `invalide-redaction-vide` et
+`invalide-redaction-blancs` (E-4), `invalide-decision-effets`,
+`invalide-demande-effets` et `invalide-appel-sans-approbation` (E-3),
+`invalide-seq-chaine` (cascade d'un `seq` mal typé),
+`invalide-partie-manquante` (D-2 seule), `invalide-partie-trop-grande` (au-delà
+de la limite : D-2 ne compare pas), `valide-profondeur-128` et
+`invalide-profondeur-129`, `invalide-marque-ordre-octets` et
+`invalide-utf8-voisins` (contrôle porteur), `invalide-substitut-octets` (E-2),
+`invalide-signature-en-trop` (E-5, E-9) et
+`valide-at1-inscription-date-inexistante` (AT-1). Les soixante-dix dossiers
+antérieurs gardent leur attendu. Compléments de la révision 0.5 (passages
+tranchés après l'alignement des implémentations) :
+`invalide-evenement-nul-autres-echecs` (E-1, E-8, P-1, P-5 : l'échec sur les
+autres parties l'emporte), `invalide-k6-voisins-nul-seq-9` (C-1 ; K-6 jugée
+sur l'événement prouvé, `last_seq` 9), `invalide-approbations-declaree-manquante`
+(D-2, A-1), `invalide-outil-nombre` et `invalide-approval-nombre` (termes mal
+typés), `invalide-voisin-nombre`, `invalide-voisin-absent` et
+`invalide-demande-non-objet` (voisin qui n'est pas un objet, règle unique), et
+`illisible-index-non-json`, entrée en code 2 : son `attendu.json` porte
+`valide` nul, `controle` nul, `controles_en_echec` vide, `exit_code` 2 et
+`error_kind` (`dossier_illisible`), seuls noms employés (CT-1 §11.5).
 
 Révision 0.4 (CT-1 §11.5, CT-7 annexe A.7) : l'`attendu.json` d'un dossier
 qui déclare la quatorzième partie donne en plus `perimeter_target` (la
@@ -218,6 +278,7 @@ sur le fichier de la partie.
 | `valide-at6-inscription-posterieure/` | valide ; AT-6 visée, attestation non retenue (AV-AT-1) | Dossier de seq 11 du journal rejoué, dont la partie joint l'inscription seq 12 : l'inscription suit l'événement prouvé (seq et ts), AT-6 échoue, AT-7 n'est pas exécutée (prérequis en échec), AV-AT-1 ; le dossier reste valide. |
 | `valide-at6-document-autre-condense/` | valide ; AT-6 visée, attestation non retenue (AV-AT-1) | Journal rejoué dont seq 12 annonce un document de politique dont perimeter.attestation_digest est SHA-256(« noortrace/vecteurs/ct7/autre-attestation ») et non D_P (événement rescellé, dossier de seq 12) : AT-6 échoue, AV-AT-1 ; le dossier reste valide. |
 | `valide-at6-inscription-signature-fausse/` | valide ; AT-6 visée, attestation non retenue (AV-AT-1) | Dossier valide-seq-12-attestation-inscrite dont l'événement d'inscription joint à la partie est signé par rec-test-01 alors qu'il nomme rec-test-02 (hash inchangé, evenement.json intact) : la signature est invalide sous la clé nommée, AT-6 échoue, AV-AT-1 ; le dossier reste valide. |
+| `valide-at1-inscription-date-inexistante/` | valide ; AT-1 visée, attestation non retenue (AV-AT-1) | Dossier valide-seq-12-attestation-inscrite dont l'événement d'inscription joint à la partie porte ts 2026-11-31T10:05:00.000Z (motif du schéma respecté, date inexistante : novembre a trente jours) : la date de l'inscription relève d'AT-1 (CT-1 §11.4, révision 0.5), qui échoue ; AT-2 à AT-7 ne sont pas exécutées, AV-AT-1 ; le dossier reste valide. |
 | `valide-at6-cle-non-ancree/` | valide ; AT-6 visée, attestation retenue | Dossier valide-seq-7-attestation-sans-inscription où l'exportateur ajoute à cles.json une clé rec-forge-01 (graine = SHA-256 de « noortrace/vecteurs/ct7/rec-forge-01 ») et joint une inscription forgée : seq 2, 09:10:00.000Z, signée par rec-forge-01, document de politique portant D_P sous la version de l'événement prouvé. L'événement prouvé (seq 7) est signé par rec-test-01 : la clé de l'inscription n'est pas la sienne, rien ne la relie au journal, AT-6 n'est pas exécutée (ancre_absente) et AT-7 non plus (prérequis) ; l'attestation est retenue sans clause d'inscription (CT-6 EX-6.19), le dossier reste valide (CT-7 MN-84, MN-90). |
 | `valide-at2-condense-faux/` | valide ; AT-2 visée, attestation non retenue (AV-AT-1) | signed.digest est le D_P d'une autre attestation (issued_at du 31 octobre) : AT-2 échoue ; AT-3 et AT-4 réussissent, les signatures portant sur le D_P recalculé ; inscription nulle, AT-6 et AT-7 ne sont pas exécutées, partie absente (la raison partie_absente l'emporte sur l'échec d'AT-2, CT-6 EX-5.12) ; AV-AT-1 ; le dossier reste valide (CT-6 EX-5.11, V-10). |
 | `valide-at4-seuil-non-atteint/` | valide ; AT-4 visée, attestation non retenue (AV-AT-1) | L'attestation n'est signée que par le compte Hardhat 1, pour un jeu déclaré au seuil de 2 sur 3 : AT-3 réussit, AT-4 échoue, AV-AT-1 ; le dossier reste valide (CT-6 EX-5.11, V-10). |
@@ -225,6 +286,32 @@ sur le fichier de la partie.
 | `valide-at7-nom-reannonce/` | valide ; AT-7 visée, attestation retenue | Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui annonce, sous le même nom de version 2026-11-05, un autre document de politique, sans membre perimeter (ce que CT-2 0.5 n'interdit pas au démarrage tant que PA-9 n'est pas adoptée) ; dossier de seq 13 dont la partie joint l'inscription seq 12. AT-6 et AT-7 réussissent : AT-7 ne compare que des noms. L'énoncé dit seulement « sous une version de politique de même nom que celle de cet événement », jamais que l'attestation était en vigueur (CT-7 MN-91, RA-75). |
 | `valide-at7-attestation-remplacee/` | valide ; AT-7 visée, attestation retenue (AV-AT-3) | Journal rejoué prolongé d'un seq 13 (10:20:00.000Z) qui inscrit une attestation B (issued_at 10:15, une exception de capture de plus) sous la version 2026-11-06 ; l'exportateur joint au dossier de seq 13 l'attestation A et son inscription seq 12. AT-6 réussit ; AT-7 n'est pas exécutée (pièce hors dossier), AV-AT-3 ; l'attestation A est retenue, et l'énoncé dit « sans preuve qu'elle était en vigueur pour cet événement » (CT-6 EX-6.19, CT-7 EX-7.11). |
 | `invalide-d2-attestation-sha256/` | **D-2** ; attestation retenue | Dossier valide-seq-7-attestation-sans-inscription dont l'index déclare pour attestation-perimetre.json un autre SHA-256 : D-2 échoue et le dossier est invalide, parce que l'index n'est plus celui que l'exportateur a scellé (CT-1 §11.4) ; l'attestation elle-même est vérifiée et retenue, sans effet sur ce verdict. |
+| `invalide-raison-blancs/` | **D-2** | dossier.json déclare jeton-rfc3161.der absent avec la raison « U+0085 U+FEFF U+3000 » : trois blancs au sens de CT-1 §3 (révision 0.5), donc pas une chaîne non vide ; le schéma l'admet (minLength 1), D-2 la refuse. U+0085 n'est pas retiré par String.prototype.trim, U+FEFF ne l'est pas par strings.TrimSpace de Go. |
+| `invalide-a1-autre-raison/` | **A-1** | Dossier de seq 8 (mail.send, approval nul) dont l'index déclare approbations.json absent avec la raison « approbations non exportées » : CT-1 §11.1 et A-1 (révision 0.5) exigent la raison exacte « aucune approbation liée » ; A-1 échoue, A-2 à A-4 ne sont pas exécutées, sans raison admise. |
+| `invalide-index-autre-journal/` | **D-1** | dossier.json porte le journal_id de journal-principal alors que evenement.json est de journal-sinistres (index conforme à son schéma, parties intactes) : D-1 compare aussi org_id et journal_id de l'index à ceux de l'événement (révision 0.5). |
+| `invalide-redaction-vide/` | **E-4** | voisins.next (seq 8) porte une référence rédigée et policy.redaction vaut la chaîne vide (rescellé : hash et signature valides) ; le schéma l'admet (pas de longueur minimale), E-4 exige une chaîne non vide (révision 0.5). |
+| `invalide-redaction-blancs/` | **E-4** | voisins.next (seq 8) porte une référence rédigée et policy.redaction vaut « U+00A0 U+FEFF », deux blancs au sens de CT-1 §3 (rescellé : hash et signature valides) ; le schéma l'admet (pas de longueur minimale), E-4 exige une chaîne non vide (révision 0.5). |
+| `invalide-decision-effets/` | **E-3** | Journal rejoué où la décision d'approbation (seq 6) déclare l'effet du paiement (SAP, ecriture, PAY-2026-61877) : les effets de l'appel approuvé sont déclarés par l'appel relayé, une décision a des effets vides (CT-1 §5.3, règle 3, révision 0.5) ; dossier de seq 7, la décision étant le voisin précédent et l'événement de approbations.json. |
+| `invalide-demande-effets/` | **E-3** | Journal rejoué où l'appel retenu pour approbation (seq 5) déclare un effet : un appel qui n'a pas été relayé n'a pas d'effet (CT-1 §5.3, règle 1, révision 0.5) ; dossier de la décision seq 6, dont la demande est le voisin précédent (A-4 exécutée et réussie). |
+| `invalide-appel-sans-approbation/` | **E-3** | Journal rejoué où l'appel relayé (seq 7) porte policy.decision a_approuver et execution.status executee avec approval nul : un appel exécuté exige autorise, ou a_approuver avec approval.decision approuve (CT-1 §5.3, règle 1, révision 0.5). approbations.json est déclaré absent, « aucune approbation liée » ; A-1 réussit, A-2 à A-4 non exécutées pour une raison admise : seule E-3 voit l'appel exécuté sans approbation. |
+| `invalide-seq-chaine/` | **E-1** (en échec : D-1, E-1, E-7, E-8, C-1, C-2, M-1, M-3, P-2, A-2) | evenement.json dont seq est la chaîne "7", sans autre changement (SHA-256 de l'index reporté) : la partie, contraire à son schéma, reste exploitable, et chaque relation dont un terme est mal typé n'est pas tenue (CT-1 §11.4, révision 0.5) : D-1 (event.seq), E-1 (schéma), E-7 et E-8 (hash et signature sur l'objet tel qu'il est), C-1 (previous.seq = seq − 1, next.seq = seq + 1), C-2 (next.prev_hash), M-1 (feuille), M-3 (leaf_index = seq − first_seq), P-2 (first_seq ≤ seq ≤ last_seq), A-2 (seq de la décision antérieur). |
+| `invalide-partie-manquante/` | **D-2** | approbations.json retiré du répertoire, l'index inchangé (partie déclarée présente avec son SHA-256) : D-2 échoue, et elle seule ; A-1, qui porte la partie, n'est pas exécutée, ni A-2 et A-3 (sans raison admise) ; A-4 s'exécute sur les voisins, sans approbations.json, et n'est pas exécutée pour sa raison admise (la demande, seq 5, n'est pas un voisin). |
+| `invalide-partie-trop-grande/` | **K-1** | points-de-controle.json de valide-seq-7-point-de-controle complété d'espaces jusqu'à 1048577 octets (1 Mio + 1, conforme à son schéma), index au SHA-256 exact : au-delà de sa limite (CT-1 §11.4, révision 0.5 ; CT-6 EX-4.14), la partie n'est pas lue ; K-1, qui la porte, échoue, K-2 à K-9 ne sont pas exécutées, et D-2 ne compare pas son SHA-256 (ni réussite ni échec pour cette partie). |
+| `valide-profondeur-128/` | valide | voisins.next (seq 8, rescellé) porte en execution.arguments une référence en ligne dont la valeur est 124 tableaux imbriqués : voisins.json a la profondeur 128 de CT-1 §4, règle 7 (objets et tableaux imbriqués, la racine comprise : voisins, next, execution, arguments, puis 124 tableaux), la borne, admise ; l'événement seul a la profondeur 127. Dossier valide, comme valide-seq-7 (A-4 non exécuté, la demande n'est pas un voisin). |
+| `invalide-profondeur-129/` | **C-1** | Comme valide-profondeur-128 avec 125 tableaux : voisins.json a la profondeur 129, au-delà de la borne de 128 ; la partie n'est pas lue (pas un texte JSON exploitable) : C-1, qui la porte, échoue ; C-2, C-3 et P-3 ne sont pas exécutées, ni A-4 (sans raison admise : voisins.json inexploitable, révision 0.5) ; E-1 à E-11 s'exécutent sur l'événement prouvé et la décision de approbations.json. |
+| `invalide-marque-ordre-octets/` | **E-1** | evenement.json précédé de la marque d'ordre d'octets EF BB BF (SHA-256 de l'index reporté) : ce n'est pas un texte JSON (CT-1 §3, révision 0.5), la partie est inexploitable et E-1, qui la porte, échoue (et non E-2) ; les contrôles qui lisent l'événement ne sont pas exécutés, sans raison admise. |
+| `invalide-utf8-voisins/` | **C-1** | voisins.json dont l'octet C3 du « é » de « assuré » (intent de voisins.next) est remplacé par FF : UTF-8 mal formé, ce n'est pas un texte JSON (CT-1 §3, révision 0.5) ; C-1, qui porte la partie, échoue (et non E-2) ; C-2, C-3, P-3 et A-4 ne sont pas exécutées, sans raison admise. |
+| `invalide-substitut-octets/` | **E-2** | evenement.json dont intent commence par les octets ED A0 80 (U+D800 écrit en octets, à la manière de CESU-8 ; SHA-256 de l'index reporté) : ce n'est pas un défaut de codage mais un substitut isolé (CT-1 §3 et §4, règle 3, révision 0.5) : E-2 échoue, E-1 n'est pas exécutée, et la partie est inexploitable pour les autres contrôles. |
+| `invalide-signature-en-trop/` | **E-9** (en échec : E-5, E-9) | Journal rejoué où approval porte deux approbateurs (comptes Hardhat 1 et 2) et trois signatures valides (comptes 1, 2 et 3) : E-5 (longueurs différentes) et E-9 (signatures[2] sans approvers[2], révision 0.5) échouent ; A-3 réussit (deux approbateurs distincts, membres du jeu, au seuil). |
+| `invalide-evenement-nul-autres-echecs/` | **E-1** (en échec : E-1, E-8, P-1, P-5) | valide-seq-7 dont evenement.json est le littéral null (inexploitable, cas (e) : E-1, qui le porte, échoue), dont le manifeste porte period_end = period_start + 7200 (non re-signé) et dont cles.json porte une seconde entrée rec-test-01 (clé publique de rec-test-02), index recalculé. Les contrôles qui lisent evenement.json ne sont pas exécutés, sauf s'ils échouent sur ce qu'ils lisent des autres parties (CT-1 §11.4, révision 0.5 ; CT-6 EX-5.15) : E-8 (unicité des key_id, lue sans l'événement), P-1 (period_end = period_start + 3600) et P-5 (periodHash recalculé du manifeste modifié différent de manifeste.sig.period_hash) échouent ; les autres ne sont pas exécutés, jamais réussis. |
+| `invalide-k6-voisins-nul-seq-9/` | **C-1** | Dossier de la rotation (seq 9) avec le point de clôture de la période 1 (2026-11-05T10:00:00.300Z, tree_size 9, last_seq 9), dont voisins.json est le littéral null, index recalculé : C-1, qui porte la partie, échoue ; C-2 (sauf la règle d'origine, tenue), C-3, P-3 et les règles E- des voisins ne sont pas exécutées, sans raison admise. last_seq étant le seq de l'événement prouvé, K-6 se juge sur lui seul, quel que soit l'état de voisins.json (CT-1 §10.5, révision 0.5 ; CT-6 EX-5.9) : last_hash égale le hash recalculé de seq 9, K-6 réussie. |
+| `invalide-approbations-declaree-manquante/` | **A-1** (en échec : D-2, A-1) | invalide-a1-autre-raison (seq 8, approval nul) dont l'index déclare approbations.json présente (SHA-256 quelconque), sans fichier dans le répertoire : D-2 échoue (cas (a)), et A-1, qui juge aussi la déclaration de la partie, échoue que le fichier existe ou non (CT-1 §11.4, cas (a), exception de la révision 0.5 ; CT-6 EX-4.11 point 1, EX-5.16) ; A-2 à A-4 ne sont pas exécutées, sans raison admise. |
+| `invalide-outil-nombre/` | **E-3** (en échec : E-1, E-3, E-7, E-8, C-2, M-1) | evenement.json dont execution.tool vaut 5 (non rescellé, SHA-256 de l'index reporté) : E-1 (schéma) et E-3 (la sorte de l'événement ne se lit pas, CT-1 §11.4, révision 0.5) ; hash recalculé sur l'objet tel qu'il est, différent du hash déclaré : E-7, E-8, C-2 (next.prev_hash) et M-1 (feuille). |
+| `invalide-approval-nombre/` | **A-1** (en échec : E-1, E-3, E-5, E-7, E-8, E-9, C-2, M-1, A-1, A-2, A-3, A-4) | evenement.json dont approval vaut 5 (non rescellé, SHA-256 de l'index reporté) : E-1 (schéma), E-3, E-5 et E-9 (règles qui lisent approval) ; E-7, E-8, C-2 et M-1 (hash recalculé différent) ; A-1 à A-4, dont les relations lisent approval, échouent : pour A-4, request_hash, terme de sa propre règle, ne se lit pas, la règle n'est pas tenue (CT-1 §11.4, révision 0.5). |
+| `invalide-voisin-nombre/` | **C-1** (en échec : E-1, C-1, C-2, C-3, P-3) | voisins.json dont next vaut 5, index recalculé : voisin qui n'est pas un objet (CT-1 §11.4, révision 0.5, règle unique) : E-1 échoue pour lui, E-2 à E-11 ne s'y exécutent pas ; C-1 (enveloppe et relation de seq), C-2 (next.prev_hash), C-3 (clé de next) et P-3 (appartenance à la période) échouent ; voisins.json reste exploitable, le voisin précédent est contrôlé normalement. |
+| `invalide-voisin-absent/` | **C-1** (en échec : C-1, C-2, C-3, P-3) | voisins.json sans membre previous, index recalculé : un membre absent est un voisin qui n'est pas un objet (CT-1 §11.4, révision 0.5) : C-1, C-2 (prev_hash = hash de previous), C-3 et P-3 échouent ; E-1 ne le concerne pas (un membre absent n'est pas un événement). |
+| `invalide-demande-non-objet/` | **C-1** (en échec : E-1, C-1, C-2, C-3, P-3) | valide-seq-6 (décision d'approbation, dont la demande seq 5 est le voisin précédent) dont voisins.json porte previous = "x", index recalculé : E-1, C-1, C-2, C-3 et P-3 échouent ; le voisin qui n'est pas un objet n'est pas candidat à la demande d'A-4 (son hash ne se recalcule pas), et aucun autre voisin ne l'est : A-4 n'est pas exécutée, pièce hors dossier (raison admise), et n'échoue pas à cause de lui. |
+| `illisible-index-non-json/` | code 2 (`dossier_illisible`) | valide-seq-7 dont dossier.json est le texte « { » (un octet, pas un texte JSON) : l'entrée est inutilisable, code 2, sans verdict (CT-1 §11.4, révision 0.5 ; CT-6 EX-4.12, type dossier_illisible). Forme d'attendu d'une entrée en code 2 (CT-1 §11.5) : valide null, controle null, controles_en_echec [], exit_code 2 et error_kind. |
 
 Vérification d'un dossier : `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7`
 (code 0), `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux --json`

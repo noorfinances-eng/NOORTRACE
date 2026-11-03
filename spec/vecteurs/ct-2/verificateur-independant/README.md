@@ -12,17 +12,19 @@ spécification ou une faute de l'une des deux.
 Module propre `noortrace-ct2` (`go 1.24`), bibliothèque standard uniquement.
 Le module CT-1 (`spec/vecteurs/ct-1/verificateur-independant`) n'est pas
 modifié : son code est **copié** ici (fichiers `ct1_*.go`, lui-même écrit sans
-le JavaScript), à jour de la révision 0.4 de CT-1 (point de contrôle, preuve
-de cohérence, treizième partie du dossier, K-1 à K-6 ; quatorzième partie
+le JavaScript), à jour de la révision 0.5 de CT-1 (point de contrôle, preuve
+de cohérence, treizième partie du dossier, K-1 à K-9 ; quatorzième partie
 facultative `attestation-perimetre.json` et AT-1 à AT-7, `ct1_attestation.go`
 et `ct1_attestation_test.go`, avec la courbe secp256k1 que le module CT-1
-copie sans modification du vérificateur de `ct-3`, `ct1_secp256k1.go`), avec
-trois adaptations signalées en tête des fichiers : `ct1_json.go` retient
+copie sans modification du vérificateur de `ct-3`, `ct1_secp256k1.go` ;
+révision 0.5 : règles des parties inexploitables, vérification d'un journal
+en trois temps, série de points point par point, `ct1_revision05_test.go`),
+avec trois adaptations signalées en tête des fichiers : `ct1_json.go` retient
 la position en octets de chaque valeur (pour comparer les octets relayés,
 EX-4.20), `ct1_rapport.go` a un titre paramétrable et un libellé général
-pour les valeurs hors périmètre, `ct1_reference_test.go` et
-`ct1_point_test.go` lisent les vecteurs CT-1 dans `../../ct-1` (ces tests
-prouvent que la copie est fidèle).
+pour les valeurs hors périmètre, `ct1_reference_test.go`,
+`ct1_point_test.go` et `ct1_revision05_test.go` lisent les vecteurs CT-1
+dans `../../ct-1` (ces tests prouvent que la copie est fidèle).
 
 ## Usage
 
@@ -274,10 +276,24 @@ recalculées, 6 030 concordantes, 0 discordante, 6 hors périmètre) ; les
 dossiers de `ct-1` de la révision 0.4 sont rejoués par
 `TestVecteursCT1Publies` et `ct1_attestation_test.go`.
 
+Le 2026-11-03, la copie du code CT-1 passe à la révision 0.5 de CT-1
+(section 17, ligne du vérificateur indépendant et de sa copie) : aucune
+valeur des vecteurs de `ct-2` ne change (6 036 recalculées, 6 030
+concordantes, 0 discordante, 6 hors périmètre) ; le verdict CT-1 du
+journal de démonstration suit désormais la règle exacte de CT-1 §7.2
+(origine contrôlée sur chaque événement, `cles.json` comparé à chaque
+événement) ; `ct1_revision05_test.go` rejoue les cas de la révision 0.5.
+Compléments du même jour : E-9 recouvre les adresses (la décision
+synthétique de `synthetique_test.go` est désormais signée réellement) ; un
+dossier dont l'index est illisible (code 2) n'est plus lu comme valide par
+la famille `evenements` (`comparerDossierCT1`, `dossier_ct1_test.go`).
+
 ## Limites
 
-- **Signatures EIP-191 des approbateurs** (contrôle 7, E-9) : hors
-  périmètre, comme dans le vérificateur CT-1. Les signatures de
+- **Signatures EIP-191 des approbateurs** (contrôle 7, E-9) : vérifiées
+  par le code CT-1 copié depuis la révision 0.5 (forme canonique et adresse
+  recouvrée) ; la décision de `synthetique_test.go` est signée avec les clés
+  privées de test publiques des comptes Hardhat 1 et 2 (CT-1 §13). Les signatures de
   l'attestation de périmètre (AT-3, révision 0.4 de CT-1) sont, elles,
   recouvrées par le code CT-1 copié. Contrôles 4, 5 et 8 des dossiers (CT-4,
   CT-5) : non exécutables, verdict borné.

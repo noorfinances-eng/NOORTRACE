@@ -61,6 +61,10 @@ type tstInfo struct {
 // jeton : TimeStampToken lu.
 type jeton struct {
 	certificats []*certificat
+	// certificatsPresents : le champ certificates [0] figure dans
+	// SignedData, même vide (EX-9.10, révision 0.4 : RFC 3161 §2.4.1 ne
+	// l'admet que s'il porte le certificat de l'unité).
+	certificatsPresents bool
 	// crls : éléments CertificateList du champ crls, dans l'ordre.
 	crls     [][]byte
 	eContent []byte
@@ -124,6 +128,7 @@ func lireJeton(der []byte) (*jeton, *defaut) {
 	j.eContent = []byte(oct)
 	// certificates [0] IMPLICIT CertificateSet
 	if sd.PeekASN1Tag(ctx(0, true)) {
+		j.certificatsPresents = true
 		var certs cryptobyte.String
 		sd.ReadASN1(&certs, ctx(0, true))
 		for !certs.Empty() {

@@ -114,8 +114,6 @@ export function limiteFichier(fichier) {
 /** Les fichiers qu'un dossier peut contenir : dossier.json, les douze parties, la treizième et la quatorzième facultatives (CT-1 §11.1, révisions 0.3 et 0.4). Tout autre fichier est ignoré (EX-4.1). */
 export const FICHIERS_DOSSIER = ["dossier.json", ...J.PARTIES_DOSSIER.map((p) => p.file), J.PARTIE_POINTS_DE_CONTROLE.file, J.PARTIE_ATTESTATION_PERIMETRE.file];
 
-const FICHIERS_JSON_CT1 = ["evenement.json", "voisins.json", "chemin.json", "manifeste.json", "manifeste.sig", "cles.json", "approbations.json", J.PARTIE_POINTS_DE_CONTROLE.file, J.PARTIE_ATTESTATION_PERIMETRE.file];
-
 /** Motif du base64 canonique (schéma dossier-v0, $defs/base64 ; EX-4.14). */
 const RE_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
@@ -529,48 +527,33 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
   const L = (fr, en) => (langue === "en" ? en : fr);
   const lang = (t) => choisir(t, langue);
 
-  // Parties refusées avant l'analyse : au-delà de leur limite (non lues), ou
-  // imbrication JSON au-delà de 128 niveaux (EX-4.11, EX-4.13).
+  // Parties refusées avant l'analyse : au-delà de leur limite, non lues (EX-4.11
+  // point 2, EX-4.13). La bibliothèque de CT-1 applique elle-même les limites
+  // aux octets lus, la profondeur de 128 (EX-4.16) et les règles des parties
+  // inexploitables (CT-1 §11.4, révision 0.5).
   const inexploitables = new Map();
   for (const [f, info] of nonLus) inexploitables.set(f, `fichier de ${info.taille} octets, au-delà de la limite de ${info.limite} octets, non lu`);
-  for (const f of FICHIERS_JSON_CT1) if (fichiers[f] && profondeurOctets(fichiers[f]) > LIMITES.profondeurJSON) inexploitables.set(f, `imbrication JSON de plus de ${LIMITES.profondeurJSON} niveaux`);
-  if (fichiers["dossier.json"] && profondeurOctets(fichiers["dossier.json"]) > LIMITES.profondeurJSON) throw new J.DossierInutilisable(`dossier.json illisible : imbrication JSON de plus de ${LIMITES.profondeurJSON} niveaux`);
 
-  // Contrôles 1, 2, 3, 6, 7 : vérifications de CT-1, sans changement ; révision 0.3 : AT-1 à AT-7.
+  // Contrôles 1, 2, 3, 6, 7 : vérifications de CT-1 ; révision 0.3 : AT-1 à AT-7.
   const empreintes = new Map([...nonLus].filter(([, info]) => typeof info.sha256 === "string").map(([f, info]) => [f, info.sha256]));
   const ct1 = J.verifierDossier(fichiers, { schemas, inexploitables, empreintes });
 
-  const lireObjet = (f) => {
-    if (!fichiers[f] || inexploitables.has(f)) return null;
-    try {
-      const v = J.analyserJSONStrict(fichiers[f]);
-      return estObjet(v) ? v : null;
-    } catch {
-      return null;
-    }
-  };
-  const indexBrut = (() => {
-    try {
-      return J.analyserJSONStrict(fichiers["dossier.json"]);
-    } catch {
-      return null;
-    }
-  })();
-  const index = estObjet(indexBrut) ? indexBrut : {};
-  const parts = Array.isArray(index.parts) && index.parts.length >= J.PARTIES_DOSSIER.length && index.parts.length <= J.PARTIES_DOSSIER.length + 2 ? index.parts : null;
+  // Index exploitable (EX-4.11 point 3, EX-4.12 point 2) : sinon rien n'est lu de l'index, ni des parties.
+  const parts = ct1.indexExploitable ? ct1.index.parts : null;
   const partie = (name) => (parts ? parts.find((p) => estObjet(p) && p.name === name) ?? null : null);
-  const ev = lireObjet("evenement.json");
-  const voisins = lireObjet("voisins.json");
-  const chemin = lireObjet("chemin.json");
-  const manifeste = lireObjet("manifeste.json");
-  const manifesteSig = lireObjet("manifeste.sig");
-  const clesDoc = lireObjet("cles.json");
-  const approbations = lireObjet("approbations.json");
+  const lues = ct1.parties ?? {};
+  const ev = lues.evenement ?? null;
+  const voisins = lues.voisins ?? null;
+  const chemin = lues.chemin ?? null;
+  const manifeste = lues.manifeste ?? null;
+  const manifesteSig = lues.manifesteSig ?? null;
+  const clesDoc = lues.cles ?? null;
+  const approbations = lues.approbations ?? null;
   // Partie points-de-controle.json (révision 0.2, EX-5.7) : les K- ne figurent au
   // rapport que si l'index la déclare présente.
   const pPoints = partie(J.PARTIE_POINTS_DE_CONTROLE.name);
   const pointsPresents = Boolean(pPoints && pPoints.present === true);
-  const pointsDoc = pointsPresents ? lireObjet(J.PARTIE_POINTS_DE_CONTROLE.file) : null;
+  const pointsDoc = pointsPresents ? lues.points ?? null : null;
   const point = pointsDoc && estObjet(pointsDoc.checkpoint) ? pointsDoc.checkpoint : null;
   const ancresPoint = pointsDoc && estObjet(pointsDoc.anchors) ? pointsDoc.anchors : {};
 
@@ -678,19 +661,20 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
 
   // Première partie de E-8 : cles.json conforme, org_id et journal_id de l'événement, key_id et
   // public_key uniques, valid_to ≥ valid_from (pour R-10 et N-3).
-  let clesListe = null;
-  if (clesDoc && !inexploitables.has("cles.json")) {
-    const erreurs = J.validerSchema(clesDoc, schemas[J.ID_SCHEMA_DOSSIER], { registre: schemas, fragment: "#/$defs/cles" });
-    if (erreurs.length === 0 && J.verifierCles(clesDoc, ev).length === 0) clesListe = clesDoc.keys.map((k) => ({ key_id: k.key_id, public_key: k.public_key }));
-  }
+  const clesListe = lues.clesExploitables ? clesDoc.keys.map((k) => ({ key_id: k.key_id, public_key: k.public_key })) : null;
 
   // Parties réservées : état de chacune (index exploitable ou non, présente, absente, trop grande, manquante).
   const etatPartie = (name, file) => {
     if (!parts) return { etat: "index" };
     const p = partie(name);
     if (!p || p.present !== true) return { etat: "absente", raison: p && typeof p.reason_if_absent === "string" ? p.reason_if_absent : null };
-    if (nonLus.has(file)) return { etat: "trop_grande", ...nonLus.get(file) };
-    if (!fichiers[file]) return { etat: "manquante" };
+    const etat = lues.etats?.[file];
+    if (etat === "trop_grande") {
+      if (nonLus.has(file)) return { etat: "trop_grande", ...nonLus.get(file) };
+      const octets = Buffer.from(fichiers[file]);
+      return { etat: "trop_grande", taille: octets.length, limite: limiteFichier(file), debut: octets.subarray(0, limiteFichier(file) + 1) };
+    }
+    if (etat === "manquante" || !fichiers[file]) return { etat: "manquante" };
     return { etat: "presente", octets: fichiers[file] };
   };
   const raisonAbsence = (raison) => (raison === J.RAISON_HORS_PERIMETRE ? "hors_perimetre_version" : "partie_absente");
@@ -706,15 +690,32 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     if (e.etat === "absente") return { status: "non_execute", reason: raisonAbsence(e.raison), summary: resumeAbsence([file], [e.raison]), checks: [], warnings: [], anchors_used: [], facts: null, proposition: null };
     const octets = e.etat === "presente" ? e.octets : e.etat === "trop_grande" ? e.debut : Buffer.alloc(0);
     const r = verifier(octets);
-    if (e.etat !== "presente") {
+    if (e.etat === "trop_grande") {
+      // Au-delà de la limite : la vérification qui porte la partie échoue (EX-4.11, point 2).
       const premier = r.checks.find((c) => c.id === idPremier);
       premier.status = "echoue";
       premier.reason = null;
       premier.admitted = null;
-      premier.detail = e.etat === "trop_grande" ? L(`${file} : fichier de ${e.taille} octets, au-delà de la limite de ${limite} octets ; la partie est inexploitable`, `${file}: file of ${e.taille} bytes, beyond the limit of ${limite} bytes; the part is unusable`) : L(`${file} déclaré présent mais absent du répertoire`, `${file} declared present but missing from the directory`);
+      premier.detail = L(`${file} : fichier de ${e.taille} octets, au-delà de la limite de ${limite} octets ; la partie est inexploitable`, `${file}: file of ${e.taille} bytes, beyond the limit of ${limite} bytes; the part is unusable`);
       r.status = "echoue";
       r.reason = null;
       r.summary = L(`vérification(s) en échec : ${idPremier}`, `failed check(s): ${idPremier}`);
+      r.facts = null;
+      r.proposition = null;
+    } else if (e.etat === "manquante") {
+      // Déclarée présente, absente du répertoire ou pas un fichier ordinaire : D-2 seule échoue ; la
+      // vérification qui porte la partie et les suivantes ne sont pas exécutées (EX-4.11, point 1).
+      for (const c of r.checks) {
+        c.status = "non_execute";
+        c.reason = "prerequis_en_echec";
+        c.admitted = false;
+        c.detail = c.id === idPremier ? L(`${file} déclaré présent mais absent du répertoire (D-2)`, `${file} declared present but missing from the directory (D-2)`) : L(`prérequis ${idPremier} non exécutée`, `prerequisite ${idPremier} not run`);
+      }
+      r.status = "non_execute";
+      r.reason = "prerequis_en_echec";
+      r.summary = L(`${file} déclaré présent mais absent du répertoire`, `${file} declared present but missing from the directory`);
+      r.warnings = [];
+      r.anchors_used = [];
       r.facts = null;
       r.proposition = null;
     }
@@ -736,7 +737,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       const e = etatPartie(name, file);
       if (e.etat === "absente") parties8[name] = { present: false, raison: e.raison };
       else if (e.etat === "trop_grande") parties8[name] = { present: true, octets: e.debut, tropGrand: true };
-      else if (e.etat === "manquante") parties8[name] = { present: true, octets: null };
+      else if (e.etat === "manquante") parties8[name] = { present: true, octets: null, manquante: true };
       else parties8[name] = { present: true, octets: e.octets };
     }
     const pointDeControle8 = pointsPresents ? { orgId: ev?.org_id ?? null, journalId: ev?.journal_id ?? null, keyId: point?.key_id ?? null, checkpointHash, reference: estObjet(ancresPoint.registry) ? ancresPoint.registry : null } : null;

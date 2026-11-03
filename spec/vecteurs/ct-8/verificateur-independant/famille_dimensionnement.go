@@ -213,7 +213,7 @@ func FamilleDimensionnement(c *Contexte) {
 			}
 		}
 	}
-	c.Rap.Comparer(f, "ct-8/dimensionnement", "cas des fichiers = cas de la table de 9.6 (A.5 : quinze cas)", Liste(dansTable), Liste(trierCas(noms, dansTable)))
+	c.Rap.Comparer(f, "ct-8/dimensionnement", "cas des fichiers = cas de la table de 9.6 (A.5 : seize cas)", Liste(dansTable), Liste(trierCas(noms, dansTable)))
 }
 
 func journalOui(s SortieDim, nom string) bool {

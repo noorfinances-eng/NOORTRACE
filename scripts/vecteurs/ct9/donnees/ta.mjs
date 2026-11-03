@@ -2032,7 +2032,7 @@ export const TA = [
       "Fabriquer le mutant (copie de scripts/ avec le remplacement nommé) et rejouer.",
       "Comparer : la référence rend l'attendu des vecteurs, le mutant ne le rend plus."
     ],
-    "oracle": "attendu.json de chaque dossier ; mutants.",
+    "oracle": "attendu.json de chaque dossier ; mutants. Les mutants de T-4 et de T-5 de la révision 0.4 de CT-6 (EX-9.10, EX-9.24) sont le complément (étape 8).",
     "status": {
       "state": "executable",
       "tests": [
@@ -2045,16 +2045,30 @@ export const TA = [
           "file": "test/verificateur.test.js",
           "describe": "CT-6 : dossiers complets de spec/vecteurs/ct-6 par la ligne de commande",
           "it": "chaque dossier rend le code, les vérifications en échec, les statuts, les non-exécutions, les avertissements, l'énoncé et la borne de son attendu.json (V-1 à V-5)"
+        },
+        {
+          "file": "test/horodatage.test.js",
+          "describe": "CT-6 contrôle 4 : T-2 à T-6",
+          "it": "T-4 : sid qui ne désigne aucun candidat → échec avec une autorité d'horodatage ou un champ certificates (EX-9.10) ; ancre_absente seulement sans certificats ni autorité ; fourni par les intermédiaires de l'ancre → réussie"
+        },
+        {
+          "file": "test/horodatage.test.js",
+          "describe": "CT-6 contrôle 4 : T-2 à T-6",
+          "it": "T-5 : ECDSA P-256 et RSASSA-PSS admis ; RSA 1024 refusé ; Ed25519 hors de la version 0"
         }
-      ]
+      ],
+      "complement": {
+        "phase2_step": 8,
+        "blocking": "Mutants de la révision 0.4 de CT-6 à ajouter à test/adversarial.test.js : T-4 qui rend `ancre_absente` pour un `sid` sans certificat (EX-9.10, dossier invalide-t4-sid-introuvable) et T-5 qui rend `hors_perimetre_version` pour un algorithme inconnu sous une clé admise (EX-9.24, dossier invalide-t5-algorithme-inconnu) ; ces deux parties de la réponse sont éprouvées sans mutant par les tests cités ; possible dès maintenant, dû au plus tard à l'étape 8."
+      }
     },
     "response_removed": {
-      "what": "Égalité stricte de l'empreinte recalculée : T-2, O-2 (et T-5, T-7, O-4, O-5), K-7 et K-9 pour un point (CT-6, CT-1 K-7, K-9)",
+      "what": "Égalité stricte de l'empreinte recalculée (T-2, O-2, T-5, T-7, O-4, O-5 ; CT-1 K-7, K-9) ; T-4 sur un sid sans certificat (CT-6 EX-9.10) ; T-5 sur une clé ou un algorithme hors de la version 0 (CT-6 EX-9.24)",
       "how": "Retirer la comparaison de l'empreinte dans T-2 et O-2",
       "where": "scripts/lib/horodatage.mjs, scripts/lib/ots.mjs"
     },
-    "attack": "Dossiers invalide-t2-jeton-autre-manifeste, invalide-o2-preuve-autre-manifeste, invalide-k7-jeton-autre-empreinte.",
-    "expected_with_response": "T-2, O-2, K-7 en échec.",
+    "attack": "Dossiers invalide-t2-jeton-autre-manifeste, invalide-o2-preuve-autre-manifeste, invalide-k7-jeton-autre-empreinte ; jetons forgés de la révision 0.4 de CT-6 (dossiers invalide-t4-sid-introuvable et invalide-t5-algorithme-inconnu), rejoués sans mutant (complément).",
+    "expected_with_response": "T-2, O-2, K-7 en échec ; T-4 et T-5 en échec sur les jetons forgés.",
     "expected_without_response": "Ils passent ; le test échoue.",
     "execution": "vecteurs_et_depot"
   },
@@ -2297,7 +2311,7 @@ export const TA = [
       "Fabriquer le mutant (copie de scripts/ avec le remplacement nommé) et rejouer.",
       "Comparer : la référence rend l'attendu des vecteurs, le mutant ne le rend plus."
     ],
-    "oracle": "attendu.json ; mutant du lecteur DER (T-1). Le mutant du lecteur .ots (O-1) est le complément (étape 8).",
+    "oracle": "attendu.json ; mutant du lecteur DER (T-1). Les mutants du lecteur .ots (O-1) et de la borne des clés RSA (CT-6 EX-9.23) sont le complément (étape 8).",
     "status": {
       "state": "executable",
       "tests": [
@@ -2310,20 +2324,25 @@ export const TA = [
           "file": "test/verificateur.test.js",
           "describe": "CT-6 : dossiers complets de spec/vecteurs/ct-6 par la ligne de commande",
           "it": "chaque dossier rend le code, les vérifications en échec, les statuts, les non-exécutions, les avertissements, l'énoncé et la borne de son attendu.json (V-1 à V-5)"
+        },
+        {
+          "file": "test/horodatage.test.js",
+          "describe": "CT-6 contrôle 4 : T-2 à T-6",
+          "it": "T-5 : ECDSA P-256 et RSASSA-PSS admis ; RSA 1024 refusé ; Ed25519 hors de la version 0"
         }
       ],
       "complement": {
         "phase2_step": 8,
-        "blocking": "Mutant du lecteur .ots (O-1, octet en trop) à ajouter à test/adversarial.test.js ; possible dès maintenant, dû au plus tard à l'étape 8."
+        "blocking": "Mutant du lecteur .ots (O-1, octet en trop) et mutant de la borne des clés RSA (CT-6 EX-9.23, dossiers invalide-t5-rsa-8200, invalide-t5-exposant et invalide-t7-intermediaire-rsa-8200) à ajouter à test/adversarial.test.js ; la borne est éprouvée sans mutant par les tests cités ; possible dès maintenant, dû au plus tard à l'étape 8."
       }
     },
     "response_removed": {
-      "what": "Lecture DER stricte, bornes, aucun octet en trop (CT-6 EX-15.1 à EX-15.3 ; T-1, O-1)",
+      "what": "Lecture DER stricte, bornes, aucun octet en trop (CT-6 EX-15.1 à EX-15.3 ; T-1, O-1) ; clé RSA de 2048 à 8192 bits, exposant impair de 3 à 2³¹ − 1 (CT-6 EX-9.23)",
       "how": "Tolérer des octets après la fin de la structure DER",
       "where": "scripts/lib/horodatage.mjs (lireDER)"
     },
-    "attack": "Dossier invalide-t1-octet-en-trop (et invalide-o1-octet-en-trop, couvert par le test existant).",
-    "expected_with_response": "T-1 en échec.",
+    "attack": "Dossier invalide-t1-octet-en-trop (et invalide-o1-octet-en-trop, couvert par le test existant) ; clés RSA hors bornes de la révision 0.4 de CT-6 (dossiers invalide-t5-rsa-8200, invalide-t5-exposant, invalide-t7-intermediaire-rsa-8200), rejouées sans mutant (complément).",
+    "expected_with_response": "T-1 en échec ; T-5 en échec sur une clé de l'unité hors bornes, T-7 sur un intermédiaire hors bornes.",
     "expected_without_response": "T-1 passe ; le test échoue.",
     "execution": "vecteurs_et_depot"
   },

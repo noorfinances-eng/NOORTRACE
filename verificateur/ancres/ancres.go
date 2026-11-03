@@ -321,7 +321,7 @@ func AnalyserAncres(octets []byte, der ControleurDER) (*Ancres, *Defaut) {
 // (clé en double, nombre non entier ou hors de l'intervalle sûr, substitut
 // isolé, CT-1 §4) et rend le motif. Un tel fichier d'ancres ou d'en-têtes
 // est refusé (N-1, N-2) au lieu d'être lu en dernière occurrence ou par
-// arrondi (« Lectures », point 21 du LISEZMOI du module).
+// arrondi (CT-6 EX-4.12, point 3, EX-12.2, EX-12.3, révision 0.4).
 func sansFormeCanonique(v *jsonv.Valeur) (string, bool) {
 	err := jcs.Calculable(v)
 	if err == nil {
@@ -407,7 +407,7 @@ func LireJeu(j *jsonv.Valeur, ptr string) (JeuValidateurs, *commun.Texte) {
 	for _, val := range j.Membre("validators").Elements {
 		// Identifiant chargé comme le nœud le charge (EX-12.2) : espaces de
 		// tête et de queue retirés (strings.TrimSpace), puis non vide et
-		// distinct (« Lectures », point 22 du LISEZMOI du module).
+		// distinct (CT-6 EX-12.2, révision 0.4).
 		id := strings.TrimSpace(val.Membre("id").S())
 		h := val.Membre("pubKeyHex").S()
 		if id == "" || ids[id] {

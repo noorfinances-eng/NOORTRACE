@@ -749,9 +749,21 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
   const lu = lirePartie(parties.registre, "registre", { schemas, idSchema: ID_SCHEMA_REGISTRE, limite: LIMITES.registre, langue });
   const luCert = lirePartie(parties.certificat_commit, "certificat_commit", { schemas, idSchema: ID_SCHEMA_REGISTRE, fragment: "#/$defs/certificat_commit", limite: LIMITES.certificat_commit, langue });
   const ecartsR1 = [];
-  if (lu.erreur) ecartsR1.push(lu.erreur);
-  else ecartsR1.push(...ecartsRoles(lu.valeur, langue));
-  if (luCert.erreur) ecartsR1.push(luCert.erreur);
+  // Partie déclarée présente mais absente du répertoire, ou qui n'est pas un fichier ordinaire : D-2 seule
+  // échoue ; R-1 n'est pas exécutée (prerequis_en_echec), sauf échec sur l'autre partie (CT-6 EX-4.11, point 1).
+  const manque = (x) => Boolean(x?.present && !x.octets && !x.tropGrand);
+  const manquantes = [["registre", parties.registre], ["certificat_commit", parties.certificat_commit]].filter(([, x]) => manque(x)).map(([n]) => FICHIERS_PARTIES[n]);
+  if (lu.erreur && !manque(parties.registre)) ecartsR1.push(lu.erreur);
+  else if (!lu.erreur) ecartsR1.push(...ecartsRoles(lu.valeur, langue));
+  if (luCert.erreur && !manque(parties.certificat_commit)) ecartsR1.push(luCert.erreur);
+  if (ecartsR1.length && manquantes.length) ecartsR1.push(L(`${manquantes.join(", ")} déclaré présent mais absent du répertoire (D-2)`, `${manquantes.join(", ")} declared present but missing from the directory (D-2)`));
+  if (!ecartsR1.length && manquantes.length) {
+    const d = L(`${manquantes.join(", ")} déclaré présent mais absent du répertoire (D-2)`, `${manquantes.join(", ")} declared present but missing from the directory (D-2)`);
+    poser("R-1", "non_execute", "prerequis_en_echec", d);
+    for (const id of ids.slice(1)) poser(id, "non_execute", "prerequis_en_echec", L("prérequis R-1 non exécutée", "prerequisite R-1 not run"));
+    poserN4("non_execute", "prerequis_en_echec", L("prérequis R-1 non exécutée", "prerequisite R-1 not run"));
+    return conclure();
+  }
   let entrees = null;
   let certificats = null;
   const certParHauteur = new Map();
@@ -816,6 +828,9 @@ export function verifierControle8({ parties, manifeste = null, periodHash = null
   // ----- R-3 : cohérence de validateurs.json ----------------------------------
   if (!validateursPresents) {
     poser("R-3", "non_execute", "partie_absente", L(`validateurs.json absent (${parties.validateurs?.raison ?? "non déclaré"})`, `validateurs.json absent (${parties.validateurs?.raison ?? "not declared"})`));
+  } else if (!parties.validateurs.octets && !parties.validateurs.tropGrand) {
+    // EX-11.12, révision 0.4 : déclarée présente, absente du répertoire : non exécutée, sans effet sur le statut du contrôle 8.
+    poser("R-3", "non_execute", "prerequis_en_echec", L("validateurs.json déclaré présent mais absent du répertoire (D-2)", "validateurs.json declared present but missing from the directory (D-2)"));
   } else {
     const luVal = lirePartie(parties.validateurs, "validateurs", { schemas, idSchema: ID_SCHEMA_VALIDATEURS, limite: LIMITES.validateurs, langue });
     if (luVal.erreur) poser("R-3", "echoue", null, luVal.erreur);

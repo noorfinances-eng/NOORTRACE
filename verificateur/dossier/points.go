@@ -52,15 +52,15 @@ func (a *Analyse) verificationsK(p *Partie) {
 		if p.Lecture.Etat == entree.TropGrand {
 			return commun.Nouvelle("K-1", commun.Echoue, "", commun.T("points-de-controle.json dépasse 1 Mio", "points-de-controle.json exceeds 1 MiB"), 3)
 		}
+		if p.SansForme() {
+			// Sans forme canonique : E-2 porte l'échec (CT-1 §11.4, cas (d) ;
+			// CT-6 EX-5.20), et rien n'est lu de la partie.
+			return prerequis("K-1", "points-de-controle.json sans forme canonique (E-2)", "points-de-controle.json without canonical form (E-2)", 3)
+		}
 		if !p.Exploitable() {
 			return commun.Nouvelle("K-1", commun.Echoue, "", commun.T("points-de-controle.json n'est pas un objet JSON", "points-de-controle.json is not a JSON object"), 3)
 		}
 		v := p.Valeur
-		if jcs.Calculable(v) != nil {
-			// Sans forme canonique : E-2 porte l'échec (CT-1 §11.4), et rien
-			// n'est lu de la partie.
-			return prerequis("K-1", "points-de-controle.json sans forme canonique (E-2)", "points-de-controle.json without canonical form (E-2)", 3)
-		}
 		if err := schema.Valider(schema.Dossier+"#/$defs/points_de_controle", v); err != nil {
 			return commun.Nouvelle("K-1", commun.Echoue, "", commun.T("points-de-controle.json contraire à son schéma ("+err.Error()+")", "points-de-controle.json does not follow its schema ("+err.Error()+")"), 3)
 		}
@@ -216,6 +216,11 @@ func (a *Analyse) verificationsK(p *Partie) {
 		e := a.evtSeq(pt.LastSeq)
 		lh := pt.V.Chemin("checkpoint", "last_hash").S()
 		switch {
+		case e == nil && !a.voisinsLus:
+			// voisins.json inexploitable : non exécutée, sans raison admise,
+			// comme A-4 (CT-6 EX-5.9, révision 0.4 ; CT-1 §11.4, révision
+			// 0.5), et non piece_hors_dossier.
+			a.ajouter(prerequis("K-6", "voisins.json inexploitable : événement last_seq non recherché parmi les voisins", "voisins.json unusable: last_seq event not looked for among the neighbours", 2))
 		case e == nil:
 			a.ajouter(commun.Nouvelle("K-6", commun.NonExecute, commun.PieceHorsDossier, commun.T(fmt.Sprintf("événement last_seq %d absent du dossier : non vérifiable", pt.LastSeq), fmt.Sprintf("event last_seq %d not in the dossier: cannot be checked", pt.LastSeq)), 2))
 		case !e.HashOK():

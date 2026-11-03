@@ -1,0 +1,12 @@
+{
+  "valide": false,
+  "controle": "C-1",
+  "controles_en_echec": [
+    "E-1",
+    "C-1",
+    "C-2",
+    "C-3",
+    "P-3"
+  ],
+  "description": "valide-seq-6 (décision d'approbation, dont la demande seq 5 est le voisin précédent) dont voisins.json porte previous = \"x\", index recalculé : E-1, C-1, C-2, C-3 et P-3 échouent ; le voisin qui n'est pas un objet n'est pas candidat à la demande d'A-4 (son hash ne se recalcule pas), et aucun autre voisin ne l'est : A-4 n'est pas exécutée, pièce hors dossier (raison admise), et n'échoue pas à cause de lui."
+}

@@ -1,0 +1,19 @@
+{
+  "valide": false,
+  "controle": "A-1",
+  "controles_en_echec": [
+    "E-1",
+    "E-3",
+    "E-5",
+    "E-7",
+    "E-8",
+    "E-9",
+    "C-2",
+    "M-1",
+    "A-1",
+    "A-2",
+    "A-3",
+    "A-4"
+  ],
+  "description": "evenement.json dont approval vaut 5 (non rescellé, SHA-256 de l'index reporté) : E-1 (schéma), E-3, E-5 et E-9 (règles qui lisent approval) ; E-7, E-8, C-2 et M-1 (hash recalculé différent) ; A-1 à A-4, dont les relations lisent approval, échouent : pour A-4, request_hash, terme de sa propre règle, ne se lit pas, la règle n'est pas tenue (CT-1 §11.4, révision 0.5)."
+}

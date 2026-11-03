@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-3",
+  "controles_en_echec": [
+    "E-3"
+  ],
+  "description": "Journal rejoué où l'appel relayé (seq 7) porte policy.decision a_approuver et execution.status executee avec approval nul : un appel exécuté exige autorise, ou a_approuver avec approval.decision approuve (CT-1 §5.3, règle 1, révision 0.5). approbations.json est déclaré absent, « aucune approbation liée » ; A-1 réussit, A-2 à A-4 non exécutées pour une raison admise : seule E-3 voit l'appel exécuté sans approbation."
+}

@@ -189,12 +189,12 @@ export const OBSERVATIONS_RAPIDE = Object.freeze({
   declarations: { write_cache_protected: false },
 });
 
-/** Variante de production (A.4) : 8 processeurs, 16 Gio, 600 Gio libres, ports publiés sur 192.0.2.40, images par condensé, cache déclaré. */
+/** Variante de production (A.4) : 8 processeurs, 16 Gio, 1 200 Gio libres, ports publiés sur 192.0.2.40, images par condensé, cache déclaré. */
 export function observationsProduction() {
   const o = clone(OBSERVATIONS_RAPIDE);
   o.cpus = 8;
   o.memory_bytes = 16 * GIO;
-  o.storage.free_bytes = 600 * GIO;
+  o.storage.free_bytes = 1200 * GIO;
   o.internal_address = { address: "192.0.2.40", on_host: true };
   o.ports = [{ address: "127.0.0.1", port: 8500, free: true }, { address: "192.0.2.40", port: 8300, free: true }, { address: "192.0.2.40", port: 8400, free: true }];
   o.compose.all_images_by_digest = true;
@@ -203,7 +203,7 @@ export function observationsProduction() {
 }
 
 /** Seuil d'espace de production des cas : local_bytes de l'exemple de 9.5 (cas dimensionnement/reference). */
-export const SEUIL_EXEMPLE = 417235686480;
+export const SEUIL_EXEMPLE = 1039011288480;
 
 /** Les 33 cas d'A.4 : { nom, profile, seuil (production), only, changer, description }. */
 const CAS_CONTROLE = [
@@ -211,7 +211,7 @@ const CAS_CONTROLE = [
   ["pret-production", "production", (o) => o, "Variante de production, seuil d'espace égal à local_bytes de l'exemple de 9.5 : prêt."],
   ["architecture-non-prise-en-charge", "rapide", (o) => { o.arch = "ia32"; }, "Architecture ia32 au lieu de x64 : IP-1 échoue."],
   ["memoire-insuffisante", "rapide", (o) => { o.memory_bytes = 2 * GIO; }, "2 Gio de mémoire, sous la cible de 4 Gio : IP-2 échoue."],
-  ["espace-insuffisant", "production", (o) => o, "Seuil d'espace de 1 000 Gio, au-delà des 600 Gio libres : IP-3 échoue.", 1000 * GIO],
+  ["espace-insuffisant", "production", (o) => o, "Seuil d'espace de 2 000 Gio, au-delà des 1 200 Gio libres : IP-3 échoue.", 2000 * GIO],
   ["production-sans-dimensionnement", "production", (o) => o, "Production sans dimensionnement : IP-3 non exécutée (dimensionnement_absent), bloquante.", null],
   ["stockage-nfs", "rapide", (o) => { o.storage.fstype = "nfs4"; }, "Stockage sur nfs4, système de fichiers refusé : IP-4 échoue."],
   ["systeme-de-fichiers-non-eprouve", "rapide", (o) => { o.storage.fstype = "zfs"; }, "Stockage sur zfs, ni admis ni refusé : IP-4 en avertissement."],
@@ -271,7 +271,7 @@ export function sectionControle({ cas }) {
   L.push("Évaluation du contrôle préalable de CT-8 §6, annexe A.4. Chaque");
   L.push("`<cas>.json` (schéma `controle-prealable-v0#/$defs/cas`) porte le profil,");
   L.push("les observations d'un hôte (celles de 6.3, ou leur variante de production :");
-  L.push("8 processeurs, 16 Gio, 600 Gio libres, ports publiés sur `192.0.2.40`, images");
+  L.push("8 processeurs, 16 Gio, 1 200 Gio libres, ports publiés sur `192.0.2.40`, images");
   L.push("par condensé, cache déclaré), le seuil d'espace (`storage_free_min_bytes`)");
   L.push("ou la liste `only` quand le cas les fixe, et le rapport attendu. Chaque cas");
   L.push("change un relevé.");
@@ -365,7 +365,7 @@ export function genererDimensionnement(rep) {
 
 export function sectionDimensionnement({ cas }) {
   const L = ["## dimensionnement", ""];
-  L.push("Calculateur de CT-8 §9, annexe A.5 : les quinze cas de 9.6, qui font varier");
+  L.push("Calculateur de CT-8 §9, annexe A.5 : les seize cas de 9.6, qui font varier");
   L.push("l'exemple de 9.5 un paramètre à la fois. Chaque `<cas>.json` (schéma");
   L.push("`dimensionnement-v0#/$defs/cas`) porte les entrées et la sortie exacte");
   L.push("(`attendu`).");

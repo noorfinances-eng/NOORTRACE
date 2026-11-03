@@ -1,0 +1,13 @@
+{
+  "valide": false,
+  "controle": "E-3",
+  "controles_en_echec": [
+    "E-1",
+    "E-3",
+    "E-7",
+    "E-8",
+    "C-2",
+    "M-1"
+  ],
+  "description": "evenement.json dont execution.tool vaut 5 (non rescellé, SHA-256 de l'index reporté) : E-1 (schéma) et E-3 (la sorte de l'événement ne se lit pas, CT-1 §11.4, révision 0.5) ; hash recalculé sur l'objet tel qu'il est, différent du hash déclaré : E-7, E-8, C-2 (next.prev_hash) et M-1 (feuille)."
+}

@@ -1,0 +1,8 @@
+{
+  "valide": false,
+  "controle": "E-2",
+  "controles_en_echec": [
+    "E-2"
+  ],
+  "description": "evenement.json dont intent commence par les octets ED A0 80 (U+D800 écrit en octets, à la manière de CESU-8 ; SHA-256 de l'index reporté) : ce n'est pas un défaut de codage mais un substitut isolé (CT-1 §3 et §4, règle 3, révision 0.5) : E-2 échoue, E-1 n'est pas exécutée, et la partie est inexploitable pour les autres contrôles."
+}

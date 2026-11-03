@@ -17,8 +17,8 @@ npm run tests:couverture   # code 0 : règles (a) à (d) et EX-4.4 tiennent
 
 ## `catalogue.json`
 
-Catalogue CT-9 0.2 du 2026-11-03 (schéma `plan-de-tests-v0`, racine) : 321
-entrées, 6 justifications NC-, 82 risques acceptés, 117 lignes TC-. Une ligne
+Catalogue CT-9 0.3 du 2026-11-03 (schéma `plan-de-tests-v0`, racine) : 322
+entrées, 6 justifications NC-, 82 risques acceptés, 122 lignes TC-. Une ligne
 par entrée : identifiant, niveau, état, titre.
 
 | Id | Niveau | État | Titre |
@@ -235,14 +235,14 @@ par entrée : identifiant, niveau, état, titre.
 | TA-58 | TA- | à écrire (étape 8) | Réponse retirée : Ancre du registre envoyée avant la requête d'horodatage, aucun nouvel essai après empreinte_squattee, incident consigné (CT-4 EX-8.4, EX-8.6 ; CT-5 EX-4.7, EX-9.6, EX-9.7) |
 | TA-59 | TA- | exécutable | Réponse retirée : Adresse du contrat comparée à l'ancre (CT-6 R-8) ; aucune mise à niveau en place (CT-4 EX-5.9, EX-5.10) |
 | TA-60 | TA- | exécutable | Réponse retirée : Contrôle de genTime à l'acquisition qui marque le jeton sans le refuser (CT-5 EX-5.11) |
-| TA-61 | TA- | exécutable | Réponse retirée : Égalité stricte de l'empreinte recalculée : T-2, O-2 (et T-5, T-7, O-4, O-5), K-7 et K-9 pour un point (CT-6, CT-1 K-7, K-9) |
+| TA-61 | TA- | exécutable, complément à écrire | Réponse retirée : Égalité stricte de l'empreinte recalculée (T-2, O-2, T-5, T-7, O-4, O-5 ; CT-1 K-7, K-9) ; T-4 sur un sid sans certificat (CT-6 EX-9.10) ; T-5 sur une clé ou un algorithme hors de la version 0 (CT-6 EX-9.24) |
 | TA-62 | TA- | exécutable, complément à écrire | Réponse retirée : Relève par le secours et file durable (CT-5 EX-5.7, EX-8.5) ; deux calendriers, min_responses (EX-4.9, EX-6.6, EX-8.11) |
 | TA-63 | TA- | exécutable | Réponse retirée : Alerte point_manquant quand aucun point n'est admis pendant plus de 2 × c_K (CT-5 EX-8.15, §8.9) |
 | TA-64 | TA- | exécutable | Réponse retirée : Reconstruction de la file au démarrage, alerte file_perdue (CT-5 EX-8.5, EX-8.12, EX-8.14) |
 | TA-65 | TA- | exécutable | Réponse retirée : Statut qualifié établi sur la liste de confiance, jamais sur une déclaration (CT-5 EX-5.9 ; AN-1 règle 4) |
 | TA-66 | TA- | exécutable, complément à écrire | Réponse retirée : Vérificateurs indépendants confrontés sur les vecteurs (CT-6 §3.1) ; binaire reproductible (EX-14.6, EX-14.8) |
 | TA-67 | TA- | exécutable | Réponse retirée : Aucune ancre tirée du dossier ; clés d'enregistreur comparées au fichier d'ancres (CT-6 EX-3.3, EX-3.4, EX-12.1, N-3) |
-| TA-68 | TA- | exécutable, complément à écrire | Réponse retirée : Lecture DER stricte, bornes, aucun octet en trop (CT-6 EX-15.1 à EX-15.3 ; T-1, O-1) |
+| TA-68 | TA- | exécutable, complément à écrire | Réponse retirée : Lecture DER stricte, bornes, aucun octet en trop (CT-6 EX-15.1 à EX-15.3 ; T-1, O-1) ; clé RSA de 2048 à 8192 bits, exposant impair de 3 à 2³¹ − 1 (CT-6 EX-9.23) |
 | TA-69 | TA- | exécutable | Réponse retirée : Recalcul de tout contre les ancres du réviseur : R-4, R-6, R-7, R-8, R-9, R-11 ; K-1, K-4, K-5, K-8 (CT-6, CT-1) |
 | TA-70 | TA- | exécutable | Réponse retirée : Travail recalculé au-dessus du point de contrôle du réviseur, profondeur minimale (CT-6 O-5, EX-10.9) |
 | TA-71 | TA- | exécutable | Réponse retirée : Identifiant de chaîne de l'ancre comparé (CT-6 R-4) ; manifeste en révisions publiées et recoupement (CT-4 EX-4.25, RG-19 ; CT-6 §12.5) |
@@ -308,7 +308,7 @@ par entrée : identifiant, niveau, état, titre.
 | TM-28 | TM- | à écrire (étape 7) | EX-3.13 de CT-8 : égalité des condensés de deux constructions indépendantes de chaque image, du binaire du vérificateur et de la console |
 | TM-29 | TM- | à écrire (étape 7) | EX-6.2 de CT-8 : seuils « cible » du contrôle préalable (IP-2 processeurs et mémoire, IP-3 espace libre) confrontés à la consommation observée |
 | TM-30 | TM- | à écrire (étape 5) | Coefficient `b_ots` de CT-8 §9.2 : octets d'une preuve OpenTimestamps mise à niveau (défaut 233 en attente) |
-| TM-31 | TM- | exécutable | Coefficient `b_cap` de CT-8 §9.2 : octets de la capture d'une transaction dans un bloc plein (CT-4 §9.2 : non mesuré) |
+| TM-31 | TM- | exécutable | Coefficient `b_cap` de CT-8 §9.2 : octets de la capture d'une transaction d'un bloc plein de 64 ancres (mesure du 2026-11-02 reprise par CT-8 révision 0.2) |
 | TM-32 | TM- | à écrire (étape 3) | Coefficient `blocs_par_s` de CT-8 §9.2 sur l'instance de production du registre (réseau de développement : 1,10 le 2026-10-25) |
 | TM-33 | TM- | à écrire (étape 7) | Coefficients sans valeur par défaut de CT-8 §9.2 : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl` (hypothèses de 9.5 jusqu'à la mesure) |
 | TM-34 | TM- | à écrire (étape 7) | Seuils d'alerte « cible » de la supervision de CT-8 §10 : distribution des métriques en fonctionnement nominal et dans chaque scénario de runbook |
@@ -321,6 +321,7 @@ par entrée : identifiant, niveau, état, titre.
 | TM-41 | TM- | à écrire (étape 5) | Fenêtre d'ordre observée `W_ordre` : délai entre un événement et l'inclusion au registre du premier point qui l'engage (CT-5 §3.3 : 60 s + d_registre) |
 | TM-42 | TM- | à écrire (étape 5) | Fenêtre de réécriture pour la date, observée : `rewrite_window_end − ts` du premier point contresigné qui engage l'événement ; critère de la porte 2 : au plus 5 minutes |
 | TM-43 | TM- | à écrire (étape 8) | EX-19.1 de CT-2 : la démonstration de référence se déroule en moins de deux minutes, temps mesuré et imprimé par `verificateur` |
+| TM-44 | TM- | à écrire (étape 8) | Capture d'une transaction d'un bloc plein qui mêle des clôtures : octets (réserve de CT-8 §9.2, que TM-31, mesuré sur un bloc d'ancres seules, ne lève pas) |
 | TR-1 | TR- | à écrire (étape 8) | CT-3 annexe A.5 : trois relecteurs (approbateur, auditeur, développeur) tirent la même décision sur dix cas d'une politique |
 | TR-2 | TR- | à écrire (étape 8) | CT-3 annexe A.11 (EX-A.17) : lecture de la console par un approbateur et un développeur intégrateur, jugée par un troisième relecteur |
 | TR-3 | TR- | à écrire (étape 8) | CT-4 §7.12 : un relecteur qui n'a que la spécification crée un client, ancre une racine et clôt une période sur le réseau de développement ; une seconde personne rejoue `verifier` |
@@ -349,9 +350,9 @@ par entrée : identifiant, niveau, état, titre.
 
 Sortie de l'outil de couverture (`node scripts/tests/couverture.mjs --json`,
 forme `rapport_couverture`) sur le dépôt et ce catalogue : verdict `reussi` ;
-2332 identifiants définis par CT-1 à CT-8, 2193 couverts par une entrée, 139 par
-une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 117
-occurrences de « CT-9 » et 117 lignes TC- ; 208 entrées exécutables citant 400
+2348 identifiants définis par CT-1 à CT-8, 2209 couverts par une entrée, 139 par
+une justification NC-, 0 non couvert(s) ; 98 menaces sur 98 avec un TA- ; 122
+occurrences de « CT-9 » et 122 lignes TC- ; 208 entrées exécutables citant 405
 titres ou étapes, 0 absent(s) ; 15 tables du texte comparées, 0 différence(s).
 
 ## `index-ta-par-menace.json`

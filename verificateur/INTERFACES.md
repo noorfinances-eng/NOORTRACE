@@ -97,10 +97,9 @@ Le moteur (`moteur/moteur.go`) applique CT-6 §5.2 :
 - **`anchors_used`** : vos `AncresEmployees`.
 - **Avertissements** : vos `Avertissements`, triés (EX-6.15).
 
-Lecture retenue sur un point que CT-6 ne tranche pas : une K-7, K-9 ou K-8
-**en échec** rend son contrôle `echoue` même quand ses parties requises sont
-déclarées absentes (EX-5.8 contre EX-9.18, EX-10.12, EX-11.20 ; voir
-`LISEZMOI.md`, « Lectures »).
+Une K-7, K-9 ou K-8 **en échec** rend son contrôle `echoue` même quand ses
+parties requises sont déclarées absentes : la règle 1 d'EX-6.4 précède la
+partie absente (CT-6 révision 0.4, EX-4.3, EX-9.18, EX-10.12, EX-11.20).
 
 Les tests de rejeu (`moteur/vecteurs_test.go`) comparent chaque dossier à son
 `attendu.json` : verdict, code, `failed_checks`, statuts des huit contrôles,
@@ -285,7 +284,8 @@ func (e Entree) N4Figure() bool
   déclarés présents (`PartiesPresentes()`), ou, à défaut, quand la partie
   `points-de-controle.json` porte une référence `anchors.registry` avec K-1
   et K-2 réussies (pour K-8 seule : ne rendez alors ni R- ni N-4,
-  EX-5.6, et une inclusion `declarative` avec AV-K-1).
+  EX-5.6, et une inclusion `declarative` ; AV-K-1 n'est levé que si K-8
+  réussit, EX-11.25, révision 0.4).
 - `Registre`, `Certificat`, `Validateurs` : octets lus dans leur limite
   (64 Mio, 64 Mio, 1 Mio) et état de lecture (`TropGrand` : R-1 ou R-3
   échoue, EX-4.11). `Validateurs.Presente` faux : R-3 `non_execute` avec la

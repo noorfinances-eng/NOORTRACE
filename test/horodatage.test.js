@@ -26,6 +26,7 @@ const ANCRES = {
   "ancres-tsa-revoquee": G.ancresHorodatage(FRAGMENTS.tsa_revoquee),
   "ancres-unite-epinglee-revoquee": G.ancresHorodatage(FRAGMENTS.unite_epinglee_revoquee),
   "ancres-deux-autorites": G.ancresHorodatage(FRAGMENTS.deux_autorites),
+  "ancres-unite-intermediaire": G.ancresHorodatage(FRAGMENTS.unite_intermediaire),
 };
 const MANIFESTES = G.manifestesCT1();
 const PH = MANIFESTES.map((m) => m.periodHash);
@@ -144,7 +145,8 @@ describe("CT-6 contrôle 4 : vecteurs spec/vecteurs/ct-6/rfc3161 (annexe A.3)", 
   });
 
   it("chaque cas de attendu.json est rejoué : statuts T-1 à T-11, contrôle 4, avertissements et faits identiques", function () {
-    expect(ATTENDU.cases.length).to.equal(24);
+    // Révision 0.4 (EX-A.22) : quinze cas de plus (jetons t4-*, t5-*, t7-intermediaire-rsa-8200, rsa-8192, serie-168-bits).
+    expect(ATTENDU.cases.length).to.equal(39);
     for (const c of ATTENDU.cases) {
       const ancres = c.anchors ? ANCRES[path.basename(c.anchors, ".json")] : null;
       const r = H.verifierJeton(fs.readFileSync(path.join(VECTEURS, c.token)), { periodHash: c.dossier_period_hash, ancres });
@@ -158,7 +160,7 @@ describe("CT-6 contrôle 4 : vecteurs spec/vecteurs/ct-6/rfc3161 (annexe A.3)", 
 
   it("une variante par vérification visée : la seule vérification en échec est la cible", function () {
     const cibles = ATTENDU.tokens.filter((j) => j.target);
-    expect(cibles.map((j) => j.target)).to.deep.equal(["T-1", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-1", "T-1", "T-6"]);
+    expect(cibles.map((j) => j.target)).to.deep.equal(["T-1", "T-3", "T-4", "T-5", "T-6", "T-7", "T-8", "T-9", "T-1", "T-1", "T-4", "T-4", "T-5", "T-5", "T-7", "T-5", "T-5", "T-6"]);
     // Le jeton du point de contrôle (EX-A.13) se vérifie sur checkpoint_hash, non sur le period_hash de la période 1.
     for (const j of cibles) expect(echecs(verifier(fs.readFileSync(path.join(VECTEURS, j.file)), j.checkpoint ? { periodHash: j.checkpoint.checkpoint_hash } : {})), j.file).to.deep.equal([j.target]);
     expect(echecs(verifier(jetonFichier("periode-2")))).to.deep.equal(["T-2"]);
@@ -260,12 +262,23 @@ describe("CT-6 contrôle 4 : T-2 à T-6", function () {
     expect(echecs(verifier(jeton({ ess: "v1", certHash: Buffer.alloc(20) })))).to.deep.equal(["T-4"]);
   });
 
-  it("T-4 : certificat absent du jeton et des ancres → non exécutée (ancre_absente) ; fourni par les intermédiaires de l'ancre → réussie", function () {
+  // Révision 0.4 (EX-9.10) : ce test figeait « certificat absent du jeton et des ancres → non exécutée (ancre_absente) »
+  // avec un fichier d'ancres qui porte une autorité ; c'est désormais un échec. Seul un jeton sans certificats,
+  // vérifié sans aucune autorité d'horodatage, laisse T-4 non exécutée.
+  it("T-4 : sid qui ne désigne aucun candidat → échec avec une autorité d'horodatage ou un champ certificates (EX-9.10) ; ancre_absente seulement sans certificats ni autorité ; fourni par les intermédiaires de l'ancre → réussie", function () {
     const sansCert = jeton({ certificats: [] });
     const r = verifier(sansCert);
-    expect(statuts(r)["T-4"]).to.equal("non_execute:ancre_absente");
-    expect(r.status).to.equal("non_execute");
-    expect(r.reason).to.equal("ancre_absente");
+    expect(statuts(r)["T-4"]).to.equal("echoue");
+    expect(r.checks.find((c) => c.id === "T-4").detail).to.match(/ne désigne aucun certificat \(0 certificat\(s\) du jeton et 1 des ancres examinés\).*intermediates/);
+    expect([r.status, r.reason]).to.deep.equal(["echoue", null]);
+    for (const id of ["T-5", "T-6", "T-7", "T-8", "T-10", "T-11"]) expect(statuts(r)[id], id).to.equal("non_execute:prerequis_en_echec");
+    const sansAncres = verifier(sansCert, { ancres: null });
+    expect([statuts(sansAncres)["T-4"], sansAncres.status, sansAncres.reason]).to.deep.equal(["non_execute:ancre_absente", "non_execute", "ancre_absente"]);
+    const autorite0 = { ...ANCRES["ancres-test"], tsa_authorities: [] };
+    expect(statuts(verifier(sansCert, { ancres: autorite0 }))["T-4"]).to.equal("non_execute:ancre_absente", "tsa_authorities vide : comme sans ancres");
+    // Le jeton porte des certificats, sans celui que désigne son sid : échec, même sans ancres.
+    const sidFaux = jeton({ sidNumero: 0x7f });
+    expect([statuts(verifier(sidFaux))["T-4"], statuts(verifier(sidFaux, { ancres: null }))["T-4"]]).to.deep.equal(["echoue", "echoue"]);
     expect(verifier(sansCert, { ancres: ancresAvec({ intermediaires: [MATERIEL.certs["tsa-test"]] }) }).status).to.equal("reussi");
   });
 
@@ -294,11 +307,32 @@ describe("CT-6 contrôle 4 : T-2 à T-6", function () {
     expect(echecs(rPetit)).to.deep.equal(["T-5"]);
     expect(rPetit.checks.find((c) => c.id === "T-5").detail).to.match(/1024 bits/);
 
+    // Révision 0.4 (EX-9.24) : clé Ed25519 rattachée à l'autorité (cas 2) : hors_perimetre_version, résumé sans date ;
+    // sans autorité d'horodatage (cas 3) : ancre_absente ; algorithme admis sous cette clé, ou algorithme inconnu sous une clé RSA (cas 1) : échec.
     const ed = crypto.generateKeyPairSync("ed25519");
     const certEd = certTsa(ed.publicKey, { numero: 62 });
-    const rEd = verifier(jeton({ certificats: [certEd], signataire: certEd, algSignature: G.seq(G.oid(H.OID.ed25519)), signer: (d) => crypto.sign(null, d, ed.privateKey) }));
+    const jEd = jeton({ certificats: [certEd], signataire: certEd, algSignature: G.seq(G.oid(H.OID.ed25519)), signer: (d) => crypto.sign(null, d, ed.privateKey) });
+    const rEd = verifier(jEd);
     expect(statuts(rEd)["T-5"]).to.equal("non_execute:hors_perimetre_version");
-    expect([rEd.status, rEd.reason]).to.deep.equal(["non_execute", "hors_perimetre_version"]);
+    expect([rEd.status, rEd.reason, rEd.summary, rEd.facts]).to.deep.equal(["non_execute", "hors_perimetre_version", "signature hors de la version 0, non vérifiée : aucune date établie", null]);
+    expect(rEd.checks.find((c) => c.id === "T-5").detail).to.match(/^clé Ed25519 et algorithme 1\.3\.101\.112 hors de la version 0 : signature du jeton non vérifiée ; certificat de l'unité rattaché à l'autorité AC de test CT-6 ; aucune date n'est établie$/);
+    expect(statuts(verifier(jEd, { ancres: null }))["T-5"]).to.equal("non_execute:ancre_absente");
+    // Complément de la révision 0.4 (EX-9.24, cas 2) : genTime illisible (mois 13) ne satisfait pas la règle 4 du
+    // chemin, aucun rattachement : T-5 échoue (et T-9, qui lit genTime), au lieu de hors_perimetre_version.
+    const rEdDate = verifier(jeton({ genTime: "20261305100005Z", certificats: [certEd], signataire: certEd, algSignature: G.seq(G.oid(H.OID.ed25519)), signer: (d) => crypto.sign(null, d, ed.privateKey) }));
+    expect(echecs(rEdDate)).to.include.members(["T-5", "T-9"]);
+    expect(rEdDate.checks.find((c) => c.id === "T-5").detail).to.match(/EX-9\.24, cas 2/);
+    expect(echecs(verifier(jeton({ certificats: [certEd], signataire: certEd, signer: (d) => crypto.sign(null, d, ed.privateKey) })))).to.deep.equal(["T-5"]);
+    expect(echecs(verifier(jeton({ algSignature: G.seq(G.oid("1.2.840.113549.1.1.127"), G.nul()) }), { ancres: null }))).to.deep.equal(["T-5"]);
+    // EX-9.23 : bornes des clés RSA, contrôlées sur la clé avant tout calcul.
+    for (const [jetonNom, motif] of [["t5-rsa-8200", /clé RSA de 8200 bits, au-delà de 8192 \(EX-9\.23\)/], ["t5-exposant", /exposant public hors de 3 à 2³¹ − 1 \(EX-9\.23\)/]]) {
+      const rb = verifier(jetonFichier(jetonNom));
+      expect(echecs(rb), jetonNom).to.deep.equal(["T-5"]);
+      expect(rb.checks.find((c) => c.id === "T-5").detail, jetonNom).to.match(motif);
+      expect(statuts(rb)["T-6"], jetonNom).to.equal("non_execute:prerequis_en_echec");
+    }
+    expect(verifier(jetonFichier("rsa-8192")).facts.key_bits).to.equal(8192);
+    expect(echecs(verifier(jetonFichier("t7-intermediaire-rsa-8200")))).to.deep.equal(["T-7"], "la signature de l'intermédiaire RSA 8200 ne compte pas");
   });
 
   it("T-5 : signature dont la fonction diffère de digestAlgorithm, et rsaEncryption admis (EX-9.11)", function () {
@@ -387,13 +421,15 @@ describe("CT-6 contrôle 4 : T-7 à T-9", function () {
     expect(verifier(jeton({ certificats: [nonRep], signataire: nonRep })).status).to.equal("reussi");
   });
 
-  it("T-9 : accuracy hors bornes, tsa différent du sujet, numéro de série de plus de 160 bits, fraction à zéro final → échec", function () {
+  it("T-9 : accuracy hors bornes, tsa différent du sujet, fraction à zéro final → échec ; numéro de série de plus de 160 bits accepté (EX-9.15, révision 0.4)", function () {
     expect(echecs(verifier(jeton({ precisionBrute: G.seq(G.entier(1), G.implicite(0, Buffer.from([0]))) })))).to.deep.equal(["T-9"]);
     expect(echecs(verifier(jeton({ precisionBrute: G.seq(G.implicite(1, Buffer.from([0x03, 0xe8]))) })))).to.deep.equal(["T-9"]);
     expect(verifier(jeton({ precisionBrute: G.seq(G.implicite(0, Buffer.from([0x01, 0xf4]))) })).facts.upper_bound).to.equal("2026-11-05T10:00:05.5Z");
     expect(echecs(verifier(jeton({ tsaNom: G.nom({ C: "CH", CN: "Autre" }) })))).to.deep.equal(["T-9"]);
-    expect(echecs(verifier(jeton({ serie: 1n << 160n })))).to.deep.equal(["T-9"]);
+    // Révision 0.4 (EX-9.15) : ni la taille ni le signe de serialNumber ne sont contrôlés (ce test figeait l'échec au-delà de 160 bits).
+    expect(verifier(jeton({ serie: 1n << 160n })).status).to.equal("reussi");
     expect(verifier(jeton({ serie: (1n << 160n) - 1n })).status).to.equal("reussi");
+    expect(verifier(jetonFichier("serie-168-bits")).facts.serial_number).to.equal("0x01" + "ab".repeat(20));
     expect(echecs(verifier(jeton({ genTime: "20261105100005.50Z" })))).to.deep.equal(["T-9"]);
   });
 
@@ -539,7 +575,8 @@ describe("CT-6 contrôle 4 : confrontation à openssl ts -verify (annexe A.3)", 
 });
 
 describe("CT-6 contrôle 4 : génération déterministe des vecteurs rfc3161", function () {
-  this.timeout(120_000);
+  // Révision 0.4 : la dérivation des clés RSA de 8200 et 8192 bits (EX-A.22) prend quelques minutes.
+  this.timeout(900_000);
   it("deux générations dans des répertoires vides (clés dérivées des graines) donnent les octets du dépôt", function () {
     const lister = (rep) => {
       const out = {};
@@ -558,11 +595,14 @@ describe("CT-6 contrôle 4 : génération déterministe des vecteurs rfc3161", f
     try {
       const point = contextePointDeControle();
       G.genererRfc3161({ racine: a, point });
+      // Les clés sont des entrées (EX-A.4) : la seconde génération part des clés dérivées par la première.
+      fs.mkdirSync(path.join(b, "rfc3161", "cles"), { recursive: true });
+      for (const f of fs.readdirSync(path.join(a, "rfc3161", "cles")).filter((x) => x.endsWith(".cle.pem"))) fs.copyFileSync(path.join(a, "rfc3161", "cles", f), path.join(b, "rfc3161", "cles", f));
       G.genererRfc3161({ racine: b, point });
       const la = lister(path.join(a, "rfc3161"));
       expect(la).to.deep.equal(lister(path.join(b, "rfc3161")));
       expect(la).to.deep.equal(lister(VECTEURS));
-      expect(Object.keys(la).length).to.equal(28);
+      expect(Object.keys(la).length).to.equal(50);
     } finally {
       fs.rmSync(a, { recursive: true, force: true });
       fs.rmSync(b, { recursive: true, force: true });
@@ -668,12 +708,14 @@ describe("CT-6 contrôle 4 : règles précisées par la revue", function () {
   });
 
   it("T-9, règle 3 : tsa nommé mais certificat signataire non établi → T-9 hérite de T-4 (EX-9.15)", function () {
-    const r = verifier(jeton({ certificats: [] }), { ancres: ancresAvec({ crls: [] }) });
+    // Révision 0.4 (EX-9.10) : sans autorité d'horodatage seulement, un jeton sans certificats laisse T-4 en ancre_absente.
+    const r = verifier(jeton({ certificats: [] }), { ancres: null });
     expect(statuts(r)).to.include({ "T-4": "non_execute:ancre_absente", "T-9": "non_execute:ancre_absente", "T-7": "non_execute:ancre_absente" });
+    expect(statuts(verifier(jeton({ certificats: [] }), { ancres: ancresAvec({ crls: [] }) }))).to.include({ "T-4": "echoue", "T-9": "non_execute:prerequis_en_echec" });
     const t4 = verifier(jetonFichier("t4-ess-autre-certificat"));
     expect(statuts(t4)).to.include({ "T-4": "echoue", "T-9": "non_execute:prerequis_en_echec" });
     // Sans champ tsa, la règle 3 n'a rien à comparer : T-9 réussit même sans S.
-    expect(statuts(verifier(jeton({ certificats: [], tsaNom: null }), { ancres: ancresAvec({ crls: [] }) }))["T-9"]).to.equal("reussi");
+    expect(statuts(verifier(jeton({ certificats: [], tsaNom: null }), { ancres: null }))["T-9"]).to.equal("reussi");
   });
 
   it("T-7 et T-10 exigent T-6 : sans signature vérifiée, genTime n'est pas authentifié (EX-9.13)", function () {

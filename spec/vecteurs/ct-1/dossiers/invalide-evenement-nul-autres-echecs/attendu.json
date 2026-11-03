@@ -1,0 +1,11 @@
+{
+  "valide": false,
+  "controle": "E-1",
+  "controles_en_echec": [
+    "E-1",
+    "E-8",
+    "P-1",
+    "P-5"
+  ],
+  "description": "valide-seq-7 dont evenement.json est le littéral null (inexploitable, cas (e) : E-1, qui le porte, échoue), dont le manifeste porte period_end = period_start + 7200 (non re-signé) et dont cles.json porte une seconde entrée rec-test-01 (clé publique de rec-test-02), index recalculé. Les contrôles qui lisent evenement.json ne sont pas exécutés, sauf s'ils échouent sur ce qu'ils lisent des autres parties (CT-1 §11.4, révision 0.5 ; CT-6 EX-5.15) : E-8 (unicité des key_id, lue sans l'événement), P-1 (period_end = period_start + 3600) et P-5 (periodHash recalculé du manifeste modifié différent de manifeste.sig.period_hash) échouent ; les autres ne sont pas exécutés, jamais réussis."
+}

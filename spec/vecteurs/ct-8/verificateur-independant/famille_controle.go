@@ -101,7 +101,7 @@ func FamilleControle(c *Contexte) {
 				}
 			}
 			c.Rap.Comparer(f, cas, "variante de production (A.4) : processeurs, mémoire, espace libre",
-				"8 ; 16 Gio ; 600 Gio", NombreES6(nombre(obs.Get("cpus")))+" ; "+NombreES6(nombre(obs.Get("memory_bytes"))/gio)+" Gio ; "+
+				"8 ; 16 Gio ; 1200 Gio", NombreES6(nombre(obs.Get("cpus")))+" ; "+NombreES6(nombre(obs.Get("memory_bytes"))/gio)+" Gio ; "+
 					NombreES6(nombre(obs.Chemin("storage", "free_bytes"))/gio)+" Gio")
 			c.Rap.Comparer(f, cas, "variante de production (A.4) : ports publiés hors 127.0.0.1 sur 192.0.2.40",
 				"[192.0.2.40, 192.0.2.40]", Liste(adr))

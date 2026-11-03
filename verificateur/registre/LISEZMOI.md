@@ -91,6 +91,20 @@ retenue.
    « 0x » ou « 0X » suivi de 64 chiffres hexadécimaux, sans casse imposée.
    Toutes les lignes capturées sont canoniques ; la ligne au membre
    `Domain` de `valide-ligne-non-canonique` est acceptée et lève AV-R-2.
+   Révision 0.4 de CT-6 (table d'EX-11.6, EX-11.14) : le `Type` du corps
+   d'un precommit est lu comme un entier de 0 à 255 (absent ou `null` :
+   0 ; non entier, chaîne, négatif ou au-delà de 255 : ligne refusée) et
+   n'est pas comparé au type de l'enveloppe ; un `proposer` vide, `null` ou
+   fait de blancs (`strings.TrimSpace`) désigne le `validatorId`. AV-R-2 est
+   aussi levé pour un corps non canonique : le corps d'un precommit est
+   réencodé (`Height`, `Round`, `Voter`, `Type`, `BlockHash`, `Sig`) et
+   comparé octet pour octet (`Voter` vide, `Type` différent de 2 ou absent,
+   `BlockHash` en majuscules…) ; le corps d'une proposition est contrôlé sur
+   les formes que nomme la table (voir `LISEZMOI.md` du module, « Lectures
+   encore ouvertes », point 2). Types des membres connus des corps
+   (`typesProposition`, `typesVote`) : un membre connu d'un autre genre, ou
+   `null` pour un hachage, fait refuser la ligne ; `null` ailleurs vaut la
+   valeur nulle ; les membres inconnus sont ignorés.
 3. **R-11, règle 3, quand R-10 n'a pas réussi.** EX-11.24 ne prévoit que
    deux cas : R-10 réussie qui prouve des inscriptions de la clé du point,
    ou aucune inscription de cette clé dans le dossier (AV-K-3). Lecture
@@ -100,19 +114,19 @@ retenue.
    prérequis, les inscriptions ne sont pas prouvées, la règle 3 ne
    s'applique pas et R-11 est `non_execute` (`prerequis_en_echec`, EX-5.5).
    Aucun vecteur ne porte ce cas.
-4. **AV-K-1.** Levé, sur K-8, quand la référence est vérifiée par K-8 et
-   que la table de §11.9 le dit : parties du contrôle 8 absentes, entrée
-   absente, ou R-11 `non_execute` pour une raison admise. R-11 en échec ou
+4. **AV-K-1.** Tranché par EX-11.25 (révision 0.4) : levé, sur K-8,
+   seulement quand K-8 a réussi, et que la table de §11.9 le dit : parties
+   du contrôle 8 absentes, entrée absente, ou R-11 `non_execute` pour une
+   raison admise ; K-8 en échec ne le lève pas (scénario « K-8 en échec,
+   parties absentes »). R-11 en échec ou
    non exécutée faute de prérequis ne le lève pas
    (`invalide-r11-ancre-de-periode` : aucun AV-K-1). Une R-11 réussie dans
    un contrôle 8 qui ne réussit pas donne `inclusion` `declarative` sans
    AV-K-1 (le commentaire de `Resultat.FaitsPoint` dit « et AV-K-1 est
    levé » ; la table de §11.9 ne le lève pas : la table est suivie). Aucun
    vecteur ne porte ce cas.
-5. **Forme canonique des trois parties.** CT-6 ne dit pas si
-   `registre.json`, `certificat-commit.json` et `validateurs.json` doivent
-   avoir une forme canonique. Le texte se taisant, la lecture retenue est
-   stricte, pour ne jamais accepter un document ambigu : une partie sans
+5. **Forme canonique des trois parties.** Tranché par EX-4.16, EX-11.10 et
+   EX-11.12 (révision 0.4), dans le sens de la lecture retenue : une partie sans
    forme canonique de CT-1 §4 (nom en double, nombre non entier ou hors de
    l'intervalle sûr, substitut isolé ; par exemple `"required": 3.0`, champ
    informatif du certificat) est refusée comme une partie contraire à son

@@ -1,0 +1,9 @@
+{
+  "valide": false,
+  "controle": "E-9",
+  "controles_en_echec": [
+    "E-5",
+    "E-9"
+  ],
+  "description": "Journal rejoué où approval porte deux approbateurs (comptes Hardhat 1 et 2) et trois signatures valides (comptes 1, 2 et 3) : E-5 (longueurs différentes) et E-9 (signatures[2] sans approvers[2], révision 0.5) échouent ; A-3 réussit (deux approbateurs distincts, membres du jeu, au seuil)."
+}

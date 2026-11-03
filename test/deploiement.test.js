@@ -462,9 +462,9 @@ describe("CT-8 §9 et annexe A.5 : dimensionnement", function () {
     Object.assign(j2.anchoring, { provider_role: "principal", rfc3161_interval_s: 600 });
     e.journals.push(j2);
     const t = D.dimensionner(e).totals;
-    expect(t).to.include({ local_bytes: 842344218000, worm_bytes: 1472249619792, ops_archive_bytes: 39498547200, tokens_qualified_per_year: 219000, tokens_other_per_year: 96360, registry_tx_per_hour_max: 315, registry_capacity_share: 0.001243 });
+    expect(t).to.include({ local_bytes: 3951222228000, worm_bytes: 7632427515552, ops_archive_bytes: 39498547200, tokens_qualified_per_year: 219000, tokens_other_per_year: 96360, registry_tx_per_hour_max: 315, registry_capacity_share: 0.001243 });
     const s = section("### 14.1 ", "### 14.2 ");
-    for (const v of ["842 344 218 000", "1 472 249 619 792", "39 498 547 200", "219 000", "96 360", "= 315", "0,001243"]) expect(s).to.include(v);
+    for (const v of ["3 951 222 228 000", "7 632 427 515 552", "39 498 547 200", "219 000", "96 360", "= 315", "0,001243"]) expect(s).to.include(v);
   });
 
   it("outil : refus d'EX-9.3 (code 1, toutes les raisons), entrées invalides et options → code 2 ; résumé lisible sans --json", function () {
@@ -473,7 +473,7 @@ describe("CT-8 §9 et annexe A.5 : dimensionnement", function () {
     expect(r.stdout).to.include("refus : journal sinistres : checkpoint_interval_s_non_diviseur\nrefus : journal sinistres : rfc3161_interval_s_invalide\n");
     const ok = outil("dimensionner.mjs", ["--entrees", path.join(VECT, "dimensionnement", "reference.json")]);
     expect(ok.status).to.equal(0);
-    expect(ok.stdout).to.include("espace local : 388.581 Gio (417235686480 octets)");
+    expect(ok.stdout).to.include("espace local : 967.655 Gio (1039011288480 octets)");
     const e = V.entreesExemple();
     e.journals[0].storage.worm.retain_days = 3000;
     expect(D.dimensionner(e)).to.deep.equal({ version: 0, valid: false, errors: [{ journal: "sinistres", code: "retain_days_insuffisant" }] });
@@ -487,7 +487,7 @@ describe("CT-8 §9 et annexe A.5 : dimensionnement", function () {
 
   it("coefficients remplacés membre à membre ; mêmes entrées, mêmes octets", function () {
     const e = V.entreesExemple();
-    e.coefficients = { b_cap: 20000 };
+    e.coefficients = { b_cap: 200000 };
     const a = D.dimensionner(e);
     const b = D.dimensionner(V.entreesExemple());
     expect(a.journals[0].capture_bytes_per_year).to.be.above(b.journals[0].capture_bytes_per_year);
@@ -495,7 +495,7 @@ describe("CT-8 §9 et annexe A.5 : dimensionnement", function () {
     expect(D.texteJSON(D.dimensionner(V.entreesExemple()))).to.equal(D.texteJSON(b));
   });
 
-  it("mesures de 9.2 rejouées sur les vecteurs : b_pt = 682, b_man = 916, b_tsr_sup = 9, b_cap = 11 096", function () {
+  it("mesures de 9.2 rejouées sur les vecteurs : b_pt = 682, b_man = 916, b_tsr_sup = 9 ; b_cap = 123 761 relu dans le rapport de TM-31", function () {
     let b_pt = 0;
     for (const p of ["periode-1", "periode-2", "periode-3"]) for (const x of lireJSON(SPEC, "vecteurs", "ct-1", "points-de-controle", `${p}.json`)) b_pt = Math.max(b_pt, J.octetsJCS(x).length + 1);
     expect(b_pt).to.equal(D.COEFFICIENTS.b_pt).and.to.equal(682);
@@ -505,10 +505,21 @@ describe("CT-8 §9 et annexe A.5 : dimensionnement", function () {
     const rep = path.join(SPEC, "vecteurs", "ct-5", "reponses");
     const ecarts = new Set(fs.readdirSync(rep).filter((f) => f.endsWith(".der")).map((f) => fs.statSync(path.join(rep, f.replace(/\.der$/, ".tsr"))).size - fs.statSync(path.join(rep, f)).size));
     expect([...ecarts]).to.deep.equal([D.COEFFICIENTS.b_tsr_sup]);
+    // b_cap (CT-8 révision 0.2) : capture d'une transaction d'un bloc plein (CT-4 EX-9.2), relue dans le rapport de TM-31 (A.5).
+    const R = lireJSON(SPEC, "vecteurs", "ct-9", "mesures", "rapport-2026-11-02-capture-bloc-plein.json");
+    const ligne = R.results.find((l) => l.name === "b_cap_bloc_plein");
+    expect([ligne.test_id, ligne.unit, ligne.samples, ligne.max]).to.deep.equal(["TM-31", "octets", [109479, 109479, 109479], 109479]);
+    const decomp = [...R.notes.matchAll(/= (\d+) octets = en-tête (\d+) \+ certificat (\d+) \+ (\d+) reçus (\d+) /g)].map((m) => m.slice(1).map(Number));
+    expect(decomp).to.deep.equal(Array(3).fill([109479, 5846, 32587, 64, 71046]));
+    for (const [total, e, c, , r] of decomp) expect(e + c + r).to.equal(total);
+    const index = Math.max(...[...R.notes.matchAll(/index de capture (\d+) octets/g)].map((m) => Number(m[1])));
+    const unRecu = Math.max(...[...R.notes.matchAll(/un seul reçu \(forme de CT-8 §9\.2\) : au plus (\d+) octets/g)].map((m) => Number(m[1])));
+    expect([index, unRecu]).to.deep.equal([14282, 39544]);
+    expect(ligne.max + index).to.equal(D.COEFFICIENTS.b_cap).and.to.equal(123761);
+    // Réserves de 9.2 : fichiers des blocs d'une transaction de la capture de CT-6.
     const cap = path.join(SPEC, "vecteurs", "ct-6", "registre", "capture");
     const max = (prefixe) => Math.max(...fs.readdirSync(cap).filter((f) => f.startsWith(prefixe)).map((f) => fs.statSync(path.join(cap, f)).size));
     expect([max("bloc-"), max("certificat-"), max("recu-")]).to.deep.equal([1498, 7782, 1816]);
-    expect(max("bloc-") + max("certificat-") + max("recu-")).to.equal(D.COEFFICIENTS.b_cap);
   });
 });
 
