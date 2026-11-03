@@ -1253,7 +1253,7 @@ export class FrontalMcp {
     });
     try {
       const captured_at = this.coeur.politique?.instantCapture() ?? this.murale();
-      const id = this.coeur.mettreEnAttente(partiel, [ctx.pieceArguments, ...ctx.piecesContexte, r.resultat], { captured_at });
+      const id = this.coeur.mettreEnAttente(partiel, [ctx.pieceArguments, ...ctx.piecesContexte, r.resultat], { captured_at, host: ctx.session.hote.id, genre: "appel" });
       this.journal.consigner("warning", "frontal_mcp", "call_passthrough_pending", { pending_id: id, server: ctx.alias }, { host: ctx.session.hote.id, request_id: ctx.m.idBrut });
     } catch (e) {
       if (!(e instanceof ErreurEnregistreur)) throw e;

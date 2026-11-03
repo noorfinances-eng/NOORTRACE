@@ -19,15 +19,24 @@ import { demarrerFrontalMcp } from "./mcp/demon.mjs";
 import { demarrerFrontalModele } from "./modele/demon.mjs";
 import { controleModele } from "./modele/formats.mjs";
 import { controlePolitiqueApprobation } from "./politique/regles.mjs";
+import { RegistreCorrelation } from "./modele/correlation.mjs";
+import { origineAnnoncee } from "./modele/demon.mjs";
+import { demarrerSdk } from "./sdk/demon.mjs";
+import { controleSdk } from "./sdk/configuration.mjs";
+import { controleConnecteurTcp } from "./mcp/prise-tcp.mjs";
+import { demarrerOtel } from "./otel/demon.mjs";
+import { controleOtel } from "./otel/configuration.mjs";
+import { controleWorm, supportWormDepuisConfiguration } from "./worm/configuration.mjs";
 
 const USAGE = "usage : noortrace --config <fichier> | noortrace validate-config <fichier>";
 
 /**
  * Règles du pas 3 d'EX-15.4 des lots branchés ici (rédaction : EX-10.6,
  * EX-10.23 ; politique d'approbation : CT-3 EX-4.2, EX-8.2, avertissements
- * d'EX-4.14 ; frontal modèle : EX-5.2, EX-5.28, EX-5.32, EX-7.3).
+ * d'EX-4.14 ; frontal modèle : EX-5.2, EX-5.28, EX-5.32, EX-7.3 ; prise
+ * TCP des connecteurs : EX-4.39, lecture 134).
  */
-const REGLES_SUPPLEMENTAIRES = [controleRedaction, controlePolitiqueApprobation, controleModele];
+const REGLES_SUPPLEMENTAIRES = [controleRedaction, controlePolitiqueApprobation, controleModele, controleSdk, controleConnecteurTcp, controleOtel, controleWorm];
 
 function rapporter(flux, titre, liste) {
   for (const e of liste) flux.write(`${titre} ${ligneRapport(e)}\n`);
@@ -98,7 +107,10 @@ export async function principal(argv, io = {}) {
   let redaction;
   try {
     redaction = Redacteur.depuisConfiguration(v.config, s.secrets);
-    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
+    // Copies WORM (§12.6, lot WORM) ; bail détenu par une autre instance : instance
+    // passive (13.4), les frontaux s'ouvrent et rendent -31010 bail_non_detenu.
+    const worm = supportWormDepuisConfiguration(v.config, s.secrets);
+    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, worm, attendreBail: true, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
   } catch (e) {
     const raison = e instanceof ErreurEnregistreur ? e.raison : "demarrage";
     stderr.write(`demarrage_refuse : ${raison} : ${e.message}\n`);
@@ -115,11 +127,24 @@ export async function principal(argv, io = {}) {
     await redaction?.fermer?.();
     return 2;
   }
+  // Registre de corrélation (5.6) : celui du frontal modèle ; sans frontal modèle, un registre
+  // propre aux échanges déclarés par le SDK (EX-5.22, EX-6.8), offert aussi au frontal MCP.
+  const correlateur =
+    modele.correlateur ??
+    (v.config.sdk?.enabled
+      ? new RegistreCorrelation({
+          fenetreMs: v.config.model.correlation_window_ms,
+          monotone: () => coeur.horlogeBrute.monotone(),
+          ecrirePiece: (p) => coeur.ecrirePiece(p),
+          origine: (nom) => origineAnnoncee(coeur.config, nom),
+          journal: coeur.journal,
+        })
+      : null);
   // Frontal MCP (CT-2 §4) : après le cœur, avant l'annonce du démarrage.
   let mcp = null;
   if (v.config.mcp.enabled) {
     try {
-      mcp = await demarrerFrontalMcp(coeur, s.secrets, { correlateur: modele.correlateur });
+      mcp = await demarrerFrontalMcp(coeur, s.secrets, { correlateur });
     } catch (e) {
       stderr.write(`demarrage_refuse : frontal_mcp : ${e.message}\n`);
       await modele.arreter();
@@ -128,10 +153,30 @@ export async function principal(argv, io = {}) {
       return 2;
     }
   }
+  // Point d'entrée SDK (CT-2 §6.1 à §6.3) et ingestion OpenTelemetry (§6.8).
+  let sdk = null;
+  let otel = null;
+  try {
+    sdk = await demarrerSdk(coeur, s.secrets, { correlateur });
+    otel = await demarrerOtel(coeur, s.secrets);
+  } catch (e) {
+    stderr.write(`demarrage_refuse : ${sdk ? "otel" : "sdk"} : ${e.message}\n`);
+    await sdk?.arreter();
+    await mcp?.arreter();
+    await modele.arreter();
+    await coeur.arreter();
+    await redaction?.fermer?.();
+    return 2;
+  }
   const a = coeur.serveur?.address();
   const supervision = a ? `${a.address}:${a.port}` : "-";
   stdout.write(`noortrace: demon demarre (journal ${v.config.recorder.journal_id}, epoque ${coeur.ecrivain?.epoque ?? "-"}, supervision ${supervision})\n`);
-  return { coeur, mcp, modele };
+  // Instance passive (13.4) : la fin du démarrage suit la prise du bail.
+  coeur.demarrage?.then(
+    () => stdout.write(`noortrace: bail acquis (epoque ${coeur.ecrivain?.epoque ?? "-"})\n`),
+    () => {},
+  );
+  return { coeur, mcp, modele, sdk, otel };
 }
 
 /** Lance le démon comme processus : signaux d'arrêt et de rechargement. */
@@ -141,11 +186,13 @@ export async function lancer() {
     process.exitCode = r;
     return;
   }
-  const { coeur, mcp, modele } = r;
+  const { coeur, mcp, modele, sdk, otel } = r;
   let arret = false;
   const arreter = async () => {
     if (arret) return;
     arret = true;
+    await otel?.arreter().catch(() => {});
+    await sdk?.arreter().catch(() => {});
     await mcp?.arreter().catch(() => {});
     await modele?.arreter().catch(() => {});
     await coeur.arreter();
@@ -153,6 +200,36 @@ export async function lancer() {
   };
   process.on("SIGTERM", arreter);
   process.on("SIGINT", arreter);
+  // Instance passive : un échec de la fin du démarrage (après la prise du
+  // bail) refuse le démarrage comme avant elle (code 2).
+  coeur.demarrage?.catch(async (e) => {
+    process.stderr.write(`demarrage_refuse : ${e instanceof ErreurEnregistreur ? e.raison : "demarrage"} : ${e.message}\n`);
+    arret = true;
+    await otel?.arreter().catch(() => {});
+    await sdk?.arreter().catch(() => {});
+    await mcp?.arreter().catch(() => {});
+    await modele?.arreter().catch(() => {});
+    process.exit(2);
+  });
+  // Bail perdu (EX-13.6) : l'instance reste en mode dégradé « bail » ; elle ne
+  // reprend qu'après une nouvelle acquisition, donc après relecture du journal
+  // (EX-12.10) : le démon est relancé dans ce processus et redevient passif
+  // tant qu'une autre instance détient le bail (13.4 pas 8).
+  const veille = setInterval(async () => {
+    if (arret || !coeur.degrade.actif("bail")) return;
+    clearInterval(veille);
+    arret = true;
+    process.stderr.write("noortrace: bail perdu, relance en instance passive\n");
+    await otel?.arreter().catch(() => {});
+    await sdk?.arreter().catch(() => {});
+    await mcp?.arreter().catch(() => {});
+    await modele?.arreter().catch(() => {});
+    await coeur.arreter().catch(() => {});
+    await coeur.o.redaction?.fermer?.().catch?.(() => {});
+    for (const s of ["SIGTERM", "SIGINT", "SIGHUP"]) process.removeAllListeners(s);
+    lancer();
+  }, 250);
+  veille.unref?.();
   process.on("SIGHUP", async () => {
     const k = process.argv.indexOf("--config");
     try {

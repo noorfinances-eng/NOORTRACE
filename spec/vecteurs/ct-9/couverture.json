@@ -128,7 +128,15 @@
       },
       {
         "file": "test/enregistreur-coeur-vecteurs.test.js",
-        "sha256": "0d4d253e65ead31e9819cd2be7b02fcb991a7f71331cb32f6647fe8307254fa1"
+        "sha256": "b29bd972e560b9224271f8317d3778f69a89e5dddcfb59dd576f11e42141cd1f"
+      },
+      {
+        "file": "test/enregistreur-ha-exigences.test.js",
+        "sha256": "4c526a82110062d18014db9ccad6cf2bbed802f943159ff2a67b0b5b78f6292d"
+      },
+      {
+        "file": "test/enregistreur-ha-parcours.test.js",
+        "sha256": "24191e670d43c79692e45e374ae8dadb1ec2e9b0686f28ddecc7ec11fc8514e2"
       },
       {
         "file": "test/enregistreur-mcp-exigences.test.js",
@@ -137,6 +145,10 @@
       {
         "file": "test/enregistreur-mcp-parcours.test.js",
         "sha256": "0db5dc0311b52fc04dc0f94cc635977c9d86108691099a8e92914084012b56f6"
+      },
+      {
+        "file": "test/enregistreur-mcp-tls.test.js",
+        "sha256": "fe85ba489d0eb21b5723f1edb9e776c5bc23fea706482f918f5d6fa287274f03"
       },
       {
         "file": "test/enregistreur-mcp-vecteurs.test.js",
@@ -171,6 +183,14 @@
         "sha256": "c6c7aeefa6e66409b40910204d8d3d79107625951f6189357b8634f87a712ac5"
       },
       {
+        "file": "test/enregistreur-otel-exigences.test.js",
+        "sha256": "4bfc12d1d728812bf2821c748a7766d6f39d83a16e9ada7a96f3f25ffb77aa2f"
+      },
+      {
+        "file": "test/enregistreur-otel-vecteurs.test.js",
+        "sha256": "d1a010c28769aba30762dbef7ab04927f9ed35e2b0e08ff43a94a472f8914668"
+      },
+      {
         "file": "test/enregistreur-politique-exigences.test.js",
         "sha256": "174ad8b760304e6dce42069a74a2279430af26581be49029934ef8be94651bb9"
       },
@@ -193,6 +213,42 @@
       {
         "file": "test/enregistreur-redaction.test.js",
         "sha256": "f12d60ab7a7be1299829f60f0f5251dc738db4df7a1ca01b5206c4e712ff6472"
+      },
+      {
+        "file": "test/enregistreur-sdk-client.test.js",
+        "sha256": "8dfb78538c6c1af25c0da7e06cc925b748dfe8e0f1c93ba887bc8dfdb5a09d97"
+      },
+      {
+        "file": "test/enregistreur-sdk-exigences.test.js",
+        "sha256": "be129133cac439d44b8da31d32d0b8c1ce3903ed18ab7524e126892c7af3a8fa"
+      },
+      {
+        "file": "test/enregistreur-sdk-parcours.test.js",
+        "sha256": "b32fffd742b72c129ec96096541942fcd16485cb55320e3fcec01d6f613ef845"
+      },
+      {
+        "file": "test/enregistreur-sdk-vecteurs.test.js",
+        "sha256": "9241efbaa2bf4d365d23ad42a3df5691ed9cfc36865f5fcf184f33411c72a943"
+      },
+      {
+        "file": "test/enregistreur-worm-attributs.test.js",
+        "sha256": "a7790139288d143f9282785333c08c65e17e5af080c1ac92d8111f62600efde2"
+      },
+      {
+        "file": "test/enregistreur-worm-exigences.test.js",
+        "sha256": "2f912d254a3c861ec640231d10a42ef9567bba8a519587ff61a6c2bb2398e31b"
+      },
+      {
+        "file": "test/enregistreur-worm-iam.test.js",
+        "sha256": "ee373e3b404ffdeb8efb1970cd660e39ad508728661de107b71ebf1f6a0c8848"
+      },
+      {
+        "file": "test/enregistreur-worm-restauration.test.js",
+        "sha256": "ce6603fe0fc49a9923c3865c36557c21148224e219fad0b0838cd229f31571b9"
+      },
+      {
+        "file": "test/enregistreur-worm-vecteurs.test.js",
+        "sha256": "81b0d1b86dd353e493c92b0ddc1a217dbc4c6a25a296e6ff39958f0206fca711"
       },
       {
         "file": "test/enregistreur.test.js",

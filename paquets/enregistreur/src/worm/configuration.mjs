@@ -1,0 +1,46 @@
+// Règles de configuration du support WORM que le cœur ne vérifie pas encore
+// (EX-15.4 pas 3) et fabrique du service de copies du démon.
+
+import { jcsIntegralOctets } from "../jcs-integral.mjs";
+import { parcourirSecrets } from "../configuration.mjs";
+import { operationsSupport } from "./support.mjs";
+import { ServiceCopiesWorm } from "./copies.mjs";
+
+const texte = (v) => Buffer.from(jcsIntegralOctets(v)).toString("utf8");
+
+/**
+ * Règle supplémentaire du pas 3 d'EX-15.4 : avertissement si
+ * `storage.seal.worm.credentials` est la même référence qu'un autre secret de
+ * la configuration.
+ * @param {object} c document
+ * @returns {{erreurs: object[], avertissements: object[]}}
+ */
+export function controleWorm(c) {
+  const avertissements = [];
+  const worm = c.storage?.seal?.worm;
+  if (worm?.credentials) {
+    const cible = texte(worm.credentials);
+    parcourirSecrets(c, "", (ref, pointeur) => {
+      if (pointeur !== "/storage/seal/worm/credentials" && texte(ref) === cible) {
+        avertissements.push({ pointeur: "/storage/seal/worm/credentials", regle: `même référence que ${pointeur} (EX-15.4)` });
+      }
+    });
+  }
+  return { erreurs: [], avertissements };
+}
+
+/**
+ * Service de copies de l'écrivain pour `storage.seal.worm`, ou null sans
+ * support ; identifiants de l'écrivain résolus (`/storage/seal/worm/credentials`).
+ * @param {object} config
+ * @param {Map<string, Uint8Array>} secrets
+ * @param {{tls?: object, delais?: number[]}} [o]
+ * @returns {ServiceCopiesWorm|null}
+ */
+export function supportWormDepuisConfiguration(config, secrets, o = {}) {
+  const worm = config.storage.seal.worm;
+  if (!worm) return null;
+  const id = secrets.get("/storage/seal/worm/credentials");
+  if (!id) throw new Error("identifiants du support WORM non résolus");
+  return new ServiceCopiesWorm({ worm, operations: operationsSupport(worm, id, o) });
+}

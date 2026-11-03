@@ -22,6 +22,7 @@ import { construireEtSignerManifeste, debutPeriode, nomsManifeste, octetsJsonLis
 import { corpsPointDeControle, instantAligne, ligneSerie, nomSerie, signerPointDeControle } from "./points.mjs";
 import { remiseCloture, remisePoint } from "./ancrage.mjs";
 import { cleObjetWorm } from "./worm.mjs";
+import { verifierEpoqueOuverture } from "./ha/cloture.mjs";
 
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -120,6 +121,8 @@ export class Ecrivain {
       this._copierWorm(`segments/${etat.dernierSegment}`, "segment");
     }
     await this._ouvrirSegment(this.lastSeq + 1);
+    // EX-13.5 (1) : aucun fichier d'intention sous une époque supérieure présente (lot HA).
+    await verifierEpoqueOuverture(this.repertoire, "intentions", epoque);
     this.intentions = await FichierAjout.ouvrir(path.join(this.repertoire, "intentions", nomFichierIntentions(epoque)), {
       creer: true,
       existantAdmis: true,

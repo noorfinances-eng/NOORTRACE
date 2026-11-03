@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+// noortrace-attributs (CT-2 EX-12.18, CT-8 EX-3.9) : voir src/worm/attributs.mjs.
+import { principalAttributs } from "../src/worm/attributs.mjs";
+
+principalAttributs(process.argv.slice(2)).then(
+  (code) => {
+    process.exitCode = code;
+  },
+  (e) => {
+    process.stderr.write(`noortrace-attributs : ${e?.message ?? e}\n`);
+    process.exitCode = 1;
+  },
+);

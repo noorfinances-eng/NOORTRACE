@@ -9,9 +9,14 @@
 // Identité (EX-4.39) : sur une prise Unix, il répond au défi du démon par un
 // fichier créé en exclusion dans le répertoire de la prise ; sur une prise
 // TCP, sa première ligne porte le jeton statique, lu dans une variable
-// d'environnement (jamais sur la ligne de commande).
+// d'environnement (jamais sur la ligne de commande), sur TCP nu ou sur TLS ;
+// en mTLS, il présente son certificat client et n'envoie pas de jeton. CT-2
+// ne décrit pas la configuration TLS du connecteur : elle vient de
+// l'environnement, sous les noms du SDK (EX-6.10) préfixés du connecteur,
+// chemins de fichiers et non valeurs (LISEZMOI, lecture 135).
 
 import net from "node:net";
+import tls from "node:tls";
 import fs from "node:fs";
 import path from "node:path";
 import { DecoupeurLignes, PREFIXE_DEFI } from "./hote-stdio.mjs";
@@ -20,7 +25,10 @@ const ERREUR_CR = '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"
 
 /**
  * Exécute le connecteur.
+ * `tls` : sur une prise TCP, connexion TLS vérifiée contre `ca` (à défaut,
+ * les autorités du système) ; avec `cert` et `key`, mTLS sans ligne de jeton.
  * @param {{socket?: string, tcp?: {hote: string, port: number}, jeton?: string|null,
+ *   tls?: {ca?: Buffer, cert?: Buffer, key?: Buffer}|null,
  *   entree?: NodeJS.ReadableStream, sortie?: NodeJS.WritableStream, erreur?: NodeJS.WritableStream,
  *   ligneMax?: number}} o
  * @returns {Promise<number>} code de retour
@@ -31,7 +39,13 @@ export function executerConnecteur(o) {
   const erreur = o.erreur ?? process.stderr;
   const ligneMax = o.ligneMax ?? 16842752;
   return new Promise((resoudre) => {
-    const c = o.socket ? net.createConnection(o.socket) : net.createConnection(o.tcp.port, o.tcp.hote);
+    const avecTls = !o.socket && o.tls;
+    const mtls = Boolean(avecTls && o.tls.cert && o.tls.key);
+    const c = o.socket
+      ? net.createConnection(o.socket)
+      : avecTls
+        ? tls.connect({ host: o.tcp.hote, port: o.tcp.port, ca: o.tls.ca, cert: o.tls.cert, key: o.tls.key, minVersion: "TLSv1.2", servername: net.isIP(o.tcp.hote) ? undefined : o.tcp.hote })
+        : net.createConnection(o.tcp.port, o.tcp.hote);
     let identifie = false;
     let fin = false;
     const terminer = (code) => {
@@ -95,15 +109,18 @@ export function executerConnecteur(o) {
       sortie.write(Buffer.concat([l, Buffer.from("\n")]));
     }, () => {});
     c.on("data", (x) => d.pousser(x));
-    c.on("connect", () => {
-      if (o.tcp) c.write(JSON.stringify({ noortrace_token: o.jeton ?? "" }) + "\n");
+    // Prise TCP : première ligne {"noortrace_token": …}, sauf en mTLS (EX-4.39, lecture 135).
+    c.on(avecTls ? "secureConnect" : "connect", () => {
+      if (o.tcp && !mtls) c.write(JSON.stringify({ noortrace_token: o.jeton ?? "" }) + "\n");
     });
   });
 }
 
 /**
  * Ligne de commande : `noortrace-connecteur --socket <chemin>` ou
- * `noortrace-connecteur --tcp <hôte:port>` (jeton dans NOORTRACE_CONNECTEUR_JETON).
+ * `noortrace-connecteur --tcp <hôte:port>` (jeton dans NOORTRACE_CONNECTEUR_JETON ;
+ * TLS par NOORTRACE_CONNECTEUR_TLS_CA, et mTLS par NOORTRACE_CONNECTEUR_TLS_CERT
+ * et NOORTRACE_CONNECTEUR_TLS_KEY, chemins de fichiers PEM).
  * @param {string[]} argv
  * @param {NodeJS.ProcessEnv} [env]
  */
@@ -113,7 +130,25 @@ export async function principalConnecteur(argv, env = process.env) {
   if (k >= 0 && argv[k + 1]) return executerConnecteur({ socket: argv[k + 1] });
   if (t >= 0 && argv[t + 1]) {
     const [hote, port] = argv[t + 1].split(/:(?=[0-9]+$)/);
-    return executerConnecteur({ tcp: { hote, port: Number(port) }, jeton: env.NOORTRACE_CONNECTEUR_JETON ?? null });
+    const { NOORTRACE_CONNECTEUR_TLS_CA: ca, NOORTRACE_CONNECTEUR_TLS_CERT: cert, NOORTRACE_CONNECTEUR_TLS_KEY: key } = env;
+    let options = null;
+    if (ca || cert || key) {
+      if (Boolean(cert) !== Boolean(key)) {
+        process.stderr.write("noortrace-connecteur: mTLS exige NOORTRACE_CONNECTEUR_TLS_CERT et NOORTRACE_CONNECTEUR_TLS_KEY\n");
+        return 2;
+      }
+      try {
+        options = { ca: ca ? fs.readFileSync(ca) : undefined, cert: cert ? fs.readFileSync(cert) : undefined, key: key ? fs.readFileSync(key) : undefined };
+      } catch (e) {
+        process.stderr.write(`noortrace-connecteur: fichier TLS illisible (${e.code ?? "erreur"})\n`);
+        return 2;
+      }
+    }
+    if (!(options?.cert) && !env.NOORTRACE_CONNECTEUR_JETON) {
+      process.stderr.write("noortrace-connecteur: une prise TCP exige un jeton ou mTLS (EX-4.39)\n");
+      return 2;
+    }
+    return executerConnecteur({ tcp: { hote, port: Number(port) }, jeton: options?.cert ? null : (env.NOORTRACE_CONNECTEUR_JETON ?? null), tls: options });
   }
   process.stderr.write("usage : noortrace-connecteur --socket <chemin> | --tcp <hote:port>\n");
   return 2;

@@ -1,0 +1,28 @@
+{
+  "name": "noortrace-sdk",
+  "version": "0.1.0",
+  "description": "SDK de langage TypeScript/JavaScript de NOORTRACE (CT-2 version 0.6, 6.5) : enveloppe les méthodes noortrace/sdk/* du démon noortrace sans en changer la sémantique (connexion, erreurs, reprise, ce qui bloque et ce qui ne bloque jamais l'agent).",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.mjs"
+    },
+    "./adaptateurs": {
+      "types": "./src/adaptateurs.d.ts",
+      "default": "./src/adaptateurs.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./src/index.d.ts",
+  "files": [
+    "src",
+    "LISEZMOI.md",
+    "INTERFACES.md"
+  ]
+}

@@ -11,7 +11,9 @@
   "bin": {
     "noortrace": "bin/noortrace",
     "noortrace-connecteur": "bin/noortrace-connecteur",
-    "noortrace-miroir": "bin/noortrace-miroir"
+    "noortrace-miroir": "bin/noortrace-miroir",
+    "noortrace-ctl": "bin/noortrace-ctl",
+    "noortrace-attributs": "bin/noortrace-attributs"
   },
   "exports": {
     ".": "./src/index.mjs",

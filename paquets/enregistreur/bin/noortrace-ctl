@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+// noortrace-ctl (CT-2 §12.11, EX-12.36, EX-17.6) : voir src/worm/ctl.mjs.
+import { principalCtl } from "../src/worm/ctl.mjs";
+
+principalCtl(process.argv.slice(2)).then(
+  (code) => {
+    process.exitCode = code;
+  },
+  (e) => {
+    process.stderr.write(`noortrace-ctl : ${e?.message ?? e}\n`);
+    process.exitCode = 1;
+  },
+);

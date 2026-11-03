@@ -10,6 +10,7 @@ export * from "./delegation.mjs";
 export * from "./amont.mjs";
 export * from "./frontal.mjs";
 export * from "./hote-stdio.mjs";
+export * from "./prise-tcp.mjs";
 export * from "./hote-http.mjs";
 export * from "./connecteur.mjs";
 export * from "./demon.mjs";

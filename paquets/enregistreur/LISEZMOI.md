@@ -14,12 +14,15 @@ tout ce qu'elle fait (JCS v0, hachage, Ed25519, EIP-191, événement, rotation,
 Merkle, manifeste, point de contrôle, dossier, schémas de CT-1) et ne le
 réécrit pas. Les vecteurs de `spec/vecteurs/ct-2` et l'annexe A sont le juge.
 
-Les frontaux SDK et OpenTelemetry, le WORM, la haute disponibilité et
-l'ancrage sont des lots suivants : [INTERFACES.md](INTERFACES.md) est leur
-contrat. La rédaction avant hachage (§10), le frontal MCP (§4), le moteur
-de politique (§7.5, 14.2, 14.6) et le frontal modèle (§5) sont faits
-(sections « Rédaction avant hachage », « Frontal MCP », « Moteur de
-politique » et « Frontal modèle » ci-dessous).
+L'ancrage, le SDK Python et les adaptateurs de cadres sont des lots
+suivants : [INTERFACES.md](INTERFACES.md) est leur contrat. La rédaction avant
+hachage (§10), le frontal MCP (§4), le moteur de politique (§7.5, 14.2, 14.6),
+le frontal modèle (§5), le WORM, le gel juridique et la haute disponibilité
+(§12.6, §12.11, §13), le point d'entrée SDK, le SDK JavaScript et l'ingestion
+OpenTelemetry (§6) sont faits (sections « Rédaction avant hachage »,
+« Frontal MCP », « Moteur de politique », « Frontal modèle », « WORM, gel
+juridique et haute disponibilité » et « SDK et ingestion OpenTelemetry »
+ci-dessous).
 
 ## Ce que fait le cœur
 
@@ -340,11 +343,182 @@ passe par `coeur.ecrirePiece` et `coeur.scellerEchange`.
   `noortrace_upstream_errors_total`, `noortrace_relay_latency_ms` ; jamais
   un corps, un prompt, un jeton ou une clé.
 
+## WORM, gel juridique et haute disponibilité (§12.6, §12.11, §13)
+
+Lot « WORM et haute disponibilité » (INTERFACES.md, section f) : `src/worm/`,
+`src/ha/`, `bin/noortrace-ctl`, `bin/noortrace-attributs`.
+
+- **Requêtes exactes** (EX-12.39) : encodage RFC 3986 octet par octet,
+  en-têtes triés, corps XML de S3 et `Content-MD5` (RFC 1864), Azure
+  (`x-ms-version: 2020-06-12`) et GCS (JSON en JCS intégral), sans réseau.
+- **Couche d'accès S3** écrite sur `node:crypto` (SigV4, contrôlée sur les
+  exemples publiés par AWS) ; adresse « virtual-hosted » sans `endpoint`,
+  « path » avec (lecture 81) ; délai de 10 s ; essais d'EX-12.40.
+- **Copies de l'écrivain** (EX-12.16) : chaque segment fermé (par taille, à
+  la frontière de période, ou par sa seule existence à la reprise), chaque
+  manifeste, signature et série des points d'une période close, les
+  fichiers d'ancres et, avec `copy_pieces`, les pièces référencées ; clé
+  `<prefix>` + chemin de 12.1 ; `PUT` conditionnel à l'absence avec
+  `Content-MD5`, sans rétention (EX-12.30), gel à l'écriture avec
+  `legal_hold_on_write` (EX-12.31) ; jamais sous `<prefix>gels/` (EX-12.32) ;
+  segment d'époque inférieure au dernier scellé refusé (EX-13.5 (2)) ;
+  contrôle du verrou de la version écrite (EX-12.33) ; registre des copies
+  `worm/copies-<epoch>.ndjson` (EX-12.29) ; échec consigné
+  (`worm_copy_failed`), jamais bloquant, réessayé par le balayage.
+- **Supervision** (EX-17.5 à EX-17.7) : contrôles horaires (manifeste,
+  signature, continuité, SHA-256 de chaque copie de l'heure, signataire),
+  quotidiens (relecture complète des segments copiés dans la journée,
+  rétention par défaut du support, registre des gels et état `on` des
+  versions des gels actifs), relevé de verrouillage tous les
+  `lock_audit_interval_days` jours (versions inattendues, marqueurs,
+  versions sans ligne au registre inscrites) ; lignes `integrity_check`,
+  `worm_lock_check`, `worm_lock_config_check`, `worm_lock_audit`,
+  `worm_versions_unexpected`, `worm_legal_hold_observed` ; métriques
+  `noortrace_worm_*` et `noortrace_integrity_check_failures_total`.
+- **Gel juridique** (12.11) : `noortrace-ctl worm gel poser`,
+  `demander-levee`, `lever`, `reprendre`, `etat`, hors du démon, avec les
+  identifiants de l'exploitant (refus de ceux de l'écrivain, code 2) ;
+  périmètre (EX-12.35), registre des gels écrit sur le support par
+  écriture conditionnelle avant et après les requêtes (EX-12.37), règle de
+  garde des deux personnes vérifiée sur le registre relu avant toute
+  requête de levée (EX-12.38), versions couvertes par un autre gel actif
+  laissées gelées (`results.kept`, EX-12.40), relecture après chaque
+  requête, codes de sortie 0 à 4, lignes `worm_legal_hold_*` sans identité
+  d'exploitant. `noortrace-ctl worm releve` : relevé à la demande (EX-17.6).
+- **Reconstruction depuis les copies** (EX-12.17, CT-8 §11.4 chemin B,
+  EX-10.14) : `noortrace-ctl worm reconstruire` liste les versions sous
+  `<prefix>` (EX-17.6 pas 1), relit la version inscrite au registre des
+  copies (`--registre-copies`, archive du chemin A) ou, sans registre, la
+  version unique de chaque clé, contrôle le SHA-256 et la longueur de
+  chaque objet relu contre le registre, écrit dans un répertoire neuf
+  (jamais sur l'original), recrée `journal.json`, vérifie la chaîne
+  (continuité des `seq`, `prev_hash`, en-têtes, époques, manifestes
+  recalculés) et liste les fichiers perdus (intentions, attente,
+  approbations, pièces sans `copy_pieces`) ; tout incident (copie absente,
+  altérée, plusieurs versions sans registre, segment manquant) : rien n'est
+  écrit, code 1 (`worm_restore_refused`). Le démon reprend ensuite sur ce
+  répertoire avec une époque plus grande (13.4). `noortrace-ctl worm
+  restaurer <clé> --version <id>` relit une version, compare son SHA-256 au
+  registre et l'écrit dans un répertoire neuf (EX-10.14).
+- **Compagnon des attributs** (EX-12.18, CT-8 EX-3.9) :
+  `bin/noortrace-attributs --racine <storage.root> [--intervalle-s <1 à
+  60>]`, processus distinct du démon, sous le compte 0 avec
+  `CAP_LINUX_IMMUTABLE` : `a` sur le segment courant et le journal
+  d'intention, `i` sur chaque segment fermé et chaque manifeste (et sa
+  signature), à chaque passage ; un segment fermé d'époque inférieure au
+  dernier scellé n'est pas scellé (EX-13.5 (2)) ; `noortrace-attributs
+  sonde` pour la santé du service (CT-8). Le démon garde son descripteur
+  ouvert ; un fichier d'intention levé qu'il ne peut plus supprimer
+  (attribut `a`) est gardé et consigné (`intention_file_kept`).
+- **Magasins de bail** (13.2) : `postgresql` (protocole écrit sur
+  `node:net`/`node:tls` : SCRAM-SHA-256, MD5, TLS ; requête étendue à
+  paramètres, jamais d'interpolation), `etcd` v3 (passerelle JSON) ;
+  validité sur l'horloge monotone (EX-13.3), fil de renouvellement, perte
+  consignée (`lease_lost`) et mode dégradé « bail » (EX-13.6), vérification
+  après fdatasync (EX-13.10 (2), `lease_lost_after_write`).
+- **Bascule** (13.4) : clé du MAC de relais comparée avant toute
+  acquisition (`relay_mac_key_mismatch`) ; instance passive
+  (`lease_standby`, santé `standby`, `-31010 bail_non_detenu`, aucun échange
+  avec le service d'approbation), nouvel essai toutes les `renew_ms` ;
+  prise du bail avec une époque plus grande, relecture, reprise des
+  intentions ; taille des fichiers d'époque inférieure consignée
+  (`lease_predecessor_files`) et fourche signalée (`journal_fork`,
+  EX-13.10 (3)) ; fichiers d'intention et d'attente refusés sous une époque
+  supérieure (EX-13.5 (1)) ; un démon qui perd son bail se relance et
+  redevient passif (13.4 pas 8).
+
+## SDK et ingestion OpenTelemetry (§6)
+
+Lot « SDK et OpenTelemetry » (INTERFACES.md, section c) : `src/sdk/`,
+`src/otel/`, et le SDK JavaScript `noortrace-sdk` (`paquets/sdk-js/`, son
+LISEZMOI). Les deux chemins sont **déclaratifs** (6.1, 6.7) : ils ne voient
+rien passer sur le réseau ; le démon n'en scelle que ce que le processus de
+l'agent déclare, marqué comme tel dans l'événement.
+
+- **Point d'entrée SDK** (6.2, EX-6.1) : prise Unix `sdk.socket` (mode 0660,
+  utilisateur du pair lu comme pour le connecteur stdio, lecture 31) ou prise
+  TCP `sdk.tcp_listen` (jeton statique en première ligne, sur TLS si `tls`
+  est posé ; ou mTLS : certificat client de l'autorité qui suit le
+  certificat du démon dans `tls.cert_file`, rattaché par son nom commun à
+  `match.peer_user`, lecture 113) ; une ligne JSON-RPC
+  par message (4.7.1) ; entrée de `sdk.hosts` de l'identité, délégation et
+  groupe d'hôte de la configuration, `run_id` et `on_behalf_of` déclarés et
+  bornés (EX-7.2) ; sessions liées à leur connexion, identifiants jamais
+  réutilisés.
+- **Méthodes `noortrace/sdk/*`** : `ouvrir` ; `declarerContexte` (pièce de
+  contexte rédigée, portée `contexte`, citée par son `sha256` dans la même
+  session seulement) ; `debutAppel` (pas 2 à 8 de 4.4 : validation
+  d'EX-6.6 par -32602 sans pièce ni événement, nom `<alias>__<tool>`, classe
+  de la table de 6.2, corrélation de 5.6 pour `code.model` et
+  `code.prompt_version`, `intent` déclaré rédigé, politique par le moteur de
+  politique, table d'EX-6.7 — refus, retenue, en attente, approuvé avec RL-1 à
+  RL-4 —, pièce « arguments », effets déclarés rédigés, intention durable
+  avant la réponse pour une écriture ou un ticket approuvé) ; `finAppel`
+  (pièce « résultat », événement durable avant `{ seq, hash }`, `-31017` après
+  une panne) ; `echangeModele` (formats v0, `gemini` d'EX-6.8 et `autre`,
+  pièce de déclaration de source en `context[0]`, échange déclaré inscrit au
+  registre de corrélation) ; `fermer`.
+- **Reprise** (EX-12.15, EX-6.13) : une session fermée ou dont la connexion
+  est perdue, le démon tournant, donne l'événement de reprise de chaque
+  `debutAppel` resté ouvert qui a écrit une intention (à chaud, par le cœur) ;
+  le démon arrêté, la relecture du journal d'intention le fait au démarrage.
+- **Pannes et observation** (14.2, 14.5, 14.6) : matrice de 14.2 pour le SDK
+  (écriture bloquée, lecture passante en mode « stockage », événement en
+  attente) ; mode observation : rien ne bloque un appel, marque
+  ` [observation …]`, `observation_would_block`.
+- **Ingestion OpenTelemetry** (6.8) : OTLP/HTTP sur `otel.listen` (`POST` sur
+  `otel.path`, TLS avec `otel.tls`), ordre des décisions d'EX-6.27, gzip
+  borné avant allocation, quotas de la source et bornes propres
+  (`spans_per_request`, `events_per_minute`, `event_bytes_per_minute`,
+  `min_free_bytes`) ; décodage JSON (nombres lus sur leur texte) et protobuf
+  (écrit à neuf sur l'encodage proto3, refus des formes ambiguës) vers une
+  même représentation ; forme normalisée d'EX-6.31 ; classification ;
+  doublons (fenêtre, 1 000 000 de clés, conflits) et recouvrement avec le
+  frontal MCP, le frontal modèle et le SDK (registre nourri par les
+  scellements du cœur) ; pièces d'EX-6.35 (déclaration de source, requête,
+  réponse, prompt système, intention, arguments, résultat, enveloppe rédigée
+  sur ses seuls membres textuels, bornes de taille et de temps) ; événement
+  d'EX-6.36 remis à l'écrivain après les événements des autres frontaux ;
+  réponse `200` (ou succès partiel) quand tous sont durables ; `503` sans
+  événement en attente pendant un mode dégradé (EX-6.39).
+- **Configuration** (EX-15.4 pas 3) : `controleSdk` (alias du SDK, `policy.sdk`,
+  EX-6.24) et `controleOtel` (sources, jetons, alias, `policy.otel`, TLS hors
+  bouclage en production, avertissements d'EX-6.34 et d'EX-6.27).
+- **Journal d'exploitation et métriques** (EX-17.2, EX-6.41) : composant `sdk`
+  (`sdk_listening`, `sdk_connected`, `sdk_session_opened`, `sdk_session_closed`,
+  `sdk_call_started`, `sdk_call_finished`, `sdk_exchange_declared`,
+  `sdk_effects_declared`, `sdk_member_removed`, `sdk_input_refused`,
+  `sdk_class_override_refused`, `sdk_recovery_deferred`, `call_blocked`,
+  `call_passthrough_pending`, `delegation_refused`, `auth_failed`) ; composant
+  `otel` (`otel_listening`, `otel_request`, `otel_refused`,
+  `otel_span_rejected`, `otel_span_overlap`, `otel_span_conflict`,
+  `otel_piece_too_large`, `otel_cle_double`, `otel_dedup_evicted`,
+  `delegation_refused`, `auth_failed`) ; `noortrace_relay_latency_ms{path="sdk"}`,
+  `noortrace_otel_requests_total`, `noortrace_otel_spans_total`,
+  `noortrace_otel_conflicts_total`, `noortrace_otel_reception_lag_ms` ; jamais
+  un argument, un contenu de span ni un jeton.
+
 ## Démarrer le démon
 
 ```sh
 noortrace validate-config configuration.json    # pas 1 à 3 d'EX-15.4 ; code 0 ou 2
 noortrace --config configuration.json           # démarre ; SIGTERM, SIGINT : arrêt propre ; SIGHUP : rechargement
+```
+
+Avec un magasin de bail `postgresql` ou `etcd` détenu par une autre instance,
+le démon démarre en instance passive (`standby`) et prend le bail dès qu'il
+est libre (13.4). Le gel juridique et le relevé à la demande :
+
+```sh
+noortrace-ctl worm gel poser --configuration configuration.json --identifiants '{"file":"/run/secrets/gardien-pose"}' --identite j.dupont --de 1794304800 --a 1794304800 --motif "Litige LT-0042"
+noortrace-ctl worm gel demander-levee --configuration configuration.json --identifiants '{"file":"/run/secrets/gardien-pose"}' --identite j.dupont --gel <gel_id> --motif "Litige clos"
+noortrace-ctl worm gel lever --configuration configuration.json --identifiants '{"file":"/run/secrets/gardien-levee"}' --identite m.keller --gel <gel_id> --demande <empreinte>
+noortrace-ctl worm gel etat --configuration configuration.json --identifiants '{"file":"/run/secrets/lecteur"}' --gel <gel_id>
+noortrace-ctl worm releve --configuration configuration.json
+noortrace-ctl worm reconstruire --configuration configuration.json --vers /var/lib/noortrace-restaure --registre-copies /sauvegarde/worm
+noortrace-ctl worm restaurer <clé d'objet> --version <version_id> --configuration configuration.json --vers /var/lib/noortrace-version
+noortrace-attributs --racine /var/lib/noortrace --intervalle-s 60     # compte 0, CAP_LINUX_IMMUTABLE (EX-3.9 de CT-8)
+noortrace-attributs sonde                                             # code 0 si le dernier passage a réussi et est récent
 ```
 
 Avec `mcp.enabled`, le démon démarre ensuite le frontal MCP : serveurs
@@ -355,6 +529,12 @@ L'hôte lance le connecteur comme serveur MCP stdio (19.5.1) :
 ```sh
 noortrace-connecteur --socket /run/noortrace/mcp.sock
 ```
+
+Sur la prise TCP `mcp.connector_tcp` : `noortrace-connecteur --tcp
+127.0.0.1:<port>`, avec `NOORTRACE_CONNECTEUR_JETON` (jeton, sur TLS si
+`NOORTRACE_CONNECTEUR_TLS_CA` est posé), ou en mTLS
+`NOORTRACE_CONNECTEUR_TLS_CA`, `NOORTRACE_CONNECTEUR_TLS_CERT` et
+`NOORTRACE_CONNECTEUR_TLS_KEY` (lectures 134 et 135).
 
 Avec `model.mode: "passerelle"`, le démon écoute aussi sur `model.listen` :
 l'hôte y pose l'URL de base de son SDK (`ANTHROPIC_BASE_URL`,
@@ -375,6 +555,16 @@ d'exploitation (`model_gateway_listening`, `model_icap_listening`,
 MCP. Un frontal qui ne peut pas écouter (adresse prise, certificat
 illisible) empêche le démarrage : `demarrage_refuse : frontal_modele :
 <cause>`, code 2.
+
+Avec `sdk.enabled`, le démon écoute sur la prise `sdk.socket` (ou
+`sdk.tcp_listen`) les méthodes `noortrace/sdk/*` ; un agent Node.js y parle
+par `noortrace-sdk` (`NOORTRACE_SDK_SOCKET`). Avec `otel.enabled`, il sert
+OTLP/HTTP sur `otel.listen` ; l'exportateur de l'agent y est dirigé par
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces` et
+`OTEL_EXPORTER_OTLP_TRACES_HEADERS=x-noortrace-token=<jeton de la source>`
+(6.8.15). Les adresses effectives sont consignées (`sdk_listening`,
+`otel_listening`) ; une prise ou une adresse impossible empêche le
+démarrage : `demarrage_refuse : sdk` ou `demarrage_refuse : otel`, code 2.
 
 Une configuration invalide n'est jamais servie : une ligne par erreur sur
 stderr (`config_invalid : <pointeur JSON> : <règle> ; valeur : <valeur>`, sans
@@ -406,7 +596,11 @@ du signataire, classe D en production, `verify_after_sign`, alias
 lease.ttl_ms / 2`, `fencing` en production, rétention et WORM (EX-12.19,
 EX-12.30, EX-12.31), clé de chaîne de classe D en production, gabarits
 d'effets, chemins des routes, jetons statiques, `otel`, mode `retenir`, mode
-observation (EX-15.8), approbateurs de test.
+observation (EX-15.8), approbateurs de test. Le lot WORM ajoute
+`controleWorm` (avertissement si `storage.seal.worm.credentials` est la même
+référence qu'un autre secret) et lit `storage.seal.worm` en entier ; le lot
+de haute disponibilité lit `lease` en entier (`store` `file`, `postgresql`
+avec `dsn` et `table`, `etcd` avec `endpoints`, `prefix`, `tls`).
 
 ## Fichiers sur disque
 
@@ -422,8 +616,10 @@ Sous `storage.root/<org_id>/<journal_id>/` (hexadécimal sans `0x`, EX-12.1) :
 | `approbations/approbations-<epoch:20>.ndjson`, `mac-<epoch:20>.ndjson` | noyau | lignes de EX-12.23 ; ligne de contrôle du MAC en tête |
 | `manifestes/periode-<period_start:10>.json`, `.sig` | clôture | `JSON.stringify(objet, null, 2)` + `\n` |
 | `points/periode-<period_start:10>.ndjson` | points de contrôle | une ligne JCS intégral par point signé |
+| `worm/copies-<epoch:20>.ndjson` | copies WORM (lot WORM) | une ligne JCS intégral `$defs/ligne_copie` par copie contrôlée (EX-12.29) ; ajout seul, sans fdatasync propre |
 
-Hors du répertoire du journal : le verrou du bail (`lease.store.path`) et
+Hors du répertoire du journal : la table ou la clé du magasin de bail
+`postgresql` ou `etcd` (13.2), le verrou du bail `file` (`lease.store.path`) et
 son époque (`<path>.epoch`), le journal d'exploitation
 (`supervision.ops_log.path`, rotation par taille), le coffre des originaux
 s'il est activé (`storage.vault.path/<sha256 de la pièce rédigée>` : nonce
@@ -463,6 +659,7 @@ politiques, clés) se dérivent des segments à la reprise.
 | `mcp/amont.mjs` | connexions aux serveurs d'outils (stdio, Streamable HTTP) | §4.2, §4.7, EX-3.4, EX-3.5, EX-4.6 |
 | `mcp/frontal.mjs`, `mcp/messages.mjs`, `mcp/quotas.mjs`, `mcp/delegation.mjs` | sessions d'hôte, `tools/list`, `tools/call`, erreurs, quotas, délégation | §4.4, §7.2, §14.1 à §14.3 |
 | `mcp/hote-stdio.mjs`, `mcp/connecteur.mjs`, `bin/noortrace-connecteur` | prise des connecteurs, connecteur stdio | §4.7.1, EX-4.39 |
+| `mcp/prise-tcp.mjs` | prise TCP authentifiée commune (`mcp.connector_tcp`, `sdk.tcp_listen`) : TCP ou TLS avec jeton, mTLS | EX-4.39, EX-6.1, lectures 113, 134 |
 | `mcp/hote-http.mjs` | Streamable HTTP des hôtes, OAuth | §4.7.2, §4.8 |
 | `mcp/demon.mjs` | frontal dans le démon | §3.4 |
 | `politique/moteur.mjs` | décision au pas 3, matrice de 14.2 (service), modes d'attente, mode observation, boucle `decisions`, EX-15.8 | §7.5, §14.2, §14.6, CT-3 §11, §12 |
@@ -476,6 +673,27 @@ politiques, clés) se dérivent des segments à la reprise.
 | `modele/icap.mjs` | serveur ICAP et ICAPS (RFC 3507) : OPTIONS, REQMOD, RESPMOD | §5.1.2, EX-5.3 à EX-5.5, EX-14.12 |
 | `modele/miroir.mjs`, `bin/noortrace-miroir` | récepteur de la prise du miroir, adaptateur de capture | §5.1.3, EX-5.6, EX-14.12 |
 | `modele/demon.mjs` | frontal modèle dans le démon, selon le mode | §3.4, EX-5.1 |
+| `worm/requetes.mjs`, `worm/verrou.mjs`, `worm/perimetre.mjs`, `worm/garde.mjs` | requêtes exactes, contrôle du verrou, périmètre d'un gel, règle de garde, gels actifs, versions à lever (sans réseau) | EX-12.33, EX-12.35, EX-12.37 à EX-12.40, EX-17.7 |
+| `worm/s3.mjs`, `worm/xml.mjs`, `worm/bearer.mjs`, `worm/support.mjs` | couches d'accès (SigV4, jeton porteur), réponses XML de S3, opérations par support, essais | §12.6, EX-12.34, EX-12.39, EX-12.40 |
+| `worm/copies.mjs`, `worm/registre.mjs` | copies de l'écrivain (`SupportWorm`), registre des copies, pièces référencées | EX-12.16, EX-12.29 à EX-12.33, EX-13.5 (2) |
+| `worm/controles.mjs` | contrôles périodiques, relevé, lecture du registre des gels | EX-17.5 à EX-17.7 |
+| `worm/gel.mjs`, `worm/ctl.mjs`, `bin/noortrace-ctl` | outil de gel juridique, relevé à la demande | §12.11, EX-17.6 |
+| `worm/configuration.mjs` | règle `controleWorm`, fabrique du service de copies | EX-15.4 pas 3 |
+| `worm/restauration.mjs` | reconstruction du journal depuis les copies, restauration d'une version | EX-12.17, CT-8 §11.4 chemin B, EX-10.14 |
+| `worm/attributs.mjs`, `bin/noortrace-attributs` | compagnon des attributs `a` et `i`, sonde | EX-12.18, CT-8 EX-3.9 |
+| `ha/bail-reseau.mjs`, `ha/postgresql.mjs`, `ha/pg-protocole.mjs`, `ha/etcd.mjs` | magasins de bail `postgresql` et `etcd`, protocole PostgreSQL, passerelle JSON d'etcd | §13.2, EX-13.3, EX-13.4, EX-13.6, EX-13.10 (2) |
+| `ha/cloture.mjs`, `ha/index.mjs` | jeton de clôture des fichiers, clé du MAC avant le bail, fourche ; fabrique des magasins | EX-13.5 (1), EX-13.10 (3), 13.4 |
+| `sdk/validation.mjs` | paramètres des méthodes `noortrace/sdk/*`, refus -32602 | §6.2, EX-6.6 |
+| `sdk/frontal.mjs` | sessions, `ouvrir` à `fermer`, classe, corrélation, politique, pièces, intention, reprise à chaud, pannes | §6.2, §6.3, EX-6.3, EX-6.7, EX-12.15, §14 |
+| `sdk/echange.mjs` | échange de modèle déclaré (formats v0, `gemini`, `autre`) | 6.2, EX-6.8, EX-7.7 |
+| `sdk/prise.mjs`, `sdk/limiteur.mjs`, `sdk/demon.mjs` | prise Unix et TCP, identité, limitation des échecs, point d'entrée dans le démon | EX-6.1, EX-6.10, EX-18.3 |
+| `sdk/configuration.mjs` | règles du pas 3 pour `sdk` et `policy.sdk` | EX-15.4, EX-6.24 |
+| `otel/decodage-json.mjs`, `otel/decodage-protobuf.mjs` | décodage OTLP/JSON et protobuf | EX-6.29, EX-6.30 |
+| `otel/representation.mjs` | forme normalisée, classification | EX-6.31, EX-6.32 |
+| `otel/tables.mjs` | doublons, recouvrement | EX-6.33, EX-6.34 |
+| `otel/projection.mjs` | pièces et événement d'un span | EX-6.35, EX-6.36 |
+| `otel/ingestion.mjs`, `otel/reponses.mjs`, `otel/serveur.mjs` | ordre des décisions, bornes, quotas, réponses, OTLP/HTTP | EX-6.26 à EX-6.28, EX-6.37 à EX-6.41 |
+| `otel/configuration.mjs`, `otel/demon.mjs` | règles du pas 3 pour `otel`, ingestion dans le démon | EX-15.4, EX-6.40 |
 | `coeur.mjs`, `cli.mjs`, `bin/noortrace` | assemblage, démarrage, démon | §3, §15.4, §15.6 |
 
 ## Ce qui relève des lots suivants
@@ -483,10 +701,9 @@ politiques, clés) se dérivent des segments à la reprise.
 Part du frontal modèle non faite : réassemblage HTTP/2 de la copie du
 miroir (EX-5.6 : non couvert par la version 0, section 21) ; traducteurs des
 formats de copie des équipements réels vers les trames de l'adaptateur
-(lecture 79) ; entrée `echangeModele` du SDK (lot suivant, qui reprend la
-dérivation et le registre de `src/modele/`) ;
-SDK, adaptateurs et ingestion OpenTelemetry (§6) ; vrai service
-d'approbation (CT-3, paquet `@noortrace/approbation`) ; notifications de
+(lecture 79) ; SDK Python et adaptateurs de cadres (6.4, 6.6 ; le
+protocole de 6.2 et la file d'EX-6.11 (3) sont prêts) ; part du lot SDK et
+OpenTelemetry non faite : OTLP/gRPC (non servi en version 0, EX-6.26) ; notifications de
 progression pendant une rétention (EX-4.50, CT-3 EX-11.6, facultatives) ; part du
 frontal MCP non faite : relais hors chaîne de 4.5 (`resources/*`,
 `prompts/*`, `completion/complete` : `-32601`), requêtes du serveur vers le
@@ -494,14 +711,15 @@ client et `sampling` en échange de modèle (4.6, EX-4.29 : refusées par
 `-32601` côté serveur hérité, `inputRequests` non déclarées refusées par
 `-31016`), continuation MRTR d'un appel approuvé (EX-4.21 : la ré-émission
 repasse par le pas 3, échec fermé), client OAuth vers un serveur d'outils
-(EX-4.40, EX-4.42 : refusé à la connexion), mTLS et TLS de la prise TCP des
-connecteurs, `prctl(PR_SET_DUMPABLE)` (EX-3.5, sans module natif) ;
-signataires des classes A, B et C ; magasins de
-bail `postgresql` et `etcd`, attente du bail, bascule (§13) ; copies WORM,
-registre des copies, contrôle du verrou, relevé, gel juridique (§12.6,
-§12.11) ; purge des pièces (EX-12.20) ; attribut append-only (EX-12.18) ;
-ancrage (CT-5) et registre (CT-4) ; exportateur complet de CT-6 ; contrôles
-périodiques de la supervision (EX-17.5) ; démonstration (§19).
+(EX-4.40, EX-4.42 : refusé à la connexion), `prctl(PR_SET_DUMPABLE)` (EX-3.5, sans module natif) ;
+signataires des classes A, B et C ; purge des pièces (EX-12.20, et donc sa
+suspension pendant un gel) ; image `noortrace/attributs` du compagnon
+(étape 7 : le programme `noortrace-attributs` est prêt) ; procès-verbal
+`restauration` de CT-8 (11.9) ; part du lot WORM non faite : copie, liste des
+versions, lecture et écriture d'un objet sur Azure et Google Cloud Storage,
+que CT-2 0.5 ne fixe pas (lecture 84), et donc le gel sur ces supports
+au-delà des requêtes de gel et de lecture d'état ; ancrage (CT-5) et
+registre (CT-4) ; exportateur complet de CT-6 ; démonstration (§19).
 
 ## Lectures de passages ambigus
 
@@ -1035,6 +1253,496 @@ quotas et TLS :
     un couple sans réponse dans la copie (connexion close avant) donne un
     échange `is_error: true` dont la réponse est vide, comme une fermeture
     par l'hôte (lecture 61).
+81. **Adresse d'un support S3** (EX-12.39 : « Cible : chemin et requête
+    relatifs au service, sans hôte » ; 15.1 : `endpoint` « Origine HTTPS
+    seule, sans chemin », `null` pour Amazon S3). Lecture : la cible
+    d'EX-12.39 est envoyée telle quelle ; sans `endpoint`, à
+    `https://<bucket>.s3[.<region>].amazonaws.com` (style « virtual-hosted ») ;
+    avec `endpoint` (service compatible), au chemin `/<bucket><cible>` de
+    cette origine (style « path », servi par tous les services compatibles
+    sans DNS propre) ; `region` nulle : `us-east-1`. La signature SigV4
+    (laissée à la couche d'accès, EX-12.39, section 21) porte sur le chemin
+    réellement envoyé.
+82. **Format des identifiants d'un support** (EX-12.36 : « son contenu suit
+    le format d'identifiants du support »). Lecture : S3, objet JSON
+    `{ "access_key_id", "secret_access_key", "session_token"? }` ; Azure et
+    GCS, `{ "bearer_token" }`, un jeton porteur déjà obtenu (Entra ID,
+    OAuth 2.0), son obtention étant laissée aux outils du support (section
+    21 : « la signature des requêtes (SigV4, clé partagée, OAuth), laissée aux
+    bibliothèques des supports »).
+83. **Essais d'une requête** (EX-12.40 : « trois essais de la même requête,
+    après 1 s, 2 s puis 4 s » ; EX-12.16 : « `409 Conflict` à réessayer »).
+    Lecture : l'essai initial puis trois nouveaux essais, après 1 s, 2 s et
+    4 s, pour un support injoignable, un délai de 10 s dépassé, `500`,
+    `502`, `503`, `504` ; à la copie de l'écrivain, `409` aussi ; `403`,
+    `404`, `412` et les autres statuts ne sont pas réessayés. Une copie
+    encore en échec est reprise par le balayage de la supervision.
+84. **Azure et Google Cloud Storage : ce que le texte ne fixe pas** (12.6 :
+    les en-têtes de la réponse à l'écriture « n'ont pas été relus pour
+    cette révision et sont fixés en phase 2 (section 21) » ; EX-12.35 : la
+    liste des versions de ces supports « n'a pas été relue » ; EX-12.30 et
+    section 21 : la copie GCS passe en version 1). Lecture : seules les
+    requêtes qu'EX-12.39 fixe sont mises en œuvre pour ces supports (gel
+    d'une version, lecture de son état) ; la copie, la liste des versions,
+    la lecture et l'écriture d'un objet (registre des gels) lèvent
+    `ErreurNonFixe` au lieu d'inventer une requête : l'écrivain consigne
+    `worm_copy_failed`, et l'outil de gel s'arrête avant toute requête de
+    gel (code 4, `operation_non_fixee`). Le gel n'est donc utilisable de
+    bout en bout que sur `s3-object-lock` en version 0 de ce paquet.
+85. **Copie qui reçoit `412`** (EX-12.16 : « `412 Precondition Failed` si un
+    autre écrivain a gagné »). Un `412` vient aussi d'une copie antérieure
+    de la même instance dont la réponse a été perdue. Lecture : la version
+    courante est relue (SHA-256 au fil de l'eau) ; identique au fichier
+    local, la copie est tenue pour faite avec cette version et `copied_at`
+    = son `Last-Modified` ; différente, rien n'est réécrit et
+    `worm_copy_failed` est consigné en erreur (`objet_present_different`).
+86. **Version absente de la réponse à la copie** (EX-12.29 : `version_id`
+    « ou `null` s'il n'en rend pas » ; EX-12.33 : « `HEAD` avec
+    `versionId` »). Lecture : le contrôle lit alors la version courante
+    (`HEAD` sans `versionId`).
+87. **Échéance attendue au relevé d'une version sans ligne au registre**
+    (EX-12.33 compare à `copied_at` ; EX-17.6 pas 3 : la version « est
+    inscrite »). Lecture : `copied_at` est la date `LastModified` de la
+    liste des versions (date de création que le support emploie) ; la ligne
+    inscrite porte le SHA-256 et la longueur relus sur le support et cette
+    date, au registre de l'époque courante (démon) ou de la plus grande
+    époque présente (`noortrace-ctl worm releve`).
+88. **Gel attendu avec `legal_hold_on_write`** (EX-17.6 pas 2 : « pour toute
+    version avec `legal_hold_on_write` »). Lecture : les copies de
+    l'écrivain seulement (sous-préfixes de EX-12.32) ; les enregistrements
+    du registre des gels, écrits par les gardiens sans gel, n'en attendent
+    pas.
+89. **Cadence du relevé** (EX-17.6 : « Tous les `lock_audit_interval_days`
+    jours » ; EX-12.1 : aucun fichier d'état mutable). Lecture : l'instant du
+    dernier relevé n'est pas gardé ; un relevé est fait au premier tour de
+    la supervision après le démarrage, puis tous les
+    `lock_audit_interval_days` jours ; `noortrace_worm_last_audit_age_s`
+    en part.
+90. **`noortrace-ctl worm releve`** (EX-17.6 : « à la demande
+    (`noortrace-ctl worm releve`, consignée), le fil de supervision » ;
+    EX-18.1 : `noortrace-ctl` local, sous l'utilisateur du démon ; aucun
+    canal entre l'outil et le démon n'est fixé). Lecture : la commande
+    exécute le même relevé, avec la configuration du démon et les
+    identifiants de l'écrivain, dont elle n'emploie que les droits de
+    lecture ; ses lignes vont au journal d'exploitation
+    (`supervision.ops_log.path`, ou `--journal-exploitation`) ; sortie : la
+    synthèse JSON ; codes 0 (conforme), 1 (non-conformité ou version
+    inattendue), 2, 4 (relevé impossible).
+91. **Manifeste à plusieurs versions** (EX-12.35 pas 2 : « lire chaque
+    version […] et en prendre `first_seq` et `last_seq` »). Lecture : la
+    première version lisible dans l'ordre de la liste des versions ; toutes
+    les versions sont gelées (pas 5, `versions_multiples`).
+92. **Références prises au périmètre et par `copy_pieces`** (EX-12.35 pas 4 :
+    « toute référence `{ sha256, length, redacted }` de l'événement,
+    `code.prompt_version`, et `policy_sha256` d'un événement de
+    politique »). Lecture : une référence en ligne (avec `value`, CT-1 §5.4)
+    n'a pas de pièce stockée et n'est pas prise ; `policy_sha256` est lu dans
+    la valeur en ligne des arguments de l'événement de politique.
+93. **Fichiers d'ancres** (EX-12.27 : « le répertoire `ancres/` que CT-5 écrit
+    est copié de la même façon »). Lecture : chaque fichier présent sous
+    `ancres/` est copié une fois, sous sa clé, par le balayage horaire ; un
+    fichier modifié après sa copie n'est pas recopié (même clé, `412`,
+    `objet_present_different`). Le composant d'ancrage n'est pas encore dans
+    ce paquet.
+94. **Moment de la copie des pièces** (EX-12.16 : « les pièces, sont copiés
+    vers le support après fermeture »). Lecture : à la copie du segment qui
+    les référence, puis par le balayage pour celles qui manquent.
+95. **« Dernière » demande de levée** (EX-12.38, `demande_inconnue` :
+    « l'empreinte de la **dernière** `demande_levee` du gel »). Lecture : la
+    dernière `demande_levee` qui précède la `levee` dans la suite ; les
+    vecteurs `demande-remplacee` et `levee-en-double` y concordent.
+96. **Gel actif et « dernier enregistrement valide »** (EX-17.7). Lecture :
+    le dernier enregistrement du plus long préfixe sans erreur de garde ;
+    une `levee` qui viole la garde laisse le gel actif, ses versions
+    attendues `on`.
+97. **Levée constatée sur Azure** (EX-12.40 pas 5 : relire et exiger
+    l'état attendu ; EX-12.33 : `x-ms-legal-hold` absent → `jamais`, « This
+    header isn't returned if there's no legal hold on the blob », R13-F19).
+    Lecture : à la levée, `jamais` vaut `off`.
+98. **Arrêt sur `403` ou `501` à la première requête de gel** (table
+    d'EX-12.40 : « arrêt, rien n'a été gelé », code 4), alors que
+    l'enregistrement `pose` est déjà écrit (pas 4). Lecture : aucun
+    `pose_resultat` n'est écrit ; `reprendre` complète la pose une fois le
+    droit accordé.
+99. **Code de sortie d'`etat`** (EX-12.36 : `etat` « imprime, ne rien
+    écrire »). Lecture : 0 si la garde est respectée et chaque version attendue
+    `on` l'est ; 1 sinon (contre-vérification quotidienne du rôle Lecteur,
+    EX-17.7) ; 4 si le support est injoignable.
+100. **Enregistrement déjà présent en demande ou en levée** (table
+     d'EX-12.40 : « relire le registre, recommencer la vérification de la
+     garde, ne rien envoyer »). Lecture : un nouvel essai, après relecture et
+     garde ; un second `412` rend le code 3 (`chaine_rompue`).
+101. **Liste des objets d'un gel illisible ou d'empreinte différente** à la
+     levée, à la reprise ou à l'état (EX-12.37 : `objects` identique dans tous
+     les enregistrements). Lecture : code 3, `objets_differents`, sans
+     requête.
+102. **Instant `t_renew`** (EX-13.3 : « l'instant monotone du dernier
+     renouvellement réussi », « un renouvellement n'est tenu pour réussi qu'à
+     la réception de la réponse »). Lecture : l'instant monotone d'ENVOI de
+     la demande qui a réussi (le magasin a compté son TTL après cet envoi) :
+     la borne la plus prudente.
+103. **`acquire_wait_ms`** (EX-13.3 : « attente avant d'abandonner
+     l'acquisition au démarrage » ; 13.4 pas 1 : B « réessaie toutes les
+     `lease.renew_ms` » tant que A renouvelle). Lecture : `acquire_wait_ms`
+     borne les essais tant que le magasin est injoignable (puis démarrage
+     refusé, raison `bail`) ; un bail détenu par une autre instance donne
+     l'instance passive, qui réessaie toutes les `renew_ms` sans limite.
+104. **Instance passive et frontaux** (13.4 pas 1 : B « répond aux hôtes qui
+     la joindraient `-31010` » ; pas 7 : « B accepte les connexions
+     d'hôtes »). Lecture : les frontaux s'ouvrent pendant l'attente et
+     rendent `-31010 bail_non_detenu` (14.2) ; le pas 7 est le service
+     normal, ouvert seulement après la prise du bail ET la fin de la reprise
+     (intentions, attente, événement de politique, EX-9.8 : un appel admis
+     plus tôt aurait son intention reprise à tort) ; `/healthz` rend
+     `standby` et `/readyz` `503` jusque-là.
+105. **Bail perdu, puis reprise** (EX-13.6 : « Il ne reprend qu'après une
+     nouvelle acquisition » ; 13.4 pas 8 : « A redevient passive et relit le
+     journal avant toute nouvelle acquisition »). Lecture : le démon reste
+     en mode dégradé « bail » (bloquant), puis se relance dans le même
+     processus (frontaux et cœur arrêtés, démarrage complet) : il redevient
+     passif tant qu'une autre instance détient le bail, et relit le journal
+     (EX-12.10) après sa prochaine acquisition, comme tout démarrage.
+106. **Magasin `postgresql` : table, ligne, durée** (13.2 donne la table et
+     l'`UPDATE`, sans la création de la ligne du journal). Lecture : `CREATE
+     TABLE IF NOT EXISTS` aux colonnes de 13.2 (`epoch` à 0 par défaut) et
+     `INSERT … ON CONFLICT (name) DO NOTHING` de la ligne (`holder` et
+     `expires_at` nuls, `epoch` 0) avant l'`UPDATE` d'acquisition, qui rend
+     donc 1 la première fois ; `$ttl` = `ttl_ms` × `interval '1
+     millisecond'` ; à l'arrêt propre, `holder` est remis à nul (par détenteur
+     et époque) pour qu'une autre instance prenne le bail sans attendre le
+     TTL ; DSN en forme URI `postgresql://`, `sslmode` `disable`, `require`,
+     `verify-ca` ou `verify-full`, lu sans retrait de fin de ligne (15.2).
+107. **Magasin `etcd`** (13.2 nomme les appels gRPC `LeaseGrant`, `Txn`,
+     `LeaseKeepAlive`). Lecture : la passerelle JSON de la même API
+     (`POST /v3/lease/grant`, `/v3/kv/txn`, `/v3/lease/keepalive`,
+     `/v3/lease/revoke`) ; TTL arrondi à la seconde supérieure ; la
+     transaction de renouvellement et de vérification compare la
+     `mod_revision` de la clé à l'époque et sa valeur à l'instance ; un
+     `LeaseRevoke` à l'arrêt propre.
+108. **Clôture par le stockage** (EX-13.10 (1) : le repreneur rend le
+     stockage du prédécesseur inaccessible « par un détachement forcé du
+     volume […] ou par une réservation persistante SCSI ou NVMe » ; (3) : il
+     « consigne la taille finale »). Lecture : le démon n'a ni le droit ni le
+     moyen de détacher un volume : le moyen nommé par `lease.fencing` est
+     exécuté par l'orchestrateur (CT-8, EX-10.17), et le démon le recopie
+     dans `lease_acquired` ; les tailles sont consignées après la relecture
+     et sa troncature éventuelle (ligne `lease_predecessor_files`, nom que la
+     spécification ne fixe pas), et toute croissance ultérieure donne
+     `journal_fork`, contrôlée au tic (toutes les 10 s au plus).
+109. **Clé du MAC de relais différente** (13.4 pas 1 : « une différence est
+     une erreur de configuration (`relay_mac_key_mismatch`), et `B` ne prend
+     pas le bail » ; CT-8 EX-10.17 : « la passive est `standby` sans la
+     ligne » une fois corrigée). Lecture : pour tout magasin, avant toute
+     acquisition, sans rien tronquer (le bail n'est pas détenu) ; le démon
+     reste passif et ne prend pas le bail ; sans attente (cœur seul), le
+     démarrage est refusé, code 2. L'avertissement `relay_mac_key_changed`
+     du cœur ne peut plus se produire.
+110. **Alerte « Gel non posé sur une version d'un gel actif »** (17.4 ;
+     EX-17.7 ne nomme pas la ligne). Lecture : `worm_lock_check`, niveau
+     `error`, `when: "registre_gels"`, raison `gel_absent` (ou
+     `gel_illisible`), avec le `gel_id`.
+
+Lectures du lot « SDK et OpenTelemetry » (§6) :
+
+111. **Classe configurée d'un outil du SDK** (table de 6.2 : « celle de la
+     configuration du démon prime ; une classe déclarée ne peut que la
+     renforcer » ; EX-6.15, EX-6.18 ; `sdk_class_override_refused`, EX-17.2).
+     Le schéma `configuration-enregistreur-v0` n'a aucun réglage de classe
+     pour un outil du SDK : une classe ne se règle que par
+     `$defs/tool_settings/class` et `$defs/tool_server/class_default`, sous
+     `policy.servers.<alias>` (`$defs/policy_set/servers`, carte des
+     serveurs d'outils), et par `$defs/otel_tool_settings` pour une source
+     OpenTelemetry ; `$defs/host_connection` (entrées de `sdk.hosts`) n'a
+     pas de membre de classe ni `tools`, `$defs/sdk_policy` n'a que
+     `aliases`, et l'alias du SDK est distinct de tout alias de serveur
+     (EX-6.6, EX-15.4). Lecture : en version 0,
+     aucune classe n'est configurée ; la classe déclarée s'applique, à
+     défaut `ecriture` ; la règle de renforcement (`classeSdk`) est écrite et
+     éprouvée seule, et `sdk_class_override_refused` ne peut être consigné
+     qu'une fois qu'une révision aura donné ce réglage.
+112. **Identité du pair sur la prise du SDK** (EX-6.1 : « identité du
+     processus pair (prise Unix) » ; EX-6.10 : le SDK « n'y reçoit jamais de
+     requête du démon »). Lecture : la preuve de la lecture 31 (défi,
+     fichier créé en exclusion, propriétaire relu), puis la ligne
+     `{"noortrace_identite":"acceptee"}`, aussi après le jeton d'une prise
+     TCP ; ces deux lignes de l'ouverture ne sont pas des requêtes JSON-RPC.
+113. **Jetons et mTLS de la prise TCP du SDK** (EX-6.1 : « par un jeton
+     statique ou mTLS (TCP, obligatoire, EX-4.39) », « lui associe l'entrée
+     de `sdk.hosts` qui correspond » ; EX-6.10 : pas de ligne de jeton « en
+     mTLS » ; table de 15.1, ligne `sdk` : « `tcp_listen` (jeton ou mTLS) » ;
+     EX-15.4 ne nomme une liste de jetons que pour `mcp.hosts` et
+     `model.hosts`). Jeton : un `match.static_token` de `sdk.hosts` désigne un
+     `id` de `mcp.http.static_tokens`, comme la prise TCP des connecteurs ;
+     avec `tls` posé, la ligne de jeton passe sur TLS. mTLS : le schéma ne
+     donne ni l'autorité des certificats clients de cette prise
+     (`$defs/tcp_listen` : `listen`, `client_auth` ∈ {`jeton`, `mtls`},
+     `tls` ; `$defs/tls_server` : `cert_file`, `key_file` seulement ; seul
+     `model.icap.client_ca` nomme une autorité cliente, pour ICAPS), ni de
+     forme de `match` pour un certificat (`$defs/host_connection/match` :
+     `peer_user`, `oauth_subject`, `static_token`, `source_addresses`) ; le
+     frontal MCP n'avait pas de mise en œuvre à reprendre (`connector_tcp`
+     suit désormais la même lecture, par le même code : lecture 134).
+     Lecture, par
+     les formes les plus proches : l'autorité admise est celle qui suit le
+     certificat du démon dans `tls.cert_file` (chaîne PEM ; sans elle, le
+     point d'entrée refuse de démarrer, et `client_auth: "mtls"` sans `tls`
+     est refusé par la validation) ; le certificat client, vérifié à la
+     poignée de main (autorité, validité), est rattaché à l'entrée dont
+     `match.peer_user` égale le nom commun (CN) de son sujet — le
+     certificat tient lieu d'identité du pair, que la description de
+     `client_auth` dit absente sur TCP, et `${peer_user}` de `launched_by`
+     en prend la valeur ; `sdk_connected` porte `transport: "mtls"`. Un
+     certificat absent, expiré, d'une autre autorité, ou sans entrée est
+     refusé (`auth_failed`, `transport: "tls"`, raison
+     `certificat:<code>` ou `hote_inconnu`) avant toute lecture.
+114. **`finAppel` d'une lecture passante, d'un appel en observation**
+     (EX-14.6 : la réponse normale ; table de 6.2 : `{ "seq", "hash" }`). Un
+     événement en attente (14.5) n'a encore ni `seq` ni `hash`. Lecture :
+     `{ "seq": null, "hash": null }`, mêmes clés que la réponse normale ; de
+     même pour un `echangeModele` mis en attente.
+115. **Quotas et fin d'appel** (EX-4.47 : refus « au pas 1 »). Refuser un
+     `finAppel` ferait perdre l'événement d'un outil déjà exécuté. Lecture :
+     les quotas de requêtes, d'octets de pièces et de temps de capture
+     s'appliquent à `ouvrir`, `declarerContexte`, `debutAppel` et
+     `echangeModele` ; jamais à `finAppel` ni à `fermer`, dont les octets
+     sont comptés.
+116. **Texte de la reprise à chaud** (EX-12.15 : « la même reprise » ;
+     EX-12.14 : `"resultat inconnu : enregistreur arrete pendant le
+     relais"`). Lecture : même construction, même pièce, même texte fixe
+     (aucune valeur nouvelle) ; `intent_recovered` porte `session_closed:
+     true`. Au seul arrêt du démon, rien n'est repris à chaud : la relecture
+     du journal d'intention le fait au démarrage (EX-6.13).
+117. **Effets d'une reprise d'un appel du SDK** (EX-12.14 pas 2 : effets
+     déclarés de la ligne contexte, « sinon pour une classe `ecriture`
+     l'effet unique par défaut » ; EX-12.15 : « la même reprise », « c'est
+     la relecture du journal d'intention qui fait le travail, pas un code
+     spécial du frontal » ; EX-12.12 : le journal d'intention ne porte pas
+     la classe, et un `debutAppel` du SDK y écrit pour une `ecriture` comme
+     pour une lecture rendue `autorise` sur ticket approuvé). Lecture : les
+     deux reprises sont une seule construction (`Coeur._partielReprise`),
+     qui tire la classe du nom d'outil de l'intention et de la
+     configuration, jamais de la session : pour un outil du SDK, aucune
+     classe configurée (lecture 111) et la déclarée n'est pas dans le
+     journal, donc « à défaut `ecriture` » (table de 6.2, `debutAppel`) ;
+     une lecture approuvée reprise, à chaud comme à froid, porte l'effet par
+     défaut (`system` = alias du SDK, `object` = nom déclaré), sauf effets
+     déclarés. 13.5 ne dit rien de contraire : seule une lecture **sans**
+     intention est perdue sans trace.
+118. **Registre de corrélation sans frontal modèle** (EX-5.22, 6.3 : le démon
+     applique 5.6 à chaque `debutAppel`). Lecture : avec `sdk.enabled` et
+     `model.mode: "desactive"`, le démon tient un registre propre aux
+     échanges déclarés, remis aussi au frontal MCP.
+119. **Échange déclaré d'un format v0 hors Gemini** (table de 6.2 :
+     « l'extraction de 5.5 s'applique » ; EX-6.8 point 4 ne vaut que pour
+     `gemini`). Lecture : la pièce « réponse » est la réponse déclarée,
+     rédigée, quel que soit `status` (l'objet `noortrace_http_error` de 5.3.1
+     pas 7 n'est pas de 5.5) ; `is_error` est le déclaré. Pour `autre`,
+     `request.model` est lu dans la requête rédigée (EX-5.19).
+120. **Échange déclaré pendant un mode dégradé** (colonne M de 14.2 : un
+     échange **relayé** par la passerelle). Lecture : bloquant (`-31010`,
+     raison de la panne), sauf en mode « stockage » avec `failure.modele:
+     "passant"` et en mode observation, où l'événement est mis en attente
+     (lecture 114).
+121. **Contexte déclaré et sélecteur d'outil** (8.2, 10.2.2 portée
+     `contexte`). L'outil qui citera le document n'est pas connu à
+     `declarerContexte`. Lecture : seules les règles de `tools: "*"`
+     s'appliquent ; un document au-delà de `limits.piece_max_bytes` est
+     refusé par `-31013` (direction `requete`).
+122. **Paramètres non prévus** (6.5 : aucun paramètre ajouté ; EX-6.6).
+     Lecture : un membre inconnu des paramètres est refusé (`-32602`,
+     `parametre_inconnu`), et, comme au pas 1 de 4.4 (EX-4.44), des
+     `arguments` dont un nombre n'est pas exactement représentable
+     (`nombre_non_representable`).
+123. **Identifiants `session` et `call`** (6.2 : chaîne ; EX-6.13 : jamais
+     réutilisé). Lecture : `s-<époque sur 20 chiffres>-<n sur 12>` et
+     `c-<époque>-<n>`, compteur propre au processus.
+124. **Retard de réception** (EX-6.41 : « `ts` de l'événement moins la fin
+     déclarée du span, en millisecondes »). Les vecteurs `otel/` (par exemple
+     `json-retard`, `gzip-json`) donnent la partie entière de l'écart exact
+     en nanosecondes. Lecture : ⌊(ts × 10^6 − fin) / 10^6⌋, 0 si négatif.
+125. **Registre de recouvrement** (EX-6.34 : « chaque appel d'outil et chaque
+     échange scellé par le frontal MCP, la passerelle ou le SDK », « ni
+     persistant, ni reconstruit au redémarrage »). Lecture : il est nourri
+     par le cœur après chaque appel durable (relais et reprise à chaud) et
+     chaque échange durable du frontal modèle (passerelle, ICAP, miroir) et
+     du SDK, y compris un appel ou un échange mis en attente (14.5) et
+     scellé plus tard, démon en marche (`viderAttente`) : il est inscrit à
+     son scellement, avec la connexion d'hôte gardée en mémoire par
+     `mettreEnAttente` ; un événement d'attente scellé au démarrage
+     (fichier d'attente d'une époque antérieure) n'y entre pas, le registre
+     n'étant pas reconstruit au redémarrage. Le modèle M d'un span venant des pièces rédigées (EX-6.36),
+     ses pièces sont calculées en mémoire avant le jugement du recouvrement,
+     et ne sont pas stockées pour un span écarté.
+126. **Pièce d'enveloppe non rédigeable** (EX-7.7 : `media_type:
+     "application/json"` ; EX-8.7 règle 3 : « sans `media_type` »). Lecture :
+     la forme `noortrace_non_redigeable` garde la règle d'EX-8.7, sans
+     `media_type`.
+127. **Membres textuels de l'enveloppe** (EX-6.35). Lecture : la projection
+     rédigée porte `name`, `trace_state`, `attributes`, `events[].name`,
+     `events[].attributes`, `status.message`, `resource.attributes`,
+     `scope.name`, `scope.version`, `scope.attributes` et `schema_url` ; les
+     `dropped_attributes_count` de la ressource restent structurels ; un
+     membre textuel supprimé par l'action `supprimer` est absent de la pièce.
+128. **Raisons du `503`** (EX-6.39). Lecture : stockage, clé, bail perdu ou
+     non détenu, horloge, et « attente » (une file d'attente au-delà de ses
+     bornes, que l'ingestion ne doit pas dépasser), plus `volume_ingestion`
+     (EX-6.28) ; « approbation » est sans effet.
+129. **Quotas d'une source** (EX-6.28). Lecture : jugés au pas (d) avec les
+     octets déjà reçus ; une requête compte comme en cours une fois son
+     corps reçu, jusqu'à sa réponse ; ses octets reçus sont ajoutés une fois
+     lus, refusée comprise.
+130. **Limitation des échecs d'authentification** (EX-6.37, EX-18.3).
+     Lecture : par identifiant de jeton présenté et par connexion HTTP
+     (`keep-alive`) ; la métrique `noortrace_otel_requests_total` d'une
+     requête non authentifiée porte `source=""`.
+131. **Priorité des frontaux interposés** (EX-6.28). Lecture : un événement
+     de span attend qu'aucun événement d'un autre frontal ne soit en file de
+     l'écrivain ; un lot déjà pris par l'écrivain n'attend plus.
+132. **Entiers 32 bits et énumérations** (EX-6.29, EX-6.30 ; « dans les bornes
+     du type »). Lecture : `kind` et `status.code` sont des `int32`
+     (énumération ouverte) ; en protobuf, un varint d'énumération est lu en
+     complément à deux sur 64 bits, puis borné à `int32` ; un compte `uint32`
+     au-delà de 2^32 − 1 est refusé (`400`).
+133. **TLS de `otel.tls`** (EX-6.40, sans version). Lecture : plancher TLS
+     1.2, comme `model.tls` (lecture 74).
+
+Lectures du complément « prise TCP des connecteurs en TLS et mTLS » (§4.7.1,
+EX-4.39 ; table de 15.1, ligne `mcp` : « prise TCP des connecteurs
+(`connector_tcp`, jeton ou mTLS) ») :
+
+134. **mTLS et TLS de `mcp.connector_tcp`** (EX-4.39 : « Une prise TCP […]
+     DOIT exiger un jeton statique […] ou mTLS »). Le schéma a la même lacune
+     que pour `sdk.tcp_listen` : `mcp.connector_tcp` est un
+     `$defs/tcp_listen` (`listen`, `client_auth`, `tls`), `$defs/tls_server`
+     n'a que `cert_file` et `key_file`, et `$defs/host_connection/match` n'a
+     pas de forme pour un certificat. Lecture : exactement celle de la
+     lecture 113, par le même code (`src/mcp/prise-tcp.mjs`) : l'autorité
+     admise suit le certificat du démon dans `tls.cert_file` ; le certificat
+     client, vérifié à la poignée de main, est rattaché à l'entrée de
+     `mcp.hosts` dont `match.peer_user` égale son nom commun (`${peer_user}`
+     en prend la valeur) ; pas de ligne de jeton en mTLS ; le jeton passe sur
+     TLS si `tls` est posé avec `client_auth: "jeton"` ; `mtls` sans `tls`
+     est refusé par la validation (`controleConnecteurTcp`), une chaîne sans
+     autorité au démarrage ; refus consignés `auth_failed` (`transport:
+     "stdio"`, `tls: true`, raison `certificat:<code>` ou `hote_inconnu`). Une
+     identité par certificat n'est pas un « jeton porteur » d'EX-4.14 :
+     `cacheScope` suit la règle de l'identité du pair.
+135. **Configuration TLS du connecteur** (§4.7.1, EX-3.3, 19.5 : CT-2 ne dit
+     rien de la configuration TLS du connecteur ; EX-3.3 : « ni clé, ni
+     stockage, ni politique »). Lecture : la clé de EX-3.3 est la clé de
+     signature de l'enregistreur (section 11, EX-11.2 : « Le connecteur
+     stdio et le SDK n'ont aucun accès au signataire ») ; la clé d'un
+     certificat client est un identifiant de connexion, comme le jeton.
+     Comme le jeton (`NOORTRACE_CONNECTEUR_JETON`, jamais sur la ligne de
+     commande), elle vient de l'environnement, sous les noms du SDK
+     (EX-6.10) au préfixe du connecteur : `NOORTRACE_CONNECTEUR_TLS_CA`,
+     `NOORTRACE_CONNECTEUR_TLS_CERT`, `NOORTRACE_CONNECTEUR_TLS_KEY` (chemins
+     de fichiers PEM). Avec certificat et clé : mTLS, sans ligne de jeton ;
+     avec l'autorité seule : TLS et jeton ; un certificat sans clé, ou une
+     prise TCP sans jeton ni certificat, est refusé (code 2) ; plancher TLS
+     1.2 (lecture 74).
+136. **Reconstruction depuis les copies : outil ou démon** (EX-12.17 : « À
+     la reprise d'une instance dont le stockage local est perdu (section
+     13), le journal est reconstruit depuis les copies » ; CT-8 §11.4
+     chemin B : « la liste des versions sous `<prefix>` (CT-2 EX-17.6 pas 1)
+     et leur restauration dans un répertoire neuf » ; CT-8 EX-10.14 :
+     `noortrace-ctl worm restaurer`, « l'écrit dans un répertoire neuf,
+     jamais sur l'original »). Lecture : la reconstruction est une commande
+     d'exploitation, `noortrace-ctl worm reconstruire`, hors du démon ; le
+     démon démarre ensuite sur le répertoire reconstruit (`storage.root`) et
+     prend, par le magasin de bail, une époque plus grande que toutes celles
+     des noms (13.4 ; EX-11.1 de CT-8 : l'époque ne recule jamais). Les pas
+     5 à 8 du chemin B (vérification par `verifier-journal.mjs`, ancrage,
+     procès-verbal `restauration`) relèvent de CT-8 et ne sont pas écrits
+     ici ; la vérification de chaîne de l'outil en tient lieu pour refuser
+     un répertoire incohérent.
+137. **`created_at` du `journal.json` recréé** (CT-8 §11.4 : recréé « dans
+     la forme de CT-2 EX-12.1 avec `recorder.org_id` et
+     `recorder.journal_id` de la configuration » ; 12.1 : « écrit à la
+     création du journal »). La valeur n'est pas fixée. Lecture : le `ts`
+     du premier événement de la chaîne restaurée (le journal a été créé au
+     plus tard à cet instant) ; l'heure de la reconstruction placerait la
+     première clé hors de sa validité annoncée par `cles.json`, qui part de
+     `created_at` (contrôle E-11 de CT-1 en échec, constaté), et le journal
+     reconstruit ne serait plus vérifiable. Sans segment, l'heure de la
+     reconstruction. `recorder` : la version de ce logiciel.
+138. **Version relue et contrôle `sha256`** (EX-10.14 : « compare son
+     SHA-256 au registre des copies » ; 12.1 : le registre « ne fait foi de
+     rien et se reconstruit depuis la liste des versions » ; tableau de
+     CT-8 11.2 : `worm/` sauvegardé par le chemin A). Lecture : avec
+     `--registre-copies` (l'archive du chemin A), la version relue est celle
+     de la dernière ligne de la clé, et le SHA-256 et la longueur de chaque
+     objet relu sont comparés à la ligne (`copie_alteree`, `copie_absente`) ;
+     une clé sans ligne (copie postérieure à l'archive) est relue si elle a
+     une seule version (`worm_restore_unregistered`) ; sans registre, la
+     version unique de chaque clé ; plusieurs versions sans ligne qui les
+     départage : refus (`versions_multiples`), le texte ne donnant aucun
+     autre critère. Sans registre, l'intégrité repose sur la chaîne
+     (continuité des `seq` depuis 1, `prev_hash`, hachages recalculés,
+     en-têtes, époques non décroissantes, manifestes recalculés ; les
+     signatures ne sont pas vérifiées par l'outil, mais par le démon à sa
+     reprise et par `N.verifierJournal`) ; la perte
+     du dernier segment fermé n'y est pas décelable (elle ressemble à la
+     perte admise du segment ouvert, 13.5) : seul le registre la révèle.
+139. **Fichiers relus, fichiers perdus** (CT-8 §11.4 : « les fichiers sans
+     copie (intentions, attente, approbations, pièces sans `copy_pieces`)
+     sont perdus et listés dans le procès-verbal »). Lecture : sont relus
+     les segments, manifestes et signatures, séries des points, fichiers
+     d'ancres et pièces ; tout autre objet sous `<prefix>` (dont `gels/`)
+     est ignoré ; la synthèse (sortie standard, `worm_restored`) liste
+     `intentions/`, `attente/`, `approbations/`, `worm/` et, s'il en
+     manque, les pièces référencées absentes ; le procès-verbal lui-même est
+     de CT-8 (11.9), non écrit ici.
+140. **Restriction du gardien de pose à `ON`** (EX-18.9 : « restreint à `ON`
+     là où la restriction est vérifiée (R13-F30) » ; R13-F30 : page AIStor
+     de MinIO). Constat sur MinIO DEVELOPMENT.2025-07-23T15-54-02Z (serveur
+     communautaire, `test/enregistreur-worm-iam.test.js`) : une politique
+     qui autorise `s3:PutObjectLegalHold` sous la condition `StringEquals`
+     `s3:object-lock-legal-hold` = `ON` refuse la pose comme la levée (403
+     `AccessDenied`, avec ou sans en-tête `x-amz-object-lock-legal-hold`,
+     valeur `ON` ou `on`), et autorise les deux sans la condition. La
+     restriction n'est donc pas vérifiée sur ce serveur ; le gardien de pose
+     y détient le droit entier, comme chez AWS (R13 NV-1).
+141. **Serveur S3 qui applique les politiques IAM** (demande du lot : une
+     seconde source que LocalStack). Tirages essayés, erreurs exactes :
+     `ghcr.io/minio/minio:latest` « denied » ; `public.ecr.aws/minio/minio:latest`
+     « not found » ; `registry.access.redhat.com/minio/minio` « not found » ;
+     `mirror.gcr.io/minio/minio` « not found » ; `quay.io/minio/minio`
+     « 401 UNAUTHORIZED » ; `docker.io/minio/minio` « pull access denied » ;
+     `docker.io/bitnamilegacy/minio` « 429 Too Many Requests » ;
+     `cgr.dev/chainguard/minio:latest` tiré mais sans `mc` (pas de création
+     d'utilisateurs ni de politiques). Retenue :
+     `mirror.gcr.io/bitnamilegacy/minio@sha256:8935e75f…09d7` (MinIO
+     DEVELOPMENT.2025-07-23T15-54-02Z avec `mc`), qui applique politiques,
+     signature SigV4, versions, Object Lock et `If-None-Match`.
+142. **Entrées et état du compagnon** (CT-8 EX-3.9 ; fichier Compose de
+     CT-8 : `command: ["--racine", "/var/lib/noortrace", "--intervalle-s",
+     "60"]`, `TMPDIR: /run/temporaire`, sonde `noortrace-attributs sonde`).
+     Lecture : le compagnon ne reçoit ni la configuration ni de signal du
+     démon (aucun texte ne prescrit d'interface entre eux) ; il déduit des
+     noms de 12.1 le segment courant (le dernier dans l'ordre des noms,
+     comme l'écrivain) et le journal d'intention courant (la plus grande
+     époque). Un segment qui vient d'être fermé passe de `a` à `i` dans le
+     même appel (`chattr -a +i`). `--intervalle-s` est borné à 1..60 (« 60
+     secondes au plus ») ; `--une-fois` (un seul passage) sert aux essais et
+     aux tâches d'orchestrateur (EX-12.18 : « ou une tâche de
+     l'orchestrateur »). La sonde rend 0 si le dernier passage, écrit sous
+     `TMPDIR`, a réussi et date de moins de deux intervalles plus 5 s.
+     L'image `noortrace/attributs` (étape 7) doit contenir Node.js, ce
+     paquet, `chattr` et `lsattr` et l'entrée `/usr/local/bin/noortrace-attributs`.
+143. **Attribut `a` et opérations du démon que le texte prescrit**
+     (EX-12.18 ; EX-12.10 pas 3 : « tronquer le fichier à la fin de la
+     dernière ligne valide (`ftruncate`) » ; EX-12.13 : « un fichier dont
+     toutes les intentions sont levées est supprimé à la rotation
+     suivante »). Sous `a`, `ftruncate` et la suppression sont refusés
+     (`EPERM`) au démon, qui n'a pas la capacité de retirer l'attribut. Pour
+     la suppression, lecture : le fichier est gardé et consigné
+     (`intention_file_kept`), sa conservation ne nuisant à rien (toutes ses
+     intentions sont levées). Pour la troncature, aucune lecture ne la rend
+     possible : un segment courant à fin incomplète sous `a` fait échouer
+     le démarrage (essai `enregistreur-worm-attributs`, cas « conflit de
+     texte ») ; le texte ne dit pas qui retire `a` avant la reprise. Signalé
+     au rapport du lot (« À corriger dans CT-2 »).
 
 ## Tests
 
@@ -1052,6 +1760,7 @@ NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.m
 npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-vecteurs.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-exigences.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-parcours.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-tls.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-politique-vecteurs.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-politique-exigences.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-politique-parcours.test.js
@@ -1062,7 +1771,40 @@ npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-icap.test.
 npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-miroir.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-securite.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-parcours.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-vecteurs.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-exigences.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-attributs.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-restauration.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-iam.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-ha-exigences.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-ha-parcours.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-otel-vecteurs.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-otel-exigences.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-sdk-vecteurs.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-sdk-exigences.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-sdk-client.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-sdk-parcours.test.js
 ```
+
+`enregistreur-worm-exigences`, `enregistreur-worm-restauration`,
+`enregistreur-worm-iam`, `enregistreur-ha-exigences` et
+`enregistreur-ha-parcours` lancent de vrais services dans Docker, images
+épinglées par condensé : un service S3 à Object Lock (LocalStack, qui met
+en œuvre versions, rétention par défaut COMPLIANCE et GOVERNANCE, *legal
+hold*, `If-None-Match` et `Content-MD5`, sans contrôle IAM ni de
+signature), un service S3 qui applique les politiques IAM, la signature
+SigV4 et Object Lock (MinIO DEVELOPMENT.2025-07-23T15-54-02Z, image
+`bitnamilegacy/minio` d'un registre miroir public : les registres de
+l'image officielle ont refusé le tirage, lecture 141), PostgreSQL 16 et
+etcd 3.5 ; les conteneurs sont arrêtés et supprimés avec leurs volumes
+(`docker rm -f -v`) à la fin et à la sortie du processus, les répertoires
+temporaires supprimés même en échec. Sans Docker, leurs cas sont en attente et
+leur titre nomme la condition manquante. Azure Blob et Google Cloud Storage
+n'ont aucun émulateur du stockage immuable de niveau version ni de la
+rétention par objet : leurs requêtes de gel et de lecture d'état sont
+éprouvées contre un simulateur écrit d'après les pages que CT-2 cite
+(`test/fixtures/enregistreur-worm/simulateur-azure-gcs.mjs`, R13-F16,
+R13-F19, R13-F22 à R13-F24).
 
 - `enregistreur-coeur-vecteurs` : `jcs-integral`, `evenements/journal-demo`
   reconstruit octet pour octet par l'écrivain (événements, segment, journal
@@ -1108,6 +1850,14 @@ NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.m
   appel scellé, période close, journal vérifié par le noyau, dossier de
   chaque appel vérifié par le noyau et par le binaire Go (en attente sans
   go1.27.3) ; puis le démon réel `bin/noortrace --config` avec le frontal ;
+- `enregistreur-mcp-tls` : `mcp.connector_tcp` en mTLS et en TLS avec
+  jeton (lectures 134, 135), avec le connecteur réel `bin/noortrace-connecteur`
+  et un serveur d'outils stdio réel : certificat valide rattaché à sa
+  connexion d'hôte et appel scellé ; autorité étrangère, certificat expiré,
+  sans certificat, certificat sans entrée refusés ; jeton sur TLS accepté,
+  jeton faux refusé ; `mtls` sans `tls` refusé par la validation ;
+  arguments TLS incomplets du connecteur refusés (autorité et certificats
+  générés par `openssl`) ;
 - `enregistreur-politique-vecteurs` : `pieces-mcp/appels/approbation-*` et
   `journal-demo` seq 5 à 7 rejoués de bout en bout (frontal, moteur de
   politique, cœur, service simulé d'après CT-3 §12) ; politiques valides et
@@ -1170,13 +1920,111 @@ NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.m
   effet, lignes hostiles, adaptateur (réassemblage HTTP/1.1 découpé à
   l'octet, copie coupée, octets illisibles), processus
   `bin/noortrace-miroir`, de bout en bout pour les quatre formats ;
+- `enregistreur-worm-vecteurs` : `spec/vecteurs/ct-2/worm/` (requêtes,
+  états, périmètres, gardes, levées) rejoués contre leur attendu, fichiers
+  valides pour `worm-v0` ; clé de copie d'EX-12.29 sur le segment de
+  `journal-demo` ; exemples calculés de 12.11 (liste de 673 octets,
+  enregistrement `pose` de 811 octets, suite d'empreintes, requêtes
+  d'EX-12.39) ; formes d'échéance d'EX-12.33 ; SigV4 sur les exemples
+  publiés par AWS ;
+- `enregistreur-worm-exigences` (S3 réel) : EX-12.16, EX-12.17, EX-12.29 à
+  EX-12.33, EX-13.5 (2), copy_pieces, panne du support et balayage ;
+  EX-17.5 à EX-17.7 (contrôles, relevé, versions inattendues, marqueur,
+  registre des gels, gel levé hors de l'outil, registre falsifié) ; outil de
+  gel (pose, demande, levée, levée par la même personne, après sept jours,
+  identifiants de l'écrivain, support injoignable, anomalies, gels qui se
+  chevauchent, reprise) ; Azure et GCS contre le simulateur ;
+- `enregistreur-ha-exigences` (PostgreSQL et etcd réels) : EX-13.1 à
+  EX-13.10, 13.2, 13.4 : époque strictement croissante, second détenteur
+  refusé, perte au-delà du TTL, validité monotone et saut de l'horloge
+  murale, partition réseau simulée, bail repris par une autre instance,
+  bail perdu pendant une écriture (après le fdatasync), époque qui recule,
+  fichiers d'une époque supérieure, redémarrage, instance passive, clé du
+  MAC différente, fourche, règles de configuration ;
+- `enregistreur-ha-parcours` (deux démons réels, magasins et support
+  réels) : pour PostgreSQL puis etcd, A écrit, B passif rend `-31010
+  bail_non_detenu`, A tué (SIGKILL) pendant un relais d'écriture, B prend
+  le bail avec une époque plus grande et produit l'événement de reprise ;
+  période close à l'heure suivante ; chaque segment fermé et chaque clôture
+  copiés et verrouillés en COMPLIANCE ; gel posé et levé par
+  `bin/noortrace-ctl` ; journal vérifié par le noyau ; dossiers d'un
+  événement de A et d'un événement de B vérifiés par le noyau et par le
+  binaire Go (en attente sans go1.27.3) ; puis deux démons qui se disputent
+  le journal (SIGSTOP au-delà du TTL, SIGCONT) ;
+- `enregistreur-worm-attributs` (compte 0, ext4 ou système de fichiers à
+  attributs, `setpriv`) : démon réel lancé sans `CAP_LINUX_IMMUTABLE`
+  (`setpriv --bounding-set=-linux_immutable`), compagnon réel
+  (`bin/noortrace-attributs --une-fois`) : `a` sur le segment courant et le
+  journal d'intention, `i` sur les segments fermés et les manifestes ; le
+  démon continue d'écrire par son descripteur ; réécriture, troncature,
+  suppression par un autre processus refusées ; retrait de l'attribut
+  refusé sans la capacité et sous un compte non privilégié ; reprise avec
+  fichier d'intention gardé ; scellement refusé sous une époque
+  inférieure ; sonde. En attente, titre nommant la condition, hors compte 0,
+  sans `setpriv` ou sur un système de fichiers sans attribut `a` ;
+- `enregistreur-worm-restauration` (S3 et PostgreSQL réels) : démon A
+  écrit, copies faites, stockage local de A détruit ; `bin/noortrace-ctl
+  worm reconstruire` (processus réel) depuis le S3, avec et sans registre ;
+  démon réel B qui reprend sur le répertoire reconstruit avec une époque
+  plus grande ; journal accepté par `N.verifierJournal`, dossiers d'un
+  événement restauré et d'un événement de B valides pour le noyau et le
+  binaire Go ; échecs : copie manquante, copie altérée (registre, chaîne),
+  segment manquant, copie d'une autre version, destinations refusées ;
+- `enregistreur-worm-iam` (MinIO réel, politiques IAM appliquées) : rôles
+  d'EX-18.9 posés par politiques ; copies du démon avec le seul rôle
+  Écrivain ; refus du serveur (403) pour l'Écrivain sous `<prefix>gels/`,
+  hors des sous-préfixes, suppression, contournement, gel, rétention,
+  configuration et politique du bucket ; signature fausse ; Lecteur en
+  lecture seule (et reconstruction avec ses identifiants) ; gel posé et
+  levé par les gardiens, refusé au Lecteur ; COMPLIANCE contre le compte
+  racine ; constat sur la clé `s3:object-lock-legal-hold` (lecture 140) ;
 - `enregistreur-modele-securite` : quotas d'EX-4.47 sur la passerelle
   (requêtes en cours, octets reçus, octets de pièces, temps de capture,
   mode observation), jeton OAuth d'EX-5.8 point 2 (valide, refusé pour
   chaque cause, configuration refusée au démarrage), TLS de `model.tls` avec
   des certificats générés à l'exécution par `openssl` (poignée de main,
   autorité inconnue, nom faux, TLS 1.1 refusé face à un témoin qui
-  l'accepte, certificat illisible : démarrage refusé).
+  l'accepte, certificat illisible : démarrage refusé) ;
+- `enregistreur-otel-vecteurs` : les 48 cas de `otel/` (B.8) envoyés en HTTP
+  au serveur OTLP réel de l'ingestion, chaîne propre à chaque cas : statut,
+  type de contenu, corps JSON ou protobuf octet pour octet, `Retry-After`,
+  forme normalisée, issues et raisons, pièces (octets et références),
+  événements (hash et signature), `overlap_seq`, `lag_ms` ;
+- `enregistreur-otel-exigences` : EX-6.23 à EX-6.41 et les règles du pas 3
+  pour `otel`, en réussite et en échec, contre un démon en processus (lots
+  JSON et protobuf : chemins, méthodes, ordre des décisions, gzip et bombe
+  gzip, bornes et quotas, priorité des autres frontaux, décodage hostile,
+  clés en double, doublons et conflits, recouvrement avec le SDK (y compris
+  un appel et un échange scellés depuis l'attente, lecture 125), pièces trop
+  grandes ou au-delà de la borne de temps, authentification et limitation,
+  mode dégradé, URL jamais visitée, TLS de `otel.tls` avec un certificat
+  généré par `openssl` et TLS 1.1 refusé, supervision) ;
+- `enregistreur-sdk-vecteurs` : `pieces-modele/gemini-sdk-*` déclarés par le
+  SDK JavaScript au démon : pièces, forme consolidée, `code.model`,
+  `prompt_version`, `intent`, `is_error`, membres retirés, `context[0]` ;
+- `enregistreur-sdk-exigences` : EX-6.1 à EX-6.8, EX-6.24, EX-7.7, EX-12.15,
+  14.2, 14.5 et 14.6 pour le SDK, en réussite et en échec ; entrées hostiles
+  sur la prise (JSON invalide, CR, lot, méthode ou paramètre inconnu,
+  session ou appel d'une autre connexion, contexte d'une autre session,
+  nombres non représentables, ligne trop longue, preuve d'identité fausse) ;
+  prise TCP à jeton et en mTLS (autorité, certificats valide, expiré, d'une
+  autre autorité, absent ou sans entrée, générés par `openssl`, lecture
+  113) ; reprise à chaud (fermeture, connexion perdue, appel approuvé) et à
+  froid, et la même reprise d'une lecture approuvée par les deux chemins
+  (lecture 117) ;
+- `enregistreur-sdk-client` : le SDK JavaScript, EX-6.9 à EX-6.15 (noms et
+  valeurs rendues, connexion, délais, file des échanges, sortie du
+  processus, erreurs, reprise de connexion, `Worker`, démon injoignable),
+  contre le démon en processus et des démons simulés ;
+- `enregistreur-sdk-parcours` : le démon réel `bin/noortrace`, le vrai
+  service d'approbation et un agent Node.js réel qui emploie `noortrace-sdk`
+  (contexte, lecture, écriture à intention durable avant exécution, refus,
+  approbation par les votes EIP-191 des comptes de test déposés au canal de
+  la console, échange de modèle déclaré, spans exportés par l'exportateur
+  officiel OTLP/HTTP du SDK OpenTelemetry JavaScript et par un exportateur
+  minimal en protobuf, fermeture avec un appel ouvert) ; journal vérifié par le noyau ; période
+  close ; dossier d'un événement de chaque sorte vérifié par le noyau et par
+  le binaire Go (en attente sans go1.27.3).
 
 Les répertoires de test sont créés sous `os.tmpdir()`.
 
@@ -1201,5 +2049,22 @@ cherchent ni n'importent `scripts/lib/**`, `scripts/vecteurs/**`,
 | `node:vm`, `node:worker_threads` | Node.js ≥ 22 | borne de temps des motifs (EX-10.23), fils de calcul (EX-3.6) |
 | `node:net`, `node:child_process`, `node:https`, `node:tls` | Node.js ≥ 22 | prises des connecteurs, serveurs d'outils stdio, Streamable HTTP et JWKS (frontal MCP) ; passerelle, connexions aux fournisseurs, serveur ICAP et ICAPS, prise du miroir (frontal modèle) |
 | `node:zlib` | Node.js ≥ 22 | réponse de fournisseur comprimée malgré `Accept-Encoding: identity` (EX-5.9) |
+| `node:crypto`, `node:http`, `node:https`, `node:net`, `node:tls` | Node.js ≥ 22 | lot WORM et haute disponibilité : signature SigV4, `Content-MD5`, accès S3, Azure et GCS ; protocole de PostgreSQL (SCRAM-SHA-256, MD5, TLS) et passerelle JSON d'etcd, écrits ici plutôt qu'une bibliothèque cliente |
+| `node:http`, `node:https`, `node:zlib`, `node:net`, `node:tls` | Node.js ≥ 22 | lot SDK et OpenTelemetry : point d'entrée OTLP/HTTP (TLS), décompression gzip bornée, prise du point d'entrée SDK (Unix, TCP, TLS et mTLS) ; décodage protobuf écrit ici plutôt qu'une bibliothèque |
 
-Aucune autre dépendance d'exécution.
+Le compagnon `noortrace-attributs` appelle les programmes `chattr` et
+`lsattr` (e2fsprogs) : Node.js n'offre pas l'ioctl `FS_IOC_SETFLAGS` sans
+module natif, et un module natif serait une dépendance compilée ; l'image
+du compagnon (étape 7) doit les contenir. Les essais du compagnon
+appellent aussi `setpriv` (util-linux).
+
+Aucune autre dépendance d'exécution. Le SDK JavaScript `noortrace-sdk`
+n'en a aucune (`node:net`, `node:tls`, `node:fs`). Pour les essais
+seulement, la racine du dépôt a en `devDependencies`, versions exactes,
+l'exportateur officiel OTLP/HTTP du SDK OpenTelemetry JavaScript :
+`@opentelemetry/exporter-trace-otlp-http` 0.223.0,
+`@opentelemetry/sdk-trace-base` 2.12.0 et `@opentelemetry/api` 1.9.1
+(versions publiées ensemble le 2026-10-06 ; `api` borné à `<1.10.0` par
+`sdk-trace-base`). Raison : le parcours de bout en bout montre que le point
+d'entrée OTLP/HTTP du démon accepte ce qu'émet le SDK officiel, et pas
+seulement des lots écrits par les essais.

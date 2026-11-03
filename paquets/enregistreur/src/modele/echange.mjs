@@ -340,7 +340,8 @@ export class MoteurEchanges {
     const quotas = this.quotas(hote);
     quotas.tempsCapture(this.monotone(), this.monotone() - t0);
     const pieces = [...etat.pieces, rep.piece, ...(ib.piece ? [ib.piece] : [])];
-    const c = { delegation: etat.delegation, code, intent: ib.intent, requete: etat.pr.requete.reference, reponse: rep.piece.reference, duration_ms, is_error: rep.is_error, context: [] };
+    // `host` : connexion d'hôte de l'échange, pour le registre de recouvrement de l'ingestion OpenTelemetry (EX-6.34).
+    const c = { delegation: etat.delegation, code, intent: ib.intent, requete: etat.pr.requete.reference, reponse: rep.piece.reference, duration_ms, is_error: rep.is_error, context: [], host: hote.id };
     let evenement = null;
     let pendingId = null;
     try {
@@ -355,7 +356,7 @@ export class MoteurEchanges {
       // Panne après l'envoi : la réponse est partie ; l'événement est gardé en attente (14.2, EX-14.8, EX-14.12).
       const partiel = partielEchange({ ...c, code: { ...code, policy_version: this.coeur.versionPolitique, recorder: VERSION_ENREGISTREUR }, nomRedaction: this.coeur.nomRedaction });
       try {
-        pendingId = this.coeur.mettreEnAttente(partiel, pieces, { captured_at });
+        pendingId = this.coeur.mettreEnAttente(partiel, pieces, { captured_at, host: hote.id, genre: "echange" });
         this.journal.consigner("error", "frontal_modele", "call_executed_not_durable", { kind: "echange_modele", pending_id: pendingId }, { host: hote.id });
       } catch {
         if (this.observation) {

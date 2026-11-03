@@ -18,6 +18,12 @@
 //   - pieces-mcp/appels/approbation-* et journal-demo (seq 5 à 7) : rejoués
 //     de bout en bout par le moteur de politique (section d d'INTERFACES.md)
 //     dans enregistreur-politique-vecteurs.test.js ;
+//   - otel/ et pieces-modele/gemini-sdk-* : rejoués de bout en bout par le lot
+//     « SDK et OpenTelemetry » (section c) dans enregistreur-otel-vecteurs.test.js
+//     et enregistreur-sdk-vecteurs.test.js ;
+//   - worm/ et la clé de copie d'EX-12.29 sur evenements/journal-demo : rejoués
+//     contre leur attendu par le lot « WORM et haute disponibilité » (section f)
+//     dans enregistreur-worm-vecteurs.test.js ;
 //   - pieces-modele : formes consolidées rejouées ici par le réassemblage du
 //     lot « frontal modèle » (§5.4) ; chaque cas, et les échanges de seq 2, 4
 //     et 8 de journal-demo, rejoués de bout en bout par la passerelle
@@ -421,8 +427,6 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
     // Familles et fichiers du générateur (B.1) ; verificateur-independant/ et
     // confrontation/ ne sont pas des données et ne sont pas ouverts.
     const LOTS_SUIVANTS = {
-      otel: "ingestion OpenTelemetry (§6.8)",
-      worm: "WORM et gel juridique (§12.6, §12.11)",
       "cout-agent": "coût annuel par agent (§16.4)",
       "INDEX.md": "index lisible, sans donnée à rejouer",
     };
@@ -461,13 +465,41 @@ describe("enregistreur, cœur : vecteurs CT-2", function () {
       }
     });
 
+    // Lot WORM (section f) : la famille worm/ (annexe B.9) est rejouée par son test,
+    // et la clé de copie de l'exemple d'EX-12.29 sur evenements/journal-demo/segment.ndjson.
+    const TEST_WORM = "enregistreur-worm-vecteurs.test.js";
+    const sourceWorm = () => fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), TEST_WORM), "utf8");
+
+    it("les vecteurs du lot WORM (section f) sont rejoués contre leur attendu par son test", function () {
+      const source = sourceWorm();
+      for (const f of lister("worm")) expect(source, `${TEST_WORM} rejoue ${f}`).to.contain(`"${f}"`);
+      expect(source, "clé de copie d'EX-12.29").to.contain('"evenements", "journal-demo", "segment.ndjson"');
+    });
+
+    // Lot SDK et OpenTelemetry (section c) : la famille otel/ (annexe B.8) est rejouée de bout en
+    // bout par l'ingestion (serveur OTLP réel), et pieces-modele/gemini-sdk-* (EX-6.8) par le SDK.
+    const TEST_OTEL = "enregistreur-otel-vecteurs.test.js";
+    const TEST_SDK = "enregistreur-sdk-vecteurs.test.js";
+    const sourceDe = (t) => fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname), t), "utf8");
+
+    it("les vecteurs du lot SDK et OpenTelemetry (section c) sont rejoués de bout en bout par ses tests", function () {
+      const otel = sourceDe(TEST_OTEL);
+      for (const cas of fs.readdirSync(path.join(VECTEURS_CT2, "otel"))) expect(otel, `${TEST_OTEL} rejoue otel/${cas}`).to.contain(`"otel/${cas}"`);
+      const sdk = sourceDe(TEST_SDK);
+      const gemini = fs.readdirSync(path.join(VECTEURS_CT2, "pieces-modele")).filter((c) => c.startsWith("gemini-sdk-"));
+      expect(gemini).to.have.length(2);
+      for (const cas of gemini) expect(sdk, `${TEST_SDK} rejoue pieces-modele/${cas}`).to.contain(`"pieces-modele/${cas}"`);
+    });
+
     it("chaque fichier de vecteur est rejoué ou attribué à un lot suivant", function () {
       const fichiers = fs.readdirSync(VECTEURS_CT2).filter((n) => !IGNORES.has(n)).sort().flatMap((n) => lister(n));
       const nonAttribues = [];
       const rejoues = [];
       const suivants = [];
+      const worm = sourceWorm();
+      const otel = sourceDe(TEST_OTEL);
       for (const f of fichiers) {
-        if (consommes.has(f)) rejoues.push(f);
+        if (consommes.has(f) || (f.startsWith("worm/") && worm.includes(`"${f}"`)) || (f.startsWith("otel/") && otel.includes(`"otel/${f.split("/")[1]}"`))) rejoues.push(f);
         else if (Object.keys(LOTS_SUIVANTS).some((k) => f === k || f.startsWith(`${k}/`))) suivants.push(f);
         else nonAttribues.push(f);
       }

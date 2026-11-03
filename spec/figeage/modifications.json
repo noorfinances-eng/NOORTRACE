@@ -260,6 +260,24 @@
           "apres": "4c1109b641f599c16007ecb7521bf469189a43f96f9fc7e9420f0df683c5abbc"
         }
       ]
+    },
+    {
+      "id": "MC-10",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "Étape 4, lots SDK et OpenTelemetry, WORM et haute disponibilité, et TLS de la prise des connecteurs MCP : quatorze fichiers de test ajoutés (enregistreur-sdk ×4, enregistreur-otel ×2, enregistreur-worm ×5, enregistreur-ha ×2, enregistreur-mcp-tls) ; empreintes de couverture CT-9 et recomptage régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "e970eeac9a295e5a3c2b64ee6375aba2745875f25f595216094ce32b590922af",
+          "apres": "aca885c702dceb21d6206a1024fcd220e36f896b331452b2b16530057416e93d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "4c1109b641f599c16007ecb7521bf469189a43f96f9fc7e9420f0df683c5abbc",
+          "apres": "774b63e24a648e21432ec7aa99a23444ca885c45b7d247fe8c0b6765a6654a4b"
+        }
+      ]
     }
   ]
 }

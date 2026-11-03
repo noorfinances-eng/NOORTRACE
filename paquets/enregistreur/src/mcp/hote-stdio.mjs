@@ -14,8 +14,14 @@
 //     `<répertoire de la prise>/.noortrace-defi-<défi>`, le démon lit le
 //     propriétaire de ce fichier (lstat : fichier ordinaire, un seul lien) et
 //     le supprime. Un processus ne peut créer qu'un fichier qui lui appartient ;
-//   - prise TCP : la première ligne `{"noortrace_token": "<jeton>"}`,
-//     comparée en temps constant aux jetons statiques, puis retirée.
+//   - prise TCP, `client_auth: "jeton"` : la première ligne
+//     `{"noortrace_token": "<jeton>"}`, comparée en temps constant aux jetons
+//     statiques, puis retirée ; sur TLS si `connector_tcp.tls` est posé ;
+//   - prise TCP, `client_auth: "mtls"` : certificat client vérifié contre
+//     l'autorité qui suit le certificat du démon dans `tls.cert_file`, et
+//     rattaché à l'entrée de `mcp.hosts` dont `match.peer_user` est son nom
+//     commun ; pas de ligne de jeton (LISEZMOI, lecture 134, même lecture que
+//     la 113 du SDK ; serveur commun `./prise-tcp.mjs`).
 // Une connexion sans entrée de `mcp.hosts` est refusée (EX-7.3).
 
 import net from "node:net";
@@ -24,6 +30,7 @@ import path from "node:path";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { lireComptes } from "./amont.mjs";
 import { reponseErreur } from "./messages.mjs";
+import { ecouterPriseTcp, identiteCertificat } from "./prise-tcp.mjs";
 
 /** Préfixe des fichiers de preuve d'identité. */
 export const PREFIXE_DEFI = ".noortrace-defi-";
@@ -120,12 +127,13 @@ export class ServeurConnecteurs {
       this.serveurs.push(s);
     }
     if (this.tcp) {
-      if (this.tcp.client_auth !== "jeton" || this.tcp.tls) throw new Error("prise TCP des connecteurs : seule l'authentification par jeton sans TLS est fournie par ce lot");
-      const [hote, port] = this.tcp.listen.split(/:(?=[0-9]+$)/);
-      const s = net.createServer((c) => this._connexionTcp(c));
-      await new Promise((res, rej) => {
-        s.once("error", rej);
-        s.listen(Number(port), hote.replace(/^\[|\]$/g, ""), res);
+      const s = await ecouterPriseTcp(this.tcp, {
+        nom: "prise TCP des connecteurs",
+        pointeur: "mcp.connector_tcp",
+        connexions: this.connexions,
+        surJeton: (c) => this._connexionTcp(c),
+        surMtls: (c) => this._connexionMtls(c),
+        surEchecTls: (raison) => this.journal.consigner("warning", "frontal_mcp", "auth_failed", { transport: "stdio", tls: true, reason: raison }),
       });
       this.serveurs.push(s);
     }
@@ -144,8 +152,22 @@ export class ServeurConnecteurs {
   }
 
   _refuser(c, raison) {
-    this.journal.consigner("warning", "frontal_mcp", "auth_failed", { transport: "stdio", reason: raison });
+    this.journal.consigner("warning", "frontal_mcp", "auth_failed", { transport: "stdio", ...(c.encrypted ? { tls: true } : {}), reason: raison });
     c.destroy();
+  }
+
+  _connexionMtls(c) {
+    this.connexions.add(c);
+    c.on("close", () => this.connexions.delete(c));
+    c.on("error", () => {});
+    // Certificat absent, expiré ou d'une autre autorité : refus avant toute
+    // lecture ; sinon rattachement à l'entrée d'hôte de son nom commun.
+    const id = identiteCertificat(c);
+    if (id.refus) return this._refuser(c, id.refus);
+    const hote = this.frontal.hotePour({ peer_user: id.cn });
+    if (!hote) return this._refuser(c, "hote_inconnu");
+    c.write(JSON.stringify({ noortrace_identite: "acceptee" }) + "\n");
+    this._servir(c, hote, { peer_user: id.cn, certificat: id.empreinte });
   }
 
   _connexionUnix(c) {

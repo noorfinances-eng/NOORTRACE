@@ -174,7 +174,34 @@ frontal.chargerListe(alias, tools, { ttlMs, cacheScope, ere });   // dernière l
 ```
 
 `bin/noortrace-connecteur --socket <chemin>` (ou `--tcp <hôte:port>`, jeton
-dans `NOORTRACE_CONNECTEUR_JETON`) est le connecteur stdio de 19.5.
+dans `NOORTRACE_CONNECTEUR_JETON` ; TLS par `NOORTRACE_CONNECTEUR_TLS_CA`,
+mTLS par `NOORTRACE_CONNECTEUR_TLS_CERT` et `NOORTRACE_CONNECTEUR_TLS_KEY`,
+chemins de fichiers PEM, LISEZMOI, lecture 135) est le connecteur stdio de
+19.5.
+
+Prise TCP authentifiée commune (`src/mcp/prise-tcp.mjs`), employée par la
+prise des connecteurs (`mcp.connector_tcp`) et par celle du SDK
+(`sdk.tcp_listen`, rubrique c) ; complément du lot « SDK et OpenTelemetry »
+(lectures 113 et 134) :
+
+```js
+import { ecouterPriseTcp, identiteCertificat, chaineServeur, erreursPriseTcp, controleConnecteurTcp } from "@noortrace/enregistreur";
+
+const serveur = await ecouterPriseTcp(tcp, {                       // tcp : $defs/tcp_listen
+  nom, pointeur, connexions,                                       // messages ; prises à fermer à l'arrêt
+  surJeton(c) {}, surMtls(c) {}, surEchecTls(raison) {} });         // TCP nu ou TLS (jeton), mTLS (certificat)
+identiteCertificat(c)          // → { cn, empreinte } | { refus: "certificat:absent" | "certificat:<code>" | "certificat:sans_nom_commun" }
+chaineServeur(pem)             // → { cert, autorites } : le certificat du démon, puis l'autorité des certificats clients
+erreursPriseTcp(tcp, pointeur) // pas 3 d'EX-15.4 : client_auth mtls exige tls
+controleConnecteurTcp(config)  // la même règle pour /mcp/connector_tcp, dans les règles de cli.mjs
+```
+
+`ServeurConnecteurs` sert `mcp.connector_tcp` en TCP nu ou TLS avec jeton,
+et en mTLS : certificat vérifié contre l'autorité qui suit le certificat du
+démon dans `tls.cert_file`, rattaché à l'entrée de `mcp.hosts` dont
+`match.peer_user` est son nom commun (`identite = { peer_user,
+certificat }`) ; refus consignés `auth_failed` (`transport: "stdio"`,
+`tls: true`, `reason`). Essais : `test/enregistreur-mcp-tls.test.js`.
 
 Ce que le frontal attend des autres lots, par des crochets facultatifs :
 
@@ -361,6 +388,113 @@ await coeur.scellerPartiel(partiel);
 
 `spec/vecteurs/ct-2/otel/*` (non rejoués par le cœur) ;
 `pieces-modele/gemini-sdk-*`.
+
+### Mise en œuvre (lot « SDK et OpenTelemetry », `src/sdk/`, `src/otel/`, `paquets/sdk-js/`)
+
+```js
+import { FrontalSdk, ServeurSdk, demarrerSdk, controleSdk, classeSdk,
+         IngestionOtel, ServeurOtel, demarrerOtel, controleOtel, RegistreRecouvrement, TableDoublons,
+         decoderJson, decoderProtobuf, normaliser, classer, projeterSpan, partielSpan } from "@noortrace/enregistreur";
+
+const sdk = await demarrerSdk(coeur, secrets, { correlateur });     // cli.mjs, si sdk.enabled ; sdk.socket (0660), sdk.tcp_listen (jeton, TLS, mTLS)
+// = new FrontalSdk({ coeur, redacteur, correlateur }) + new ServeurSdk({ frontal, socket, tcp, jetons })
+const cx = frontal.ouvrirConnexion({ hote, identite });            // identité du pair (prise Unix), jeton (TCP) ou certificat client (mTLS)
+const ligne = await frontal.recevoir(cx, octets);                  // une ligne JSON-RPC → la réponse, ou null
+await frontal.fermerConnexion(cx);                                 // connexion perdue : sessions closes, reprise à chaud
+const otel = await demarrerOtel(coeur, secrets);                   // cli.mjs, si otel.enabled ; otel.listen (TLS avec otel.tls)
+// = new IngestionOtel({ config, journal, metriques, redacteur, jetons, monotone, ecrirePiece, sceller, panne, octetsLibres, version, recouvrement })
+//   + new ServeurOtel({ ingestion, config, journal })
+await otel.arreter(); await sdk.arreter();                         // avant coeur.arreter()
+validerConfiguration(octets, { reglesSupplementaires: [controleSdk, controleOtel] })   // EX-15.4 pas 3, EX-6.24
+```
+
+SDK de langage JavaScript : paquet `noortrace-sdk` (`paquets/sdk-js/`, son
+`INTERFACES.md`) ; il ne parle qu'à la prise du point d'entrée.
+
+Prise TCP en mTLS (`client_auth: "mtls"`, LISEZMOI, lecture 113 ; serveur
+commun avec la prise des connecteurs, `src/mcp/prise-tcp.mjs`, rubrique a) :
+`tls.cert_file` porte le certificat du démon suivi de l'autorité des
+certificats clients (`chaineServeur` les sépare) ; le certificat client est
+exigé et vérifié à la poignée de main, puis rattaché à l'entrée de
+`sdk.hosts` dont `match.peer_user` égale son nom commun (`identite = {
+peer_user, transport: "mtls", certificat: <empreinte SHA-256> }`) ; refus
+consignés `auth_failed` (`transport: "tls"`, `reason: "certificat:<code>"`
+ou `"hote_inconnu"`).
+
+Le point d'entrée SDK suit le frontal MCP pas pour pas, sans relayer : pas
+1 (lecture stricte de la ligne, quotas d'EX-4.47 sauf pour `finAppel` et
+`fermer`, validation d'EX-6.6), délégation de la session (7.2), corrélation
+par le registre de 5.6 (`code.model`, `code.prompt_version` seulement ;
+`intent` déclaré, rédigé par la portée `arguments`, borné par EX-5.21), pas 3
+par `coeur.politique.evaluerAppel` (EX-6.7, matrice de 14.2, mode
+observation), pas 4 (`redigerArguments`, EX-10.23), refus, retenue (jamais de
+requête retenue), `preparerRelais` (RL-1 à RL-4, intention durable avant la
+réponse de `debutAppel`), `terminerRelais` pour `finAppel`, `scellerEchange`
+pour `echangeModele` (dérivation de `src/modele/extraction.mjs` et
+consolidation de `src/modele/flux.mjs`, EX-6.8 ; échange déclaré inscrit au
+registre de corrélation, `interpose: false`). L'ingestion OpenTelemetry n'appelle
+ni `evaluer` ni `preparerRelais` : pièces écrites (`ecrirePiece`), puis
+`scellerPartiel(partiel, { priorite: "basse" })`, span par span, réponse `200`
+quand tous sont durables.
+
+Changements du cœur faits par ce lot (les plus petits qui complètent le
+contrat, avec leurs tests dans `test/enregistreur-sdk-exigences.test.js` et
+`test/enregistreur-otel-exigences.test.js`) :
+
+```js
+await coeur.reprendreRelais(relais)              // reprise à chaud (EX-12.15, EX-6.13) : même construction que la reprise au démarrage
+coeur._partielReprise(entree, piece)             // construction commune aux deux reprises (EX-12.14 pas 2, lecture 117)
+coeur.mettreEnAttente(partiel, pieces, { captured_at, intent_id, host, genre })   // host, genre : en mémoire, pour le recouvrement (lecture 125)
+coeur.ecouterScellements(({ genre, host, appel, evenement }) => …)   // registre de recouvrement (EX-6.34)
+await coeur.scellerPartiel(partiel, { priorite: "basse" })           // EX-6.28 : après les événements des autres frontaux en file
+await coeur.scellerEchange({ …, host })                              // `host` : id de la connexion d'hôte (recouvrement)
+```
+
+- `preparerRelais` garde dans sa poignée l'événement partiel inscrit dans la
+  ligne contexte d'intention (`partielIntention`), que `reprendreRelais`
+  reprend : événement de reprise `executee`, `is_error: true`, pièce
+  `noortrace_reprise`, levée de l'intention, `intent_recovered`
+  (`session_closed: true`), `consommer` pour un ticket approuvé (EX-6.7) ;
+  à l'arrêt du démon, rien n'est repris à chaud : la relecture du journal
+  d'intention le fait au démarrage (EX-12.15).
+- La reprise à chaud et la reprise au démarrage passent par la même
+  construction (`_partielReprise`) : classe et origine tirées du nom
+  d'outil de l'intention et de la configuration, jamais de la session
+  (EX-12.15, lecture 117) ; `_origine` reconnaît le préfixe `<alias>__`
+  d'une entrée de `sdk.hosts` avant la règle des serveurs d'outils, et
+  `_classe` rend alors `ecriture` (aucune classe configurée, la déclarée
+  n'est pas dans le journal d'intention).
+- `terminerRelais`, `reprendreRelais` et `scellerEchange` appellent les
+  écouteurs de `ecouterScellements` après la durabilité, sans les attendre ;
+  `viderAttente` aussi, pour un événement mis en attente avec `host`
+  (lecture 125) ; `_reprendreAttente` (démarrage) non, le registre de
+  recouvrement n'étant pas reconstruit au redémarrage (EX-6.34).
+- `scellerEchange` devient `async` (même contrat) ; le moteur d'échanges du
+  frontal modèle (`src/modele/echange.mjs`) lui passe `host: hote.id`, et
+  passe `host` et `genre: "echange"` à `mettreEnAttente` ; le frontal MCP
+  (`src/mcp/frontal.mjs`, `_mettreEnAttente`) passe `host` et `genre:
+  "appel"` à `mettreEnAttente` : seuls changements de modules d'autres lots,
+  une ligne chacun.
+- `src/cli.mjs` démarre le point d'entrée SDK et l'ingestion après le
+  frontal MCP (échec : `demarrage_refuse : sdk` ou `: otel`, code 2), les
+  arrête avant le frontal MCP, ajoute `controleSdk` et `controleOtel` aux
+  règles du pas 3 d'EX-15.4, et, sans frontal modèle, crée un registre de
+  corrélation propre aux échanges déclarés par le SDK, remis aussi au
+  frontal MCP (EX-5.22).
+- `test/fixtures/enregistreur-coeur/outils.mjs` : `configurationDev` place
+  `otel.listen` sur un port libre (`127.0.0.1:0`) et, avec `{ sdk: { hosts } }`,
+  active le SDK (prise sous le répertoire du test) et `policy.sdk`.
+
+Ce que le lot suivant (SDK Python et adaptateurs de cadres, 6.4, 6.6) trouve
+prêt : le protocole de 6.2 servi tel quel ; `noortrace-sdk/adaptateurs`
+(`FileEchanges`, file bornée d'EX-6.11 (3)) pour les points d'observation des
+adaptateurs JavaScript ; la classe configurée d'un outil du SDK, que le
+schéma v0 ne porte pas (`classeConfigureeSdk` rend `null`, `classeSdk`
+applique la règle de la table de 6.2 dès qu'une source existera ; LISEZMOI,
+lecture 111). L'exportateur officiel OTLP/HTTP du SDK OpenTelemetry
+JavaScript (`@opentelemetry/exporter-trace-otlp-http` 0.223.0, dépendance
+d'essai de la racine) est accepté par l'ingestion (parcours de bout en
+bout).
 
 ## d) Moteur de politique et service d'approbation (§7.5, CT-3)
 
@@ -638,6 +772,131 @@ EX-12.41), §13 en entier, EX-17.5 à EX-17.7.
 `spec/vecteurs/ct-2/worm/*` (non rejoués par le cœur) ;
 `evenements/journal-demo/segment.ndjson` (clé de copie de l'exemple
 d'EX-12.29).
+
+### Mise en œuvre (lot WORM et haute disponibilité, `src/worm/`, `src/ha/`)
+
+```js
+import { supportWormDepuisConfiguration, magasinBailDepuisConfiguration, principalCtl,
+         ServiceCopiesWorm, SupervisionWorm, OutilGel, operationsSupport } from "@noortrace/enregistreur";
+
+const worm = supportWormDepuisConfiguration(config, secrets);   // ServiceCopiesWorm (SupportWorm), ou null sans support
+const coeur = await Coeur.demarrer({ config, secrets, worm, attendreBail: true, surAttente, ... });
+// bail : magasinBailDepuisConfiguration(config, secrets) (file, postgresql, etcd), créé par le cœur s'il n'est pas fourni
+await coeur.demarrage;           // avec attendreBail : la promesse se résout à la prise du bail
+await principalCtl(["worm", "gel", "poser", ...]);   // bin/noortrace-ctl ; aussi demander-levee, lever, reprendre, etat, et worm releve
+await principalCtl(["worm", "reconstruire", "--configuration", f, "--vers", rep]);   // EX-12.17, chemin B de CT-8 ; et worm restaurer <clé> --version <id>
+await reconstruireJournal({ config, operations, destination, registre });          // synthèse { fichiers, last_seq, last_hash, epoque_max, perdus, ... } ou ErreurRestauration
+await principalAttributs(["--racine", storageRoot, "--intervalle-s", "60"]);       // bin/noortrace-attributs (compte 0, CAP_LINUX_IMMUTABLE) ; et « sonde »
+```
+
+Fonctions sans réseau (rejouées contre `spec/vecteurs/ct-2/worm/`) :
+`requeteOperation`, `requeteS3*`, `requeteAzure*`, `requeteGcs*`,
+`encoderComposant`, `contentMd5`, `formeRequete` (EX-12.39) ;
+`controlerVerrou`, `lireEcheance`, `echeanceMinimale` (EX-12.33) ;
+`calculerPerimetre`, `octetsListeObjets` (EX-12.35) ; `verifierGarde`,
+`empreinteEnregistrement`, `etatGel`, `versionsALever` (EX-12.37, EX-12.38,
+EX-12.40, EX-17.7).
+
+Supports (`operationsSupport(worm, identifiants)`) : `s3-object-lock`
+complet (couche d'accès SigV4 écrite sur `node:crypto`, style « path »
+avec `endpoint`, « virtual-hosted » sans) : copie, état d'une version,
+liste paginée des versions, lecture, écriture conditionnelle, gel,
+configuration de verrouillage ; `azure-immutable-blob` et
+`gcs-object-retention` : seules les opérations que CT-2 0.5 fixe (gel et
+état d'une version, EX-12.39), avec un jeton porteur ; la copie, la liste
+des versions, la lecture et l'écriture d'un objet lèvent `ErreurNonFixe`
+(LISEZMOI, lecture 84). Identifiants d'une référence de secret : JSON
+`{ "access_key_id", "secret_access_key", "session_token"? }` (S3) ou
+`{ "bearer_token" }` (Azure, GCS).
+
+Contrat tenu envers l'écrivain : `ServiceCopiesWorm.copier({ cle, chemin,
+nature })` ne rejette jamais ; il consigne lui-même `worm_copy_failed` et
+rend `{ version_id: null }` en échec ; les copies sont sérialisées. Il refuse
+toute clé hors des sous-préfixes copiés et sous `<prefix>gels/` (EX-12.32),
+et un segment d'époque inférieure au dernier scellé (EX-13.5 (2)). Crochets
+lus par le cœur sur `o.worm` : `lier(coeur)` (constructeur), `armer()`
+(`_armerMinuteurs` : contrôles d'EX-17.5 à EX-17.7, balayage des copies
+manquantes), `arreter()`.
+
+Contrat tenu envers le cœur par les magasins réseau (`MagasinBailReseau`) :
+`acquerir()` rend une époque strictement croissante ou lève
+`ErreurEnregistreur("bail_non_detenu")` (détenu ailleurs) ou `("bail")`
+(magasin injoignable au-delà de `acquire_wait_ms`) ; `valide()` sur
+l'horloge monotone (`t_renew + ttl_ms − renew_ms`) ; fil de
+renouvellement ; une perte (renouvellement refusé, bail échu) consigne
+`lease_lost`, met `noortrace_lease_epoch` à 0 et le cœur en mode dégradé
+« bail » ; `verifierApresEcriture()` lit le magasin (EX-13.10 (2)) ; crochet
+`lier(coeur)`.
+
+Changements du cœur faits par ce lot (les plus petits qui complètent le
+contrat, avec leurs tests dans `test/enregistreur-ha-exigences.test.js` et
+`test/enregistreur-worm-exigences.test.js`) :
+
+- `Coeur.demarrer` : le magasin vient de `magasinBailDepuisConfiguration`
+  (au lieu de « non fourni par ce lot ») et reçoit `lier(coeur)` ; avant
+  toute acquisition, la ligne de contrôle de la clé du MAC de relais est
+  comparée à celle du dernier fichier `mac-*` (13.4 pas 1) : différence →
+  `relay_mac_key_mismatch`, pas de bail (refus, code 2 ; ou attente) ;
+  option `attendreBail` : un bail détenu ailleurs donne une instance
+  passive (`coeur.passif`, `lease_standby`, `noortrace_lease_epoch` 0,
+  supervision servie : `/healthz` `standby`, `/readyz` 503), nouvel essai
+  toutes les `renew_ms`, `surAttente(coeur)` appelé une fois ; la promesse
+  se résout dès l'état passif, la fin du démarrage est
+  `coeur.demarrage` ; l'instance reste passive après la prise du bail
+  jusqu'à la fin de la reprise (intentions, attente, événement de
+  politique, EX-9.8), puis passe en service (13.4 pas 7) ; sans l'option,
+  refus comme avant ;
+- en instance passive : `_bloquerSiIntervention` et `evaluer` lèvent
+  `ErreurEnregistreur("bail_non_detenu")` (`-31010`, 14.2), `_charger`
+  n'envoie rien (le service n'est joint qu'après la prise du bail, 13.4
+  pas 6) ;
+- `lease_acquired` porte `fencing` (moyen de `lease.fencing`, exécuté par
+  l'orchestrateur, EX-13.10 (1)) ; après la relecture, la taille des
+  fichiers d'époque inférieure est consignée (`lease_predecessor_files`) et
+  `tic` contrôle leur croissance (`journal_fork`, EX-13.10 (3)) ;
+- EX-13.5 (1) : l'écrivain refuse d'ouvrir son fichier d'intention, et le
+  cœur son fichier d'attente (l'événement reste alors en mémoire), si une
+  époque supérieure est présente dans les noms (`verifierEpoqueOuverture`) ;
+- `etatSante()` porte `passive` ; `_armerMinuteurs` et `arreter` appellent
+  `o.worm.armer()` et `o.worm.arreter()` ;
+- EX-12.18 : à la reprise des intentions, un fichier d'intention dont tout
+  est levé et que le système refuse de supprimer (`EPERM` : attribut `a`
+  posé par le compagnon) est gardé et consigné (`intention_file_kept`,
+  composant `stockage`) au lieu d'arrêter le démarrage (test
+  `test/enregistreur-worm-attributs.test.js`).
+
+Reconstruction (EX-12.17) : `reconstruireJournal` et `restaurerVersion`
+(`src/worm/restauration.mjs`) n'écrivent que dans un répertoire neuf
+(`<vers>/<org>/<journal>/`, rempli dans un répertoire provisoire renommé à
+la fin, supprimé en cas d'échec) ; incidents rendus par `ErreurRestauration`
+(`incidents[].kind` : `copie_absente`, `copie_alteree`,
+`versions_multiples`, `segment_absent`, `entete_invalide`,
+`epoque_decroissante`, `version_non_inscrite`, `lecture_impossible`,
+`destination_existante`, `destination_originale`, `cle_refusee`) ; codes de
+`noortrace-ctl` : 0 fait, 1 incident, 2 usage ou destination, 4 support.
+Le démon n'a pas d'interface avec la reconstruction : il démarre sur le
+répertoire reconstruit et prend une époque plus grande que toutes celles des
+noms (13.4).
+
+Compagnon des attributs (EX-12.18, CT-8 EX-3.9) : `passageAttributs(racine)`
+et `principalAttributs(argv)` (`src/worm/attributs.mjs`,
+`bin/noortrace-attributs`) ; le compagnon ne lit ni la configuration ni une
+interface du démon : il déduit le segment courant (le dernier dans l'ordre
+des noms, 12.1) et le journal d'intention courant (la plus grande époque)
+des seuls noms de fichiers ; le démon ne lui expose rien et ne lui signale
+rien (aucun texte ne le prescrit). Événements sur la sortie d'erreur
+(NDJSON, composant `stockage`) : `attribute_set`, `attribute_failed`,
+`attribute_refused` ; état du dernier passage sous `TMPDIR` pour la sonde.
+
+`src/cli.mjs` : `supportWormDepuisConfiguration`, `attendreBail: true`
+(les frontaux s'ouvrent pendant l'attente et rendent `-31010
+bail_non_detenu`), règle `controleWorm` au pas 3 d'EX-15.4 (avertissement
+si `worm.credentials` est la même référence qu'un autre secret) ; dans
+`lancer()`, un échec de la fin du démarrage après l'attente rend le code
+2, et un bail perdu (mode dégradé « bail ») relance le démon dans le même
+processus, qui relit le journal et redevient passif tant qu'une autre
+instance détient le bail (13.4 pas 8, EX-13.6). `package.json` : `bin`
+`noortrace-ctl` et `noortrace-attributs`.
 
 ## g) Ancrage (CT-5)
 

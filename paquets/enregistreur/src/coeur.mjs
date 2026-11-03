@@ -16,11 +16,11 @@ import { Metriques, servirSupervision, sante } from "./supervision.mjs";
 import { EtatDegrade } from "./degrade.mjs";
 import { ControleurHorloge, HORLOGE_SYSTEME } from "./horloge.mjs";
 import { SignataireFichier, SignataireVerifie } from "./signataires.mjs";
-import { MagasinBailFichier } from "./bail.mjs";
+import { magasinBailDepuisConfiguration, controleCleMac, taillesAnterieures, SurveillanceFourche, verifierEpoqueOuverture } from "./ha/index.mjs";
 import { MagasinPieces, empreintePolitique, piecePolitique, pieceReprise, pieceAttentePerdue, Piece } from "./pieces.mjs";
 import { ecrireAtomique, existe, creerRepertoire, FichierAjout, decouperLignes } from "./fichiers.mjs";
 import { relireJournal, planifierReprise, partielReprise, ErreurRelecture } from "./reprise.mjs";
-import { relireIntentions, ErreurIntentions } from "./intentions.mjs";
+import { relireIntentions, ErreurIntentions, objetContexte } from "./intentions.mjs";
 import { Ecrivain } from "./ecrivain.mjs";
 import { partielAppelOutil, partielDecision, partielEchange, partielPolitique, repriseDeRetenue } from "./capture.mjs";
 import { evaluerEffets } from "./effets.mjs";
@@ -56,11 +56,30 @@ export class Coeur {
    * @param {(periodStart: number) => string} [o.nonce]
    * @param {boolean} [o.minuteurs] tic, remises et expirations par minuteur (démon)
    * @param {boolean} [o.supervision] servir /healthz, /readyz, /metrics
+   * @param {boolean} [o.attendreBail] bail détenu par une autre instance : attendre en
+   *   instance passive (`lease_standby`, santé `standby`, 13.4 pas 1) au lieu de refuser le démarrage
+   * @param {(coeur: Coeur) => Promise<void>|void} [o.surAttente] appelé une fois à l'entrée en
+   *   instance passive (le démon y ouvre ses frontaux, qui rendent `-31010 bail_non_detenu`)
    * @param {{redigerMotif?: (motif: string|null) => string|null,
    *   executerExtract?: (motif: string, texte: string) => string|null}} [o.redaction] crochets du lot de rédaction
    * @returns {Promise<Coeur>}
    */
   static async demarrer(o) {
+    if (o.attendreBail) {
+      // Instance passive admise (13.4) : la promesse se résout dès que le cœur
+      // est actif OU passif ; la fin du démarrage (prise du bail, pas 5 à 7)
+      // continue alors en arrière-plan : `coeur.demarrage`.
+      let passif;
+      const enAttente = new Promise((r) => (passif = r));
+      const c = new Coeur({ ...o, surAttente: async (x) => { await o.surAttente?.(x); passif(); } });
+      c.demarrage = c._demarrer().catch(async (e) => {
+        await c.arreter().catch(() => {});
+        throw e;
+      });
+      c.demarrage.catch(() => {});
+      await Promise.race([c.demarrage, enAttente]);
+      return c;
+    }
     const c = new Coeur(o);
     try {
       await c._demarrer();
@@ -108,6 +127,9 @@ export class Coeur {
     this.politique = new MoteurPolitique(this);
     // Rédaction (INTERFACES.md, section e) : journal d'exploitation et métriques du cœur.
     o.redaction?.lier?.(this);
+    // WORM (INTERFACES.md, section f) : copies, registre, contrôles périodiques.
+    this.passif = false;
+    o.worm?.lier?.(this);
   }
 
   // ------------------------------------------------------------ démarrage
@@ -138,12 +160,13 @@ export class Coeur {
         : null);
     if (!backend) throw new ErreurEnregistreur("cle", `backend ${cfg.signer.backend.type} non fourni par ce lot du démon`);
     this.signataire = new SignataireVerifie(backend, cfg.signer, { metriques: this.metriques, journal: this.journal });
-    this.bail = this.o.bail ?? (cfg.lease.store.type === "file" ? new MagasinBailFichier(cfg.lease.store.path) : null);
-    if (!this.bail) throw new ErreurEnregistreur("bail", `magasin de bail ${cfg.lease.store.type} non fourni par ce lot du démon`);
-    const epoque = await this.bail.acquerir();
+    // Bail (13) : magasin `file`, `postgresql` ou `etcd` (lot de haute disponibilité).
+    this.bail = this.o.bail ?? magasinBailDepuisConfiguration(cfg, this.secrets);
+    this.bail.lier?.(this);
+    const epoque = await this._acquerirBail();
     this.bailDetenu = true;
     this.metriques.jauge("noortrace_lease_epoch", {}, epoque);
-    this.journal.consigner("info", "bail", "lease_acquired", { epoch: epoque, store: this.bail.type });
+    this.journal.consigner("info", "bail", "lease_acquired", { epoch: epoque, store: this.bail.type, fencing: cfg.lease.fencing ?? null });
 
     this.pieces = new MagasinPieces(this.repertoire, { minOctetsLibres: cfg.storage.min_free_bytes });
     let etat;
@@ -157,10 +180,17 @@ export class Coeur {
       if (!(e instanceof ErreurRelecture)) throw e;
       this.degrade.entrer("stockage", { event: e.evenement });
       this.intervention = e;
+      this.passif = false;
       this.pret = true;
       await this._servirSupervision();
       return;
     }
+    // EX-13.10 (3) : taille finale des fichiers d'époque inférieure, après la
+    // relecture (et sa troncature éventuelle) ; toute croissance ultérieure est
+    // une fourche (`journal_fork`), contrôlée au tic.
+    const tailles = await taillesAnterieures(this.repertoire, epoque);
+    if (tailles.length) this.journal.consigner("info", "bail", "lease_predecessor_files", { epoch: epoque, files: tailles });
+    this.fourche = new SurveillanceFourche(this.repertoire, tailles, this.journal, { maintenant: () => this.horlogeBrute.monotone() });
     this.index = etat.index;
     const cleCourante = etat.cleCourante ?? cfg.signer.key_id;
     await this.signataire.clePublique(cleCourante);
@@ -222,6 +252,10 @@ export class Coeur {
     // EX-9.8 (4) : événement de politique.
     await this._annoncerPolitique(cfg.policy);
 
+    // Instance passive : en service seulement ici, après la reprise des
+    // intentions et des événements en attente et l'événement de politique
+    // (EX-9.8 ; 13.4 pas 6 et 7) ; jusque-là, -31010 bail_non_detenu.
+    this.passif = false;
     // Pas 6 (suite) : charger, ouvrir, consommer.
     if (this.service) {
       this._charger();
@@ -248,14 +282,57 @@ export class Coeur {
     if (this.o.minuteurs) this._armerMinuteurs();
   }
 
+  /**
+   * Acquisition du bail (EX-15.4 pas 5, 13.4 pas 1) : la ligne de contrôle de
+   * la clé du MAC de relais est d'abord comparée à celle du dernier fichier
+   * `mac-*` (EX-7.22) ; une différence est une erreur de configuration
+   * (`relay_mac_key_mismatch`) et l'instance ne prend pas le bail. Un bail
+   * détenu par une autre instance : avec `attendreBail`, instance passive
+   * (`lease_standby`, santé `standby`, frontaux ouverts par `surAttente`, qui
+   * rendent `-31010 bail_non_detenu`), nouvel essai toutes les `renew_ms` ;
+   * sans, le démarrage est refusé.
+   * @returns {Promise<number>} époque
+   */
+  async _acquerirBail() {
+    const cleMac = this.secrets.get("/storage/relay_mac_key") ?? null;
+    let signale = false;
+    for (;;) {
+      if (this.arrete) throw new ErreurEnregistreur("bail_non_detenu", "noortrace: arret pendant l'attente du bail");
+      const concorde = cleMac ? await controleCleMac(this.repertoire, cleMac) : null;
+      if (concorde === false) {
+        if (!signale) this.journal.consigner("error", "noyau", "relay_mac_key_mismatch", {});
+        signale = true;
+        if (!this.o.attendreBail) throw new ErreurEnregistreur("bail", "noortrace: cle du MAC de relais differente de celle du journal (relay_mac_key_mismatch)", { code: 2 });
+      } else {
+        try {
+          return await this.bail.acquerir();
+        } catch (e) {
+          if (!(e instanceof ErreurEnregistreur) || e.raison !== "bail_non_detenu" || !this.o.attendreBail) throw e;
+        }
+      }
+      if (!this.passif) {
+        this.passif = true;
+        this.journal.consigner("info", "bail", "lease_standby", { store: this.bail.type });
+        this.metriques.jauge("noortrace_lease_epoch", {}, 0);
+        await this._servirSupervision();
+        await this.o.surAttente?.(this);
+      }
+      await new Promise((r) => {
+        this.reveilAttente = r;
+        const t = setTimeout(r, this.config.lease.renew_ms);
+        t.unref?.();
+      });
+    }
+  }
+
   async _servirSupervision() {
-    if (!this.o.supervision) return;
+    if (!this.o.supervision || this.serveur) return;
     const [hote, port] = this.config.supervision.health_listen.split(/:(?=[0-9]+$)/);
     this.serveur = await servirSupervision({
       adresse: hote.replace(/^\[|\]$/g, ""),
       port: Number(port),
       etat: () => this.etatSante(),
-      pret: () => this.pret && this.bailDetenu,
+      pret: () => this.pret && this.bailDetenu && !this.passif,
       metriques: this.config.supervision.metrics ? this.metriques : null,
     });
   }
@@ -276,6 +353,8 @@ export class Coeur {
     planifier();
     // Boucle `decisions` (EX-7.19) : moteur de politique.
     this.politique.demarrerBoucle();
+    // Contrôles périodiques des copies WORM (EX-17.5 à EX-17.7).
+    this.o.worm?.armer?.();
   }
 
   /**
@@ -307,6 +386,7 @@ export class Coeur {
   etatSante() {
     const d = this.degrade.depuis();
     return {
+      passive: this.passif,
       bailDetenu: this.bailDetenu && this.bail?.valide?.() !== false,
       raisons: [...this.degrade.raisons(), ...(this.raisonsFrontal?.() ?? [])],
       depuis: d === null ? null : ecrireHorodatage(d),
@@ -320,6 +400,8 @@ export class Coeur {
   }
 
   _bloquerSiIntervention() {
+    // Instance passive (13.4 pas 1) : `-31010`, raison `bail_non_detenu` (14.2).
+    if (this.passif) throw new ErreurEnregistreur("bail_non_detenu", "noortrace: bail non detenu");
     if (this.intervention || !this.ecrivain) {
       throw new ErreurEnregistreur("stockage", "noortrace: enregistreur en mode degrade (stockage)");
     }
@@ -410,26 +492,62 @@ export class Coeur {
    *   requete: object, reponse: object, duration_ms: number, is_error: boolean, context?: object[], policy_version?: string}} c
    * @returns {Promise<object>} événement durable
    */
-  scellerEchange(c) {
+  async scellerEchange(c) {
     this._bloquerSiIntervention();
-    return this.ecrivain.sceller(
+    const e = await this.ecrivain.sceller(
       partielEchange({
         ...c,
         code: { ...c.code, policy_version: c.policy_version ?? this.versionPolitique, recorder: VERSION_ENREGISTREUR },
         nomRedaction: this.nomRedaction,
       }),
     );
+    // Registre de recouvrement de l'ingestion OpenTelemetry (EX-6.34) : `c.host`
+    // est l'`id` de la connexion d'hôte de l'échange (frontal modèle, SDK).
+    this._notifierScelle({ genre: "echange", host: c.host ?? null, evenement: e });
+    return e;
   }
 
   /**
    * Scelle un événement partiel déjà construit par un frontal selon sa
    * table (ingestion OpenTelemetry, EX-6.36) ; pièces déjà écrites.
+   * Avec `priorite: "basse"`, l'événement n'est remis à l'écrivain que
+   * lorsqu'aucun événement d'un autre frontal n'y attend (EX-6.28 : les
+   * frontaux interposés sont servis avant l'ingestion).
    * @param {object} partiel les huit champs de CT-1 §5.3
+   * @param {{priorite?: "basse"}} [o]
    * @returns {Promise<object>}
    */
-  scellerPartiel(partiel) {
+  async scellerPartiel(partiel, o = {}) {
     this._bloquerSiIntervention();
+    if (o.priorite === "basse") {
+      while (!this.arrete && this.ecrivain.file.some((x) => x.type === "evenement" && x.options?.priorite !== "basse")) {
+        await new Promise((r) => setTimeout(r, 1));
+      }
+      return this.ecrivain.sceller(partiel, { priorite: "basse" });
+    }
     return this.ecrivain.sceller(partiel);
+  }
+
+  /**
+   * Écoute des scellements des frontaux (registre de recouvrement de
+   * l'ingestion OpenTelemetry, EX-6.34) : `f({ genre: "appel" | "echange",
+   * host, appel?, evenement })` est appelé, sans être attendu, après chaque
+   * appel d'outil (relais, reprise à chaud) et chaque échange de modèle
+   * rendus durables par le cœur.
+   * @param {(x: object) => void} f
+   */
+  ecouterScellements(f) {
+    (this.ecouteursScelle ??= []).push(f);
+  }
+
+  _notifierScelle(x) {
+    for (const f of this.ecouteursScelle ?? []) {
+      try {
+        f(x);
+      } catch {
+        // un écouteur ne bloque jamais le scellement
+      }
+    }
   }
 
   // ------------------------------------------------------------ approbation (7.5)
@@ -446,6 +564,8 @@ export class Coeur {
    * @returns {Promise<object>} la réponse validée
    */
   async evaluer(requete) {
+    // Instance passive : elle n'échange avec le service qu'après la prise du bail (13.4 pas 6).
+    if (this.passif) throw new ErreurEnregistreur("bail_non_detenu", "noortrace: bail non detenu");
     if (!this.service) throw new ErreurEnregistreur("approbation", "noortrace: service d'approbation indisponible");
     // Mode observation (EX-7.23, EX-14.15) : réponse sans ticket, aucun nouvel essai qui retarde l'appel.
     const observation = this.config.policy.approval?.mode === "observation";
@@ -502,7 +622,7 @@ export class Coeur {
    * par `definirOutils`.
    */
   async _charger(attendreReponse = false) {
-    if (!this.service) return;
+    if (!this.service || this.passif) return;
     const pol = this.config.policy;
     const emp = empreintePolitique(pol);
     const { service, ...approval } = pol.approval;
@@ -672,18 +792,53 @@ export class Coeur {
     }
     const base = this._partielAppel(a, { ...fixe, status: "executee", result: null, duration_ms: 0, is_error: false });
     let intention = null;
+    const partielIntention = { ...base, effects: o.effetsDeclares ?? [] };
     if (appel.class === "ecriture" || ticket) {
       try {
         intention = await this.ecrivain.inscrireIntention(
           { upstream_id: o.upstream_id, host: appel.host.id, tool: appel.tool_announced, arguments: appel.arguments, ticket },
-          { ...base, effects: o.effetsDeclares ?? [] },
+          partielIntention,
         );
       } catch (e) {
         if (ticket) this.relaisEnCours.delete(ticket);
         throw e;
       }
     }
-    return { appel: a, fixe, ticket, intention, debut: this.horlogeBrute.monotone() };
+    return { appel: a, fixe, ticket, intention, partielIntention, debut: this.horlogeBrute.monotone() };
+  }
+
+  /**
+   * Reprise à chaud (EX-12.15, EX-6.13, table de 6.2 `fermer`) : une session
+   * SDK close ou perdue, le démon tournant, avec un `debutAppel` qui a écrit
+   * une intention et sans `finAppel`. Même construction que la reprise au
+   * démarrage (EX-12.14 pas 2 et 3, `partielReprise`) : événement `executee`,
+   * `is_error: true`, pièce « résultat » de reprise, levée, `intent_recovered` ;
+   * l'approbation d'un ticket approuvé est consommée (EX-6.7, EX-7.20).
+   * @param {object} relais poignée de `preparerRelais`
+   * @returns {Promise<object|null>} l'événement de reprise, ou null sans intention
+   */
+  async reprendreRelais(relais) {
+    const i = relais?.intention;
+    if (!i) return null;
+    this._bloquerSiIntervention();
+    const a = relais.appel;
+    const entree = { intention: i.intention, sha256: i.intention_sha256, contexte: objetContexte(i.intent_id, relais.partielIntention).event };
+    try {
+      const piece = pieceReprise(i.intention_sha256);
+      await this.ecrirePiece(piece);
+      // EX-12.15 : « c'est la relecture du journal d'intention qui fait le
+      // travail » : même construction qu'au démarrage, classe et origine
+      // tirées du nom d'outil de l'intention et de la configuration, jamais
+      // de la session (lecture 117).
+      const { partiel } = this._partielReprise(entree, piece);
+      const e = await this.ecrivain.sceller(partiel, { leverIntention: i.intent_id, sorteMetrique: "reprise" });
+      this.journal.consigner("info", "noyau", "intent_recovered", { intent_id: i.intent_id, written_at: i.intention.written_at, session_closed: true }, { seq: e.seq, host: a.host?.id ?? null });
+      this._notifierScelle({ genre: "appel", host: a.host?.id ?? null, appel: a, evenement: e });
+      if (relais.ticket && this.index.premiersExecutes.get(relais.ticket)?.seq === e.seq) this._consommer(relais.ticket, e);
+      return e;
+    } finally {
+      if (relais.ticket) this.relaisEnCours.delete(relais.ticket);
+    }
   }
 
   /**
@@ -725,6 +880,7 @@ export class Coeur {
     try {
       await this.ecrirePiece(r.resultat);
       const e = await this.ecrivain.sceller(partiel, { leverIntention: relais.intention?.intent_id });
+      this._notifierScelle({ genre: "appel", host: a.host?.id ?? null, appel: a, evenement: e });
       if (relais.ticket) {
         this.relaisEnCours.delete(relais.ticket);
         if (this.index.premiersExecutes.get(relais.ticket)?.seq === e.seq) this._consommer(relais.ticket, e);
@@ -733,7 +889,7 @@ export class Coeur {
     } catch (err) {
       if (relais.ticket) this.relaisEnCours.delete(relais.ticket);
       if (err instanceof ErreurEnregistreur || err instanceof ErreurConstruction) {
-        this.mettreEnAttente(partiel, [r.resultat], { intent_id: relais.intention?.intent_id ?? null });
+        this.mettreEnAttente(partiel, [r.resultat], { intent_id: relais.intention?.intent_id ?? null, host: a.host?.id ?? null, genre: "appel" });
         this.metriques.compter("noortrace_calls_executed_not_durable_total", { class: a.class });
         this.journal.consigner("error", "noyau", "call_executed_not_durable", { intent_id: relais.intention?.intent_id ?? null });
         throw new ErreurEnregistreur(err.raison ?? "stockage", "noortrace: appel execute, evenement non durable", { code: -31017, cause: err });
@@ -898,6 +1054,8 @@ export class Coeur {
    */
   async tic() {
     if (this.intervention || !this.ecrivain) return;
+    // EX-13.10 (3) : croissance d'un fichier d'époque inférieure (fourche).
+    await this.fourche?.controler().catch(() => {});
     if (this.degrade.enModeDegrade) this.politique.noterExpirationsDifferees();
     if (this.degrade.actif("horloge")) this._sortirHorloge();
     if (this.degrade.actif("cle")) {
@@ -952,7 +1110,10 @@ export class Coeur {
    * et, au mieux, `attente/attente-<epoch>.ndjson`. Bornes d'EX-14.9.
    * @param {object} partiel
    * @param {Piece[]} pieces pièces à écrire au scellement
-   * @param {{intent_id?: string|null, captured_at?: number}} [o]
+   * @param {{intent_id?: string|null, captured_at?: number, host?: string|null, genre?: "appel"|"echange"}} [o]
+   *   `host` et `genre` : connexion d'hôte et nature de l'événement, gardés en
+   *   mémoire seulement, pour inscrire l'événement au registre de
+   *   recouvrement quand il est scellé (EX-6.34, lecture 125)
    * @returns {string} pending_id
    */
   mettreEnAttente(partiel, pieces, o = {}) {
@@ -968,7 +1129,7 @@ export class Coeur {
     this.compteurAttente++;
     const pending_id = `p-${String(this.ecrivain?.epoque ?? 0).padStart(20, "0")}-${String(this.compteurAttente).padStart(12, "0")}`;
     const captured_at = o.captured_at ?? this.horlogeBrute.murale();
-    this.attente.push({ pending_id, captured_at, partiel, pieces, intent_id: o.intent_id ?? null });
+    this.attente.push({ pending_id, captured_at, partiel, pieces, intent_id: o.intent_id ?? null, host: o.host ?? null, genre: o.genre ?? "appel" });
     this.metriques.jauge("noortrace_pending_events", {}, this.attente.length);
     this._ecrireAttente({ pending_id, captured_at: ecrireHorodatage(captured_at), event: partiel, pieces: pieces.map((p) => p.sha256), intent_id: o.intent_id ?? null });
     return pending_id;
@@ -978,6 +1139,8 @@ export class Coeur {
     try {
       const dir = path.join(this.repertoire, "attente");
       await creerRepertoire(dir);
+      // EX-13.5 (1) : aucun fichier d'attente sous une époque supérieure présente.
+      await verifierEpoqueOuverture(this.repertoire, "attente", this.ecrivain.epoque);
       const f = await FichierAjout.ouvrir(path.join(dir, `attente-${String(this.ecrivain.epoque).padStart(20, "0")}.ndjson`), { creer: true, existantAdmis: true });
       const o = jcsIntegralOctets(ligne);
       const l = new Uint8Array(o.length + 1);
@@ -1015,7 +1178,10 @@ export class Coeur {
           await this.pieces.ecrire(perdue);
           partiel = { ...partiel, execution: { ...partiel.execution, result: perdue.reference, is_error: true } };
         }
-        await this.ecrivain.sceller(partiel, { captureA: x.captured_at, leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente" });
+        const e = await this.ecrivain.sceller(partiel, { captureA: x.captured_at, leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente" });
+        // Scellé depuis l'attente, démon en marche : inscrit au registre de
+        // recouvrement comme tout appel ou échange scellé (EX-6.34, lecture 125).
+        if (x.host) this._notifierScelle({ genre: x.genre, host: x.host, appel: null, evenement: e });
         n++;
         maxDelai = Math.max(maxDelai, this.horlogeBrute.murale() - x.captured_at);
       } catch {
@@ -1069,7 +1235,30 @@ export class Coeur {
     return [...(this.config.mcp.hosts ?? []), ...(this.config.sdk.hosts ?? [])].find((h) => h.id === id) ?? null;
   }
 
+  /**
+   * Événement partiel de reprise (EX-12.14 pas 2), commun à la reprise au
+   * démarrage et à la reprise à chaud du SDK (EX-12.15, lecture 117).
+   * @param {{intention: object, sha256: string, contexte: object|null}} entree
+   * @param {{reference: object}} piece pièce « résultat » de reprise
+   */
+  _partielReprise(entree, piece) {
+    return partielReprise(entree, {
+      index: this.index,
+      hote: (id) => this._hote(id),
+      classe: (t) => this._classe(t),
+      origine: (t) => this._origine(t),
+      nomRedaction: this.nomRedaction,
+      recorder: VERSION_ENREGISTREUR,
+      resultat: piece.reference,
+    });
+  }
+
   _origine(tool) {
+    // Outil déclaré par le SDK : préfixe `<alias>__` d'une entrée de sdk.hosts
+    // (EX-6.6), quel que soit `tools.prefix`.
+    for (const h of this.config.sdk?.hosts ?? []) {
+      if (typeof h.alias === "string" && tool.startsWith(`${h.alias}__`)) return { alias: h.alias, nom: tool.slice(h.alias.length + 2) };
+    }
     const serveurs = Object.keys(this.config.policy.servers ?? {});
     if (this.config.tools.prefix === false && serveurs.length === 1) return { alias: serveurs[0], nom: tool };
     const k = tool.indexOf("__");
@@ -1077,6 +1266,10 @@ export class Coeur {
   }
 
   _classe(tool) {
+    // Outil du SDK : aucune classe configurée (lecture 111) et la classe
+    // déclarée n'est pas dans le journal d'intention (EX-12.12) : « à défaut
+    // ecriture » (table de 6.2, debutAppel) ; un alias du SDK n'est jamais un
+    // alias de serveur (EX-6.6), d'où `ecriture` ci-dessous.
     const o = this._origine(tool);
     const s = this.config.policy.servers?.[o.alias];
     return s?.tools?.[o.nom]?.class ?? s?.class_default ?? "ecriture";
@@ -1132,15 +1325,7 @@ export class Coeur {
       }
       const piece = pieceReprise(p.entree.sha256);
       await this.pieces.ecrire(piece);
-      const { partiel, note } = partielReprise(p.entree, {
-        index: this.index,
-        hote: (id) => this._hote(id),
-        classe: (t) => this._classe(t),
-        origine: (t) => this._origine(t),
-        nomRedaction: this.nomRedaction,
-        recorder: VERSION_ENREGISTREUR,
-        resultat: piece.reference,
-      });
+      const { partiel, note } = this._partielReprise(p.entree, piece);
       if (!partiel) {
         this.journal.consigner("error", "stockage", "intention_irreconstructible", { intent_id: p.intentId });
         this.degrade.entrer("stockage", { event: "intention_irreconstructible" });
@@ -1157,7 +1342,14 @@ export class Coeur {
     for (const f of r.fichiers) {
       if (f.epoch >= this.ecrivain.epoque) continue;
       const toutes = r.intentions.filter((i) => i.fichier === f.chemin).every((i) => levees.has(i.intention.intent_id));
-      if (toutes) await fs.rm(f.chemin, { force: true });
+      if (!toutes) continue;
+      // Avec storage.seal.append_only_attribute, le compagnon a posé `a` sur ce
+      // fichier (CT-2 EX-12.18) : il ne peut plus être supprimé ; il est gardé.
+      await fs.unlink(f.chemin).catch((e) => {
+        if (e.code === "ENOENT") return;
+        if (e.code !== "EPERM") throw e;
+        this.journal.consigner("warning", "stockage", "intention_file_kept", { fichier: path.basename(f.chemin), raison: "append_only" });
+      });
     }
   }
 
@@ -1184,6 +1376,8 @@ export class Coeur {
   /** Arrêt propre : file vidée, fichiers fermés, bail libéré, graines effacées. */
   async arreter() {
     this.arrete = true;
+    this.reveilAttente?.();
+    this.o.worm?.arreter?.();
     this.politique?.arreter();
     for (const t of this.minuteurs) clearInterval(t);
     if (this.serveur) await new Promise((r) => this.serveur.close(() => r()));

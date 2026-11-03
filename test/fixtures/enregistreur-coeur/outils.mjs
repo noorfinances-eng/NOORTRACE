@@ -94,6 +94,14 @@ export function configurationDev(dir, o = {}) {
   // connexion d'hôte de l'exemple de 15.3 (aucun test ne dépend de 8400).
   c.model.mode = o.modele === true ? "passerelle" : "desactive";
   if (o.modele === true) c.model.listen = "127.0.0.1:0";
+  // Ingestion OpenTelemetry (lot SDK et OpenTelemetry) : la source de l'exemple
+  // de 15.3 est gardée, sur un port libre choisi par le système (aucun test ne
+  // dépend de 4318) ; SDK : prise sous le répertoire du test.
+  if (c.otel) c.otel.listen = "127.0.0.1:0";
+  if (o.sdk) {
+    c.sdk = { enabled: true, socket: path.join(dir, "prise", "sdk.sock"), tcp_listen: null, hosts: o.sdk.hosts };
+    c.policy.sdk = { aliases: o.sdk.hosts.map((h) => h.alias) };
+  }
   c.storage.root = path.join(dir, "stockage");
   c.storage.min_free_bytes = 1024;
   c.storage.seal = { append_only_attribute: false, worm: null };

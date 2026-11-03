@@ -41,4 +41,8 @@ export * from "./coffre.mjs";
 export * from "./mcp/index.mjs";
 export * from "./modele/index.mjs";
 export * from "./politique/index.mjs";
+export * from "./sdk/index.mjs";
+export * from "./otel/index.mjs";
+export * from "./worm/index.mjs";
+export * from "./ha/index.mjs";
 export { principal } from "./cli.mjs";
