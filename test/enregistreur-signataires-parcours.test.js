@@ -29,6 +29,12 @@
 // réponses à l'hôte, journal d'exploitation, événement en attente, puis
 // rétablissement.
 //
+// En production, le serveur d'outils stdio tourne sous `nobody`, utilisateur
+// distinct de celui du démon (EX-3.5) : les parcours de production exigent un
+// démon lancé par le superutilisateur, et sont en attente sinon (condition
+// nommée) ; le travail « parcours-superutilisateur » de l'intégration continue
+// les joue sous sudo, sans essai en attente.
+//
 // TA-31 et TA-33 (CT-9) sont joués par test/adversarial.test.js
 // (fixtures/enregistreur-signataires/ta.mjs).
 
@@ -60,8 +66,27 @@ function construireVerificateur(dir) {
   return sortie;
 }
 
+/**
+ * En production, le serveur d'outils stdio tourne sous un utilisateur
+ * distinct de celui du démon (EX-3.5) : seul un démon lancé par le
+ * superutilisateur peut en changer. Sinon, le parcours est en attente.
+ */
+const superutilisateur = () =>
+  typeof process.getuid === "function" && process.getuid() === 0
+    ? { ok: true, condition: null }
+    : { ok: false, condition: "le démon doit être lancé par le superutilisateur pour lancer le serveur stdio sous un utilisateur distinct (EX-3.5)" };
+/** Première condition non remplie, dans l'ordre ; chaque condition n'est évaluée que si les précédentes sont remplies. */
+const conditions = (...fs) => {
+  for (const f of fs) {
+    const d = f();
+    if (!d.ok) return d;
+  }
+  return { ok: true, condition: null };
+};
+
+// Dans un crochet beforeEach, ctx.test est le crochet : l'essai est ctx.currentTest.
 const enAttente = (ctx, condition) => {
-  ctx.test.title += ` — en attente : ${condition}`;
+  (ctx.currentTest ?? ctx.test).title += ` — en attente : ${condition}`;
   ctx.skip();
 };
 
@@ -250,7 +275,7 @@ describe("parcours, classe A en développement : PKCS#11 sur SoftHSM2 réel (Sof
 for (const type of ["vault-transit", "openbao-transit"]) {
   describe(`parcours, classe B en production : ${type} réel (conteneur épinglé par condensé)`, function () {
     this.timeout(400000);
-    const dispo = dockerEtImage(IMAGES_SIGNATAIRES[type]);
+    const dispo = conditions(superutilisateur, () => dockerEtImage(IMAGES_SIGNATAIRES[type]));
     const ev = {};
     let srv;
     before(async function () {
@@ -291,7 +316,7 @@ for (const type of ["vault-transit", "openbao-transit"]) {
 
 describe("parcours, classe C en production : enveloppe AWS KMS par LocalStack réel", function () {
   this.timeout(400000);
-  const dispo = dockerEtImage(IMAGES_SIGNATAIRES.kms);
+  const dispo = conditions(superutilisateur, () => dockerEtImage(IMAGES_SIGNATAIRES.kms));
   const ev = {};
   let ls;
   before(async function () {
@@ -333,7 +358,7 @@ describe("parcours, classe C en production : enveloppe AWS KMS par LocalStack r�
 
 describe("parcours, classe C en production : enveloppe TPM 2.0 logiciel réel (swtpm), politique PCR", function () {
   this.timeout(300000);
-  const dispo = tpmDisponible();
+  const dispo = conditions(superutilisateur, tpmDisponible);
   const ev = {};
   let tpm;
   before(async function () {
@@ -375,7 +400,7 @@ const nbEvenements = async (rep) => (fs.existsSync(path.join(rep, "segments")) ?
 
 describe("CT-9 TE-16, ligne « clé indisponible » de la matrice de CT-2 §14.2 (et « panne après relais »), rejouée sur le démon réel : Vault suspendu pendant une lecture puis une écriture, puis rétabli", function () {
   this.timeout(400000);
-  const dispo = dockerEtImage(IMAGES_SIGNATAIRES["vault-transit"]);
+  const dispo = conditions(superutilisateur, () => dockerEtImage(IMAGES_SIGNATAIRES["vault-transit"]));
   const ev = {};
   before(async function () {
     if (!dispo.ok) return;

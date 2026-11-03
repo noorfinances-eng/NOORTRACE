@@ -480,6 +480,52 @@ jobs:
           npx hardhat --config hardhat.config.mjs test test/enregistreur-sdk-python.test.js test/enregistreur-sdk-adaptateurs.test.js 2>&1 | tee "$RUNNER_TEMP/sdk-python.txt"
           if grep -E '[0-9]+ pending' "$RUNNER_TEMP/sdk-python.txt"; then exit 1; fi
 
+  # Parcours des signataires sur le démon réel (test/enregistreur-signataires-
+  # parcours.test.js) : en production, le serveur d'outils stdio tourne sous
+  # nobody, utilisateur distinct de celui du démon (CT-2 EX-3.5), ce qui exige
+  # un démon lancé par le superutilisateur ; dans le travail « tests », ces
+  # parcours sont donc en attente. Ici, ils sont joués sous sudo : SoftHSM2
+  # (classe A), Vault et OpenBao Transit (classe B), LocalStack et swtpm avec
+  # tpm2-tools (classe C), TE-16 ; versions des paquets du système imprimées ;
+  # go1.27.3 exactement construit noortrace-verifier (EX-14.6). Le répertoire
+  # personnel de l'exécuteur est rendu traversable pour que nobody lise le
+  # serveur d'outils du dépôt. La dernière commande refuse toute ligne
+  # « pending » du rapport, comme le travail Chromium.
+  parcours-superutilisateur:
+    name: parcours des signataires A, B et C en production sous le superutilisateur (EX-3.5), sans essai en attente
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.27.3
+          cache: false
+      - run: npm ci
+      - name: SoftHSM2, swtpm et tpm2-tools par apt, versions imprimées
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends softhsm2 swtpm swtpm-tools tpm2-tools libtss2-tcti-swtpm0t64
+          dpkg-query -W softhsm2 libsofthsm2 swtpm swtpm-tools tpm2-tools libtss2-tcti-swtpm0t64
+          docker info --format '{{.ServerVersion}}'
+      - name: binaire vérificateur Go construit par verificateur/scripts/construire.sh (go1.27.3)
+        run: |
+          test "$(go env GOVERSION)" = go1.27.3
+          GOFLAGS=-mod=vendor verificateur/scripts/construire.sh -o "$RUNNER_TEMP/noortrace-verifier"
+          test -x "$RUNNER_TEMP/noortrace-verifier"
+      - name: test/enregistreur-signataires-parcours.test.js sous sudo, aucun essai en attente
+        run: |
+          set -o pipefail
+          chmod o+x "$HOME"
+          sudo env "PATH=$PATH" "HOME=$HOME" "GOTOOLCHAIN=local" "NOORTRACE_GO_BIN=$(dirname "$(command -v go)")" \
+            npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-parcours.test.js 2>&1 | tee "$RUNNER_TEMP/parcours.txt"
+          if grep -E '[0-9]+ pending' "$RUNNER_TEMP/parcours.txt"; then exit 1; fi
+
   # Confrontation des vecteurs CT-2, CT-3, CT-5, CT-6 et CT-7 par des
   # implémentations tierces (spec/CT-6-verificateur.md, annexe A.8 ;
   # spec/CT-5-ancrage.md, annexe A.6 ; spec/CT-2-enregistreur.md, annexes B.5

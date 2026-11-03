@@ -45,8 +45,9 @@ import {
 } from "./fixtures/enregistreur-signataires/outils.mjs";
 
 const HOSTILE = path.join(path.dirname(new URL(import.meta.url).pathname), "fixtures", "enregistreur-signataires", "pkcs11-hostile.py");
+// Dans un crochet beforeEach, ctx.test est le crochet : l'essai est ctx.currentTest.
 const enAttente = (ctx, condition) => {
-  ctx.test.title += ` — en attente : ${condition}`;
+  (ctx.currentTest ?? ctx.test).title += ` — en attente : ${condition}`;
   ctx.skip();
 };
 

@@ -528,6 +528,24 @@
           "apres": "5786709dcc54e6e800430e34e88cc472c04cd37f85912acc7fedc8908b9a3b0f"
         }
       ]
+    },
+    {
+      "id": "MC-16",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "CT-9 : empreintes de test/enregistreur-signataires-parcours.test.js et de test/enregistreur-signataires-exigences.test.js mises à jour dans couverture.json (parcours de production en attente hors superutilisateur, condition nommée, EX-3.5 ; condition portée par le titre de l'essai et non du crochet) et recomptage régénéré après l'ajout du travail d'intégration continue « parcours-superutilisateur » (53 étapes « - name: »).",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "8522e97d53c0e51cc275cbeb21ebbeecd763c643f45d6673650073f66853150f",
+          "apres": "e66a2076ea39a0b6fdf2e9ae1a749f3ab6d8ec3e9d068e8ee489d079f9ac877e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "5786709dcc54e6e800430e34e88cc472c04cd37f85912acc7fedc8908b9a3b0f",
+          "apres": "f04a3bcc9fe67b2af1fdc2da628c867441db1a7d81944ce7506212beb1d41d64"
+        }
+      ]
     }
   ]
 }

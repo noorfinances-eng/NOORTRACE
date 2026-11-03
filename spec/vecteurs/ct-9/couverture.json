@@ -256,11 +256,11 @@
       },
       {
         "file": "test/enregistreur-signataires-exigences.test.js",
-        "sha256": "d5ab980c6283a343ea6ff8ffa208ec79573814c583b0c7ea396bfdb60a0e85ba"
+        "sha256": "3b3ff048d95bf4b6d1c128cafd0beefbf4627beeadf84fefc0b4d9cf567ceeed"
       },
       {
         "file": "test/enregistreur-signataires-parcours.test.js",
-        "sha256": "210270e66110702221163461c9505c9e5b24213a308053f5f495d475fe4b73e3"
+        "sha256": "3074cf2c474069c0b0b39a405fafb682c32d93f005a5a13ab16e5f84b48c5402"
       },
       {
         "file": "test/enregistreur-worm-attributs.test.js",
