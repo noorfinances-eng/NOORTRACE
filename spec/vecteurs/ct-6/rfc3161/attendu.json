@@ -369,7 +369,7 @@
       "target": null,
       "openssl_ts_verify": {
         "command": "openssl ts -verify -digest <period_hash sans 0x> -in jetons/t5-cle-ed25519.der -token_in -CAfile cles/ac-test.pem -attime <genTime en secondes UNIX>",
-        "presumed_result": "operation not supported for this keytype / signature failure (openssl ts -verify d'OpenSSL 3.0.13 ne vérifie pas une signature Ed25519 de jeton)",
+        "presumed_result": "signature failure (openssl ts -verify ne vérifie pas une signature Ed25519 de jeton : « operation not supported for this keytype » avec OpenSSL 3.0.13, « invalid eddsa instance for attempted operation » avec OpenSSL 3.5.5)",
         "source": "relevé par la confrontation (A.8, EX-A.22)"
       }
     },

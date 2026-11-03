@@ -492,7 +492,7 @@ Entrées : rfc3161/attendu.json, rfc3161/{cles,crl,jetons}/, ancres/*.json
   openssl asn1parse (tout le fichier) : code 0
   certificats du jeton (openssl pkcs7 -print_certs) : 1, SHA-256 0x3b2070b9e823b69157f06e7ab4c8d2f8d43e6e1e9033b4280a0ac6d57c3580bd
   openssl ts -verify -digest <period_hash> -in jetons/t5-cle-ed25519.der -token_in -CAfile cles/ac-test.pem -attime 1793872805 : Verification: FAILED : operation not supported for this keytype; signature failure
-  résultat présumé par attendu.json (« operation not supported for this keytype / signature failure (openssl ts -verify d'OpenSSL 3.0.13 ne vérifie pas une signature Ed25519 de jeton) ») : vecteur True ; openssl True : concorde
+  résultat présumé par attendu.json (« signature failure (openssl ts -verify ne vérifie pas une signature Ed25519 de jeton : « operation not supported for this keytype » avec OpenSSL 3.0.13, « invalid eddsa instance for attempted operation » avec OpenSSL 3.5.5) ») : vecteur True ; openssl True : concorde
   openssl cms -verify -binary -CAfile cles/ac-test.pem -attime 1793872805 -purpose timestampsign : code 4 : invalid digest
 -- jetons/t5-cle-ed25519-non-rattachee.der (cible : T-5 ; altération : comme t5-cle-ed25519.der, certificat de l'unité auto-signé (tsa-ed25519-auto-signe.pem) : rattaché à aucune autorité (EX-9.24, cas 2))
   SHA-256 du fichier : vecteur 0x4ede4d35aad56152c86035eaa72a3bbd6aef74dba53e65fb1499b9331196ffbf ; openssl 0x4ede4d35aad56152c86035eaa72a3bbd6aef74dba53e65fb1499b9331196ffbf : concorde

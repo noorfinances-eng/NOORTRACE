@@ -116,8 +116,10 @@ Ce qu'OpenSSL ne fait pas, en plus de ce qui précède :
   hors des bornes (module de 2048 à 8192 bits, exposant impair de 3 à
   2^31 − 1) et laisse `openssl verify -partial_chain` chercher un chemin avec
   les autres : sans l'intermédiaire de 8200 bits, aucun chemin.
-- EX-9.24 : `openssl ts -verify` d'OpenSSL 3.0.13 ne vérifie pas la signature
-  Ed25519 d'un jeton (« operation not supported for this keytype »), là où le
+- EX-9.24 : `openssl ts -verify` ne vérifie pas la signature Ed25519 d'un
+  jeton (« signature failure » : « operation not supported for this keytype »
+  avec OpenSSL 3.0.13, « invalid eddsa instance for attempted operation » avec
+  OpenSSL 3.5.5 ; le résultat présumé ne retient que le motif commun), là où le
   vecteur `t5-cle-ed25519.der` ne relève aucun échec (T-5 à T-7, T-10, T-11
   non exécutées, `hors_perimetre_version`) ; `openssl cms -verify` la vérifie.
   Pour `t5-algorithme-inconnu.der`, OpenSSL ignore l'identifiant inconnu de

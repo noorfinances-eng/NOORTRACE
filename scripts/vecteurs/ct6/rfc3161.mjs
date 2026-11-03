@@ -734,7 +734,7 @@ const OPENSSL_PRESUME = {
   "t7-intermediaire-rsa-8200": { resultat: "Verification: OK (OpenSSL n'applique pas la borne de 8192 bits d'EX-9.23 aux clés du chemin)", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "rsa-8192": { resultat: "Verification: OK", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "t5-algorithme-inconnu": { resultat: "invalid padding / signature failure (OpenSSL vérifie la signature RSA altérée)", source: "relevé par la confrontation (A.8, EX-A.22)" },
-  "t5-cle-ed25519": { resultat: "operation not supported for this keytype / signature failure (openssl ts -verify d'OpenSSL 3.0.13 ne vérifie pas une signature Ed25519 de jeton)", source: "relevé par la confrontation (A.8, EX-A.22)" },
+  "t5-cle-ed25519": { resultat: "signature failure (openssl ts -verify ne vérifie pas une signature Ed25519 de jeton : « operation not supported for this keytype » avec OpenSSL 3.0.13, « invalid eddsa instance for attempted operation » avec OpenSSL 3.5.5)", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "t5-cle-ed25519-non-rattachee": { resultat: "self-signed certificate", source: "relevé par la confrontation (A.8, EX-A.22)" },
   "serie-168-bits": { resultat: "Verification: OK (serialNumber de 168 bits accepté)", source: "relevé par la confrontation (A.8, EX-A.22)" },
 };

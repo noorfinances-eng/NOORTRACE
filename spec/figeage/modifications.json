@@ -4162,6 +4162,29 @@
           "apres": "ebf1f1f5b311615f8c567a529507c31815926921569205b260c6a561eaf10bd2"
         }
       ]
+    },
+    {
+      "id": "MC-19",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "CT-6 : résultat présumé d'openssl ts -verify pour le jeton t5-cle-ed25519 réduit au motif commun aux versions (« signature failure ») : OpenSSL 3.0.13 et 3.5 refusent tous deux la signature Ed25519 d'un jeton, avec des messages différents (le premier faisait échouer la confrontation sur l'exécuteur à OpenSSL 3.5.5) ; explication de confrontation/rfc3161/LISEZMOI.md et sortie publiée rfc3161.txt alignées.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-6/confrontation/rfc3161/LISEZMOI.md",
+          "avant": "af4a638943ce6686d82346b74b334947d27cb98b3b4f061b14016974d079fedc",
+          "apres": "95d8624cf5a558e55d69c05f9c92576966f9b66d897057e4aae357b6862fc573"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/confrontation/sorties/rfc3161.txt",
+          "avant": "eb75728010b97804d5a5ec37a016fd995f8b3debf78ad6a9a14f0da17936da21",
+          "apres": "5076ae5feb32d221b685d1208dcd106e7ecd8a35a246c9e7bb34aab90872bf87"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-6/rfc3161/attendu.json",
+          "avant": "f90ee029bfc7bb63d95b0af852a8ea716c994050e13a5023a6f05f17cb2a9a44",
+          "apres": "d98c3f96bc646b4cd3e3f8b50dd00a49696c0fddc085ccb2812424b9e28e6107"
+        }
+      ]
     }
   ]
 }
