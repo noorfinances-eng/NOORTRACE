@@ -19,8 +19,8 @@ import { spawnSync } from "node:child_process";
 import { ServiceApprobationFactice } from "@noortrace/enregistreur/factice";
 import { Coeur, validerConfiguration, resoudreSecrets, passageAttributs, principalAttributs, lireAttributs } from "@noortrace/enregistreur";
 import { RACINE, repertoireTemporaire } from "./fixtures/enregistreur-coeur/outils.mjs";
-import { attendre, portLibre } from "./fixtures/enregistreur-worm/outils.mjs";
-import { configurationHa, ClientMcpHttp, lancerDemon, sante } from "./fixtures/enregistreur-ha/outils.mjs";
+import { portLibre } from "./fixtures/enregistreur-worm/outils.mjs";
+import { configurationHa, ClientMcpHttp, demarrerDemon } from "./fixtures/enregistreur-ha/outils.mjs";
 
 const BIN_ATTRIBUTS = path.join(RACINE, "paquets", "enregistreur", "bin", "noortrace-attributs");
 const SANS_CAPACITE = ["setpriv", "--bounding-set=-linux_immutable", "--inh-caps=-all", "--"];
@@ -90,10 +90,8 @@ describe("compagnon des attributs a et i (CT-2 EX-12.18, CT-8 EX-3.9) : démon r
 
   it("le démon, lancé sans CAP_LINUX_IMMUTABLE, écrit ; le compagnon (processus distinct) pose a sur le segment courant et le journal d'intention ; le démon continue d'écrire par ses descripteurs ouverts", async function () {
     const { A } = ev;
-    ev.d = lancerDemon(A.fichier, A.env, A.config.supervision.ops_log.path, { prefixe: SANS_CAPACITE });
-    await attendre(async () => (await sante(Number(A.config.supervision.health_listen.split(":")[1])))?.corps?.status === "ok", 60000).catch((e) => {
-      throw new Error(`${e.message}\n${ev.d.sortie}`);
-    });
+    // Ports d'écoute réattribués si l'un d'eux a été pris avant l'ouverture (EADDRINUSE).
+    ev.d = await demarrerDemon(A, "ok", { prefixe: SANS_CAPACITE });
     const statut = fs.readFileSync(`/proc/${ev.d.pid}/status`, "utf8");
     const capEff = BigInt(`0x${/CapEff:\s+([0-9a-f]+)/.exec(statut)[1]}`);
     expect(capEff & (1n << 9n), "CAP_LINUX_IMMUTABLE (bit 9) absent du démon").to.equal(0n);

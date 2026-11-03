@@ -14,7 +14,7 @@ export { MagasinBailPostgresql, requetesBailPg } from "./postgresql.mjs";
 export { MagasinBailEtcd, ClientEtcd } from "./etcd.mjs";
 export { ConnexionPg, ErreurPg, analyserDsn } from "./pg-protocole.mjs";
 export {
-  FICHIERS_A_EPOQUE, epoqueMaxNoms, verifierEpoqueOuverture, controleCleMac, taillesAnterieures, SurveillanceFourche,
+  FICHIERS_A_EPOQUE, epoqueMaxNoms, epoqueMaxJournal, verifierEpoqueOuverture, GardeEpoque, controleCleMac, taillesAnterieures, SurveillanceFourche,
 } from "./cloture.mjs";
 
 /**

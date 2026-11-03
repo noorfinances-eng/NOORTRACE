@@ -48,6 +48,11 @@ export function dockerDisponible(images = Object.values(IMAGES)) {
   return { ok: true, condition: null };
 }
 
+/**
+ * Port TCP libre de la boucle locale, au moment de l'appel seulement : celui
+ * qui le reçoit doit réessayer sur EADDRINUSE (lancerSurPort ; pour un démon,
+ * demarrerDemon de test/fixtures/enregistreur-ha/outils.mjs).
+ */
 function portLibre() {
   return new Promise((res) => {
     const s = net.createServer();
@@ -94,6 +99,33 @@ function lancer(nom, args) {
   lances.add(nom);
 }
 
+/** Nombre d'essais d'un lancement dont le port choisi était pris (EADDRINUSE). */
+const ESSAIS_PORTS = 5;
+
+/**
+ * Lance un conteneur dont un port est publié sur la boucle locale, et rend ce
+ * port. Le port est choisi libre (`portLibre`), mais un autre processus peut
+ * le prendre avant que Docker ne le publie : `docker run` échoue alors
+ * (« address already in use », « port is already allocated ») ; un nouveau
+ * port est choisi et le conteneur relancé, au plus ESSAIS_PORTS essais.
+ * @param {string} nom
+ * @param {(port: number) => string[]} args arguments de `docker run` pour ce port
+ * @returns {Promise<number>}
+ */
+async function lancerSurPort(nom, args) {
+  for (let essai = 1; ; essai++) {
+    const port = await portLibre();
+    try {
+      lancer(nom, args(port));
+      return port;
+    } catch (e) {
+      arreterConteneur(nom);
+      if (essai < ESSAIS_PORTS && /address already in use|port is already allocated|EADDRINUSE/i.test(`${e.stderr ?? ""} ${e.message}`)) continue;
+      throw e;
+    }
+  }
+}
+
 /** Met un conteneur en pause (partition franche) ou le reprend. */
 export function suspendre(nom, pause = true) {
   execFileSync("docker", [pause ? "pause" : "unpause", nom]);
@@ -105,8 +137,7 @@ export function suspendre(nom, pause = true) {
  * @returns {Promise<{nom: string, port: number, origine: string}>}
  */
 export async function demarrerS3(nom) {
-  const port = await portLibre();
-  lancer(nom, ["-p", `127.0.0.1:${port}:4566`, "-e", "SERVICES=s3", "-e", "EAGER_SERVICE_LOADING=1", IMAGES.s3]);
+  const port = await lancerSurPort(nom, (p) => ["-p", `127.0.0.1:${p}:4566`, "-e", "SERVICES=s3", "-e", "EAGER_SERVICE_LOADING=1", IMAGES.s3]);
   await attendre(async () => {
     const r = await fetch(`http://127.0.0.1:${port}/_localstack/health`).catch(() => null);
     if (!r?.ok) return false;
@@ -121,9 +152,8 @@ export async function demarrerS3(nom) {
  * @returns {Promise<{nom: string, port: number, dsn: string}>}
  */
 export async function demarrerPostgresql(nom) {
-  const port = await portLibre();
-  lancer(nom, [
-    "-p", `127.0.0.1:${port}:5432`,
+  const port = await lancerSurPort(nom, (p) => [
+    "-p", `127.0.0.1:${p}:5432`,
     "-e", "POSTGRES_USER=noortrace", "-e", "POSTGRES_PASSWORD=mot-de-passe-de-test", "-e", "POSTGRES_DB=bail",
     "-e", "POSTGRES_HOST_AUTH_METHOD=scram-sha-256", "-e", "POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256",
     IMAGES.postgresql,
@@ -147,10 +177,9 @@ export function psql(nom, sql) {
  * @returns {Promise<{nom: string, port: number, origine: string}>}
  */
 export async function demarrerEtcd(nom) {
-  const port = await portLibre();
-  lancer(nom, [
-    "-p", `127.0.0.1:${port}:2379`, IMAGES.etcd,
-    "/usr/local/bin/etcd", "--listen-client-urls", "http://0.0.0.0:2379", "--advertise-client-urls", `http://127.0.0.1:${port}`,
+  const port = await lancerSurPort(nom, (p) => [
+    "-p", `127.0.0.1:${p}:2379`, IMAGES.etcd,
+    "/usr/local/bin/etcd", "--listen-client-urls", "http://0.0.0.0:2379", "--advertise-client-urls", `http://127.0.0.1:${p}`,
   ]);
   const origine = `http://127.0.0.1:${port}`;
   await attendre(async () => (await fetch(`${origine}/health`).catch(() => null))?.ok, 60000);
@@ -163,9 +192,8 @@ export async function demarrerEtcd(nom) {
  * @returns {Promise<{nom: string, port: number, origine: string}>}
  */
 export async function demarrerS3Iam(nom) {
-  const port = await portLibre();
   const racine = JSON.parse(identifiantsRole("administrateur"));
-  lancer(nom, ["-p", `127.0.0.1:${port}:9000`, "-e", `MINIO_ROOT_USER=${racine.access_key_id}`, "-e", `MINIO_ROOT_PASSWORD=${racine.secret_access_key}`, IMAGES.s3iam]);
+  const port = await lancerSurPort(nom, (p) => ["-p", `127.0.0.1:${p}:9000`, "-e", `MINIO_ROOT_USER=${racine.access_key_id}`, "-e", `MINIO_ROOT_PASSWORD=${racine.secret_access_key}`, IMAGES.s3iam]);
   const origine = `http://127.0.0.1:${port}`;
   // L'image lance un premier serveur pour sa configuration, l'arrête, puis
   // lance le serveur définitif : attendre la fin de la configuration.

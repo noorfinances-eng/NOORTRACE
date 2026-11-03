@@ -59,7 +59,8 @@ ci-dessous).
 - **Signataires** (§11) : interface commune (EX-11.18) ; enveloppe qui borne
   le message (EX-11.7), applique le délai et une seule seconde tentative,
   vérifie chaque signature (EX-11.6) ; classe D (fichier PKCS#8, chiffré ou
-  non), refusée en production (EX-11.8) ; rotation (EX-11.15).
+  non), refusée en production (EX-11.8) ; rotation (EX-11.15). Classes A, B
+  et C : section « Signataires des classes A, B et C » ci-dessous.
 - **Journal sur lui-même** (§9) : événement de politique en tête du journal
   et à chaque changement (EX-9.1, EX-9.2, EX-15.4 pas 6), décision, rotation,
   expiration par le noyau seul (EX-9.4) ; journal d'exploitation NDJSON
@@ -428,8 +429,11 @@ Lot « WORM et haute disponibilité » (INTERFACES.md, section f) : `src/worm/`,
   intentions ; taille des fichiers d'époque inférieure consignée
   (`lease_predecessor_files`) et fourche signalée (`journal_fork`,
   EX-13.10 (3)) ; fichiers d'intention et d'attente refusés sous une époque
-  supérieure (EX-13.5 (1)) ; un démon qui perd son bail se relance et
-  redevient passif (13.4 pas 8).
+  supérieure présente dans le répertoire du journal (EX-13.5 (1), lecture
+  188) ; une instance sans bail ou d'époque dépassée n'écrit rien ; un démon
+  qui perd son bail se relance et redevient passif (13.4 pas 8) ;
+  `instance_id` dans `data` du journal d'exploitation avec `postgresql` ou
+  `etcd` (EX-17.2, lecture 190).
 
 ## SDK et ingestion OpenTelemetry (§6)
 
@@ -502,6 +506,39 @@ l'agent déclare, marqué comme tel dans l'événement.
   `noortrace_otel_conflicts_total`, `noortrace_otel_reception_lag_ms` ; jamais
   un argument, un contenu de span ni un jeton.
 
+## Signataires des classes A, B et C (§11)
+
+Lot « signataires » (`src/signataires/`, INTERFACES.md rubrique j). La
+fabrique `signataireDepuisConfiguration` rend le backend de
+`signer.backend.type` ; l'enveloppe commune vérifie chaque signature
+(EX-11.6), borne le message (EX-11.7), applique `signer.timeout_ms` et une
+seule seconde tentative (EX-11.18).
+
+| Classe | Backend | Requêtes (identité d'usage seule, EX-11.4) | Authentification | Éprouvé contre |
+|---|---|---|---|---|
+| A | `pkcs11` | `C_GetFunctionList`, `C_Initialize`, `C_OpenSession` (lecture seule), `C_Login` (CKU_USER), `C_FindObjects` (CKO_PUBLIC_KEY / CKO_PRIVATE_KEY, CKK_EC_EDWARDS, CKA_LABEL), `C_GetAttributeValue` (CKA_EC_PARAMS, CKA_EC_POINT, CKA_EXTRACTABLE, CKA_SENSITIVE, CKA_SIGN), `C_SignInit` (`CKM_EDDSA` 0x1057 sans paramètre) puis `C_Sign` en une partie | PIN (référence de secret), passé à l'auxiliaire par son entrée standard | SoftHSM2 2.6.1 réel (paquet Ubuntu 24.04), les deux formes de CKA_EC_PARAMS |
+| B | `vault-transit`, `openbao-transit` | `GET /v1/<mount>/keys/<nom>`, `POST /v1/<mount>/sign/<nom>` `{input, key_version}` | `X-Vault-Token` (référence de secret), `X-Vault-Namespace` | Vault 1.20.4 et OpenBao 2.4.3 réels (conteneurs épinglés par condensé), jeton d'usage d'une politique « lire la clé, signer » |
+| B | `aws-kms` | `GetPublicKey`, `Sign` (`MessageType: RAW`, `ED25519_SHA_512`), `DescribeKey` ; JSON 1.1, SigV4 `kms` | variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` (lecture 182) | simulateur écrit pour les tests : LocalStack 4.0.3 rend `InternalError` à `CreateKey` `ECC_NIST_EDWARDS25519` (essayé) |
+| B | `gcp-kms` | `GET …/publicKey`, `POST …:asymmetricSign` (`data`, `dataCrc32c`), `GET` de la version | jeton OAuth d'un compte de service (assertion JWT RS256) | simulateur écrit pour les tests (aucun émulateur de Cloud KMS) |
+| C | `envelope` + `aws-kms` | `Decrypt` (`EncryptionContext` : `org_id`, `journal_id`, `key_id`) | comme `aws-kms` | LocalStack 4.0.3 réel (`Encrypt`/`Decrypt`, contexte appliqué) |
+| C | `envelope` + `gcp-kms` | `POST …:decrypt` (`additionalAuthenticatedData` = JCS du contexte, CRC32C) | comme `gcp-kms` | simulateur |
+| C | `envelope` + `azure-keyvault` | `POST …/keys/<nom>/<version>/unwrapkey?api-version=7.4` (`RSA-OAEP-256`, `A256KW`, `CKM_AES_KEY_WRAP`) | application Entra ID par secret client (`AZURE_*`) | simulateur (`RSA-OAEP-256`, `A256KW` ; `CKM_AES_KEY_WRAP` non éprouvé) |
+| C | `envelope` + `tpm2` | `tpm2_createprimary`, `tpm2_load`, `tpm2_unseal -p pcr:<pcrs>` (tpm2-tools) | politique PCR | swtpm 0.7.3 et tpm2-tools 5.6 réels (TCTI `swtpm`) |
+
+Au démarrage (EX-15.4 pas 5) : clé publique lue, comparée à celle
+qu'annonce la chaîne pour la clé courante (lecture 183), signature de test
+vérifiée, ligne `signer_ready` (classe, backend, identifiant de clé,
+identifiant chez le backend ; jamais un secret, EX-11.8) ; un backend
+injoignable, une clé refusée (type, exportable, extractible) ou une graine
+indéchiffrable refusent le démarrage (`demarrage_refuse : cle : …`, code 2).
+En service : `health()` toutes les `signer.health_interval_ms` ; un échec,
+une signature qui ne vérifie pas, un délai dépassé deux fois mettent le
+démon en mode dégradé « clé » (bloquant pour tout ; `-31017` pour un appel
+déjà relayé, dont l'événement est gardé en attente) ; la sortie exige
+`health()` réussi et une signature de test (EX-14.11). Rotation planifiée
+au tic (lecture 184) ; en classe C, les graines sont effacées à l'arrêt
+(EX-11.9).
+
 ## Démarrer le démon
 
 ```sh
@@ -525,6 +562,8 @@ noortrace-attributs --racine /var/lib/noortrace --intervalle-s 60     # compte 0
 noortrace-attributs sonde                                             # code 0 si le dernier passage a réussi et est récent
 noortrace-ctl reload [--configuration configuration.json]            # EX-15.5 : SIGHUP au démon, réponse lue au journal d'exploitation
 noortrace-ctl clock --accept [--configuration configuration.json]    # EX-7.13 : confirmation après un saut d'horloge en avant, consignée
+noortrace-ctl cle rotation-urgence [--configuration configuration.json]   # EX-11.16 (CT-8 EX-10.14), lecture 194
+noortrace-ctl cle rapprocher --configuration configuration.json --audit audit.log   # CT-7 EX-3.7, lecture 195 ; code 3 : incident
 ```
 
 `noortrace-ctl reload` et `clock --accept` n'ouvrent aucune prise (EX-18.1) :
@@ -653,7 +692,13 @@ politiques, clés) se dérivent des segments à la reprise.
 | `reprise.mjs`, `index-chaine.mjs` | relecture, reprise | EX-12.10, EX-12.14, EX-9.8 |
 | `periodes.mjs` | périodes et clôture | CT-1 §9, §10 ; 3.1 |
 | `points.mjs` | points de contrôle | §12.10 |
-| `signataires.mjs` | signataires (interface, classe D) | §11 |
+| `signataires.mjs` | signataires (interface, enveloppe commune, classe D) | §11 |
+| `signataires/fabrique.mjs`, `signataires/commun.mjs` | fabrique des backends, requêtes bornées, SPKI, CRC32C, contexte de chiffrement | §11, EX-15.4 pas 5 |
+| `signataires/pkcs11.mjs`, `signataires/pkcs11-auxiliaire.py` | classe A : PKCS#11 par un auxiliaire (python3, ctypes) | EX-11.10 |
+| `signataires/transit.mjs`, `signataires/aws-kms.mjs`, `signataires/gcp-kms.mjs` | classe B : Vault et OpenBao Transit, AWS KMS, Google Cloud KMS (et leurs enveloppes pour AWS et Google) | §11.2, EX-11.1, EX-11.5, EX-11.7 |
+| `signataires/enveloppe.mjs`, `signataires/azure.mjs`, `signataires/tpm2.mjs` | classe C : graine enveloppée ; Azure `unwrapKey` ; descellement TPM 2.0 | EX-11.9 |
+| `signataires/rapprochement.mjs` | rapprochement des signatures (`noortrace-ctl cle rapprocher`) | CT-7 EX-3.7 |
+| `secrets-vault.mjs` | références de secrets `{ "vault" }` (lecture KV au démarrage et au rechargement) | 15.2 |
 | `bail.mjs` | bail (interface, magasin `file` : `flock(2)` tenu par `flock(1)`, lecture 148) | §13 (part du cœur), 13.2 |
 | `verification.mjs` | vérification complète d'un répertoire de journal (segments, signatures avec les clés de la chaîne, manifestes, séries, pièces) | EX-12.10 pas 2, EX-12.17, CT-8 EX-11.6 |
 | `controles.mjs` | contrôles périodiques d'EX-17.5 hors WORM (période close, signataire, relecture quotidienne) | EX-17.5 |
@@ -726,7 +771,12 @@ client et `sampling` en échange de modèle (4.6, EX-4.29 : refusées par
 `-31016`), continuation MRTR d'un appel approuvé (EX-4.21 : la ré-émission
 repasse par le pas 3, échec fermé), client OAuth vers un serveur d'outils
 (EX-4.40, EX-4.42 : refusé à la connexion), `prctl(PR_SET_DUMPABLE)` (EX-3.5, sans module natif) ;
-signataires des classes A, B et C ; purge des pièces (EX-12.20, et donc sa
+part du lot des signataires non faite : valeur de `CKM_CLOUDHSM_EDDSA`
+(lecture 176), identité managée Azure, identifiants de conteneur et de
+fédération, adresse par défaut d'IMDS (lectures 182, 193), lecture de la clé
+inscrite au registre et pas du registre de la rotation d'urgence (lectures
+183, 194), rapprochement sur CloudTrail et Cloud Audit Logs (lecture 195) ;
+purge des pièces (EX-12.20, et donc sa
 suspension pendant un gel) ; image `noortrace/attributs` du compagnon
 (étape 7 : le programme `noortrace-attributs` est prêt) ; procès-verbal
 `restauration` de CT-8 (11.9) ; part du lot WORM non faite : copie, liste des
@@ -2128,7 +2178,286 @@ Lecture de la relecture B, suite (lot SDK Python) :
      `{"notifications":{"toolsListChanged":true},"_meta":…}` ; cela remplace
      la forme `{"toolsListChanged":true,…}` de la lecture 38.
 
+Lectures du lot « signataires » (classes A, B et C, §11) :
+
+174. **Classe A sans module natif** (EX-11.10 ; « Node.js n'a pas PKCS#11 »
+     n'est pas du texte : c'est l'état de Node.js 22). Lecture : le démon
+     parle au module du fabricant par un auxiliaire, `python3 -I -S
+     src/signataires/pkcs11-auxiliaire.py <module> <jeton>` (bibliothèque
+     standard seule : `ctypes`), lignes JSON sur stdin/stdout ; le PIN est
+     la première ligne de stdin (jamais un argument ni une variable que
+     `/proc` montre) ; l'auxiliaire reçoit l'environnement du démon sans
+     aucune variable désignée par une référence de secret (EX-15.3). Motifs :
+     `C_Sign` est bloquant — en processus, la boucle d'événements serait
+     arrêtée et `signer.timeout_ms` (EX-11.18) intenable, alors que
+     l'auxiliaire est tué à l'échéance et la seconde tentative en relance
+     un ; une bibliothèque de fabricant qui plante n'emporte pas le démon ;
+     un module natif npm (`pkcs11js`) serait compilé à l'installation, ce que
+     `npm ci --ignore-scripts` ne fait pas, et chargerait le code du
+     fabricant dans le démon. L'image du démon qui sert la classe A doit
+     contenir `python3` (CT-8 tient déjà la classe A pour une adaptation du
+     client).
+175. **`CKA_EC_PARAMS` et `CKA_EC_POINT`** (EX-11.10 : « la configuration dit
+     laquelle le jeton attend » ; « Public key bytes in little endian order
+     as defined in RFC 8032 »). Le schéma n'a aucun membre pour la forme de
+     `CKA_EC_PARAMS` (`additionalProperties: false`) et le démon ne crée
+     jamais de clé (EX-11.4) : il lit la clé et admet les deux formes
+     (curveName `13 0c 65 64 77 61 72 64 73 32 35 35 31 39`, OID `06 03 2b
+     65 70`), refuse toute autre, et consigne la forme lue (`signer_ready`,
+     `pkcs11.ec_params`). SoftHSM2 2.6.1 rend `CKA_EC_POINT` enveloppé dans
+     un OCTET STRING DER (`04 20` ‖ 32 octets) : les deux formes (32 octets
+     bruts, ou `04 20` ‖ 32) sont admises, la forme lue consignée
+     (`pkcs11.ec_point`).
+176. **`CKM_CLOUDHSM_EDDSA`** (EX-11.10 : « admis par table de
+     correspondance quand la configuration le nomme »). Sa valeur numérique
+     est dans l'en-tête `cloudhsm_pkcs11_vendor_defs.h` du kit d'AWS
+     CloudHSM, que ni CT-2 ni les pages de R3 ne citent ; elle n'a pas été
+     lue. Lecture : l'entrée existe dans la table, sans valeur ; un démon qui
+     la nomme refuse de démarrer avec ce motif, plutôt que d'employer une
+     valeur devinée. À compléter dans CT-2 (section « À corriger »).
+177. **Clé suivante chez le backend** (`signer.rotation.next_key_id` est le
+     seul membre ; EX-11.15 (1) : « leurs identifiants sont inscrits dans
+     `signer.rotation.next_key_id` »). Lecture, alignée sur les exemples
+     (15.3 : `key_label` égal au `key_id` ; CT-8 : clé Transit nommée
+     `rec-sinistres-2026-01`) : la clé suivante se nomme `next_key_id` chez
+     le backend — étiquette PKCS#11, nom de clé Transit, alias
+     `alias/<next_key_id>` du compte et de la région de `key_arn` (AWS),
+     `…/cryptoKeys/<next_key_id>/cryptoKeyVersions/1` du trousseau de
+     `key_version` (Google) ; en classe C, comme en classe D, fichiers du
+     même répertoire nommés `<next_key_id>` suivi de l'extension du fichier
+     courant (`sealed_seed_file`, ou `public_file` et `private_file` du TPM),
+     chargés s'ils existent, et contexte de chiffrement dont `key_id` est
+     `next_key_id`.
+178. **Non-exportabilité vérifiée au démarrage** (EX-11.5 : « la clé est
+     créée non exportable et le reste »). Lecture : quand le backend le dit,
+     le démon le contrôle et refuse sinon : clé Transit `exportable: true`
+     ou `allow_plaintext_backup: true` ; clé PKCS#11 `CKA_EXTRACTABLE` vrai
+     ou `CKA_SENSITIVE` faux (ou sans `CKA_SIGN`). AWS KMS et Google Cloud
+     KMS n'exportent jamais une clé asymétrique : rien à contrôler. Le type
+     est contrôlé aussi : Transit `ed25519`, KMS `ECC_NIST_EDWARDS25519`
+     avec `ED25519_SHA_512`, Google `EC_SIGN_ED25519` (EX-11.1).
+179. **Contexte de chiffrement et fichier scellé** (EX-11.9 : « un contexte
+     de chiffrement (AWS `EncryptionContext`, Google
+     `additionalAuthenticatedData`) porte `org_id`, `journal_id` et
+     `key_id` »). AWS : la carte `{org_id, journal_id, key_id}`. Google :
+     les données associées sont des octets ; le texte n'en fixe pas
+     l'encodage : JCS (RFC 8785) du même objet. Azure : `unwrapKey` n'a pas
+     de données associées pour `RSA-OAEP-256` ni `A256KW`, et EX-11.9 ne
+     nomme qu'AWS et Google : aucun contexte ; `kid` de la réponse doit
+     désigner la clé et la version configurées. Le fichier scellé contient
+     les octets du chiffré tels que le service les rend, décodés de leur
+     base64 (`CiphertextBlob`, `ciphertext`, `value` de `wrapKey`). La
+     graine déchiffrée doit faire exactement 32 octets.
+180. **TPM 2.0** (EX-11.9 ; schéma : `sealed_seed_file` requis, `wrap.tpm2`
+     porte `public_file`, `private_file`, `pcrs`). L'objet scellé de
+     `tpm2_create` est le couple (`-u`, `-r`) : `sealed_seed_file` n'est pas
+     lu pour `tpm2`. Le parent est la clé primaire du propriétaire au
+     gabarit `tpm2_createprimary -C o -g sha256 -G ecc` : la cérémonie
+     scelle sous ce parent. Le TPM est désigné par `TPM2TOOLS_TCTI` de
+     l'environnement du démon ; les objets transitoires et sessions laissés
+     par les outils sont purgés (`tpm2_flushcontext -t -s -l`), sans quoi
+     un TPM sans gestionnaire de ressources se remplit (essayé sur swtpm).
+181. **SoftHSM2 en production** (EX-11.8 : « En `recorder.environment:
+     "production"`, la classe D est refusée » ; 11.2 : SoftHSM2 « assimilé à
+     D » ; EX-15.4 pas 3 : « avertissement si `signer.backend.module`
+     désigne un module PKCS#11 logiciel connu (`libsofthsm2.so`), qui vaut la
+     classe D (11.2) bien qu'il soit déclaré en classe A »). Le texte de la
+     validation est explicite : un avertissement, pas un refus ; la
+     configuration déclare la classe A, que EX-11.8 ne refuse pas. Le code
+     garde l'avertissement (configuration.mjs, inchangé) ; le parcours de
+     classe A sur SoftHSM2 est fait en développement. Un refus serait un
+     écart au texte de 15.4 : à trancher par CT-2 (section « À corriger »).
+182. **Identités IAM** (EX-11.18 : « identité IAM (AWS, Google) » ; le schéma
+     n'a aucun membre d'identifiants pour `aws-kms`, `gcp-kms` ni
+     `azure-keyvault`). Lecture : l'identité vient de l'environnement du
+     démon, comme le font les kits des fournisseurs : AWS
+     `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` ;
+     Google `GOOGLE_APPLICATION_CREDENTIALS` (fichier de compte de service ;
+     jeton par assertion JWT RS256, portée `cloudkms`) ; Azure
+     `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`. Points
+     d'accès : ceux des fournisseurs, ou `AWS_ENDPOINT_URL_KMS` /
+     `AWS_ENDPOINT_URL`, `CLOUDSDK_API_ENDPOINT_OVERRIDES_CLOUDKMS`,
+     `AZURE_AUTHORITY_HOST` (variables de ces kits). Non faits : identité
+     d'instance (métadonnées EC2, GCE, identité managée Azure), identifiants
+     de conteneur et de fédération (identités d'instance AWS et Google :
+     lecture 193).
+183. **Clé publique et clé inscrite** (EX-11.18 : « comparée à la clé
+     inscrite au registre quand elle est disponible »). Le démon ne lit pas
+     encore le registre (CT-4, lot suivant). Lecture : la clé publique lue
+     au démarrage est comparée à celle qu'annonce la chaîne pour la clé
+     courante (événement de rotation, CT-1 §8) ; une différence refuse le
+     démarrage (`signer_key_mismatch`, `demarrage_refuse : cle`, code 2).
+     Pour la clé initiale, aucune clé n'est annoncée : une clé différente
+     fait échouer la vérification des événements relus (EX-12.10).
+184. **Rotation planifiée** (EX-11.15 : « La configuration PEUT fixer une
+     période » ; pas (3) « à l'instant choisi »). Lecture : au tic, hors mode
+     dégradé, quand `planned_every_days` jours sont écoulés depuis l'entrée
+     en vigueur de la clé courante (`ts` de la rotation qui l'a annoncée, ou
+     du premier événement) et que la clé `next_key_id` est lisible chez le
+     backend, le démon fait la rotation (`tournerCle`) ; sinon il consigne
+     `key_rotation_unavailable` une fois et réessaie toutes les
+     `health_interval_ms`. L'inscription préalable au registre (pas 2)
+     n'est pas contrôlée (lecture 183).
+185. **Version de clé Transit** (Vault et OpenBao : `auto_rotate_period`,
+     rotation interne de la clé). Lecture : la version dont la clé publique a
+     été lue est épinglée (`key_version` de `sign`) et la signature rendue
+     doit porter le préfixe `vault:v<cette version>:` : une rotation faite
+     dans le backend ne change pas la clé qui signe sans événement de
+     rotation dans le journal.
+186. **`health()` périodique** (EX-11.18 : « Appelée par la supervision toutes
+     les `signer.health_interval_ms` » ; 14.2 : « signataire en erreur ou
+     hors délai (`sign`, `health`) »). Lecture : au tic, toutes les
+     `health_interval_ms`, hors mode « clé » ; une réponse autre que `ok`
+     consigne `signer_unavailable` (`raison: "health"`) et fait entrer en
+     mode dégradé « clé ». Transit : lecture de la clé ; AWS : `DescribeKey`
+     (`Enabled`) ; Google : état `ENABLED` de la version ; PKCS#11 :
+     `C_GetSessionInfo` (session rouverte une fois) ; classes C et D :
+     `ok` (fonction du démon).
+187. **Borne d'AWS KMS** (EX-11.7 : « 4096 pour AWS KMS ») : un message de
+     plus de 4096 octets est refusé par le backend avant l'appel, quelle que
+     soit `signer.max_message_bytes` ; aucune règle du pas 3 n'impose 4096
+     dans la configuration (le texte n'en écrit pas). Format de la signature
+     rendue non documenté (NV-11) : 64 octets attendus, vérifiés.
+188. **« Répertoire » d'EX-13.5 (1), et une instance dépassée n'écrit rien**
+     (EX-13.5 (1) : « l'époque de l'en-tête DOIT être strictement supérieure à
+     la plus grande époque présente dans les noms de fichiers du répertoire » ;
+     EX-12.1 : « un répertoire par journal » ; EX-13.1 : « Un enregistreur
+     n'écrit un journal que s'il détient le bail » ; EX-13.6 : « cesse
+     d'écrire » ; défaut D-1, révélé par TE-11). Lecture : « le répertoire »
+     est celui du journal (12.1), avec tous ses sous-répertoires dont les noms
+     portent une époque (`segments/`, `intentions/`, `attente/`,
+     `approbations/`, `worm/`) : le repreneur ouvre d'abord son segment et son
+     fichier d'intention (13.4 pas 5), jamais d'abord un fichier d'attente, et
+     une lecture limitée à `attente/` laissait l'ancienne instance y ouvrir
+     `attente-<son époque>` après la reprise. « Strictement supérieure » se
+     compare aux époques des autres écrivains : les fichiers de l'époque même
+     de l'écrivain sont les siens (une époque par acquisition, EX-13.4) ; la
+     première ouverture d'une époque reste contrôlée strictement sur les
+     segments (relecture). Au-delà de l'ouverture, une instance qui n'est plus
+     détentrice, ou dont l'époque est dépassée par une autre présente dans le
+     journal, n'écrit plus rien : ni événement, ni intention (le contrôle
+     précède l'écriture des deux lignes), ni levée, ni point, ni clôture, ni
+     fichier d'attente (`GardeEpoque` : listes relues quand le `mtime` d'un
+     sous-répertoire change ou n'est pas assez ancien) ; elle consigne
+     `lease_lost` (`cause: "epoque_superieure_presente"`) et entre en mode
+     dégradé « bail ». Le fichier d'attente d'EX-4.46 et d'EX-14.8 n'étant
+     écrit qu'« au mieux », un événement en attente d'une instance sans bail
+     reste en mémoire seulement ; si elle s'arrête, l'intention ouverte donne
+     l'événement de reprise du repreneur (EX-4.46, dernière phrase ; 13.5).
+     Les pièces, sans époque et adressées par leur `sha256`, restent écrites
+     selon EX-14.8 (« si le stockage des pièces répond encore »).
+189. **Attente déjà couverte par une reprise** (EX-4.46 : l'événement en
+     attente est scellé « à la place d'un événement de reprise » ; 13.5).
+     Lecture : à la reprise d'un fichier d'attente, une ligne dont l'intention
+     est déjà levée par un autre événement durable de la chaîne (l'événement
+     de reprise d'un repreneur) n'est pas scellée : il n'y aurait sinon deux
+     événements pour une écriture exécutée une fois, et l'intention levée deux
+     fois. Ligne `pending_superseded` (`pending_id`, `intent_id`, `seq` de
+     l'événement qui la couvre) ; le fichier est supprimé comme les autres
+     fichiers d'attente d'époque inférieure.
+190. **« Déploiement à plusieurs instances »** (EX-17.2 : `data` « porte
+     `instance_id` dans un déploiement à plusieurs instances »). Le démon ne
+     peut pas compter les instances ; le texte les attache au magasin de bail :
+     CT-8 IC-10 (« Pour une instance : magasin `file` […]. Pour deux
+     instances : base PostgreSQL ou grappe etcd »), table des déploiements de
+     CT-8 (« `file` sur un hôte ; `postgresql` ou `etcd` pour deux
+     instances »), CT-2 EX-13.10 (« déploiement à bascule entre hôtes
+     (`lease.store` `postgresql` ou `etcd`) »). Lecture : avec `postgresql` ou
+     `etcd`, chaque ligne du journal d'exploitation du démon porte
+     `data.instance_id` = `recorder.instance_id` (le détenteur inscrit au
+     magasin, 13.2) ; avec `file`, aucune. Les lignes que `noortrace-ctl`
+     écrit avec la configuration d'une instance suivent la même règle
+     (`noortrace-ctl worm releve` écrit dans le journal de l'instance).
+191. **Fin d'une connexion ICAP refusée** (EX-5.3 : un client hors
+     d'`allowed_sources` ou sans certificat admis n'obtient aucune
+     transaction ; EX-15.4 : un démarrage refusé s'arrête avec le code 2).
+     Lecture : la réponse `403` (ou d'erreur) annoncée `Connection: close`
+     partie, la prise est détruite sans attendre que le pair ferme son côté
+     (Squid 6.13 gardait le sien : la prise retenait l'arrêt du démon jusqu'au
+     délai de drain, et un client refusé pouvait garder des prises ouvertes ;
+     défaut révélé par TI-19). Un démarrage refusé (par exemple une adresse
+     d'écoute déjà prise, `EADDRINUSE`) ferme aussi les fils de rédaction,
+     sans quoi le processus restait vivant après `demarrage_refuse`.
+
+
+Lectures du lot « signataires », reprise :
+
+192. **Références `{ "vault" }`** (15.2 : « Lecture KV dans Vault ou OpenBao, à
+     l'adresse et avec le jeton de `signer.backend` quand il est de type
+     `vault-transit`/`openbao-transit`, sinon avec `VAULT_ADDR` et
+     `VAULT_TOKEN` de l'environnement » ; « Lue au démarrage »). Lecture :
+     `GET <adresse>/v1/<path>` avec `X-Vault-Token` (et `X-Vault-Namespace`
+     du backend) ; réponse de KV version 2 (`data.data[field]`, l'exemple du
+     texte est `kv/data/…`) ou version 1 (`data[field]`) ; la valeur est une
+     chaîne, décodée ensuite selon `encoding`. La lecture, réseau, précède la
+     résolution des autres références (pas 4 ; `lireSecretsVault`, puis
+     `resoudreSecrets(config, { vault })`), au démarrage et au rechargement
+     (pas 1 à 4 sur le nouveau document, EX-15.5). Un jeton de
+     `signer.backend` lui-même référencé dans Vault est refusé (il faudrait
+     ce jeton pour le lire). Erreurs rapportées sur le pointeur, sans valeur
+     (`config_invalid`, code 2).
+193. **Identités d'instance** (EX-11.18 : « identité IAM (AWS, Google) » ;
+     Azure n'y est pas nommé et n'est qu'une enveloppe de classe C : son
+     identité managée n'est pas faite, seule l'application Entra ID par
+     secret client l'est). AWS : sans variables d'identifiants, le rôle de
+     l'instance par IMDSv2 (`PUT /latest/api/token`, puis
+     `…/iam/security-credentials/<rôle>`, identifiants temporaires gardés
+     jusqu'à cinq minutes de leur fin) au point
+     `AWS_EC2_METADATA_SERVICE_ENDPOINT` ; l'adresse par défaut d'IMDS est une
+     adresse IP de lien local, que les règles de ce dépôt n'admettent pas dans
+     un fichier livré : elle n'est pas écrite, et l'exploitant pose la
+     variable (à trancher à l'intégration). Google : sans
+     `GOOGLE_APPLICATION_CREDENTIALS`, le jeton du compte de service de
+     l'instance (`http://metadata.google.internal/computeMetadata/v1/instance/
+     service-accounts/default/token`, `Metadata-Flavor: Google` dans la
+     requête et exigé dans la réponse ; hôte remplacé par `GCE_METADATA_HOST`).
+     Éprouvés contre des serveurs simulés écrits d'après les pages
+     officielles relues (EC2 : « Configure the Instance Metadata Service
+     options », « Retrieve security credentials from instance metadata » ;
+     Compute Engine : « Authenticate workloads using service accounts »).
+194. **`noortrace-ctl cle rotation-urgence`** (CT-8 EX-10.14 : « exécute les
+     pas de CT-2 EX-11.16 dans leur ordre » ; EX-11.16 : inscription de la
+     nouvelle paire, événement de rotation, puis révocation de l'ancienne
+     `chainKey`). Le démon n'a pas de client du registre (CT-4) : avec
+     `anchoring.registry.enabled`, le pas 1 ne peut pas précéder le pas 2 et
+     la commande est refusée (`registre_non_branche`) ; registre désactivé,
+     les pas 1 et 3 sont sans objet (consigné). Rotation vers
+     `signer.rotation.next_key_id`, refusée en mode dégradé (la clé courante
+     doit être utilisable), sans clé suivante distincte ou lisible. Même
+     mécanisme que `reload` (EX-18.1 : aucune prise) : signal SIGURG (ignoré
+     par défaut ; SIGUSR1 ouvrirait l'inspecteur de Node.js), et seulement si
+     `noortrace-ctl` a écrit la demande `<ops_log.path>.rotation-urgence`
+     (supprimée à la lecture) : un signal seul est ignoré et consigné
+     (`key_rotation_emergency_ignored`). Réponse lue au journal
+     d'exploitation : `key_rotation_emergency` (code 0) ou
+     `key_rotation_emergency_refused` (code 1).
+195. **Rapprochement des signatures** (CT-7 EX-3.7 ; CT-9 rattache TA-31,
+     « procédure du client ; outil de rapprochement », à l'étape 4). Outil
+     `noortrace-ctl cle rapprocher --configuration <f> --audit <journal>
+     [--cle] [--de] [--a]`, hors du démon : opérations de signature réussies
+     du journal d'audit `file` de Vault/OpenBao sur `<mount>/sign/<nom>`,
+     comparées aux objets signés du journal (événements, contresignatures de
+     rotation, manifestes, points de contrôle) ; code 3 si le compte du backend
+     est supérieur (incident, CT-7 4.6), 0 sinon (un compte inférieur n'est
+     pas qualifié). Le démon signe aussi hors du journal : signatures de test
+     (démarrage, sortie du mode « clé ») et tentatives qui n'ont pas servi ;
+     il les consigne désormais (`signer_test_signature`,
+     `signer_unavailable.key_id` et `.tentatives`) et l'outil les retire du
+     compte, sans quoi chaque démarrage serait un faux incident. Seuls les
+     journaux d'audit de Vault/OpenBao sont lus (CloudTrail, Cloud Audit Logs :
+     non faits).
+
 ## À corriger dans CT-2
+
+- **Signataires** (lot « signataires » ; lectures 175, 176, 177, 181) : le
+  schéma n'a pas de membre pour la forme de `CKA_EC_PARAMS` qu'EX-11.10
+  fait porter par la configuration ; la valeur de `CKM_CLOUDHSM_EDDSA`
+  n'est pas écrite ; la clé suivante n'a pas de localisateur propre chez le
+  backend (`next_key_id` seul) ; SoftHSM2 en production est un
+  avertissement en 15.4 alors que 11.2 l'assimile à la classe D, refusée par
+  EX-11.8. Propositions : un membre `ec_params` (`curveName` ou `oid`), la
+  valeur du mécanisme avec sa source, un localisateur de la clé suivante
+  par backend, et une décision explicite pour SoftHSM2.
 
 - **Alignement T14 et consommation** (relecture C ; lecture 172). CT-3
   EX-12.9 ne donne pas `held` à un `acquitter` `refuse` `ticket_deja_decide`,
@@ -2193,11 +2522,14 @@ npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-vecteurs.t
 npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-exigences.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-hostiles.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-icap.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-squid.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-miroir.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-securite.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-parcours.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-vecteurs.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-exigences.test.js
+npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-exigences.test.js
+NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-signataires-parcours.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-attributs.test.js
 NOORTRACE_GO_BIN=<répertoire de go1.27.3> npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-restauration.test.js
 npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-iam.test.js
@@ -2339,6 +2671,18 @@ R13-F19, R13-F22 à R13-F24).
   colonne M, quota), identifiant au MAC faux, corrélation heuristique,
   requête inconnue, délai sans RESPMOD, flux coupé, panne après le REQMOD
   (EX-14.12), entrées hostiles, mandataire HTTP pour les quatre formats ;
+- `enregistreur-modele-squid` (TI-19 de CT-9) : Squid 6.13 réel, construit
+  avec OpenSSL (`squid-openssl` 6.13-2+deb13u3, image du Dockerfile de
+  `test/fixtures/enregistreur-modele/squid`, base épinglée par condensé,
+  paquets lus dans un instantané daté de l'archive Debian), ssl-bump vers
+  le fournisseur simulé en HTTPS, ICAP (REQMOD, RESPMOD) vers le démon réel
+  en mode `icap` ; même échange par la passerelle d'un démon réel
+  (référence) et par Squid, événements comparés ; lien ICAP relevé
+  (`ISTag`, statuts, `X-Noortrace-Exchange` dans la requête encapsulée par
+  RESPMOD) ; hôte inconnu (entrée `inconnu`, puis blocage en REQMOD) ;
+  client ICAP refusé ; période close, journal vérifié par le noyau,
+  dossiers par le noyau et le binaire Go ; sans Docker ou sans `openssl`,
+  en attente avec la condition ;
 - `enregistreur-modele-miroir` : couples de la prise (réussite, `is_error`,
   copie tronquée, borne, refus sans événement, entrée `"inconnu"`, EX-5.32),
   mode dégradé (attente puis scellement, `exchange_lost`), quotas sans
@@ -2365,7 +2709,13 @@ R13-F19, R13-F22 à R13-F24).
   murale, partition réseau simulée, bail repris par une autre instance,
   bail perdu pendant une écriture (après le fdatasync), époque qui recule,
   fichiers d'une époque supérieure, redémarrage, instance passive, clé du
-  MAC différente, fourche, règles de configuration ;
+  MAC différente, fourche, règles de configuration, `instance_id` du journal
+  d'exploitation (EX-17.2) ; sans Docker : défaut D-1 (instance sans bail
+  ou d'époque dépassée : ni attente, ni intention, ni événement ; époque
+  supérieure lue dans tout le répertoire du journal ; attente couverte par
+  une reprise jamais scellée, lectures 188 à 190), port d'écoute pris
+  (EADDRINUSE : démarrage refusé avec le code 2, relance des outils de test
+  sur d'autres ports) ;
 - `enregistreur-ha-parcours` (deux démons réels, magasins et support
   réels) : pour PostgreSQL puis etcd, A écrit, B passif rend `-31010
   bail_non_detenu`, A tué (SIGKILL) pendant un relais d'écriture, B prend
@@ -2451,6 +2801,39 @@ R13-F19, R13-F22 à R13-F24).
   close ; dossier d'un événement de chaque sorte vérifié par le noyau et par
   le binaire Go (en attente sans go1.27.3).
 
+- `enregistreur-signataires-exigences` : classes A, B et C, backend par
+  backend (tableau de la section « Signataires des classes A, B et C ») :
+  cohérence classe/backend et refus de la classe D en production (EX-15.4
+  pas 3), avertissement SoftHSM2 (lecture 181), fabrique, CRC32C, SigV4 ;
+  PKCS#11 sur SoftHSM2 réel (deux formes de `CKA_EC_PARAMS`, trois préfixes
+  de message, 16 000 octets, clé extractible, PIN faux, auxiliaire hostile :
+  signature tronquée, d'un autre message, d'une autre clé, jamais rendue) ;
+  Vault et OpenBao réels (jeton d'usage seul, version épinglée après une
+  rotation interne, clé exportable ou d'un autre type refusée, service
+  suspendu) ; AWS KMS et Google Cloud KMS simulés (requêtes exactes,
+  service qui ment, lent, pré-hachage, CRC32C faux, autre version) ;
+  enveloppes AWS par LocalStack réel (contexte faux, graine de 31 octets),
+  TPM 2.0 par swtpm réel (PCR étendu : indescellable), Google et Azure
+  simulés ; dans un cœur réel, pour chaque backend : `signer_ready` sans
+  secret, appel signé, panne → mode « clé » et sortie (classes A et B),
+  rotation, journal vérifié, effacement à l'arrêt ; refus de démarrage aux
+  codes de §15 ; `health()` périodique ; références `{ "vault" }` contre
+  Vault réel (KV version 2, jeton du backend ou `VAULT_ADDR`/`VAULT_TOKEN`,
+  refus, démon réel) ; identités d'instance (IMDSv2, métadonnées de Compute
+  Engine, serveurs simulés) ; comptes du rapprochement ; `noortrace-ctl cle
+  rotation-urgence` sur le démon réel ;
+- `enregistreur-signataires-parcours` : le démon réel `bin/noortrace` en
+  développement avec la classe A (SoftHSM2), en production avec la classe B
+  (Vault, OpenBao) et la classe C (LocalStack, swtpm) ; rotation planifiée
+  en cours de route ; journal accepté par `N.verifierJournal`, dossiers
+  d'avant et d'après la rotation valides pour le noyau et le binaire Go (en
+  attente sans go1.27.3) ; ligne « clé indisponible » de la matrice de 14.2
+  rejouée (Vault suspendu puis rétabli) ; TA-31 et TA-33 sont dans
+  `test/adversarial.test.js` (`fixtures/enregistreur-signataires/ta.mjs`).
+  Sans Docker,
+  SoftHSM2, swtpm ou tpm2-tools, les tests concernés sont en attente, leur
+  titre nomme la condition.
+
 Les répertoires de test sont créés sous `os.tmpdir()`.
 
 ## Règle de salle blanche
@@ -2488,6 +2871,16 @@ avec la version 2.39.3, `flock --exclusive --nonblock --conflict-exit-code`)
 et `/bin/sh` : Node.js n'offre pas l'appel `flock(2)` sans module natif, et
 le texte prescrit ce verrou (13.2, lecture 148) ; l'image du démon doit
 contenir util-linux. Sans lui, l'acquisition du bail `file` est refusée.
+
+Le signataire de classe A lance `python3` (3.8 ou plus, bibliothèque
+standard seule : `ctypes`, essayé avec Python 3.12) pour l'auxiliaire
+PKCS#11 (lecture 174) ; l'enveloppe TPM 2.0 appelle `tpm2_createprimary`,
+`tpm2_load`, `tpm2_unseal` et `tpm2_flushcontext` de tpm2-tools (essayé
+avec la version 5.6). Les classes B et C parlent HTTP(S) avec `node:http`,
+`node:https` et `node:crypto` (SigV4, JWT RS256, CRC32C écrits ici plutôt
+qu'un kit de fournisseur). Pour les essais seulement : SoftHSM2 (2.6.1),
+swtpm (0.7.3), et les images Vault 1.20.4, OpenBao 2.4.3 et LocalStack
+4.0.3 épinglées par condensé.
 
 Aucune autre dépendance d'exécution. Le SDK JavaScript `noortrace-sdk`
 n'en a aucune (`node:net`, `node:tls`, `node:fs`). Pour les essais

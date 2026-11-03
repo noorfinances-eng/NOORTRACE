@@ -96,7 +96,7 @@ export const TC_REPONSES = [
   {
     "key": "CT-5 §3.6",
     "delegated": "Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs.",
-    "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15 exécutables), sur le réseau de développement (TM-11 à TM-14, à écrire, étape 5) et sur le support WORM (TM-16, à écrire, étape 4)."
+    "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15 exécutables), sur le réseau de développement (TM-11 à TM-14, à écrire, étape 5) et sur le support WORM (TM-16, exécutable depuis l'étape 4 sur un S3 à Object Lock en conteneur, complément `ancres/` à l'étape 5)."
   },
   {
     "key": "CT-5 §5.3",
@@ -326,7 +326,7 @@ export const TC_REPONSES = [
   {
     "key": "CT-8 §5.3",
     "delegated": "Épreuve d'intégration ICAP.",
-    "response": "TI- mode ICAP (§8), étape 4."
+    "response": "TI-19 (mode ICAP, §8) : serveur ICAP et épreuve avec Squid (ssl-bump) livrés à l'étape 4."
   },
   {
     "key": "CT-8 §6.2",
@@ -540,12 +540,12 @@ export const TC_REPONSES = [
   },
   {
     "key": "`spec/README.md` « Spécifications »",
-    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, figée en conception v1.0).",
+    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.2, contenu, figée en conception v1.0).",
     "response": "Ce document (en-tête) ; rien n'est délégué."
   },
   {
     "key": "`spec/README.md` « Spécifications »",
-    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, figée en conception v1.0).",
+    "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.2, contenu, figée en conception v1.0).",
     "response": "Ce document (en-tête) ; rien n'est délégué."
   },
   {

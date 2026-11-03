@@ -28,8 +28,8 @@ export const TM = [
     "oracle": "`p50 ≤ 5` et `p99 ≤ 50` (ms) sur le système de référence, `counts_for_targets` vrai ; sinon la ligne porte `met` faux et la porte 2 le dit.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Enregistreur et harnais de mesure non construits (CT-2 EX-16.2 : phase 2)."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
     },
     "threats": [],
     "measure": {
@@ -87,8 +87,8 @@ export const TM = [
     "oracle": "`max ≤ 10` ms sur tous les octets (aucun tampon, EX-5.11) ; sinon `met` faux.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Passerelle du modèle et harnais non construits."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
     },
     "threats": [],
     "measure": {
@@ -138,8 +138,8 @@ export const TM = [
     "oracle": "`value ≥ 500` événements/s ; sinon `met` faux.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Enregistreur et harnais non construits."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
     },
     "threats": [],
     "measure": {
@@ -184,8 +184,8 @@ export const TM = [
     "oracle": "`p50 ≤ 5` et `p99 ≤ 50` (ms) ; sinon `met` faux.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Passerelle du modèle et harnais non construits."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
     },
     "threats": [],
     "measure": {
@@ -237,8 +237,8 @@ export const TM = [
     "oracle": "Une ligne par classe mesurée, `met` null (aucune cible) ; la latence de la classe B est ajoutée à TM-1 comme CT-2 §16.1 le demande.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Signataires et harnais non construits."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. Les signataires des classes A, B et C ne sont pas livrés par l'étape 4 (LISEZMOI du paquet) : seule la classe D est mesurable."
     },
     "threats": [],
     "measure": {
@@ -337,8 +337,8 @@ export const TM = [
     "oracle": "Lignes présentes, `met` null ; un écart de plus d'un facteur 2 avec TM-6 est signalé dans `notes`.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Enregistreur non construit."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
     },
     "threats": [],
     "measure": {
@@ -384,8 +384,8 @@ export const TM = [
     "oracle": "`p99 ≤ 2000` ms ; sinon `met` faux.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Écrivain et reprise du démon non construits."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
     },
     "threats": [],
     "measure": {
@@ -438,8 +438,8 @@ export const TM = [
     "oracle": "Lignes présentes, `met` null (aucune cible en version 0) ; `memoire_charge − memoire_vide ≤ M_tamp` sinon `notes` le dit et DM-19 est à revoir.",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Enregistreur non construit ; `m_0` nul dans le calculateur jusqu'à cette mesure (CT-8 IC-1)."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. `m_0` reste nul dans le calculateur jusqu'à cette mesure (CT-8 IC-1)."
     },
     "threats": [],
     "measure": {
@@ -793,19 +793,28 @@ export const TM = [
       "CT-2 EX-12.17"
     ],
     "preconditions": [
-      "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-      "Support WORM réel ou son émulateur de test configuré dans `storage.seal.worm` ; une période close avec points, ancres et manifeste."
+      "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; hors de lui, le rapport est publié sans compter pour la cible (EX-11.2).",
+      "Support WORM réel des tests du lot WORM : S3 à Object Lock de LocalStack 4.0 (image épinglée par condensé) en conteneur Docker, derrière un mandataire TLS, bucket verrouillé en COMPLIANCE par l'exploitant (EX-12.30), configuré dans `storage.seal.worm` ; une période close par le démon de l'étape 4 ; sans Docker, le test est en attente (EX-3.11)."
     ],
     "steps": [
-      "Pour chaque fichier de `points/`, `ancres/periode-*/` et du manifeste : lire la version copiée par l'API du support, comparer son SHA-256 à l'original.",
-      "Lire le mode de verrou et la date de rétention rendus par l'API ; comparer à la rétention des événements.",
-      "Rapport : ligne `p6_copie_worm`, `value` = nombre de fichiers sans copie conforme."
+      "Pour chaque fichier de `points/`, `ancres/periode-*/` et des manifestes (manifeste et signature) : lire la version copiée par l'API du support (ListObjectVersions, GET avec versionId), comparer son SHA-256 à l'original.",
+      "Lire le mode de verrou et la date de rétention rendus par l'API (HEAD avec versionId) ; comparer à la rétention des événements (365 × events_years jours depuis la création de la version, tolérance d'une heure d'EX-12.33).",
+      "Rapport : ligne `p6_copie_worm`, `value` = nombre de fichiers sans copie conforme ; publié sous spec/vecteurs/ct-9/mesures/ (EX-11.11)."
     ],
     "oracle": "`value = 0` fichier manquant ; mode sans contournement ; rétention ≥ celle des événements ; sinon `met` faux.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Copie WORM de l'enregistreur non construite (étape 4, stockage) ; support réel à la porte 2."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-worm-mesure-p6.test.js",
+          "describe": "TM-16 — P-6 de CT-5 mesurée sur le support WORM réel (S3 à Object Lock en conteneur) : copie conforme des points, des ancres et des manifestes",
+          "it": "TM-16 : une période close copiée sur le support ; chaque fichier de points/, d'ancres/periode-*/ et de manifestes/ lu par l'API du support (version au même SHA-256, mode COMPLIANCE, rétention au moins égale à celle des événements) ; rapport conforme à plan-de-tests-v0#/$defs/rapport_mesure, ligne p6_copie_worm à 0 fichier non conforme"
+        }
+      ],
+      "complement": {
+        "phase2_step": 5,
+        "blocking": "Partie à écrire : le répertoire `ancres/` n'existe pas avant le composant d'ancrage de l'étape 5 (CT-5 §5.5) ; la mesure de l'étape 4 porte sur les points et les manifestes, et le rapport le dit."
+      }
     },
     "threats": [],
     "measure": {
@@ -1888,8 +1897,8 @@ export const TM = [
     "oracle": "`observation_latence` : `p50 ≤ 5`, `p99 ≤ 50` ms ; la différence des percentiles de la paire est publiée avec les deux séries ; `observation_ecriture` publiée (aucune borne normative en 0.1).",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Mode observation du démon non construit (CT-2 révision 0.6)."
+      "phase2_step": 8,
+      "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. Le mode observation est livré par le démon (CT-2 révision 0.6)."
     },
     "threats": [],
     "measure": {

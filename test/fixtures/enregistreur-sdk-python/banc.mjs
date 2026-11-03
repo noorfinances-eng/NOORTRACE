@@ -53,7 +53,11 @@ export const ALIAS_SDK = "agent-py";
 export const JETON_MCP = "jeton-mcp-essai-sdk-python-0001";
 export const JETON_MODELE = "jeton-passerelle-essai-sdk-python-0001";
 
-/** Port TCP libre sur 127.0.0.1. */
+/**
+ * Port TCP libre sur 127.0.0.1, au moment de l'appel seulement : un autre
+ * processus peut le prendre avant celui qui doit l'ouvrir ; les lancements
+ * ci-dessous réessaient alors (EADDRINUSE, au plus ESSAIS_PORTS essais).
+ */
 function portLibre() {
   return new Promise((resoudre, rejeter) => {
     const s = net.createServer();
@@ -64,6 +68,9 @@ function portLibre() {
     });
   });
 }
+
+/** Nombre d'essais d'un lancement dont un port d'écoute était pris (EADDRINUSE). */
+const ESSAIS_PORTS = 5;
 
 /** Décision du service simulé pour une demande (CT-3 §12, réponse d'`evaluer`). */
 export function deciderBanc(r) {
@@ -125,9 +132,11 @@ async function principal() {
   const service = new ServiceSimule({ org_id: config.recorder.org_id, journal_id: config.recorder.journal_id, decider: deciderBanc });
   await service.servirHttp(0);
   const portService = service.serveurHttp.address().port;
-  const portMcp = await portLibre();
-  // Ports fixés pour la durée du banc : le démon relancé garde les mêmes adresses.
-  const portModele = await portLibre();
+  // Ports fixés pour la durée du banc, une fois le démon démarré : le démon
+  // relancé garde les mêmes adresses. Au premier démarrage, un port pris entre
+  // son choix et son ouverture (EADDRINUSE) est remplacé (`demarrer`).
+  let portMcp = await portLibre();
+  let portModele = await portLibre();
 
   // Prises sous un chemin court (EX-6.10 : au plus 103 octets).
   config.sdk.socket = path.join(dir, "p", "sdk.sock");
@@ -193,27 +202,40 @@ async function principal() {
   let mandataire = null;
   const CLE_MANDATAIRE = "sk-noortrace-essai-mandataire-7f3a9c2e5b1d8f4a";
   if (process.env.NOORTRACE_ESSAI_MANDATAIRE) {
-    const portMandataire = await portLibre();
     const fichier = path.join(dir, "litellm-mandataire.yaml");
     fs.writeFileSync(fichier, `model_list:\n  - model_name: modele-chat\n    litellm_params:\n      model: openai/modele-chat\n      api_base: ${fournisseur.url}/v1\n      api_key: cle-fournisseur-fictive-essai\n`);
-    mandataire = spawn(process.env.NOORTRACE_ESSAI_MANDATAIRE, ["--config", fichier, "--host", "127.0.0.1", "--port", String(portMandataire)], {
-      env: { ...process.env, LITELLM_MASTER_KEY: CLE_MANDATAIRE, LITELLM_LOG: "ERROR" },
-      stdio: ["ignore", "ignore", "ignore"],
-    });
     process.on("exit", () => mandataire?.kill("SIGKILL"));
-    amont = `http://127.0.0.1:${portMandataire}`;
-    const fin = Date.now() + 120000;
-    for (;;) {
-      const pret = await new Promise((r) => {
-        const q = http.get(`${amont}/health/liveliness`, (res) => {
-          res.resume();
-          r(res.statusCode === 200);
-        });
-        q.on("error", () => r(false));
+    // Port choisi libre, puis pris avant l'ouverture par le mandataire
+    // (« address already in use ») : nouveau port, nouvel essai, au plus ESSAIS_PORTS.
+    for (let essai = 1; ; essai++) {
+      const portMandataire = await portLibre();
+      let erreurs = "";
+      mandataire = spawn(process.env.NOORTRACE_ESSAI_MANDATAIRE, ["--config", fichier, "--host", "127.0.0.1", "--port", String(portMandataire)], {
+        env: { ...process.env, LITELLM_MASTER_KEY: CLE_MANDATAIRE, LITELLM_LOG: "ERROR" },
+        stdio: ["ignore", "ignore", "pipe"],
       });
+      const m = mandataire;
+      m.stderr.on("data", (x) => (erreurs = (erreurs + x.toString("utf8")).slice(-20000)));
+      const ferme = new Promise((r) => m.once("close", () => r()));
+      amont = `http://127.0.0.1:${portMandataire}`;
+      const fin = Date.now() + 120000;
+      let pret = false;
+      for (;;) {
+        pret = await new Promise((r) => {
+          const q = http.get(`${amont}/health/liveliness`, (res) => {
+            res.resume();
+            r(res.statusCode === 200);
+          });
+          q.on("error", () => r(false));
+        });
+        if (pret || m.exitCode !== null || Date.now() > fin) break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
       if (pret) break;
-      if (mandataire.exitCode !== null || Date.now() > fin) throw new Error("mandataire LiteLLM non demarre");
-      await new Promise((r) => setTimeout(r, 250));
+      if (m.exitCode !== null) await ferme;
+      if (m.exitCode !== null && essai < ESSAIS_PORTS && /address already in use|EADDRINUSE|Errno 98/i.test(erreurs)) continue;
+      m.kill("SIGKILL");
+      throw new Error(`mandataire LiteLLM non demarre : ${erreurs.slice(-2000)}`);
     }
   }
   config.policy.model = {
@@ -270,10 +292,36 @@ async function principal() {
       return [];
     }
   };
+  let publie = false;
   async function demarrer() {
+    for (let essai = 1; ; essai++) {
+      const r = await demarrerUneFois();
+      if (r.adresses) {
+        publie = true;
+        return r.adresses;
+      }
+      if (essai >= ESSAIS_PORTS) throw new Error(`demon non demarre (adresse prise) : ${sortieDemon}`);
+      if (!publie) {
+        // Premier démarrage : les adresses ne sont pas encore données aux essais Python ;
+        // de nouveaux ports remplacent ceux qui ont été pris.
+        portMcp = await portLibre();
+        portModele = await portLibre();
+        config.mcp.http.listen = `127.0.0.1:${portMcp}`;
+        config.model.listen = `127.0.0.1:${portModele}`;
+        fs.writeFileSync(fichierConfig, JSON.stringify(config, null, 2));
+      } else {
+        // Relance : les essais connaissent déjà les adresses ; mêmes ports, après une pause.
+        await new Promise((x) => setTimeout(x, 500));
+      }
+    }
+  }
+  /** Un lancement : `{ adresses }`, ou `{ adresseOccupee: true }` si le démon s'est arrêté sur EADDRINUSE. */
+  async function demarrerUneFois() {
     const avant = lignesExploitation().length;
+    const debutSortie = sortieDemon.length;
     demon = spawn(process.execPath, [BIN_NOORTRACE, "--config", fichierConfig], { env: envDemon, stdio: ["ignore", "pipe", "pipe"] });
     const d = demon;
+    const ferme = new Promise((r) => d.once("close", () => r()));
     d.stdout.on("data", (x) => (sortieDemon += x.toString("utf8")));
     d.stderr.on("data", (x) => (sortieDemon += x.toString("utf8")));
     const fin = Date.now() + 30000;
@@ -281,12 +329,17 @@ async function principal() {
       const lignes = lignesExploitation().slice(avant);
       const passerelle = lignes.find((l) => l.event === "model_gateway_listening");
       const sdk = lignes.find((l) => l.event === "sdk_listening");
-      if (passerelle && sdk && /demon demarre/.test(sortieDemon)) {
+      if (passerelle && sdk && /demon demarre/.test(sortieDemon.slice(debutSortie))) {
         // Le service simulé a reçu `charger` (EX-7.15) avant le premier appel.
         while (!service.versions.has(config.policy.version) && Date.now() < fin) await new Promise((r) => setTimeout(r, 20));
-        return { passerelle: `http://${passerelle.data?.address}` };
+        return { adresses: { passerelle: `http://${passerelle.data?.address}` } };
       }
-      if (d.exitCode !== null || Date.now() > fin) throw new Error(`demon non demarre : ${sortieDemon}`);
+      if (d.exitCode !== null) {
+        await ferme;
+        if (/EADDRINUSE/.test(sortieDemon.slice(debutSortie))) return { adresseOccupee: true };
+        throw new Error(`demon non demarre : ${sortieDemon}`);
+      }
+      if (Date.now() > fin) throw new Error(`demon non demarre : ${sortieDemon}`);
       await new Promise((r) => setTimeout(r, 25));
     }
   }

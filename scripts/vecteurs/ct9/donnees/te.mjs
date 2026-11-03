@@ -604,16 +604,51 @@ export const TE = [
       "CT-2 EX-12.28"
     ],
     "preconditions": [
-      "Deux instances de l'enregistreur sur le même journal ; magasin de bail `file` puis `etcd` de test."
+      "Deux démons réels `bin/noortrace --config` (étape 4) sur le même journal ; magasin de bail `file` puis `etcd` 3.5 de test (image épinglée par condensé, en conteneur Docker) ; serveur d'outils de test qui journalise ses exécutions ; binaire Go `noortrace-verifier` (go1.27.3) pour la vérification des dossiers."
     ],
     "steps": [
-      "Couper l'instance titulaire ; mesurer la bascule ; tenter une écriture par l'ancienne instance ; relire les segments et le journal d'intention."
+      "Couper l'instance titulaire de son bail pendant une écriture en vol (`file` : auxiliaire flock(1) tué ; `etcd` : instance figée au-delà de lease.ttl_ms) ; mesurer la bascule ; tenter une écriture par l'ancienne instance ; relire les segments et le journal d'intention ; clore la période et vérifier les dossiers d'un événement de chaque instance."
     ],
-    "oracle": "Une seule chaîne continue ; écriture de l'ancienne instance refusée par l'époque ; pertes dans les bornes de CT-2 §13.5.",
+    "oracle": "Une seule chaîne continue ; écriture de l'ancienne instance refusée par l'époque (aucun fichier qu'elle ouvre sous son époque après la prise du bail par l'autre, EX-13.5 (1)) ; pertes dans les bornes de CT-2 §13.5 (l'écriture en vol n'a qu'un événement, de reprise ; EX-4.46) ; dossiers valides pour les deux vérificateurs.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Démon non construit."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-ha-bascule.test.js",
+          "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+          "it": "A sert et B attend : chaque appel de A répondu ; B passif (santé standby, -31010 bail_non_detenu)"
+        },
+        {
+          "file": "test/enregistreur-ha-bascule.test.js",
+          "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+          "it": "bascule mesurée de la coupure de A à la santé ok de B, au plus lease.ttl_ms + lease.renew_ms + 10 s ; B prend le bail avec une époque plus grande et produit l'événement de reprise de l'intention en vol"
+        },
+        {
+          "file": "test/enregistreur-ha-bascule.test.js",
+          "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+          "it": "écriture de l'ancienne instance refusée par l'époque : -31010, ligne lease_lost ; l'écriture en vol n'est pas rendue comme acquise par A ; aucune fourche"
+        },
+        {
+          "file": "test/enregistreur-ha-bascule.test.js",
+          "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+          "it": "relecture des segments et du journal d'intention : une seule chaîne continue (seq et prev_hash), aucun événement d'époque inférieure après la première époque de B, segments d'époques croissantes ; l'intention de l'écriture en vol est levée par son événement de reprise"
+        },
+        {
+          "file": "test/enregistreur-ha-bascule.test.js",
+          "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+          "it": "pertes dans les bornes de CT-2 §13.5 : chaque appel répondu par A ou par B a son événement ; l'écriture en vol, exécutée une fois côté serveur, a son événement de reprise"
+        },
+        {
+          "file": "test/enregistreur-ha-bascule.test.js",
+          "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+          "it": "ancienne instance : aucun fichier d'attente ouvert sous une époque inférieure à celle de B après sa prise du bail (EX-13.5 (1)) ; une fois la période close, l'écriture en vol n'a qu'un événement, celui de reprise (EX-4.46 : l'événement en attente est scellé à la place de l'événement de reprise, jamais en plus ; 13.5)"
+        },
+        {
+          "file": "test/enregistreur-ha-bascule.test.js",
+          "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+          "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers d'un événement écrit par A et d'un événement écrit par B valides pour le noyau ET pour le binaire Go (go1.27.3)"
+        }
+      ]
     },
     "threats": [
       "MN-19",
@@ -791,8 +826,8 @@ export const TE = [
     "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes. Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
     "status": {
       "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Démon non construit ; CT-7 §6.2 et §6.3 restent des propositions PA- à CT-2 et CT-1."
+      "phase2_step": 5,
+      "blocking": "Les situations JS-5 (rotation de la clé de chaîne au registre) et JS-11 (ancrage dégradé : anchor_pending, registry_pending) exigent le composant d'ancrage de l'étape 5 ; CT-7 §6.2 et §6.3 restent des propositions PA- à CT-2 et CT-1. La version 0.1 rattachait l'entrée à l'étape 4 ; les autres situations (démarrage, arrêt, bail, rotation de clé, politique, configuration, horloge, gel et copies WORM, rotation et disque plein du journal d'exploitation) sont observables sur le démon de l'étape 4 et s'écrivent avec l'entrée."
     },
     "threats": [
       "MN-18",
@@ -861,7 +896,7 @@ export const TE = [
     "status": {
       "state": "a_ecrire",
       "phase2_step": 4,
-      "blocking": "Démon non construit ; les bibliothèques ne portent pas la matrice entière."
+      "blocking": "Livrable de l'étape 4 manquant : la ligne « signataire » de la matrice de CT-2 §14.2 exige un signataire coupable ; le démon ne livre que la classe D (graine en mémoire), les classes A, B et C relevant de lots suivants (LISEZMOI du paquet) ; la ligne « ancrage » attend le composant de l'étape 5. Les colonnes du démon déjà livrées sont éprouvées ligne à ligne par les tests du paquet (enregistreur-*-exigences), pas par un rejeu de la matrice entière."
     },
     "threats": [
       "MN-10",

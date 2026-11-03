@@ -292,7 +292,17 @@ export class ServeurIcap {
   _erreur(socket, statut, raison) {
     this.journal.consigner("warning", "frontal_modele", "icap_request_refused", { status: statut, reason: raison });
     this._ecrireReponse(socket, statut, [["Encapsulated", "null-body=0"], ["Connection", "close"]]);
-    socket.end();
+    this._fermer(socket);
+  }
+
+  /**
+   * Ferme une connexion annoncée `Connection: close` : la réponse partie, la
+   * prise est détruite, sans attendre que le pair ferme son côté. Un client
+   * (refusé ou fautif) qui garderait sa moitié ouverte retiendrait sinon la
+   * prise indéfiniment, et l'arrêt du démon jusqu'à la fin du délai de drain.
+   */
+  _fermer(socket) {
+    socket.end(() => socket.destroy());
   }
 
   async _connexion(socket, chiffre) {
@@ -306,7 +316,7 @@ export class ServeurIcap {
     if (!admis) {
       this.journal.consigner("warning", "frontal_modele", "auth_failed", { transport: chiffre ? "icaps" : "icap", reason: "client_icap_refuse" });
       this._ecrireReponse(socket, 403, [["Encapsulated", "null-body=0"], ["Connection", "close"]]);
-      socket.end();
+      this._fermer(socket);
       return;
     }
     const lecteur = new LecteurOctets(socket);

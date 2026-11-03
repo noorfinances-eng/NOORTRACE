@@ -101,16 +101,38 @@ export const TI = [
       "CT-2 §4.8"
     ],
     "preconditions": [
-      "Enregistreur de l'étape 4 ; client MCP de référence de l'ère de CT-2 §0.3 ; serveur d'outils de démonstration (`outils-demo`, CT-2 §19.1)."
+      "Enregistreur de l'étape 4 : démon réel `bin/noortrace --config`, connecteur `noortrace-connecteur` ; politique de rédaction `pii-v1` de l'exemple de CT-2 §15.3.",
+      "Client MCP de référence de l'ère de CT-2 §0.3 : `@modelcontextprotocol/client` 2.4.0 (SDK TypeScript v2 de la révision 2026-07-28, dépendance de `@langchain/mcp-adapters` 2.0.1 fixée par `package-lock.json`), ère moderne épinglée (`versionNegotiation: { mode: { pin: \"2026-07-28\" } }`).",
+      "Serveur d'outils de test au contrat d'`outils-demo` (CT-2 §19.1 : `claims.get`, `claims.search`, `payments.create`, données fictives), qui rejoue les octets des vecteurs `pieces-mcp/appels` (`test/fixtures/enregistreur-mcp-reference/outils-demo.mjs`, transport stdio comme les serveurs des vecteurs ; l'image `outils-demo` en Streamable HTTP est un livrable de la démonstration, étape 8), et le serveur hérité `archives` des mêmes vecteurs ; service d'approbation simulé qui autorise."
     ],
     "steps": [
-      "Négocier la version, lister, appeler `claims.get`, `claims.search`, `payments.create` par stdio puis par Streamable HTTP ; authentifier une connexion d'hôte ; couper le serveur en cours d'appel."
+      "Négocier la version, lister, appeler `claims.get`, `claims.search`, `payments.create` par stdio (connecteur) puis par Streamable HTTP (jeton statique) ; authentifier une connexion d'hôte (sans jeton, jeton faux) ; couper le serveur en cours d'appel (`payments.create` du vecteur `injoignable`)."
     ],
-    "oracle": "Chaque appel produit l'événement attendu (comparé par `pieces-mcp/` sur les mêmes octets) ; requête non authentifiée refusée ; serveur coupé : erreur -3101x consignée et aucun événement forgé.",
+    "oracle": "Version négociée 2026-07-28 ; chaque appel produit l'événement attendu : pièces arguments, résultat, définition servie et liste annoncée égales, octet pour octet, à celles d'`attendu.json` du vecteur `pieces-mcp/appels` qui joue le même appel (`blancs-non-significatifs`, `arguments-non-entiers`, `execute-ecriture` sauf sa liste annoncée, servie sans le serveur `archives`, `injoignable`) ; événements attribués à la connexion d'hôte de chaque transport ; requête non authentifiée refusée (401, auth_failed, aucun événement) ; serveur coupé : erreur -31014 rendue à l'hôte et consignée (upstream_unreachable, raison perte), l'événement est celui du vecteur `injoignable` (résultat d'erreur), aucun événement forgé.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "Le démon n'est pas construit ; seules les bibliothèques existent (TU-, TV-)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-mcp-client-reference.test.js",
+          "describe": "TI-3 — protocole MCP réel : client de référence @modelcontextprotocol/client (stdio et Streamable HTTP, ère moderne) à travers le frontal du démon",
+          "it": "client de référence (@modelcontextprotocol/client 2.4.0) en stdio par le connecteur, ère 2026-07-28 : tools/list, puis claims.get, claims.search et payments.create ; chaque appel rendu à l'hôte et scellé avec les pièces du vecteur pieces-mcp qui joue le même appel"
+        },
+        {
+          "file": "test/enregistreur-mcp-client-reference.test.js",
+          "describe": "TI-3 — protocole MCP réel : client de référence @modelcontextprotocol/client (stdio et Streamable HTTP, ère moderne) à travers le frontal du démon",
+          "it": "client de référence en Streamable HTTP, jeton statique, ère 2026-07-28 : mêmes appels, mêmes pièces ; événements attribués à la connexion d'hôte HTTP"
+        },
+        {
+          "file": "test/enregistreur-mcp-client-reference.test.js",
+          "describe": "TI-3 — protocole MCP réel : client de référence @modelcontextprotocol/client (stdio et Streamable HTTP, ère moderne) à travers le frontal du démon",
+          "it": "requête non authentifiée (sans jeton, puis jeton faux) : refusée par 401, une ligne auth_failed chacune, aucun événement"
+        },
+        {
+          "file": "test/enregistreur-mcp-client-reference.test.js",
+          "describe": "TI-3 — protocole MCP réel : client de référence @modelcontextprotocol/client (stdio et Streamable HTTP, ère moderne) à travers le frontal du démon",
+          "it": "serveur d'outils coupé en cours d'appel (payments.create du vecteur injoignable) : -31014 rendu à l'hôte et consigné ; l'événement est celui du vecteur (résultat d'erreur), aucun succès forgé"
+        }
+      ]
     },
     "threats": [
       "MN-1",
@@ -433,16 +455,34 @@ export const TI = [
       "CT-2 §6.5"
     ],
     "preconditions": [
-      "SDK de l'étape 4 ; interpréteurs Python 3.10 et 3.13, Node.js 22 (CT-2 §6.4)."
+      "SDK de l'étape 4 : `noortrace-sdk` JavaScript (paquets/sdk-js) sous Node.js 22 (v22.22.0 au 2026-11-03) et Python (paquets/sdk-python) sous Python 3.10 (3.10.20) et 3.13 (3.13.16), environnements `essais-py310` et `essais-py313` créés par `uv` depuis les verrous versionnés (`paquets/sdk-python/outils/environnements.sh preparer`) ; un environnement absent met son exécution en attente et le titre nomme la condition (EX-3.11).",
+      "Démon réel du banc du SDK Python (`test/fixtures/enregistreur-sdk-python/banc.mjs` : point d'entrée SDK sur prise Unix, service d'approbation simulé qui rend a_approuver pour un outil `*approuver*` et refuse pour `*refuser*`), neuf pour chaque langage ; démon muet qui fait la preuve d'identité puis ne répond plus."
     ],
     "steps": [
-      "Exercer chaque fonction de l'interface publique de CT-2 §6.5 contre un enregistreur de test ; couper l'enregistreur ; dépasser `delai_s`."
+      "Jouer le même scénario dans chaque langage (`test/fixtures/enregistreur-sdk-langages/scenario.mjs`, `scenario.py`) : ouvrir, declarer_contexte, debut_appel et fin_appel, appel_outil d'écriture, debut_appel soumis à approbation puis refusé, appel_outil refusé, echange_modele, fermer.",
+      "Couper l'enregistreur après l'ouverture d'une session (appel_outil d'écriture, puis ouvrir) ; dépasser delai_s sur le démon muet.",
+      "Comparer les sorties normalisées et les événements des trois exécutions ; vérifier le journal et le dossier d'un événement de chacune."
     ],
-    "oracle": "Événements conformes ; une panne de l'enregistreur rend le résultat de la table de CT-2 EX-6.7 sans exception ; comportement identique dans les deux langages.",
+    "oracle": "Événements conformes (journal accepté par le noyau, dossier valide pour le noyau et pour le binaire Go si go1.27.3 est présent) et de mêmes pièces dans les deux langages ; chaque issue de politique rend le résultat de la table de CT-2 EX-6.7 sans exception (EX-6.4) ; une panne de l'enregistreur rend l'exception d'EX-6.12 (`NoortraceIndisponible` / `ErreurNoortraceIndisponible`, `envoyee` faux démon arrêté, vrai au-delà de delai_s) et l'outil d'écriture n'est jamais exécuté (EX-6.15) ; sorties normalisées identiques dans les deux langages.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "SDK non construits (CT-2 §6, « à tester en phase 2 »)."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-sdk-langages.test.js",
+          "describe": "TI-13 — SDK Python et TypeScript : interface publique de CT-2 6.5, Python 3.10 et 3.13 et Node.js 22, issues de politique sans exception, panne de l'enregistreur, comportement identique dans les deux langages",
+          "it": "SDK JavaScript (Node.js 22) : chaque fonction de l'interface publique ; issues de politique de la table d'EX-6.7 rendues sans exception par debutAppel ; démon arrêté : ErreurNoortraceIndisponible, outil d'écriture jamais exécuté ; démon muet au-delà de delai_s : ErreurNoortraceIndisponible, requête écrite ; événements conformes (journal et dossier vérifiés)"
+        },
+        {
+          "file": "test/enregistreur-sdk-langages.test.js",
+          "describe": "TI-13 — SDK Python et TypeScript : interface publique de CT-2 6.5, Python 3.10 et 3.13 et Node.js 22, issues de politique sans exception, panne de l'enregistreur, comportement identique dans les deux langages",
+          "it": "SDK Python 3.10 : mêmes sorties normalisées que le SDK JavaScript, étape par étape (interface publique, issues de politique, démon arrêté puis muet), mêmes événements (outils, statuts, décisions, pièces) ; événements conformes (journal et dossier vérifiés)"
+        },
+        {
+          "file": "test/enregistreur-sdk-langages.test.js",
+          "describe": "TI-13 — SDK Python et TypeScript : interface publique de CT-2 6.5, Python 3.10 et 3.13 et Node.js 22, issues de politique sans exception, panne de l'enregistreur, comportement identique dans les deux langages",
+          "it": "SDK Python 3.13 : mêmes sorties normalisées que le SDK JavaScript, étape par étape (interface publique, issues de politique, démon arrêté puis muet), mêmes événements (outils, statuts, décisions, pièces) ; événements conformes (journal et dossier vérifiés)"
+        }
+      ]
     },
     "threats": []
   },
@@ -692,17 +732,42 @@ export const TI = [
       "CT-8 EX-5.4"
     ],
     "preconditions": [
-      "Enregistreur de l'étape 4 en mode ICAP ; mandataire d'interception Squid (CT-2 §19.6 : seul équipement dont la configuration a été lue), services ICAP REQMOD et RESPMOD et interception TLS en place, version exacte consignée à la livraison de l'étape 4 (EX-3.4) ; autorité d'interception de test créée par le harnais pour le mandataire (rôle de CT-7 CLE-27 : clé hors de NOORTRACE, tenue par le client en production ; CLE-27 nomme la clé, il ne dit pas comment en fabriquer une pour l'épreuve). Montage : simulateur de fournisseur servi en HTTPS sous un nom de domaine `.example`, joint par le mandataire et, en mode passerelle, par une route de l'enregistreur pour ce même nom ; lien ICAP en clair (`icap://`, port 1344) restreint par `allowed_sources` (CT-2 EX-5.3), sur lequel se relève `ISTag` de chaque réponse ICAP."
+      "Enregistreur de l'étape 4 : démons réels `bin/noortrace --config` sur un même journal, en mode `passerelle` (référence) puis en mode `icap` ; mandataire d'interception Squid 6.13, paquet Debian `squid-openssl` 6.13-2+deb13u3 (OpenSSL, ssl-bump ; CT-2 §19.6 : seul équipement dont la configuration a été lue), image construite par `test/fixtures/enregistreur-modele/squid/Dockerfile` (base `debian:trixie-slim` épinglée par condensé, paquets lus dans l'instantané daté de l'archive Debian), réseau de l'hôte ; services ICAP REQMOD et RESPMOD (`reqmod_precache`, `respmod_precache`, `bypass=off`), `icap_send_client_ip on` (`client_address_header: \"X-Client-IP\"`), adaptation limitée à la destination du fournisseur hors tunnel CONNECT, ssl-bump (peek puis bump) avec une autorité d'interception de test créée par le harnais (rôle de CT-7 CLE-27 : clé hors de NOORTRACE, tenue par le client en production ; CLE-27 nomme la clé, il ne dit pas comment en fabriquer une pour l'épreuve).",
+      "Montage : simulateur de fournisseur servi en HTTPS sous `api.fournisseur.example` (autorité de test), joint par Squid (résolution par `--add-host`) et, en mode passerelle, par une route de l'enregistreur pour ce même nom (le démon le résout vers 127.0.0.1 par un module de test chargé à son lancement, `--import`) ; lien ICAP en clair (`icap://127.0.0.1`) restreint par `allowed_sources` (CT-2 EX-5.3), relevé par un relais qui garde les octets de chaque sens (`ISTag`, statuts, requête encapsulée par RESPMOD) ; démons à l'écoute sur le port 0, adresses réelles lues dans leur journal d'exploitation. Docker et `openssl` requis, sinon les cas sont en attente et leur titre nomme la condition ; binaire Go `noortrace-verifier` construit avec go1.27.3 (NOORTRACE_GO_BIN)."
     ],
     "steps": [
       "Jouer le même échange de modèle hors flux (échange n° 1 de CT-2 §19.2) deux fois, par le même client de test, qui envoie `Accept-Encoding: identity` dans les deux modes (en ICAP, l'enregistreur ne pose pas cet en-tête : la requête qu'il rend est l'originale augmentée de `X-Noortrace-Exchange`, CT-2 EX-5.4 ; en passerelle, il le pose lui-même, CT-2 EX-5.9) : par la passerelle (référence), la requête portant `X-Noortrace-Run-Id`, et par le mandataire ICAP, l'hôte non reconfiguré n'envoyant aucun en-tête `X-Noortrace-*` (CT-2 EX-5.8) ; comparer les deux événements. Le flux SSE (échange n° 2 de CT-2 §19.2 : relais sans tampon en passerelle, RESPMOD par morceaux) est hors de TI-19.",
       "Présenter un client ICAP hors d'`allowed_sources` (CT-2 EX-5.3) et une adresse d'hôte hors de `model.hosts` (CT-2 EX-5.8)."
     ],
-    "oracle": "Égalité, événement à événement avec l'échange joué en mode passerelle, de `code.model`, `code.prompt_version`, des `sha256`, `length` et `redacted` des pièces « requête » et « réponse » (références de CT-1 §5.4) et de `execution.is_error`, comparé par égalité entre les deux modes, sa règle restant celle de CT-2 §5.3.1 (statut du fournisseur et corps non JSON compris) ; écarts attendus et consignés (EX-3.4) : `delegation.run_id` nul en ICAP, l'hôte non reconfiguré n'ayant déclaré aucun `run_id` (aucune assertion n'exige `null` pour un `run_id` déclaré par en-tête en ICAP : CT-2 EX-5.8 traite l'en-tête `X-Noortrace-Run-Id` dans tous les modes), hôte rattaché par `source_addresses` (en-tête `client_address_header`), corrélation par groupe d'hôte seulement (CT-2 EX-5.8, §5.6). ICAP (CT-2 EX-5.3) : réponse OPTIONS avec `Methods`, `ISTag` et `Encapsulated: null-body=0`, `ISTag` sur toute réponse, aucune réponse `204` en REQMOD ni en RESPMOD (CT-2 EX-5.4, EX-5.5 ; la permission `Allow: 204` ou Preview qu'EX-5.3 rappelle est celle de la RFC 3507, qu'aucun des deux services n'exerce) ; un client ICAP hors d'`allowed_sources` est refusé sans événement, avec une ligne consignée ; une adresse d'hôte hors de `model.hosts` est rattachée à l'entrée « inconnu » si la configuration en déclare une, sinon bloquée en REQMOD (CT-2 EX-5.8). Écarts connus, consignés (EX-3.4) : statut ICAP du refus d'un client et nom de la ligne du journal d'exploitation non fixés par CT-2 EX-17.2 ; statut encapsulé et ligne du journal du blocage d'une adresse d'hôte inconnue en REQMOD non fixés, CT-2 EX-5.4 n'énumérant pas ce troisième cas (PD-26) ; forme du `match` de l'entrée « inconnu » non fixée par CT-2 EX-5.8 : la forme employée par le montage est consignée (PD-26) ; présence de `X-Noortrace-Exchange` dans la requête encapsulée par RESPMOD vérifiée sur Squid en phase 2 (CT-2 EX-5.4), à défaut corrélation heuristique et pièce « requête » `{\"noortrace_requete_inconnue\": true}`, consignée.",
+    "oracle": "Égalité, événement à événement avec l'échange joué en mode passerelle, de `code.model`, `code.prompt_version`, des `sha256`, `length` et `redacted` des pièces « requête » et « réponse » (références de CT-1 §5.4) et de `execution.is_error`, comparé par égalité entre les deux modes, sa règle restant celle de CT-2 §5.3.1 (statut du fournisseur et corps non JSON compris) ; écarts attendus et consignés (EX-3.4) : `delegation.run_id` nul en ICAP, l'hôte non reconfiguré n'ayant déclaré aucun `run_id` (aucune assertion n'exige `null` pour un `run_id` déclaré par en-tête en ICAP : CT-2 EX-5.8 traite l'en-tête `X-Noortrace-Run-Id` dans tous les modes), hôte rattaché par `source_addresses` (en-tête `client_address_header`), corrélation par groupe d'hôte seulement (CT-2 EX-5.8, §5.6). ICAP (CT-2 EX-5.3) : réponse OPTIONS avec `Methods`, `ISTag` et `Encapsulated: null-body=0`, `ISTag` sur toute réponse, aucune réponse `204` en REQMOD ni en RESPMOD (CT-2 EX-5.4, EX-5.5 ; la permission `Allow: 204` ou Preview qu'EX-5.3 rappelle est celle de la RFC 3507, qu'aucun des deux services n'exerce) ; un client ICAP hors d'`allowed_sources` est refusé sans événement, avec une ligne consignée ; une adresse d'hôte hors de `model.hosts` est rattachée à l'entrée « inconnu » si la configuration en déclare une, sinon bloquée en REQMOD (CT-2 EX-5.8). Écarts connus, consignés (EX-3.4) : statut ICAP du refus d'un client et nom de la ligne du journal d'exploitation non fixés par CT-2 EX-17.2 ; statut encapsulé et ligne du journal du blocage d'une adresse d'hôte inconnue en REQMOD non fixés, CT-2 EX-5.4 n'énumérant pas ce troisième cas (PD-26) ; forme du `match` de l'entrée « inconnu » non fixée par CT-2 EX-5.8 : la forme employée par le montage est consignée (PD-26) ; présence de `X-Noortrace-Exchange` dans la requête encapsulée par RESPMOD (CT-2 EX-5.4) : constatée sur Squid 6.13 (`squid-openssl` 6.13-2+deb13u3), qui encapsule en RESPMOD l'en-tête de la requête adaptée par REQMOD ; la corrélation se fait par ce MAC, sans heuristique (aucune ligne `icap_correlation_heuristique` ni `icap_requete_inconnue`). Formes consignées du démon : client ICAP refusé, `403` avec `ISTag` et ligne `auth_failed` (`transport: \"icap\"`, `reason: \"client_icap_refuse\"`), l'agent recevant l'erreur de Squid ; adresse d'hôte inconnue sans entrée « inconnu », réponse HTTP encapsulée `401` (`res-hdr`) et ligne `auth_failed` (`reason: \"hote_inconnu\"`, `status: 401`) ; entrée « inconnu » du montage : `match: { source_addresses: [plage qui ne contient pas le client] }`, l'`id` la désignant. Défaut révélé par l'épreuve et corrigé (CT-2 EX-5.3) : une connexion de client ICAP refusée restait ouverte tant que le pair gardait son côté, et retenait l'arrêt du démon jusqu'au délai de drain.",
     "status": {
-      "state": "a_ecrire",
-      "phase2_step": 4,
-      "blocking": "CT-2 §19.6 : « à tester en phase 2 » ; CT-8 §5.3 : « épreuve de CT-9 »."
+      "state": "executable",
+      "tests": [
+        {
+          "file": "test/enregistreur-modele-squid.test.js",
+          "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
+          "it": "chaque échange produit un événement ; égalité, entre la passerelle (référence) et Squid par ICAP, de code.model, code.prompt_version, des pièces « requête » et « réponse » (sha256, length, redacted) et d'execution.is_error ; écarts consignés : run_id nul en ICAP, hôte rattaché par source_addresses (X-Client-IP de Squid), même groupe d'hôte"
+        },
+        {
+          "file": "test/enregistreur-modele-squid.test.js",
+          "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
+          "it": "adresse d'hôte hors de model.hosts (CT-2 EX-5.8) : rattachée à l'entrée « inconnu » déclarée (forme du match consignée : source_addresses d'une plage qui ne contient pas le client) — un événement ; sans elle, bloquée en REQMOD par une réponse HTTP encapsulée — aucun événement, rien chez le fournisseur, ligne consignée"
+        },
+        {
+          "file": "test/enregistreur-modele-squid.test.js",
+          "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
+          "it": "client ICAP hors d'allowed_sources (CT-2 EX-5.3) : Squid refusé (403, ISTag), aucun événement, rien chez le fournisseur, l'agent reçoit l'erreur de Squid, ligne consignée ; le démon s'arrête proprement (la connexion refusée ne le retient pas)"
+        },
+        {
+          "file": "test/enregistreur-modele-squid.test.js",
+          "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
+          "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers de l'échange en passerelle et de l'échange par ICAP valides pour le noyau ET pour le binaire Go (go1.27.3)"
+        },
+        {
+          "file": "test/enregistreur-modele-squid.test.js",
+          "describe": "TI-19, défaut révélé : client ICAP refusé qui garde sa moitié de connexion ouverte (CT-2 EX-5.3) — le serveur ICAP détruit la prise après le 403 et s'arrête sans attendre le délai de drain"
+        }
+      ]
     },
     "threats": [
       "MN-12"

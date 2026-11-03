@@ -11,7 +11,7 @@ import http from "node:http";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { configurationDev, BIN_NOORTRACE } from "../enregistreur-coeur/outils.mjs";
-import { fichierSecret, identifiantsRole } from "../enregistreur-worm/outils.mjs";
+import { fichierSecret, identifiantsRole, portLibre } from "../enregistreur-worm/outils.mjs";
 
 export const SERVEUR_OUTILS = path.join(path.dirname(fileURLToPath(import.meta.url)), "serveur-outils.mjs");
 export const JETON_HOTE = "jeton-hote-de-test-ha";
@@ -134,8 +134,104 @@ export function lancerDemon(fichier, env, journalOps, o = {}) {
   p.stdout.on("data", (d) => (p.sortie += d));
   p.stderr.on("data", (d) => (p.sortie += d));
   p.fin = new Promise((r) => p.on("exit", (code, signal) => r({ code, signal })));
+  // Fin des flux de sortie (après `exit`) : la sortie d'erreur est alors complète.
+  p.ferme = new Promise((r) => p.on("close", () => r()));
   p.lignes = () => (fs.existsSync(journalOps) ? fs.readFileSync(journalOps, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
   return p;
+}
+
+/** Nombre d'essais d'un lancement dont une adresse d'écoute était prise (EADDRINUSE). */
+export const ESSAIS_PORTS = 5;
+
+/**
+ * Le démon s'est-il arrêté parce qu'une adresse d'écoute était déjà prise ?
+ * Un port libre choisi par le test (écoute sur le port 0, puis fermeture) peut
+ * être pris par un autre processus avant que le démon ne l'ouvre ; le démon
+ * refuse alors de démarrer (`demarrage_refuse … EADDRINUSE`, code 2).
+ * @param {import("node:child_process").ChildProcess & {sortie: string}} p
+ */
+export function adresseOccupee(p) {
+  return (p.exitCode !== null || p.signalCode !== null) && /EADDRINUSE/.test(p.sortie);
+}
+
+/**
+ * Remplace, partout dans une configuration, l'adresse d'écoute
+ * `127.0.0.1:<ancien>` par `127.0.0.1:<nouveau>` (santé, frontal MCP HTTP,
+ * passerelle, ICAP) ; rend le nombre de remplacements.
+ */
+export function remplacerPort(config, ancien, nouveau) {
+  let n = 0;
+  const visiter = (o) => {
+    if (o === null || typeof o !== "object") return;
+    for (const [k, v] of Object.entries(o)) {
+      if (v === `127.0.0.1:${ancien}`) {
+        o[k] = `127.0.0.1:${nouveau}`;
+        n++;
+      } else {
+        visiter(v);
+      }
+    }
+  };
+  visiter(config);
+  return n;
+}
+
+/**
+ * Lance le démon d'une configuration `x` ({ config, env, fichier }) et attend
+ * sa santé `etat` (EX-17.1). Si le démon s'arrête parce qu'une de ses
+ * adresses d'écoute était prise entre le choix du port et son ouverture
+ * (EADDRINUSE), de nouveaux ports libres sont choisis pour la santé et le
+ * frontal MCP HTTP, la configuration est réécrite et le démon relancé : au
+ * plus ESSAIS_PORTS essais. `x.port` (santé), `x.portSante` et `x.portHttp`
+ * suivent les ports retenus ; la configuration écrite est `x.config`.
+ * @param {{config: object, env: object, fichier: string, port?: number, portSante?: number, portHttp?: number}} x
+ * @param {string} [etat] `ok`, `standby`…
+ * @param {{prefixe?: string[], delaiMs?: number}} [o]
+ */
+export async function demarrerDemon(x, etat = "ok", o = {}) {
+  for (let essai = 1; ; essai++) {
+    fs.writeFileSync(x.fichier, JSON.stringify(x.config));
+    const p = lancerDemon(x.fichier, x.env, x.config.supervision.ops_log.path, o);
+    const port = Number(x.config.supervision.health_listen.split(":")[1]);
+    const limite = Date.now() + (o.delaiMs ?? 60000);
+    let erreur = null;
+    for (;;) {
+      if (p.exitCode !== null || p.signalCode !== null) {
+        erreur = new Error(`démon arrêté (${p.exitCode ?? p.signalCode})`);
+        break;
+      }
+      // Le port peut être tenu par un autre processus qui ne répond pas en HTTP : sonde bornée.
+      if ((await santeBornee(port))?.corps?.status === etat) return p;
+      if (Date.now() > limite) {
+        erreur = new Error(`santé ${etat} non atteinte`);
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    if (p.exitCode !== null || p.signalCode !== null) await p.ferme;
+    if (essai < ESSAIS_PORTS && adresseOccupee(p)) {
+      for (const [champ, adresse] of [["sante", x.config.supervision.health_listen], ["http", x.config.mcp?.http?.listen]]) {
+        const ancien = Number(String(adresse ?? "").split(":")[1]);
+        if (!ancien) continue;
+        const nouveau = await portLibre();
+        remplacerPort(x.config, ancien, nouveau);
+        if (champ === "sante") {
+          if ("port" in x) x.port = nouveau;
+          if ("portSante" in x) x.portSante = nouveau;
+        } else if ("portHttp" in x) {
+          x.portHttp = nouveau;
+        }
+      }
+      continue;
+    }
+    p.kill("SIGKILL");
+    throw new Error(`${erreur.message}\n${p.sortie}`);
+  }
+}
+
+/** `sante`, ou null après `delaiMs`. */
+export function santeBornee(port, delaiMs = 2000) {
+  return Promise.race([sante(port), new Promise((r) => setTimeout(() => r(null), delaiMs))]);
 }
 
 /** Corps de `GET /healthz` d'un démon (EX-17.1), ou null s'il ne répond pas. */

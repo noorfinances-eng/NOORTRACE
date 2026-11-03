@@ -1,7 +1,7 @@
 {
   "version": 0,
   "kind": "rapport-couverture",
-  "date": "2026-11-01",
+  "date": "2026-11-03",
   "tool": {
     "name": "scripts/tests/couverture.mjs",
     "command": "node scripts/tests/couverture.mjs --json"
@@ -43,7 +43,7 @@
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "57b41864d9dc1b97c7097252f15f48cb8f3d9159efab2de0295c6d51cab2b5fc"
+      "sha256": "c78ee5ee5e284179ad153ada1598a358b95bb2eae3fc11d862a64fb3080e50b9"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -52,7 +52,7 @@
     "tests": [
       {
         "file": "test/adversarial.test.js",
-        "sha256": "ee1b834f3903f4190079dac7a19f8b94c963af9b5a15314eea32af1aafabccca"
+        "sha256": "b35c0246c44e89b769bfdf4c3a67696f2c1e77f91c214413aae3b2e50ac445ae"
       },
       {
         "file": "test/ancrage.test.js",
@@ -131,12 +131,20 @@
         "sha256": "b29bd972e560b9224271f8317d3778f69a89e5dddcfb59dd576f11e42141cd1f"
       },
       {
+        "file": "test/enregistreur-ha-bascule.test.js",
+        "sha256": "e42c4e1cb6eb864fd16b3db2a11ed47cbb037b405736f1ccb4cf8258104d10af"
+      },
+      {
         "file": "test/enregistreur-ha-exigences.test.js",
-        "sha256": "4c526a82110062d18014db9ccad6cf2bbed802f943159ff2a67b0b5b78f6292d"
+        "sha256": "51391133b00e8dad93bb56f8ec4178e77f3e8bf4bf08de1338d5fe1cc86a2adc"
       },
       {
         "file": "test/enregistreur-ha-parcours.test.js",
-        "sha256": "24191e670d43c79692e45e374ae8dadb1ec2e9b0686f28ddecc7ec11fc8514e2"
+        "sha256": "5bb3619a8e44a28dfe64fa1ea90d4ad21d47cad093d4636afdd429fb998ed0ad"
+      },
+      {
+        "file": "test/enregistreur-mcp-client-reference.test.js",
+        "sha256": "7bb42e54e9b92c3e5da14c36a17fd6574fd21ce2f492d39690e12c2cd0b1c3b8"
       },
       {
         "file": "test/enregistreur-mcp-exigences.test.js",
@@ -177,6 +185,10 @@
       {
         "file": "test/enregistreur-modele-securite.test.js",
         "sha256": "794f6212b948f7d00bff6848b6ce8079278b6112d03e7d33d48e51c6e34c6dc0"
+      },
+      {
+        "file": "test/enregistreur-modele-squid.test.js",
+        "sha256": "d383516822c7e46a676c3cc83b6124c24cec63230bbc0fe6744eb5e8ddade7fa"
       },
       {
         "file": "test/enregistreur-modele-vecteurs.test.js",
@@ -227,6 +239,10 @@
         "sha256": "f02ebf8a12ede4df347c4e332630e4144ccb878722627aff73600bb14ed601dc"
       },
       {
+        "file": "test/enregistreur-sdk-langages.test.js",
+        "sha256": "fd009ede6d82faffb466b86b056badbc0463dff2718f176a7ff88c49d2e709eb"
+      },
+      {
         "file": "test/enregistreur-sdk-parcours.test.js",
         "sha256": "b32fffd742b72c129ec96096541942fcd16485cb55320e3fcec01d6f613ef845"
       },
@@ -239,8 +255,16 @@
         "sha256": "9241efbaa2bf4d365d23ad42a3df5691ed9cfc36865f5fcf184f33411c72a943"
       },
       {
+        "file": "test/enregistreur-signataires-exigences.test.js",
+        "sha256": "d5ab980c6283a343ea6ff8ffa208ec79573814c583b0c7ea396bfdb60a0e85ba"
+      },
+      {
+        "file": "test/enregistreur-signataires-parcours.test.js",
+        "sha256": "210270e66110702221163461c9505c9e5b24213a308053f5f495d475fe4b73e3"
+      },
+      {
         "file": "test/enregistreur-worm-attributs.test.js",
-        "sha256": "a7790139288d143f9282785333c08c65e17e5af080c1ac92d8111f62600efde2"
+        "sha256": "aec0862d9309b8308b94f93359fe9d658b114c5fb5b7639b6bb54424e9c1efc6"
       },
       {
         "file": "test/enregistreur-worm-exigences.test.js",
@@ -251,8 +275,12 @@
         "sha256": "ee373e3b404ffdeb8efb1970cd660e39ad508728661de107b71ebf1f6a0c8848"
       },
       {
+        "file": "test/enregistreur-worm-mesure-p6.test.js",
+        "sha256": "38c3ba036a91ece3e6bc36b2017e3b2976acc735dd1d274075f14c8e142d101d"
+      },
+      {
         "file": "test/enregistreur-worm-restauration.test.js",
-        "sha256": "9c4f309834d6aa0a7239b5130b88e499e80a033d84ce018e5f72e3eeaefa1bab"
+        "sha256": "fbd5549efe3869db30c8eef8d06c0a92c76a8e5960a86e7916c4b4362e152fa9"
       },
       {
         "file": "test/enregistreur-worm-vecteurs.test.js",
@@ -308,7 +336,7 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "95d3b70ee3856ca743c63fd446ed98469f67918b60e9378bdbd5dab4139fa10a"
+        "sha256": "161af1488433c227dbea131a02bab556fc58118f04d286d78453ab70c69a6d49"
       },
       {
         "file": "test/recorderRegistry.test.js",
@@ -595,8 +623,8 @@
     "orphans": []
   },
   "executable": {
-    "total": 193,
-    "titles_checked": 367,
+    "total": 208,
+    "titles_checked": 400,
     "titles_missing": []
   },
   "text_tables": {

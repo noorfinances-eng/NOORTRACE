@@ -8,16 +8,28 @@
 // supérieure présents, clé du MAC de relais différente, fourche (fichier
 // d'époque inférieure qui grandit après la reprise).
 // Sans Docker, chaque cas est mis en attente et son titre nomme la condition.
+//
+// Défaut D-1 (révélé par TE-11, test/enregistreur-ha-bascule.test.js) et
+// EX-17.2 : une instance qui n'est plus détentrice du bail, ou dont l'époque
+// est dépassée par une autre présente dans le répertoire du journal, n'écrit
+// rien (ni attente, ni intention, ni segment) ; la reprise d'une attente ne
+// scelle jamais ce qu'un événement de reprise a déjà couvert ; `instance_id`
+// dans `data` de chaque ligne du journal d'exploitation d'un déploiement à
+// plusieurs instances (`postgresql`, `etcd`), absent avec `file`. Ces cas,
+// sur le magasin `file` et le cœur seul, ne demandent pas Docker.
 
 import { expect } from "chai";
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import * as N from "@noortrace/noyau";
 import {
   Coeur, validerConfiguration, resoudreSecrets, MagasinBailPostgresql, MagasinBailEtcd, ClientEtcd, requetesBailPg, ErreurEnregistreur,
-  pieceTexte, principal,
+  pieceTexte, principal, pieceJson, lireEvenements, principalCtl, instanceExploitation,
 } from "@noortrace/enregistreur";
-import { configurationDev, repertoireTemporaire, CLE_MAC_HEX } from "./fixtures/enregistreur-coeur/outils.mjs";
+import { configurationDev, repertoireTemporaire, secretsDev, CLE_MAC_HEX } from "./fixtures/enregistreur-coeur/outils.mjs";
+import { configurationHa, demarrerDemon, lancerDemon } from "./fixtures/enregistreur-ha/outils.mjs";
+import { ServiceApprobationFactice } from "@noortrace/enregistreur/factice";
 import {
   IMAGES, dockerDisponible, demarrerPostgresql, demarrerEtcd, arreterTout, psql, PartitionTcp, fichierSecret, attendre,
 } from "./fixtures/enregistreur-worm/outils.mjs";
@@ -430,6 +442,26 @@ describe("haute disponibilité : exigences de §13 contre PostgreSQL et etcd ré
       }
     });
 
+    it("EX-17.2 : déploiement à plusieurs instances (postgresql, etcd) — chaque ligne du journal d'exploitation, en mémoire et dans le fichier, porte instance_id dans data ; deux instances successives s'y distinguent", async function () {
+      for (const type of ["postgresql", "etcd"]) {
+        const c = configuration(type, type === "postgresql" ? { table: "bail_instance" } : {});
+        const a = await Coeur.demarrer({ config: c.config, secrets: c.secrets });
+        await a.arreter();
+        const cb = { ...c.config, recorder: { ...c.config.recorder, instance_id: "inst-b" } };
+        const b = await Coeur.demarrer({ config: cb, secrets: c.secrets });
+        await b.arreter();
+        for (const [x, inst] of [[a, "inst-a"], [b, "inst-b"]]) {
+          expect(x.journal.lignes.length, type).to.be.greaterThan(3);
+          expect(x.journal.lignes.filter((l) => l.data.instance_id !== inst), type).to.deep.equal([]);
+          expect(x.journal.trouver("lease_acquired")[0].data, type).to.include({ store: type, instance_id: inst });
+        }
+        const fichier = fs.readFileSync(c.config.supervision.ops_log.path, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+        expect(fichier.length, type).to.equal(a.journal.lignes.length + b.journal.lignes.length);
+        expect(fichier.filter((l) => !["inst-a", "inst-b"].includes(l.data.instance_id)), type).to.deep.equal([]);
+        expect(fichier.filter((l) => l.event === "startup").map((l) => l.data.instance_id), type).to.deep.equal(["inst-a", "inst-b"]);
+      }
+    });
+
     it("EX-15.4 (lignes « bail ») : renew_ms < ttl_ms / 2 exigé ; en production, lease.fencing exigé avec postgresql ou etcd, admis avec détachement ; noortrace validate-config", async function () {
       const c = configuration("postgresql");
       const valider = (cfg) => validerConfiguration(new TextEncoder().encode(JSON.stringify(cfg)));
@@ -447,5 +479,270 @@ describe("haute disponibilité : exigences de §13 contre PostgreSQL et etcd ré
       expect(await principal(["validate-config", f], { stdout: { write: (t) => out.push(t) }, stderr: { write: () => {} } })).to.equal(2);
       expect(out.join("")).to.contain("/lease/renew_ms");
     });
+  });
+});
+
+describe("D-1 et EX-17.2 : instance qui n'est plus détentrice ou dont l'époque est dépassée — rien n'est écrit (EX-13.1, EX-13.5 (1), EX-13.6) ; attente couverte par une reprise jamais scellée (EX-4.46, 13.5) ; instance_id du journal d'exploitation (magasin file, sans Docker)", function () {
+  this.timeout(120000);
+  let racine;
+  let k = 0;
+
+  before(function () {
+    racine = repertoireTemporaire("noortrace-ha-d1-");
+  });
+
+  after(function () {
+    if (racine) fs.rmSync(racine, { recursive: true, force: true });
+  });
+
+  /** Configuration de développement (magasin `file`), instance `inst-a`. */
+  function preparer(o = {}) {
+    const d = path.join(racine, `c${++k}`);
+    const { config } = configurationDev(d, { journal_id: N.octetsVersHex(N.keccak256(N.utf8(`ha-d1-${process.pid}-${k}`))), instance_id: "inst-a" });
+    if (o.modifier) o.modifier(config);
+    const v = validerConfiguration(new TextEncoder().encode(JSON.stringify(config)));
+    expect(v.erreurs, JSON.stringify(v.erreurs)).to.deep.equal([]);
+    return { d, config: v.config };
+  }
+  const autreInstance = (config, instance_id) => ({ ...config, recorder: { ...config.recorder, instance_id } });
+  const autorise = { rule: null, decision: "autorise", ticket: null, ticket_state: null, approval: null, approver_set: null };
+  const appelEcriture = (args) => ({ host: { id: "agent-sinistres-stdio" }, delegation: { launched_by: "agent-sinistres", on_behalf_of: null, scope: "s", run_id: null }, tool_announced: "sap__payments.create", tool_original: "payments.create", server_alias: "sap", class: "ecriture", arguments: args.reference, context: [], intent: null, code: {} });
+  /** Relais d'écriture en vol : pièce « arguments » et intention durables (4.4 pas 4 et 8). */
+  async function relaisEnVol(coeur, id) {
+    const args = pieceJson({ claim_id: id });
+    await coeur.ecrirePiece(args);
+    return coeur.preparerRelais(appelEcriture(args), { reponse: autorise, argumentsEnClair: { claim_id: id }, upstream_id: `e-${id}` });
+  }
+  const resultat = (id) => ({ resultat: pieceJson({ content: [{ type: "text", text: id }], isError: false }), resultatRedige: {}, argumentsRediges: {}, duration_ms: 7, is_error: false });
+  const fichiersAttente = (rep) => (fs.existsSync(path.join(rep, "attente")) ? fs.readdirSync(path.join(rep, "attente")).sort() : []);
+  const fichierIntentions = (coeur) => path.join(coeur.repertoire, "intentions", `intentions-${String(coeur.ecrivain.epoque).padStart(20, "0")}.ndjson`);
+  async function terminer(coeur, relais, id) {
+    try {
+      await coeur.terminerRelais(relais, resultat(id));
+      return null;
+    } catch (e) {
+      return e;
+    }
+  }
+  async function erreurDe(p) {
+    try {
+      await p;
+      return null;
+    } catch (e) {
+      return e;
+    }
+  }
+  const evenementsOutil = async (rep) => (await lireEvenements(rep)).filter((e) => e.execution.tool === "sap__payments.create").map((e) => ({ is_error: e.execution.is_error, duration_ms: e.execution.duration_ms }));
+
+  it("bail perdu, repris par B (événement de reprise de l'écriture en vol) : A termine l'écriture (-31017) sans ouvrir de fichier d'attente, n'écrit plus d'intention ; une instance suivante ne trouve qu'un événement, celui de reprise", async function () {
+    const { config } = preparer();
+    const A = await Coeur.demarrer({ config, secrets: secretsDev() });
+    let B = null;
+    try {
+      const relais = await relaisEnVol(A, "D1a");
+      // A isolée de son bail (13.4 pas 2) : verrou rendu, B l'acquiert avec e+1 et reprend l'intention en vol.
+      await A.bail.liberer();
+      B = await Coeur.demarrer({ config: autreInstance(config, "inst-b"), secrets: secretsDev() });
+      expect(B.ecrivain.epoque).to.be.greaterThan(A.ecrivain.epoque);
+      expect(B.journal.trouver("intent_recovered").map((l) => l.data.intent_id)).to.deep.equal([relais.intention.intent_id]);
+      // B a supprimé le fichier d'intention de A, toutes ses intentions levées (EX-12.13) ;
+      // A garde son descripteur : ce qu'elle écrirait se mesure par lui.
+      expect(fs.existsSync(fichierIntentions(A))).to.equal(false);
+      const tailleIntentions = A.ecrivain.intentions.taille;
+      const err = await terminer(A, relais, "D1a");
+      expect(err?.code, String(err)).to.equal(-31017);
+      expect(A.attente, "gardé en mémoire seulement (EX-4.46)").to.have.length(1);
+      await dormir(300);
+      expect(fichiersAttente(A.repertoire)).to.deep.equal([]);
+      const err2 = await erreurDe(relaisEnVol(A, "D1a-2"));
+      expect(err2?.raison).to.equal("bail");
+      expect(A.ecrivain.intentions.taille, "aucune ligne d'intention écrite sans bail").to.equal(tailleIntentions);
+      expect(fs.existsSync(fichierIntentions(A))).to.equal(false);
+      A.attente.length = 0;
+    } finally {
+      await A.arreter();
+      await B?.arreter();
+    }
+    const C = await Coeur.demarrer({ config: autreInstance(config, "inst-c"), secrets: secretsDev() });
+    try {
+      expect(await evenementsOutil(C.repertoire)).to.deep.equal([{ is_error: true, duration_ms: 0 }]);
+    } finally {
+      await C.arreter();
+    }
+  });
+
+  it("EX-13.5 (1) lu sur le répertoire du journal : une époque supérieure présente dans segments/ seulement, bail encore tenu pour valide → ni événement, ni fichier d'attente, ni intention ; lease_lost (epoque_superieure_presente), mode dégradé « bail »", async function () {
+    const { config } = preparer();
+    const A = await Coeur.demarrer({ config, secrets: secretsDev() });
+    try {
+      const relais = await relaisEnVol(A, "D1b");
+      const fi = fichierIntentions(A);
+      // Un repreneur d'époque supérieure a ouvert son segment (13.4 pas 5).
+      fs.writeFileSync(path.join(A.repertoire, "segments", `seg-${"9".padStart(16, "0")}-${String(A.ecrivain.epoque + 1).padStart(20, "0")}.ndjson`), "");
+      expect(A.bail.valide()).to.equal(true);
+      const tailleIntentions = fs.statSync(fi).size;
+      const tailleSegments = fs.readdirSync(path.join(A.repertoire, "segments")).map((n) => fs.statSync(path.join(A.repertoire, "segments", n)).size);
+      const err = await terminer(A, relais, "D1b");
+      expect(err?.code, String(err)).to.equal(-31017);
+      await dormir(300);
+      expect(fichiersAttente(A.repertoire)).to.deep.equal([]);
+      const err2 = await erreurDe(relaisEnVol(A, "D1b-2"));
+      expect(err2?.raison).to.equal("bail");
+      expect(fs.statSync(fi).size).to.equal(tailleIntentions);
+      expect(fs.readdirSync(path.join(A.repertoire, "segments")).map((n) => fs.statSync(path.join(A.repertoire, "segments", n)).size)).to.deep.equal(tailleSegments);
+      const l = A.journal.trouver("lease_lost").filter((x) => x.data.cause === "epoque_superieure_presente");
+      expect(l).to.have.length(1);
+      expect(l[0].data).to.include({ epoch: A.ecrivain.epoque, epoch_present: A.ecrivain.epoque + 1, directory: "segments" });
+      expect(A.degrade.actif("bail")).to.equal(true);
+      A.attente.length = 0;
+    } finally {
+      await A.arreter();
+    }
+  });
+
+  it("une époque supérieure présente dans intentions/ ou approbations/ seulement refuse l'ouverture du fichier d'attente (EX-13.5 (1), répertoire du journal) ; la même configuration sans elle l'ouvre", async function () {
+    for (const [sous, nom] of [["intentions", (e) => `intentions-${e}.ndjson`], ["approbations", (e) => `mac-${e}.ndjson`], [null, null]]) {
+      const { config } = preparer();
+      const A = await Coeur.demarrer({ config, secrets: secretsDev() });
+      try {
+        if (sous) fs.writeFileSync(path.join(A.repertoire, sous, nom(String(A.ecrivain.epoque + 5).padStart(20, "0"))), "");
+        A.mettreEnAttente({ execution: { tool: "x" } }, []);
+        await dormir(300);
+        expect(fichiersAttente(A.repertoire), String(sous)).to.deep.equal(sous ? [] : [`attente-${String(A.ecrivain.epoque).padStart(20, "0")}.ndjson`]);
+        expect(A.attente).to.have.length(1);
+        A.attente.length = 0;
+      } finally {
+        await A.arreter();
+      }
+    }
+  });
+
+  it("reprise d'une attente dont l'intention est déjà levée par un événement de reprise : non scellée (pending_superseded), un seul événement pour l'écriture (EX-4.46 : à la place, jamais en plus ; 13.5) ; journal accepté par le noyau", async function () {
+    const { config } = preparer();
+    const A = await Coeur.demarrer({ config, secrets: secretsDev() });
+    const relais = await relaisEnVol(A, "D1c");
+    // Panne du signataire après relais, bail tenu : -31017, événement en attente écrit au fichier (EX-4.46, 14.5).
+    A.signataire.backend.signer = async () => {
+      throw new Error("module injoignable");
+    };
+    const err = await terminer(A, relais, "D1c");
+    expect(err?.code).to.equal(-31017);
+    await dormir(300);
+    const nomAttente = `attente-${String(A.ecrivain.epoque).padStart(20, "0")}.ndjson`;
+    expect(fichiersAttente(A.repertoire)).to.deep.equal([nomAttente]);
+    const ligne = fs.readFileSync(path.join(A.repertoire, "attente", nomAttente));
+    A.attente.length = 0;
+    await A.arreter();
+    // Le repreneur ne voit pas ce fichier (écrit après sa reprise) : il reprend l'intention en vol.
+    fs.rmSync(path.join(A.repertoire, "attente", nomAttente));
+    const B = await Coeur.demarrer({ config: autreInstance(config, "inst-b"), secrets: secretsDev() });
+    expect(B.journal.trouver("intent_recovered").map((l) => l.data.intent_id)).to.deep.equal([relais.intention.intent_id]);
+    await B.arreter();
+    fs.writeFileSync(path.join(A.repertoire, "attente", nomAttente), ligne);
+    const C = await Coeur.demarrer({ config: autreInstance(config, "inst-c"), secrets: secretsDev() });
+    try {
+      expect(C.journal.trouver("pending_superseded").map((l) => l.data)).to.deep.equal([{ pending_id: JSON.parse(ligne.toString("utf8")).pending_id, intent_id: relais.intention.intent_id }]);
+      expect(C.journal.trouver("pending_flushed")).to.deep.equal([]);
+      expect(await evenementsOutil(C.repertoire)).to.deep.equal([{ is_error: true, duration_ms: 0 }]);
+      expect(fichiersAttente(C.repertoire)).to.deep.equal([]);
+      const evts = await lireEvenements(C.repertoire);
+      const cles = {
+        version: 0,
+        org_id: config.recorder.org_id,
+        journal_id: config.recorder.journal_id,
+        keys: [{ key_id: "rec-test-01", algorithm: "ed25519", public_key: await C.signataire.clePubliqueHex("rec-test-01"), valid_from: "2020-01-01T00:00:00.000Z", valid_to: null, source: "clé de test" }],
+      };
+      const j = N.verifierJournal(evts, cles);
+      expect(j.valide, JSON.stringify(j.diagnostics)).to.equal(true);
+    } finally {
+      await C.arreter();
+    }
+  });
+
+  it("EX-17.2, magasin file (une instance, CT-8 IC-10) : aucune ligne ne porte instance_id ; instanceExploitation ne le rend qu'avec postgresql ou etcd", async function () {
+    const { config } = preparer();
+    const A = await Coeur.demarrer({ config, secrets: secretsDev() });
+    await A.arreter();
+    expect(A.journal.lignes.length).to.be.greaterThan(3);
+    expect(A.journal.lignes.filter((l) => "instance_id" in l.data)).to.deep.equal([]);
+    expect(instanceExploitation(config)).to.equal(null);
+    expect(instanceExploitation({ ...config, lease: { ...config.lease, store: { type: "postgresql" } } })).to.equal("inst-a");
+    expect(instanceExploitation({ ...config, lease: { ...config.lease, store: { type: "etcd" } } })).to.equal("inst-a");
+  });
+
+  it("EX-17.2 : noortrace-ctl écrit dans le journal d'exploitation de l'instance dont il lit la configuration ; avec postgresql, ses lignes portent instance_id, avec file non", async function () {
+    for (const type of ["postgresql", "file"]) {
+      const { d, config } = preparer({
+        modifier: (c) => {
+          if (type === "postgresql") c.lease = { ...c.lease, store: { type, dsn: { env: "NOORTRACE_TEST_DSN" }, table: "noortrace_lease" }, renew_ms: 1000 };
+        },
+      });
+      const f = path.join(d, "cfg.json");
+      fs.writeFileSync(f, JSON.stringify(config));
+      const code = await principalCtl(["worm", "releve", "--configuration", f], { stdout: { write: () => {} }, stderr: { write: () => {} }, env: {} });
+      expect(code, type).to.equal(2);
+      const lignes = fs.readFileSync(config.supervision.ops_log.path, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+      expect(lignes.map((l) => l.event), type).to.deep.equal(["worm_legal_hold_failed"]);
+      expect(lignes[0].data, type).to.deep.equal(type === "postgresql" ? { raison: "configuration", instance_id: "inst-a" } : { raison: "configuration" });
+    }
+  });
+});
+
+describe("outils des tests : port d'écoute pris entre son choix et son ouverture (EADDRINUSE) — le démon réel est relancé sur d'autres ports, en nombre d'essais borné", function () {
+  this.timeout(120000);
+  let dir;
+  let serveur;
+  const occupes = [];
+
+  before(async function () {
+    dir = repertoireTemporaire("noortrace-ha-ports-");
+    const service = new ServiceApprobationFactice({ org_id: "0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab", journal_id: null });
+    serveur = await service.servir(0);
+  });
+
+  after(function () {
+    serveur?.close();
+    for (const s of occupes) s.close();
+    if (dir) fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  /** Écoute TCP tenue par le test sur un port choisi par le système (connexions coupées aussitôt). */
+  async function occuper() {
+    const s = net.createServer((c) => c.destroy());
+    await new Promise((r) => s.listen(0, "127.0.0.1", r));
+    occupes.push(s);
+    return s.address().port;
+  }
+
+  it("EX-15.4 : démarrage refusé sur une adresse d'écoute prise (EADDRINUSE) — rapport sur stderr, le processus s'arrête avec le code 2 (il restait vivant, fils de rédaction ouverts)", async function () {
+    const d = path.join(dir, "refus");
+    const x = configurationHa(d, { instance: "inst-refus", store: { type: "file", path: path.join(d, "bail", "verrou") }, approbation: serveur.address().port, portHttp: 0, portSante: await occuper() });
+    const fichier = path.join(d, "configuration.json");
+    fs.writeFileSync(fichier, JSON.stringify(x.config));
+    const p = lancerDemon(fichier, x.env, x.config.supervision.ops_log.path);
+    const fin = await Promise.race([p.fin, dormir(20000).then(() => null)]);
+    if (!fin) p.kill("SIGKILL");
+    await p.ferme;
+    expect(fin, p.sortie).to.deep.equal({ code: 2, signal: null });
+    expect(p.sortie).to.match(/demarrage_refuse : demarrage : listen EADDRINUSE/);
+  });
+
+  it("santé et frontal MCP sur deux ports déjà pris : demarrerDemon relance bin/noortrace sur des ports libres, réécrit la configuration ; santé ok sur le nouveau port", async function () {
+    const [pSante, pHttp] = [await occuper(), await occuper()];
+    const d = path.join(dir, "relance");
+    const x = configurationHa(d, { instance: "inst-ports", store: { type: "file", path: path.join(d, "bail", "verrou") }, approbation: serveur.address().port, portHttp: pHttp, portSante: pSante });
+    x.fichier = path.join(d, "configuration.json");
+    x.port = pSante;
+    const demon = await demarrerDemon(x, "ok");
+    try {
+      expect(x.port).to.not.equal(pSante);
+      expect(x.config.supervision.health_listen).to.equal(`127.0.0.1:${x.port}`);
+      expect(x.config.mcp.http.listen).to.not.equal(`127.0.0.1:${pHttp}`);
+      expect(JSON.parse(fs.readFileSync(x.fichier, "utf8")).supervision.health_listen).to.equal(`127.0.0.1:${x.port}`);
+      expect(demon.exitCode).to.equal(null);
+    } finally {
+      demon.kill("SIGTERM");
+      await demon.fin;
+    }
   });
 });

@@ -9,13 +9,15 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { decoderHorodatage, ecrireHorodatage, encoderBase64, sha256Hex } from "@noortrace/noyau";
+import { decoderHorodatage, ecrireHorodatage, encoderBase64, sha256Hex, octetsVersHex } from "@noortrace/noyau";
 import { ErreurConstruction, ErreurEnregistreur } from "./erreurs.mjs";
-import { JournalExploitation } from "./journal-exploitation.mjs";
+import { JournalExploitation, instanceExploitation } from "./journal-exploitation.mjs";
 import { Metriques, servirSupervision, sante } from "./supervision.mjs";
 import { EtatDegrade } from "./degrade.mjs";
 import { ControleurHorloge, HORLOGE_SYSTEME } from "./horloge.mjs";
-import { SignataireFichier, SignataireVerifie } from "./signataires.mjs";
+import { SignataireVerifie } from "./signataires.mjs";
+import { signataireDepuisConfiguration } from "./signataires/fabrique.mjs";
+import { lireSecretsVault } from "./secrets-vault.mjs";
 import { magasinBailDepuisConfiguration, controleCleMac, taillesAnterieures, SurveillanceFourche, verifierEpoqueOuverture } from "./ha/index.mjs";
 import { MagasinPieces, empreintePolitique, piecePolitique, pieceReprise, pieceAttentePerdue, Piece } from "./pieces.mjs";
 import { ecrireAtomique, existe, creerRepertoire, FichierAjout, decouperLignes } from "./fichiers.mjs";
@@ -28,7 +30,7 @@ import {
   FichiersApprobations, ErreurServiceApprobation, approvalExpiration, delaiExpiration, macRelais, validerReponseEvaluer,
   verifierRelais, verifierRemise, E_MAX_MS, ligneRemise,
 } from "./approbations.mjs";
-import { decisionPolitique, echeanceExpiration } from "./lui-meme.mjs";
+import { decisionPolitique, echeanceExpiration, rotationDue } from "./lui-meme.mjs";
 import { exporterDossier } from "./dossier.mjs";
 import { jcsIntegral, jcsIntegralOctets, analyserJsonIntegral } from "./jcs-integral.mjs";
 import { validerConfiguration, resoudreSecrets, differencesHorsPolitique } from "./configuration.mjs";
@@ -124,6 +126,8 @@ export class Coeur {
       conserver: ops.keep_files,
       org_id: this.org_id,
       journal_id: this.journal_id,
+      // EX-17.2 : `instance_id` dans `data` d'un déploiement à plusieurs instances.
+      instance_id: instanceExploitation(this.config),
       murale: () => this.horlogeBrute.murale(),
       metriques: this.metriques,
     });
@@ -165,18 +169,17 @@ export class Coeur {
     this.journalJson = JSON.parse(await fs.readFile(journalJson, "utf8"));
 
     // Pas 5 : signataire (EX-11.8, EX-11.6), bail (13), stockage (12.4).
-    const backend =
-      this.o.signataire ??
-      (cfg.signer.backend.type === "file"
-        ? SignataireFichier.charger({
-            environment: cfg.recorder.environment,
-            keyId: cfg.signer.key_id,
-            chemin: cfg.signer.backend.path,
-            nextKeyId: cfg.signer.rotation.next_key_id,
-            phrase: this.secrets.get("/signer/backend/passphrase") ?? null,
-          })
-        : null);
-    if (!backend) throw new ErreurEnregistreur("cle", `backend ${cfg.signer.backend.type} non fourni par ce lot du démon`);
+    // Classes A à D (src/signataires/fabrique.mjs) ; un backend injoignable,
+    // une graine indéchiffrable ou une clé refusée empêchent le démarrage.
+    let backend = this.o.signataire ?? null;
+    if (!backend) {
+      try {
+        backend = await signataireDepuisConfiguration(cfg, this.secrets, { env: this.o.env });
+      } catch (e) {
+        if (e instanceof ErreurEnregistreur) throw e;
+        throw new ErreurEnregistreur("cle", `signataire ${cfg.signer.backend.type} : ${e.message}`, { cause: e });
+      }
+    }
     this.signataire = new SignataireVerifie(backend, cfg.signer, { metriques: this.metriques, journal: this.journal });
     // Bail (13) : magasin `file`, `postgresql` ou `etcd` (lot de haute disponibilité).
     this.bail = this.o.bail ?? magasinBailDepuisConfiguration(cfg, this.secrets);
@@ -216,8 +219,23 @@ export class Coeur {
     this.fourche = new SurveillanceFourche(this.repertoire, tailles, this.journal, { maintenant: () => this.horlogeBrute.monotone() });
     this.index = etat.index;
     const cleCourante = etat.cleCourante ?? cfg.signer.key_id;
-    await this.signataire.clePublique(cleCourante);
+    const publique = await this.signataire.clePublique(cleCourante);
+    // EX-11.18 : la clé publique lue est comparée à la clé connue ; celle
+    // qu'annonce la chaîne (rotation, CT-1 §8) doit concorder (lecture 183).
+    const annoncee = this.index.cles?.get(cleCourante)?.public_key ?? null;
+    if (annoncee && annoncee.toLowerCase() !== octetsVersHex(publique)) {
+      this.journal.consigner("error", "signataire", "signer_key_mismatch", { key_id: cleCourante, backend: this.signataire.typeBackend, class: this.signataire.classe });
+      throw new ErreurEnregistreur("cle", `cle publique du signataire differente de la cle annoncee pour ${cleCourante} (EX-11.18)`, { code: 2 });
+    }
     await this.signataire.signatureDeTest(cleCourante);
+    // EX-11.8 : classe, type de backend et identifiant de clé, jamais le secret d'accès.
+    this.journal.consigner("info", "signataire", "signer_ready", {
+      class: this.signataire.classe,
+      backend: this.signataire.typeBackend,
+      key_id: cleCourante,
+      backend_key: backend.localisation?.(cleCourante) ?? null,
+      ...(backend.formes?.get(cleCourante) ? { pkcs11: backend.formes.get(cleCourante) } : {}),
+    });
 
     this.ecrivain = new Ecrivain({
       repertoire: this.repertoire,
@@ -637,7 +655,9 @@ export class Coeur {
     };
     const v = validerConfiguration(octets, { reglesSupplementaires: this.o.reglesSupplementaires ?? [] });
     if (v.pas) return refus("configuration_invalide", { erreurs: v.erreurs.length });
-    const s = resoudreSecrets(v.config, contexte);
+    // Références { vault } du nouveau document (15.2), lues avant le pas 4.
+    const lus = await lireSecretsVault(v.config, { env: contexte.env ?? this.o.env });
+    const s = resoudreSecrets(v.config, { ...contexte, vault: lus.valeurs });
     if (s.erreurs.length) return refus("secrets", { erreurs: s.erreurs.length });
     if (this.degrade.enModeDegrade) return refus("mode_degrade");
     const diff = differencesHorsPolitique(this.config, v.config);
@@ -1345,6 +1365,82 @@ export class Coeur {
   }
 
   /**
+   * Rotation d'urgence (CT-2 EX-11.16 ; `noortrace-ctl cle rotation-urgence`,
+   * CT-8 EX-10.14) vers `signer.rotation.next_key_id`, tant que la clé
+   * courante est utilisable. Pas d'EX-11.16, dans leur ordre : (1)
+   * inscription de la nouvelle paire au registre, (2) événement de rotation
+   * signé par l'ancienne clé et contresigné par la nouvelle, (3) révocation de
+   * l'ancienne `chainKey`. Le démon n'a pas de client du registre (CT-4, lot
+   * suivant) : avec `anchoring.registry.enabled`, le pas (1) ne peut pas
+   * précéder le pas (2) et la rotation est refusée ; registre désactivé, les
+   * pas (1) et (3) sont sans objet et consignés comme tels (lecture 194).
+   * @returns {Promise<{accepte: boolean, raison?: string, evenement?: object}>}
+   */
+  async rotationUrgence() {
+    const r = this.config.signer.rotation;
+    const courante = this.ecrivain?.cleCourante ?? null;
+    const refus = (raison) => {
+      this.journal.consigner("warning", "signataire", "key_rotation_emergency_refused", { raison, key_id: courante, next_key_id: r?.next_key_id ?? null });
+      return { accepte: false, raison };
+    };
+    if (!this.ecrivain || this.passif || this.intervention) return refus("instance_non_active");
+    if (this.degrade.enModeDegrade) return refus("mode_degrade");
+    if (!r?.next_key_id || r.next_key_id === courante) return refus("cle_suivante_absente");
+    if (this.config.anchoring?.registry?.enabled) return refus("registre_non_branche");
+    try {
+      await this.signataire.clePublique(r.next_key_id);
+    } catch {
+      return refus("cle_suivante_indisponible");
+    }
+    const e = await this.tournerCle(r.next_key_id);
+    this.journal.consigner("info", "signataire", "key_rotation_emergency", {
+      old_key_id: courante, new_key_id: r.next_key_id, registry: { inscription: "sans_objet", revocation: "sans_objet" },
+    }, { seq: e.seq });
+    return { accepte: true, evenement: e };
+  }
+
+  /**
+   * `health()` du signataire toutes les `signer.health_interval_ms` (EX-11.18) ;
+   * une réponse autre que `ok`, une erreur ou un délai dépassé est une panne
+   * « clé indisponible » (14.2) : mode dégradé « clé », consigné.
+   */
+  async _santeSignataire() {
+    const t = this.horlogeBrute.monotone();
+    if (this.santeSignataireA !== undefined && t - this.santeSignataireA < this.config.signer.health_interval_ms) return;
+    this.santeSignataireA = t;
+    const r = await this.signataire.sante();
+    if (r === "ok") return;
+    this.journal.consigner("error", "signataire", "signer_unavailable", { backend: this.signataire.typeBackend, class: this.signataire.classe, raison: "health", erreur: String(r) });
+    this.degrade.entrer("cle", { event: "signer_unavailable" });
+  }
+
+  /**
+   * Rotation planifiée (EX-11.15, lecture 184) : `planned_every_days` écoulés
+   * depuis l'entrée en vigueur de la clé courante, et la clé
+   * `next_key_id` détenue par le signataire ; sinon consignée une fois.
+   */
+  async _rotationPlanifiee() {
+    const r = this.config.signer.rotation;
+    const courante = this.ecrivain.cleCourante;
+    if (!r?.next_key_id || r.next_key_id === courante) return;
+    const depuis = this.index?.cles?.get(courante)?.valid_from ?? null;
+    const maintenant = this.horlogeBrute.monotone();
+    if (!rotationDue(r, depuis, this.horlogeBrute.murale())) return;
+    // Un essai par `health_interval_ms` au plus quand la clé suivante manque.
+    if (this.rotationEssai !== undefined && maintenant - this.rotationEssai < this.config.signer.health_interval_ms) return;
+    this.rotationEssai = maintenant;
+    try {
+      if (!this.signataire.backend.clesConnues().includes(r.next_key_id)) throw new Error("clé suivante inconnue du signataire");
+      await this.signataire.backend.clePublique(r.next_key_id);
+    } catch (e) {
+      if (!this.rotationIndisponible) this.journal.consigner("warning", "signataire", "key_rotation_unavailable", { key_id: courante, next_key_id: r.next_key_id, erreur: String(e?.message ?? e) });
+      this.rotationIndisponible = true;
+      return;
+    }
+    await this.tournerCle(r.next_key_id);
+  }
+
+  /**
    * Minuteur : points de contrôle alignés, clôtures échues, sortie du mode
    * dégradé « stockage » et scellement des événements en attente (EX-14.10),
    * expirations par le noyau seul.
@@ -1355,6 +1451,7 @@ export class Coeur {
     await this.fourche?.controler().catch(() => {});
     if (this.degrade.enModeDegrade) this.politique.noterExpirationsDifferees();
     if (this.degrade.actif("horloge")) this._sortirHorloge();
+    if (!this.degrade.actif("cle")) await this._santeSignataire();
     if (this.degrade.actif("cle")) {
       // Sortie du mode « clé » : health() réussi et signature de test vérifiée (EX-14.11).
       try {
@@ -1374,6 +1471,7 @@ export class Coeur {
       }
     }
     await this.ecrivain.tic().catch(() => {});
+    if (!this.degrade.enModeDegrade) await this._rotationPlanifiee().catch(() => {});
     // La raison « attente » se lève en vidant la file (EX-14.9, EX-14.10) : elle n'empêche pas le scellement.
     if (this.degrade.raisons().every((r) => r === "attente") && this.attente.length) await this.viderAttente();
     // Expirations par le noyau seul (EX-9.4), après les événements en attente (EX-9.8) ;
@@ -1435,9 +1533,16 @@ export class Coeur {
   async _ecrireAttente(ligne) {
     try {
       const dir = path.join(this.repertoire, "attente");
-      await creerRepertoire(dir);
-      // EX-13.5 (1) : aucun fichier d'attente sous une époque supérieure présente.
+      // EX-13.1, EX-13.6 : une instance qui n'est plus détentrice du bail, ou dont
+      // l'époque est dépassée par une autre présente dans le répertoire du journal,
+      // n'écrit rien, pas même le fichier d'attente : l'événement reste en mémoire
+      // seulement (EX-4.46 « au mieux ») et, si l'instance s'arrête, l'intention
+      // ouverte donne l'événement de reprise du repreneur (13.5).
+      await this.ecrivain.verifierEcriture("attente");
+      // EX-13.5 (1) : aucun fichier d'attente sous une époque supérieure présente
+      // dans les noms des fichiers du répertoire du journal (12.1), relus ici.
       await verifierEpoqueOuverture(this.repertoire, "attente", this.ecrivain.epoque);
+      await creerRepertoire(dir);
       const f = await FichierAjout.ouvrir(path.join(dir, `attente-${String(this.ecrivain.epoque).padStart(20, "0")}.ndjson`), { creer: true, existantAdmis: true });
       const o = jcsIntegralOctets(ligne);
       const l = new Uint8Array(o.length + 1);
@@ -1504,7 +1609,11 @@ export class Coeur {
    * levée, ou à défaut un événement de `ts` au moins égal à `written_at` ;
    * sans intention, son `ts` vaut `max(captured_at, ts précédent)` (ou le
    * début de période qui suit une clôture). Une ligne retrouvée n'est pas
-   * scellée de nouveau ; son intention est levée si elle ne l'est pas.
+   * scellée de nouveau ; son intention est levée si elle ne l'est pas. Une
+   * ligne dont l'intention est déjà levée par un autre événement durable (un
+   * événement de reprise d'un repreneur, 13.4 pas 6) n'est pas scellée :
+   * l'événement en attente prend la place de l'événement de reprise, jamais
+   * en plus (EX-4.46, 13.5) ; ligne `pending_superseded`.
    * @param {number} epoque
    * @param {object} etat état relu (`evenements`)
    */
@@ -1549,10 +1658,23 @@ export class Coeur {
       let trouve = null;
       if (x.intent_id) {
         const s = intentions.levees.get(x.intent_id);
-        if (typeof s === "number" && parSeq.get(s) && conforme(parSeq.get(s))) trouve = parSeq.get(s);
-        const designes = new Set(intentions.levees.values());
-        const ecrite = ecritesA.get(x.intent_id) ?? capture;
-        trouve ??= chaine.find((e) => !designes.has(e.seq) && conforme(e) && decoderHorodatage(e.ts) >= ecrite) ?? null;
+        const designe = typeof s === "number" ? parSeq.get(s) : undefined;
+        if (designe && conforme(designe)) {
+          trouve = designe;
+        } else if (designe) {
+          // Intention déjà levée par un autre événement durable de la chaîne
+          // (événement de reprise d'un repreneur, 13.4 pas 6, ou levée
+          // implicite, EX-12.14) : l'appel a déjà son événement. L'événement en
+          // attente est scellé à la place de l'événement de reprise, jamais en
+          // plus (EX-4.46, 13.5) : il n'est pas scellé.
+          pris.add(designe.seq);
+          this.journal.consigner("warning", "noyau", "pending_superseded", { pending_id: x.pending_id, intent_id: x.intent_id }, { seq: designe.seq });
+          continue;
+        } else {
+          const designes = new Set(intentions.levees.values());
+          const ecrite = ecritesA.get(x.intent_id) ?? capture;
+          trouve = chaine.find((e) => !designes.has(e.seq) && conforme(e) && decoderHorodatage(e.ts) >= ecrite) ?? null;
+        }
       } else {
         trouve = chaine.find((e) => {
           if (!conforme(e)) return false;

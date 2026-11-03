@@ -33,6 +33,7 @@ import { OutilGel, ArretOutil, CODES } from "./gel.mjs";
 import { lireRegistres } from "./registre.mjs";
 import { lireRegistreGels, releverVerrouillage } from "./controles.mjs";
 import { epoqueMaxNoms } from "../ha/cloture.mjs";
+import { instanceExploitation } from "../journal-exploitation.mjs";
 import {
   reconstruireJournal, restaurerVersion, registreParCle, ErreurRestauration, clePubliqueDepuisConfiguration, clePubliqueDepuisCles,
 } from "./restauration.mjs";
@@ -62,10 +63,11 @@ const OPTIONS = {
 /** Lignes du journal d'exploitation de l'outil (EX-9.5, composant `worm`), dans un fichier ou sur la sortie d'erreur. */
 export class JournalOutil {
   /**
-   * @param {{chemin: string|null, stderr: NodeJS.WritableStream, org_id: string|null, journal_id: string|null, murale: () => number}} o
+   * @param {{chemin: string|null, stderr: NodeJS.WritableStream, org_id: string|null, journal_id: string|null, murale: () => number,
+   *   instance_id?: string|null}} o `instance_id` : celui de la configuration dans un déploiement à plusieurs instances (EX-17.2)
    */
   constructor(o) {
-    Object.assign(this, o);
+    Object.assign(this, { instance_id: null }, o);
     this.lignes = [];
   }
 
@@ -74,7 +76,8 @@ export class JournalOutil {
     const [composant, evenement, d] = data === undefined ? ["worm", composantOuEvenement, evenementOuData] : [composantOuEvenement, evenementOuData, data];
     const ligne = {
       ts: ecrireHorodatage(this.murale()), level: niveau, component: composant, event: evenement,
-      org_id: this.org_id, journal_id: this.journal_id, seq: null, host: null, request_id: null, data: d ?? {},
+      org_id: this.org_id, journal_id: this.journal_id, seq: null, host: null, request_id: null,
+      data: this.instance_id === null ? (d ?? {}) : { ...(d ?? {}), instance_id: this.instance_id },
     };
     this.lignes.push(ligne);
     const texte = `${JSON.stringify(ligne)}\n`;
@@ -169,6 +172,8 @@ export async function principalCtl(argv, io = {}) {
     stderr,
     org_id: config.recorder.org_id,
     journal_id: config.recorder.journal_id,
+    // EX-17.2 : l'outil écrit dans le journal d'exploitation de l'instance dont il lit la configuration.
+    instance_id: instanceExploitation(config),
     murale,
   });
   if (!worm) {

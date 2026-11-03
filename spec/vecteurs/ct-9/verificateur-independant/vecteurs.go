@@ -715,7 +715,12 @@ func (d *Depot) verifierProse(rap *Rapport) {
 	}
 	lire(regexp.MustCompile(`: ([0-9]+) entrées du catalogue \(table de 5\.5\)`), "entrées à écrire", aEcrire)
 	lire(regexp.MustCompile(`les compléments des ([a-z]+) TA- exécutables`), "TA- avec complément", compl)
-	lire(regexp.MustCompile(`les compléments des ([a-z]+) entrées de l'étape 4`), "compléments de l'étape 4", compl4)
+	// Révision 0.2 : sans complément rattaché à l'étape 4, le texte le dit en toutes lettres.
+	if compl4 == 0 {
+		rap.Verdict(strings.Contains(s16, "aucun complément n'est rattaché à l'étape 4"), "16", "compléments de l'étape 4", "texte « aucun complément n'est rattaché à l'étape 4 », recalculé %d", compl4)
+	} else {
+		lire(regexp.MustCompile(`les compléments des ([a-z]+) entrées de l'étape 4`), "compléments de l'étape 4", compl4)
+	}
 	lire(regexp.MustCompile(`les ([0-9]+) entrées TM- « à écrire »`), "TM- à écrire", tmAE)
 	if x := regexp.MustCompile(`\(binaire de CT-6 §14\) : (TV-[0-9]+) à écrire`).FindStringSubmatch(s16); x != nil {
 		t := d.ParID[x[1]]

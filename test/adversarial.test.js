@@ -22,6 +22,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -845,5 +846,511 @@ describe("CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques
       expect(sortes.transfert).to.be.at.least(1);
       expect(sortes.appel).to.equal(construits.length - sortes.transfert - sortes.deploiement);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Démon de l'étape 4 (paquets/enregistreur) : la même attaque est jouée sur le
+// démon du dépôt (la réponse en place : le test passe) puis sur un mutant du
+// paquet (copie de paquets/enregistreur où la réponse est retirée par un
+// remplacement exact, EX-10.5 : le test échoue, le mutant est tué). Démons
+// réels `bin/noortrace --config` (magasin de bail `file`, classe D, frontal
+// MCP Streamable HTTP à jetons statiques, serveur d'outils stdio de test,
+// service d'approbation simulé joint en HTTP) ou modules du paquet importés
+// par leur chemin.
+// ---------------------------------------------------------------------------
+describe("CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)", function () {
+  this.timeout(600_000);
+  let base;
+  let service;
+  let serveurService;
+  let fournisseur;
+  let n = 0;
+
+  // Modules du démon et outils des tests, chargés depuis la racine du dépôt
+  // (EX-10.8 : le fichier peut être lu hors de test/ avec NOORTRACE_RACINE).
+  let REFERENCE, mutantPaquet, detruireMutants, configurationDemon, demonModele, demarrer, arreter, poster, appelerOutil, attendre, sante, tuerAuxiliaireBail;
+  let ServiceApprobationFactice, lireEvenements, configurationModele, configurationIcap, JETON_MODELE, FournisseurSimule, reponseEntiere, transaction, enteteRequete;
+  const charger = (rel) => import(pathToFileURL(path.join(RACINE, rel)).href);
+
+  before(async function () {
+    ({ REFERENCE, mutantPaquet, detruireMutants, configurationDemon, demonModele, demarrer, arreter, poster, appelerOutil, attendre, sante, tuerAuxiliaireBail } = await charger("test/fixtures/enregistreur-adversarial/demon.mjs"));
+    ({ ServiceApprobationFactice } = await charger("paquets/enregistreur/src/service-approbation-factice.mjs"));
+    ({ lireEvenements } = await charger("paquets/enregistreur/src/index.mjs"));
+    ({ configurationModele, configurationIcap, JETON_MODELE } = await charger("test/fixtures/enregistreur-modele/outils.mjs"));
+    ({ FournisseurSimule, reponseEntiere } = await charger("test/fixtures/enregistreur-modele/fournisseur.mjs"));
+    ({ transaction, enteteRequete } = await charger("test/fixtures/enregistreur-modele/client-icap.mjs"));
+    base = fs.mkdtempSync(path.join(TMP, "noortrace-adversarial-demon-"));
+    service = new ServiceApprobationFactice({ org_id: "0x00", journal_id: null });
+    serveurService = await service.servir(0);
+    fournisseur = await new FournisseurSimule({ pauseMs: 2 }).demarrer();
+  });
+
+  after(async function () {
+    serveurService?.close();
+    await fournisseur?.arreter();
+    detruireMutants?.();
+    if (base) fs.rmSync(base, { recursive: true, force: true });
+  });
+
+  /** Configuration neuve d'un démon (répertoire propre) ; le service simulé suit son journal. */
+  async function configuration(modifier, o = {}) {
+    const dir = path.join(base, `d${++n}`);
+    fs.mkdirSync(dir);
+    const c = await configurationDemon(dir, { approbation: serveurService.address().port, modifier, ...o });
+    service.org_id = c.config.recorder.org_id;
+    service.journal_id = c.config.recorder.journal_id;
+    return c;
+  }
+
+  /** Joue `scenario(c, demon)` sur un démon du paquet donné et rend son observation ; le démon est arrêté ensuite. */
+  async function jouer(paquet, modifier, scenario, o = {}) {
+    const c = await configuration(modifier, o);
+    const p = await demarrer(paquet, c, path.join(c.dir, "configuration.json"));
+    try {
+      return await scenario(c, p);
+    } finally {
+      await arreter(p);
+    }
+  }
+
+  /** Joue `scenario(c, demon)` sur un démon du frontal modèle (mode passerelle ou icap) du paquet donné. */
+  async function jouerModele(paquet, mode, modifier, scenario) {
+    const dir = path.join(base, `d${++n}`);
+    fs.mkdirSync(dir);
+    const brut = mode === "icap" ? configurationIcap(dir, fournisseur.url) : configurationModele(dir, fournisseur.url);
+    const c = await demonModele(dir, brut, mode);
+    if (modifier) modifier(c.config, c.env);
+    const p = await demarrer(paquet, c, path.join(dir, "configuration.json"));
+    try {
+      return await scenario(c, p);
+    } finally {
+      await arreter(p);
+    }
+  }
+
+  /** Fichiers écrits sous un répertoire (stockage, journal d'exploitation), récursivement. */
+  const fichiersSous = (rep) => fs.readdirSync(rep, { recursive: true }).map((f) => path.join(rep, f)).filter((f) => fs.statSync(f).isFile());
+
+  const evenementsOutils = async (c) => (await lireEvenements(c.journal)).filter((e) => !e.execution.tool.startsWith("noortrace."));
+
+  it("TA-30 (MN-30) : configuration modèle de production (deploiement/config/modele-production) posée à signer.class = D : noortrace validate-config rend le code 2 et une erreur sur /signer/class en production, aucune en developpement ; mutant sans le refus de la classe D en production : aucune erreur sur /signer/class (tué)", async function () {
+    const conf = lireJSON(RACINE, "deploiement", "config", "modele-production", "configuration.json");
+    expect(conf.recorder.environment).to.equal("production");
+    conf.signer.class = "D";
+    const dir = path.join(base, "ta30");
+    fs.mkdirSync(dir);
+    const valider = (paquet, environnement) => {
+      const f = path.join(dir, `${environnement}.json`);
+      fs.writeFileSync(f, JSON.stringify({ ...conf, recorder: { ...conf.recorder, environment: environnement } }));
+      const r = spawnSync(process.execPath, [paquet.bin("noortrace"), "validate-config", f], { encoding: "utf8" });
+      return { code: r.status, classe: `${r.stdout}${r.stderr}`.split("\n").filter((l) => l.startsWith("erreur : /signer/class :")) };
+    };
+    const prod = valider(REFERENCE, "production");
+    expect(prod.code).to.equal(2);
+    expect(prod.classe).to.deep.equal(['erreur : /signer/class : classe D refusée en production (EX-11.8) ; valeur : "D"']);
+    expect(valider(REFERENCE, "developpement").classe).to.deep.equal([]);
+    const m = mutantPaquet("mn30", [{ fichier: "configuration.mjs", ancien: 'if (prod && classe === "D") err("/signer/class"', nouveau: 'if (false) err("/signer/class"' }]);
+    expect(valider(m, "production").classe).to.deep.equal([]);
+  });
+
+  it("TA-2 (MN-2) : démon réel : un tools/call dont _meta[\"noortrace/delegation\"] déclare launched_by, on_behalf_of hors liste et run_id, sur une connexion configurée pour agent-demo : launched_by de la configuration, run_id admis, on_behalf_of remplacé (delegation_refused) ; sans délégation admise : run_id de session ; mutant qui recopie le launched_by déclaré (tué)", async function () {
+    const JETON_B = "jeton-hote-b-de-test-adversarial-ta2";
+    const modifier = (cfg, env) => {
+      const h = cfg.mcp.hosts[0];
+      Object.assign(h, { launched_by: "agent-demo", on_behalf_of: "service-sinistres", accept_declared_delegation: true, allowed_on_behalf_of: ["service-sinistres"] });
+      cfg.mcp.http.static_tokens.push({ id: "hote-b", token: { env: "NOORTRACE_TEST_JETON_HOTE_B" } });
+      cfg.mcp.hosts.push({ ...h, id: "hote-b", match: { static_token: "hote-b" }, launched_by: "agent-demo-b", host_group: "agent-demo-b", accept_declared_delegation: false, allowed_on_behalf_of: [] });
+      env.NOORTRACE_TEST_JETON_HOTE_B = JETON_B;
+    };
+    const declaree = { "noortrace/delegation": { launched_by: "u.autre@assureur-demo.example", on_behalf_of: "service-autre", run_id: "run-ta2-0001" } };
+    const scenario = async (c, p) => {
+      const a = await appelerOutil(c.portHttp, c.env.NOORTRACE_TEST_JETON_HOTE, "demo__lire", { id: "S-ta2" }, { meta: declaree });
+      const b = await appelerOutil(c.portHttp, JETON_B, "demo__lire", { id: "S-ta2-b" }, { meta: declaree });
+      expect([a.statut, b.statut]).to.deep.equal([200, 200]);
+      const [ea, eb] = await evenementsOutils(c);
+      return { a: ea.delegation, b: eb.delegation, sessionB: b.session, refus: p.lignes().filter((l) => l.event === "delegation_refused").map((l) => l.data) };
+    };
+    const r = await jouer(REFERENCE, modifier, scenario);
+    expect(r.a).to.deep.equal({ launched_by: "agent-demo", on_behalf_of: "service-sinistres", run_id: "run-ta2-0001", scope: r.a.scope });
+    expect(r.refus).to.deep.equal([{ component: "frontal_mcp", field: "on_behalf_of", reason: "hors_liste", length: "service-autre".length }]);
+    expect(r.b.launched_by).to.equal("agent-demo-b");
+    expect(r.b.on_behalf_of).to.equal("service-sinistres");
+    expect(r.b.run_id).to.equal(r.sessionB);
+    const m = mutantPaquet("mn2", [{ fichier: "mcp/delegation.mjs", ancien: "const launched_by = lanceurDe(h.launched_by, p.identite ?? {});", nouveau: "const launched_by = typeof d.launched_by === \"string\" ? d.launched_by : lanceurDe(h.launched_by, p.identite ?? {});" }]);
+    const r1 = await jouer(m, modifier, scenario);
+    expect(r1.a.launched_by).to.equal("u.autre@assureur-demo.example");
+  });
+
+  it("TA-8 (MN-8) : démon réel, frontal MCP Streamable HTTP, deux connexions d'hôte à jetons distincts : tools/call sans autorisation puis avec un jeton de 32 octets aléatoires : 401, deux lignes auth_failed, aucun événement ; avec le jeton de l'hôte B : événement attribué à l'hôte B ; mutant sans la vérification du jeton : l'appel sans jeton est relayé et un événement est écrit (tué)", async function () {
+    const JETON_B = "jeton-hote-b-de-test-adversarial-ta8";
+    const modifier = (cfg, env) => {
+      cfg.mcp.http.static_tokens.push({ id: "hote-b", token: { env: "NOORTRACE_TEST_JETON_HOTE_B" } });
+      cfg.mcp.hosts.push({ ...cfg.mcp.hosts[0], id: "hote-b", match: { static_token: "hote-b" }, launched_by: "agent-b", host_group: "agent-b" });
+      env.NOORTRACE_TEST_JETON_HOTE_B = JETON_B;
+    };
+    const scenario = async (c, p) => {
+      const sans = await appelerOutil(c.portHttp, null, "demo__lire", { id: "S-sans" });
+      const faux = await appelerOutil(c.portHttp, randomBytes(32).toString("base64url"), "demo__lire", { id: "S-faux" });
+      const apresDeux = await evenementsOutils(c);
+      const b = await appelerOutil(c.portHttp, JETON_B, "demo__lire", { id: "S-b" });
+      return { statuts: [sans.statut, faux.statut, b.statut], apresDeux, tous: await evenementsOutils(c), auth: p.lignes().filter((l) => l.event === "auth_failed").map((l) => l.data) };
+    };
+    const r = await jouer(REFERENCE, modifier, scenario);
+    expect(r.statuts).to.deep.equal([401, 401, 200]);
+    expect(r.auth).to.deep.equal([{ transport: "http", reason: "absent", status: 401 }, { transport: "http", reason: "jeton_inconnu", status: 401 }]);
+    expect(r.apresDeux).to.deep.equal([]);
+    expect(r.tous.map((e) => [e.execution.tool, e.delegation.launched_by])).to.deep.equal([["demo__lire", "agent-b"]]);
+    const m = mutantPaquet("mn8", [
+      { fichier: "mcp/hote-http.mjs", ancien: 'if (!m) throw new ErreurAuthentification(401, "absent");\n    const recu = Buffer.from(m[1], "utf8");', nouveau: 'const recu = Buffer.from(m?.[1] ?? "", "utf8");' },
+      { fichier: "mcp/hote-http.mjs", ancien: "for (const [k, v] of this.jetons) if (egauxTempsConstant(recu, v)) id = k;", nouveau: "for (const [k] of this.jetons) if (true) id = k;" },
+    ]);
+    const r1 = await jouer(m, modifier, scenario);
+    expect(r1.statuts[0]).to.equal(200);
+    expect(r1.apresDeux.length).to.be.at.least(1);
+  });
+
+  it("TA-7 (MN-7, partie phase 2 sur le démon de l'étape 4) : description de lire changée côté serveur entre deux tools/list : ligne tool_definition_changed (ancienne et nouvelle empreintes) et pièce de la nouvelle définition, de SHA-256 différent, au contexte de l'appel suivant ; mutant sans l'empreinte comparée : aucune ligne (tué)", async function () {
+    const scenario = async (c, p) => {
+      const jeton = c.env.NOORTRACE_TEST_JETON_HOTE;
+      const ini = await poster(c.portHttp, { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "hote-ta7", version: "1.0.0" } } }, { jeton });
+      const o = { jeton, session: ini.session };
+      await poster(c.portHttp, { jsonrpc: "2.0", method: "notifications/initialized" }, o);
+      let id = 10;
+      const lister = async () => (await poster(c.portHttp, { jsonrpc: "2.0", id: ++id, method: "tools/list" }, o)).corps.result.tools.find((t) => t.name === "demo__lire").description;
+      const appeler = (nom) => poster(c.portHttp, { jsonrpc: "2.0", id: ++id, method: "tools/call", params: { name: nom, arguments: { id: "S-ta7" } } }, o);
+      const avant = await lister();
+      await appeler("demo__lire");
+      await appeler("demo__changer");
+      let apres = avant;
+      await attendre(async () => (apres = await lister()) !== avant, 15000, 100);
+      await appeler("demo__lire");
+      const lires = (await evenementsOutils(c)).filter((e) => e.execution.tool === "demo__lire");
+      const def = lires.map((e) => e.context[0].sha256);
+      const pieces = def.map((h) => fs.existsSync(path.join(c.journal, "pieces", h.slice(2, 4), h.slice(2))));
+      return { avant, apres, lignes: p.lignes().filter((l) => l.event === "tool_definition_changed").map((l) => l.data), def, pieces };
+    };
+    const r = await jouer(REFERENCE, null, scenario);
+    expect(r.apres).to.not.equal(r.avant);
+    expect(r.def).to.have.length(2);
+    expect(r.def[1]).to.not.equal(r.def[0]);
+    expect(r.pieces).to.deep.equal([true, true]);
+    expect(r.lignes).to.deep.equal([{ server: "demo", tool_announced: "demo__lire", old_sha256: r.def[0], new_sha256: r.def[1] }]);
+    const m = mutantPaquet("mn7", [{ fichier: "mcp/frontal.mjs", ancien: "if (a !== b && avant.annonces.length && !this.demarrage) {", nouveau: "if (false) {" }]);
+    const r1 = await jouer(m, null, scenario);
+    expect(r1.apres).to.not.equal(r1.avant);
+    expect(r1.lignes).to.deep.equal([]);
+  });
+
+  it("TA-9 (MN-9) : démon réel lancé par le superutilisateur, serveur stdio configuré sous l'utilisateur nobody : l'outil sonder tente de lire le fichier du secret relay_mac_key (0400) et d'écrire sous storage.root ; les deux accès rendent EACCES et aucun fichier n'apparaît sous storage.root ; mutant qui lance le serveur sous l'utilisateur du démon : les deux accès réussissent (tué)", async function () {
+    if (typeof process.getuid !== "function" || process.getuid() !== 0) {
+      this.test.title += " — en attente : le démon doit être lancé par le superutilisateur pour changer d'utilisateur (EX-3.5)";
+      this.skip();
+    }
+    const modifier = (cfg, env) => {
+      const f = path.join(path.dirname(cfg.storage.root), "secrets", "cle-mac-relais");
+      fs.mkdirSync(path.dirname(f), { recursive: true, mode: 0o700 });
+      fs.writeFileSync(f, env.NOORTRACE_TEST_CLE_MAC, { mode: 0o400 });
+      cfg.storage.relay_mac_key = { file: f, encoding: "hex" };
+      cfg.policy.servers.demo.transport.user = "nobody";
+    };
+    const scenario = async (c) => {
+      const secret = c.config.storage.relay_mac_key.file;
+      const r = await appelerOutil(c.portHttp, c.env.NOORTRACE_TEST_JETON_HOTE, "demo__sonder", { secret, repertoire: c.config.storage.root });
+      const sonde = fs.existsSync(path.join(c.config.storage.root, "sonde-ta9"));
+      return { ...r.corps.result.structuredContent, sonde };
+    };
+    const r = await jouer(REFERENCE, modifier, scenario);
+    expect(r).to.deep.equal({ lecture: "EACCES", ecriture: "EACCES", uid: 65534, sonde: false });
+    const m = mutantPaquet("mn9", [{ fichier: "mcp/amont.mjs", ancien: "if (typeof process.getuid === \"function\" && process.getuid() !== c.uid) ids = { uid: c.uid, gid: c.gid };", nouveau: "if (false) ids = { uid: c.uid, gid: c.gid };" }]);
+    const r1 = await jouer(m, modifier, scenario);
+    expect(r1).to.deep.equal({ lecture: "ok", ecriture: "ok", uid: 0, sonde: true });
+  });
+
+  it("TA-11 (MN-11, partie phase 2 sur le démon de l'étape 4) : passerelle, route en credentials propre : la clé marquée que l'hôte met dans x-api-key n'arrive pas au fournisseur simulé, qui reçoit celle de la configuration, et n'est dans aucun fichier écrit ; mutant qui relaie l'en-tête de l'hôte : sa clé traverse (tué)", async function () {
+    const MARQUEUR = `cle-hote-marquee-ta11-${randomBytes(8).toString("hex")}`;
+    const scenario = async (c) => {
+      const avant = fournisseur.requetes.length;
+      const corps = { model: "modele-ta11", max_tokens: 16, messages: [{ role: "user", content: "Statut ?" }] };
+      const r = await fetch(`http://127.0.0.1:${c.port}/v1/messages`, { method: "POST", headers: { "content-type": "application/json", "x-noortrace-token": JETON_MODELE, "x-api-key": MARQUEUR }, body: JSON.stringify(corps) });
+      await r.text();
+      await attendre(async () => (await lireEvenements(c.journal)).some((e) => e.execution.tool === "noortrace.modele.echange"), 15000);
+      const recu = fournisseur.requetes.slice(avant).map((x) => x.entetes["x-api-key"]);
+      const fuites = fichiersSous(c.dir).filter((f) => fs.readFileSync(f).includes(MARQUEUR));
+      return { statut: r.status, recu, fuites };
+    };
+    const r = await jouerModele(REFERENCE, "passerelle", null, scenario);
+    expect(r.statut).to.equal(200);
+    expect(r.recu).to.deep.equal(["cle-fournisseur-fictive-de-test"]);
+    expect(r.fuites).to.deep.equal([]);
+    const m = mutantPaquet("mn11", [{ fichier: "modele/passerelle.mjs", ancien: 'if (route.credentials === "propre") {\n      const s = this.secrets.get(`/policy/model/routes/${x.indice}/secret`);\n      if (s) envoyes[nomAuth] = nomAuth === "authorization" ? `Bearer ${Buffer.from(s).toString("utf8")}` : Buffer.from(s).toString("utf8");\n    } else if (typeof h[nomAuth] === "string") {', nouveau: 'if (false) {\n      const s = this.secrets.get(`/policy/model/routes/${x.indice}/secret`);\n      if (s) envoyes[nomAuth] = nomAuth === "authorization" ? `Bearer ${Buffer.from(s).toString("utf8")}` : Buffer.from(s).toString("utf8");\n    } else if (typeof h[nomAuth] === "string") {' }]);
+    const r1 = await jouerModele(m, "passerelle", null, scenario);
+    expect(r1.recu).to.deep.equal([MARQUEUR]);
+  });
+
+  it("TA-12 (MN-12) : démon réel en mode icap, allowed_sources = [203.0.113.5/32] : REQMOD puis RESPMOD depuis une adresse absente (127.0.0.1) : 403 consigné (auth_failed, client_icap_refuse), aucun échange écrit ; mutant sans l'authentification des clients ICAP : un échange est écrit à partir de la transaction fabriquée (tué)", async function () {
+    const modifier = (cfg) => {
+      cfg.model.icap.allowed_sources = ["203.0.113.5/32"];
+    };
+    const MSG = { model: "modele-ta12", max_tokens: 16, messages: [{ role: "user", content: "Statut ?" }] };
+    const scenario = async (c, p) => {
+      const ad = { address: "127.0.0.1", port: c.port };
+      const corps = Buffer.from(JSON.stringify(MSG));
+      const req = enteteRequete("POST https://api.fournisseur.example/v1/messages HTTP/1.1", [["Host", "api.fournisseur.example"], ["Content-Type", "application/json"], ["Content-Length", String(corps.length)]]);
+      const r1 = await transaction(ad, { methode: "REQMOD", service: "/noortrace/reqmod", entetes: { "X-Client-IP": "127.0.0.1" }, req, corps: [corps] });
+      let r2 = null;
+      if (r1.statut === 200) {
+        const reponse = Buffer.from(JSON.stringify(reponseEntiere("anthropic-messages", MSG, 1)));
+        r2 = await transaction(ad, { methode: "RESPMOD", service: "/noortrace/respmod", entetes: { "X-Client-IP": "127.0.0.1" }, req: r1.sections["req-hdr"], res: "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nrequest-id: req-ta12\r\n\r\n", corps: [reponse] });
+        await attendre(async () => (await lireEvenements(c.journal)).some((e) => e.execution.tool === "noortrace.modele.echange"), 15000).catch(() => {});
+      }
+      const echanges = (await lireEvenements(c.journal)).filter((e) => e.execution.tool === "noortrace.modele.echange");
+      return { statuts: [r1.statut, r2?.statut ?? null], refus: p.lignes().filter((l) => l.event === "auth_failed").map((l) => l.data), echanges: echanges.length };
+    };
+    const r = await jouerModele(REFERENCE, "icap", modifier, scenario);
+    expect(r.statuts).to.deep.equal([403, null]);
+    expect(r.refus).to.deep.equal([{ transport: "icap", reason: "client_icap_refuse" }]);
+    expect(r.echanges).to.equal(0);
+    const m = mutantPaquet("mn12", [{ fichier: "modele/icap.mjs", ancien: "if (!admis) {", nouveau: "if (false) {" }]);
+    const r1 = await jouerModele(m, "icap", modifier, scenario);
+    expect(r1.statuts).to.deep.equal([200, 200]);
+    expect(r1.echanges).to.equal(1);
+  });
+
+  it("TA-24 (MN-24) : coffre des originaux à clé propre (CoffreOriginaux.dechiffrer du paquet) : demande seule, puis approbation de la même identité, puis d'une seconde identité autorisée : deux refus, un succès, trois lignes au registre des accès ; mutant sans seconde approbation : l'original est rendu au demandeur seul (tué)", async function () {
+    const essai = async (paquet, nom) => {
+      const { CoffreOriginaux } = await paquet.importer("coffre.mjs");
+      const dir = path.join(base, `ta24-${nom}`);
+      const coffre = new CoffreOriginaux({ chemin: path.join(dir, "coffre"), cle: new Uint8Array(randomBytes(32)) });
+      const sha256 = `0x${"ab".repeat(32)}`;
+      const original = Buffer.from('{"iban":"CH9300762011623852957"}');
+      await coffre.deposer(sha256, original);
+      expect(fs.readFileSync(coffre.fichier(sha256)).includes(original)).to.equal(false);
+      const registre = path.join(dir, "acces", "registre.ndjson");
+      const demande = { par: "alice", motif: "requête du tribunal 2026-17" };
+      const autorises = ["alice", "bob"];
+      const issues = [];
+      for (const approbation of [null, { par: "alice", sha256, motif: demande.motif }, { par: "bob", sha256, motif: demande.motif }]) {
+        try {
+          const o = await coffre.dechiffrer({ sha256, demande, approbation, autorises, registre });
+          issues.push(Buffer.from(o).equals(original) ? "original" : "autre");
+        } catch (e) {
+          issues.push(e.raison ?? String(e));
+        }
+      }
+      const lignes = fs.readFileSync(registre, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+      return { issues, lignes: lignes.map((l) => [l.requester, l.approver, l.result, l.refusal]) };
+    };
+    const r = await essai(REFERENCE, "reference");
+    expect(r.issues).to.deep.equal(["seconde_approbation_absente", "approbateur_identique_au_demandeur", "original"]);
+    expect(r.lignes).to.deep.equal([["alice", null, "refuse", "seconde_approbation_absente"], ["alice", "alice", "refuse", "approbateur_identique_au_demandeur"], ["alice", "bob", "accorde", null]]);
+    const m = mutantPaquet("mn24", [
+      { fichier: "coffre.mjs", ancien: 'else if (!d.approbation || typeof approbateur !== "string" || approbateur.length === 0) raison = "seconde_approbation_absente";', nouveau: 'else if (false) raison = "seconde_approbation_absente";' },
+      { fichier: "coffre.mjs", ancien: 'else if (approbateur === demandeur) raison = "approbateur_identique_au_demandeur";', nouveau: 'else if (false) raison = "approbateur_identique_au_demandeur";' },
+      { fichier: "coffre.mjs", ancien: 'else if (!d.autorises.includes(approbateur)) raison = "approbateur_non_autorise";', nouveau: 'else if (false) raison = "approbateur_non_autorise";' },
+      { fichier: "coffre.mjs", ancien: 'else if (shaOuNull(d.approbation.sha256) !== h || d.approbation.motif !== motif) raison = "approbation_d_une_autre_demande";', nouveau: 'else if (false) raison = "approbation_d_une_autre_demande";' },
+    ]);
+    const r1 = await essai(m, "mutant");
+    expect(r1.issues[0]).to.equal("original");
+  });
+
+  it("TA-26 (MN-26, partie non conditionnée par PA-1) : démon réel, points de contrôle toutes les 10 s : arrêt puis redémarrage ; la ligne startup du redémarrage est écrite avec l'époque du nouveau bail, et la série des points qui chevauche le redémarrage n'a aucun trou supérieur à c_K + 1 s (constaterCadence, CT-5 AN-2) ; mutant sans la ligne startup : aucune ligne au redémarrage (tué)", async function () {
+    const A = await ref("lib/ancrage.mjs");
+    const modifier = (cfg) => {
+      cfg.checkpoint_interval_s = 10;
+    };
+    const scenario = async (paquet) => {
+      const c = await configuration(modifier);
+      const f = path.join(c.dir, "configuration.json");
+      const points = () => {
+        const rep = path.join(c.journal, "points");
+        if (!fs.existsSync(rep)) return [];
+        return fs.readdirSync(rep).flatMap((n) => fs.readFileSync(path.join(rep, n), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)));
+      };
+      let p = await demarrer(paquet, c, f);
+      await attendre(() => points().length >= 1, 30000, 200);
+      await arreter(p);
+      const avant = points();
+      const lignesAvant = p.lignes().length;
+      p = await demarrer(paquet, c, f);
+      await attendre(() => points().length >= avant.length + 2, 40000, 200);
+      await arreter(p);
+      const lignes = p.lignes().slice(lignesAvant);
+      const epoque = lignes.find((l) => l.event === "lease_acquired")?.data.epoch ?? null;
+      const apres = points().slice(avant.length);
+      const cadence = A.constaterCadence({ period_start: Number(avant.at(-1).period_start), points: apres, checkpoint_interval_s: 10, previous_closing_ts: avant.at(-1).checkpoint_ts });
+      return { startup: lignes.filter((l) => l.event === "startup").map((l) => l.data.epoch), epoque, cadence };
+    };
+    const r = await scenario(REFERENCE);
+    expect(r.epoque).to.equal(2);
+    expect(r.startup).to.deep.equal([2]);
+    expect(r.cadence).to.deep.equal({ conforme: true, ecarts: [] });
+    const m = mutantPaquet("mn26", [{ fichier: "coeur.mjs", ancien: 'this.journal.consigner("info", "noyau", "startup", {', nouveau: '((_n, _c, _e, _d) => {})("info", "noyau", "startup", {' }]);
+    const r1 = await scenario(m);
+    expect(r1.startup).to.deep.equal([]);
+  });
+
+  /** Segments bruts d'un journal : [{ nom, epoch, first_seq, evenements }] (12.1 : en-tête puis une ligne par événement). */
+  const segmentsBruts = (journal) =>
+    fs.readdirSync(path.join(journal, "segments")).filter((n) => n.startsWith("seg-")).sort().map((nom) => {
+      const lignes = fs.readFileSync(path.join(journal, "segments", nom), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+      return { nom, epoch: Number(lignes[0].epoch), first_seq: Number(lignes[0].first_seq), evenements: lignes.slice(1) };
+    });
+
+  it("TA-10 (MN-10, partie phase 2 sur le démon de l'étape 4) : écriture relayée puis démon tué avant le scellement : au redémarrage, un événement de reprise par intention ouverte, autant que d'exécutions côté serveur ; bail perdu après le relais : -31017 à l'hôte ; mutant sans intention durable avant relais : aucun événement (tué)", async function () {
+    const scenario = async (paquet) => {
+      const c = await configuration();
+      const executions = path.join(c.dir, "executions.ndjson");
+      c.config.policy.servers.demo.transport.command.push("--executions", executions);
+      const f = path.join(c.dir, "configuration.json");
+      let p = await demarrer(paquet, c, f);
+      const vol = appelerOutil(c.portHttp, c.env.NOORTRACE_TEST_JETON_HOTE, "demo__ecrire_lent", { id: "S-vol", attente_ms: 120000 }).catch((e) => ({ coupure: e.code ?? e.message }));
+      await attendre(() => fs.existsSync(executions) && fs.readFileSync(executions, "utf8").includes("S-vol"), 15000);
+      p.kill("SIGKILL");
+      await p.fin;
+      await vol;
+      p = await demarrer(paquet, c, f);
+      await arreter(p);
+      const evts = (await lireEvenements(c.journal)).filter((e) => e.execution.tool === "demo__ecrire_lent");
+      const servi = fs.readFileSync(executions, "utf8").trim().split("\n").map((l) => JSON.parse(l)).filter((x) => x.outil === "ecrire_lent").length;
+      return { evts, servi, recuperees: p.lignes().filter((l) => l.event === "intent_recovered").map((l) => l.data.intent_id) };
+    };
+    const r = await scenario(REFERENCE);
+    expect(r.servi).to.equal(1);
+    expect(r.evts).to.have.length(r.servi);
+    expect(r.evts[0].execution).to.include({ status: "executee", is_error: true, duration_ms: 0 });
+    expect(r.recuperees).to.have.length(1);
+    // -31017 (EX-4.46) : le bail est perdu pendant le relais (auxiliaire flock(1) tué) ; l'appel exécuté est rendu non durable.
+    const c = await configuration();
+    const executions = path.join(c.dir, "executions.ndjson");
+    c.config.policy.servers.demo.transport.command.push("--executions", executions);
+    const p = await demarrer(REFERENCE, c, path.join(c.dir, "configuration.json"));
+    try {
+      const vol = appelerOutil(c.portHttp, c.env.NOORTRACE_TEST_JETON_HOTE, "demo__ecrire_lent", { id: "S-panne", attente_ms: 1500 });
+      await attendre(() => fs.existsSync(executions) && fs.readFileSync(executions, "utf8").includes("S-panne"), 15000);
+      tuerAuxiliaireBail(p);
+      const err = (await vol).corps.error;
+      expect(err.code).to.equal(-31017);
+      expect(err.data.reason).to.equal("bail");
+      expect(err.data.intent_id).to.be.a("string");
+    } finally {
+      await arreter(p);
+    }
+    const m = mutantPaquet("mn10", [{ fichier: "coeur.mjs", ancien: 'if (appel.class === "ecriture" || ticket) {', nouveau: "if (false) {" }]);
+    const r1 = await scenario(m);
+    expect(r1.servi).to.equal(1);
+    expect(r1.evts).to.deep.equal([]);
+  });
+
+  it("TA-19 (MN-19) : deux démons sur le même journal et le même bail file : A écrit, perd son verrou (flock(1) tué), B prend le bail (époque 2) ; A, appelé, refuse (-31010, lease_lost) ; aucun événement de A après l'époque de B, chaîne sans fourche ; mutant dont le bail file se dit toujours valide : A écrit, fourche (tué)", async function () {
+    const scenario = async (paquet) => {
+      const ca = await configuration(null, { instance: "inst-a" });
+      const cb = await configurationDemon(ca.dir, { instance: "inst-b", journal_id: ca.config.recorder.journal_id, approbation: serveurService.address().port });
+      cb.config.lease.store.path = ca.config.lease.store.path;
+      cb.config.storage.root = ca.config.storage.root;
+      cb.config.mcp.socket = path.join(path.dirname(ca.config.mcp.socket), "mcp-b.sock");
+      cb.config.supervision.ops_log.path = path.join(ca.dir, "exploitation-b.ndjson");
+      const jeton = ca.env.NOORTRACE_TEST_JETON_HOTE;
+      const a = await demarrer(paquet, ca, path.join(ca.dir, "a.json"));
+      let b = null;
+      try {
+        const r0 = await appelerOutil(ca.portHttp, jeton, "demo__ecrire", { id: "S-A1", montant: "10" });
+        expect(r0.corps.result?.isError, JSON.stringify(r0.corps)).to.equal(false);
+        b = await demarrer(paquet, cb, path.join(ca.dir, "b.json"), "standby");
+        tuerAuxiliaireBail(a);
+        await attendre(async () => (await sante(cb.portSante))?.corps?.status === "ok", 30000, 100);
+        const epoqueB = b.lignes().find((l) => l.event === "lease_acquired").data.epoch;
+        const rB = await appelerOutil(cb.portHttp, jeton, "demo__ecrire", { id: "S-B1", montant: "20" });
+        const rA = await appelerOutil(ca.portHttp, jeton, "demo__ecrire", { id: "S-A2", montant: "30" });
+        return { epoqueB, rB: rB.corps, rA: rA.corps, perteA: a.lignes().some((l) => l.event === "lease_lost"), segments: segmentsBruts(ca.journal) };
+      } finally {
+        await arreter(b);
+        await arreter(a);
+      }
+    };
+    /** Événements de toutes les époques, triés par seq ; fourche : deux événements d'un même seq, ou un prev_hash discontinu. */
+    const analyser = (r) => {
+      const tous = r.segments.flatMap((s) => s.evenements.map((e) => ({ ...e, epoque: s.epoch }))).sort((x, y) => x.seq - y.seq);
+      const seqs = tous.map((e) => e.seq);
+      const continu = tous.every((e, i) => i === 0 || (e.seq === tous[i - 1].seq + 1 && e.prev_hash === tous[i - 1].hash));
+      const debutB = Math.min(...r.segments.filter((s) => s.epoch === r.epoqueB).map((s) => s.first_seq));
+      const aApresB = r.segments.filter((s) => s.epoch < r.epoqueB).flatMap((s) => s.evenements).filter((e) => e.seq >= debutB);
+      return { seqs, continu, aApresB: aApresB.length, outils: tous.map((e) => [e.epoque, e.execution.tool, e.execution.arguments?.value?.id ?? null]) };
+    };
+    const r = await scenario(REFERENCE);
+    expect(r.epoqueB).to.equal(2);
+    expect(r.rB.result?.isError, JSON.stringify(r.rB)).to.equal(false);
+    expect(r.rA.error?.code, JSON.stringify(r.rA)).to.equal(-31010);
+    expect(r.perteA).to.equal(true);
+    const x = analyser(r);
+    expect(x.aApresB).to.equal(0);
+    expect(x.continu, JSON.stringify(x.outils)).to.equal(true);
+    expect(new Set(x.seqs).size).to.equal(x.seqs.length);
+    // Réponse retirée : le contrôle du bail par l'écrivain (MagasinBailFichier.valide) et le contrôle
+    // du jeton de clôture avant chaque écriture (GardeEpoque, CT-2 EX-13.5 (1) lu sur le répertoire du
+    // journal, correction D-1), seconde défense contre la même menace (MN-19 : « si le jeton de clôture
+    // n'est plus vérifié, les deux écrivent ») ; sans ce second retrait, la garde arrêterait le mutant.
+    const m = mutantPaquet("mn19", [
+      { fichier: "bail.mjs", ancien: "  valide() {\n    return this.detenu;\n  }\n\n  async liberer() {\n    const aux = this.auxiliaire;", nouveau: "  valide() {\n    return true;\n  }\n\n  async liberer() {\n    const aux = this.auxiliaire;" },
+      { fichier: "ha/cloture.mjs", ancien: "  async depassee() {\n    if (this.depassement) return this.depassement;", nouveau: "  async depassee() {\n    return null;" },
+    ]);
+    const r1 = await scenario(m);
+    const x1 = analyser(r1);
+    expect(r1.rA.result?.isError, JSON.stringify(r1.rA)).to.equal(false);
+    expect(x1.aApresB).to.be.at.least(1);
+    expect(x1.continu).to.equal(false);
+  });
+
+  // ---------------------------------------------------------------------
+  // Lot des signataires (classes A, B, C) : TA-31 et TA-33 sur un service de
+  // signature réel (Vault Transit en conteneur épinglé par condensé), joués
+  // par test/fixtures/enregistreur-signataires/ta.mjs. Sans Docker ou sans
+  // l'image, en attente (titre complété par la condition).
+  async function signataires(ctx) {
+    const o = await charger("test/fixtures/enregistreur-signataires/outils.mjs");
+    const dispo = o.dockerEtImage(o.IMAGES_SIGNATAIRES["vault-transit"]);
+    if (!dispo.ok) {
+      ctx.test.title += ` — en attente : ${dispo.condition}`;
+      ctx.skip();
+    }
+    const { certificats } = await charger("test/fixtures/enregistreur-worm/outils.mjs");
+    const ta = await charger("test/fixtures/enregistreur-signataires/ta.mjs");
+    const d = path.join(base, `signataires-${++n}`);
+    fs.mkdirSync(d);
+    return { ...ta, tls: certificats(path.join(d, "tls")), d };
+  }
+
+  it("TA-33 (MN-33) : installation rapide modifiée (mode erreur, version sans -observation, signataire vault-transit) ; backend arrêté sans reprise : -31010 de raison cle rendu à l'hôte, jauge noortrace_degraded de raison cle à 1 plus de 60 s, aucun nouvel événement dans le segment ; mutant où l'écrivain continue sans signature : un événement est écrit pendant la panne (tué)", async function () {
+    const { scenarioTa33, oracleTa33, tls, d } = await signataires(this);
+    const commun = { base: d, tls, service, serveurService };
+    const ref = await scenarioTa33(REFERENCE, { ...commun, nom: "ref", attenteMaxMs: 120000 });
+    expect(oracleTa33(ref), JSON.stringify({ ...oracleTa33(ref), appel: ref.appel.corps, jauge: ref.jauge })).to.deep.equal({ capturePrealable: true, cle31010: true, jaugePlusDe60s: true, aucunNouvelEvenement: true });
+    expect(ref.lignes.some((l) => l.event === "signer_unavailable" && l.data?.backend === "vault-transit")).to.equal(true);
+    const m = mutantPaquet("mn33", [
+      { fichier: "ecrivain.mjs", ancien: 'this.degrade.entrer("cle");\n      throw err;', nouveau: "sig = new Uint8Array(64);" },
+      { fichier: "coeur.mjs", ancien: 'this.degrade.entrer("cle", { event: "signer_unavailable" });', nouveau: "void 0;" },
+    ]);
+    const mut = await scenarioTa33(m, { ...commun, nom: "mut", attenteMaxMs: 15000 });
+    expect(oracleTa33(mut).aucunNouvelEvenement, `mutant : ${JSON.stringify({ ...oracleTa33(mut), appel: mut.appel.corps })}`).to.equal(false);
+  });
+
+  it("TA-31 (MN-31) : Vault Transit à journal d'audit ; le démon produit n objets signés ; noortrace-ctl cle rapprocher sur l'intervalle : écart 0, code 0 ; une signature hors écrivain par le même backend et la même identité d'usage : écart 1, code 3 (incident, CT-7 4.6) ; mutant qui n'exécute plus la comparaison : écart 0 malgré la signature externe (tué)", async function () {
+    const { scenarioTa31, tls, d } = await signataires(this);
+    const commun = { base: d, tls, approbation: serveurService.address().port, service };
+    const lire = (x) => JSON.parse(x.sortie);
+    const ref = await scenarioTa31(REFERENCE, { ...commun, nom: "ref" });
+    for (const r of ref.reponses) expect(r.corps?.result?.isError, JSON.stringify(r.corps)).to.equal(false);
+    expect(ref.signatureExterne).to.equal(200);
+    expect(ref.sansExterne.code, ref.sansExterne.erreur).to.equal(0);
+    const a = lire(ref.sansExterne);
+    expect(a.backend_operations, JSON.stringify(a)).to.be.at.least(ref.evenements);
+    expect(a.ecart, JSON.stringify(a)).to.equal(0);
+    expect(ref.avecExterne.code).to.equal(3);
+    expect(lire(ref.avecExterne)).to.deep.include({ ecart: 1, incident: true });
+    const m = mutantPaquet("mn31", [{ fichier: "signataires/rapprochement.mjs", ancien: "const ecart = backend - justifiees;", nouveau: "const ecart = 0;" }]);
+    const mut = await scenarioTa31(m, { ...commun, nom: "mut" });
+    expect(mut.signatureExterne).to.equal(200);
+    expect(lire(mut.avecExterne).ecart, mut.avecExterne.sortie).to.equal(0);
+    expect(mut.avecExterne.code).to.equal(0);
   });
 });

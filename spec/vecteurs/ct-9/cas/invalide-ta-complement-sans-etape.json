@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.1",
-  "date": "2026-11-01",
+  "spec_version": "0.2",
+  "date": "2026-11-03",
   "levels": [
     {
       "id": "TU",
@@ -106,62 +106,57 @@
   ],
   "tests": [
     {
-      "id": "TA-7",
+      "id": "TA-14",
       "level": "TA",
-      "title": "Réponse retirée : Espace noortrace.* réservé, aucun outil propre annoncé (CT-2 EX-4.2, CT-1 E-3) ; empreinte de chaque définition et pièce de définition (CT-2 EX-4.16, EX-4.45)",
+      "title": "Réponse retirée : Rang de chaque mode écrit et contrôlé (CT-2 §5.1, EX-5.1, EX-5.6) ; mode déclaré dans l'attestation (CT-7 §7)",
       "specs": [
-        "CT-1",
-        "CT-2"
+        "CT-2",
+        "CT-7"
       ],
       "covers": [
-        "CT-2 EX-4.16",
-        "CT-2 EX-4.45",
-        "CT-2 EX-4.2",
-        "CT-1 E-3"
+        "CT-2 §5.1",
+        "CT-2 EX-5.1",
+        "CT-2 EX-5.6",
+        "CT-7 §7"
       ],
       "preconditions": [
-        "Partie phase 2 : démon construit, serveur MCP de test à définitions variables (phase 2, étape 4)."
+        "Partie phase 2 : Démonstration de référence de CT-2 §19 (docker compose : agent, enregistreur, serveur d'outils HTTP, simulateur de modèle) construite et lancée ; phase 2, étape 8."
       ],
       "steps": [
-        "Partie phase 2 : tools/list ; changer la description côté serveur ; tools/list à nouveau ; lire le journal d'exploitation et les pièces."
+        "Partie phase 2 : lire la configuration effective au démarrage (ligne startup) et le capture_channels de l'attestation."
       ],
-      "oracle": "Partie exécutable : rejected du vecteur égal à l'attendu, le mutant annonce l'outil réservé. Partie phase 2 : ligne tool_definition_changed et pièce de définition de SHA-256 différent.",
+      "oracle": "Partie exécutable : erreur de schéma sur /model/mode, aucune avec le schéma mutant. Partie phase 2 : startup.model.mode = passerelle et attestation.agents[].capture_channels contient passerelle.",
       "status": {
         "state": "executable",
         "tests": [
           {
             "file": "test/adversarial.test.js",
             "describe": "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)",
-            "it": "TA-7 (MN-7, partie exécutable ; la partie « définition changée entre deux tools/list » exige un serveur vivant, phase 2, étape 4) : pieces-mcp/agregation : un outil noortrace.* annoncé par un serveur est rejeté (nom_reserve) ; mutant sans l'espace réservé : il est annoncé (tué)"
-          },
-          {
-            "file": "test/enregistreur.test.js",
-            "describe": "CT-2 : vecteurs spec/vecteurs/ct-2, rejoués",
-            "it": "pieces-mcp/agregation : noms annoncés, rejets, classes, empreintes des définitions, pages ; préfixe désactivé"
+            "it": "TA-14 (MN-14, partie exécutable ; la démonstration en mode passerelle est de phase 2, étape 4) : le schéma de configuration refuse un model.mode inconnu ; schéma mutant sans l'énumération : accepté (tué)"
           }
         ],
-        "command": "npx mocha --timeout 600000 test/adversarial.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur.test.js",
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js",
         "complement": {
-          "blocking": "Partie à écrire : Enregistreur (démon) non construit : phase 2, étape 4."
+          "blocking": "Partie à écrire : démonstration de référence de CT-2 §19 (docker compose), livrée à l'étape 8 ; la version 0.1 rattachait à tort ce complément à l'étape 4, alors que ses préconditions nomment l'étape 8."
         }
       },
       "threats": [
-        "MN-7"
+        "MN-14"
       ],
       "adversarial": {
-        "threat": "MN-7",
-        "component": "mandataire_mcp",
+        "threat": "MN-14",
+        "component": "passerelle_modele",
         "response_removed": {
-          "what": "Espace noortrace.* réservé, aucun outil propre annoncé (CT-2 EX-4.2, CT-1 E-3) ; empreinte de chaque définition et pièce de définition (CT-2 EX-4.16, EX-4.45)",
-          "how": "Retirer le rejet nom_reserve d'agregerOutils ; en phase 2, retirer l'empreinte des définitions du démon",
-          "where": "scripts/lib/capture.mjs (agregerOutils) ; démon (phase 2)"
+          "what": "Rang de chaque mode écrit et contrôlé (CT-2 §5.1, EX-5.1, EX-5.6) ; mode déclaré dans l'attestation (CT-7 §7)",
+          "how": "Retirer l'énumération model.mode du schéma de configuration ; en phase 2, lancer la démonstration dans un autre mode que passerelle",
+          "where": "spec/schemas/configuration-enregistreur-v0.schema.json ; démonstration"
         },
-        "attack": "Un serveur d'outils annonce noortrace.journal.politique (vecteur pieces-mcp/agregation) ; en phase 2, un serveur de test change la description d'un outil entre deux tools/list.",
-        "expected_with_response": "L'outil réservé est rejeté (nom_reserve) ; en phase 2, la ligne tool_definition_changed et la nouvelle pièce de définition existent.",
-        "expected_without_response": "L'outil noortrace.* est annoncé à l'hôte (un événement réservé peut être forgé) ; en phase 2, rien n'est consigné ; le test échoue.",
+        "attack": "Configuration avec model.mode = inconnu ; démonstration lancée en mode miroir.",
+        "expected_with_response": "La validation refuse /model/mode ; la démonstration tourne en mode passerelle et l'attestation de périmètre de la démonstration déclare passerelle.",
+        "expected_without_response": "Le mode inconnu est accepté ; le test échoue.",
         "execution": "vecteurs_et_depot",
-        "accepted_risk": "RA-6",
-        "threat_test_text": "Le test échoue si la réponse est retirée : un serveur de test change la description d'un outil entre deux `tools/list` ; la ligne `tool_definition_changed` et la nouvelle pièce de définition doivent exister ; sans l'empreinte, rien n'est consigné et le test échoue."
+        "accepted_risk": "RA-12",
+        "threat_test_text": "Le test échoue si la réponse est retirée : la validation de configuration refuse un mode inconnu et la démonstration de référence tourne en mode `passerelle` ; si le mode n'est plus contrôlé, le test échoue."
       }
     }
   ],

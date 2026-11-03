@@ -242,17 +242,21 @@ export class SignataireVerifie {
     const debut = performance.now();
     let sig;
     let derniere;
+    let essais = 0;
     for (let essai = 0; essai < 2 && !sig; essai++) {
+      essais++;
       try {
         sig = await avecDelai(this.backend.signer(keyId, message), this.delai);
       } catch (e) {
         derniere = e;
       }
     }
-    if (!sig) this.panne("signature", derniere);
+    // `tentatives` : opérations que le backend a pu compter sans qu'une
+    // signature serve (rapprochement de CT-7 EX-3.7, signataires/rapprochement.mjs).
+    if (!sig) this.panne("signature", derniere, { key_id: keyId, tentatives: essais });
     this.metriques?.observer("noortrace_sign_duration_ms", { backend: this.backend.typeBackend }, performance.now() - debut);
     if (!(sig instanceof Uint8Array) || sig.length !== 64 || !verifierEd25519(publique, message, sig)) {
-      this.panne("signature_invalide", new Error("signature qui ne vérifie pas sous la clé publique"));
+      this.panne("signature_invalide", new Error("signature qui ne vérifie pas sous la clé publique"), { key_id: keyId, tentatives: essais });
     }
     return sig;
   }
@@ -265,6 +269,8 @@ export class SignataireVerifie {
     // P_S seul (C vide) : de la forme P_S ‖ C admise par EX-11.18, et jamais
     // confondu avec un événement, dont la forme canonique n'est jamais vide.
     await this.signer(keyId, PREFIXES.P_S);
+    // Signature hors du journal : consignée pour le rapprochement (CT-7 EX-3.7).
+    this.journal?.consigner("info", "signataire", "signer_test_signature", { key_id: keyId, backend: this.backend.typeBackend, class: this.backend.classe });
   }
 
   /** @returns {Promise<"ok"|string>} */
@@ -276,12 +282,13 @@ export class SignataireVerifie {
     }
   }
 
-  panne(raison, cause) {
+  panne(raison, cause, extra = {}) {
     this.journal?.consigner("error", "signataire", "signer_unavailable", {
       backend: this.backend.typeBackend,
       class: this.backend.classe,
       raison,
       erreur: String(cause?.message ?? cause ?? ""),
+      ...extra,
     });
     throw new ErreurEnregistreur("cle", "noortrace: enregistreur en mode degrade (cle)", { cause, donnees: { raison } });
   }

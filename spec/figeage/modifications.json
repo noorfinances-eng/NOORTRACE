@@ -296,6 +296,238 @@
           "apres": "3532c44274ed7577489bcaf07a736f9f77f7f1fef0e86664367069e0433234ca"
         }
       ]
+    },
+    {
+      "id": "MC-12",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "Fermeture de l'étape 4 dans CT-9, révision 0.2 (en-tête, section 0.4) : EX-10.5 admet pour mutant une copie du paquet d'un composant de la phase 2 et EX-10.3 précise l'exécution phase_2 ; TI-3, TI-13, TA-2, TA-8, TA-9, TA-12, TA-19, TA-24, TA-26 (partie non conditionnée) et TA-30 passent exécutables, les compléments de TA-7, TA-10 et TA-11 sont écrits, TM-16 passe exécutable avec son rapport de campagne mesures/rapport-2026-11-03-p6-worm.json (complément ancres à l'étape 5) ; rattachements corrigés (TA-41, TE-14 et complément de TA-62 à l'étape 5 ; complément de TA-14, TA-93, TI-19, TM-1 à TM-5, TM-7 à TM-9 et TM-38 à l'étape 8) ; TE-11 (défaut du démon révélé par son test), TE-16, TA-31, TA-33 et TA-88 restent à l'étape 4 avec leur motif ; attendus de TA-2 et TA-10 et oracle de TI-13 corrigés ; sections 5.5, 8, 10.4, 10.8, 11, 14, 16, 17.2 et annexe A alignées ; tables, catalogue, cas, extraits, index et couverture régénérés ; vérificateur Go de CT-9 adapté (TM- exécutables, phrase de la section 16) ; sortie du recomptage Python régénérée ; ligne CT-9 de spec/README.md en version 0.2. Aucune spécification CT-1 à CT-8 ne change.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "4fcbb489162fa9f003700b5a9f36068e06ddaac83105bef5ff717da6af49e084",
+          "apres": "92ac0ffe8678174e099e8ed95d997835d1627db01e91c59a15d8a32265532137"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "f2fd5b29eb67c2d2d51f3019529a350d6fe0b1d3df4318d118fb6fb97bb84002",
+          "apres": "9251a013b3345f06a17576787ed223c5fab4e962bd3238fea695db001dd5bc3b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "de509745371d97b8585c83ee47a1e060d5a70a0c72013f2c4db8b0d42d47707a",
+          "apres": "cc039ff137112cf33cf2c1745328428912af0806ac1ce887de2262e05e11a8c5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/acceptation-porte-2-attendu.json",
+          "avant": "5dcb5ca627c7301a4452c46ec85cae72e092df5021117bc1d808dae7aba95ac8",
+          "apres": "00ca023c788e83394c31403ec3c5cc338ca0b9e8847674029a5d3d4927b09827"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-a-ecrire-sans-etape.json",
+          "avant": "a858076b122b4612aa9282a26537326d86ffdeb503fb013c9d044a73035ffb4e",
+          "apres": "1a989cd1b0b95c058ea43a835287a434bcbd938edc187d4b04980b04e5aa8168"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-executable-sans-titre.json",
+          "avant": "5a634312f8260662db5fea8d0a76f04ad33a401260604117571551336c7df80e",
+          "apres": "59c93e1d8e9ca2ab618a40c557645986d7a5a42ac66c13c9b0d7f1db366e29e1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-identifiant-sans-specification.json",
+          "avant": "fa1a6c99b77f54b0aaa748e477e77118e76b719ae76e80534a1b9945d1dc2052",
+          "apres": "8947696144d7fff3ae0e09bb15d96a148b87d3d473d6b3d5f1369881606cffa4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-complement-sans-etape.json",
+          "avant": "63261dd1de5983dd006daa6662771bc432f16172d6d044b43ce9ddaf743b20ac",
+          "apres": "317a4f13cd3b3869526b2b2a3777d5a7f596832b9bce938961009690056d23d0"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-prefixe-test.json",
+          "avant": "750b60ceab8005d63ef09d44da795353a6a6d0179d035ebbc0999c32c3bd541a",
+          "apres": "7200014b5298f4de51494dc5680c12874b161339f037fd0c15e85fdf9fc9020d"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-sans-adversarial.json",
+          "avant": "c91e44843f8930de18654161bc8497a86880753736f750ed9c99d942917b3275",
+          "apres": "7d0167c1632538a359ff03c148414bd09bf563353994e4d7f855e457062b0d23"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-scenario-sans-composition.json",
+          "avant": "3c1b5a10939790b7151f3b44922d7f9b45c601ba63efc9985a5693f379cbe639",
+          "apres": "db55d42aa8495489e18d9821c82f351786e06bc3245799d5654ccde3c9096caf"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-ta-titre-vide.json",
+          "avant": "f0bdea648fa83279c8deaf275f4ff27a4c34e3f9edf3f6efb67ab01569dc3d7f",
+          "apres": "b5b9ca51fa4eb2bf8745a973d5a0c029fc4825c9df75e95eece44822aa31d3b4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/invalide-tm-mesure-inventee.json",
+          "avant": "2dc63ce7722c18a0a1e9a534699957c252f5bd704e6a4ec1a65cffa7a8860673",
+          "apres": "057cee871bdbc6fc0451a29b995c9fb176a37de86180e859d93ed9276e0de6e4"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-minimal.json",
+          "avant": "b5a0b781900f4cbb06cbe8ec3a602aaa6f108c5de2e9f72c970804717cb1874c",
+          "apres": "b64aed2696e0e1d5dc505e1a115f7af8c0aca2f9bd2228dec23b413dae901257"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/cas/valide-ta.json",
+          "avant": "79a7c4e40ff221fd0d1c0fbb7f136402a170e60f0cd21d8ed3acbb617c130313",
+          "apres": "a102e9fbad35ef8d940930851fe4c853189e6f505df073905abf949add408340"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "57b41864d9dc1b97c7097252f15f48cb8f3d9159efab2de0295c6d51cab2b5fc",
+          "apres": "5bc598f93dc97805a6a82f2ceb034c0b2ffd480e2606646879fe604ccd2ecea8"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "13566802ad7fa170bd66b0f67bb822db4678ce52e0add8e0ee119a60e689058e",
+          "apres": "99cb220ce439b8e3408cb1f4a56478cf6c8acb8cb7ccdc14821dc90b129def51"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "3532c44274ed7577489bcaf07a736f9f77f7f1fef0e86664367069e0433234ca",
+          "apres": "a2ef015a51212b0922322988b4a0be0c7f1348bf5221c8d7b24fd9a0ba50431b"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "bb722a391bb4165edfa67372d28dcfcc6b34a185a7fc252a24018524de480201",
+          "apres": "672d64f4eab51049295612ebc936f6440e9b054e132388d0ed42755e6a1d00ad"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "7aebf50facf047c1957e5e151ed0022f6bea54cb6b158e8c84848334e4487eff",
+          "apres": "3ecc6fbd1e73ff1df31f8c35c0e211ad63440d6deaa995dd81bcacf6b85f0c01"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/index-ta-par-menace.json",
+          "avant": "8d611da4d84acf61c3add120ea1882373add80d09015f7a5bd0ab69388b86637",
+          "apres": "d60422043e035d41a4024c7eb3ffeef988c19fc03ba5a839d357d1c33178dc8f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/mesures/rapport-2026-11-03-p6-worm.json",
+          "avant": null,
+          "apres": "2fc75bf6632b8bc3a4cccda35ac63c8c5f8f51a9470a3d2a61ee9536a6892897"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/couverture.go",
+          "avant": "e0d59ddecd3090cf80ad245f83ba61a1f93daa1ac77568d8c62e00bdc2d7d6a1",
+          "apres": "f1793d946b41eaae87c1eec6f8dd18f9e36639d163631537fce69840572c1726"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/verificateur-independant/vecteurs.go",
+          "avant": "bd5dfdb2ed148a8dcfb93ae36b3c27379cbabfac4969d429d085d78a9919b0b3",
+          "apres": "f7fc777a26d67740b125c0fb2777d7c66f0561edce007c5ec5118edd5ef3fd93"
+        }
+      ]
+    },
+    {
+      "id": "MC-13",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "CT-9 révision 0.2 : TI-19 (mode ICAP, raccord à un mandataire Squid réel avec ssl-bump, image squid-openssl 6.13-2+deb13u3 construite par test/fixtures/enregistreur-modele/squid/Dockerfile) passe de « à écrire (étape 8) » à exécutable (test/enregistreur-modele-squid.test.js) : préconditions à version exacte, oracle (X-Noortrace-Exchange constaté dans la requête encapsulée par RESPMOD de Squid, formes consignées du refus d'un client ICAP et du blocage d'une adresse d'hôte inconnue, défaut du démon révélé et corrigé), ligne TC-65, révision 0.2, EX-3.4 sans l'exemple périmé, chiffres de 5.5 et de 16 (205 exécutables, 391 titres cités, 116 à écrire) ; vecteurs ct-9 régénérés",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "92ac0ffe8678174e099e8ed95d997835d1627db01e91c59a15d8a32265532137",
+          "apres": "70169cad61365c599b93558ae902513660532edbb1b13b904f4ba4ad097962a5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "cc039ff137112cf33cf2c1745328428912af0806ac1ce887de2262e05e11a8c5",
+          "apres": "6e6272446566fb8fd5d9575e053b74917f7f245edd483dc3aa7c71ad914b92bd"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "5bc598f93dc97805a6a82f2ceb034c0b2ffd480e2606646879fe604ccd2ecea8",
+          "apres": "bd8f4227fe16bd01d3dddd812dd58224155d28611b7abe072df057754890ffcc"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "99cb220ce439b8e3408cb1f4a56478cf6c8acb8cb7ccdc14821dc90b129def51",
+          "apres": "42bbcd4f94fb6184da7036048bed5f8bab9527797702ece77e568331b2cb904c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "a2ef015a51212b0922322988b4a0be0c7f1348bf5221c8d7b24fd9a0ba50431b",
+          "apres": "f26989be52fad6e63d41d23f793435c6cdab16252caedc18011f2ec93e02b082"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "672d64f4eab51049295612ebc936f6440e9b054e132388d0ed42755e6a1d00ad",
+          "apres": "d83e7d7f120909c7be693d60ad9bc8cead9a349e19c73deb05842b2d03f4c442"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "3ecc6fbd1e73ff1df31f8c35c0e211ad63440d6deaa995dd81bcacf6b85f0c01",
+          "apres": "8811b5c1b4bca0466eb00924b43a3d6217687d5ddeba21c80a5b492424fefd2f"
+        }
+      ]
+    },
+    {
+      "id": "MC-14",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "CT-9 révision 0.2, suite de la fermeture de l'étape 4 : TE-11 (bascule du bail) passe à exécutable après la correction du défaut D-1 du démon (lecture 188 de paquets/enregistreur) ; TA-31 (rapprochement des signatures avec le journal d'audit du backend) et TA-33 (signataire indisponible) passent à exécutables sur le démon, avec les signataires des classes A, B et C ; titre de TA-33 ramené sous la borne de 400 caractères du schéma ; §16 : 113 entrées à écrire ; table de 5.5, §10.8 et EX-A.11 (71 it, 13 sur le démon) ; catalogue, extraits, index, couverture et recomptage régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "70169cad61365c599b93558ae902513660532edbb1b13b904f4ba4ad097962a5",
+          "apres": "db9f9b0c8eafe08b3a83de88b6176c5cfd55a792a8694b3daed3d3eb27a69b78"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "6e6272446566fb8fd5d9575e053b74917f7f245edd483dc3aa7c71ad914b92bd",
+          "apres": "ff33a6010862084a7e7b6c8201500cd6fe4f2a3d30b453216a0aab69e12dfc78"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "bd8f4227fe16bd01d3dddd812dd58224155d28611b7abe072df057754890ffcc",
+          "apres": "c78ee5ee5e284179ad153ada1598a358b95bb2eae3fc11d862a64fb3080e50b9"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "42bbcd4f94fb6184da7036048bed5f8bab9527797702ece77e568331b2cb904c",
+          "apres": "8522e97d53c0e51cc275cbeb21ebbeecd763c643f45d6673650073f66853150f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "f26989be52fad6e63d41d23f793435c6cdab16252caedc18011f2ec93e02b082",
+          "apres": "3bb31089e6382a837cd720bc530273e196ad903fc391a6c3c0322066c923cd59"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "d83e7d7f120909c7be693d60ad9bc8cead9a349e19c73deb05842b2d03f4c442",
+          "apres": "335e0d81081ecb006fe53bce8b1516a8c884edb0be9fd9bb14290f005776d346"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "8811b5c1b4bca0466eb00924b43a3d6217687d5ddeba21c80a5b492424fefd2f",
+          "apres": "724bbb1f7ae97e548cde0de2953ace6d444c7e4d96a6d83eeff30ab8e91966d6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/index-ta-par-menace.json",
+          "avant": "d60422043e035d41a4024c7eb3ffeef988c19fc03ba5a839d357d1c33178dc8f",
+          "apres": "ab3574d90c89718edc29ff799703f42a07a42927e395699c73fe91e2a515b7a4"
+        }
+      ]
+    },
+    {
+      "id": "MC-15",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "CT-9 : empreinte de test/plan-de-tests.test.js mise à jour dans couverture.json et recomptage régénéré, après la correction des comptes de TA- exécutables (79, dont 75 cités par test/adversarial.test.js) que le passage de TA-31 et TA-33 à exécutables impose.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "3bb31089e6382a837cd720bc530273e196ad903fc391a6c3c0322066c923cd59",
+          "apres": "5786709dcc54e6e800430e34e88cc472c04cd37f85912acc7fedc8908b9a3b0f"
+        }
+      ]
     }
   ]
 }

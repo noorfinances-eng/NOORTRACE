@@ -16,13 +16,13 @@ import {
 import { envelopper, validerAvantSignature, partielRotation } from "./capture.mjs";
 import { ErreurConstruction, ErreurEnregistreur } from "./erreurs.mjs";
 import { FichierAjout, creerRepertoire, existe, ecrireAtomique, nettoyerTemporaires, tronquer } from "./fichiers.mjs";
-import { enteteSegment, ligneSegment, listerSegments, nomSegment, relireSegment } from "./segments.mjs";
+import { enteteSegment, ligneSegment, nomSegment, relireSegment } from "./segments.mjs";
 import { idIntention, ligneIntention, nomFichierIntentions, objetContexte, objetIntention, empreinteIntention } from "./intentions.mjs";
 import { construireEtSignerManifeste, debutPeriode, nomsManifeste, octetsJsonLisible, nonceAleatoire } from "./periodes.mjs";
 import { corpsPointDeControle, instantAligne, ligneSerie, nomSerie, signerPointDeControle } from "./points.mjs";
 import { remiseCloture, remisePoint } from "./ancrage.mjs";
 import { cleObjetWorm } from "./worm.mjs";
-import { verifierEpoqueOuverture } from "./ha/cloture.mjs";
+import { epoqueMaxJournal, GardeEpoque } from "./ha/cloture.mjs";
 
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -110,6 +110,9 @@ export class Ecrivain {
     if (etat.epoqueMax !== null && epoque <= etat.epoqueMax) {
       throw new ErreurEnregistreur("bail", "noortrace: epoque du bail non superieure aux segments presents (EX-13.5)");
     }
+    // EX-13.1, EX-13.5 (1), EX-13.6 : garde de l'époque, contrôlée avant chaque écriture.
+    this.garde = new GardeEpoque(this.repertoire, epoque);
+    this.depassee = null;
     await creerRepertoire(path.join(this.repertoire, "segments"));
     await creerRepertoire(path.join(this.repertoire, "intentions"));
     await creerRepertoire(path.join(this.repertoire, "manifestes"));
@@ -132,8 +135,9 @@ export class Ecrivain {
     // entre les deux écritures) : complétées avant toute nouvelle écriture.
     for (const x of etat.manifestesSansSignature ?? []) await this._completerCloture(x.manifeste);
     await this._ouvrirSegment(this.lastSeq + 1);
-    // EX-13.5 (1) : aucun fichier d'intention sous une époque supérieure présente (lot HA).
-    await verifierEpoqueOuverture(this.repertoire, "intentions", epoque);
+    // EX-13.5 (1) : aucun fichier d'intention sous une époque supérieure présente
+    // dans le répertoire du journal (lot HA).
+    await this._verifierOuverture("intentions");
     this.intentions = await FichierAjout.ouvrir(path.join(this.repertoire, "intentions", nomFichierIntentions(epoque)), {
       creer: true,
       existantAdmis: true,
@@ -154,7 +158,7 @@ export class Ecrivain {
     const P = manifeste.period_start;
     const noms = nomsManifeste(P);
     const dir = path.join(this.repertoire, "manifestes");
-    this._verifierBail();
+    await this.verifierEcriture("cloture");
     const sig = await this.signataire.signer(manifeste.recorder_key_id, messageSignatureManifeste(manifeste));
     const periodHash = hacherManifeste(manifeste);
     const signature = { version: 0, period_hash: periodHash, recorder_key_id: manifeste.recorder_key_id, sig: octetsVersHex(sig) };
@@ -185,14 +189,11 @@ export class Ecrivain {
   }
 
   async _ouvrirSegment(firstSeq) {
-    this._verifierBail();
     const nom = nomSegment(firstSeq, this.epoque);
     const dir = path.join(this.repertoire, "segments");
     // EX-13.5 (1) : l'époque de l'en-tête n'est jamais inférieure à la plus
-    // grande époque présente dans les noms.
-    for (const s of await listerSegments(dir)) {
-      if (s.epoch > this.epoque) throw new ErreurEnregistreur("bail", "noortrace: un ecrivain d'epoque superieure existe (EX-13.5)");
-    }
+    // grande époque présente dans les noms des fichiers du répertoire du journal.
+    await this._verifierOuverture("segments");
     const ouvertA = this.horloge.murale();
     const entete = enteteSegment({
       epoch: this.epoque,
@@ -253,11 +254,54 @@ export class Ecrivain {
   }
 
   _verifierBail() {
-    if (!this.bail.valide()) {
+    if (this.depassee || !this.bail.valide()) {
       this.journal.consigner("error", "bail", "lease_lost", {});
       this.degrade.entrer("bail");
       throw new ErreurEnregistreur("bail", "noortrace: enregistreur en mode degrade (bail)");
     }
+  }
+
+  /**
+   * Une époque supérieure à la sienne est présente dans le répertoire du
+   * journal : un autre écrivain a pris le bail (EX-13.4). L'écrivain cesse
+   * d'écrire, définitivement pour cette époque (EX-13.6 : il ne reprend
+   * qu'après une nouvelle acquisition et une relecture), consigne
+   * `lease_lost` et entre en mode dégradé « bail ».
+   * @param {{epoque: number, repertoire: string}} d
+   * @param {string} sorte écriture refusée
+   */
+  _epoqueDepassee(d, sorte) {
+    if (!this.depassee) {
+      this.depassee = d;
+      this.journal.consigner("error", "bail", "lease_lost", { epoch: this.epoque, cause: "epoque_superieure_presente", epoch_present: d.epoque, directory: d.repertoire });
+    }
+    this.degrade.entrer("bail");
+    throw new ErreurEnregistreur("bail", `noortrace: un ecrivain d'epoque superieure existe (${sorte} refuse, ${d.repertoire}, EX-13.5)`);
+  }
+
+  /**
+   * Avant l'ouverture d'un fichier à époque (EX-13.5 (1)) : bail tenu pour
+   * valide, et aucune époque supérieure présente dans les noms des fichiers
+   * du répertoire du journal, relus sans cache.
+   * @param {string} sorte
+   */
+  async _verifierOuverture(sorte) {
+    this._verifierBail();
+    const max = await epoqueMaxJournal(this.repertoire);
+    if (max && max.epoque > this.epoque) this._epoqueDepassee(max, sorte);
+  }
+
+  /**
+   * Avant chaque écriture (événement, intention, levée, point, clôture,
+   * fichier d'attente) : un écrivain qui n'est plus détenteur, ou dont
+   * l'époque est dépassée par une autre présente dans le répertoire du
+   * journal, n'écrit rien nulle part (EX-13.1, EX-13.5 (1), EX-13.6).
+   * @param {string} [sorte]
+   */
+  async verifierEcriture(sorte = "ecriture") {
+    this._verifierBail();
+    const d = await this.garde?.depassee();
+    if (d) this._epoqueDepassee(d, sorte);
   }
 
   // ------------------------------------------------------------ file
@@ -357,6 +401,7 @@ export class Ecrivain {
             op.res(await this._ecrireIntention(op.p, op.partiel));
             break;
           case "levee":
+            await this.verifierEcriture("levee");
             await this.intentions.ajouter(ligneIntention({ lifted: op.intentId, seq: op.seq }));
             op.res();
             break;
@@ -564,7 +609,7 @@ export class Ecrivain {
         org_id: this.org_id,
         valid_from: tsIso,
       };
-      this._verifierBail();
+      await this.verifierEcriture("rotation");
       const contre = await this.signataire.signer(nouvelleCle, messageRotation(R));
       partiel = partielRotation({ ...R, counter_sig: octetsVersHex(contre) }, { policy_version: op.p.policy_version, recorder: this.recorder });
     }
@@ -604,7 +649,7 @@ export class Ecrivain {
       await this._fermerSegment();
       await this._ouvrirSegment(this.lastSeq + 1);
     }
-    this._verifierBail();
+    await this.verifierEcriture("evenement");
     let sig;
     try {
       sig = await this.signataire.signer(cleSignature, messageSignatureEvenement(e), { rotation: op.type === "rotation" });
@@ -655,6 +700,8 @@ export class Ecrivain {
     deux.set(l1);
     deux.set(l2, l1.length);
     const avant = this.intentions.taille;
+    // Rien n'est écrit sans bail ou sous une époque dépassée (EX-13.1, EX-13.6).
+    await this.verifierEcriture("intention");
     try {
       await this.intentions.ajouter(deux);
       this._verifierBail();
@@ -709,7 +756,7 @@ export class Ecrivain {
     // Point de clôture, avant le manifeste (CT-1 §10.5 règle 4).
     await this._produirePoint(maintenant, { cloture: true });
     const cle = this.cleCourante;
-    this._verifierBail();
+    await this.verifierEcriture("cloture");
     const { manifeste, signature, periodHash } = await construireEtSignerManifeste(
       {
         org_id: this.org_id,
@@ -762,7 +809,7 @@ export class Ecrivain {
       prev_checkpoint_hash: this.serie.prev,
       key_id: this.cleCourante,
     });
-    this._verifierBail();
+    await this.verifierEcriture("point");
     const point = await signerPointDeControle(corps, this.signataire);
     const chemin = path.join(this.repertoire, "points", nomSerie(P.start));
     const f = await FichierAjout.ouvrir(chemin, { creer: true, existantAdmis: true });

@@ -41,7 +41,7 @@ import {
   IMAGES, dockerDisponible, demarrerS3, demarrerPostgresql, demarrerEtcd, arreterTout, certificats, mandataireTls, creerBucketVerrouille,
   identifiantsRole, fichierSecret, attendre, portLibre,
 } from "./fixtures/enregistreur-worm/outils.mjs";
-import { configurationHa, ClientMcpHttp, lancerDemon, sante } from "./fixtures/enregistreur-ha/outils.mjs";
+import { configurationHa, ClientMcpHttp, demarrerDemon, sante } from "./fixtures/enregistreur-ha/outils.mjs";
 
 const BIN_CTL = path.join(RACINE, "paquets", "enregistreur", "bin", "noortrace-ctl");
 
@@ -162,22 +162,21 @@ describe("haute disponibilité et WORM : parcours de bout en bout (deux démons 
         Object.assign(ev, p);
         const { A, B } = p;
         // 1. A démarre et prend le bail ; l'hôte appelle (lecture, écritures).
-        const dA = lancerDemon(A.fichier, A.env, A.config.supervision.ops_log.path);
-        ev.dA = dA;
-        await attendre(async () => (await sante(A.port))?.corps?.status === "ok", 60000).catch((e) => {
-          throw new Error(`A : ${e.message}\n${dA.sortie}`);
+        // Ports d'écoute réattribués si l'un d'eux a été pris avant l'ouverture (EADDRINUSE).
+        const dA = await demarrerDemon(A, "ok").catch((e) => {
+          throw new Error(`A : ${e.message}`);
         });
+        ev.dA = dA;
         const hA = new ClientMcpHttp(A.config.mcp.http.listen);
         await hA.ouvrir();
         ev.reponsesA = [];
         ev.reponsesA.push(await hA.appeler("demo__lire", { id: "S1" }));
         for (let k = 2; k <= 6; k++) ev.reponsesA.push(await hA.appeler("demo__ecrire", { id: `S${k}`, montant: String(10 * k) }));
         // 2. B démarre : instance passive.
-        const dB = lancerDemon(B.fichier, B.env, B.config.supervision.ops_log.path);
-        ev.dB = dB;
-        await attendre(async () => (await sante(B.port))?.corps?.status === "standby", 60000).catch((e) => {
-          throw new Error(`B : ${e.message}\n${dB.sortie}`);
+        const dB = await demarrerDemon(B, "standby").catch((e) => {
+          throw new Error(`B : ${e.message}`);
         });
+        ev.dB = dB;
         ev.santeB = await sante(B.port);
         const hB = new ClientMcpHttp(B.config.mcp.http.listen);
         await hB.ouvrir();
@@ -342,12 +341,10 @@ describe("haute disponibilité et WORM : parcours de bout en bout (deux démons 
     it("B prend le bail ; A, repris, constate la perte (lease_lost), redevient passif (lease_standby) et rend -31010 bail_non_detenu ; aucune fourche ; journal valide", async function () {
       const p = await preparer("postgresql", "dispute");
       const { A, B } = p;
-      const dA = lancerDemon(A.fichier, A.env, A.config.supervision.ops_log.path);
+      const dA = await demarrerDemon(A, "ok");
       let dB = null;
       try {
-        await attendre(async () => (await sante(A.port))?.corps?.status === "ok", 60000);
-        dB = lancerDemon(B.fichier, B.env, B.config.supervision.ops_log.path);
-        await attendre(async () => (await sante(B.port))?.corps?.status === "standby", 60000);
+        dB = await demarrerDemon(B, "standby");
         const hA = new ClientMcpHttp(A.config.mcp.http.listen);
         await hA.ouvrir();
         expect((await hA.appeler("demo__ecrire", { id: "D1", montant: "1" })).result.isError).to.equal(false);

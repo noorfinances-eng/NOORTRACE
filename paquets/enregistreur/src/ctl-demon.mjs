@@ -1,5 +1,6 @@
-// `noortrace-ctl reload` (EX-15.5) et `noortrace-ctl clock --accept`
-// (EX-7.13) : commandes d'exploitation adressées au démon en marche.
+// `noortrace-ctl reload` (EX-15.5), `noortrace-ctl clock --accept`
+// (EX-7.13) et `noortrace-ctl cle rotation-urgence` (CT-8 EX-10.14, CT-2
+// EX-11.16) : commandes d'exploitation adressées au démon en marche.
 //
 //   noortrace-ctl reload [--configuration <fichier>] [--delai-ms <n>]
 //   noortrace-ctl clock --accept [--configuration <fichier>] [--delai-ms <n>]
@@ -24,12 +25,23 @@ import path from "node:path";
 export const USAGE_CTL_DEMON = [
   "usage : noortrace-ctl reload [--configuration <fichier>] [--delai-ms <n>]",
   "        noortrace-ctl clock --accept [--configuration <fichier>] [--delai-ms <n>]",
+  "        noortrace-ctl cle rotation-urgence [--configuration <fichier>] [--delai-ms <n>]",
+  "        noortrace-ctl cle rapprocher --configuration <fichier> --audit <journal d'audit> [--cle <key_id>] [--de <horodatage>] [--a <horodatage>]",
 ].join("\n");
 
 const ACTIONS = {
   reload: { signal: "SIGHUP", fait: "config_reloaded", refus: "config_reload_rejected" },
   clock: { signal: "SIGUSR2", fait: "clock_accepted", refus: "clock_accept_refused" },
+  // CT-8 EX-10.14 : « exécute les pas de CT-2 EX-11.16 dans leur ordre » ;
+  // SIGURG (ignoré par défaut), et seulement avec la demande écrite à côté du
+  // journal d'exploitation (un signal seul ne fait rien, lecture 194).
+  cle: { signal: "SIGURG", fait: "key_rotation_emergency", refus: "key_rotation_emergency_refused", demande: true },
 };
+
+/** Fichier de demande de `noortrace-ctl cle rotation-urgence`, à côté du journal d'exploitation du démon. */
+export function fichierDemandeRotation(journalExploitation) {
+  return `${journalExploitation}.rotation-urgence`;
+}
 
 /**
  * Démons `noortrace` de l'utilisateur courant (EX-18.1 : même utilisateur).
@@ -118,6 +130,18 @@ export async function principalCtlDemon(argv, io = {}) {
     }
     reste.splice(k, 1);
   }
+  if (action === "cle" && reste[0] === "rapprocher") {
+    // CT-7 EX-3.7 : outil hors démon (aucun signal), signataires/rapprochement.mjs.
+    const { principalRapprochement } = await import("./signataires/rapprochement.mjs");
+    return principalRapprochement(reste.slice(1), { stdout, stderr });
+  }
+  if (action === "cle") {
+    if (reste[0] !== "rotation-urgence") {
+      stderr.write(`${USAGE_CTL_DEMON}\n`);
+      return 2;
+    }
+    reste.splice(0, 1);
+  }
   const o = {};
   for (let k = 0; k < reste.length; k += 2) {
     const nom = reste[k];
@@ -162,8 +186,13 @@ export async function principalCtlDemon(argv, io = {}) {
     }
     suivis.push({ ...d, journal, depuis: taille(journal), reponse: null });
   }
+  if (spec.demande && suivis.length > 1) {
+    stderr.write("noortrace-ctl : plusieurs démons ; désigner la configuration (--configuration)\n");
+    return 2;
+  }
   for (const d of suivis) {
     try {
+      if (spec.demande) fs.writeFileSync(fichierDemandeRotation(d.journal), `${JSON.stringify({ demande: "rotation-urgence", pid: process.pid, at: new Date().toISOString() })}\n`, { mode: 0o600 });
       process.kill(d.pid, spec.signal);
     } catch {
       d.reponse = { event: "injoignable" };

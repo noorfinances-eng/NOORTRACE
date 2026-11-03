@@ -107,7 +107,7 @@ describe("CT-9 : catalogue, schéma et cas (section 4, annexe A.2, EX-4.3, EX-A.
   it("catalogue.json valide contre la racine, couverture.json contre rapport_couverture, et index-ta-par-menace.json est l'index que le catalogue donne (EX-A.13)", function () {
     expect(valider(CATALOGUE, "racine")).to.deep.equal([]);
     expect(valider(COUVERTURE, "rapport_couverture")).to.deep.equal([]);
-    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.1", date: "2026-11-01" });
+    expect(CATALOGUE).to.include({ version: 0, kind: "plan-de-tests", spec: "CT-9", spec_version: "0.2", date: "2026-11-03" });
     const index = lire(CT9, "index-ta-par-menace.json");
     expect(index.index).to.deep.equal(P.indexParMenace(CATALOGUE));
     expect(Object.keys(index.index)).to.have.length(MENACES.threats.length);
@@ -364,15 +364,20 @@ describe("CT-9 : tests adversariaux (section 10, EX-10.1, EX-10.7, EX-10.8, EX-A
   const ADV = "test/adversarial.test.js";
   const titres = P.titresTests(texte(R, ADV));
   const RACINE_DESCRIBE = "CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques de référence, CT-7 EX-3.2)";
+  // Révision 0.2 : describe de premier niveau des TA- joués sur le démon de l'étape 4 (mutants du paquet, EX-10.5).
+  const DEMON_DESCRIBE = "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)";
   const TA = CATALOGUE.tests.filter((t) => t.level === "TA");
 
-  it("chaque it commence par ses identifiants TA- puis la menace entre parenthèses, un qualificatif facultatif, et finit par « (tué) » ou « (tués) » sauf les oracles sur un vecteur d'EX-10.4 ; TA-n nomme MN-n ; 58 it sous un describe racine et neuf describe par composant", function () {
-    expect(titres.cas).to.have.length(58);
+  it("chaque it commence par ses identifiants TA- puis la menace entre parenthèses, un qualificatif facultatif, et finit par « (tué) » ou « (tués) » sauf les oracles sur un vecteur d'EX-10.4 ; TA-n nomme MN-n ; 71 it : 58 sous le describe racine des bibliothèques et ses neuf describe par composant, 13 sous le describe du démon de l'étape 4", function () {
+    expect(titres.cas).to.have.length(71);
     expect(titres.describes[0]).to.equal(RACINE_DESCRIBE);
-    expect(titres.describes).to.have.length(10);
+    expect(titres.describes).to.have.length(11);
+    expect(titres.describes[10]).to.equal(DEMON_DESCRIBE);
+    expect(titres.cas.filter((c) => c.describes[0] === RACINE_DESCRIBE)).to.have.length(58);
+    expect(titres.cas.filter((c) => c.describes[0] === DEMON_DESCRIBE)).to.have.length(13);
     for (const c of titres.cas) {
-      expect(c.describes[0], c.it).to.equal(RACINE_DESCRIBE);
-      expect(c.describes, c.it).to.have.length(2);
+      expect([RACINE_DESCRIBE, DEMON_DESCRIBE], c.it).to.include(c.describes[0]);
+      expect(c.describes, c.it).to.have.length(c.describes[0] === RACINE_DESCRIBE ? 2 : 1);
       // EX-10.7 : après la liste des menaces, un qualificatif séparé par
       // « , » et sans parenthèse est admis (« partie exécutable ») ; les deux
       // oracles sur un vecteur d'EX-10.4 (TA-23, TA-72) portent « oracle sur
@@ -386,13 +391,16 @@ describe("CT-9 : tests adversariaux (section 10, EX-10.1, EX-10.7, EX-10.8, EX-A
     }
   });
 
-  it("chaque entrée TA- exécutable est d'exécution vecteurs_et_depot ; celles qui citent test/adversarial.test.js y ont leur it, et chaque it du fichier correspond à une entrée exécutable qui le cite", function () {
+  it("chaque entrée TA- exécutable est d'exécution vecteurs_et_depot, ou phase_2 quand elle ne cite que des it du démon de l'étape 4 ; celles qui citent test/adversarial.test.js y ont leur it, et chaque it du fichier correspond à une entrée exécutable qui le cite", function () {
     const exe = TA.filter((t) => t.status.state === "executable");
-    expect(exe).to.have.length(69);
-    for (const t of exe) expect(t.adversarial.execution, t.id).to.equal("vecteurs_et_depot");
+    expect(exe).to.have.length(79);
+    for (const t of exe) {
+      const surDemon = (t.status.tests ?? []).length > 0 && t.status.tests.every((x) => x.file === ADV && x.describe === DEMON_DESCRIBE);
+      expect(t.adversarial.execution, t.id).to.equal(surDemon ? "phase_2" : "vecteurs_et_depot");
+    }
     const cites = new Set();
     for (const t of exe) for (const x of t.status.tests ?? []) if (x.file === ADV) { cites.add(t.id); expect(titres.cas.some((c) => c.it === x.it), `${t.id} : ${x.it}`).to.equal(true); }
-    expect(cites.size).to.equal(63);
+    expect(cites.size).to.equal(75);
     // EX-10.3 : un TA- exécutable sans complément cite un it « (tué) », un oracle sur un vecteur (EX-10.4) ou une étape de CI.
     for (const t of exe) if (!t.status.complement) expect((t.status.tests ?? []).some((x) => x.file === ADV) || (t.status.ci_steps ?? []).length > 0, t.id).to.equal(true);
     for (const c of titres.cas) {
@@ -422,8 +430,13 @@ describe("CT-9 : tests adversariaux (section 10, EX-10.1, EX-10.7, EX-10.8, EX-A
     for (const t of TA.filter((x) => x.adversarial.threat)) expect(index[t.adversarial.threat]).to.deep.include({ test: t.id, state: t.status.state });
   });
 
-  it("test/adversarial.test.js : le fichier n'écrit rien dans le dépôt (mutants sous NOORTRACE_TMP, détruits dans un after), copie scripts/lib, verify, conformite et registre (EX-10.5) et ne convertit aucune exception d'un mutant en écart (EX-10.6)", function () {
+  it("test/adversarial.test.js : le fichier n'écrit rien dans le dépôt (mutants sous NOORTRACE_TMP, détruits dans un after), copie scripts/lib, verify, conformite et registre, et paquets/enregistreur pour le démon (EX-10.5), et ne convertit aucune exception d'un mutant en écart (EX-10.6)", function () {
     const src = texte(R, ADV);
+    const fabrique = texte(R, "test/fixtures/enregistreur-adversarial/demon.mjs");
+    expect(fabrique).to.include('for (const d of ["src", "bin", "schemas"])');
+    expect(fabrique).to.include('fs.symlinkSync(path.join(RACINE, "node_modules"), path.join(racine, "node_modules"))');
+    expect(fabrique).to.include("process.env.NOORTRACE_TMP ?? os.tmpdir()");
+    expect(src).to.include("detruireMutants?.();");
     expect(src).to.include('process.env.NOORTRACE_TMP ?? os.tmpdir()');
     expect(src).to.include('process.env.NOORTRACE_RACINE ??');
     expect(src).to.match(/after\(function \(\) \{\s*for \(const r of MUTANTS\) fs\.rmSync\(r, \{ recursive: true, force: true \}\);/);
@@ -455,10 +468,10 @@ describe("CT-9 : mesures TM- (section 11, EX-11.14, EX-11.16, annexe A.7, EX-A.9
       expect(m.failure_threshold.length, t.id).to.be.greaterThan(0);
       expect(m.percentiles, t.id).to.be.an("array");
     }
-    // EX-11.16 : cinq entrées exécutables, résultat dans le rapport sur les
-    // vecteurs, dans le rapport de campagne de TM-31 (étape 3) et dans les
-    // tests cités.
-    expect(TM.filter((t) => t.status.state === "executable").map((t) => t.id)).to.deep.equal(["TM-6", "TM-10", "TM-15", "TM-20", "TM-31"]);
+    // EX-11.16 : six entrées exécutables, résultat dans le rapport sur les
+    // vecteurs, dans les rapports de campagne de TM-31 (étape 3) et de TM-16
+    // (étape 4) et dans les tests cités.
+    expect(TM.filter((t) => t.status.state === "executable").map((t) => t.id)).to.deep.equal(["TM-6", "TM-10", "TM-15", "TM-16", "TM-20", "TM-31"]);
     // EX-11.14 : TM-22 a pour cible 450 min et un seuil d'échec à 480 min ;
     // les sources en « moins de » (TM-25, TM-35, TM-43) emploient
     // strictement_inferieur.

@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.1",
-  "date": "2026-11-01",
+  "spec_version": "0.2",
+  "date": "2026-11-03",
   "levels": [
     {
       "id": "TU",
@@ -131,8 +131,8 @@
       "oracle": "`p50 ≤ 5` et `p99 ≤ 50` (ms) sur le système de référence, `counts_for_targets` vrai ; sinon la ligne porte `met` faux et la porte 2 le dit.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur et harnais de mesure non construits (CT-2 EX-16.2 : phase 2)."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
       },
       "threats": [],
       "measure": {

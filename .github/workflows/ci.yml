@@ -431,6 +431,55 @@ jobs:
           npx hardhat --config hardhat.config.mjs test test/console.test.js 2>&1 | tee "$RUNNER_TEMP/console.txt"
           if grep -E '^[[:space:]]+[0-9]+ pending' "$RUNNER_TEMP/console.txt"; then exit 1; fi
 
+  # Essais Python du SDK noortrace-sdk et des adaptateurs de cadres (CT-2
+  # 6.4 à 6.6 ; paquets/sdk-python, LISEZMOI « Environnements d'essai ») et
+  # adaptateurs JavaScript : uv 0.11.32 (version exacte) installe Python 3.10
+  # et 3.13 (suite du SDK seul, EX-6.5) et 3.12 (environnements des cadres :
+  # crewai 1.15.30 exclut 3.14) ; les environnements isolés sont créés depuis
+  # les verrous versionnés (empreintes SHA-256 exigées) ; go1.27.3 exactement
+  # (CT-6 EX-14.3) construit le binaire noortrace-verifier par la recette
+  # d'EX-14.6, et les essais lui soumettent les dossiers des parcours
+  # (NOORTRACE_GO_BIN, répertoire de go). Un environnement absent ou un go
+  # introuvable met un essai en attente : la dernière commande refuse toute
+  # ligne « pending » du rapport, comme le travail Chromium.
+  sdk-python:
+    name: SDK Python et adaptateurs de cadres (Python 3.10, 3.12, 3.13 par uv 0.11.32, go1.27.3), sans essai en attente
+    runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.27.3
+          cache: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: 0.11.32
+          enable-cache: false
+      - run: npm ci
+      - name: interpréteurs Python 3.10, 3.12 et 3.13 par uv, environnements d'essai depuis les verrous versionnés
+        run: |
+          uv --version
+          uv python install 3.10 3.12 3.13
+          paquets/sdk-python/outils/environnements.sh preparer
+      - name: binaire vérificateur Go construit par verificateur/scripts/construire.sh (go1.27.3)
+        run: |
+          test "$(go env GOVERSION)" = go1.27.3
+          GOFLAGS=-mod=vendor verificateur/scripts/construire.sh -o "$RUNNER_TEMP/noortrace-verifier"
+          test -x "$RUNNER_TEMP/noortrace-verifier"
+          sha256sum "$RUNNER_TEMP/noortrace-verifier"
+      - name: essais Python du SDK et des adaptateurs, adaptateurs JavaScript, aucun essai en attente
+        run: |
+          set -o pipefail
+          export NOORTRACE_GO_BIN="$(dirname "$(command -v go)")"
+          npx hardhat --config hardhat.config.mjs test test/enregistreur-sdk-python.test.js test/enregistreur-sdk-adaptateurs.test.js 2>&1 | tee "$RUNNER_TEMP/sdk-python.txt"
+          if grep -E '[0-9]+ pending' "$RUNNER_TEMP/sdk-python.txt"; then exit 1; fi
+
   # Confrontation des vecteurs CT-2, CT-3, CT-5, CT-6 et CT-7 par des
   # implémentations tierces (spec/CT-6-verificateur.md, annexe A.8 ;
   # spec/CT-5-ancrage.md, annexe A.6 ; spec/CT-2-enregistreur.md, annexes B.5

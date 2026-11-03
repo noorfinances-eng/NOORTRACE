@@ -39,7 +39,7 @@ export function decoderSecret(brut, encodage) {
  * Résout une référence de secret (EX-15.4 pas 4).
  * @param {object} ref
  * @param {string} pointeur pointeur JSON de la référence, pour le rapport
- * @param {{env?: NodeJS.ProcessEnv, uid?: number|null}} [contexte]
+ * @param {{env?: NodeJS.ProcessEnv, uid?: number|null, vault?: Map<string, Uint8Array>}} [contexte] `vault` : valeurs des références `{ vault }` lues par lireSecretsVault
  * @returns {Uint8Array}
  * @throws {ErreurSecret}
  */
@@ -62,7 +62,10 @@ export function resoudreSecret(ref, pointeur, contexte = {}) {
     if (uid !== null && st.uid !== uid) throw new ErreurSecret(pointeur, `fichier de secret ${ref.file} d'un autre propriétaire que l'utilisateur du démon`);
     brut = new Uint8Array(fs.readFileSync(ref.file));
   } else if (ref?.vault) {
-    throw new ErreurSecret(pointeur, "référence vault non prise en charge par ce lot du démon");
+    // Valeur lue au préalable par lireSecretsVault (secrets-vault.mjs, lecture réseau asynchrone).
+    const v = contexte.vault?.get(pointeur);
+    if (!v) throw new ErreurSecret(pointeur, "référence vault non lue (lireSecretsVault)");
+    brut = new Uint8Array(v);
   } else {
     throw new ErreurSecret(pointeur, "référence de secret mal formée");
   }

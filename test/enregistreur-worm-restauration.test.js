@@ -26,7 +26,7 @@ import { RACINE, repertoireTemporaire } from "./fixtures/enregistreur-coeur/outi
 import {
   IMAGES, dockerDisponible, demarrerS3, demarrerPostgresql, arreterTout, certificats, mandataireTls, creerBucketVerrouille, identifiantsRole, attendre, portLibre,
 } from "./fixtures/enregistreur-worm/outils.mjs";
-import { configurationHa, ClientMcpHttp, lancerDemon, sante } from "./fixtures/enregistreur-ha/outils.mjs";
+import { configurationHa, ClientMcpHttp, demarrerDemon } from "./fixtures/enregistreur-ha/outils.mjs";
 import { HorlogeReglable, pieceJson, reconstruireJournal, ErreurRestauration } from "@noortrace/enregistreur";
 import { configurationDev, graine, secretsDev } from "./fixtures/enregistreur-coeur/outils.mjs";
 
@@ -97,11 +97,9 @@ describe("reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 
     Object.assign(ev, { A, B, worm, journal_id });
     ev.repA = path.join(A.config.storage.root, A.config.recorder.org_id.slice(2), journal_id.slice(2));
     // 1. A écrit ; ses segments fermés sont copiés.
-    const dA = lancerDemon(A.fichier, A.env, A.config.supervision.ops_log.path);
+    // Ports d'écoute réattribués si l'un d'eux a été pris avant l'ouverture (EADDRINUSE).
+    const dA = await demarrerDemon(A, "ok");
     ev.dA = dA;
-    await attendre(async () => (await sante(A.port))?.corps?.status === "ok", 60000).catch((e) => {
-      throw new Error(`${e.message}\n${dA.sortie}`);
-    });
     const h = new ClientMcpHttp(A.config.mcp.http.listen);
     await h.ouvrir();
     // Aucune clôture de période pendant les écritures et l'archive : une clôture
@@ -195,11 +193,8 @@ describe("reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 
 
   it("le démon réel B reprend sur le répertoire reconstruit : époque strictement supérieure, segment neuf dont l'en-tête suit le dernier événement restauré ; il écrit", async function () {
     const { B } = ev;
-    const dB = lancerDemon(B.fichier, B.env, B.config.supervision.ops_log.path);
+    const dB = await demarrerDemon(B, "ok");
     ev.dB = dB;
-    await attendre(async () => (await sante(B.port))?.corps?.status === "ok", 60000).catch((e) => {
-      throw new Error(`${e.message}\n${dB.sortie}`);
-    });
     const h = new ClientMcpHttp(B.config.mcp.http.listen);
     await h.ouvrir();
     expect((await h.appeler("demo__ecrire", { id: "B1", montant: "9" })).result.isError).to.equal(false);

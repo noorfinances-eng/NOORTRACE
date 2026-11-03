@@ -13,6 +13,8 @@
 
 import fs from "node:fs";
 import { validerConfiguration, resoudreSecrets, ligneRapport } from "./configuration.mjs";
+import { lireSecretsVault } from "./secrets-vault.mjs";
+import { fichierDemandeRotation } from "./ctl-demon.mjs";
 import { Coeur } from "./coeur.mjs";
 import { ClientServiceApprobation } from "./service-approbation-http.mjs";
 import { ErreurEnregistreur } from "./erreurs.mjs";
@@ -88,7 +90,10 @@ export async function principal(argv, io = {}) {
     return 2;
   }
   rapporter(stderr, "avertissement :", v.avertissements);
-  const s = resoudreSecrets(v.config, { env: io.env ?? process.env });
+  // Références { vault } (15.2) : lues avant la résolution des autres (pas 4).
+  const lus = await lireSecretsVault(v.config, { env: io.env ?? process.env });
+  const s = resoudreSecrets(v.config, { env: io.env ?? process.env, vault: lus.valeurs });
+  if (lus.erreurs.length) s.erreurs = [...lus.erreurs, ...s.erreurs.filter((e) => !lus.erreurs.some((x) => x.pointeur === e.pointeur))];
   s.erreurs.push(...controleSecretsRedaction(v.config, s.secrets));
   if (s.erreurs.length) {
     rapporter(stderr, "config_invalid :", s.erreurs);
@@ -114,10 +119,14 @@ export async function principal(argv, io = {}) {
     // Copies WORM (§12.6, lot WORM) ; bail détenu par une autre instance : instance
     // passive (13.4), les frontaux s'ouvrent et rendent -31010 bail_non_detenu.
     const worm = supportWormDepuisConfiguration(v.config, s.secrets);
-    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, worm, attendreBail: true, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
+    coeur = await Coeur.demarrer({ config: v.config, secrets: s.secrets, octetsConfig: octets, service, redaction, worm, env: io.env ?? process.env, attendreBail: true, reglesSupplementaires: REGLES_SUPPLEMENTAIRES, minuteurs: true, supervision: true });
   } catch (e) {
     const raison = e instanceof ErreurEnregistreur ? e.raison : "demarrage";
     stderr.write(`demarrage_refuse : ${raison} : ${e.message}\n`);
+    // Les fils de rédaction (EX-3.6) sont fermés : sans eux ouverts, le
+    // processus sort avec le code 2 (une adresse d'écoute prise, EADDRINUSE,
+    // laissait le démon vivant après le refus).
+    await redaction?.fermer?.().catch?.(() => {});
     return 2;
   }
   // Frontal modèle (CT-2 §5) : passerelle, ICAP ou miroir selon model.mode, et registre de corrélation (5.6), offert au frontal MCP.
@@ -238,6 +247,18 @@ export async function lancer() {
   process.on("SIGUSR2", () => {
     const r = coeur.accepterHorloge();
     process.stderr.write(r.accepte ? "noortrace: horloge acceptee\n" : `noortrace: acceptation de l'horloge refusee (${r.raison})\n`);
+  });
+  // `noortrace-ctl cle rotation-urgence` (CT-8 EX-10.14, CT-2 EX-11.16) : SIGURG
+  // n'agit qu'avec la demande écrite par noortrace-ctl à côté du journal d'exploitation.
+  process.on("SIGURG", async () => {
+    const f = fichierDemandeRotation(coeur.config.supervision.ops_log.path);
+    try {
+      fs.rmSync(f);
+    } catch {
+      coeur.journal.consigner("warning", "signataire", "key_rotation_emergency_ignored", { raison: "sans_demande" });
+      return;
+    }
+    await coeur.rotationUrgence().catch((e) => coeur.journal.consigner("error", "signataire", "key_rotation_emergency_refused", { raison: "erreur", erreur: String(e?.message ?? e) }));
   });
   process.on("SIGHUP", async () => {
     const k = process.argv.indexOf("--config");

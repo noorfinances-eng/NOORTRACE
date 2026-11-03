@@ -882,9 +882,23 @@ contrat, avec leurs tests dans `test/enregistreur-ha-exigences.test.js` et
   l'orchestrateur, EX-13.10 (1)) ; après la relecture, la taille des
   fichiers d'époque inférieure est consignée (`lease_predecessor_files`) et
   `tic` contrôle leur croissance (`journal_fork`, EX-13.10 (3)) ;
-- EX-13.5 (1) : l'écrivain refuse d'ouvrir son fichier d'intention, et le
-  cœur son fichier d'attente (l'événement reste alors en mémoire), si une
-  époque supérieure est présente dans les noms (`verifierEpoqueOuverture`) ;
+- EX-13.5 (1) : l'écrivain refuse d'ouvrir un segment ou son fichier
+  d'intention, et le cœur son fichier d'attente (l'événement reste alors en
+  mémoire), si une époque supérieure est présente dans les noms des
+  fichiers du répertoire du journal, tous sous-répertoires à époque compris
+  (`verifierEpoqueOuverture`, `epoqueMaxJournal`) ; avant chaque écriture
+  (événement, intention, levée, point, clôture, fichier d'attente),
+  `Ecrivain.verifierEcriture(sorte)` (ajout du lot de correction D-1) exige
+  le bail valide et aucune époque supérieure présente (`GardeEpoque`) ;
+  sinon `lease_lost` (`cause: "epoque_superieure_presente"`), mode dégradé
+  « bail », erreur de raison `bail`, et rien n'est écrit ;
+- à la reprise d'un fichier d'attente, une ligne dont l'intention est déjà
+  levée par un autre événement (reprise) n'est pas scellée
+  (`pending_superseded`, EX-4.46) ;
+- EX-17.2 : `instanceExploitation(config)` rend `recorder.instance_id` avec
+  `postgresql` ou `etcd`, sinon null ; `JournalExploitation` (option
+  `instance_id`) et `JournalOutil` de `noortrace-ctl` l'ajoutent à `data`
+  de chaque ligne ;
 - `etatSante()` porte `passive` ; `_armerMinuteurs` et `arreter` appellent
   `o.worm.armer()` et `o.worm.arreter()` ;
 - EX-12.18 : à la reprise des intentions, un fichier d'intention dont tout
@@ -1062,3 +1076,57 @@ le démon peut envoyer des lignes `{"noortrace_journal":<ligne>}` que le
 connecteur écrit sur sa sortie d'erreur (EX-9.7). Les échecs de jeton du
 Streamable HTTP, de la prise TCP des connecteurs et de la passerelle sont
 limités par `LimiteurEchecs` (`reason: "jeton_limite"`, EX-18.3).
+
+## j) Signataires des classes A, B et C (§11)
+
+Lot « signataires » (`src/signataires/`). Chaque backend étend `Signataire`
+(`clePublique`, `signer`, `sante`, `clesConnues`, `effacer`, EX-11.18) et
+ajoute `localisation(keyId)` (identifiant non secret chez le backend,
+consigné) ; l'enveloppe commune `SignataireVerifie` (borne, délai, seconde
+tentative, vérification d'EX-11.6) est inchangée.
+
+```js
+import { signataireDepuisConfiguration, SignatairePkcs11, SignataireTransit, SignataireAwsKms,
+         SignataireCloudKms, SignataireEnveloppe, desceller, ErreurSignataire } from "@noortrace/enregistreur";
+
+const backend = await signataireDepuisConfiguration(config, secrets, { env, ca });   // classes A à D selon signer.backend.type
+// A : pkcs11 (auxiliaire python3 -I -S src/signataires/pkcs11-auxiliaire.py, PIN par stdin)
+// B : vault-transit, openbao-transit (X-Vault-Token), aws-kms (SigV4, AWS_*), gcp-kms (compte de service)
+// C : envelope + wrap aws-kms | gcp-kms | azure-keyvault | tpm2 (graine de 32 octets en mémoire, effacée à l'arrêt)
+```
+
+Changements du cœur (les plus petits qui branchent le lot ; tests :
+`test/enregistreur-signataires-exigences.test.js`, `-parcours`) :
+
+- `Coeur.demarrer` construit le backend par `signataireDepuisConfiguration`
+  (option `env` : environnement du démon, que `cli.mjs` passe) ; une erreur
+  du backend au pas 5 est une `ErreurEnregistreur("cle")`
+  (`demarrage_refuse : cle : …`, code 2) ;
+- après la clé publique, comparaison avec la clé qu'annonce la chaîne pour
+  la clé courante (`signer_key_mismatch`, refus), signature de test, puis
+  ligne `signer_ready` { `class`, `backend`, `key_id`, `backend_key`,
+  `pkcs11` } (EX-11.8, lecture 183) ;
+- `tic()` : `health()` toutes les `signer.health_interval_ms` (échec →
+  `signer_unavailable` et mode dégradé « clé », EX-11.18, 14.2) ; rotation
+  planifiée (`planned_every_days` écoulés depuis l'entrée en vigueur de la
+  clé courante, clé `next_key_id` détenue : `tournerCle`, sinon
+  `key_rotation_unavailable` une fois ; EX-11.15, lecture 184).
+
+Compléments (reprise du lot) :
+
+```js
+import { lireSecretsVault, IdentiteAws, JetonMetadonneesGoogle, rapprocher, principalRapprochement } from "@noortrace/enregistreur";
+
+const lus = await lireSecretsVault(config, { env, ca });          // références { vault } (15.2), avant le pas 4
+const s = resoudreSecrets(config, { env, vault: lus.valeurs });   // resoudreSecret lit contexte.vault pour { vault }
+await coeur.rotationUrgence();   // → { accepte, raison?, evenement? } ; noortrace-ctl cle rotation-urgence (SIGURG + demande écrite)
+```
+
+- `cli.mjs` lit les références `{ vault }` avant `resoudreSecrets` ;
+  `coeur.recharger` aussi ; `lancer()` traite SIGURG (demande
+  `<ops_log.path>.rotation-urgence` exigée, lecture 194) ;
+- `SignataireVerifie` consigne `signer_test_signature` et ajoute `key_id`,
+  `tentatives` à `signer_unavailable` (rapprochement, lecture 195) ;
+- `ClientKms` prend son identité d'`IdentiteAws` (variables, ou IMDSv2) ;
+  `ClientCloudKms` de `JetonGoogle` (fichier de compte de service) ou de
+  `JetonMetadonneesGoogle` (lecture 193).

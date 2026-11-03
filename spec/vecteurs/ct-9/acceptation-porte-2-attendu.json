@@ -30,7 +30,7 @@
           ]
         },
         {
-          "element": "Les tests adversariaux passent : Rapport d'exécution : chaque TA- `reussi` avec la réponse, et son mutant tué (échec sans la réponse) ; TA-26 (PA-1) et TA-88 (PA-10) `non_applicable` pour leur partie conditionnée tant que la proposition n'est pas adoptée (EX-14.1) ; TA-2, TA-30, TA-93 `reussi` exigé (réponses codées à l'étape 4, PD-12, PD-13) ; `threats.without_ta` vide dans `couverture.json`",
+          "element": "Les tests adversariaux passent : Rapport d'exécution : chaque TA- `reussi` avec la réponse, et son mutant tué (échec sans la réponse) ; TA-26 (PA-1) et TA-88 (PA-10) `non_applicable` pour leur partie conditionnée tant que la proposition n'est pas adoptée (EX-14.1) ; TA-2 et TA-30 `reussi` exigé (réponses codées par le démon de l'étape 4), TA-93 `reussi` exigé (réponse à coder, PD-13, PD-9 ; étape 8) ; `threats.without_ta` vide dans `couverture.json`",
           "rules": [
             "CT-9 §14 (entrées : TA-1 à TA-98 (un par menace) et TA-99 à TA-103 (scénarios du plan), section 10)",
             "CT-9 EX-14.1"

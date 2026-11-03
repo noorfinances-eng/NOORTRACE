@@ -1,7 +1,12 @@
 // Jeton de clôture côté stockage et bascule (CT-2 §13.3, §13.4) :
-//   - EX-13.5 (1) : un fichier d'intention ou d'attente n'est ouvert que si
-//     son époque n'est inférieure à aucune époque présente dans les noms du
-//     répertoire (le segment l'est déjà par l'écrivain) ;
+//   - EX-13.5 (1) : un segment, un fichier d'intention ou d'attente n'est
+//     ouvert que si son époque n'est inférieure à aucune époque présente dans
+//     les noms des fichiers du répertoire du journal (12.1 : « un répertoire
+//     par journal », tous ses sous-répertoires à époque compris : segments,
+//     intentions, attente, approbations, registre des copies ; lecture
+//     consignée dans le LISEZMOI) ; et une instance dont l'époque est dépassée
+//     par une autre présente dans le journal n'écrit plus rien (GardeEpoque,
+//     contrôlée avant chaque écriture de l'écrivain, EX-13.1, EX-13.6) ;
 //   - 13.4 pas 1 : avant toute acquisition, la ligne de contrôle de la clé du
 //     MAC de relais est comparée à celle du dernier fichier `mac-*` (EX-7.22) ;
 //     une différence est une erreur de configuration (`relay_mac_key_mismatch`)
@@ -53,18 +58,98 @@ export async function epoqueMaxNoms(dir, motif) {
 }
 
 /**
- * EX-13.5 (1) : refuse l'ouverture d'un fichier d'époque `epoque` dans un
- * répertoire où une époque supérieure est présente (un écrivain d'époque
- * inférieure a perdu son bail).
+ * Plus grande époque présente dans les noms des fichiers à époque du
+ * répertoire du journal (12.1 : segments, intentions, attente, approbations,
+ * registre des copies), ou null ; avec le répertoire qui la porte.
  * @param {string} repertoireJournal
- * @param {"intentions"|"attente"} sorte
+ * @returns {Promise<{epoque: number, repertoire: string}|null>}
+ */
+export async function epoqueMaxJournal(repertoireJournal) {
+  let max = null;
+  for (const [dir, motif] of FICHIERS_A_EPOQUE) {
+    const e = await epoqueMaxNoms(path.join(repertoireJournal, dir), motif);
+    if (e !== null && (max === null || e > max.epoque)) max = { epoque: e, repertoire: dir };
+  }
+  return max;
+}
+
+/**
+ * EX-13.5 (1) : refuse l'ouverture d'un fichier d'époque `epoque` quand une
+ * époque supérieure est présente dans les noms des fichiers du répertoire du
+ * journal, quel que soit le sous-répertoire qui la porte (un écrivain
+ * d'époque inférieure a perdu son bail : l'époque du repreneur apparaît
+ * d'abord dans `segments/` et `intentions/`, jamais d'abord dans
+ * `attente/`). Les fichiers de l'époque `epoque` elle-même sont ceux de
+ * l'écrivain (une époque par acquisition, EX-13.4).
+ * @param {string} repertoireJournal
+ * @param {"segments"|"intentions"|"attente"} sorte fichier à ouvrir (message)
  * @param {number} epoque
  */
 export async function verifierEpoqueOuverture(repertoireJournal, sorte, epoque) {
-  const [dir, motif] = FICHIERS_A_EPOQUE.find(([d]) => d === sorte);
-  const max = await epoqueMaxNoms(path.join(repertoireJournal, dir), motif);
-  if (max !== null && max > epoque) {
-    throw new ErreurEnregistreur("bail", `noortrace: un ecrivain d'epoque superieure existe (${sorte}, EX-13.5)`);
+  const max = await epoqueMaxJournal(repertoireJournal);
+  if (max !== null && max.epoque > epoque) {
+    throw new ErreurEnregistreur("bail", `noortrace: un ecrivain d'epoque superieure existe (${sorte} refuse, ${max.repertoire}, EX-13.5)`);
+  }
+}
+
+/**
+ * Garde de l'époque d'un écrivain (EX-13.1, EX-13.5 (1), EX-13.6) : avant
+ * chaque écriture, l'écrivain s'assure qu'aucune époque supérieure à la
+ * sienne n'est présente dans le répertoire du journal. Pour ne pas relire
+ * chaque répertoire à chaque appel (latence de 16.1), la liste d'un
+ * sous-répertoire n'est relue que si son `mtime` a changé, ou s'il n'est pas
+ * antérieur d'au moins `margeMs` à la dernière lecture (granularité des
+ * horodatages du système de fichiers : un ajout dans le même tic que la
+ * lecture précédente laisserait le `mtime` inchangé). Une époque supérieure
+ * constatée l'est pour toujours (les époques ne reculent pas, EX-13.4).
+ */
+export class GardeEpoque {
+  /**
+   * @param {string} repertoireJournal
+   * @param {number} epoque
+   * @param {{margeMs?: number, murale?: () => number}} [o]
+   */
+  constructor(repertoireJournal, epoque, o = {}) {
+    this.repertoire = repertoireJournal;
+    this.epoque = epoque;
+    this.marge = o.margeMs ?? 2000;
+    this.murale = o.murale ?? (() => Date.now());
+    /** @type {Map<string, {mtimeMs: number, lueA: number, max: number|null}>} */
+    this.cache = new Map();
+    /** Époque supérieure constatée : { epoque, repertoire } ou null. */
+    this.depassement = null;
+  }
+
+  /**
+   * Rend l'époque supérieure présente (et son sous-répertoire), ou null.
+   * @returns {Promise<{epoque: number, repertoire: string}|null>}
+   */
+  async depassee() {
+    if (this.depassement) return this.depassement;
+    for (const [dir, motif] of FICHIERS_A_EPOQUE) {
+      const chemin = path.join(this.repertoire, dir);
+      let st;
+      try {
+        st = await fs.stat(chemin);
+      } catch {
+        this.cache.delete(dir);
+        continue;
+      }
+      const c = this.cache.get(dir);
+      let max;
+      if (c && c.mtimeMs === st.mtimeMs && c.lueA - st.mtimeMs >= this.marge) {
+        max = c.max;
+      } else {
+        const lueA = this.murale();
+        max = await epoqueMaxNoms(chemin, motif);
+        this.cache.set(dir, { mtimeMs: st.mtimeMs, lueA, max });
+      }
+      if (max !== null && max > this.epoque) {
+        this.depassement = { epoque: max, repertoire: dir };
+        return this.depassement;
+      }
+    }
+    return null;
   }
 }
 

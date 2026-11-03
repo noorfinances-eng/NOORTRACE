@@ -2,8 +2,8 @@
   "version": 0,
   "kind": "plan-de-tests",
   "spec": "CT-9",
-  "spec_version": "0.1",
-  "date": "2026-11-01",
+  "spec_version": "0.2",
+  "date": "2026-11-03",
   "levels": [
     {
       "id": "TU",
@@ -6375,16 +6375,39 @@
         "CT-2 §4.8"
       ],
       "preconditions": [
-        "Enregistreur de l'étape 4 ; client MCP de référence de l'ère de CT-2 §0.3 ; serveur d'outils de démonstration (`outils-demo`, CT-2 §19.1)."
+        "Enregistreur de l'étape 4 : démon réel `bin/noortrace --config`, connecteur `noortrace-connecteur` ; politique de rédaction `pii-v1` de l'exemple de CT-2 §15.3.",
+        "Client MCP de référence de l'ère de CT-2 §0.3 : `@modelcontextprotocol/client` 2.4.0 (SDK TypeScript v2 de la révision 2026-07-28, dépendance de `@langchain/mcp-adapters` 2.0.1 fixée par `package-lock.json`), ère moderne épinglée (`versionNegotiation: { mode: { pin: \"2026-07-28\" } }`).",
+        "Serveur d'outils de test au contrat d'`outils-demo` (CT-2 §19.1 : `claims.get`, `claims.search`, `payments.create`, données fictives), qui rejoue les octets des vecteurs `pieces-mcp/appels` (`test/fixtures/enregistreur-mcp-reference/outils-demo.mjs`, transport stdio comme les serveurs des vecteurs ; l'image `outils-demo` en Streamable HTTP est un livrable de la démonstration, étape 8), et le serveur hérité `archives` des mêmes vecteurs ; service d'approbation simulé qui autorise."
       ],
       "steps": [
-        "Négocier la version, lister, appeler `claims.get`, `claims.search`, `payments.create` par stdio puis par Streamable HTTP ; authentifier une connexion d'hôte ; couper le serveur en cours d'appel."
+        "Négocier la version, lister, appeler `claims.get`, `claims.search`, `payments.create` par stdio (connecteur) puis par Streamable HTTP (jeton statique) ; authentifier une connexion d'hôte (sans jeton, jeton faux) ; couper le serveur en cours d'appel (`payments.create` du vecteur `injoignable`)."
       ],
-      "oracle": "Chaque appel produit l'événement attendu (comparé par `pieces-mcp/` sur les mêmes octets) ; requête non authentifiée refusée ; serveur coupé : erreur -3101x consignée et aucun événement forgé.",
+      "oracle": "Version négociée 2026-07-28 ; chaque appel produit l'événement attendu : pièces arguments, résultat, définition servie et liste annoncée égales, octet pour octet, à celles d'`attendu.json` du vecteur `pieces-mcp/appels` qui joue le même appel (`blancs-non-significatifs`, `arguments-non-entiers`, `execute-ecriture` sauf sa liste annoncée, servie sans le serveur `archives`, `injoignable`) ; événements attribués à la connexion d'hôte de chaque transport ; requête non authentifiée refusée (401, auth_failed, aucun événement) ; serveur coupé : erreur -31014 rendue à l'hôte et consignée (upstream_unreachable, raison perte), l'événement est celui du vecteur `injoignable` (résultat d'erreur), aucun événement forgé.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Le démon n'est pas construit ; seules les bibliothèques existent (TU-, TV-)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-mcp-client-reference.test.js",
+            "describe": "TI-3 — protocole MCP réel : client de référence @modelcontextprotocol/client (stdio et Streamable HTTP, ère moderne) à travers le frontal du démon",
+            "it": "client de référence (@modelcontextprotocol/client 2.4.0) en stdio par le connecteur, ère 2026-07-28 : tools/list, puis claims.get, claims.search et payments.create ; chaque appel rendu à l'hôte et scellé avec les pièces du vecteur pieces-mcp qui joue le même appel"
+          },
+          {
+            "file": "test/enregistreur-mcp-client-reference.test.js",
+            "describe": "TI-3 — protocole MCP réel : client de référence @modelcontextprotocol/client (stdio et Streamable HTTP, ère moderne) à travers le frontal du démon",
+            "it": "client de référence en Streamable HTTP, jeton statique, ère 2026-07-28 : mêmes appels, mêmes pièces ; événements attribués à la connexion d'hôte HTTP"
+          },
+          {
+            "file": "test/enregistreur-mcp-client-reference.test.js",
+            "describe": "TI-3 — protocole MCP réel : client de référence @modelcontextprotocol/client (stdio et Streamable HTTP, ère moderne) à travers le frontal du démon",
+            "it": "requête non authentifiée (sans jeton, puis jeton faux) : refusée par 401, une ligne auth_failed chacune, aucun événement"
+          },
+          {
+            "file": "test/enregistreur-mcp-client-reference.test.js",
+            "describe": "TI-3 — protocole MCP réel : client de référence @modelcontextprotocol/client (stdio et Streamable HTTP, ère moderne) à travers le frontal du démon",
+            "it": "serveur d'outils coupé en cours d'appel (payments.create du vecteur injoignable) : -31014 rendu à l'hôte et consigné ; l'événement est celui du vecteur (résultat d'erreur), aucun succès forgé"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-mcp-client-reference.test.js"
       },
       "threats": [
         "MN-1",
@@ -6700,16 +6723,35 @@
         "CT-2 §6.5"
       ],
       "preconditions": [
-        "SDK de l'étape 4 ; interpréteurs Python 3.10 et 3.13, Node.js 22 (CT-2 §6.4)."
+        "SDK de l'étape 4 : `noortrace-sdk` JavaScript (paquets/sdk-js) sous Node.js 22 (v22.22.0 au 2026-11-03) et Python (paquets/sdk-python) sous Python 3.10 (3.10.20) et 3.13 (3.13.16), environnements `essais-py310` et `essais-py313` créés par `uv` depuis les verrous versionnés (`paquets/sdk-python/outils/environnements.sh preparer`) ; un environnement absent met son exécution en attente et le titre nomme la condition (EX-3.11).",
+        "Démon réel du banc du SDK Python (`test/fixtures/enregistreur-sdk-python/banc.mjs` : point d'entrée SDK sur prise Unix, service d'approbation simulé qui rend a_approuver pour un outil `*approuver*` et refuse pour `*refuser*`), neuf pour chaque langage ; démon muet qui fait la preuve d'identité puis ne répond plus."
       ],
       "steps": [
-        "Exercer chaque fonction de l'interface publique de CT-2 §6.5 contre un enregistreur de test ; couper l'enregistreur ; dépasser `delai_s`."
+        "Jouer le même scénario dans chaque langage (`test/fixtures/enregistreur-sdk-langages/scenario.mjs`, `scenario.py`) : ouvrir, declarer_contexte, debut_appel et fin_appel, appel_outil d'écriture, debut_appel soumis à approbation puis refusé, appel_outil refusé, echange_modele, fermer.",
+        "Couper l'enregistreur après l'ouverture d'une session (appel_outil d'écriture, puis ouvrir) ; dépasser delai_s sur le démon muet.",
+        "Comparer les sorties normalisées et les événements des trois exécutions ; vérifier le journal et le dossier d'un événement de chacune."
       ],
-      "oracle": "Événements conformes ; une panne de l'enregistreur rend le résultat de la table de CT-2 EX-6.7 sans exception ; comportement identique dans les deux langages.",
+      "oracle": "Événements conformes (journal accepté par le noyau, dossier valide pour le noyau et pour le binaire Go si go1.27.3 est présent) et de mêmes pièces dans les deux langages ; chaque issue de politique rend le résultat de la table de CT-2 EX-6.7 sans exception (EX-6.4) ; une panne de l'enregistreur rend l'exception d'EX-6.12 (`NoortraceIndisponible` / `ErreurNoortraceIndisponible`, `envoyee` faux démon arrêté, vrai au-delà de delai_s) et l'outil d'écriture n'est jamais exécuté (EX-6.15) ; sorties normalisées identiques dans les deux langages.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "SDK non construits (CT-2 §6, « à tester en phase 2 »)."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-sdk-langages.test.js",
+            "describe": "TI-13 — SDK Python et TypeScript : interface publique de CT-2 6.5, Python 3.10 et 3.13 et Node.js 22, issues de politique sans exception, panne de l'enregistreur, comportement identique dans les deux langages",
+            "it": "SDK JavaScript (Node.js 22) : chaque fonction de l'interface publique ; issues de politique de la table d'EX-6.7 rendues sans exception par debutAppel ; démon arrêté : ErreurNoortraceIndisponible, outil d'écriture jamais exécuté ; démon muet au-delà de delai_s : ErreurNoortraceIndisponible, requête écrite ; événements conformes (journal et dossier vérifiés)"
+          },
+          {
+            "file": "test/enregistreur-sdk-langages.test.js",
+            "describe": "TI-13 — SDK Python et TypeScript : interface publique de CT-2 6.5, Python 3.10 et 3.13 et Node.js 22, issues de politique sans exception, panne de l'enregistreur, comportement identique dans les deux langages",
+            "it": "SDK Python 3.10 : mêmes sorties normalisées que le SDK JavaScript, étape par étape (interface publique, issues de politique, démon arrêté puis muet), mêmes événements (outils, statuts, décisions, pièces) ; événements conformes (journal et dossier vérifiés)"
+          },
+          {
+            "file": "test/enregistreur-sdk-langages.test.js",
+            "describe": "TI-13 — SDK Python et TypeScript : interface publique de CT-2 6.5, Python 3.10 et 3.13 et Node.js 22, issues de politique sans exception, panne de l'enregistreur, comportement identique dans les deux langages",
+            "it": "SDK Python 3.13 : mêmes sorties normalisées que le SDK JavaScript, étape par étape (interface publique, issues de politique, démon arrêté puis muet), mêmes événements (outils, statuts, décisions, pièces) ; événements conformes (journal et dossier vérifiés)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-sdk-langages.test.js"
       },
       "threats": []
     },
@@ -6960,17 +7002,43 @@
         "CT-8 EX-5.4"
       ],
       "preconditions": [
-        "Enregistreur de l'étape 4 en mode ICAP ; mandataire d'interception Squid (CT-2 §19.6 : seul équipement dont la configuration a été lue), services ICAP REQMOD et RESPMOD et interception TLS en place, version exacte consignée à la livraison de l'étape 4 (EX-3.4) ; autorité d'interception de test créée par le harnais pour le mandataire (rôle de CT-7 CLE-27 : clé hors de NOORTRACE, tenue par le client en production ; CLE-27 nomme la clé, il ne dit pas comment en fabriquer une pour l'épreuve). Montage : simulateur de fournisseur servi en HTTPS sous un nom de domaine `.example`, joint par le mandataire et, en mode passerelle, par une route de l'enregistreur pour ce même nom ; lien ICAP en clair (`icap://`, port 1344) restreint par `allowed_sources` (CT-2 EX-5.3), sur lequel se relève `ISTag` de chaque réponse ICAP."
+        "Enregistreur de l'étape 4 : démons réels `bin/noortrace --config` sur un même journal, en mode `passerelle` (référence) puis en mode `icap` ; mandataire d'interception Squid 6.13, paquet Debian `squid-openssl` 6.13-2+deb13u3 (OpenSSL, ssl-bump ; CT-2 §19.6 : seul équipement dont la configuration a été lue), image construite par `test/fixtures/enregistreur-modele/squid/Dockerfile` (base `debian:trixie-slim` épinglée par condensé, paquets lus dans l'instantané daté de l'archive Debian), réseau de l'hôte ; services ICAP REQMOD et RESPMOD (`reqmod_precache`, `respmod_precache`, `bypass=off`), `icap_send_client_ip on` (`client_address_header: \"X-Client-IP\"`), adaptation limitée à la destination du fournisseur hors tunnel CONNECT, ssl-bump (peek puis bump) avec une autorité d'interception de test créée par le harnais (rôle de CT-7 CLE-27 : clé hors de NOORTRACE, tenue par le client en production ; CLE-27 nomme la clé, il ne dit pas comment en fabriquer une pour l'épreuve).",
+        "Montage : simulateur de fournisseur servi en HTTPS sous `api.fournisseur.example` (autorité de test), joint par Squid (résolution par `--add-host`) et, en mode passerelle, par une route de l'enregistreur pour ce même nom (le démon le résout vers 127.0.0.1 par un module de test chargé à son lancement, `--import`) ; lien ICAP en clair (`icap://127.0.0.1`) restreint par `allowed_sources` (CT-2 EX-5.3), relevé par un relais qui garde les octets de chaque sens (`ISTag`, statuts, requête encapsulée par RESPMOD) ; démons à l'écoute sur le port 0, adresses réelles lues dans leur journal d'exploitation. Docker et `openssl` requis, sinon les cas sont en attente et leur titre nomme la condition ; binaire Go `noortrace-verifier` construit avec go1.27.3 (NOORTRACE_GO_BIN)."
       ],
       "steps": [
         "Jouer le même échange de modèle hors flux (échange n° 1 de CT-2 §19.2) deux fois, par le même client de test, qui envoie `Accept-Encoding: identity` dans les deux modes (en ICAP, l'enregistreur ne pose pas cet en-tête : la requête qu'il rend est l'originale augmentée de `X-Noortrace-Exchange`, CT-2 EX-5.4 ; en passerelle, il le pose lui-même, CT-2 EX-5.9) : par la passerelle (référence), la requête portant `X-Noortrace-Run-Id`, et par le mandataire ICAP, l'hôte non reconfiguré n'envoyant aucun en-tête `X-Noortrace-*` (CT-2 EX-5.8) ; comparer les deux événements. Le flux SSE (échange n° 2 de CT-2 §19.2 : relais sans tampon en passerelle, RESPMOD par morceaux) est hors de TI-19.",
         "Présenter un client ICAP hors d'`allowed_sources` (CT-2 EX-5.3) et une adresse d'hôte hors de `model.hosts` (CT-2 EX-5.8)."
       ],
-      "oracle": "Égalité, événement à événement avec l'échange joué en mode passerelle, de `code.model`, `code.prompt_version`, des `sha256`, `length` et `redacted` des pièces « requête » et « réponse » (références de CT-1 §5.4) et de `execution.is_error`, comparé par égalité entre les deux modes, sa règle restant celle de CT-2 §5.3.1 (statut du fournisseur et corps non JSON compris) ; écarts attendus et consignés (EX-3.4) : `delegation.run_id` nul en ICAP, l'hôte non reconfiguré n'ayant déclaré aucun `run_id` (aucune assertion n'exige `null` pour un `run_id` déclaré par en-tête en ICAP : CT-2 EX-5.8 traite l'en-tête `X-Noortrace-Run-Id` dans tous les modes), hôte rattaché par `source_addresses` (en-tête `client_address_header`), corrélation par groupe d'hôte seulement (CT-2 EX-5.8, §5.6). ICAP (CT-2 EX-5.3) : réponse OPTIONS avec `Methods`, `ISTag` et `Encapsulated: null-body=0`, `ISTag` sur toute réponse, aucune réponse `204` en REQMOD ni en RESPMOD (CT-2 EX-5.4, EX-5.5 ; la permission `Allow: 204` ou Preview qu'EX-5.3 rappelle est celle de la RFC 3507, qu'aucun des deux services n'exerce) ; un client ICAP hors d'`allowed_sources` est refusé sans événement, avec une ligne consignée ; une adresse d'hôte hors de `model.hosts` est rattachée à l'entrée « inconnu » si la configuration en déclare une, sinon bloquée en REQMOD (CT-2 EX-5.8). Écarts connus, consignés (EX-3.4) : statut ICAP du refus d'un client et nom de la ligne du journal d'exploitation non fixés par CT-2 EX-17.2 ; statut encapsulé et ligne du journal du blocage d'une adresse d'hôte inconnue en REQMOD non fixés, CT-2 EX-5.4 n'énumérant pas ce troisième cas (PD-26) ; forme du `match` de l'entrée « inconnu » non fixée par CT-2 EX-5.8 : la forme employée par le montage est consignée (PD-26) ; présence de `X-Noortrace-Exchange` dans la requête encapsulée par RESPMOD vérifiée sur Squid en phase 2 (CT-2 EX-5.4), à défaut corrélation heuristique et pièce « requête » `{\"noortrace_requete_inconnue\": true}`, consignée.",
+      "oracle": "Égalité, événement à événement avec l'échange joué en mode passerelle, de `code.model`, `code.prompt_version`, des `sha256`, `length` et `redacted` des pièces « requête » et « réponse » (références de CT-1 §5.4) et de `execution.is_error`, comparé par égalité entre les deux modes, sa règle restant celle de CT-2 §5.3.1 (statut du fournisseur et corps non JSON compris) ; écarts attendus et consignés (EX-3.4) : `delegation.run_id` nul en ICAP, l'hôte non reconfiguré n'ayant déclaré aucun `run_id` (aucune assertion n'exige `null` pour un `run_id` déclaré par en-tête en ICAP : CT-2 EX-5.8 traite l'en-tête `X-Noortrace-Run-Id` dans tous les modes), hôte rattaché par `source_addresses` (en-tête `client_address_header`), corrélation par groupe d'hôte seulement (CT-2 EX-5.8, §5.6). ICAP (CT-2 EX-5.3) : réponse OPTIONS avec `Methods`, `ISTag` et `Encapsulated: null-body=0`, `ISTag` sur toute réponse, aucune réponse `204` en REQMOD ni en RESPMOD (CT-2 EX-5.4, EX-5.5 ; la permission `Allow: 204` ou Preview qu'EX-5.3 rappelle est celle de la RFC 3507, qu'aucun des deux services n'exerce) ; un client ICAP hors d'`allowed_sources` est refusé sans événement, avec une ligne consignée ; une adresse d'hôte hors de `model.hosts` est rattachée à l'entrée « inconnu » si la configuration en déclare une, sinon bloquée en REQMOD (CT-2 EX-5.8). Écarts connus, consignés (EX-3.4) : statut ICAP du refus d'un client et nom de la ligne du journal d'exploitation non fixés par CT-2 EX-17.2 ; statut encapsulé et ligne du journal du blocage d'une adresse d'hôte inconnue en REQMOD non fixés, CT-2 EX-5.4 n'énumérant pas ce troisième cas (PD-26) ; forme du `match` de l'entrée « inconnu » non fixée par CT-2 EX-5.8 : la forme employée par le montage est consignée (PD-26) ; présence de `X-Noortrace-Exchange` dans la requête encapsulée par RESPMOD (CT-2 EX-5.4) : constatée sur Squid 6.13 (`squid-openssl` 6.13-2+deb13u3), qui encapsule en RESPMOD l'en-tête de la requête adaptée par REQMOD ; la corrélation se fait par ce MAC, sans heuristique (aucune ligne `icap_correlation_heuristique` ni `icap_requete_inconnue`). Formes consignées du démon : client ICAP refusé, `403` avec `ISTag` et ligne `auth_failed` (`transport: \"icap\"`, `reason: \"client_icap_refuse\"`), l'agent recevant l'erreur de Squid ; adresse d'hôte inconnue sans entrée « inconnu », réponse HTTP encapsulée `401` (`res-hdr`) et ligne `auth_failed` (`reason: \"hote_inconnu\"`, `status: 401`) ; entrée « inconnu » du montage : `match: { source_addresses: [plage qui ne contient pas le client] }`, l'`id` la désignant. Défaut révélé par l'épreuve et corrigé (CT-2 EX-5.3) : une connexion de client ICAP refusée restait ouverte tant que le pair gardait son côté, et retenait l'arrêt du démon jusqu'au délai de drain.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "CT-2 §19.6 : « à tester en phase 2 » ; CT-8 §5.3 : « épreuve de CT-9 »."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-modele-squid.test.js",
+            "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
+            "it": "chaque échange produit un événement ; égalité, entre la passerelle (référence) et Squid par ICAP, de code.model, code.prompt_version, des pièces « requête » et « réponse » (sha256, length, redacted) et d'execution.is_error ; écarts consignés : run_id nul en ICAP, hôte rattaché par source_addresses (X-Client-IP de Squid), même groupe d'hôte"
+          },
+          {
+            "file": "test/enregistreur-modele-squid.test.js",
+            "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
+            "it": "adresse d'hôte hors de model.hosts (CT-2 EX-5.8) : rattachée à l'entrée « inconnu » déclarée (forme du match consignée : source_addresses d'une plage qui ne contient pas le client) — un événement ; sans elle, bloquée en REQMOD par une réponse HTTP encapsulée — aucun événement, rien chez le fournisseur, ligne consignée"
+          },
+          {
+            "file": "test/enregistreur-modele-squid.test.js",
+            "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
+            "it": "client ICAP hors d'allowed_sources (CT-2 EX-5.3) : Squid refusé (403, ISTag), aucun événement, rien chez le fournisseur, l'agent reçoit l'erreur de Squid, ligne consignée ; le démon s'arrête proprement (la connexion refusée ne le retient pas)"
+          },
+          {
+            "file": "test/enregistreur-modele-squid.test.js",
+            "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
+            "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers de l'échange en passerelle et de l'échange par ICAP valides pour le noyau ET pour le binaire Go (go1.27.3)"
+          },
+          {
+            "file": "test/enregistreur-modele-squid.test.js",
+            "describe": "TI-19, défaut révélé : client ICAP refusé qui garde sa moitié de connexion ouverte (CT-2 EX-5.3) — le serveur ICAP détruit la prise après le 403 et s'arrête sans attendre le délai de drain"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-modele-squid.test.js"
       },
       "threats": [
         "MN-12"
@@ -7607,16 +7675,52 @@
         "CT-2 EX-12.28"
       ],
       "preconditions": [
-        "Deux instances de l'enregistreur sur le même journal ; magasin de bail `file` puis `etcd` de test."
+        "Deux démons réels `bin/noortrace --config` (étape 4) sur le même journal ; magasin de bail `file` puis `etcd` 3.5 de test (image épinglée par condensé, en conteneur Docker) ; serveur d'outils de test qui journalise ses exécutions ; binaire Go `noortrace-verifier` (go1.27.3) pour la vérification des dossiers."
       ],
       "steps": [
-        "Couper l'instance titulaire ; mesurer la bascule ; tenter une écriture par l'ancienne instance ; relire les segments et le journal d'intention."
+        "Couper l'instance titulaire de son bail pendant une écriture en vol (`file` : auxiliaire flock(1) tué ; `etcd` : instance figée au-delà de lease.ttl_ms) ; mesurer la bascule ; tenter une écriture par l'ancienne instance ; relire les segments et le journal d'intention ; clore la période et vérifier les dossiers d'un événement de chaque instance."
       ],
-      "oracle": "Une seule chaîne continue ; écriture de l'ancienne instance refusée par l'époque ; pertes dans les bornes de CT-2 §13.5.",
+      "oracle": "Une seule chaîne continue ; écriture de l'ancienne instance refusée par l'époque (aucun fichier qu'elle ouvre sous son époque après la prise du bail par l'autre, EX-13.5 (1)) ; pertes dans les bornes de CT-2 §13.5 (l'écriture en vol n'a qu'un événement, de reprise ; EX-4.46) ; dossiers valides pour les deux vérificateurs.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Démon non construit."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-ha-bascule.test.js",
+            "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+            "it": "A sert et B attend : chaque appel de A répondu ; B passif (santé standby, -31010 bail_non_detenu)"
+          },
+          {
+            "file": "test/enregistreur-ha-bascule.test.js",
+            "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+            "it": "bascule mesurée de la coupure de A à la santé ok de B, au plus lease.ttl_ms + lease.renew_ms + 10 s ; B prend le bail avec une époque plus grande et produit l'événement de reprise de l'intention en vol"
+          },
+          {
+            "file": "test/enregistreur-ha-bascule.test.js",
+            "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+            "it": "écriture de l'ancienne instance refusée par l'époque : -31010, ligne lease_lost ; l'écriture en vol n'est pas rendue comme acquise par A ; aucune fourche"
+          },
+          {
+            "file": "test/enregistreur-ha-bascule.test.js",
+            "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+            "it": "relecture des segments et du journal d'intention : une seule chaîne continue (seq et prev_hash), aucun événement d'époque inférieure après la première époque de B, segments d'époques croissantes ; l'intention de l'écriture en vol est levée par son événement de reprise"
+          },
+          {
+            "file": "test/enregistreur-ha-bascule.test.js",
+            "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+            "it": "pertes dans les bornes de CT-2 §13.5 : chaque appel répondu par A ou par B a son événement ; l'écriture en vol, exécutée une fois côté serveur, a son événement de reprise"
+          },
+          {
+            "file": "test/enregistreur-ha-bascule.test.js",
+            "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+            "it": "ancienne instance : aucun fichier d'attente ouvert sous une époque inférieure à celle de B après sa prise du bail (EX-13.5 (1)) ; une fois la période close, l'écriture en vol n'a qu'un événement, celui de reprise (EX-4.46 : l'événement en attente est scellé à la place de l'événement de reprise, jamais en plus ; 13.5)"
+          },
+          {
+            "file": "test/enregistreur-ha-bascule.test.js",
+            "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
+            "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers d'un événement écrit par A et d'un événement écrit par B valides pour le noyau ET pour le binaire Go (go1.27.3)"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ha-bascule.test.js"
       },
       "threats": [
         "MN-19",
@@ -7793,8 +7897,8 @@
       "oracle": "Chaque situation produit l'événement ou la ligne que la table nomme (« porté » ou « aucun » selon la colonne) ; aucun secret dans les lignes. Rotation : au plus `keep_files` fichiers conservés ; disque plein : chaque ligne non écrite incrémente `noortrace_ops_log_dropped_total` d'une unité et le relais continue (CT-2 EX-9.7, EX-17.4).",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Démon non construit ; CT-7 §6.2 et §6.3 restent des propositions PA- à CT-2 et CT-1."
+        "phase2_step": 5,
+        "blocking": "Les situations JS-5 (rotation de la clé de chaîne au registre) et JS-11 (ancrage dégradé : anchor_pending, registry_pending) exigent le composant d'ancrage de l'étape 5 ; CT-7 §6.2 et §6.3 restent des propositions PA- à CT-2 et CT-1. La version 0.1 rattachait l'entrée à l'étape 4 ; les autres situations (démarrage, arrêt, bail, rotation de clé, politique, configuration, horloge, gel et copies WORM, rotation et disque plein du journal d'exploitation) sont observables sur le démon de l'étape 4 et s'écrivent avec l'entrée."
       },
       "threats": [
         "MN-18",
@@ -7863,7 +7967,7 @@
       "status": {
         "state": "a_ecrire",
         "phase2_step": 4,
-        "blocking": "Démon non construit ; les bibliothèques ne portent pas la matrice entière."
+        "blocking": "Livrable de l'étape 4 manquant : la ligne « signataire » de la matrice de CT-2 §14.2 exige un signataire coupable ; le démon ne livre que la classe D (graine en mémoire), les classes A, B et C relevant de lots suivants (LISEZMOI du paquet) ; la ligne « ancrage » attend le composant de l'étape 5. Les colonnes du démon déjà livrées sont éprouvées ligne à ligne par les tests du paquet (enregistreur-*-exigences), pas par un rejeu de la matrice entière."
       },
       "threats": [
         "MN-10",
@@ -7974,18 +8078,25 @@
         "CT-3 EX-5.2"
       ],
       "preconditions": [
-        "Bibliothèques scripts/lib/capture.mjs et journal.mjs ; configuration de l'installation rapide (deploiement/config/rapide/configuration.json) ; clé de test rec-test-01."
+        "Démon réel `bin/noortrace --config` du paquet `paquets/enregistreur` (étape 4) et son mutant (copie du paquet, EX-10.5) ; configuration de développement tirée de l'exemple de CT-2 §15.3 (classe D, magasin de bail `file`, frontal MCP en Streamable HTTP à jetons statiques, serveur d'outils stdio de test `test/fixtures/enregistreur-adversarial/serveur-outils.mjs`, service d'approbation simulé joint en HTTP).",
+        "Deux connexions d'hôte HTTP : `agent-demo` (`accept_declared_delegation` vrai, `allowed_on_behalf_of` = [`service-sinistres`], `on_behalf_of` configuré `service-sinistres`) et `agent-demo-b` (`accept_declared_delegation` faux)."
       ],
       "steps": [
-        "Construire la requête tools/call avec _meta[\"noortrace/delegation\"] = { launched_by: autre, on_behalf_of: autre, run_id: r }.",
-        "Construire le partiel par partielAppelOutil avec la délégation de la connexion d'hôte configurée, puis le sceller par Ecrivain.sceller.",
-        "Lire delegation de l'événement."
+        "Envoyer, sur chacune des deux connexions, un tools/call dont _meta[\"noortrace/delegation\"] = { launched_by: « u.autre@assureur-demo.example », on_behalf_of: « service-autre », run_id: « run-ta2-0001 » }.",
+        "Lire delegation des deux événements scellés et les lignes delegation_refused du journal d'exploitation.",
+        "Fabriquer le mutant (copie de paquets/enregistreur avec le remplacement nommé) et rejouer."
       ],
-      "oracle": "delegation.launched_by égal au launched_by configuré ; delegation.on_behalf_of et run_id égaux aux valeurs de l'hôte si accept_declared_delegation le permet, sinon ceux de la configuration.",
+      "oracle": "delegation.launched_by égal au launched_by configuré de chaque connexion ; sur `agent-demo`, run_id déclaré admis (motif d'EX-7.2) et on_behalf_of hors de allowed_on_behalf_of remplacé par celui de la configuration, refus consigné (delegation_refused, champ on_behalf_of, raison hors_liste, longueur, jamais la valeur) ; sur `agent-demo-b`, on_behalf_of de la configuration et run_id = identifiant de session MCP de l'hôte hérité (table de CT-2 §7.2) ; le mutant scelle le launched_by de l'hôte.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Réponse non codée dans l'implémentation de référence au 2026-11-01 (voir `notes`) : mutant survivant, à tuer à l'étape 4 (PD-12) ; le test est écrit alors et échoue jusqu'à la correction."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-2 (MN-2) : démon réel : un tools/call dont _meta[\\\"noortrace/delegation\\\"] déclare launched_by, on_behalf_of hors liste et run_id, sur une connexion configurée pour agent-demo : launched_by de la configuration, run_id admis, on_behalf_of remplacé (delegation_refused) ; sans délégation admise : run_id de session ; mutant qui recopie le launched_by déclaré (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-2"
@@ -7995,17 +8106,17 @@
         "component": "hote_agent",
         "response_removed": {
           "what": "launched_by tiré de la configuration de la connexion d'hôte, jamais de l'hôte (CT-2 EX-7.2, EX-7.3)",
-          "how": "Faire recopier dans partielAppelOutil la valeur launched_by déclarée par l'hôte dans _meta[\"noortrace/delegation\"] à la place de celle de la configuration",
-          "where": "scripts/lib/capture.mjs (partielAppelOutil, resoudreHote de la reprise)"
+          "how": "Faire prendre à resoudreDelegation la valeur launched_by déclarée par l'hôte dans _meta[\"noortrace/delegation\"] à la place de celle de la configuration",
+          "where": "paquets/enregistreur/src/mcp/delegation.mjs (resoudreDelegation)"
         },
         "attack": "Un appel tools/call dont _meta[\"noortrace/delegation\"] déclare launched_by « u.autre@assureur-demo.example » et on_behalf_of « service-autre », reçu sur une connexion d'hôte configurée pour « agent-demo ».",
-        "expected_with_response": "L'événement scellé porte delegation.launched_by = « agent-demo » (configuration) ; seuls run_id et on_behalf_of peuvent venir de l'hôte (EX-7.2) ; une ligne delegation_refused est écrite si l'hôte déclare un launched_by (CT-2 EX-17.2).",
+        "expected_with_response": "L'événement scellé porte delegation.launched_by = « agent-demo » (configuration) ; seuls run_id et on_behalf_of peuvent venir de l'hôte (EX-7.2), l'on_behalf_of déclaré hors liste est remplacé et son refus consigné (delegation_refused) ; un launched_by déclaré est ignoré sans ligne propre (CT-2 EX-17.2 ne nomme delegation_refused que pour run_id et on_behalf_of).",
         "expected_without_response": "L'événement porte launched_by « u.autre@assureur-demo.example » ; le test échoue.",
-        "execution": "vecteurs_et_depot",
+        "execution": "phase_2",
         "accepted_risk": "RA-2",
         "threat_test_text": "Le test échoue si la réponse est retirée : un appel dont `_meta` déclare un autre `launched_by` produit un événement qui porte celui de la configuration ; si l'enregistreur recopie la valeur de l'hôte, le test échoue."
       },
-      "notes": "Au 2026-11-01, scripts/lib/capture.mjs ne lit nulle part _meta[\"noortrace/delegation\"] (grep : 0 occurrence) : la lecture de run_id et on_behalf_of déclarés (EX-7.2) n'est pas codée ; le test à écrire l'exigera."
+      "notes": "Au 2026-11-01, scripts/lib/capture.mjs ne lisait nulle part _meta[\"noortrace/delegation\"] (grep : 0 occurrence ; PD-12) ; le démon de l'étape 4 code EX-7.2 (paquets/enregistreur/src/mcp/delegation.mjs, appelé par mcp/frontal.mjs) : le test porte sur lui. La version 0.1 de l'entrée attendait une ligne delegation_refused pour un launched_by déclaré, ce que CT-2 EX-17.2 ne prévoit pas ; corrigé en 0.2."
     },
     {
       "id": "TA-3",
@@ -8261,12 +8372,14 @@
         "CT-1 E-3"
       ],
       "preconditions": [
-        "Partie phase 2 : démon construit, serveur MCP de test à définitions variables (phase 2, étape 4)."
+        "Vecteurs et bibliothèques de référence du dépôt au commit éprouvé ; Node.js 22.",
+        "Démon réel `bin/noortrace --config` du paquet `paquets/enregistreur` (étape 4) et son mutant (copie du paquet, EX-10.5) ; configuration de développement tirée de l'exemple de CT-2 §15.3 (classe D, magasin de bail `file`, frontal MCP en Streamable HTTP à jetons statiques, serveur d'outils stdio de test `test/fixtures/enregistreur-adversarial/serveur-outils.mjs`, service d'approbation simulé joint en HTTP)."
       ],
       "steps": [
-        "Partie phase 2 : tools/list ; changer la description côté serveur ; tools/list à nouveau ; lire le journal d'exploitation et les pièces."
+        "Rejouer pieces-mcp/agregation sur agregerOutils de la bibliothèque de référence, puis sur le mutant sans l'espace réservé.",
+        "Démon réel : tools/list ; appel de l'outil lire ; description de lire changée côté serveur (notifications/tools/list_changed) ; tools/list à nouveau ; appel de lire ; lire le journal d'exploitation et les pièces ; rejouer sur le mutant du paquet sans l'empreinte comparée des définitions."
       ],
-      "oracle": "Partie exécutable : rejected du vecteur égal à l'attendu, le mutant annonce l'outil réservé. Partie phase 2 : ligne tool_definition_changed et pièce de définition de SHA-256 différent.",
+      "oracle": "rejected du vecteur égal à l'attendu, le mutant de la bibliothèque annonce l'outil réservé ; démon : ligne tool_definition_changed (ancienne et nouvelle empreintes égales aux pièces de définition du contexte des deux appels) et pièce de la nouvelle définition, de SHA-256 différent, stockée ; le mutant du paquet ne consigne rien.",
       "status": {
         "state": "executable",
         "tests": [
@@ -8279,13 +8392,14 @@
             "file": "test/enregistreur.test.js",
             "describe": "CT-2 : vecteurs spec/vecteurs/ct-2, rejoués",
             "it": "pieces-mcp/agregation : noms annoncés, rejets, classes, empreintes des définitions, pages ; préfixe désactivé"
+          },
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-7 (MN-7, partie phase 2 sur le démon de l'étape 4) : description de lire changée côté serveur entre deux tools/list : ligne tool_definition_changed (ancienne et nouvelle empreintes) et pièce de la nouvelle définition, de SHA-256 différent, au contexte de l'appel suivant ; mutant sans l'empreinte comparée : aucune ligne (tué)"
           }
         ],
-        "command": "npx mocha --timeout 600000 test/adversarial.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur.test.js",
-        "complement": {
-          "phase2_step": 4,
-          "blocking": "Partie à écrire : Enregistreur (démon) non construit : phase 2, étape 4."
-        }
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js && npx hardhat --config hardhat.config.mjs test test/enregistreur.test.js"
       },
       "threats": [
         "MN-7"
@@ -8295,12 +8409,12 @@
         "component": "mandataire_mcp",
         "response_removed": {
           "what": "Espace noortrace.* réservé, aucun outil propre annoncé (CT-2 EX-4.2, CT-1 E-3) ; empreinte de chaque définition et pièce de définition (CT-2 EX-4.16, EX-4.45)",
-          "how": "Retirer le rejet nom_reserve d'agregerOutils ; en phase 2, retirer l'empreinte des définitions du démon",
-          "where": "scripts/lib/capture.mjs (agregerOutils) ; démon (phase 2)"
+          "how": "Retirer le rejet nom_reserve d'agregerOutils ; sur le démon, retirer la comparaison des empreintes des définitions (la condition de tool_definition_changed devient false)",
+          "where": "scripts/lib/capture.mjs (agregerOutils) ; paquets/enregistreur/src/mcp/frontal.mjs (recalculer)"
         },
-        "attack": "Un serveur d'outils annonce noortrace.journal.politique (vecteur pieces-mcp/agregation) ; en phase 2, un serveur de test change la description d'un outil entre deux tools/list.",
-        "expected_with_response": "L'outil réservé est rejeté (nom_reserve) ; en phase 2, la ligne tool_definition_changed et la nouvelle pièce de définition existent.",
-        "expected_without_response": "L'outil noortrace.* est annoncé à l'hôte (un événement réservé peut être forgé) ; en phase 2, rien n'est consigné ; le test échoue.",
+        "attack": "Un serveur d'outils annonce noortrace.journal.politique (vecteur pieces-mcp/agregation) ; un serveur de test change la description d'un outil entre deux tools/list du démon.",
+        "expected_with_response": "L'outil réservé est rejeté (nom_reserve) ; sur le démon, la ligne tool_definition_changed et la nouvelle pièce de définition existent.",
+        "expected_without_response": "L'outil noortrace.* est annoncé à l'hôte (un événement réservé peut être forgé) ; sur le démon, rien n'est consigné ; le test échoue.",
         "execution": "vecteurs_et_depot",
         "accepted_risk": "RA-6",
         "threat_test_text": "Le test échoue si la réponse est retirée : un serveur de test change la description d'un outil entre deux `tools/list` ; la ligne `tool_definition_changed` et la nouvelle pièce de définition doivent exister ; sans l'empreinte, rien n'est consigné et le test échoue."
@@ -8319,19 +8433,26 @@
         "CT-2 EX-18.1"
       ],
       "preconditions": [
-        "Démon de l'enregistreur construit (phase 2, étape 4), configuration de l'installation rapide (CT-8 §7.3).",
+        "Démon réel `bin/noortrace --config` du paquet `paquets/enregistreur` (étape 4) et son mutant (copie du paquet, EX-10.5) ; configuration de développement tirée de l'exemple de CT-2 §15.3 (classe D, magasin de bail `file`, frontal MCP en Streamable HTTP à jetons statiques, serveur d'outils stdio de test `test/fixtures/enregistreur-adversarial/serveur-outils.mjs`, service d'approbation simulé joint en HTTP).",
         "Deux connexions d'hôte configurées avec des jetons distincts."
       ],
       "steps": [
         "POST tools/call sans en-tête d'autorisation ; relever le statut et le journal d'exploitation.",
         "Même appel avec un jeton de 32 octets aléatoires.",
-        "Même appel avec le jeton de l'hôte B ; lire delegation de l'événement."
+        "Même appel avec le jeton de l'hôte B ; lire delegation de l'événement.",
+        "Fabriquer le mutant (copie de paquets/enregistreur avec les remplacements nommés) et rejouer."
       ],
-      "oracle": "Statuts 401, lignes auth_failed, aucun événement pour les deux premiers appels ; événement du troisième attribué à l'hôte B.",
+      "oracle": "Statuts 401, lignes auth_failed (raisons absent et jeton_inconnu), aucun événement pour les deux premiers appels ; événement du troisième attribué à l'hôte B ; avec le mutant, l'appel sans jeton est relayé et un événement est écrit.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-8 (MN-8) : démon réel, frontal MCP Streamable HTTP, deux connexions d'hôte à jetons distincts : tools/call sans autorisation puis avec un jeton de 32 octets aléatoires : 401, deux lignes auth_failed, aucun événement ; avec le jeton de l'hôte B : événement attribué à l'hôte B ; mutant sans la vérification du jeton : l'appel sans jeton est relayé et un événement est écrit (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-8"
@@ -8341,8 +8462,8 @@
         "component": "mandataire_mcp",
         "response_removed": {
           "what": "Authentification de tout appelant HTTP, comparaison en temps constant, prise locale 0660 (CT-2 EX-18.3, EX-4.39, EX-18.1)",
-          "how": "Désactiver la vérification du jeton d'hôte dans le frontal HTTP du démon",
-          "where": "démon (frontal MCP Streamable HTTP)"
+          "how": "Désactiver la vérification du jeton d'hôte : le refus d'un en-tête absent est retiré et la comparaison du jeton est posée vraie",
+          "where": "paquets/enregistreur/src/mcp/hote-http.mjs (_authentifier)"
         },
         "attack": "Connexion HTTP au point de terminaison MCP sans jeton, puis avec un jeton faux, puis avec le jeton d'un autre hôte.",
         "expected_with_response": "Les deux premières sont refusées (401) et consignées (ligne auth_failed) ; la troisième est journalisée sous l'identité du jeton présenté, jamais sous une autre.",
@@ -8367,19 +8488,26 @@
         "CT-2 EX-15.3"
       ],
       "preconditions": [
-        "Démon de l'enregistreur construit (phase 2, étape 4), configuration de l'installation rapide (CT-8 §7.3).",
-        "Serveur stdio de test (outil « sonder ») livré avec les tests de la phase 2."
+        "Démon réel `bin/noortrace --config` du paquet `paquets/enregistreur` (étape 4) et son mutant (copie du paquet, EX-10.5) ; configuration de développement tirée de l'exemple de CT-2 §15.3 (classe D, magasin de bail `file`, frontal MCP en Streamable HTTP à jetons statiques, serveur d'outils stdio de test `test/fixtures/enregistreur-adversarial/serveur-outils.mjs`, service d'approbation simulé joint en HTTP).",
+        "Démon lancé par le superutilisateur, pour qu'il puisse changer d'utilisateur (EX-3.5) ; sinon, le test est mis en attente et son titre le dit (EX-3.11).",
+        "Serveur stdio de test (outil « sonder ») lancé sous l'utilisateur `nobody` (transport.user) ; secret relay_mac_key dans un fichier 0400 (EX-15.3)."
       ],
       "steps": [
-        "Configurer le serveur de test en stdio.",
-        "Appeler l'outil « sonder » qui tente les deux accès et rend les codes errno.",
-        "Lire le résultat de l'outil et le journal d'exploitation."
+        "Configurer le serveur de test en stdio sous l'utilisateur nobody.",
+        "Appeler l'outil « sonder » qui tente de lire le fichier du secret relay_mac_key et d'écrire sous storage.root, et rend les codes errno et son uid.",
+        "Lire le résultat de l'outil et le contenu de storage.root ; rejouer sur le mutant du paquet."
       ],
-      "oracle": "Les deux accès rendent EACCES ; aucun fichier nouveau sous storage.root.",
+      "oracle": "Les deux accès rendent EACCES, uid 65534 ; aucun fichier nouveau sous storage.root ; avec le mutant (serveur lancé sous l'utilisateur du démon), les deux accès réussissent.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-9 (MN-9) : démon réel lancé par le superutilisateur, serveur stdio configuré sous l'utilisateur nobody : l'outil sonder tente de lire le fichier du secret relay_mac_key (0400) et d'écrire sous storage.root ; les deux accès rendent EACCES et aucun fichier n'apparaît sous storage.root ; mutant qui lance le serveur sous l'utilisateur du démon : les deux accès réussissent (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-9"
@@ -8389,11 +8517,11 @@
         "component": "mandataire_mcp",
         "response_removed": {
           "what": "Utilisateur distinct, bac à sable et environnement réduit des serveurs stdio (CT-2 EX-3.4, EX-3.5, EX-18.4) ; secrets en fichiers 0400 (EX-15.3)",
-          "how": "Lancer le serveur stdio sous l'utilisateur du démon",
-          "where": "démon (lancement des serveurs stdio)"
+          "how": "Lancer le serveur stdio sous l'utilisateur du démon (le changement d'utilisateur devient false)",
+          "where": "paquets/enregistreur/src/mcp/amont.mjs (lancement des serveurs stdio)"
         },
         "attack": "Un serveur stdio de test tente de lire le fichier du secret relay_mac_key et d'écrire un fichier sous storage.root.",
-        "expected_with_response": "Les deux accès échouent (EACCES) ; la sortie d'erreur du serveur est bornée et consignée (CT-2 EX-4.32).",
+        "expected_with_response": "Les deux accès échouent (EACCES).",
         "expected_without_response": "Lecture et écriture réussissent ; le test échoue.",
         "execution": "phase_2",
         "accepted_risk": "RA-8",
@@ -8414,14 +8542,18 @@
         "CT-2 EX-4.46"
       ],
       "preconditions": [
-        "Partie phase 2 : démon avec point d'injection de panne (variable de test) ; serveur d'outils de test qui journalise ses exécutions."
+        "Bibliothèques de référence du dépôt (partie sur reprise()).",
+        "Démon réel `bin/noortrace --config` du paquet `paquets/enregistreur` (étape 4) et son mutant (copie du paquet, EX-10.5) ; configuration de développement tirée de l'exemple de CT-2 §15.3 (classe D, magasin de bail `file`, frontal MCP en Streamable HTTP à jetons statiques, serveur d'outils stdio de test `test/fixtures/enregistreur-adversarial/serveur-outils.mjs`, service d'approbation simulé joint en HTTP).",
+        "Serveur d'outils de test qui journalise chaque exécution (`--executions`)."
       ],
       "steps": [
-        "Appeler un outil de classe ecriture ; la panne tue le démon après le pas 9.",
-        "Redémarrer ; lire le segment et le journal d'intention.",
-        "Comparer au journal du serveur d'outils."
+        "Appeler un outil de classe ecriture (ecrire_lent) ; dès que le serveur a reçu l'appel (pas 9), tuer le démon (SIGKILL) avant le scellement.",
+        "Redémarrer ; lire le segment, le journal d'intention et le journal d'exploitation.",
+        "Comparer au journal du serveur d'outils.",
+        "Démon réel : perte du bail pendant le relais d'une écriture (auxiliaire flock(1) tué) ; lire la réponse de l'hôte.",
+        "Fabriquer le mutant (copie de paquets/enregistreur sans intention durable avant relais) et rejouer le premier pas."
       ],
-      "oracle": "Un événement de reprise par intention ouverte, à la hauteur de l'exécution constatée côté serveur ; code -31017 reçu par l'hôte. Partie exécutable : le test existant sur reprise().",
+      "oracle": "Un événement de reprise (execution.status executee, is_error vrai, duration_ms 0, intent_recovered) par intention ouverte, autant que d'exécutions constatées côté serveur ; code -31017 (data.reason bail, intent_id) reçu par l'hôte quand la panne survient après le relais, le démon vivant (EX-4.46) ; avec le mutant, aucun événement pour l'écriture exécutée. Le test existant sur reprise() couvre la bibliothèque de référence.",
       "status": {
         "state": "executable",
         "tests": [
@@ -8429,13 +8561,14 @@
             "file": "test/enregistreur.test.js",
             "describe": "CT-2 : construction des événements, écrivain, segment, intention, reprise (§7, §9, §12)",
             "it": "journal d'intention : intention sans levée → événement de reprise valide ; événement durable → levée implicite (EX-12.14)"
+          },
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-10 (MN-10, partie phase 2 sur le démon de l'étape 4) : écriture relayée puis démon tué avant le scellement : au redémarrage, un événement de reprise par intention ouverte, autant que d'exécutions côté serveur ; bail perdu après le relais : -31017 à l'hôte ; mutant sans intention durable avant relais : aucun événement (tué)"
           }
         ],
-        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur.test.js",
-        "complement": {
-          "phase2_step": 4,
-          "blocking": "Partie à écrire : Enregistreur (démon) non construit : phase 2, étape 4."
-        }
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur.test.js && npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-10"
@@ -8445,11 +8578,11 @@
         "component": "mandataire_mcp",
         "response_removed": {
           "what": "Intention durable avant relais et reprise des intentions (CT-2 EX-4.19, EX-12.12, EX-12.14) ; code -31017 (EX-4.46)",
-          "how": "Partie exécutable : retirer la levée implicite et la reprise de reprise() ; phase 2 : arrêter le démon entre le pas 9 (relais) et le pas 12 (scellement)",
-          "where": "scripts/lib/capture.mjs (reprise) ; démon"
+          "how": "Bibliothèque : retirer la levée implicite et la reprise de reprise() ; démon : retirer l'intention durable écrite avant le relais d'une écriture (la condition devient false)",
+          "where": "scripts/lib/capture.mjs (reprise) ; paquets/enregistreur/src/coeur.mjs (relais en deux temps)"
         },
-        "attack": "Panne injectée après le relais d'un appel de classe ecriture ; redémarrage.",
-        "expected_with_response": "Au redémarrage, une intention sans levée produit un événement de reprise (executions.status inconnu, pièce de reprise) ; l'hôte a reçu -31017.",
+        "attack": "Démon tué après le relais d'un appel de classe ecriture, avant son scellement ; redémarrage. Bail perdu pendant un relais.",
+        "expected_with_response": "Au redémarrage, une intention sans levée produit un événement de reprise (execution.status executee, is_error vrai, pièce de reprise) ; une panne après le relais, le démon vivant, rend -31017 à l'hôte.",
         "expected_without_response": "Aucun événement n'existe pour l'écriture exécutée ; le test échoue.",
         "execution": "vecteurs_et_depot",
         "accepted_risk": "RA-9",
@@ -8471,14 +8604,16 @@
         "CT-7 EX-3.6"
       ],
       "preconditions": [
-        "Démon de l'enregistreur construit (phase 2, étape 4), configuration de l'installation rapide (CT-8 §7.3).",
-        "Fournisseur simulé de CT-2 §19.3 qui renvoie les en-têtes reçus."
+        "Schéma de configuration du dépôt (partie existante).",
+        "Démon réel `bin/noortrace --config` (étape 4) en mode passerelle et son mutant (copie du paquet, EX-10.5) ; configuration du frontal modèle des tests (`test/fixtures/enregistreur-modele/outils.mjs`) : route /v1/messages en credentials propre, auth_header x-api-key, secret résolu par référence d'environnement.",
+        "Fournisseur simulé de CT-2 §19.3 qui garde les en-têtes reçus (`test/fixtures/enregistreur-modele/fournisseur.mjs`)."
       ],
       "steps": [
-        "Envoyer la requête avec un en-tête d'autorisation marqué.",
-        "Lire les en-têtes reçus par le simulateur et les pièces de l'événement."
+        "Envoyer une requête d'échange identifiée par X-Noortrace-Token et portant dans x-api-key une clé de l'hôte marquée.",
+        "Lire les en-têtes reçus par le simulateur et chercher la clé marquée dans chaque fichier écrit (stockage, pièces, segments, journal d'exploitation).",
+        "Fabriquer le mutant (copie de paquets/enregistreur avec le remplacement nommé) et rejouer."
       ],
-      "oracle": "L'en-tête reçu par le simulateur est celui de la configuration (référence de secret résolue) ; la valeur de l'hôte n'apparaît dans aucun fichier écrit. Partie exécutable : le schéma impose auth_header et la forme de credentials (test existant).",
+      "oracle": "L'en-tête reçu par le simulateur est celui de la configuration (référence de secret résolue) ; la valeur de l'hôte n'apparaît dans aucun fichier écrit ; avec le mutant, la clé de l'hôte arrive au simulateur. Le schéma impose auth_header et la forme de credentials (test existant).",
       "status": {
         "state": "executable",
         "tests": [
@@ -8486,13 +8621,14 @@
             "file": "test/enregistreur-r05.test.js",
             "describe": "CT-2 révision 0.5 : Gemini à la passerelle et format gemini du SDK (EX-5.28 à EX-5.36, EX-6.8)",
             "it": "schéma de configuration : model_route gemini (bloc annoté de 15.3), auth_header imposé, provider_mcp réservé à gemini ; mots-clés dans le sous-ensemble appliqué"
+          },
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-11 (MN-11, partie phase 2 sur le démon de l'étape 4) : passerelle, route en credentials propre : la clé marquée que l'hôte met dans x-api-key n'arrive pas au fournisseur simulé, qui reçoit celle de la configuration, et n'est dans aucun fichier écrit ; mutant qui relaie l'en-tête de l'hôte : sa clé traverse (tué)"
           }
         ],
-        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-r05.test.js",
-        "complement": {
-          "phase2_step": 4,
-          "blocking": "Partie à écrire : Enregistreur (démon) non construit : phase 2, étape 4."
-        }
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-r05.test.js && npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-11"
@@ -8502,8 +8638,8 @@
         "component": "passerelle_modele",
         "response_removed": {
           "what": "Clé du fournisseur tenue par la passerelle seule en mode propre (CT-2 EX-5.8) ; pare-feu de sortie (§4.9, EX-6.2)",
-          "how": "Faire relayer l'en-tête d'autorisation de l'hôte au lieu de le remplacer",
-          "where": "démon (passerelle du modèle) ; schéma de configuration (auth_header, credentials propre)"
+          "how": "Faire relayer l'en-tête d'autorisation de l'hôte au lieu de le remplacer (la condition credentials propre de l'échange devient false)",
+          "where": "paquets/enregistreur/src/modele/passerelle.mjs (envoi au fournisseur) ; schéma de configuration (auth_header, credentials propre)"
         },
         "attack": "Requête de l'hôte vers la passerelle portant sa propre clé de fournisseur dans l'en-tête d'autorisation, sur une route credentials: propre.",
         "expected_with_response": "La requête amont porte la clé de la passerelle ; la clé de l'hôte n'apparaît ni en amont ni dans les pièces ni dans le journal d'exploitation.",
@@ -8526,18 +8662,25 @@
         "CT-7 EX-3.15"
       ],
       "preconditions": [
-        "Démon de l'enregistreur construit (phase 2, étape 4), configuration de l'installation rapide (CT-8 §7.3).",
-        "Mode icap configuré avec allowed_sources = [203.0.113.5]."
+        "Démon réel `bin/noortrace --config` (étape 4) en mode icap et son mutant (copie du paquet, EX-10.5) ; configuration du frontal modèle des tests (`configurationIcap`).",
+        "Mode icap configuré avec allowed_sources = [203.0.113.5/32] ; client ICAP de test (`test/fixtures/enregistreur-modele/client-icap.mjs`) sur la boucle locale : le banc ne peut pas prendre une adresse de la plage de documentation."
       ],
       "steps": [
-        "Émettre un REQMOD depuis une autre adresse de la plage de documentation.",
-        "Lire la réponse ICAP et le journal d'exploitation."
+        "Émettre un REQMOD puis un RESPMOD depuis une adresse absente d'allowed_sources (127.0.0.1).",
+        "Lire la réponse ICAP, le journal d'exploitation et les événements.",
+        "Fabriquer le mutant (copie de paquets/enregistreur avec le remplacement nommé) et rejouer."
       ],
-      "oracle": "Refus consigné avec la raison attendue ; aucun événement écrit ; CT-2 §19.6 note que l'intégration ICAP est à tester en phase 2.",
+      "oracle": "Refus 403 consigné (auth_failed, transport icap, raison client_icap_refuse) ; aucun échange écrit ; avec le mutant, REQMOD et RESPMOD rendent 200 et un événement noortrace.modele.echange est écrit.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-12 (MN-12) : démon réel en mode icap, allowed_sources = [203.0.113.5/32] : REQMOD puis RESPMOD depuis une adresse absente (127.0.0.1) : 403 consigné (auth_failed, client_icap_refuse), aucun échange écrit ; mutant sans l'authentification des clients ICAP : un échange est écrit à partir de la transaction fabriquée (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-12"
@@ -8547,10 +8690,10 @@
         "component": "passerelle_modele",
         "response_removed": {
           "what": "Clients ICAP authentifiés (mTLS ou allowed_sources), l'un des deux exigé en production (CT-2 EX-5.3 ; CT-7 EX-3.15)",
-          "how": "Vider allowed_sources et désactiver l'exigence de certificat client",
-          "where": "démon (serveur ICAP) ; configuration"
+          "how": "Retirer le refus d'un client ICAP non admis (la condition devient false)",
+          "where": "paquets/enregistreur/src/modele/icap.mjs (_connexion) ; configuration"
         },
-        "attack": "Transaction REQMOD envoyée depuis une adresse absente de allowed_sources (192.0.2.77, plage de documentation) sans certificat client.",
+        "attack": "Transaction REQMOD puis RESPMOD envoyée depuis une adresse absente de allowed_sources (127.0.0.1, boucle locale du banc), sans certificat client.",
         "expected_with_response": "La transaction est refusée et consignée (source inconnue) ; aucun échange de modèle n'est écrit.",
         "expected_without_response": "Un événement noortrace.modele.echange est écrit à partir d'une transaction fabriquée ; le test échoue.",
         "execution": "phase_2",
@@ -8650,8 +8793,8 @@
         ],
         "command": "npx mocha --timeout 600000 test/adversarial.test.js",
         "complement": {
-          "phase2_step": 4,
-          "blocking": "Partie à écrire : Enregistreur (démon) non construit : phase 2, étape 4."
+          "phase2_step": 8,
+          "blocking": "Partie à écrire : démonstration de référence de CT-2 §19 (docker compose), livrée à l'étape 8 ; la version 0.1 rattachait à tort ce complément à l'étape 4, alors que ses préconditions nomment l'étape 8."
         }
       },
       "threats": [
@@ -8914,18 +9057,24 @@
         "CT-2 EX-11.3"
       ],
       "preconditions": [
-        "Démon de l'enregistreur construit (phase 2, étape 4), configuration de l'installation rapide (CT-8 §7.3).",
-        "Magasin de bail et stockage de l'installation rapide (fichiers) ; deux instances du démon sur le même storage.root."
+        "Deux démons réels `bin/noortrace --config` (étape 4), instances inst-a et inst-b, sur le même storage.root et le même magasin de bail `file` de l'installation rapide, et le mutant du paquet (EX-10.5) ; configuration des tests adversariaux du démon."
       ],
       "steps": [
-        "Démarrer A ; démarrer B avec reprise du bail ; faire écrire A.",
-        "Relire les segments."
+        "Démarrer A ; faire écrire A ; démarrer B (passif) ; couper A de son bail en tuant l'auxiliaire flock(1) qui tient le verrou (instance isolée, 13.4 pas 2) ; attendre que B prenne le bail ; faire écrire B puis A.",
+        "Relire les segments et le journal d'exploitation de A.",
+        "Fabriquer le mutant (bail `file` toujours tenu pour valide) et rejouer."
       ],
-      "oracle": "Aucun segment de A après l'époque de B ; ligne lease_lost ; relecture des segments sans fourche (prev_hash continu).",
+      "oracle": "B prend le bail avec l'époque 2 et écrit ; l'écriture de A est refusée (-31010) et lease_lost consigné ; aucun événement de A après l'époque de B ; relecture des segments sans fourche (seq et prev_hash continus, aucun seq en double) ; avec le mutant, A écrit après l'époque de B et la chaîne fourche.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-19 (MN-19) : deux démons sur le même journal et le même bail file : A écrit, perd son verrou (flock(1) tué), B prend le bail (époque 2) ; A, appelé, refuse (-31010, lease_lost) ; aucun événement de A après l'époque de B, chaîne sans fourche ; mutant dont le bail file se dit toujours valide : A écrit, fourche (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-19"
@@ -8935,11 +9084,11 @@
         "component": "ecrivain_stockage",
         "response_removed": {
           "what": "Bail, époque, jeton de clôture vérifié par le stockage, contrôle après écriture (CT-2 EX-13.1, EX-13.4 à EX-13.6, EX-13.10)",
-          "how": "Retirer la vérification du jeton de clôture dans l'adaptateur de stockage",
-          "where": "démon (adaptateur de stockage et bail)"
+          "how": "Faire tenir le bail `file` pour toujours valide (valide() rend vrai) : l'écrivain ne constate plus la perte du verrou (EX-13.6) et ajoute au segment déjà ouvert, que le jeton de clôture d'EX-13.5 (1) ne contrôle qu'à l'ouverture",
+          "where": "paquets/enregistreur/src/bail.mjs (MagasinBailFichier.valide)"
         },
-        "attack": "Deux écrivains de test sur le même journal ; le second acquiert le bail avec une époque supérieure ; le premier tente une écriture.",
-        "expected_with_response": "L'écriture du premier est refusée par le stockage (jeton périmé) ; une seule suite existe ; alerte lease_lost.",
+        "attack": "Deux démons sur le même journal ; le second acquiert le bail avec une époque supérieure après la perte du verrou du premier ; le premier tente une écriture.",
+        "expected_with_response": "L'écriture du premier est refusée (-31010, lease_lost) ; une seule suite existe.",
         "expected_without_response": "Les deux écrivent : fourche ; le test échoue.",
         "execution": "phase_2",
         "accepted_risk": "RA-17",
@@ -9182,17 +9331,23 @@
         "CT-7 EX-3.11"
       ],
       "preconditions": [
-        "Coffre des originaux configuré (CT-2 EX-10.22) et outil de lecture livré (phase 2, étape 4)."
+        "Coffre des originaux du démon (CT-2 EX-10.22 ; `CoffreOriginaux` de paquets/enregistreur/src/coffre.mjs, étape 4) et son mutant (copie du paquet, EX-10.5). Outil de lecture : `dechiffrer`, qui reçoit les identités de l'appelant (lecture 26 du LISEZMOI du paquet) ; aucune commande d'exploitation n'est livrée."
       ],
       "steps": [
-        "Demander un déchiffrement avec une approbation ; puis avec deux approbations de la même identité ; puis avec deux identités distinctes.",
-        "Lire le registre des accès."
+        "Déposer un original chiffré ; demander un déchiffrement avec la seule demande ; puis avec une approbation de la même identité ; puis avec une seconde identité autorisée.",
+        "Lire le registre des accès, hors du coffre ; rejouer sur le mutant du paquet."
       ],
-      "oracle": "Deux refus, un succès, trois lignes du registre.",
+      "oracle": "Deux refus (seconde_approbation_absente, approbateur_identique_au_demandeur), un succès qui rend l'original, trois lignes du registre ; avec le mutant, l'original est rendu au demandeur seul.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-24 (MN-24) : coffre des originaux à clé propre (CoffreOriginaux.dechiffrer du paquet) : demande seule, puis approbation de la même identité, puis d'une seconde identité autorisée : deux refus, un succès, trois lignes au registre des accès ; mutant sans seconde approbation : l'original est rendu au demandeur seul (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-24"
@@ -9202,10 +9357,10 @@
         "component": "ecrivain_stockage",
         "response_removed": {
           "what": "Coffre chiffré à clé propre ; déchiffrement à deux personnes consigné (CT-2 EX-10.22, CT-7 EX-3.11)",
-          "how": "Retirer l'exigence d'une seconde approbation dans l'outil de lecture du coffre",
-          "where": "outil de lecture du coffre (phase 2)"
+          "how": "Retirer l'exigence d'une seconde approbation (les quatre conditions sur l'approbation deviennent false)",
+          "where": "paquets/enregistreur/src/coffre.mjs (CoffreOriginaux.dechiffrer)"
         },
-        "attack": "Demande de déchiffrement d'un original par une seule identité, puis par la même identité sous deux noms.",
+        "attack": "Demande de déchiffrement d'un original par une seule identité, puis avec l'approbation de la même identité.",
         "expected_with_response": "Refus dans les deux cas ; déchiffrement seulement avec une seconde approbation d'une identité distincte ; ligne du registre des accès.",
         "expected_without_response": "Déchiffrement obtenu seul ; le test échoue.",
         "execution": "phase_2",
@@ -9275,17 +9430,24 @@
         "CT-7 §6.2"
       ],
       "preconditions": [
-        "Démon de l'enregistreur construit (phase 2, étape 4), configuration de l'installation rapide (CT-8 §7.3)."
+        "Démon réel `bin/noortrace --config` du paquet `paquets/enregistreur` (étape 4) et son mutant (copie du paquet, EX-10.5) ; configuration de développement tirée de l'exemple de CT-2 §15.3 (classe D, magasin de bail `file`, frontal MCP en Streamable HTTP à jetons statiques, serveur d'outils stdio de test `test/fixtures/enregistreur-adversarial/serveur-outils.mjs`, service d'approbation simulé joint en HTTP).",
+        "checkpoint_interval_s = 10 ; série des points lue par constaterCadence de scripts/lib/ancrage.mjs (CT-5 AN-2)."
       ],
       "steps": [
-        "Arrêter puis relancer le démon ; lire le journal d'exploitation et la chaîne.",
-        "Lire la série des points de contrôle qui chevauche le redémarrage (constaterCadence, CT-5 AN-2)."
+        "Démarrer le démon, attendre un point, l'arrêter puis le relancer ; attendre deux points ; lire le journal d'exploitation et la chaîne.",
+        "Lire la série des points qui chevauche le redémarrage (constaterCadence, CT-5 AN-2) ; rejouer sur le mutant du paquet."
       ],
-      "oracle": "Ligne startup présente avec l'instance et l'époque ; la série des points qui chevauche le redémarrage ne porte aucun trou supérieur à c_K + 1 s (preuve de vie) ; la trace ct-5/planification/redemarrage-reprise.json couvre déjà la reprise du planificateur (TA-64). La partie « annonce de reprise » dépend de PA-1 (CT-7) : non applicable tant que CT-2 ne l'a pas adoptée (section 14).",
+      "oracle": "Ligne startup du redémarrage présente avec l'époque du nouveau bail (2 ; EX-17.2 ne met `instance_id` dans `data` que dans un déploiement à plusieurs instances, celui-ci n'en a qu'une) ; la série des points qui chevauche le redémarrage ne porte aucun trou supérieur à c_K + 1 s (preuve de vie) ; la trace ct-5/planification/redemarrage-reprise.json couvre déjà la reprise du planificateur (TA-64) ; avec le mutant, aucune ligne startup. La partie « annonce de reprise » dépend de PA-1 (CT-7) : non applicable tant que CT-2 ne l'a pas adoptée (section 14).",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4.",
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-26 (MN-26, partie non conditionnée par PA-1) : démon réel, points de contrôle toutes les 10 s : arrêt puis redémarrage ; la ligne startup du redémarrage est écrite avec l'époque du nouveau bail, et la série des points qui chevauche le redémarrage n'a aucun trou supérieur à c_K + 1 s (constaterCadence, CT-5 AN-2) ; mutant sans la ligne startup : aucune ligne au redémarrage (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js",
         "depends_on": [
           "PA-1"
         ]
@@ -9298,10 +9460,10 @@
         "component": "ecrivain_stockage",
         "response_removed": {
           "what": "Points de contrôle à chaque instant aligné (preuve de vie, CT-2 EX-12.24) ; lignes startup, lease_acquired, lease_lost (EX-17.2) ; annonce de reprise (CT-7 PA-1)",
-          "how": "Retirer la ligne startup du journal d'exploitation",
-          "where": "démon : écrivain, journal d'exploitation (CT-2 EX-17.2) ; émission des points aux instants alignés (CT-2 EX-12.24)"
+          "how": "Retirer la ligne startup du journal d'exploitation (l'appel devient vide)",
+          "where": "paquets/enregistreur/src/coeur.mjs (pas 7 du démarrage) ; émission des points aux instants alignés (CT-2 EX-12.24)"
         },
-        "attack": "Redémarrage de l'enregistreur de la démonstration.",
+        "attack": "Arrêt puis redémarrage du démon.",
         "expected_with_response": "Une ligne startup datée ; après adoption de PA-1, un événement d'annonce de reprise dans la chaîne.",
         "expected_without_response": "Aucune ligne ; le test échoue.",
         "execution": "phase_2",
@@ -9484,17 +9646,24 @@
         "CT-7 EX-4.4"
       ],
       "preconditions": [
-        "Bibliothèques du dépôt ; configuration modèle de production."
+        "Démon `paquets/enregistreur` (étape 4) et son mutant (copie du paquet, EX-10.5) ; configuration modèle de production `deploiement/config/modele-production/configuration.json`."
       ],
       "steps": [
-        "Charger la configuration modèle ; poser signer.class = D ; exécuter controlesConfiguration.",
-        "Vérifier qu'une erreur nomme /signer/class."
+        "Charger la configuration modèle ; poser signer.class = D ; exécuter `noortrace validate-config` (pas 1 à 3 d'EX-15.4, contrôles du démarrage) avec recorder.environment = production, puis developpement.",
+        "Vérifier qu'une erreur nomme /signer/class en production et aucune en developpement.",
+        "Fabriquer le mutant (copie de paquets/enregistreur avec le remplacement nommé) et rejouer en production."
       ],
-      "oracle": "Erreur présente en production, absente en developpement.",
+      "oracle": "Code 2 et erreur « /signer/class : classe D refusée en production (EX-11.8) » en production, aucune erreur sur /signer/class en developpement ; le mutant n'en rend aucune en production.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Réponse non codée dans l'implémentation de référence au 2026-11-01 (voir `notes`) : mutant survivant, à tuer à l'étape 4 (PD-12) ; le test est écrit alors et échoue jusqu'à la correction."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-30 (MN-30) : configuration modèle de production (deploiement/config/modele-production) posée à signer.class = D : noortrace validate-config rend le code 2 et une erreur sur /signer/class en production, aucune en developpement ; mutant sans le refus de la classe D en production : aucune erreur sur /signer/class (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-30"
@@ -9504,17 +9673,17 @@
         "component": "cles",
         "response_removed": {
           "what": "Classe D refusée en production (CT-2 EX-11.8) ; non-exportabilité, mémoire protégée (EX-11.5, EX-18.7)",
-          "how": "Retirer le refus de signer.class = D quand recorder.environment = production",
-          "where": "scripts/lib/approbation.mjs (controlesConfiguration) ou scripts/lib/capture.mjs (controlesConfigurationRevision05)"
+          "how": "Retirer le refus de signer.class = D quand recorder.environment = production (la condition devient false)",
+          "where": "paquets/enregistreur/src/configuration.mjs (reglesHorsSchema)"
         },
         "attack": "Configuration de production (modèle deploiement/config/modele-production) avec signer.class = D.",
-        "expected_with_response": "Les contrôles de démarrage refusent la configuration (erreur nommant /signer/class).",
-        "expected_without_response": "Le démon démarrerait ; le test échoue.",
-        "execution": "vecteurs_et_depot",
+        "expected_with_response": "Les contrôles de démarrage refusent la configuration (code 2, erreur nommant /signer/class).",
+        "expected_without_response": "Aucune erreur sur /signer/class : la validation laisserait démarrer le démon ; le test échoue.",
+        "execution": "phase_2",
         "accepted_risk": "RA-26",
         "threat_test_text": "Le test échoue si la réponse est retirée : une configuration de production en classe D est refusée au démarrage ; si le refus est retiré, le démon démarre et le test échoue."
       },
-      "notes": "Au 2026-11-01, aucun contrôle de la classe de garde n'existe dans controlesConfiguration ni controlesConfigurationRevision05 (grep « signer », « class » : aucune règle) : le test à écrire échouera jusqu'à ce que CT-2 EX-11.8 soit codé (phase 2, étape 4) ; c'est un mutant qui survit aujourd'hui."
+      "notes": "Au 2026-11-01, aucun contrôle de la classe de garde n'existait dans controlesConfiguration ni controlesConfigurationRevision05 de la bibliothèque de référence (PD-12) ; le démon de l'étape 4 code EX-11.8 (paquets/enregistreur/src/configuration.mjs et, au démarrage, signataires.mjs) : le test porte sur la validation du démon."
     },
     {
       "id": "TA-31",
@@ -9538,9 +9707,15 @@
       ],
       "oracle": "Écart de 1 rapporté ; 0 sans la signature externe.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-31 (MN-31) : Vault Transit à journal d'audit ; le démon produit n objets signés ; noortrace-ctl cle rapprocher sur l'intervalle : écart 0, code 0 ; une signature hors écrivain par le même backend et la même identité d'usage : écart 1, code 3 (incident, CT-7 4.6) ; mutant qui n'exécute plus la comparaison : écart 0 malgré la signature externe (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-31"
@@ -9550,10 +9725,10 @@
         "component": "cles",
         "response_removed": {
           "what": "Rapprochement mensuel des appels de signature avec les objets signés (CT-7 EX-3.7) ; identité d'usage seule (CT-2 EX-11.4, EX-11.3)",
-          "how": "Ne pas exécuter le rapprochement",
-          "where": "procédure du client ; outil de rapprochement"
+          "how": "Ne pas exécuter le rapprochement (l'écart rendu est toujours nul)",
+          "where": "paquets/enregistreur/src/signataires/rapprochement.mjs (rapprocher) ; outil noortrace-ctl cle rapprocher"
         },
-        "attack": "Journal d'audit d'un backend de test (SoftHSM2, classe A en test) qui compte une signature de plus que les objets signés sur l'intervalle.",
+        "attack": "Journal d'audit d'un backend de test (service de signature de classe B : Vault Transit, audit file ; SoftHSM2 n'a pas de journal d'audit) qui compte une signature de plus que les objets signés sur l'intervalle.",
         "expected_with_response": "Le rapprochement rend un écart de +1 : incident de compromission (CT-7 §4.6).",
         "expected_without_response": "L'écart passe ; le test échoue.",
         "execution": "phase_2",
@@ -9641,9 +9816,15 @@
       ],
       "oracle": "Code `-31010` de raison `cle` rendu à l'hôte (CT-2 §14.2) ; alerte : la condition de CT-2 §17.4 observée sur la jauge `noortrace_degraded{reason=\"cle\"}` == 1 pendant plus de 60 s et, si un collecteur est présent, la règle `noortrace_mode_degrade_critique` de CT-8 §10.4 en état déclenché (le collecteur n'est pas une précondition de TA-33 ; il l'est de TE-17) ; aucun nouvel événement dans le segment pendant la panne. L'oracle ne lit pas `/healthz` : CT-2 EX-14.11 et EX-17.1 divergent sur son état en mode « clé » (PD-30) ; un test qui admet les deux états est conforme.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/adversarial.test.js",
+            "describe": "CT-9 : tests adversariaux TA- exécutables sur le démon de l'étape 4 (mutants du paquet @noortrace/enregistreur, CT-7 EX-3.2)",
+            "it": "TA-33 (MN-33) : installation rapide modifiée (mode erreur, version sans -observation, signataire vault-transit) ; backend arrêté sans reprise : -31010 de raison cle rendu à l'hôte, jauge noortrace_degraded de raison cle à 1 plus de 60 s, aucun nouvel événement dans le segment ; mutant où l'écrivain continue sans signature : un événement est écrit pendant la panne (tué)"
+          }
+        ],
+        "command": "npx mocha --timeout 600000 test/adversarial.test.js"
       },
       "threats": [
         "MN-33"
@@ -9653,8 +9834,8 @@
         "component": "cles",
         "response_removed": {
           "what": "Mode dégradé « clé » bloquant sur signataire injoignable sans reprise (CT-2 §17.4) ; rupture de journal (EX-11.16)",
-          "how": "Faire continuer l'écrivain sans signature",
-          "where": "démon : écrivain, chemin de signature et mode dégradé (CT-2 §17.4, EX-11.16)"
+          "how": "Faire continuer l'écrivain sans signature (signature nulle quand le signataire échoue, health() sans effet)",
+          "where": "paquets/enregistreur/src/ecrivain.mjs (signature de l'événement) ; paquets/enregistreur/src/coeur.mjs (_santeSignataire)"
         },
         "attack": "Backend de signature arrêté pendant la capture.",
         "expected_with_response": "Le démon passe en mode dégradé « clé » : -31010 rendu à l'hôte, alerte critique, aucun événement non signé.",
@@ -10091,8 +10272,8 @@
       "oracle": "Le marqueur n'apparaît dans aucun fichier (file, traces, journal) ; le mutant l'y fait apparaître et le test échoue. Le planificateur de référence ne manipule aucun secret en version 0 (la projection `planificateur-ancrage-v0` exclut les secrets) : il n'y a rien à retirer aujourd'hui ; l'hygiène des vecteurs `ct-5` est TV-44.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Le planificateur de référence ne résout aucune référence de secret (planificateur-ancrage-v0 exclut les secrets de sa projection) : test à écrire quand l'enregistreur (étape 4) puis le composant d'ancrage (étape 5) résoudront des références de secrets."
+        "phase2_step": 5,
+        "blocking": "Le test porte sur une requête RFC 3161 authentifiée vers un prestataire (providers[principal].auth, CT-5 EX-4.8, AN-43) : seul le composant d'ancrage de l'étape 5 en émet ; le démon de l'étape 4 résout ses propres références de secrets mais ne parle à aucun prestataire d'horodatage. La version 0.1 rattachait à tort l'entrée à l'étape 4."
       },
       "threats": [
         "MN-41"
@@ -11280,8 +11461,8 @@
         ],
         "command": "npx mocha --timeout 600000 test/adversarial.test.js && npx hardhat --config hardhat.config.mjs test test/ancrage.test.js",
         "complement": {
-          "phase2_step": 4,
-          "blocking": "Le retrait de la relève elle-même (`this.relever`) sur `principal-injoignable.json` épuise les gigues injectées de la trace figée et lève avant l'oracle (EX-10.6) : mutant à poser sur une trace ad hoc ou sur le composant d'ancrage de la phase 2 ; le texte de test de MN-62 (« si la relève est retirée ») est à aligner (PD-24)."
+          "phase2_step": 5,
+          "blocking": "Le retrait de la relève elle-même (`this.relever`) sur `principal-injoignable.json` épuise les gigues injectées de la trace figée et lève avant l'oracle (EX-10.6) : mutant à poser sur le composant d'ancrage de l'étape 5 (ou sur une trace ad hoc de la bibliothèque) ; le texte de test de MN-62 (« si la relève est retirée ») est à aligner (PD-24). La version 0.1 rattachait à tort ce complément à l'étape 4 : la relève est le fait du composant d'ancrage."
         }
       },
       "threats": [
@@ -12755,7 +12936,7 @@
       "status": {
         "state": "a_ecrire",
         "phase2_step": 4,
-        "blocking": "Enregistreur (démon) non construit : phase 2, étape 4.",
+        "blocking": "PA-10 non adoptée par CT-2 : la consigne perimeter_unlisted_host n'est pas une exigence de CT-2 0.6, et le démon de l'étape 4 ne l'écrit pas (aucune occurrence dans paquets/enregistreur/src) ; le test s'écrit sur ce démon après l'adoption.",
         "depends_on": [
           "PA-10"
         ]
@@ -13036,8 +13217,8 @@
       "oracle": "Réserve présente dans le rapport.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Réponse non codée dans l'implémentation de référence au 2026-11-01 (voir `notes`) : mutant survivant, à tuer à l'étape 4 (PD-13) ; le test est écrit alors et échoue jusqu'à la correction."
+        "phase2_step": 8,
+        "blocking": "Réponse non codée dans l'implémentation de référence (voir `notes`, PD-13) et cas de vecteur « valide-production-sans-ancre » absent (PD-9) : test possible sur le dépôt sans composant de la phase 2, donc rattaché à l'étape 8 (EX-3.10). La version 0.1 le rattachait à tort à l'étape 4 : la vérification des procès-verbaux de cérémonie n'est pas un livrable de l'enregistreur."
       },
       "threats": [
         "MN-93"
@@ -13789,8 +13970,8 @@
       "oracle": "`p50 ≤ 5` et `p99 ≤ 50` (ms) sur le système de référence, `counts_for_targets` vrai ; sinon la ligne porte `met` faux et la porte 2 le dit.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur et harnais de mesure non construits (CT-2 EX-16.2 : phase 2)."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
       },
       "threats": [],
       "measure": {
@@ -13848,8 +14029,8 @@
       "oracle": "`max ≤ 10` ms sur tous les octets (aucun tampon, EX-5.11) ; sinon `met` faux.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Passerelle du modèle et harnais non construits."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
       },
       "threats": [],
       "measure": {
@@ -13899,8 +14080,8 @@
       "oracle": "`value ≥ 500` événements/s ; sinon `met` faux.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur et harnais non construits."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
       },
       "threats": [],
       "measure": {
@@ -13945,8 +14126,8 @@
       "oracle": "`p50 ≤ 5` et `p99 ≤ 50` (ms) ; sinon `met` faux.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Passerelle du modèle et harnais non construits."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
       },
       "threats": [],
       "measure": {
@@ -13998,8 +14179,8 @@
       "oracle": "Une ligne par classe mesurée, `met` null (aucune cible) ; la latence de la classe B est ajoutée à TM-1 comme CT-2 §16.1 le demande.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Signataires et harnais non construits."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. Les signataires des classes A, B et C ne sont pas livrés par l'étape 4 (LISEZMOI du paquet) : seule la classe D est mesurable."
       },
       "threats": [],
       "measure": {
@@ -14098,8 +14279,8 @@
       "oracle": "Lignes présentes, `met` null ; un écart de plus d'un facteur 2 avec TM-6 est signalé dans `notes`.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur non construit."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
       },
       "threats": [],
       "measure": {
@@ -14145,8 +14326,8 @@
       "oracle": "`p99 ≤ 2000` ms ; sinon `met` faux.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Écrivain et reprise du démon non construits."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4."
       },
       "threats": [],
       "measure": {
@@ -14199,8 +14380,8 @@
       "oracle": "Lignes présentes, `met` null (aucune cible en version 0) ; `memoire_charge − memoire_vide ≤ M_tamp` sinon `notes` le dit et DM-19 est à revoir.",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Enregistreur non construit ; `m_0` nul dans le calculateur jusqu'à cette mesure (CT-8 IC-1)."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. `m_0` reste nul dans le calculateur jusqu'à cette mesure (CT-8 IC-1)."
       },
       "threats": [],
       "measure": {
@@ -14554,19 +14735,29 @@
         "CT-2 EX-12.17"
       ],
       "preconditions": [
-        "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; `fdatasync` actif sur disque local.",
-        "Support WORM réel ou son émulateur de test configuré dans `storage.seal.worm` ; une période close avec points, ancres et manifeste."
+        "Système de référence de la porte 2 (section 11.1), nommé dans le rapport ; hors de lui, le rapport est publié sans compter pour la cible (EX-11.2).",
+        "Support WORM réel des tests du lot WORM : S3 à Object Lock de LocalStack 4.0 (image épinglée par condensé) en conteneur Docker, derrière un mandataire TLS, bucket verrouillé en COMPLIANCE par l'exploitant (EX-12.30), configuré dans `storage.seal.worm` ; une période close par le démon de l'étape 4 ; sans Docker, le test est en attente (EX-3.11)."
       ],
       "steps": [
-        "Pour chaque fichier de `points/`, `ancres/periode-*/` et du manifeste : lire la version copiée par l'API du support, comparer son SHA-256 à l'original.",
-        "Lire le mode de verrou et la date de rétention rendus par l'API ; comparer à la rétention des événements.",
-        "Rapport : ligne `p6_copie_worm`, `value` = nombre de fichiers sans copie conforme."
+        "Pour chaque fichier de `points/`, `ancres/periode-*/` et des manifestes (manifeste et signature) : lire la version copiée par l'API du support (ListObjectVersions, GET avec versionId), comparer son SHA-256 à l'original.",
+        "Lire le mode de verrou et la date de rétention rendus par l'API (HEAD avec versionId) ; comparer à la rétention des événements (365 × events_years jours depuis la création de la version, tolérance d'une heure d'EX-12.33).",
+        "Rapport : ligne `p6_copie_worm`, `value` = nombre de fichiers sans copie conforme ; publié sous spec/vecteurs/ct-9/mesures/ (EX-11.11)."
       ],
       "oracle": "`value = 0` fichier manquant ; mode sans contournement ; rétention ≥ celle des événements ; sinon `met` faux.",
       "status": {
-        "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Copie WORM de l'enregistreur non construite (étape 4, stockage) ; support réel à la porte 2."
+        "state": "executable",
+        "tests": [
+          {
+            "file": "test/enregistreur-worm-mesure-p6.test.js",
+            "describe": "TM-16 — P-6 de CT-5 mesurée sur le support WORM réel (S3 à Object Lock en conteneur) : copie conforme des points, des ancres et des manifestes",
+            "it": "TM-16 : une période close copiée sur le support ; chaque fichier de points/, d'ancres/periode-*/ et de manifestes/ lu par l'API du support (version au même SHA-256, mode COMPLIANCE, rétention au moins égale à celle des événements) ; rapport conforme à plan-de-tests-v0#/$defs/rapport_mesure, ligne p6_copie_worm à 0 fichier non conforme"
+          }
+        ],
+        "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-worm-mesure-p6.test.js",
+        "complement": {
+          "phase2_step": 5,
+          "blocking": "Partie à écrire : le répertoire `ancres/` n'existe pas avant le composant d'ancrage de l'étape 5 (CT-5 §5.5) ; la mesure de l'étape 4 porte sur les points et les manifestes, et le rapport le dit."
+        }
       },
       "threats": [],
       "measure": {
@@ -15649,8 +15840,8 @@
       "oracle": "`observation_latence` : `p50 ≤ 5`, `p99 ≤ 50` ms ; la différence des percentiles de la paire est publiée avec les deux séries ; `observation_ecriture` publiée (aucune borne normative en 0.1).",
       "status": {
         "state": "a_ecrire",
-        "phase2_step": 4,
-        "blocking": "Mode observation du démon non construit (CT-2 révision 0.6)."
+        "phase2_step": 8,
+        "blocking": "Harnais de CT-2 EX-16.2 (`scripts/mesures/ct-2-perf.mjs`, `npm run mesures:ct2`) non écrit : les tests de performance relèvent de l'étape 8 (table 3.4) ; le démon de l'étape 4 existe ; mesure sur le système de référence de la porte 2 (EX-11.1). La version 0.1 rattachait l'entrée à l'étape 4. Le mode observation est livré par le démon (CT-2 révision 0.6)."
       },
       "threats": [],
       "measure": {
@@ -17369,8 +17560,8 @@
       "owner": "client",
       "threat": "MN-2",
       "test": "TA-2",
-      "test_state": "a_ecrire",
-      "tested": "TA-2 éprouve la réponse qui borne le risque (launched_by tiré de la configuration de la connexion d'hôte, jamais de l'hôte (CT-2 EX-7.2, EX-7.3)) : avec elle, L'événement scellé porte delegation.launched_by = « agent-demo » (configuration) ; seuls run_id et on_behalf_of peuvent venir de l'hôte (EX-7.2) ; une ligne delegation_refused est écrite si l'hôte déclare un launched_by (CT-2 EX-17.2) ; sans elle, le test échoue.",
+      "test_state": "executable",
+      "tested": "TA-2 éprouve la réponse qui borne le risque (launched_by tiré de la configuration de la connexion d'hôte, jamais de l'hôte (CT-2 EX-7.2, EX-7.3)) : avec elle, L'événement scellé porte delegation.launched_by = « agent-demo » (configuration) ; seuls run_id et on_behalf_of peuvent venir de l'hôte (EX-7.2), l'on_behalf_of déclaré hors liste est remplacé et son refus consigné (delegation_refused) ; un launched_by déclaré est ignoré sans ligne propre (CT-2 EX-17.2 ne nomme delegation_refused que pour run_id et on_behalf_of) ; sans elle, le test échoue.",
       "not_tested": "l'exactitude de run_id et on_behalf_of déclarés par l'hôte"
     },
     {
@@ -17414,7 +17605,7 @@
       "threat": "MN-7",
       "test": "TA-7",
       "test_state": "executable",
-      "tested": "TA-7 éprouve la réponse qui borne le risque (Espace noortrace.* réservé, aucun outil propre annoncé (CT-2 EX-4.2, CT-1 E-3) ; empreinte de chaque définition et pièce de définition (CT-2 EX-4.16, EX-4.45)) : avec elle, L'outil réservé est rejeté (nom_reserve) ; en phase 2, la ligne tool_definition_changed et la nouvelle pièce de définition existent ; sans elle, le test échoue.",
+      "tested": "TA-7 éprouve la réponse qui borne le risque (Espace noortrace.* réservé, aucun outil propre annoncé (CT-2 EX-4.2, CT-1 E-3) ; empreinte de chaque définition et pièce de définition (CT-2 EX-4.16, EX-4.45)) : avec elle, L'outil réservé est rejeté (nom_reserve) ; sur le démon, la ligne tool_definition_changed et la nouvelle pièce de définition existent ; sans elle, le test échoue.",
       "not_tested": "un changement de définition qui garde la même empreinte, ou une définition trompeuse dès la première lecture"
     },
     {
@@ -17424,7 +17615,7 @@
       "owner": "client",
       "threat": "MN-8",
       "test": "TA-8",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-8 éprouve la réponse qui borne le risque (Authentification de tout appelant HTTP, comparaison en temps constant, prise locale 0660 (CT-2 EX-18.3, EX-4.39, EX-18.1)) : avec elle, Les deux premières sont refusées (401) et consignées (ligne auth_failed) ; la troisième est journalisée sous l'identité du jeton présenté, jamais sous une autre ; sans elle, le test échoue.",
       "not_tested": "le vol du jeton d'un hôte légitime, qui journalise sous l'identité du jeton"
     },
@@ -17435,8 +17626,8 @@
       "owner": "client",
       "threat": "MN-9",
       "test": "TA-9",
-      "test_state": "a_ecrire",
-      "tested": "TA-9 éprouve la réponse qui borne le risque (Utilisateur distinct, bac à sable et environnement réduit des serveurs stdio (CT-2 EX-3.4, EX-3.5, EX-18.4) ; secrets en fichiers 0400 (EX-15.3)) : avec elle, Les deux accès échouent (EACCES) ; la sortie d'erreur du serveur est bornée et consignée (CT-2 EX-4.32) ; sans elle, le test échoue.",
+      "test_state": "executable",
+      "tested": "TA-9 éprouve la réponse qui borne le risque (Utilisateur distinct, bac à sable et environnement réduit des serveurs stdio (CT-2 EX-3.4, EX-3.5, EX-18.4) ; secrets en fichiers 0400 (EX-15.3)) : avec elle, Les deux accès échouent (EACCES) ; sans elle, le test échoue.",
       "not_tested": "une évasion du bac à sable propre au noyau de l'hôte"
     },
     {
@@ -17447,7 +17638,7 @@
       "threat": "MN-10",
       "test": "TA-10",
       "test_state": "executable",
-      "tested": "TA-10 éprouve la réponse qui borne le risque (Intention durable avant relais et reprise des intentions (CT-2 EX-4.19, EX-12.12, EX-12.14) ; code -31017 (EX-4.46)) : avec elle, Au redémarrage, une intention sans levée produit un événement de reprise (executions.status inconnu, pièce de reprise) ; l'hôte a reçu -31017 ; sans elle, le test échoue.",
+      "tested": "TA-10 éprouve la réponse qui borne le risque (Intention durable avant relais et reprise des intentions (CT-2 EX-4.19, EX-12.12, EX-12.14) ; code -31017 (EX-4.46)) : avec elle, Au redémarrage, une intention sans levée produit un événement de reprise (execution.status executee, is_error vrai, pièce de reprise) ; une panne après le relais, le démon vivant, rend -31017 à l'hôte ; sans elle, le test échoue.",
       "not_tested": "l'écriture exécutée côté serveur entre le pas 9 et la panne, hors de toute intention"
     },
     {
@@ -17538,8 +17729,8 @@
       "owner": "client",
       "threat": "MN-19",
       "test": "TA-19",
-      "test_state": "a_ecrire",
-      "tested": "TA-19 éprouve la réponse qui borne le risque (Bail, époque, jeton de clôture vérifié par le stockage, contrôle après écriture (CT-2 EX-13.1, EX-13.4 à EX-13.6, EX-13.10)) : avec elle, L'écriture du premier est refusée par le stockage (jeton périmé) ; une seule suite existe ; alerte lease_lost ; sans elle, le test échoue.",
+      "test_state": "executable",
+      "tested": "TA-19 éprouve la réponse qui borne le risque (Bail, époque, jeton de clôture vérifié par le stockage, contrôle après écriture (CT-2 EX-13.1, EX-13.4 à EX-13.6, EX-13.10)) : avec elle, L'écriture du premier est refusée (-31010, lease_lost) ; une seule suite existe ; sans elle, le test échoue.",
       "not_tested": "une fourche sur un stockage qui ne vérifie pas le jeton de clôture"
     },
     {
@@ -17582,7 +17773,7 @@
       "owner": "client",
       "threat": "MN-24",
       "test": "TA-24",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-24 éprouve la réponse qui borne le risque (Coffre chiffré à clé propre ; déchiffrement à deux personnes consigné (CT-2 EX-10.22, CT-7 EX-3.11)) : avec elle, Refus dans les deux cas ; déchiffrement seulement avec une seconde approbation d'une identité distincte ; ligne du registre des accès ; sans elle, le test échoue.",
       "not_tested": "la lecture du coffre par le détenteur légitime de la seconde approbation"
     },
@@ -17637,8 +17828,8 @@
       "owner": "client",
       "threat": "MN-30",
       "test": "TA-30",
-      "test_state": "a_ecrire",
-      "tested": "TA-30 éprouve la réponse qui borne le risque (Classe D refusée en production (CT-2 EX-11.8) ; non-exportabilité, mémoire protégée (EX-11.5, EX-18.7)) : avec elle, Les contrôles de démarrage refusent la configuration (erreur nommant /signer/class) ; sans elle, le test échoue.",
+      "test_state": "executable",
+      "tested": "TA-30 éprouve la réponse qui borne le risque (Classe D refusée en production (CT-2 EX-11.8) ; non-exportabilité, mémoire protégée (EX-11.5, EX-18.7)) : avec elle, Les contrôles de démarrage refusent la configuration (code 2, erreur nommant /signer/class) ; sans elle, le test échoue.",
       "not_tested": "la copie de la clé elle-même en classe C ou D, sans signal"
     },
     {
@@ -17648,7 +17839,7 @@
       "owner": "client",
       "threat": "MN-31",
       "test": "TA-31",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-31 éprouve la réponse qui borne le risque (Rapprochement mensuel des appels de signature avec les objets signés (CT-7 EX-3.7) ; identité d'usage seule (CT-2 EX-11.4, EX-11.3)) : avec elle, Le rapprochement rend un écart de +1 : incident de compromission (CT-7 §4.6) ; sans elle, le test échoue.",
       "not_tested": "un compte inférieur du journal d'audit du backend (CT-7 EX-3.7 ne le qualifie pas)"
     },
@@ -17670,7 +17861,7 @@
       "owner": "client",
       "threat": "MN-33",
       "test": "TA-33",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-33 éprouve la réponse qui borne le risque (Mode dégradé « clé » bloquant sur signataire injoignable sans reprise (CT-2 §17.4) ; rupture de journal (EX-11.16)) : avec elle, Le démon passe en mode dégradé « clé » : -31010 rendu à l'hôte, alerte critique, aucun événement non signé ; sans elle, le test échoue.",
       "not_tested": "la disponibilité du signataire : seule la rupture propre est testée"
     },
@@ -18080,7 +18271,7 @@
       "owner": "client",
       "threat": "MN-26",
       "test": "TA-26",
-      "test_state": "a_ecrire",
+      "test_state": "executable",
       "tested": "TA-26 éprouve la réponse qui borne le risque (Points de contrôle à chaque instant aligné (preuve de vie, CT-2 EX-12.24) ; lignes startup, lease_acquired, lease_lost (EX-17.2) ; annonce de reprise (CT-7 PA-1)) : avec elle, Une ligne startup datée ; après adoption de PA-1, un événement d'annonce de reprise dans la chaîne ; sans elle, le test échoue.",
       "not_tested": "une interruption sans point manqué (plus courte que 2 × c_K)",
       "measured_by": [
@@ -18396,7 +18587,7 @@
       "key": "CT-5 §3.6",
       "line": 420,
       "delegated": "Mesures P-1 à P-6 sur le réseau de développement et sur les vecteurs.",
-      "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15 exécutables), sur le réseau de développement (TM-11 à TM-14, à écrire, étape 5) et sur le support WORM (TM-16, à écrire, étape 4)."
+      "response": "TM-10 à TM-16 (P-1 à P-6) en §11 : sur les vecteurs (TM-10, TM-15 exécutables), sur le réseau de développement (TM-11 à TM-14, à écrire, étape 5) et sur le support WORM (TM-16, exécutable depuis l'étape 4 sur un S3 à Object Lock en conteneur, complément `ancres/` à l'étape 5)."
     },
     {
       "id": "TC-20",
@@ -18718,7 +18909,7 @@
       "key": "CT-8 §5.3",
       "line": 1725,
       "delegated": "Épreuve d'intégration ICAP.",
-      "response": "TI- mode ICAP (§8), étape 4."
+      "response": "TI-19 (mode ICAP, §8) : serveur ICAP et épreuve avec Squid (ssl-bump) livrés à l'étape 4."
     },
     {
       "id": "TC-66",
@@ -19018,14 +19209,14 @@
       "id": "TC-108",
       "key": "`spec/README.md` « Spécifications »",
       "line": 23,
-      "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, figée en conception v1.0).",
+      "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.2, contenu, figée en conception v1.0).",
       "response": "Ce document (en-tête) ; rien n'est délégué."
     },
     {
       "id": "TC-109",
       "key": "`spec/README.md` « Spécifications »",
       "line": 23,
-      "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.1, contenu, figée en conception v1.0).",
+      "delegated": "Ligne d'état de CT-9 dans la table des spécifications (version 0.2, contenu, figée en conception v1.0).",
       "response": "Ce document (en-tête) ; rien n'est délégué."
     },
     {

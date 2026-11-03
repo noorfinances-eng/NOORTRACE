@@ -59,16 +59,16 @@ menaces.json et aux chiffres écrits dans le texte de CT-9.
   index-ta-par-menace.json : 98 menaces, 0 défaut(s) (test, état, scénarios)
 
 5. Titres de tests et étapes de CI cités par les entrées exécutables (règle (d), EX-4.2)
-  test/*.test.js : 72 fichiers, 414 describe, 1664 it ; ci.yml : 47 étapes « - name: »
-  193 entrées exécutables citent 367 titres ou étapes ; 0 absent(s)
-  couverture.json : 193 exécutables, 367 cités, 0 absent(s)
+  test/*.test.js : 79 fichiers, 442 describe, 1762 it ; ci.yml : 50 étapes « - name: »
+  208 entrées exécutables citent 400 titres ou étapes ; 0 absent(s)
+  couverture.json : 208 exécutables, 400 cités, 0 absent(s)
 
 6. it de test/adversarial.test.js (EX-10.7, 10.8, EX-A.11)
-  58 it, 58 dont le titre commence par « TA- », 9 describe de composant ; EX-A.11 : 58 it ; 10.8 : 58 passing
-  titres TA-n (MN-n) : 0 mal formé(s) ; finissant par « (tué) » ou « (tués) » : 56 sur 58 ; oracle sur un vecteur (EX-10.4) : 2
+  71 it, 71 dont le titre commence par « TA- », 10 describe de composant ; EX-A.11 : 71 it ; 10.8 : 71 passing
+  titres TA-n (MN-n) : 0 mal formé(s) ; finissant par « (tué) » ou « (tués) » : 69 sur 71 ; oracle sur un vecteur (EX-10.4) : 2
   EX-10.4 et EX-10.7 : 2 it à oracle sur un vecteur, sans « (tué) » (forme admise) : TA-23 (MN-23, oracle sur le vecteur) ; TA-72 (MN-72, oracle sur le vecteur)
-  identifiants TA- distincts cités par ces titres : 63 ; hors catalogue : 0 ; non exécutables ou ne citant pas le fichier : 0
-  entrées TA- exécutables citant test/adversarial.test.js : 63 ; sans it à leur nom (elles citent les it d'autres TA-) : aucune
+  identifiants TA- distincts cités par ces titres : 75 ; hors catalogue : 0 ; non exécutables ou ne citant pas le fichier : 0
+  entrées TA- exécutables citant test/adversarial.test.js : 75 ; sans it à leur nom (elles citent les it d'autres TA-) : aucune
   titres d'it TA- non cités par l'entrée qu'ils nomment : 0
 
 7. Lignes TM- et TR- du texte (11.5, 12.2) et du catalogue
