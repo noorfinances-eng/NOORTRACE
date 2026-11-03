@@ -156,28 +156,21 @@ export class ClientNoortrace {
   }
 
   /**
-   * Connexion vivante, établie au besoin en au plus `1 + reprises` tentatives
-   * (EX-6.13) ; une connexion perdue ouvre une génération nouvelle.
+   * Connexion vivante, établie au besoin par **une** tentative ; une connexion
+   * perdue ouvre une génération nouvelle. Les reprises et leurs délais sont
+   * comptés par l'appelant (`_ouvrirSession`) : au plus `1 + reprises`
+   * tentatives d'établissement en tout (EX-6.13).
    * @returns {Promise<Connexion>}
    */
   async _connexionVive() {
     if (this._connexion && !this._connexion.perdue) return this._connexion;
     if (this._etablissement) return this._etablissement;
     this._etablissement = (async () => {
-      let derniere;
-      for (let n = 0; n <= this.reprises; n++) {
-        if (n > 0) await new Promise((r) => setTimeout(r, delaiReprise(n - 1)));
-        const c = new Connexion(this._adresse);
-        try {
-          await c.ouvrir(this.delaiMs);
-          this._connexion = c;
-          this._generation++;
-          return c;
-        } catch (e) {
-          derniere = e;
-        }
-      }
-      throw derniere;
+      const c = new Connexion(this._adresse);
+      await c.ouvrir(this.delaiMs);
+      this._connexion = c;
+      this._generation++;
+      return c;
     })();
     try {
       return await this._etablissement;
@@ -191,7 +184,12 @@ export class ClientNoortrace {
     return this._connexion !== null && !this._connexion.perdue && this._generation === generation;
   }
 
-  /** Ouvre une session (6.2 `ouvrir`) ; la connexion et `ouvrir` sont retentés (EX-6.13). */
+  /**
+   * Ouvre une session (6.2 `ouvrir`) ; la connexion et `ouvrir` sont retentés
+   * ensemble, en au plus `1 + reprises` tentatives séparées par
+   * `delaiReprise(n)` (EX-6.13) : une tentative établit la connexion si
+   * besoin, puis envoie `ouvrir`.
+   */
   async _ouvrirSession(run_id, on_behalf_of) {
     let derniere;
     for (let n = 0; n <= this.reprises; n++) {

@@ -103,6 +103,30 @@ export class ControleurHorloge {
   }
 
   /**
+   * Contrôle de saut en avant d'EX-7.13 pour un instant lu hors du
+   * scellement (point de contrôle, clôture, EX-12.24) : même comparaison
+   * qu'avant de fixer `ts` (avance murale depuis l'événement précédent contre
+   * avance monotone, plus `clock.max_forward_ms`). Un saut fait entrer en mode
+   * dégradé « horloge » et rend faux ; la référence (dernier événement) n'est
+   * pas déplacée.
+   * @param {number} lu instant mural lu
+   * @returns {boolean} vrai si l'instant est admis
+   */
+  controlerAvance(lu) {
+    if (this.dernierLu === null || this.dernierMonotone === null) return true;
+    const mono = this.horloge.monotone();
+    const avanceMurale = lu - this.dernierLu;
+    const avanceMonotone = mono - this.dernierMonotone;
+    if (avanceMurale <= avanceMonotone + this.reglages.max_forward_ms) return true;
+    if (!this.saut) {
+      this.saut = true;
+      this.journal?.consigner("error", "noyau", "clock_forward_jump", { ecart_ms: avanceMurale - avanceMonotone });
+    }
+    this.degrade.entrer("horloge", { event: "clock_forward_jump" });
+    return false;
+  }
+
+  /**
    * Fixe `ts` pour un événement (EX-7.9) : lève une ErreurEnregistreur
    * (raison `horloge`) en mode dégradé « horloge ».
    * @param {number|null} tsPrecedent `ts` du dernier événement durable, ms

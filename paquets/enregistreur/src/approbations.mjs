@@ -18,6 +18,19 @@ import { jcsIntegralOctets, analyserJsonIntegral } from "./jcs-integral.mjs";
 import { FichierAjout, decouperLignes, tronquer } from "./fichiers.mjs";
 import { ligneIntention } from "./intentions.mjs";
 import { IDS, registreSchemas } from "./schema.mjs";
+import { ErreurEnregistreur } from "./erreurs.mjs";
+
+/**
+ * Borne de `expire_after_ms` (CT-3 7.6 : « E ≤ 86 400 000 ms », schéma de
+ * CT-2). Quand la politique de la version d'une `retenue` est introuvable (pièce
+ * de politique absente ou illisible au redémarrage), E n'est pas connu : le
+ * noyau ne peut pas établir l'échéance `request_ts + E` (EX-9.4) et attend la
+ * borne, `request_ts + E_MAX + timeout_ms`, qui n'est jamais antérieure à
+ * l'échéance réelle (LISEZMOI, Lectures).
+ */
+export const E_MAX_MS = 86400000;
+
+const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
 // ------------------------------------------------------------ MAC de relais
 
@@ -153,10 +166,12 @@ export function verifierRemise(remise, ctx) {
   // SG-3
   const deja = ctx.index.decisions.get(remise.ticket);
   if (deja) return non("SG-3", "ticket_deja_decide", { decision: deja });
-  // SG-4
+  // SG-4 : la politique de la version de la `retenue` donne E ; introuvable, l'échéance
+  // ne peut pas être établie et la vérification échoue (jamais sautée).
+  const politique = ctx.politique(retenue.code.policy_version);
   if (a.decision === "approuve" || a.decision === "refuse") {
-    const E = delaiExpiration(ctx.politique(retenue.code.policy_version));
-    if (E !== null && !(ctx.instant < decoderHorodatage(retenue.ts) + E)) return non("SG-4", "echeance_depassee");
+    const E = delaiExpiration(politique);
+    if (E === null || !(ctx.instant < decoderHorodatage(retenue.ts) + E)) return non("SG-4", "echeance_depassee");
   }
   // SG-5 (E-5, E-9)
   if (a.approvers.length !== a.signatures.length) return non("SG-5", "signature_invalide");
@@ -179,11 +194,16 @@ export function verifierRemise(remise, ctx) {
   }
   if (a.decision === "expire" && a.approvers.length > 0) return non("SG-6", "expire_avec_signatures");
   if ((a.decision === "approuve" || a.decision === "refuse") && a.approvers.length < a.threshold.required) return non("SG-6", "seuil_non_atteint");
-  // SG-7
-  const sep = ctx.politique(retenue.code.policy_version)?.approval?.rules?.separation;
-  if (sep?.self_approval === "interdite") {
-    const id = (sep.identities ?? []).find((x) => x.launched_by === retenue.delegation.launched_by);
-    if (id && a.approvers.some((x) => id.addresses.includes(x))) return non("SG-7", "auto_approbation");
+  // SG-7 : sans approbateur, rien à vérifier ; sinon la politique de la version de la
+  // `retenue` est requise : introuvable, la vérification échoue (jamais sautée). Une
+  // politique présente sans `separation.self_approval: "interdite"` ne l'exige pas.
+  if (a.approvers.length > 0) {
+    if (!estObjet(politique)) return non("SG-7", "auto_approbation");
+    const sep = politique.approval?.rules?.separation;
+    if (sep?.self_approval === "interdite") {
+      const id = (sep.identities ?? []).find((x) => x.launched_by === retenue.delegation.launched_by);
+      if (id && a.approvers.some((x) => id.addresses.includes(x))) return non("SG-7", "auto_approbation");
+    }
   }
   return { ok: true, retenue };
 }
@@ -239,9 +259,9 @@ export function verifierRelais(appel, ctx) {
   if (ctx.index.premiersExecutes.has(appel.ticket) || ctx.intentionsOuvertes.has(appel.ticket) || ctx.relaisEnCours.has(appel.ticket)) {
     return non("RL-3");
   }
-  // RL-4
+  // RL-4 : E de la version de la `retenue` ; politique introuvable : échec (jamais sautée).
   const E = delaiExpiration(ctx.politique(retenue.code.policy_version));
-  if (E !== null && !(appel.instant + appel.timeoutOutil < decoderHorodatage(decision.approval.at) + E)) return non("RL-4");
+  if (E === null || !(appel.instant + appel.timeoutOutil < decoderHorodatage(decision.approval.at) + E)) return non("RL-4");
   return { ok: true, retenue, decision };
 }
 
@@ -284,6 +304,22 @@ export function approvalExpiration(ticket, retenue, fichiers) {
 // ------------------------------------------------------------ fichiers des approbations
 
 /**
+ * Ligne `remise` d'EX-12.23 (`{ kind, ticket, remise_id, decision,
+ * approver_set }`) d'un message reçu de `decisions`, ou null quand le message
+ * n'a pas les membres qui la forment (objet, `ticket` et `remise_id` chaînes,
+ * `approval` objet de `decision` chaîne, `approver_set` objet) : un tel message
+ * n'est pas une remise (`$defs/remise`), SG-1 le refuse, et son jeu ne serait de
+ * toute façon jamais exploitable (EX-9.4, EX-7.16).
+ * @param {unknown} remise
+ * @returns {object|null}
+ */
+export function ligneRemise(remise) {
+  if (!estObjet(remise) || typeof remise.ticket !== "string" || typeof remise.remise_id !== "string") return null;
+  if (!estObjet(remise.approval) || typeof remise.approval.decision !== "string" || !estObjet(remise.approver_set)) return null;
+  return { kind: "remise", ticket: remise.ticket, remise_id: remise.remise_id, decision: remise.approval.decision, approver_set: remise.approver_set };
+}
+
+/**
  * Fichiers des approbations d'une époque (EX-12.23) :
  * `approbations/approbations-<epoch>.ndjson` et `approbations/mac-<epoch>.ndjson`
  * (ligne de contrôle en tête), en ajout seul, lignes JCS intégral, fdatasync.
@@ -305,6 +341,8 @@ export class FichiersApprobations {
     this.macs = new Map();
     this.continuations = new Map();
     this.controle = null;
+    /** Vrai après un échec d'écriture : réouverture avant toute nouvelle ligne. */
+    this.enPanne = false;
   }
 
   /** Relit tous les fichiers (ordre des époques), puis ouvre ceux de l'époque. */
@@ -377,32 +415,80 @@ export class FichiersApprobations {
   }
 
   /**
+   * Écriture d'une ou plusieurs lignes et de leurs fdatasync. Un échec de
+   * `write` ou de `fdatasync` (erreur d'entrée-sortie) est, comme pour un
+   * segment (EX-12.8), fatal pour les descripteurs ouverts : le fichier est
+   * marqué en panne et l'erreur rendue comme panne de stockage
+   * (ErreurEnregistreur `stockage`, EX-7.19 pas 2) ; la ligne suivante n'est
+   * écrite qu'après la réouverture, qui relit les fichiers et coupe une
+   * dernière ligne incomplète (EX-12.23) : aucune ligne n'est ajoutée derrière
+   * une ligne tronquée.
+   * @param {() => Promise<void>} f
+   */
+  async _io(f) {
+    if (this.enPanne) await this.rouvrir();
+    try {
+      await f();
+    } catch (e) {
+      this.enPanne = true;
+      throw new ErreurEnregistreur("stockage", "noortrace: stockage indisponible (fichiers des approbations)", { cause: e });
+    }
+  }
+
+  /** Réouverture après une panne : état relu des fichiers, descripteurs neufs. */
+  async rouvrir() {
+    await this.fermer();
+    this.retenues = new Map();
+    this.remises = new Map();
+    this.decisions = new Map();
+    this.macs = new Map();
+    this.continuations = new Map();
+    try {
+      await this.ouvrir();
+    } catch (e) {
+      throw new ErreurEnregistreur("stockage", "noortrace: stockage indisponible (fichiers des approbations)", { cause: e });
+    }
+    this.enPanne = false;
+  }
+
+  /**
    * Lignes `retenue` et MAC, écrites après la signature de l'événement
    * `retenue` et avant son ajout au segment, sous un même fdatasync (EX-12.23).
    */
   async inscrireRetenue(p) {
     const ligne = { kind: "retenue", ticket: p.ticket, request_seq: p.request_seq, request_hash: p.request_hash, approver_set: p.approver_set };
-    await this._ecrire(this.fA, ligne);
-    await this._ecrire(this.fM, { ticket: p.ticket, request_hash: p.request_hash, mac: p.mac });
-    await this.fA.synchroniser();
-    await this.fM.synchroniser();
+    await this._io(async () => {
+      await this._ecrire(this.fA, ligne);
+      await this._ecrire(this.fM, { ticket: p.ticket, request_hash: p.request_hash, mac: p.mac });
+      await this.fA.synchroniser();
+      await this.fM.synchroniser();
+    });
     this.appliquer(ligne, false);
     this.macs.set(p.request_hash, p.mac);
   }
 
-  /** Ligne `remise`, fdatasync avant sa vérification (EX-7.19 pas 2). */
+  /**
+   * Ligne `remise`, fdatasync avant sa vérification (EX-7.19 pas 2). Le
+   * message doit permettre de former la ligne (`ligneRemise`) : sinon il n'y a
+   * pas de remise à inscrire et SG-1 le refuse.
+   */
   async inscrireRemise(remise) {
-    const ligne = { kind: "remise", ticket: remise.ticket, remise_id: remise.remise_id, decision: remise.approval.decision, approver_set: remise.approver_set };
-    await this._ecrire(this.fA, ligne);
-    await this.fA.synchroniser();
+    const ligne = ligneRemise(remise);
+    if (!ligne) throw new TypeError("remise sans les membres de sa ligne (SG-1)");
+    await this._io(async () => {
+      await this._ecrire(this.fA, ligne);
+      await this.fA.synchroniser();
+    });
     this.appliquer(ligne, false);
   }
 
   /** Ligne `decision`, après signature et avant ajout au segment (EX-12.23). */
   async inscrireDecision(p) {
     const ligne = { kind: "decision", ticket: p.ticket, seq: p.seq, hash: p.hash, approver_set: p.approver_set };
-    await this._ecrire(this.fA, ligne);
-    await this.fA.synchroniser();
+    await this._io(async () => {
+      await this._ecrire(this.fA, ligne);
+      await this.fA.synchroniser();
+    });
     this.appliquer(ligne, false);
   }
 

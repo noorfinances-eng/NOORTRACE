@@ -1,8 +1,14 @@
 #!/usr/bin/env node
-// noortrace-ctl (CT-2 §12.11, EX-12.36, EX-17.6) : voir src/worm/ctl.mjs.
+// noortrace-ctl : actions du lot WORM (CT-2 §12.11, EX-12.36, EX-17.6, voir
+// src/worm/ctl.mjs), et commandes adressées au démon en marche, `reload`
+// (EX-15.5) et `clock --accept` (EX-7.13) (voir src/ctl-demon.mjs).
 import { principalCtl } from "../src/worm/ctl.mjs";
+import { principalCtlDemon } from "../src/ctl-demon.mjs";
 
-principalCtl(process.argv.slice(2)).then(
+const argv = process.argv.slice(2);
+const principal = argv[0] === "reload" || argv[0] === "clock" ? principalCtlDemon : principalCtl;
+
+principal(argv).then(
   (code) => {
     process.exitCode = code;
   },

@@ -7,6 +7,12 @@
 // (EX-4.39) ; en-têtes MCP comparés au corps (EX-4.35) ; réponse JSON ou flux
 // SSE sans tampon, `X-Accel-Buffering: no`, commentaire toutes les 15 s
 // (EX-4.36). Aucun en-tête de l'hôte n'est relayé ni journalisé (EX-4.41).
+// Les échecs d'authentification sont limités par identifiant de jeton
+// présenté et par connexion (EX-18.3) ; les octets d'un corps sont comptés au
+// quota de la connexion d'hôte dès leur lecture, corps refusé compris, et le
+// quota est contrôlé avant toute analyse (4.4 pas 1, EX-4.47) ; le statut
+// HTTP d'une erreur produite par le frontal lui est indiqué par le frontal,
+// jamais lu dans le texte de la réponse (EX-4.35).
 
 import http from "node:http";
 import https from "node:https";
@@ -14,9 +20,43 @@ import fs from "node:fs";
 import { randomBytes, createPublicKey, verify as verifierSignature } from "node:crypto";
 import { egauxTempsConstant } from "./hote-stdio.mjs";
 import { analyserTexte, decoderUtf8Strict, membre, valeurDe } from "./json-texte.mjs";
-import { reponseErreur } from "./messages.mjs";
+import { reponseErreur, VERSION_MODERNE } from "./messages.mjs";
 import { entetesParametres } from "./agregation.mjs";
-import { valeurEnteteParametre } from "./amont.mjs";
+import { LimiteurEchecs } from "../sdk/limiteur.mjs";
+
+/** Sessions de l'ère héritée gardées au plus, par identité authentifiée et en tout (EX-4.37 ; lecture 159). */
+export const SESSIONS_HERITEES_PAR_IDENTITE = 64;
+export const SESSIONS_HERITEES_MAX = 4096;
+
+/** Bornes de la lecture du JWKS (lecture 159). */
+export const JWKS_DELAI_MS = 10000;
+export const JWKS_TAILLE_MAX = 1048576;
+
+const CLE_CONNEXION = Symbol("noortrace.mcp.connexion");
+
+/**
+ * Valeur d'un en-tête `Mcp-Param-*` reçu, sentinelle `=?base64?…?=` décodée
+ * (EX-4.35) ; null pour une sentinelle illisible (base64 non canonique, texte
+ * non UTF-8).
+ * @param {string} h
+ * @returns {string|null}
+ */
+export function decoderEnteteParametre(h) {
+  const m = /^=\?base64\?([A-Za-z0-9+/]*={0,2})\?=$/.exec(h);
+  if (!m) return h;
+  const b = Buffer.from(m[1], "base64");
+  if (b.toString("base64") !== m[1]) return null;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(b);
+  } catch {
+    return null;
+  }
+}
+
+/** Valeur attendue d'un en-tête `Mcp-Param-*` : l'argument primitif en texte, ou null. */
+function texteArgument(v) {
+  return v === undefined || v === null || typeof v === "object" ? null : String(v);
+}
 
 /** Erreur d'authentification : statut HTTP 401 ou 403. */
 export class ErreurAuthentification extends Error {
@@ -52,8 +92,12 @@ export function verifierJwt(jeton, o) {
     throw new ErreurAuthentification(401, "jeton_mal_forme");
   }
   const algos = { RS256: "sha256", ES256: "sha256", EdDSA: null };
-  if (!(entete.alg in algos)) throw new ErreurAuthentification(401, "algorithme");
-  const cles = (o.jwks?.keys ?? []).filter((k) => !entete.kid || k.kid === entete.kid);
+  if (!Object.hasOwn(algos, entete.alg)) throw new ErreurAuthentification(401, "algorithme");
+  // L'algorithme est lié au type de la clé (RFC 8725 §3.1, lecture 162) : RS256 ↔ RSA,
+  // ES256 ↔ EC P-256, EdDSA ↔ OKP Ed25519 ; une clé d'un autre type n'est
+  // jamais essayée.
+  const typeAdmis = { RS256: (k) => k.kty === "RSA", ES256: (k) => k.kty === "EC" && k.crv === "P-256", EdDSA: (k) => k.kty === "OKP" && k.crv === "Ed25519" }[entete.alg];
+  const cles = (Array.isArray(o.jwks?.keys) ? o.jwks.keys : []).filter((k) => k && typeof k === "object" && (!entete.kid || k.kid === entete.kid) && typeAdmis(k) && (k.alg === undefined || k.alg === entete.alg));
   const donnees = Buffer.from(`${parties[0]}.${parties[1]}`);
   const sig = b64url(parties[2]);
   const valide = cles.some((jwk) => {
@@ -77,29 +121,69 @@ export function verifierJwt(jeton, o) {
   return { sub: charge.sub };
 }
 
-/** JWKS lu par HTTPS, gardé cinq minutes. */
-function chargeurJwksHttps(uri) {
+/**
+ * JWKS lu par HTTPS, gardé cinq minutes ; une seule lecture en vol, bornée
+ * en durée et en taille (lecture 159).
+ * @param {string} uri
+ * @param {{requete?: Function, delaiMs?: number, tailleMax?: number}} [o] `requete` : `https.get` (essais : `http.get`)
+ */
+export function chargeurJwksHttps(uri, o = {}) {
+  const requete = o.requete ?? https.get;
+  const delaiMs = o.delaiMs ?? JWKS_DELAI_MS;
+  const tailleMax = o.tailleMax ?? JWKS_TAILLE_MAX;
   let cache = null;
   let instant = 0;
+  let enVol = null;
+  const lire = () =>
+    new Promise((res, rej) => {
+      let fini = false;
+      const finir = (e, v) => {
+        if (fini) return;
+        fini = true;
+        clearTimeout(minuteur);
+        if (e) {
+          q.destroy();
+          rej(e);
+        } else res(v);
+      };
+      const q = requete(uri, (r) => {
+        const m = [];
+        let n = 0;
+        r.on("data", (c) => {
+          n += c.length;
+          if (n > tailleMax) return finir(new Error(`JWKS : taille au-delà de ${tailleMax} octets`));
+          m.push(c);
+        });
+        r.on("end", () => {
+          try {
+            finir(null, JSON.parse(Buffer.concat(m).toString("utf8")));
+          } catch (e) {
+            finir(e);
+          }
+        });
+        r.on("error", (e) => finir(e));
+      });
+      q.on("error", (e) => finir(e));
+      const minuteur = setTimeout(() => finir(new Error(`JWKS : délai de ${delaiMs} ms dépassé`)), delaiMs);
+      minuteur.unref?.();
+    });
   return () => {
     if (cache && Date.now() - instant < 300000) return Promise.resolve(cache);
-    return new Promise((res, rej) => {
-      https
-        .get(uri, (r) => {
-          const m = [];
-          r.on("data", (c) => m.push(c));
-          r.on("end", () => {
-            try {
-              cache = JSON.parse(Buffer.concat(m).toString("utf8"));
-              instant = Date.now();
-              res(cache);
-            } catch (e) {
-              rej(e);
-            }
-          });
-        })
-        .on("error", rej);
-    });
+    if (!enVol) {
+      enVol = lire().then(
+        (v) => {
+          cache = v;
+          instant = Date.now();
+          enVol = null;
+          return v;
+        },
+        (e) => {
+          enVol = null;
+          throw e;
+        },
+      );
+    }
+    return enVol;
   };
 }
 
@@ -115,6 +199,8 @@ export class ServeurHttpMcp {
     /** Sessions modernes par identité, héritées par Mcp-Session-Id. */
     this.parIdentite = new Map();
     this.heritees = new Map();
+    this.limiteur = new LimiteurEchecs({ monotone: () => this.frontal.monotone() });
+    this.compteurConnexions = 0;
   }
 
   get journal() {
@@ -155,6 +241,9 @@ export class ServeurHttpMcp {
     const m = typeof a === "string" ? /^Bearer ([\x21-\x7e]+)$/.exec(a) : null;
     if (!m) throw new ErreurAuthentification(401, "absent");
     const recu = Buffer.from(m[1], "utf8");
+    // EX-18.3 : ce jeton, ou cette connexion, a trop échoué : refus pendant 60 s (lecture 163).
+    req[CLE_CONNEXION].jeton = this.limiteur.cleJeton(recu);
+    if (this.limiteur.bloque(req[CLE_CONNEXION].jeton) || this.limiteur.bloque(req[CLE_CONNEXION].connexion)) throw new ErreurAuthentification(401, "jeton_limite");
     let id = null;
     for (const [k, v] of this.jetons) if (egauxTempsConstant(recu, v)) id = k;
     if (id !== null) {
@@ -176,7 +265,13 @@ export class ServeurHttpMcp {
     return { hote, identite: { oauth_subject: sub }, cle: `${hote.id}\u0000oauth:${sub}` };
   }
 
-  _refuserAuth(res, e) {
+  _refuserAuth(req, res, e) {
+    // EX-18.3 : un échec d'authentification (401) compte pour le jeton présenté
+    // et pour la connexion ; un refus pendant la limitation n'en ajoute pas.
+    if (e.statut === 401 && e.raison !== "jeton_limite") {
+      if (req[CLE_CONNEXION].jeton) this.limiteur.echec(req[CLE_CONNEXION].jeton);
+      this.limiteur.echec(req[CLE_CONNEXION].connexion);
+    }
     this.journal.consigner("warning", "frontal_mcp", "auth_failed", { transport: "http", reason: e.raison, status: e.statut });
     const h = {};
     if (e.statut === 401) {
@@ -205,18 +300,27 @@ export class ServeurHttpMcp {
       res.writeHead(403).end();
       return;
     }
+    // Connexion (EX-18.3 : limitation par connexion, jamais par adresse source).
+    const sock = req.socket;
+    if (!sock[CLE_CONNEXION]) {
+      sock[CLE_CONNEXION] = `connexion:${++this.compteurConnexions}`;
+      sock.once("close", () => this.limiteur.oublier(sock[CLE_CONNEXION]));
+    }
+    req[CLE_CONNEXION] = { connexion: sock[CLE_CONNEXION], jeton: null };
     let auth;
     try {
       auth = this._authentifier(req) ?? (await this._authentifierOauth(req));
     } catch (e) {
-      if (e instanceof ErreurAuthentification) return this._refuserAuth(res, e);
-      return this._refuserAuth(res, new ErreurAuthentification(401, "jwks"));
+      if (e instanceof ErreurAuthentification) return this._refuserAuth(req, res, e);
+      return this._refuserAuth(req, res, new ErreurAuthentification(401, "jwks"));
     }
     const idSession = req.headers["mcp-session-id"];
     const heritee = typeof idSession === "string" ? this.heritees.get(idSession) : undefined;
+    const sienne = heritee !== undefined && heritee.cle === auth.cle;
     if (req.method === "GET" || req.method === "DELETE") {
-      if (heritee && heritee.cle === auth.cle) return this._heriteeHorsPost(req, res, heritee);
-      if (typeof idSession === "string" && !heritee) {
+      if (sienne) return this._heriteeHorsPost(req, res, heritee);
+      // EX-4.34 : en ère moderne, Mcp-Session-Id est ignoré (405) ; une session héritée inconnue : 404 (EX-4.37, lecture 164).
+      if (typeof idSession === "string" && req.headers["mcp-protocol-version"] !== VERSION_MODERNE) {
         res.writeHead(404).end();
         return;
       }
@@ -227,20 +331,30 @@ export class ServeurHttpMcp {
       res.writeHead(405, { allow: "POST" }).end();
       return;
     }
-    const corps = await this._lireCorps(req, res);
+    const corps = await this._lireCorps(req, res, auth.hote);
     if (corps === null) return;
-    // Analyse préalable : ère et en-têtes (EX-4.35, EX-4.37).
+    // 4.4 pas 1, EX-4.47 : quota contrôlé avant toute analyse.
+    const refus = this.frontal.refusAvantAnalyse(auth.hote);
+    if (refus !== null) {
+      res.writeHead(200, { "content-type": "application/json" }).end(refus);
+      return;
+    }
+    // Analyse préalable : ère et en-têtes (EX-4.35, EX-4.37), temps compté (EX-4.47).
     let noeud = null;
     let texte = null;
+    const t0 = this.frontal.monotone();
     try {
       texte = decoderUtf8Strict(corps);
       noeud = analyserTexte(texte, { profondeurMax: this.frontal.config.limits.json_max_depth, membresMax: this.frontal.config.limits.json_max_members });
     } catch {
       noeud = null;
     }
+    this.frontal.compterCapture(auth.hote, this.frontal.monotone() - t0);
     const methode = noeud?.t === "objet" ? membre(noeud, "method") : null;
     const nomMethode = methode?.t === "chaine" ? methode.valeur : null;
     const estNotification = noeud?.t === "objet" && !membre(noeud, "id") && nomMethode !== null;
+    const meta = membre(membre(noeud, "params"), "_meta");
+    const moderne = Boolean(membre(meta, "io.modelcontextprotocol/protocolVersion"));
     let session;
     if (nomMethode === "initialize" && typeof idSession !== "string") {
       session = this.frontal.ouvrirSession({ hote: auth.hote, identite: auth.identite, transport: "http" });
@@ -248,17 +362,16 @@ export class ServeurHttpMcp {
       session.idSession = id;
       const h = { session, cle: auth.cle, flux: null };
       session.emettre = (x) => h.flux?.write(`data: ${x}\n\n`);
-      this.heritees.set(id, h);
+      this._garderHeritee(id, h);
       res.setHeader("mcp-session-id", id);
-    } else if (typeof idSession === "string") {
-      if (!heritee || heritee.cle !== auth.cle) {
-        res.writeHead(404).end();
-        return;
-      }
+    } else if (sienne) {
       session = heritee.session;
+    } else if (typeof idSession === "string" && !moderne) {
+      // Session héritée inconnue ou terminée : 404, l'hôte réinitialise (EX-4.37).
+      res.writeHead(404).end();
+      return;
     } else {
-      const meta = membre(membre(noeud, "params"), "_meta");
-      const moderne = Boolean(membre(meta, "io.modelcontextprotocol/protocolVersion"));
+      // Ère moderne : un Mcp-Session-Id est ignoré, jamais frappé ni renvoyé (EX-4.34).
       if (noeud?.t === "objet" && !moderne && nomMethode !== null) {
         // Requête sans `_meta` moderne et sans session héritée (EX-4.37).
         res.writeHead(400, { "content-type": "application/json" }).end(reponseErreur(this._idBrut(texte, noeud), -32602, { reason: "meta_requis" }));
@@ -305,14 +418,11 @@ export class ServeurHttpMcp {
     });
     const canal = { notifier: (x) => (ouvrirSse(), res.write(`data: ${x}\n\n`)), annulation };
     if (nomMethode === "subscriptions/listen") {
-      // Flux d'écoute moderne (EX-4.15) : notifications de liste sur ce flux.
-      ouvrirSse();
-      session.ecouteListe = true;
-      session.emettre = (x) => res.write(`data: ${x}\n\n`);
+      // Flux d'écoute moderne (EX-4.15, lecture 173) : accusé puis notifications
+      // de liste sur ce flux SSE, fermé par l'hôte (annulation).
       res.on("close", () => clearInterval(veille));
-      return;
     }
-    const r = await this.frontal.recevoir(session, corps, { cadre: "corps", canal });
+    const r = await this.frontal.recevoir(session, corps, { cadre: "corps", canal, compte: true });
     clearInterval(veille);
     if (r === null) {
       if (!res.writableEnded) res.end();
@@ -322,10 +432,28 @@ export class ServeurHttpMcp {
       res.end(`data: ${r}\n\n`);
       return;
     }
-    let statut = 200;
-    if (/"error":\{"code":-32601,/.test(r)) statut = 404;
-    else if (/"error":\{"code":-32602,"message":"Invalid params","data":\{"reason":"meta_requis"\}/.test(r)) statut = 400;
-    if (!res.writableEnded) res.writeHead(statut, { "content-type": "application/json" }).end(r);
+    // Statut d'une erreur que le frontal a produite lui-même (EX-4.35 : méthode
+    // inconnue 404 ; EX-4.37 : 400), indiqué par le frontal ; jamais lu dans le
+    // texte, qui peut porter les octets d'un résultat d'outil (EX-4.20).
+    if (!res.writableEnded) res.writeHead(canal.statutHttp ?? 200, { "content-type": "application/json" }).end(r);
+  }
+
+  /**
+   * Garde une session de l'ère héritée (EX-4.37), bornée par identité et en
+   * tout : au-delà, la plus ancienne est terminée (l'hôte qui la présente
+   * reçoit 404 et réinitialise ; lecture 159).
+   */
+  _garderHeritee(id, h) {
+    const memes = [...this.heritees.values()].filter((x) => x.cle === h.cle);
+    if (memes.length >= SESSIONS_HERITEES_PAR_IDENTITE) this._terminerHeritee(memes[0]);
+    if (this.heritees.size >= SESSIONS_HERITEES_MAX) this._terminerHeritee(this.heritees.values().next().value);
+    this.heritees.set(id, h);
+  }
+
+  _terminerHeritee(h) {
+    this.heritees.delete(h.session.idSession);
+    this.frontal.fermerSession(h.session);
+    h.flux?.end();
   }
 
   _idBrut(texte, noeud) {
@@ -359,18 +487,22 @@ export class ServeurHttpMcp {
           this.journal.consigner("info", "frontal_mcp", "header_ignored", { header: "Mcp-Param-*" }, { host: auth.hote.id, request_id: idBrut });
           continue;
         }
-        const p = attendus.get(h);
-        if (valeurEnteteParametre(args[p]) !== req.headers[h]) return ecart("Mcp-Param");
+        // EX-4.35 : sentinelle =?base64?…?= décodée avant comparaison avec la valeur de l'argument (lecture 161).
+        const recuDecode = decoderEnteteParametre(String(req.headers[h]));
+        const attendu = texteArgument(args[attendus.get(h)]);
+        if (recuDecode === null || attendu === null || recuDecode !== attendu) return ecart("Mcp-Param");
       }
     }
     return null;
   }
 
-  async _lireCorps(req, res) {
+  async _lireCorps(req, res, hote) {
     const borne = this.frontal.config.limits.request_max_bytes;
     const morceaux = [];
     let taille = 0;
     for await (const c of req) {
+      // 4.4 pas 1, EX-4.47 : comptés dès leur lecture, corps refusé compris.
+      this.frontal.compterRecus(hote, c.length);
       taille += c.length;
       if (taille > borne) {
         this.journal.consigner("warning", "frontal_mcp", "request_too_large", { length: taille });
@@ -386,8 +518,7 @@ export class ServeurHttpMcp {
   /** GET (flux de notifications) et DELETE d'une session héritée (EX-4.37). */
   _heriteeHorsPost(req, res, h) {
     if (req.method === "DELETE") {
-      this.heritees.delete(h.session.idSession);
-      this.frontal.fermerSession(h.session);
+      this._terminerHeritee(h);
       res.writeHead(200).end();
       return;
     }

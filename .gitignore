@@ -17,3 +17,7 @@ types/ethers-contracts/
 # adresses d'un réseau de production seront consignées dans un fichier dédié et
 # versionné quand ce réseau existera.
 deployments/
+
+# Environnements d'essai du SDK Python (paquets/sdk-python, LISEZMOI) : créés
+# par `uv` depuis les fichiers de verrou versionnés de verrous/.
+paquets/sdk-python/.environnements/

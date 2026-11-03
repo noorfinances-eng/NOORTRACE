@@ -18,7 +18,8 @@ import https from "node:https";
 import fs from "node:fs";
 import { sha256Hex, utf8 } from "@noortrace/noyau";
 import { egauxTempsConstant } from "../mcp/hote-stdio.mjs";
-import { verifierJwt, ErreurAuthentification } from "../mcp/hote-http.mjs";
+import { verifierJwt, ErreurAuthentification, chargeurJwksHttps } from "../mcp/hote-http.mjs";
+import { LimiteurEchecs } from "../sdk/limiteur.mjs";
 import {
   normaliserCible, trouverRoute, examinerRequeteGemini, refusEnFlux, reponseRefus, entetesVersFournisseur, entetesVersHote,
   nomsConnexion, nomEnteteAuth, declarationsFournisseur, parametresRequete,
@@ -33,6 +34,7 @@ const UNIQUES = new Set([
 ]);
 
 const SOCKET_SCELLEMENT = Symbol("noortrace.modele.scellement");
+const SOCKET_CONNEXION = Symbol("noortrace.modele.connexion");
 
 /** Jetons de la passerelle (EX-5.8) : `model.static_tokens` et `mcp.http.static_tokens`. */
 export function jetonsPasserelle(config, secrets) {
@@ -58,30 +60,13 @@ export function uriPasserelle(config) {
   return `${config.model.tls ? "https" : "http"}://${config.model.listen}`;
 }
 
-/** JWKS lu par HTTPS, gardé cinq minutes. */
+/**
+ * JWKS lu par HTTPS, gardé cinq minutes : le chargeur du frontal MCP, une
+ * seule lecture en vol, bornée en durée et en taille (lecture 159).
+ * @param {string} uri
+ */
 export function chargeurJwks(uri) {
-  let cache = null;
-  let instant = 0;
-  return () => {
-    if (cache && Date.now() - instant < 300000) return Promise.resolve(cache);
-    return new Promise((res, rej) => {
-      https
-        .get(uri, (r) => {
-          const m = [];
-          r.on("data", (c) => m.push(c));
-          r.on("end", () => {
-            try {
-              cache = JSON.parse(Buffer.concat(m).toString("utf8"));
-              instant = Date.now();
-              res(cache);
-            } catch (e) {
-              rej(e);
-            }
-          });
-        })
-        .on("error", rej);
-    });
-  };
+  return chargeurJwksHttps(uri);
 }
 
 export class PasserelleModele {
@@ -106,6 +91,22 @@ export class PasserelleModele {
     this.enVol = new Set();
     this.ferme = false;
     this.agents = { http: new http.Agent({ keepAlive: true }), https: new https.Agent({ keepAlive: true }) };
+    // EX-18.3 : échecs d'authentification limités par jeton présenté et par connexion.
+    this.limiteur = new LimiteurEchecs({ monotone: () => this.monotone() });
+    this.compteurConnexions = 0;
+  }
+
+  /** Valeur du jeton présenté (X-Noortrace-Token, en-tête de la route en mode propre, Authorization), ou null. */
+  _jetonPresente(route, h) {
+    if (typeof h["x-noortrace-token"] === "string") return h["x-noortrace-token"];
+    if (route.credentials === "propre") {
+      const nom = nomEnteteAuth(route.auth_header);
+      const v = h[nom];
+      if (nom === "authorization") return typeof v === "string" && /^Bearer [\x21-\x7e]+$/.test(v) ? v.slice(7) : null;
+      if (typeof v === "string") return v;
+      if (typeof h.authorization === "string" && /^Bearer [\x21-\x7e]+$/.test(h.authorization)) return h.authorization.slice(7);
+    }
+    return null;
   }
 
   get config() {
@@ -317,9 +318,22 @@ export class PasserelleModele {
     }
     const route = trouve.route;
     const enFlux = route.format === "gemini" && refusEnFlux(trouve.methodeGemini, cible.requete);
-    const id = await this._identifier(route, h);
+    // EX-18.3 : un jeton présenté, ou une connexion, qui a trop échoué est refusé 60 s (lecture 163).
+    const sock = req.socket;
+    if (!sock[SOCKET_CONNEXION]) {
+      sock[SOCKET_CONNEXION] = `connexion:${++this.compteurConnexions}`;
+      sock.once("close", () => this.limiteur.oublier(sock[SOCKET_CONNEXION]));
+    }
+    const presente = this._jetonPresente(route, h);
+    const cleJeton = presente === null ? null : this.limiteur.cleJeton(utf8(presente));
+    const limite = (cleJeton !== null && this.limiteur.bloque(cleJeton)) || this.limiteur.bloque(sock[SOCKET_CONNEXION]);
+    const id = limite ? null : await this._identifier(route, h);
     if (!id) {
-      this.journal.consigner("warning", "frontal_modele", "auth_failed", { transport: "passerelle", reason: "hote_inconnu", status: 401, route: route.path });
+      if (!limite) {
+        if (cleJeton !== null) this.limiteur.echec(cleJeton);
+        this.limiteur.echec(sock[SOCKET_CONNEXION]);
+      }
+      this.journal.consigner("warning", "frontal_modele", "auth_failed", { transport: "passerelle", reason: limite ? "jeton_limite" : "hote_inconnu", status: 401, route: route.path });
       return this._refuser(res, "hote_inconnu", { route, enFlux, fermer: true, donnees: { status: 401 } });
     }
     const hote = id.hote;
@@ -329,30 +343,34 @@ export class PasserelleModele {
     const quotas = this.moteur.quotas(hote);
     if (trouve.genre === "passthrough") return this._passthrough(req, res, { route, indice: trouve.indice, hote, cible, quotas });
 
-    // Chaîne de requête d'une route gemini (EX-5.29).
-    let requeteAmont = cible.requete === null ? "" : `?${cible.requete}`;
-    if (route.format === "gemini") {
-      const q = examinerRequeteGemini(trouve.methodeGemini, cible.requete);
-      if (!q.ok) return this._refuser(res, q.raison, { route, hote, enFlux, donnees: { params: q.noms } });
-      requeteAmont = q.amont;
-    }
-    // Corps (EX-5.33, EX-5.7) ; octets reçus comptés, requête refusée comprise (EX-4.47).
+    // Corps (EX-5.33, EX-5.7) ; octets reçus comptés dès la lecture, requête
+    // refusée comprise, y compris sur sa chaîne de requête (4.4 pas 1, EX-4.47).
     const lim = this.config.limits;
     const corps = await this._lireCorps(req, lim.model_request_max_bytes);
     quotas.recevoir(this.monotone(), corps.longueur);
     if (corps.coupe) return;
+    // Chaîne de requête d'une route gemini (EX-5.29).
+    let requeteAmont = cible.requete === null ? "" : `?${cible.requete}`;
+    if (route.format === "gemini") {
+      const q = examinerRequeteGemini(trouve.methodeGemini, cible.requete);
+      if (!q.ok) return this._refuser(res, q.raison, { route, hote, enFlux, fermer: corps.depasse, donnees: { params: q.noms } });
+      requeteAmont = q.amont;
+    }
     if (corps.depasse) return this._refuser(res, "taille", { route, hote, enFlux, fermer: true, donnees: { length: corps.longueur } });
     const ce = h["content-encoding"];
     if (ce !== undefined && ce.trim().toLowerCase() !== "identity") {
       return this._refuser(res, "content_encoding", { route, hote, enFlux, donnees: { length: corps.octets.length, content_type: h["content-type"] ?? null } });
     }
+    // Quotas de la connexion d'hôte contrôlés avant l'analyse du corps (4.4
+    // pas 1, EX-4.47 ; 14.2, ligne « Mémoire », colonne M).
+    if (this.moteur.controlerQuota(hote, this.monotone(), { echange: true })) return this._refuser(res, "degrade", { route, hote, enFlux });
     const t0 = this.monotone();
     const analyse = analyserCorpsJson(corps.octets, this.moteur.bornes);
-    // Le temps d'analyse compte pour les requêtes suivantes : il est ajouté
-    // après le contrôle du quota, comme celui de la rédaction (EX-4.47, lecture 73).
+    // Le temps d'analyse compte pour les requêtes suivantes, ajouté après le
+    // contrôle du quota, refus compris (EX-4.47, lecture 73).
     const dureeAnalyse = this.monotone() - t0;
+    quotas.tempsCapture(this.monotone(), dureeAnalyse);
     if (!analyse.ok) {
-      quotas.tempsCapture(this.monotone(), dureeAnalyse);
       return this._refuser(res, "corps_non_analysable", { route, hote, enFlux, donnees: { length: corps.octets.length, content_type: h["content-type"] ?? null } });
     }
     // Serveurs MCP et contenu en cache déclarés au fournisseur (EX-5.32).
@@ -367,10 +385,6 @@ export class PasserelleModele {
         this.journal.consigner("warning", "frontal_modele", "provider_cache_reference", { route: route.path }, { host: hote.id });
       }
     }
-    // Quotas de la connexion d'hôte (EX-4.47 ; 14.2, ligne « Mémoire », colonne M).
-    const quotaAtteint = this.moteur.controlerQuota(hote, this.monotone(), { echange: true });
-    quotas.tempsCapture(this.monotone(), dureeAnalyse);
-    if (quotaAtteint) return this._refuser(res, "degrade", { route, hote, enFlux });
     const fin = this._echange(req, res, { route, indice: trouve.indice, hote, identite: id.identite, cible, trouve, requeteAmont, corps: corps.octets, valeur: analyse.valeur, t_recu, enFlux });
     req.socket[SOCKET_SCELLEMENT] = fin.then(
       () => {},
@@ -545,12 +559,13 @@ export class PasserelleModele {
   async _passthrough(req, res, x) {
     const { route, hote, cible } = x;
     const cfg = this.config;
-    if (route.format === "gemini" && (parametresRequete(cible.requete) ?? []).some((p) => p.nom === "key")) {
-      return this._refuser(res, "cle_dans_url", { route, hote, donnees: { params: ["key"] } });
-    }
+    // Octets reçus comptés dès la lecture, requête refusée comprise (4.4 pas 1, EX-4.47).
     const corps = await this._lireCorps(req, cfg.limits.model_request_max_bytes);
     x.quotas.recevoir(this.monotone(), corps.longueur);
     if (corps.coupe) return;
+    if (route.format === "gemini" && (parametresRequete(cible.requete) ?? []).some((p) => p.nom === "key")) {
+      return this._refuser(res, "cle_dans_url", { route, hote, fermer: corps.depasse, donnees: { params: ["key"] } });
+    }
     if (corps.depasse) return this._refuser(res, "taille", { route, hote, fermer: true, donnees: { length: corps.longueur } });
     if (this.moteur.controlerQuota(hote, this.monotone(), { echange: false })) return this._refuser(res, "degrade", { route, hote });
     const ch = nomsConnexion(req.headers.connection);

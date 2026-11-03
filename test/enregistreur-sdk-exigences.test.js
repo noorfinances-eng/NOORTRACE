@@ -13,7 +13,7 @@ import tls from "node:tls";
 import { createHash } from "node:crypto";
 import {
   Coeur, demarrerSdk, lireEvenements, controleSdk, validerConfiguration, classeSdk, classeConfigureeSdk, pieceDeclarationSource,
-  RegistreCorrelation, pieceReprise, jcsIntegral,
+  RegistreCorrelation, pieceReprise, jcsIntegral, HorlogeReglable,
 } from "@noortrace/enregistreur";
 import {
   ClientNoortrace, ErreurNoortraceDegrade, ErreurNoortraceEntreeInvalide, ErreurNoortraceLimite, ErreurNoortraceIndisponible, AppelNonAutorise,
@@ -838,6 +838,72 @@ describe("enregistreur, SDK : exigences du point d'entrée (§6.1 à §6.3, §6.
         await new Promise((r) => c.once("close", r));
         expect(d.lignes("auth_failed").map((l) => l.data.reason)).to.include("preuve");
       });
+    });
+  });
+
+  // Défauts démontrés par la relecture adversariale B des frontaux.
+  describe("relecture B : non-régression du point d'entrée SDK", function () {
+    const req = (id, m, p) => new TextEncoder().encode(JSON.stringify({ jsonrpc: "2.0", id, method: "noortrace/sdk/" + m, params: p }));
+
+    it("R-B-7 (EX-6.13, EX-12.15) : connexion perdue pendant un debutAppel d'écriture : l'intention écrite après la clôture est reprise à chaud", async function () {
+      await avecDemon({}, async (d) => {
+        const f = d.sdk.frontal;
+        const hote = d.config.sdk.hosts[0];
+        const cx = f.ouvrirConnexion({ hote, identite: { peer_user: hote.match.peer_user } });
+        const session = JSON.parse(await f.recevoir(cx, req(1, "ouvrir", { run_id: null, on_behalf_of: null }))).result.session;
+        const p = f.recevoir(cx, req(2, "debutAppel", { session, tool: "payer", arguments: { montant: "10.00" }, class: "ecriture", context: [], intent: null, effects: null }));
+        await new Promise((r) => setImmediate(r));
+        await f.fermerConnexion(cx);
+        expect(JSON.parse(await p).result.decision).to.equal("autorise");
+        const ev = (await d.evenements()).filter((e) => !e.execution.tool.startsWith("noortrace."));
+        expect(ev.map((e) => [e.execution.tool, e.execution.status, e.execution.is_error])).to.deep.equal([["agent-local__payer", "executee", true]]);
+        expect(d.lignes("intent_recovered").map((l) => l.data.session_closed)).to.deep.equal([true]);
+        expect(d.coeur.relaisEnCours.size).to.equal(0);
+      });
+    });
+
+    it("R-B-6 (4.4 pas 1, EX-4.47) : lignes au-delà de line_max_bytes comptées ; temps d'analyse d'une requête refusée compté", async function () {
+      await avecDemon({ hotes: [hoteSdk({ quota: { received_bytes_per_minute: 50000 } })], modifier: (c) => (c.limits.line_max_bytes = 4096) }, async (d) => {
+        const p = await priseBrute(d.config.sdk.socket);
+        for (let k = 0; k < 3; k++) p.envoyer("x".repeat(20000));
+        for (let k = 0; k < 3; k++) expect((await p.suivante()).error.data).to.deep.equal({ limit_bytes: 4096, direction: "requete" });
+        const o = await p.appel("ouvrir", { run_id: null, on_behalf_of: null }, 7);
+        expect(o.error).to.deep.equal({ code: -31013, message: "noortrace: taille maximale depassee", data: { limit_bytes: 50000, direction: "quota" } });
+        p.fermer();
+      });
+      class HorlogeQuiAvance extends HorlogeReglable {
+        monotone() {
+          this.mono += 1;
+          return this.mono;
+        }
+      }
+      await avecDemon({ horloge: new HorlogeQuiAvance(Date.now()) }, async (d) => {
+        const f = d.sdk.frontal;
+        const hote = d.config.sdk.hosts[0];
+        const cx = f.ouvrirConnexion({ hote, identite: { peer_user: hote.match.peer_user } });
+        for (const x of ["{", "[1]", '{"jsonrpc":"2.0","id":1,"method":"noortrace/sdk/inconnue"}']) await f.recevoir(cx, new TextEncoder().encode(x));
+        expect(f.quotas.get(hote.id).capture.total(f.monotone())).to.be.greaterThan(0);
+      });
+    });
+
+    it("R-B-11 (EX-18.1) : sdk.socket a le mode 0660 dès sa création, sans fenêtre où elle serait plus ouverte", async function () {
+      const origine = net.Server.prototype.listen;
+      const modes = [];
+      net.Server.prototype.listen = function (...a) {
+        const x = origine.apply(this, a);
+        if (typeof a[0] === "string" && a[0].endsWith("sdk.sock")) modes.push(fs.statSync(a[0]).mode & 0o777);
+        return x;
+      };
+      const masque = process.umask(0o000);
+      try {
+        await avecDemon({}, async (d) => {
+          expect(fs.statSync(d.config.sdk.socket).mode & 0o777).to.equal(0o660);
+        });
+      } finally {
+        process.umask(masque);
+        net.Server.prototype.listen = origine;
+      }
+      expect(modes).to.deep.equal([0o660]);
     });
   });
 

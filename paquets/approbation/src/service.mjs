@@ -56,7 +56,8 @@ export class ServiceApprobation {
     this.minuteur = null;
     this.minuteurLecture = null;
     this.lectureEnCours = null;
-    this.derniereHauteur = null;
+    /** Dernière hauteur vue par jeu épinglé lu (EX-8.5). */
+    this.dernieresHauteurs = new Map();
     this.derniereTentative = 0;
     this.setReadAt = null;
     this.arrete = false;
@@ -94,17 +95,35 @@ export class ServiceApprobation {
     return r.response;
   }
 
+  /**
+   * Rend durable l'état changé par l'entrée (EX-7.22). Un enregistrement porte
+   * toujours l'état général (dont l'instant de la dernière entrée) ; une entrée
+   * sans effet n'écrit rien. Après un échec d'écriture, le magasin refuse les
+   * ajouts : l'état complet en mémoire est alors recopié (`reprendre`) avant
+   * toute réponse, de sorte que rien de ce que la machine a changé ne devient
+   * visible sans être durable, et qu'aucun changement n'est perdu.
+   */
   async #persister() {
     const m = this.machine.prendreModifications();
     if (!this.magasin) return;
+    if (this.magasin.enPanne) {
+      await this.magasin.reprendre(this.machine.exporter());
+      this.supervision.consigner("reprise", { kind: "etat_recopie" });
+      return;
+    }
     const enr = {};
-    if (m.meta) enr.meta = this.machine.meta();
     if (m.versions) enr.versions = this.machine.versionsChargees();
     if (m.tickets.size) enr.tickets = [...m.tickets].map((id) => this.machine.tickets.get(id));
     if (m.fenetres) enr.fenetres = this.machine.copieFenetres();
-    if (Object.keys(enr).length === 0) return;
-    await this.magasin.ajouter(enr);
-    if (this.magasin.aCompacter) await this.magasin.compacter(this.machine.exporter());
+    if (!m.meta && Object.keys(enr).length === 0) return;
+    enr.meta = this.machine.meta();
+    try {
+      await this.magasin.ajouter(enr);
+      if (this.magasin.aCompacter) await this.magasin.compacter(this.machine.exporter());
+    } catch (e) {
+      this.supervision.consigner("erreur", { kind: "persistance", code: e?.code ?? null, message: e?.message ?? null });
+      throw e;
+    }
   }
 
   /** Après chaque entrée : minuteurs, remises en attente, lecture du jeu. */
@@ -264,6 +283,15 @@ export class ServiceApprobation {
     const fin = this.horloge() + corps.wait_ms;
     for (;;) {
       const remises = await this.#executer(async () => {
+        // EX-7.22 : une remise n'est livrée que durable ; après un échec d'écriture,
+        // l'état complet est d'abord recopié, sinon rien n'est livré.
+        if (this.magasin?.enPanne) {
+          try {
+            await this.magasin.reprendre(this.machine.exporter());
+          } catch {
+            return [];
+          }
+        }
         const maintenant = this.horloge();
         const l = this.#livrables(maintenant);
         for (const x of l) {
@@ -375,19 +403,41 @@ export class ServiceApprobation {
 
   // -------------------------------------------------------------- jeu d'approbateurs (8.1 à 8.3)
 
-  #politiqueVigueur() {
-    const v = this.machine.enVigueur ? this.machine.version(this.machine.enVigueur) : null;
-    return v?.approval?.rules?.approver_set ?? null;
+  /** Jeu épinglé `registre` d'une version (`approver_set` de sa politique), ou null. */
+  #jeuEpingle(pv) {
+    const p = pv ? this.machine.version(pv)?.approval?.rules?.approver_set : null;
+    return p?.source === "registre" ? p : null;
+  }
+
+  /**
+   * Jeux à lire (EX-8.1, EX-8.3, EX-7.21) : le jeu épinglé de la version en
+   * vigueur (jeu de repli) et celui de la version de chaque ticket en collecte,
+   * un par (chain_id, registry, set).
+   * @returns {Map<string, {pol: object, vigueur: boolean, tickets: object[]}>}
+   */
+  #cibles() {
+    const cibles = new Map();
+    const ajouter = (pol) => {
+      if (!pol) return null;
+      const k = `${pol.chain_id}|${pol.registry.toLowerCase()}|${pol.set.toLowerCase()}`;
+      if (!cibles.has(k)) cibles.set(k, { pol, vigueur: false, tickets: [] });
+      return cibles.get(k);
+    };
+    const v = ajouter(this.#jeuEpingle(this.machine.enVigueur));
+    if (v) v.vigueur = true;
+    for (const t of this.#ticketsOuverts()) ajouter(this.#jeuEpingle(t.request.policy_version))?.tickets.push(t);
+    return cibles;
+  }
+
+  /** Une lecture complète de ce jeu est-elle nécessaire (repli absent, ticket non figé, en vérification ou réassigné) ? */
+  #cibleALire(c) {
+    if (c.vigueur && !this.machine.pret(this.machine.enVigueur)) return true;
+    return c.tickets.some((t) => t.approver_set === null || t.state === "verification" || t.set_reassigned);
   }
 
   #lectureNecessaire() {
-    const pol = this.#politiqueVigueur();
-    if (!this.lecteur || !pol || pol.source !== "registre") return false;
-    if (!this.machine.pret(this.machine.enVigueur)) return true;
-    for (const t of this.machine.tickets.values()) {
-      if (!["ouvert", "seuil_atteint", "verification"].includes(t.state)) continue;
-      if (t.approver_set === null || t.state === "verification" || t.set_reassigned) return true;
-    }
+    if (!this.lecteur) return false;
+    for (const c of this.#cibles().values()) if (this.#cibleALire(c)) return true;
     return false;
   }
 
@@ -407,48 +457,21 @@ export class ServiceApprobation {
   }
 
   /**
-   * Sondage du jeu (EX-8.4, EX-8.5) : lecture complète quand elle est
-   * nécessaire (jeu de repli absent, ticket non figé ou en vérification),
-   * sinon recherche des changements depuis la dernière hauteur vue ; puis
-   * nouveau sondage après `set_poll_interval_ms`.
+   * Sondage des jeux (EX-8.4, EX-8.5) : pour chaque jeu épinglé à suivre,
+   * lecture complète quand elle est nécessaire, sinon recherche des changements
+   * depuis la dernière hauteur vue ; puis nouveau sondage après
+   * `set_poll_interval_ms`.
    */
   async #sonder(force = false) {
     if (this.arrete || !this.lecteur) return;
-    const pol = this.#politiqueVigueur();
     this.lectureEnCours = (async () => {
-      try {
-        if (!pol || pol.source !== "registre") return;
-        let lire = force || this.#lectureNecessaire();
-        if (!lire) {
-          // EX-8.5 : journaux de l'organisation au registre et du jeu épinglé (figé ou de repli)
-          try {
-            const H = await this.lecteur.hauteur();
-            const fige = this.#ticketsOuverts().find((t) => t.approver_set)?.approver_set?.set ?? pol.set;
-            if (this.derniereHauteur !== null) lire = await this.lecteur.changements(pol, fige, this.derniereHauteur, H);
-            else lire = true;
-            if (!lire) this.derniereHauteur = H;
-          } catch {
-            lire = true;
-          }
+      for (const [k, c] of this.#cibles()) {
+        if (this.arrete) return;
+        try {
+          await this.#sonderCible(k, c, force);
+        } catch (e) {
+          this.supervision.consigner("erreur", { kind: "lecture_jeu", message: e.message });
         }
-        if (!lire) return;
-        const precedents = new Set();
-        for (const t of this.machine.tickets.values()) for (const m of t.approver_set?.members ?? []) precedents.add(m);
-        for (const v of this.machine.versions.values()) for (const i of v.approval.rules.separation.identities) for (const a of i.addresses) precedents.add(a);
-        const repli = this.machine.repli(this.machine.enVigueur);
-        for (const m of repli?.members ?? []) precedents.add(m);
-        const r = await this.lecteur.lire(pol, precedents);
-        await this.#executer(async () => {
-          if (this.arrete) return;
-          await this.#entree("jeu_lu", r).catch(() => {});
-        });
-        if (r.status === "lu" && r.jeu.set === pol.set) {
-          this.setReadAt = ecrireHorodatage(this.horloge());
-          this.derniereHauteur = r.jeu.height;
-        }
-        this.supervision.consigner("lecture_jeu", { status: r.status, cause: r.cause, height: r.jeu?.height ?? null, set: r.jeu?.set ?? null });
-      } catch (e) {
-        this.supervision.consigner("erreur", { kind: "lecture_jeu", message: e.message });
       }
     })();
     await this.lectureEnCours;
@@ -461,6 +484,43 @@ export class ServiceApprobation {
     clearTimeout(this.minuteurLecture);
     this.minuteurLecture = setTimeout(() => this.#sonder(false), this.config.set_poll_interval_ms);
     this.minuteurLecture.unref?.();
+  }
+
+  async #sonderCible(k, c, force) {
+    const pol = c.pol;
+    let lire = force || this.#cibleALire(c);
+    if (!lire) {
+      // EX-8.5 : journaux de l'organisation au registre et du jeu épinglé
+      try {
+        const H = await this.lecteur.hauteur();
+        const derniere = this.dernieresHauteurs.get(k) ?? null;
+        if (derniere !== null) lire = await this.lecteur.changements(pol, pol.set, derniere, H);
+        else lire = true;
+        if (!lire) this.dernieresHauteurs.set(k, H);
+      } catch {
+        lire = true;
+      }
+    }
+    if (!lire) return;
+    const precedents = new Set();
+    for (const t of this.machine.tickets.values()) for (const m of t.approver_set?.members ?? []) precedents.add(m);
+    for (const v of this.machine.versions.values()) for (const i of v.approval.rules.separation.identities) for (const a of i.addresses) precedents.add(a);
+    const repli = this.machine.repli(this.machine.enVigueur);
+    for (const m of repli?.members ?? []) precedents.add(m);
+    // EX-8.7 : la lecture est datée de son début ; une lecture partie avant le
+    // calcul d'une décision ne la confirme pas (T8).
+    const debut = this.#maintenant();
+    const r = await this.lecteur.lire(pol, precedents);
+    const lecture = { debut, cible: { chain_id: pol.chain_id, registry: pol.registry, set: pol.set } };
+    await this.#executer(async () => {
+      if (this.arrete) return;
+      await this.#entree("jeu_lu", r, { lecture }).catch(() => {});
+    });
+    if (r.status === "lu" && r.jeu.set === pol.set.toLowerCase()) {
+      this.setReadAt = ecrireHorodatage(this.horloge());
+      this.dernieresHauteurs.set(k, r.jeu.height);
+    }
+    this.supervision.consigner("lecture_jeu", { status: r.status, cause: r.cause, height: r.jeu?.height ?? null, set: r.jeu?.set ?? null, pinned: pol.set });
   }
 
   /** Déclenche les minuteurs échus à l'instant de l'horloge du service (entrée `horloge`). */

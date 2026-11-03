@@ -7,7 +7,9 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { ZERO32, decoderHorodatage, hexVersOctets, NOMS_RESERVES } from "@noortrace/noyau";
+import {
+  ZERO32, analyserJson, construireManifeste, decoderHorodatage, egaliteJson, hacherManifeste, hexVersOctets, NOMS_RESERVES,
+} from "@noortrace/noyau";
 import { listerSegments, lireSegmentFerme, relireSegment } from "./segments.mjs";
 import { tronquer } from "./fichiers.mjs";
 import { IndexChaine } from "./index-chaine.mjs";
@@ -133,7 +135,9 @@ export async function relireJournal(repertoire, options) {
   const serie = periode
     ? etatSerie(await relireSerie(path.join(repertoire, "points", nomSerie(periode.start))), periode.start * 1000, intervalle)
     : null;
+  const manifestesSansSignature = await relireManifestesSansSignature(path.join(repertoire, "manifestes"), evenements, options.journal);
   return {
+    manifestesSansSignature,
     lastSeq,
     lastHash,
     lastTs,
@@ -147,6 +151,54 @@ export async function relireJournal(repertoire, options) {
     serie,
     dernierSegment: segments.length ? segments[segments.length - 1].nom : null,
   };
+}
+
+/**
+ * Manifestes écrits sans leur signature (arrêt brutal entre l'écriture de
+ * `periode-<start>.json` et celle de `periode-<start>.sig`, CT-1 §10.2) : la
+ * clôture est incomplète, l'écrivain la complète à la reprise en signant les
+ * octets du manifeste présent (EX-12.24 : une période close a son manifeste
+ * et sa signature). Le manifeste n'est signé que s'il est exactement celui
+ * que la chaîne durable donne : recalculé sur les événements de sa période,
+ * et chaîné au manifeste précédent (CT-1 §10.3) ; sinon, anomalie qui bloque
+ * l'écriture jusqu'à intervention (jamais signer un manifeste altéré).
+ * @param {string} dir `manifestes/`
+ * @param {object[]} evenements événements durables du journal
+ * @param {{consigner: Function}} [journal]
+ * @returns {Promise<{nom: string, manifeste: object}[]>}
+ */
+async function relireManifestesSansSignature(dir, evenements, journal) {
+  let noms;
+  try {
+    noms = (await fs.readdir(dir)).filter((n) => /^periode-[0-9]{10}\.json$/.test(n)).sort();
+  } catch (e) {
+    if (e.code === "ENOENT") return [];
+    throw e;
+  }
+  const presents = new Set(await fs.readdir(dir));
+  const parSeq = new Map(evenements.map((e) => [e.seq, e.hash]));
+  const sortie = [];
+  for (let k = 0; k < noms.length; k++) {
+    const nom = noms[k];
+    if (presents.has(nom.replace(/\.json$/, ".sig"))) continue;
+    let m;
+    let coherent = false;
+    try {
+      m = analyserJson(new Uint8Array(await fs.readFile(path.join(dir, nom))));
+      const hashes = [];
+      for (let s = m.first_seq; s <= m.last_seq; s++) hashes.push(parSeq.get(s));
+      const precedent = k > 0 ? hacherManifeste(analyserJson(new Uint8Array(await fs.readFile(path.join(dir, noms[k - 1]))))) : ZERO32;
+      coherent = hashes.every((h) => typeof h === "string") && m.prev_period_hash === precedent && egaliteJson(construireManifeste({ ...m, hashes }), m);
+    } catch {
+      coherent = false;
+    }
+    if (!coherent) {
+      journal?.consigner("error", "cloture", "manifest_inconsistent", { manifeste: nom });
+      throw new ErreurRelecture("manifest_inconsistent", { manifeste: nom });
+    }
+    sortie.push({ nom, manifeste: m });
+  }
+  return sortie;
 }
 
 function lireEnteteSimple(octets) {

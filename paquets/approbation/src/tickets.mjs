@@ -225,7 +225,10 @@ export class Machine {
   /**
    * Traite une entrée de 7.4 (`{ kind, at, data }`), après les minuteurs échus.
    * @param {{kind: string, at: string, data: object}} entree
-   * @param {{evaluation?: object}} [options]
+   * @param {{evaluation?: object, lecture?: {debut: number, cible: {chain_id: number, registry: string, set: string}}}} [options]
+   *   `lecture` (entrée `jeu_lu` du service) : instant où la lecture a commencé et jeu épinglé
+   *   contre lequel elle a été faite (EX-8.1) ; sans lui (traces de l'annexe A.6), la
+   *   lecture vaut pour chaque ticket et date de l'instant de l'entrée
    * @returns {{accepted: boolean, reason: string|null, data: object|null, response: object|null, remises: object[]}}
    */
   entree(entree, options = {}) {
@@ -236,15 +239,17 @@ export class Machine {
     let at = T(entree.at);
     if (this.dernierAt !== null && at < this.dernierAt) at = this.dernierAt; // horloge qui recule : jamais d'entrée dans le passé
     this.avancer(at);
+    // L'instant de la dernière entrée n'est persisté qu'avec un enregistrement
+    // qui a un effet (le service joint l'état général à tout enregistrement) :
+    // une entrée sans effet ne coûte aucune écriture (EX-7.20).
     this.dernierAt = at;
-    this.modifs.meta = true;
     const d = entree.data;
     try {
       switch (entree.kind) {
         case "charger": return this.#ok(this.#charger(at, d));
         case "evaluer": return this.#ok(this.#evaluer(at, d, options));
         case "ouvrir": return this.#ok(this.#ouvrir(at, d));
-        case "jeu_lu": this.#jeuLu(at, d); return this.#ok(null);
+        case "jeu_lu": this.#jeuLu(at, d, options.lecture ?? null); return this.#ok(null);
         case "voter": this.#voter(at, d); return this.#ok(null);
         case "recuser": this.#recuser(at, d); return this.#ok(null);
         case "retirer": this.#retirer(at, d); return this.#ok(null);
@@ -669,10 +674,20 @@ export class Machine {
     }
   }
 
-  #jeuLu(at, d) {
+  #jeuLu(at, d, lecture) {
+    // Une lecture est faite contre un jeu épinglé (EX-8.1 : chaîne, registre, jeu) ; elle ne
+    // vaut que pour les tickets dont la version épingle ce jeu (EX-7.21 : un ticket garde
+    // le jeu de sa version), et pour le repli si la version en vigueur l'épingle.
+    const cible = lecture?.cible ?? null;
+    const memeCible = (pol) =>
+      cible === null ||
+      (pol.chain_id === cible.chain_id && pol.registry.toLowerCase() === cible.registry.toLowerCase() && pol.set.toLowerCase() === cible.set.toLowerCase());
+    // Instant de la lecture : celui où elle a commencé (EX-8.7 : « lecture faite après
+    // l'instant où la décision a été calculée ») ; à défaut, celui de l'entrée.
+    const instantLecture = lecture?.debut ?? at;
     // jeu de repli : dernière lecture réussie du jeu épinglé de la version en vigueur (EX-8.3)
     const polVigueur = this.enVigueur ? this.#politiqueJeu(this.enVigueur) : null;
-    if (d.status === "lu" && polVigueur?.source === "registre" && d.jeu.set === polVigueur.set) {
+    if (d.status === "lu" && polVigueur?.source === "registre" && memeCible(polVigueur) && d.jeu.set === polVigueur.set) {
       this.replis.set(polVigueur.set, cloner(d.jeu));
       this.modifs.meta = true;
     }
@@ -680,7 +695,7 @@ export class Machine {
     for (const id of ids) {
       const t = this.tickets.get(id);
       const pol = this.#politiqueJeu(t.request.policy_version);
-      if (!pol || pol.source !== "registre") continue;
+      if (!pol || pol.source !== "registre" || !memeCible(pol)) continue;
       const donnees = { status: d.status, jeu: d.jeu, cause: d.cause };
       if (d.status === "illisible" || d.jeu.set !== pol.set) {
         if (d.cause === "jeu_non_attendu" || d.status === "lu") t.set_reassigned = true;
@@ -695,7 +710,7 @@ export class Machine {
       } else {
         t.confirmation = { height: d.jeu.height, block_hash: d.jeu.block_hash };
         this.#inscrire(t, at, "jeu_lu", t.state, t.state, true, null, donnees);
-        if (t.state === "verification" && at >= T(t.computed_decision.at)) this.#remettreDecision(t, at, "jeu_lu");
+        if (t.state === "verification" && instantLecture >= T(t.computed_decision.at)) this.#remettreDecision(t, at, "jeu_lu");
       }
     }
   }

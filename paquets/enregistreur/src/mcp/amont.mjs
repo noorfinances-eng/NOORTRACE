@@ -165,7 +165,8 @@ export class ConnexionAmont extends EventEmitter {
   _ecouter() {
     const id = this.prochainId();
     this.idEcoute = id;
-    this.envoyerNotification(requete(id, "subscriptions/listen", `{"toolsListChanged":true,"_meta":${this.meta()}}`));
+    // Filtre sous `notifications` (révision 2026-07-28, `SubscriptionsListenRequestParams` ; lecture 173).
+    this.envoyerNotification(requete(id, "subscriptions/listen", `{"notifications":{"toolsListChanged":true},"_meta":${this.meta()}}`));
   }
 
   /**
@@ -361,6 +362,7 @@ export class ConnexionStdio extends ConnexionAmont {
     this.tampon = [];
     this.tailleTampon = 0;
     this.sauterJusquaFinDeLigne = false;
+    this.stderrReste = Buffer.alloc(0);
     const echec = new Promise((_, rej) => {
       enfant.once?.("error", (e) => rej(new ErreurConnexionAmont(this.alias, `lancement:${e?.code ?? "erreur"}`)));
     });
@@ -396,7 +398,9 @@ export class ConnexionStdio extends ConnexionAmont {
   }
 
   _stderr(c) {
-    // EX-4.32 : longueur et sha256 par défaut, débit borné.
+    // EX-4.32 : lue ligne par ligne (une ligne coupée entre deux lectures est
+    // une ligne ; la partie gardée est bornée à `limits.line_max_bytes`),
+    // longueur et sha256 par défaut, débit borné.
     const ops = this.frontal.config.supervision.ops_log;
     const max = ops.child_stderr_lines_per_second ?? 20;
     const s = this.stderrFenetre;
@@ -407,7 +411,15 @@ export class ConnexionStdio extends ConnexionAmont {
       s.n = 0;
       s.comptees = 0;
     }
-    for (const l of String(c).split("\n").filter((x) => x.length)) {
+    const octets = Buffer.concat([this.stderrReste ?? Buffer.alloc(0), Buffer.isBuffer(c) ? c : Buffer.from(String(c))]);
+    const k = octets.lastIndexOf(10);
+    const lignes = k < 0 ? [] : octets.subarray(0, k).toString("utf8").split("\n");
+    this.stderrReste = k < 0 ? octets : octets.subarray(k + 1);
+    if (this.stderrReste.length > this.frontal.config.limits.line_max_bytes) {
+      lignes.push(this.stderrReste.toString("utf8"));
+      this.stderrReste = Buffer.alloc(0);
+    }
+    for (const l of lignes.filter((x) => x.length)) {
       if (s.n >= max) {
         s.comptees++;
         continue;
@@ -558,6 +570,10 @@ export class LecteurSse {
     this.reste += texte;
     let k;
     while ((k = this.reste.search(/\r\n|\n|\r/)) >= 0) {
+      // Un CR en fin de morceau peut être le début d'un CRLF coupé entre deux
+      // lectures : il est retenu jusqu'au morceau suivant (une seule fin de
+      // ligne, comme l'analyseur SSE du frontal modèle).
+      if (this.reste[k] === "\r" && k === this.reste.length - 1) break;
       const l = this.reste.slice(0, k);
       const sep = this.reste[k] === "\r" && this.reste[k + 1] === "\n" ? 2 : 1;
       this.reste = this.reste.slice(k + sep);
@@ -580,7 +596,8 @@ export class LecteurSse {
   }
 
   finir() {
-    if (this.reste) this._ligne(this.reste);
+    // Un CR retenu en fin de flux est une fin de ligne.
+    if (this.reste) this._ligne(this.reste.endsWith("\r") ? this.reste.slice(0, -1) : this.reste);
     this.reste = "";
     if (this.donnees.length) this.surDonnees(this.donnees.join("\n"));
     this.donnees = [];

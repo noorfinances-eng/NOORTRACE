@@ -6,12 +6,26 @@ import { parcourirSecrets } from "../configuration.mjs";
 import { operationsSupport } from "./support.mjs";
 import { ServiceCopiesWorm } from "./copies.mjs";
 
-const texte = (v) => Buffer.from(jcsIntegralOctets(v)).toString("utf8");
+/**
+ * Emplacement désigné par une référence de secret (15.2), sans son
+ * `encoding` : `{ "file": "/run/secrets/x", "encoding": "hex" }` et
+ * `{ "file": "/run/secrets/x" }` désignent le même secret (les mêmes octets
+ * lus, décodés autrement) ; c'est la « même référence » d'EX-15.4.
+ */
+const emplacement = (v) => {
+  if (v && typeof v === "object" && !Array.isArray(v)) {
+    const { encoding, ...reste } = v;
+    void encoding;
+    return Buffer.from(jcsIntegralOctets(reste)).toString("utf8");
+  }
+  return Buffer.from(jcsIntegralOctets(v)).toString("utf8");
+};
 
 /**
  * Règle supplémentaire du pas 3 d'EX-15.4 : avertissement si
  * `storage.seal.worm.credentials` est la même référence qu'un autre secret de
- * la configuration.
+ * la configuration (même fichier, même variable ou même chemin de coffre,
+ * quel que soit `encoding`).
  * @param {object} c document
  * @returns {{erreurs: object[], avertissements: object[]}}
  */
@@ -19,9 +33,9 @@ export function controleWorm(c) {
   const avertissements = [];
   const worm = c.storage?.seal?.worm;
   if (worm?.credentials) {
-    const cible = texte(worm.credentials);
+    const cible = emplacement(worm.credentials);
     parcourirSecrets(c, "", (ref, pointeur) => {
-      if (pointeur !== "/storage/seal/worm/credentials" && texte(ref) === cible) {
+      if (pointeur !== "/storage/seal/worm/credentials" && emplacement(ref) === cible) {
         avertissements.push({ pointeur: "/storage/seal/worm/credentials", regle: `même référence que ${pointeur} (EX-15.4)` });
       }
     });

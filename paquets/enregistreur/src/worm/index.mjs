@@ -17,5 +17,8 @@ export * from "./controles.mjs";
 export { OutilGel, ArretOutil, CODES as CODES_SORTIE_GEL } from "./gel.mjs";
 export { principalCtl, JournalOutil, USAGE_CTL } from "./ctl.mjs";
 export { controleWorm, supportWormDepuisConfiguration } from "./configuration.mjs";
-export { reconstruireJournal, restaurerVersion, verifierChaineReconstruite, registreParCle, ErreurRestauration, SANS_COPIE } from "./restauration.mjs";
+export {
+  reconstruireJournal, restaurerVersion, verifierChaineReconstruite, registreParCle, ErreurRestauration, SANS_COPIE, clePubliqueDepuisConfiguration,
+  clePubliqueDepuisCles,
+} from "./restauration.mjs";
 export { passageAttributs, principalAttributs, lireAttributs } from "./attributs.mjs";

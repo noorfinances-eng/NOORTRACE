@@ -202,11 +202,26 @@ export function completer(c) {
   };
 }
 
-/** Résout les secrets d'une configuration contrôlée. */
+/**
+ * Résout les secrets d'une configuration contrôlée. Les jetons du noyau et de
+ * la console sont comparés par leur valeur, pas seulement par leur référence :
+ * deux fichiers ou deux variables de même contenu sont refusés (EX-12.4,
+ * « jeton porteur distinct de celui du noyau »).
+ */
 export function resoudreSecrets(c, base) {
-  return {
+  const s = {
     cle: decoderCle(lireSecret(c.storage_key, base)),
     jetonNoyau: c.noyau.token ? decoderJeton(lireSecret(c.noyau.token, base)) : null,
     jetonConsole: c.console?.token ? decoderJeton(lireSecret(c.console.token, base)) : null,
   };
+  if (!jetonsDistincts(s)) throw new Error("configuration refusée :\n  /console/token : valeur distincte du jeton du noyau exigée (EX-12.4)");
+  return s;
+}
+
+/**
+ * Les jetons résolus du noyau et de la console sont-ils distincts (EX-12.4) ?
+ * @param {{jetonNoyau: string|null, jetonConsole: string|null}} s
+ */
+export function jetonsDistincts(s) {
+  return s.jetonNoyau === null || s.jetonConsole === null || s.jetonNoyau !== s.jetonConsole;
 }

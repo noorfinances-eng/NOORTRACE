@@ -78,7 +78,10 @@ ci-dessous).
   hors schéma de la part du cœur, secrets (`env`, `file`), rapport et code 2,
   rechargement de la politique (EX-15.5), commande `validate-config`.
 - **Supervision** (§17) : `/healthz`, `/readyz`, `/metrics` ; métriques de
-  l'écrivain, de la clé, du bail, du mode dégradé.
+  l'écrivain, de la clé, du bail, du mode dégradé ; contrôles périodiques
+  d'EX-17.5 qui ne dépendent pas du WORM (période close, signataire,
+  relecture quotidienne des segments fermés avec toutes les clés de la
+  chaîne, lecture 153).
 - **Export d'un dossier minimal** (CT-1 §11) : douze parties v0 (réservées
   absentes, « hors périmètre CT-1 ») et la treizième, `points-de-controle.json`.
 
@@ -365,11 +368,12 @@ Lot « WORM et haute disponibilité » (INTERFACES.md, section f) : `src/worm/`,
   contrôle du verrou de la version écrite (EX-12.33) ; registre des copies
   `worm/copies-<epoch>.ndjson` (EX-12.29) ; échec consigné
   (`worm_copy_failed`), jamais bloquant, réessayé par le balayage.
-- **Supervision** (EX-17.5 à EX-17.7) : contrôles horaires (manifeste,
-  signature, continuité, SHA-256 de chaque copie de l'heure, signataire),
-  quotidiens (relecture complète des segments copiés dans la journée,
-  rétention par défaut du support, registre des gels et état `on` des
-  versions des gels actifs), relevé de verrouillage tous les
+- **Supervision** (EX-17.5 à EX-17.7) : contrôles horaires (SHA-256 de
+  chaque copie de l'heure ; manifeste, signature, continuité et signataire
+  sont contrôlés par le cœur, avec ou sans WORM, lecture 153),
+  quotidiens (rétention par défaut du support, registre des gels et état
+  `on` des versions des gels actifs ; la relecture des segments fermés de
+  la journée, avec toutes les clés de la chaîne, est au cœur), relevé de verrouillage tous les
   `lock_audit_interval_days` jours (versions inattendues, marqueurs,
   versions sans ligne au registre inscrites) ; lignes `integrity_check`,
   `worm_lock_check`, `worm_lock_config_check`, `worm_lock_audit`,
@@ -519,7 +523,14 @@ noortrace-ctl worm reconstruire --configuration configuration.json --vers /var/l
 noortrace-ctl worm restaurer <clé d'objet> --version <version_id> --configuration configuration.json --vers /var/lib/noortrace-version
 noortrace-attributs --racine /var/lib/noortrace --intervalle-s 60     # compte 0, CAP_LINUX_IMMUTABLE (EX-3.9 de CT-8)
 noortrace-attributs sonde                                             # code 0 si le dernier passage a réussi et est récent
+noortrace-ctl reload [--configuration configuration.json]            # EX-15.5 : SIGHUP au démon, réponse lue au journal d'exploitation
+noortrace-ctl clock --accept [--configuration configuration.json]    # EX-7.13 : confirmation après un saut d'horloge en avant, consignée
 ```
+
+`noortrace-ctl reload` et `clock --accept` n'ouvrent aucune prise (EX-18.1) :
+ils trouvent le démon de leur utilisateur et lui envoient un signal (lecture
+152) ; codes 0 fait, 1 refusé par le démon, 2 usage, 4 aucun démon ou pas de
+réponse.
 
 Avec `mcp.enabled`, le démon démarre ensuite le frontal MCP : serveurs
 d'outils stdio lancés et listés, prise `mcp.socket` des connecteurs, prise
@@ -619,8 +630,9 @@ Sous `storage.root/<org_id>/<journal_id>/` (hexadécimal sans `0x`, EX-12.1) :
 | `worm/copies-<epoch:20>.ndjson` | copies WORM (lot WORM) | une ligne JCS intégral `$defs/ligne_copie` par copie contrôlée (EX-12.29) ; ajout seul, sans fdatasync propre |
 
 Hors du répertoire du journal : la table ou la clé du magasin de bail
-`postgresql` ou `etcd` (13.2), le verrou du bail `file` (`lease.store.path`) et
-son époque (`<path>.epoch`), le journal d'exploitation
+`postgresql` ou `etcd` (13.2), le verrou du bail `file` (`lease.store.path`,
+fichier jamais supprimé ni lu : seul compte le verrou `flock(2)` posé dessus,
+lecture 148) et son époque (`<path>.epoch`), le journal d'exploitation
 (`supervision.ops_log.path`, rotation par taille), le coffre des originaux
 s'il est activé (`storage.vault.path/<sha256 de la pièce rédigée>` : nonce
 de 12 octets, chiffré AES-256-GCM, étiquette de 16 octets) et le registre
@@ -642,7 +654,10 @@ politiques, clés) se dérivent des segments à la reprise.
 | `periodes.mjs` | périodes et clôture | CT-1 §9, §10 ; 3.1 |
 | `points.mjs` | points de contrôle | §12.10 |
 | `signataires.mjs` | signataires (interface, classe D) | §11 |
-| `bail.mjs` | bail (interface, magasin `file`) | §13 (part du cœur) |
+| `bail.mjs` | bail (interface, magasin `file` : `flock(2)` tenu par `flock(1)`, lecture 148) | §13 (part du cœur), 13.2 |
+| `verification.mjs` | vérification complète d'un répertoire de journal (segments, signatures avec les clés de la chaîne, manifestes, séries, pièces) | EX-12.10 pas 2, EX-12.17, CT-8 EX-11.6 |
+| `controles.mjs` | contrôles périodiques d'EX-17.5 hors WORM (période close, signataire, relecture quotidienne) | EX-17.5 |
+| `ctl-demon.mjs`, `bin/noortrace-ctl` | `noortrace-ctl reload`, `noortrace-ctl clock --accept` | EX-15.5, EX-7.13, EX-18.1 |
 | `lui-meme.mjs` | journal sur lui-même | §9.1 |
 | `journal-exploitation.mjs` | journal d'exploitation | §9.2, §17.3 |
 | `supervision.mjs`, `degrade.mjs`, `horloge.mjs` | supervision, mode dégradé, horloge | §17, §14, §7.4 |
@@ -701,8 +716,7 @@ politiques, clés) se dérivent des segments à la reprise.
 Part du frontal modèle non faite : réassemblage HTTP/2 de la copie du
 miroir (EX-5.6 : non couvert par la version 0, section 21) ; traducteurs des
 formats de copie des équipements réels vers les trames de l'adaptateur
-(lecture 79) ; SDK Python et adaptateurs de cadres (6.4, 6.6 ; le
-protocole de 6.2 et la file d'EX-6.11 (3) sont prêts) ; part du lot SDK et
+(lecture 79) ; part du lot SDK et
 OpenTelemetry non faite : OTLP/gRPC (non servi en version 0, EX-6.26) ; notifications de
 progression pendant une rétention (EX-4.50, CT-3 EX-11.6, facultatives) ; part du
 frontal MCP non faite : relais hors chaîne de 4.5 (`resources/*`,
@@ -759,12 +773,10 @@ le vecteur ; l'implémentation de référence n'a pas été consultée.
    qui n'a reçu aucun événement n'est pas tourné à la clôture (sinon un
    segment réduit à son en-tête par heure) ; chaque démarrage ouvre un
    segment neuf (nouvelle époque), comme EX-13.9 le dit.
-6. **Magasin de bail `file`** (13.2 : `flock(LOCK_EX | LOCK_NB)`). Node.js
-   n'offre pas `flock(2)` sans module natif : le verrou est un fichier créé en
-   exclusion qui porte le PID du détenteur, repris quand ce processus n'est
-   plus vivant (arrêt brutal) ; l'époque est `<path>.epoch`, incrémentée et
-   forcée sur disque à chaque acquisition. Un bail perdu exige un redémarrage
-   (EX-13.6 interdit la reprise « à chaud » sans relecture).
+6. **Magasin de bail `file`** (13.2 : `flock(LOCK_EX | LOCK_NB)`).
+   Remplacée par la lecture 148 (verrou `flock(2)` tenu par `flock(1)`).
+   Un bail perdu exige un redémarrage (EX-13.6 interdit la reprise « à
+   chaud » sans relecture).
 7. **Clé suivante de classe D.** 15.1 nomme `signer.rotation.next_key_id` sans
    dire où est son fichier. Lecture : même répertoire que
    `signer.backend.path`, nom `<next_key_id>` suivi de l'extension du fichier
@@ -774,11 +786,8 @@ le vecteur ; l'implémentation de référence n'a pas été consultée.
    est `P_S` seul, de la forme `P_S ‖ C` avec `C` vide, qu'aucun événement ne
    peut produire (sa forme canonique n'est jamais vide).
 9. **Signature d'une clé dont la clé publique est inconnue à la relecture.**
-   EX-12.10 pas 2 exige une `sig` qui vérifie « sous la clé en vigueur ». La
-   clé initiale n'est pas dans la chaîne ; si le signataire ne la détient
-   plus, sa clé publique manque. Lecture : la signature n'est alors pas
-   vérifiée à la relecture (hash, `seq`, `prev_hash` le sont) ; une clé
-   connue qui ne vérifie pas est une corruption.
+   Remplacée par la lecture 154 : une telle ligne n'est plus acceptée
+   sans vérification (`segment_corrupted`, raison `cle_inconnue`).
 10. **SG-4 et `approval.at`** (EX-7.5, EX-7.11). SG-4 porte sur « l'instant
     d'écriture de la décision, qui sera `approval.at` », connu seulement quand
     l'écrivain fixe `ts`. Lecture : SG-4 est vérifiée avant le scellement à
@@ -902,7 +911,8 @@ Lectures du lot « rédaction » (§10) :
     contre un lien dur vers le fichier d'un autre), le supprime, puis cherche
     l'entrée `match.peer_user` du nom de ce compte (`/etc/passwd`). Le
     répertoire de la prise doit être inscriptible par les utilisateurs des
-    connecteurs (bit collant recommandé).
+    connecteurs, avec le bit collant **exigé** depuis la relecture B
+    (lecture 157).
 
 32. **Frontal MCP : borne de `taille-depassee`.** Le vecteur fixe
     `limits.response_max_bytes = 512`, sous le minimum de 1024 de
@@ -1743,6 +1753,421 @@ EX-4.39 ; table de 15.1, ligne `mcp` : « prise TCP des connecteurs
      le démarrage (essai `enregistreur-worm-attributs`, cas « conflit de
      texte ») ; le texte ne dit pas qui retire `a` avant la reprise. Signalé
      au rapport du lot (« À corriger dans CT-2 »).
+144. **Clôture interrompue entre le manifeste et sa signature** (CT-1 §10.2 :
+     « La signature est portée à côté du manifeste, dans `manifeste.sig` » ;
+     EX-12.24 ; contrôle P-5 ; relecture A, R-A-1). Un arrêt brutal entre
+     l'écriture de `periode-<start>.json` et celle de `.sig` laissait une
+     période close à jamais sans signature (la relecture prend le dernier
+     manifeste pour la période précédente). Lecture : au démarrage, avant
+     toute écriture, un manifeste sans signature est signé sur ses octets
+     présents par la clé qu'il nomme, s'il est exactement celui que la chaîne
+     durable donne (recalculé sur les événements de sa période, chaîné au
+     manifeste précédent, CT-1 §10.3) ; la remise à l'ancrage (EX-12.27) et
+     les copies WORM du manifeste, de la signature et de la série (EX-12.16)
+     sont refaites ; `period_signature_restored` est consigné. Le manifeste
+     n'est jamais réécrit ; un manifeste que la chaîne ne redonne pas n'est
+     pas signé (`manifest_inconsistent`, mode dégradé « stockage » jusqu'à
+     intervention).
+145. **Points et clôtures au tic sous une horloge qui saute** (EX-7.13 :
+     « l'écrivain ne date pas l'événement dans le futur » ; EX-12.24 : instants
+     « lu[s] sur l'horloge de 7.4 », « Un point manqué (arrêt, horloge bloquée
+     par EX-7.13) n'est pas rattrapé » ; relecture A, R-A-2). Le tic lisait
+     l'horloge murale sans le contrôle de saut : un saut le temps d'un tic
+     closait des périodes futures, puis le plancher de la dernière clôture
+     datait l'événement suivant dans le futur. Lecture : le tic applique la
+     comparaison d'EX-7.13 (avance murale depuis l'événement précédent contre
+     avance monotone, plus `clock.max_forward_ms`) ; en mode dégradé
+     « horloge », ou si cette comparaison révèle un saut (`clock_forward_jump`,
+     entrée dans le mode), rien n'est clos ni pointé. La référence reste celle
+     de l'événement précédent (texte) ; au redémarrage il n'y en a pas (EX-7.13).
+146. **Erreur de `fdatasync` : les lignes non durables quittent le segment**
+     (EX-12.8 : l'écrivain « relit le fichier depuis le début pour établir sa
+     dernière ligne valide », et « les lignes dont la durabilité n'est pas
+     établie sont tenues pour perdues (leurs appels n'ont pas reçu de
+     réponse […]) » ; relecture A, R-A-3). Après un `EIO`, les lignes écrites
+     restent lisibles dans le cache : la seule relecture les gardait dans la
+     chaîne alors que leurs appelants avaient reçu un refus (`-31010`, ou
+     `-31017` et l'événement en attente, d'où deux `executee` pour un appel).
+     Lecture : le segment est tronqué à la longueur couverte par le dernier
+     `fdatasync` rendu (connue de l'écrivain), puis relu ; l'état revient à la
+     dernière ligne durable ; `segment_truncated` (raison
+     `durabilite_non_etablie`) ; les opérations en attente de `fdatasync`
+     sont refusées avant que le segment suivant ne puisse les couvrir ; ce
+     segment n'est ouvert qu'après la troncature. De même, les deux lignes
+     d'une intention dont le `fdatasync` échoue sont retirées (l'appel n'est
+     pas relayé, EX-12.12), sauf bail perdu (EX-13.6 : plus aucune écriture).
+147. **Reprise de l'attente scellée une seule fois** (EX-14.10, EX-9.8 ;
+     relecture A, R-A-4). Le fichier d'attente n'est supprimé qu'après le
+     scellement de ses lignes ; un arrêt entre les deux, ou une ligne dont
+     l'événement a été scellé depuis la file en mémoire (sortie du mode sans
+     redémarrage : la ligne reste au fichier), faisait sceller le même
+     événement une seconde fois. Le format de la ligne (14.5) n'a pas de marque
+     de scellement ; lecture : chaque ligne est d'abord cherchée dans la chaîne
+     durable. L'événement scellé depuis l'attente porte les huit champs de
+     l'événement partiel de la ligne (ou le résultat perdu d'EX-14.10) ; avec
+     une intention, c'est l'événement que désigne sa levée, ou à défaut un
+     événement non désigné par une autre levée et de `ts` au moins égal à
+     `written_at` ; sans intention, son `ts` vaut `max(captured_at, ts
+     précédent)` (ou le début de période qui suit une clôture, lecture 3).
+     Une ligne retrouvée n'est pas scellée de nouveau
+     (`pending_already_sealed`) et son intention est levée si elle ne l'est
+     pas.
+148. **Magasin de bail `file` : `flock(2)` tenu par `flock(1)`** (13.2 :
+     « `flock(LOCK_EX | LOCK_NB)` sur `lease.store.path` ; en cas de succès,
+     lire le fichier `path.epoch` […], écrire `epoch + 1`, `fdatasync` » ;
+     « Implicite tant que le descripteur est ouvert ; le noyau du système
+     libère à la mort du processus » ; EX-13.10, dernier alinéa ; relecture A,
+     R-A-5). Remplace la lecture 6 : le fichier verrou portant un PID, repris
+     quand ce PID n'est plus vivant, laissait deux détenteurs vivants (course
+     de reprise, 13 essais sur 30) et refusait le bail tant qu'un processus
+     sans rapport avait repris le PID. Node.js n'offrant pas `flock(2)` sans
+     module natif, le verrou est pris et tenu par `flock --exclusive
+     --nonblock` d'util-linux (même appel système), lancé par le démon avec un
+     tube sur son entrée standard : l'auxiliaire vit tant que le tube est
+     ouvert, c'est-à-dire tant que le démon vit ; à la mort du démon (SIGKILL
+     compris), le noyau ferme le tube, l'auxiliaire se termine et le noyau
+     libère le verrou ; un démon figé le garde. L'époque est incrémentée sous
+     ce verrou. Un auxiliaire tué seul libère le verrou : le bail n'est plus
+     valide et l'écrivain cesse d'écrire (EX-13.6). Le fichier verrou n'est
+     jamais supprimé (le supprimer pendant qu'un autre le tient ouvert
+     donnerait deux verrous sur deux fichiers) ; son contenu n'est pas lu.
+     Sans `flock(1)`, l'acquisition est refusée (raison `bail`) : l'image du
+     démon doit contenir util-linux (essayé avec 2.39.3). Le détenteur du
+     descripteur est l'auxiliaire et non le démon lui-même : c'est la seule
+     façon conforme sans dépendance native trouvée ; la mort de l'un entraîne
+     la libération, comme le texte le demande.
+149. **Reconstruction et premier démarrage sur un journal reconstruit :
+     signatures, pièces, séries vérifiées** (EX-12.17 ; CT-8 EX-11.6 : « les
+     fichiers restaurés sont identiques octet pour octet à ceux que le
+     registre des copies, les copies WORM […] désignent » ; CT-8 §11.4
+     chemin B, pas 5 (`verifier-journal.mjs … --cles <fichier>`) ; EX-12.10
+     pas 2 ; relecture A, R-A-6). Sans registre des copies, seule la chaîne
+     prouve l'identité des copies, et elle ne la prouve qu'avec les
+     signatures : un segment altéré puis rechaîné (hash recalculés) était
+     accepté. Lecture : `noortrace-ctl worm reconstruire` et
+     `reconstruireJournal` vérifient tout le répertoire reconstruit
+     (`src/verification.mjs`) : chaque ligne comme le dernier segment à la
+     reprise (signature sous la clé en vigueur comprise), la chaîne par le
+     noyau (E-1 à E-11, C-1 à C-3), chaque manifeste recalculé et sa
+     signature, la continuité, chaque série de points, le SHA-256 de chaque
+     pièce contre son nom ; les clés sont celles de la chaîne (rotations) et,
+     pour la clé initiale, `--cles <cles.json>` (forme de CT-1 §11.2) ou le
+     signataire de classe D de la configuration ; une clé introuvable refuse
+     (`cle_inconnue`). Le démon, au premier démarrage sur un journal
+     reconstruit (segments présents, aucun `intentions/` : l'écrivain le crée
+     avant son premier segment et la reconstruction ne le restaure jamais),
+     fait la même vérification avant d'écrire (`journal_reconstruit_verifie`,
+     anomalie : `segment_corrupted`, intervention). Il ne la fait pas à chaque
+     démarrage : EX-12.10 pas 2 dit les segments précédents « réputés fermés
+     proprement ; la supervision les contrôle à son rythme » (lecture 153,
+     contrôles quotidiens).
+150. **Authentification du service d'approbation sur la prise Unix**
+     (EX-18.8 : « sur une prise Unix, par l'identifiant d'utilisateur attendu
+     du pair (`peer_user`) et un répertoire de prise non inscriptible par les
+     hôtes ni par les agents ; en HTTP, par mTLS ou par un jeton » ; « Un
+     `token` nul n'est admis que sur une prise Unix dont le pair est
+     vérifié » ; CT-3 EX-12.2 : « et TLS hors de la boucle locale » ;
+     relecture A, R-A-7). Node.js ne donne pas l'identité du pair d'une
+     connexion (`SO_PEERCRED`) sans module natif. Lecture : avant chaque
+     message, le client vérifie que la prise est une prise dont le
+     propriétaire (le processus qui l'a créée) est `peer_user`, et que son
+     répertoire appartient au compte 0 ou à `peer_user` et n'est
+     inscriptible ni par le groupe ni par les autres : nul autre ne peut
+     alors substituer une prise sous ce nom ; un écart vaut indisponibilité
+     (`pair_non_verifie`, raison `peer_user_inconnu`, `proprietaire_prise`,
+     `repertoire_inscriptible` ou `prise_absente`), matrice de 14.2. La
+     configuration v0 ne porte aucun réglage mTLS du client : une `url` sans
+     `token` est donc toujours sans authentification. Validation (pas 3),
+     dans tous les environnements (le texte ne les distingue pas) : `url`
+     sans `token`, prise sans `peer_user` ni `token`, `http://` hors de la
+     boucle locale sont des erreurs ; les bancs d'essai qui emploient un
+     service HTTP local lui présentent un jeton. Le corps d'une réponse du service
+     est borné à 16 Mio (`TAILLE_MAX_REPONSE_APPROBATION`, aucun texte ne
+     fixe la borne) : au-delà, réponse illisible (`trop_grande`).
+151. **Serveur stdio en production et utilisateur du démon** (EX-3.5 :
+     « En environment: "production", la validation (15.4) refuse un serveur
+     stdio sans user, ou dont user est celui du démon, et refuse une commande
+     qui n'est pas épinglée » ; relecture A, R-A-8). Le schéma admet
+     `user: null` et `integrity: null`. Lecture : en production, `user` nul,
+     `integrity` nul, ou une forme `package` que `command` ne contient pas
+     tel quel, sont des erreurs ; « l'utilisateur du démon » est celui qui
+     exécute la validation (le démon au démarrage et au rechargement ;
+     `validate-config` lancée sous un autre compte compare à ce compte).
+152. **`noortrace-ctl reload` et `noortrace-ctl clock --accept`** (EX-15.5 :
+     « Sur SIGHUP ou la commande noortrace-ctl reload » ; EX-7.13 :
+     « confirmation de l'exploitant (noortrace-ctl clock --accept,
+     consignée) » ; EX-18.1 : aucune interface d'administration réseau, « la
+     gestion passe par la ligne de commande locale (noortrace-ctl, même
+     utilisateur que le démon) », surface d'écoute exhaustive ; relecture A,
+     R-A-10). Le texte ne dit pas comment la commande joint le démon, et
+     interdit toute prise nouvelle. Lecture : la commande trouve le démon
+     parmi les processus de son utilisateur (`/proc/<pid>/cmdline` :
+     `noortrace --config <fichier>`, résolu dans le répertoire de travail du
+     processus, égal à `--configuration` s'il est donné), envoie SIGHUP
+     (`reload`) ou SIGUSR2 (`clock --accept` ; aucun signal n'est nommé par le
+     texte, SIGUSR1 est pris par Node.js), et lit la réponse que le démon
+     consigne dans son journal d'exploitation (`config_reloaded` ou
+     `config_reload_rejected` ; `clock_accepted` ou `clock_accept_refused`).
+     Codes : 0 fait, 1 refusé, 2 usage, 4 aucun démon ou pas de réponse.
+     `clock --accept` ne lève que le mode « horloge » d'un saut en avant :
+     après un recul (EX-7.9), l'accepter daterait les événements au `ts`
+     précédent, donc dans le futur de l'horloge, ce qu'EX-7.13 exclut
+     (`clock_accept_refused`, raison `recul`).
+153. **Contrôles périodiques d'EX-17.5 sans support WORM, avec toutes les
+     clés** (EX-17.5 : « toutes les heures, après la clôture de période, la
+     vérification que la période close a son manifeste et sa signature et
+     que la continuité […] tient, […] et le health() du signataire ; une fois
+     par jour, la relecture et la vérification complètes des segments fermés
+     de la journée » ; relecture A, R-A-11). Ces contrôles ne tournaient
+     qu'avec un support WORM, et la relecture quotidienne ne vérifiait que
+     la clé courante. Lecture : le cœur les fait toujours
+     (`src/controles.mjs`, armé avec les minuteurs), avec les clés de la
+     chaîne (rotations, puis signataire pour la clé initiale) ; le lot WORM
+     garde la comparaison des copies, la rétention du support et le registre
+     des gels. Le contrôle horaire attend 10 s après l'heure pleine (la
+     clôture a lieu au tic de l'écrivain) ; « segments fermés de la journée » :
+     ceux dont la dernière écriture date de moins d'un jour et ceux que
+     l'écrivain de ce processus a fermés (le dernier de l'instance précédente
+     compris, EX-13.9), non encore relus.
+154. **Clé de signature inconnue à la relecture** (EX-12.10 pas 2 : une ligne
+     est valide si sa `sig` « vérifie sous la clé en vigueur »). Remplace la
+     lecture 9 : une ligne dont la clé publique est inconnue n'est plus
+     acceptée sans vérification. Elle n'est pas tronquée (elle est complète,
+     son hash est juste, lecture 2) : `segment_corrupted` (raison
+     `cle_inconnue`), mode dégradé « stockage » jusqu'à intervention (rendre
+     au signataire la clé, ou donner sa clé publique).
+155. **Durabilité des répertoires et fichiers temporaires** (EX-12.5 : « à la
+     création d'un segment ou d'une pièce, d'un fsync du répertoire parent » ;
+     EX-12.6 ; EX-12.13 : un arrêt entre la ligne intention et la ligne
+     contexte est « impossible par construction »). Lecture : la création
+     d'un répertoire (`pieces/<xx>`, et les autres) est suivie du fsync de son
+     parent ; les deux lignes d'une intention partent dans une seule
+     écriture ; les fichiers temporaires `.tmp-*` d'une écriture atomique
+     interrompue (rien de durable sous ce nom) sont supprimés au démarrage,
+     avant toute écriture (`temporary_files_removed`).
+156. **« Même référence qu'un autre secret »** (EX-15.4 pas 3, avertissement
+     sur `worm.credentials`). Lecture : deux références désignent le même
+     secret si elles ont le même emplacement (`file`, `env` ou `vault`),
+     quel que soit `encoding` : `{"file": "/run/secrets/cle-mac-relais"}` et
+     la clé du MAC de relais `{"file": "/run/secrets/cle-mac-relais",
+     "encoding": "hex"}` donnent l'avertissement.
+
+Lectures des corrections de la relecture B (frontaux) :
+
+157. **Preuve d'identité par fichier non transférable** (EX-4.39 :
+     « identifiant d'utilisateur du pair » ; EX-7.3 ; EX-18.1). Node.js 22
+     n'offre pas `SO_PEERCRED` sans module natif, et aucune dépendance
+     native n'est ajoutée : la preuve de la lecture 31 reste. Elle n'est
+     sûre que si aucun pair ne peut renommer le fichier d'un autre sous le
+     nom de son propre défi. Lecture : le répertoire de la prise et chacun
+     de ses parents appartiennent au démon ou à root et ne sont inscriptibles
+     par le groupe ou les autres qu'avec le bit collant ; c'est contrôlé au
+     démarrage (refus de démarrer, `répertoire de la prise … :
+     repertoire_inscriptible`, `repertoire_proprietaire`) et à chaque preuve
+     (`auth_failed`, `reason: "repertoire_prise"`, `detail`) ; un répertoire
+     absent est créé par le démon en mode `1770`. Un fichier dont l'instant
+     de création (`birthtime`, quand le système de fichiers le donne) précède
+     l'envoi du défi de plus d'une seconde est refusé (`preuve`) : un fichier
+     du bon propriétaire renommé depuis un autre répertoire ne prouve rien.
+     Le protocole du connecteur et des SDK ne change pas. Prises
+     `mcp.socket`, `sdk.socket` et du miroir : mode `0660` posé par le masque
+     du processus pendant l'appel synchrone qui crée le fichier, jamais par
+     un `chmod` après coup.
+158. **Copie du journal d'exploitation sur la sortie d'erreur du connecteur**
+     (EX-9.7 : « les lignes de niveau `warning` et `error` qui concernent la
+     connexion d'hôte de ce connecteur (son `host`, ses requêtes) sont aussi
+     écrites sur `stderr` du connecteur »). Le journal est dans le démon, la
+     sortie d'erreur dans le processus connecteur. Lecture : le démon envoie
+     sur la prise du connecteur la ligne `{"noortrace_journal":<ligne du
+     journal>}` (une réponse JSON-RPC du démon commence toujours par
+     `{"jsonrpc"`), le connecteur écrit la ligne du journal sur sa sortie
+     d'erreur, jamais sur sa sortie standard. Une ligne concerne la
+     connexion si son `host` est celui de la connexion **et** si elle est
+     consignée pendant le traitement d'une ligne de ce connecteur (contexte
+     asynchrone de la connexion) : un autre connecteur du même hôte, un
+     serveur d'outils ou le démon n'y sont jamais copiés. Le journal
+     d'exploitation offre pour cela `abonner(f)` (INTERFACES.md, rubrique i).
+159. **Bornes contre l'épuisement des ressources** (EX-4.37, EX-4.21, EX-4.39,
+     EX-4.32 pour le motif « pour qu'un serveur ne puisse pas faire tourner
+     le journal d'exploitation »). Le texte ne borne ni les sessions de
+     l'ère héritée, ni les enregistrements de continuation, ni la lecture du
+     JWKS, ni les lignes qu'un hôte déclenche sans requête. Lecture : au plus
+     64 sessions héritées par identité authentifiée et 4 096 en tout, la
+     plus ancienne terminée au-delà (l'hôte qui la présente reçoit `404` et
+     réinitialise, EX-4.37) ; une continuation est retirée dès qu'elle a
+     servi, avec sa session, et au plus 10 000 sont gardées ; le JWKS est lu
+     par une seule requête à la fois, en 10 s et 1 Mio au plus ;
+     `host_response_ignored` et `host_notification`, que le texte ne
+     prescrit pas, au plus 20 par seconde et par connexion, le reste compté
+     (`host_lines_dropped`, `lines`).
+160. **Quota contrôlé avant l'analyse** (4.4 pas 1 : « Les quotas … sont
+     vérifiés ici ; les octets reçus sont comptés même pour une requête
+     refusée » ; EX-4.47). Lecture : chaque transport compte les octets dès
+     leur lecture (corps refusé par le transport HTTP, ligne au-delà de
+     `limits.line_max_bytes` comprises) ; avant toute analyse, un quota
+     d'octets reçus ou de temps de capture atteint refuse la requête par
+     `-31013` avec `id: null`, puisque l'`id` n'est connu qu'après l'analyse
+     (JSON-RPC 2.0, §5 : « If there was an error in detecting the id … it
+     MUST be Null ») ; le temps d'analyse d'une requête refusée est compté.
+     Ces deux quotas valent pour toute requête du frontal MCP ; les requêtes
+     en cours et les octets de pièces restent jugés après l'analyse, pour un
+     `tools/call`. Passerelle : quotas contrôlés avant l'analyse du corps,
+     corps lu et compté avant un refus sur la chaîne de requête. SDK : le
+     contrôle reste après l'analyse, la méthode (que seule l'analyse donne)
+     décidant si le quota s'applique (lecture 115 : jamais à `finAppel` ni à
+     `fermer`) ; octets et temps d'analyse des refus y sont comptés.
+161. **Comparaison des `Mcp-Param-*`** (EX-4.35 : « sentinelle
+     `=?base64?…?=` décodée avant comparaison »). Lecture : la valeur reçue,
+     sentinelle décodée (base64 canonique, UTF-8 strict, sinon écart), est
+     comparée au texte de l'argument primitif (`String(v)`) ; un argument
+     absent ou non primitif est un écart (`-32020`).
+162. **Algorithme et type de clé d'un jeton OAuth** (EX-4.39 ; RFC 8725
+     §3.1). Lecture : `RS256` n'est vérifié qu'avec une clé `RSA`, `ES256`
+     qu'avec une clé `EC` P-256, `EdDSA` qu'avec une clé `OKP` Ed25519, et
+     jamais avec une clé dont `alg` est autre.
+163. **Limitation des échecs de jeton dans chaque chemin** (EX-18.3). Lecture :
+     Streamable HTTP du frontal MCP par identifiant de jeton présenté et par
+     connexion `keep-alive` ; prise TCP des connecteurs par identifiant de
+     jeton (une seule tentative par connexion) ; passerelle par identifiant
+     de jeton et par connexion (elle ferme la connexion après un refus). Un
+     échec est un `401` (un `403` n'en est pas un) ; un refus pendant la
+     limitation est consigné `auth_failed`, `reason: "jeton_limite"`, comme
+     la prise du SDK, et ne prolonge pas la limitation.
+164. **`Mcp-Session-Id` inconnu** (EX-4.34 : ignoré en ère moderne ; EX-4.37 :
+     `404` après la fin d'une session héritée). Lecture : l'ère d'un POST
+     vient de son corps (`_meta` moderne) ; celle d'un GET ou d'un DELETE de
+     l'en-tête `MCP-Protocol-Version` (`2026-07-28` : `405`, sinon `404`).
+165. **Politique d'une version introuvable** (EX-7.5 SG-4, SG-7 ; EX-7.21 RL-4 ; EX-9.4 : « `E` l'`expire_after_ms` de
+     la version de politique de cet événement … et non celui de la version en
+     vigueur » ; CT-3 7.6 : « `E` ≤ 86 400 000 ms »). Une pièce de politique
+     absente ou illisible au démarrage (purge d'EX-12.20, copie restaurée) est
+     consignée `policy_piece_unavailable`. Lecture : une vérification qui ne
+     peut pas être faite échoue (SG-4 `echeance_depassee`, SG-7
+     `auto_approbation` quand la remise porte des approbateurs, RL-4), jamais
+     sautée ; une politique présente sans `separation.self_approval:
+     "interdite"` (règles opaques des vecteurs de CT-2) n'exige rien de SG-7.
+     L'expiration par le noyau seul attend `request_ts + 86 400 000 +
+     timeout_ms`, jamais avant l'échéance réelle : le ticket reçoit une
+     décision (CT-3 EX-7.25) sans qu'un approbateur perde son délai. La
+     relecture C proposait de garder `E` avec la ligne `retenue` ; EX-12.23
+     fixe les membres de cette ligne (`{ "kind": "retenue", "ticket",
+     "request_seq", "request_hash", "approver_set" }`) : non fait, sans
+     changement de CT-2 (relecture C, R-C-3).
+166. **Message qui n'est pas une remise** (EX-7.19 pas 2 : « il inscrit la remise … puis il applique SG-1 à
+     SG-7 »). Lecture : la ligne `remise` d'EX-12.23 ne se forme que d'un objet
+     qui a `ticket`, `remise_id`, `approval.decision` et `approver_set` ; un
+     message sans eux n'est pas une remise, rien n'est inscrit et SG-1 le
+     refuse (`remise_mal_formee`) ; son jeu ne serait de toute façon jamais
+     exploitable (EX-9.4). Seul un échec d'entrée-sortie de l'écriture fait
+     entrer en mode « stockage » (relecture C, R-C-11).
+167. **Sortie du mode « stockage » après un échec des fichiers des approbations** (EX-7.19 pas 2 ; EX-14.11 : la sortie du mode « stockage » est
+     « l'ouverture et le `fdatasync` d'un nouveau segment » ; EX-12.8). Lecture :
+     l'échec est traité comme une panne du segment (segment fermé et tronqué à
+     sa longueur durable, `writer.signalerPanneStockage`), d'où la sortie par
+     un nouveau segment au tic ; les fichiers des approbations sont rouverts
+     (relus, dernière ligne incomplète coupée) avant la ligne suivante, jamais
+     complétés derrière une ligne dont la durabilité n'est pas établie
+     (relecture C, R-C-11).
+168. **`held` établi au scellement** (EX-7.19 pas 3 : « `held`, vrai si et seulement si le noyau retient une
+     requête de ce ticket et va la relayer »). Lecture : `held` est constaté
+     dans le même tour que la remise de la décision à la rétention, après le
+     scellement, de sorte que la fin de la rétention (`hold_timeout_ms`) ne
+     s'intercale plus ; une décision `refuse` n'est jamais relayée : `held`
+     faux. Le `consommer` du relais attend la fin de l'`acquitter` (CT-3 T18
+     n'admet `consommer` qu'en `approuve`).
+169. **Nouveaux essais jusqu'au succès** (CT-3 12.7 : `ouvrir` « nouvel essai jusqu'à succès » ; `charger`,
+     `acquitter`, `consommer`, `expiration` « nouvel essai » ; EX-7.18 ;
+     EX-7.20). Lecture : sans borne de nombre, délai croissant de 50 ms à 5 s,
+     un seul envoi en cours par message ; une erreur portant une raison de
+     CT-3 §12.8 est une réponse (finale pour `charger` et `expiration`, et pour
+     `ouvrir` et `consommer` selon EX-7.18 et EX-7.20) ; `indisponible`, une
+     réponse illisible, un pair non vérifié sont une absence de réponse. Un 401
+     et un 5xx `requete_invalide` (erreur interne du service, dont l'échec
+     d'écriture de son état) ne répondent pas au message : `indisponible`.
+     Seule la réponse au dernier `charger` envoyé est adoptée (EX-7.4 ; CT-3
+     EX-12.5) (relecture C, R-C-5, R-C-6).
+170. **`consommer` au redémarrage** (EX-7.20 : « dont le délai de reconnaissance (`approval.at + E`) court
+     encore »). Lecture : `E` de la version de la `retenue`, à défaut la borne
+     de 86 400 000 ms ; au plus quatre envois simultanés (relecture C,
+     R-C-10).
+171. **Une décision par ticket** (SG-3 ; CT-3 14.2 : « Seconde décision pour un ticket décidé : SG-3 »).
+     Lecture : la vérification et le scellement d'une remise et l'expiration
+     par le noyau seul d'un même ticket sont sérialisés ; SG-3 est vérifiée de
+     nouveau juste avant le scellement (relecture C, R-C-4).
+172. **Limites du texte constatées par la relecture C** (a) Après un `acquitter` `scelle` perdu, la remise re-présentée est
+     refusée `ticket_deja_decide` et le service s'aligne par T14, dont les
+     membres (CT-3 EX-12.9 : « pour `ticket_deja_decide`, `seq`, `hash`, `at`,
+     `decision` et `approval` ») ne portent pas `held` : une approbation
+     relayée par une requête retenue n'y est pas marquée servie ; RL-3 empêche
+     un second relais. (b) Un `consommer` qui arrive avant cet alignement est
+     refusé `requete_invalide` (EX-7.8 : « `consommer` hors `approuve` et hors
+     T22 »), réponse finale (CT-3 EX-12.10, EX-7.20) : le ticket finit
+     `approbation_non_consommee` (T19). Ni l'un ni l'autre ne se corrige sans
+     changer CT-3 ; à proposer (section « À corriger dans CT-2 »).
+
+Lecture de la relecture B, suite (lot SDK Python) :
+
+173. **`subscriptions/listen`** (EX-4.15 : « le frontal ouvre
+     `subscriptions/listen` avec `toolsListChanged: true` » ; « notifie
+     l'hôte : `notifications/tools/list_changed` sur le flux
+     `subscriptions/listen` ouvert par un hôte moderne qui a demandé
+     `toolsListChanged` » ; renvoi à la page Subscriptions, R1 Q9, sans le
+     format). CT-2 ne donne ni la place du filtre ni l'accusé ; le schéma de
+     la révision 2026-07-28 lu dans `@modelcontextprotocol/core` 2.2
+     (`SubscriptionsListenRequestParams`, `notifications/subscriptions/acknowledged`,
+     clé `io.modelcontextprotocol/subscriptionId`), dépendance de
+     `@langchain/mcp-adapters` 2.0.1, les donne. Lecture : le filtre est
+     `params.notifications` (sans lui : `-32602`, `notifications_requis`) ;
+     le frontal répond d'abord par l'accusé, qui porte les types honorés
+     (`toolsListChanged` seul : ressources et prompts ne sont pas relayés,
+     EX-4.25) et l'id de la requête sous `_meta`, puis envoie sur ce flux
+     les `notifications/tools/list_changed` marquées du même id ; le flux
+     finit à l'annulation de l'hôte (`notifications/cancelled`, fermeture
+     du flux HTTP) ou avec la session (`host_subscription_opened` consigné à
+     l'ouverture). Vers un serveur moderne, le frontal envoie
+     `{"notifications":{"toolsListChanged":true},"_meta":…}` ; cela remplace
+     la forme `{"toolsListChanged":true,…}` de la lecture 38.
+
+## À corriger dans CT-2
+
+- **Alignement T14 et consommation** (relecture C ; lecture 172). CT-3
+  EX-12.9 ne donne pas `held` à un `acquitter` `refuse` `ticket_deja_decide`,
+  et EX-7.8 refuse un `consommer` hors `approuve` par `requete_invalide`, que
+  CT-3 EX-12.10 et CT-2 EX-7.20 tiennent pour final : après un `acquitter`
+  `scelle` perdu, une approbation relayée peut rester non marquée servie et non
+  consommée dans le service. Proposition : `held` aussi dans T14, et
+  `consommer` sur un ticket `a_remettre` dont la décision est connue du noyau
+  rendu non final (ou différé jusqu'à l'alignement).
+- **Garde de E pour l'expiration par le noyau seul** (relecture C ; lecture
+  165). Proposition : `expire_after_ms` dans la ligne `retenue` d'EX-12.23,
+  pour que l'échéance se recalcule sans la pièce de politique.
+- **Coffre des originaux et pièces rédigées égales** (relecture B, R-B-5).
+  EX-10.22 : « chaque pièce rédigée a un homologue chiffré […], nonce de
+  12 octets aléatoire par fichier, données associées = le `sha256` de la
+  pièce rédigée […], nom de fichier = `sha256` de la pièce rédigée », et
+  « rien dans l'événement ne le référence » ; CT-7 EX-3.11 : « le
+  déchiffrement d'une pièce », consigné « avec le `sha256` de la pièce ».
+  Deux appels d'arguments différents peuvent donner la même pièce rédigée
+  (EX-4.21 le dit : « deux IBAN différents donnent tous deux
+  `[REDIGE:iban]` ») : un seul homologue existe alors sous ce nom, le
+  second original n'est pas gardé (consigné `vault_original_kept`), et le
+  déchiffrement demandé pour le second appel rend l'original du premier.
+  Garder plusieurs originaux sous ce nom ferait plusieurs homologues d'une
+  pièce, et l'accès, qui ne désigne qu'une pièce, ne saurait lequel rendre
+  sans rendre à tort celui d'un autre appel ; les rattacher à leur événement
+  est impossible au dépôt (fait à la rédaction, avant l'événement, qui ne
+  référence pas le coffre). Aucune correction conforme au texte : le code
+  n'est pas changé. À trancher par CT-2 (par exemple : homologue nommé par
+  le `sha256` de l'original, ou par l'`intent_id`, et accès qui désigne
+  l'événement).
+- **Lignes consignées pour chaque refus de quota** (EX-4.47 : « refusée au
+  pas 1 par `-31013` […] et consignée »). Une fois son quota d'octets
+  atteint, un hôte fait consigner une ligne `call_blocked` par requête,
+  même de quelques octets : il peut faire tourner le journal
+  d'exploitation et effacer une trace comme `tool_definition_changed`, ce
+  qu'EX-4.32 interdit pour la sortie d'erreur d'un serveur. Le code consigne
+  chaque refus, comme le texte l'exige ; une borne de débit (comme celle
+  d'EX-4.32) est à écrire dans CT-2.
 
 ## Tests
 
@@ -2057,6 +2482,12 @@ Le compagnon `noortrace-attributs` appelle les programmes `chattr` et
 module natif, et un module natif serait une dépendance compilée ; l'image
 du compagnon (étape 7) doit les contenir. Les essais du compagnon
 appellent aussi `setpriv` (util-linux).
+
+Le magasin de bail `file` appelle le programme `flock` d'util-linux (essayé
+avec la version 2.39.3, `flock --exclusive --nonblock --conflict-exit-code`)
+et `/bin/sh` : Node.js n'offre pas l'appel `flock(2)` sans module natif, et
+le texte prescrit ce verrou (13.2, lecture 148) ; l'image du démon doit
+contenir util-linux. Sans lui, l'acquisition du bail `file` est refusée.
 
 Aucune autre dépendance d'exécution. Le SDK JavaScript `noortrace-sdk`
 n'en a aucune (`node:net`, `node:tls`, `node:fs`). Pour les essais

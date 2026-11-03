@@ -361,6 +361,14 @@ describe("noortrace-sdk : SDK JavaScript (6.5, EX-6.9 à EX-6.15)", function () 
         await d.sdk.arreter();
         const { demarrerSdk } = await import("@noortrace/enregistreur");
         d.sdk = await demarrerSdk(d.coeur, new Map(), {});
+        // Le client ne sait la connexion perdue qu'une fois traité l'événement
+        // `close` de sa prise, dans un tour de boucle ultérieur dont l'ordre par
+        // rapport à la fin de `arreter` dépend de la machine : sans cette
+        // attente, finAppel peut être écrit sur la prise morte et rendre, à
+        // raison, `envoyee: true` (EX-6.13). Le cas éprouvé ici est celui d'une
+        // perte constatée avant l'appel.
+        for (let k = 0; k < 500 && !s._client._connexion?.perdue; k++) await new Promise((r) => setTimeout(r, 10));
+        expect(s._client._connexion.perdue, "perte constatée par le client").to.equal(true);
         let e1 = null;
         try {
           await s.finAppel(ouvert, { resultat: null, isError: false, durationMs: 1 });
@@ -428,6 +436,30 @@ describe("noortrace-sdk : SDK JavaScript (6.5, EX-6.9 à EX-6.15)", function () 
       expect(err.envoyee).to.equal(false);
       // n = 0 : au moins 375 ms entre les deux tentatives de la connexion, puis d'ouvrir.
       expect(Date.now() - t0).to.be.at.least(375);
+    });
+
+    it("au plus 1 + reprises connexions en tout, établissement et ouvrir compris (EX-6.13 ; relecture du lot SDK Python)", async function () {
+      const dir = repertoireTemporaire("noortrace-sdk-coupe-");
+      const prise = path.join(dir, "coupe.sock");
+      let connexions = 0;
+      // Démon qui accepte puis ferme aussitôt : chaque tentative échoue.
+      const serveur = net.createServer((c) => {
+        connexions++;
+        c.destroy();
+      });
+      await new Promise((r) => serveur.listen(prise, r));
+      try {
+        let err = null;
+        try {
+          await new ClientNoortrace({ socket: prise, reprises: 2, delaiMs: 500 }).ouvrir({});
+        } catch (e) {
+          err = e;
+        }
+        expect(err).to.be.instanceOf(ErreurNoortraceIndisponible);
+        expect(connexions).to.equal(3);
+      } finally {
+        await new Promise((r) => serveur.close(r));
+      }
     });
   });
 

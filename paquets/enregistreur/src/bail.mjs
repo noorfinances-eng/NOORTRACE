@@ -8,6 +8,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { ErreurEnregistreur } from "./erreurs.mjs";
 
 /**
@@ -47,76 +48,119 @@ export class MagasinBail {
   async liberer() {}
 }
 
-function processusVivant(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (e) {
-    return e.code === "EPERM";
-  }
-}
+/** Code de sortie de `flock(1)` quand le verrou est tenu ailleurs (`--conflict-exit-code`). */
+const CONFLIT = 75;
 
 /**
- * Magasin `file` (13.2) : un seul hôte. Le verrou `flock(2)` n'est pas offert
- * par Node.js sans module natif ; il est émulé par un fichier verrou créé en
- * exclusion (O_CREAT | O_EXCL) qui porte le PID du détenteur, libéré à l'arrêt
- * et repris quand son détenteur n'est plus vivant (arrêt brutal). L'époque est
- * le contenu de `<path>.epoch`, incrémenté et forcé sur disque à chaque
- * acquisition. Lecture consignée dans le LISEZMOI.
+ * Magasin `file` (13.2) : un seul hôte. Acquisition par `flock(LOCK_EX |
+ * LOCK_NB)` sur `lease.store.path`, verrou tenu « tant que le descripteur est
+ * ouvert », libéré par le noyau à la mort du processus ; en cas de succès,
+ * lecture de `path.epoch`, écriture de `epoch + 1`, fdatasync (table de 13.2),
+ * sous ce verrou.
+ *
+ * Node.js n'offre pas `flock(2)` sans module natif : le verrou est pris et
+ * tenu par un processus auxiliaire, `flock(1)` d'util-linux (même appel
+ * système), lancé par le démon avec un tube sur son entrée standard. Le
+ * verrou est sur la description de fichier ouverte par l'auxiliaire ; celui-ci
+ * vit tant que le tube est ouvert, c'est-à-dire tant que le démon vit : à la
+ * mort du démon (même par SIGKILL), le noyau ferme le tube, l'auxiliaire lit
+ * la fin de fichier, se termine, et le noyau libère le verrou. Un démon figé
+ * garde le tube ouvert, donc le verrou (EX-13.10, dernier alinéa). Un
+ * auxiliaire qui meurt seul (tué) libère le verrou : le bail n'est plus tenu
+ * pour valide (`valide()` faux), l'écrivain cesse d'écrire (EX-13.6). Le
+ * fichier verrou n'est jamais supprimé (le supprimer pendant qu'un autre
+ * processus le tient ouvert donnerait deux verrous sur deux fichiers). Le
+ * contenu du fichier verrou n'est pas lu : aucun PID n'entre dans la décision.
+ * Lecture consignée dans le LISEZMOI.
  */
 export class MagasinBailFichier extends MagasinBail {
-  /** @param {string} chemin `lease.store.path` */
-  constructor(chemin) {
+  /**
+   * @param {string} chemin `lease.store.path`
+   * @param {{programme?: string}} [o] chemin de `flock(1)` (défaut : `flock` du PATH)
+   */
+  constructor(chemin, o = {}) {
     super();
     this.chemin = chemin;
+    this.programme = o.programme ?? "flock";
     this.epoque = 0;
     this.detenu = false;
+    this.auxiliaire = null;
   }
 
   get type() {
     return "file";
   }
 
+  /**
+   * Lance `flock --exclusive --nonblock` sur le fichier verrou ; rend
+   * l'auxiliaire qui le tient, ou lève `bail_non_detenu` (tenu ailleurs).
+   */
+  async _verrouiller() {
+    const p = spawn(
+      this.programme,
+      ["--exclusive", "--nonblock", "--conflict-exit-code", String(CONFLIT), this.chemin, "-c", "echo verrou_pris; exec cat >/dev/null"],
+      // `-c` passe la commande à l'interpréteur de `SHELL` : celui du système.
+      { stdio: ["pipe", "pipe", "ignore"], env: { ...process.env, SHELL: "/bin/sh" } },
+    );
+    const issue = await new Promise((resoudre) => {
+      let sortie = "";
+      p.stdout.on("data", (d) => {
+        sortie += d;
+        if (sortie.includes("verrou_pris\n")) resoudre("pris");
+      });
+      p.once("exit", (code) => resoudre(code === CONFLIT ? "conflit" : `sortie ${code}`));
+      p.once("error", (e) => resoudre(`erreur ${e.code ?? e.message}`));
+    });
+    if (issue === "pris") return p;
+    p.stdin?.destroy();
+    if (issue === "conflit") throw new ErreurEnregistreur("bail_non_detenu", "noortrace: bail non detenu", { donnees: { event: "lease_standby" } });
+    throw new ErreurEnregistreur("bail", `noortrace: verrou du bail file impossible (flock(1) : ${issue})`);
+  }
+
   async acquerir() {
+    if (this.detenu) throw new ErreurEnregistreur("bail", "noortrace: bail déjà détenu par cette instance");
     fs.mkdirSync(path.dirname(this.chemin), { recursive: true, mode: 0o700 });
-    for (let essai = 0; essai < 2; essai++) {
-      try {
-        const fd = fs.openSync(this.chemin, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL, 0o600);
-        fs.writeSync(fd, `${process.pid}\n`);
-        fs.fdatasyncSync(fd);
-        fs.closeSync(fd);
-        break;
-      } catch (e) {
-        if (e.code !== "EEXIST") throw e;
-        const pid = Number.parseInt(fs.readFileSync(this.chemin, "utf8"), 10);
-        if (Number.isSafeInteger(pid) && pid > 0 && pid !== process.pid && processusVivant(pid)) {
-          throw new ErreurEnregistreur("bail_non_detenu", "noortrace: bail non detenu", { donnees: { event: "lease_standby" } });
-        }
-        // Détenteur mort (arrêt brutal) : le verrou est repris.
-        fs.rmSync(this.chemin, { force: true });
-        if (essai === 1) throw new ErreurEnregistreur("bail_non_detenu", "noortrace: bail non detenu");
+    // Fichier verrou créé s'il manque (jamais tronqué ni supprimé).
+    fs.closeSync(fs.openSync(this.chemin, fs.constants.O_WRONLY | fs.constants.O_CREAT, 0o600));
+    const aux = await this._verrouiller();
+    try {
+      // Époque incrémentée sous le verrou (table de 13.2).
+      const fichierEpoque = `${this.chemin}.epoch`;
+      let precedente = 0;
+      if (fs.existsSync(fichierEpoque)) {
+        const t = fs.readFileSync(fichierEpoque, "utf8").trim();
+        if (!/^[0-9]{1,20}$/.test(t)) throw new ErreurEnregistreur("bail", "noortrace: epoque du bail illisible");
+        precedente = Number(t);
       }
+      const epoque = precedente + 1;
+      const tmp = `${fichierEpoque}.tmp`;
+      const fd = fs.openSync(tmp, "w", 0o600);
+      fs.writeSync(fd, `${epoque}\n`);
+      fs.fdatasyncSync(fd);
+      fs.closeSync(fd);
+      fs.renameSync(tmp, fichierEpoque);
+      const d = fs.openSync(path.dirname(this.chemin), "r");
+      fs.fsyncSync(d);
+      fs.closeSync(d);
+      this.epoque = epoque;
+    } catch (e) {
+      aux.stdin.destroy();
+      throw e;
     }
-    const fichierEpoque = `${this.chemin}.epoch`;
-    let precedente = 0;
-    if (fs.existsSync(fichierEpoque)) {
-      const t = fs.readFileSync(fichierEpoque, "utf8").trim();
-      if (!/^[0-9]{1,20}$/.test(t)) throw new ErreurEnregistreur("bail", "noortrace: epoque du bail illisible");
-      precedente = Number(t);
-    }
-    const epoque = precedente + 1;
-    const tmp = `${fichierEpoque}.tmp`;
-    const fd = fs.openSync(tmp, "w", 0o600);
-    fs.writeSync(fd, `${epoque}\n`);
-    fs.fdatasyncSync(fd);
-    fs.closeSync(fd);
-    fs.renameSync(tmp, fichierEpoque);
-    const d = fs.openSync(path.dirname(this.chemin), "r");
-    fs.fsyncSync(d);
-    fs.closeSync(d);
-    this.epoque = epoque;
+    this.auxiliaire = aux;
     this.detenu = true;
-    return epoque;
+    aux.once("exit", () => {
+      // Auxiliaire terminé hors de `liberer` : le verrou est rendu par le noyau.
+      if (this.auxiliaire === aux) {
+        this.auxiliaire = null;
+        this.detenu = false;
+      }
+    });
+    // Ni l'auxiliaire ni son tube ne retiennent le démon à sa sortie.
+    aux.unref();
+    aux.stdin.unref?.();
+    aux.stdout.unref?.();
+    return this.epoque;
   }
 
   valide() {
@@ -124,14 +168,23 @@ export class MagasinBailFichier extends MagasinBail {
   }
 
   async liberer() {
-    if (!this.detenu) return;
+    const aux = this.auxiliaire;
     this.detenu = false;
-    try {
-      const pid = Number.parseInt(fs.readFileSync(this.chemin, "utf8"), 10);
-      if (pid === process.pid) fs.rmSync(this.chemin, { force: true });
-    } catch {
-      // déjà libéré
-    }
+    this.auxiliaire = null;
+    if (!aux || aux.exitCode !== null || aux.signalCode !== null) return;
+    // L'attente de la sortie de l'auxiliaire retient le processus jusqu'à elle.
+    aux.ref();
+    await new Promise((resoudre) => {
+      const t = setTimeout(() => {
+        aux.kill("SIGKILL");
+      }, 2000);
+      t.unref?.();
+      aux.once("exit", () => {
+        clearTimeout(t);
+        resoudre();
+      });
+      aux.stdin.end();
+    });
   }
 
   /** Perte du bail simulée (tests du mode dégradé « bail »). */

@@ -185,11 +185,12 @@ export class FrontalSdk {
    * @param {Uint8Array} octets ligne sans son LF
    * @returns {Promise<string|null>}
    */
-  async recevoir(cx, octets) {
+  async recevoir(cx, octets, o = {}) {
     const t_recu = this.monotone();
     const hote = cx.hote;
     const quotas = this._quotas(hote);
-    quotas.recevoir(t_recu, octets.length);
+    // Octets comptés par la prise dès leur lecture (`compte`), ou ici (4.4 pas 1).
+    if (!o.compte) quotas.recevoir(t_recu, octets.length);
     if (octets.includes(13)) return reponseErreur(null, -32700, { reason: "cr_dans_la_ligne" });
     const lim = this.config.limits;
     let texte;
@@ -199,10 +200,35 @@ export class FrontalSdk {
       noeud = analyserTexte(texte, { profondeurMax: lim.json_max_depth, membresMax: lim.json_max_members });
     } catch (e) {
       if (!(e instanceof ErreurTexteJson)) throw e;
+      // EX-4.47 : le temps d'analyse d'une requête refusée est compté.
+      quotas.tempsCapture(t_recu, this.monotone() - t_recu);
       if (e.raison === "non_canonisable") return reponseErreur(null, -32602, { reason: "nombre_non_canonisable" });
       return reponseErreur(null, -32700, { reason: e.raison === "syntaxe" ? "json_invalide" : e.raison });
     }
     const dureeAnalyse = this.monotone() - t_recu;
+    // Compté pour les requêtes suivantes, après le contrôle de quota de celle-ci,
+    // et aussi quand elle est refusée avant (EX-4.47) ; le quota n'est pas
+    // contrôlé avant l'analyse : la méthode, que seule l'analyse donne, décide
+    // si le quota s'applique (finAppel et fermer jamais refusés, lectures 115 et 160).
+    let analyseComptee = false;
+    const compterAnalyse = () => {
+      if (!analyseComptee) quotas.tempsCapture(t_recu, dureeAnalyse);
+      analyseComptee = true;
+    };
+    try {
+      return await this._recevoirAnalysee(cx, { texte, noeud, t_recu, dureeAnalyse, quotas, compterAnalyse });
+    } finally {
+      compterAnalyse();
+    }
+  }
+
+  /** Octets reçus d'une connexion d'hôte, comptés par la prise dès leur lecture (4.4 pas 1, EX-4.47). */
+  compterRecus(hote, octets) {
+    this._quotas(hote).recevoir(this.monotone(), octets);
+  }
+
+  async _recevoirAnalysee(cx, { texte, noeud, t_recu, quotas, compterAnalyse }) {
+    const hote = cx.hote;
     if (noeud.t === "tableau") return reponseErreur(null, -32600, { reason: "lot_non_pris_en_charge" });
     if (noeud.t !== "objet") return reponseErreur(null, -32600);
     const id = membre(noeud, "id");
@@ -238,7 +264,7 @@ export class FrontalSdk {
       quotas.enCours++;
       compte = true;
     }
-    quotas.tempsCapture(t_recu, dureeAnalyse);
+    compterAnalyse();
     try {
       const resultat = await this[`_${methode}`](cx, m);
       return reponseResultat(idBrut, JSON.stringify(resultat));
@@ -527,6 +553,20 @@ export class FrontalSdk {
       { tool_announced: nom, class: classe, intent_id: relais?.intention?.intent_id ?? null, ticket: relais?.ticket ?? null, pending: passant },
       ctx,
     );
+    // EX-6.13, EX-12.15 : la session a été close (connexion perdue, `fermer`)
+    // pendant ce debutAppel, après la reprise de ses appels : l'intention
+    // écrite par preparerRelais est reprise aussitôt, le démon tournant.
+    if (s.close) {
+      s.appels.delete(call);
+      cx.appels.delete(call);
+      if (relais?.intention) {
+        try {
+          await this.coeur.reprendreRelais(relais);
+        } catch (err) {
+          this.journal.consigner("error", "sdk", "sdk_recovery_deferred", { intent_id: relais.intention.intent_id, reason: err?.raison ?? "stockage" }, ctx);
+        }
+      }
+    }
     return { call, decision: "autorise", ticket: reponse.ticket_state === "approuve" ? reponse.ticket : null, ticket_state: reponse.ticket_state === "approuve" ? "approuve" : null };
   }
 

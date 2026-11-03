@@ -9,6 +9,7 @@
 // dégradé) n'est un événement : c'est le journal d'exploitation (9.2).
 
 import { decoderHorodatage } from "@noortrace/noyau";
+import { E_MAX_MS } from "./approbations.mjs";
 
 /**
  * Faut-il annoncer l'ensemble de politique chargé (EX-9.2, EX-15.4 pas 6) ?
@@ -46,12 +47,15 @@ export function rotationDue(rotation, depuis, maintenant) {
 /**
  * Échéance d'expiration par le noyau seul (EX-9.4) : `request_ts + E +
  * timeout_ms`, E étant l'`expire_after_ms` de la version de la `retenue`.
+ * Politique de cette version introuvable (E null) : la borne de E (CT-3 7.6,
+ * 86 400 000 ms), jamais antérieure à l'échéance réelle ; le ticket reçoit
+ * ainsi toujours une décision (CT-3 EX-7.25), sans être expiré avant son
+ * échéance (LISEZMOI, Lectures).
  * @param {object} retenue
  * @param {number|null} E
  * @param {number} timeoutMs
- * @returns {number|null} ms
+ * @returns {number} ms
  */
 export function echeanceExpiration(retenue, E, timeoutMs) {
-  if (E === null) return null;
-  return decoderHorodatage(retenue.ts) + E + timeoutMs;
+  return decoderHorodatage(retenue.ts) + (E ?? E_MAX_MS) + timeoutMs;
 }

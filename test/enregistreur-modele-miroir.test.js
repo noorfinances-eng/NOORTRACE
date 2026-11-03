@@ -224,6 +224,29 @@ describe("enregistreur, frontal modèle : mode miroir (EX-5.6, EX-14.12)", funct
       expect(derniere("mirror_line_refused").data).to.deep.equal({ reason: "taille" });
       expect((await envoyer([couple()]))[0].ok).to.equal(true);
     });
+
+    it("relecture B, R-B-11 (EX-18.1) : la prise du miroir a le mode 0660 dès sa création, sans fenêtre où elle serait plus ouverte", async function () {
+      const sock = path.join(dir, "prise", "miroir-mode.sock");
+      const r2 = new RecepteurMiroir({ coeur, config: { ...config, model: { ...config.model, mirror: { socket: sock } } } });
+      // Mode relevé juste après la liaison de la prise, avant tout rappel (masque du processus ouvert).
+      const origine = net.Server.prototype.listen;
+      const modes = [];
+      net.Server.prototype.listen = function (...a) {
+        const x = origine.apply(this, a);
+        if (a[0] === sock) modes.push(fs.statSync(sock).mode & 0o777);
+        return x;
+      };
+      const masque = process.umask(0o000);
+      try {
+        await r2.ecouter();
+      } finally {
+        process.umask(masque);
+        net.Server.prototype.listen = origine;
+      }
+      expect(modes).to.deep.equal([0o660]);
+      expect(fs.statSync(sock).mode & 0o777).to.equal(0o660);
+      await r2.arreter();
+    });
   });
 
   describe("adaptateur de capture : réassemblage HTTP/1.1 de la copie", function () {

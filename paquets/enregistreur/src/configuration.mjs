@@ -13,6 +13,7 @@
 // EX-4.2 et EX-8.2, collisions de noms annoncés d'EX-4.11) leur reviennent ;
 // INTERFACES.md dit où elles s'insèrent (`reglesSupplementaires`).
 
+import os from "node:os";
 import { ErreurJson, egaliteJson } from "@noortrace/noyau";
 import { analyserJsonIntegral } from "./jcs-integral.mjs";
 import { IDS, registreSchemas } from "./schema.mjs";
@@ -81,6 +82,26 @@ export function parcourirSecrets(v, pointeur, f) {
  * @param {object} c document validé contre le schéma
  * @returns {{erreurs: object[], avertissements: object[]}}
  */
+/** Utilisateur système qui exécute la validation (le démon), ou null. */
+function utilisateurDuDemon() {
+  try {
+    return os.userInfo().username;
+  } catch {
+    return null;
+  }
+}
+
+/** Hôte d'une URL sur la boucle locale (127.0.0.0/8, ::1, localhost). */
+function adresseDeBouclage(url) {
+  let h;
+  try {
+    h = new URL(url).hostname.replace(/^\[|\]$/g, "");
+  } catch {
+    return false;
+  }
+  return h === "localhost" || h === "::1" || /^127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/.test(h);
+}
+
 export function reglesHorsSchema(c) {
   const erreurs = [];
   const avertissements = [];
@@ -132,6 +153,42 @@ export function reglesHorsSchema(c) {
 
   // Chaîne de clé du registre en production (EX-11.19).
   if (prod && c.anchoring?.registry?.chain_key?.class === "D") err("/anchoring/registry/chain_key/class", "classe D refusée en production (EX-11.19)", "D");
+
+  // Serveurs stdio en production (EX-3.5, EX-15.4 pas 3) : « un serveur stdio
+  // sans user, ou dont user est celui du démon » et « une commande qui n'est
+  // pas épinglée » sont refusés. L'utilisateur du démon est celui qui exécute
+  // la validation (le démon au démarrage et au rechargement).
+  if (prod) {
+    for (const [a, serveur] of Object.entries(c.policy.servers ?? {})) {
+      const t = serveur.transport;
+      if (t?.type !== "stdio") continue;
+      const ici = `/policy/servers/${a}/transport`;
+      if (t.user === null || t.user === undefined) err(`${ici}/user`, "utilisateur distinct de celui du démon obligatoire en production (EX-3.5)", null);
+      else if (t.user === utilisateurDuDemon()) err(`${ici}/user`, "utilisateur du démon refusé (EX-3.5)", t.user);
+      if (t.integrity === null || t.integrity === undefined) err(`${ici}/integrity`, "épinglage de la commande obligatoire en production (EX-3.5)", null);
+      else if (typeof t.integrity.package === "string" && !(t.command ?? []).includes(t.integrity.package)) {
+        err(`${ici}/command`, "la commande ne contient pas tel quel le paquet épinglé (EX-3.5)", t.integrity.package);
+      }
+    }
+  }
+
+  // Canal du service d'approbation (EX-18.8, CT-3 EX-12.2) : « Un token nul
+  // n'est admis que sur une prise Unix dont le pair est vérifié » ; en HTTP,
+  // mTLS (que la configuration v0 ne porte pas) ou jeton, et TLS hors de la
+  // boucle locale. Le texte ne distingue pas l'environnement : erreur partout.
+  const svc = c.policy.approval?.service;
+  if (svc && (svc.url || svc.socket)) {
+    const signaler = err;
+    const sansJeton = svc.token === null || svc.token === undefined;
+    if (svc.url && sansJeton) {
+      signaler("/policy/approval/service/token", "jeton nul admis seulement sur une prise Unix dont le pair est vérifié ; aucun mTLS en version 0 (EX-18.8)", null);
+    } else if (!svc.url && sansJeton && (svc.peer_user === null || svc.peer_user === undefined)) {
+      signaler("/policy/approval/service/peer_user", "prise Unix sans peer_user : pair non vérifié, jeton nul refusé (EX-18.8)", null);
+    }
+    if (svc.url && /^http:\/\//i.test(svc.url) && !adresseDeBouclage(svc.url)) {
+      signaler("/policy/approval/service/url", "TLS exigé hors de la boucle locale (CT-3 EX-12.2, EX-18.8)", svc.url);
+    }
+  }
 
   // Gabarits d'effets (EX-7.6, EX-15.4 pas 3).
   for (const [a, serveur] of Object.entries(c.policy.servers ?? {})) {

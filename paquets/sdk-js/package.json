@@ -1,7 +1,7 @@
 {
   "name": "noortrace-sdk",
   "version": "0.1.0",
-  "description": "SDK de langage TypeScript/JavaScript de NOORTRACE (CT-2 version 0.6, 6.5) : enveloppe les méthodes noortrace/sdk/* du démon noortrace sans en changer la sémantique (connexion, erreurs, reprise, ce qui bloque et ce qui ne bloque jamais l'agent).",
+  "description": "SDK de langage TypeScript/JavaScript de NOORTRACE (CT-2 version 0.6, 6.5) : enveloppe les méthodes noortrace/sdk/* du démon noortrace sans en changer la sémantique (connexion, erreurs, reprise, ce qui bloque et ce qui ne bloque jamais l'agent) ; adaptateurs des cadres LangChain JavaScript et SDK Agents d'OpenAI TypeScript (6.6).",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -17,6 +17,14 @@
       "types": "./src/adaptateurs.d.ts",
       "default": "./src/adaptateurs.mjs"
     },
+    "./adaptateurs/langchain": {
+      "types": "./src/adaptateurs/langchain.d.ts",
+      "default": "./src/adaptateurs/langchain.mjs"
+    },
+    "./adaptateurs/openai-agents": {
+      "types": "./src/adaptateurs/openai-agents.d.ts",
+      "default": "./src/adaptateurs/openai-agents.mjs"
+    },
     "./package.json": "./package.json"
   },
   "types": "./src/index.d.ts",
@@ -24,5 +32,17 @@
     "src",
     "LISEZMOI.md",
     "INTERFACES.md"
-  ]
+  ],
+  "peerDependencies": {
+    "@langchain/core": "1.3.0",
+    "langchain": "1.5.19"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/core": {
+      "optional": true
+    },
+    "langchain": {
+      "optional": true
+    }
+  }
 }

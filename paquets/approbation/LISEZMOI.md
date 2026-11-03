@@ -61,15 +61,17 @@ Sous `state_dir` (mode 0700) :
 
 | Fichier | Contenu |
 |---|---|
-| `etat/journal.ndjson` | une ligne par entrée traitée : `<n> <base64>`, enregistrement `{ meta?, versions?, tickets?, fenetres? }` de documents entiers (`ticket-v0` `$defs/ticket` et `$defs/fenetre_ouverte`), chiffré AES-256-GCM (nonce de 12 octets, données associées `noortrace/approbation/etat/v0`, nature, `n`) ; `fdatasync` avant toute réponse |
-| `etat/instantane.chiffre` | l'état complet au dernier compactage (toutes les 2 000 lignes), écrit par fichier temporaire, `fsync`, renommage, `fsync` du répertoire |
+| `etat/journal.ndjson` | une ligne par entrée qui a un effet : `<n> <base64>`, enregistrement `{ meta, versions?, tickets?, fenetres? }` de documents entiers (`ticket-v0` `$defs/ticket` et `$defs/fenetre_ouverte`) **sans leurs arguments en clair**, chiffré AES-256-GCM (nonce de 12 octets, données associées `noortrace/approbation/etat/v0`, nature, `n`) ; `fdatasync` avant toute réponse ; une entrée sans effet n'écrit rien ; un numéro n'est jamais réattribué |
+| `etat/arguments/t-<ticket>`, `etat/arguments/f-<ticket>` | arguments en clair d'un ticket actif (`request.arguments`, `request.retained_event`, `request.arguments_piece`, `opening.scope.values`) ou valeurs de la portée d'une fenêtre ouverte, chiffrés (nature `arguments`) ; écrits (temporaire, `fsync`, renommage, `fsync` du répertoire) avant la ligne qui rend le ticket durable, supprimés après la ligne de son passage en `consomme`, `clos` ou `abandonne`, ou de la fermeture de la fenêtre (EX-7.24) |
+| `etat/instantane.chiffre` | l'état complet (sans arguments) au dernier compactage (toutes les 2 000 lignes) ou à la reprise après un échec d'écriture, écrit par fichier temporaire, `fsync`, renommage, `fsync` du répertoire |
 | `etat/verrou` | pid du service : un second service sur le même répertoire est refusé ; le verrou d'un processus arrêté brutalement est repris |
 | `journal-service.ndjson` | journal du service, hors chaîne (3.4, 10.4) : démarrage et empreinte, chargements, avertissements de la politique, votes inscrits, lectures du jeu, remises, acquittements, alertes ; aucun argument en clair ni empreinte d'argument (EX-7.24) |
 | `notifications.ndjson` | boîte d'envoi des notifications (EX-7.12, EX-7.13, EX-13.3), que les canaux de la console (étape 6) délivreront : ticket, outil, échéance, lien, jamais les arguments |
 
 État relu à la reprise (EX-7.23) : versions chargées et version en vigueur,
-jeux de repli, compteur d'identifiants, dernière date traitée, tickets,
-fenêtres ; rien d'autre. La clé de rapprochement est recalculée des arguments
+jeux de repli, compteur d'identifiants, dernière date persistée, tickets
+(recomposés de leur ligne et de leur fichier d'arguments), fenêtres ; rien
+d'autre. Un fichier d'arguments d'un ticket terminé ou inconnu est supprimé. La clé de rapprochement est recalculée des arguments
 des tickets actifs. Une dernière ligne incomplète ou indéchiffrable est
 tronquée (consigné `derniere_ligne_tronquee`) ; toute autre ligne illisible
 arrête le démarrage.
@@ -198,6 +200,60 @@ Passages ambigus ou que le texte ne tranche pas, avec la lecture retenue.
     chaîne ou `null` ; une intention portée par une référence (CT-2 EX-5.21)
     est refusée (`requete_invalide`). Voir le rapport du lot pour l'interface
     côté démon.
+22. **Échec d'écriture de l'état** (EX-7.22 : « persister, avec `fsync` …
+    chaque transition … **avant** d'en rendre l'effet visible » ; ni 7.10 ni
+    12.7 ne disent quoi faire d'un `fsync` en échec). Lecture : l'entrée en
+    échec ne reçoit pas de réponse (erreur 500, que le noyau tient pour une
+    indisponibilité) ; le numéro attribué n'est jamais réattribué ; le
+    magasin refuse tout ajout jusqu'à ce que l'état complet en mémoire soit
+    recopié (instantané, fichiers d'arguments, journal vidé par un nouveau
+    descripteur), ce que fait la première entrée suivante ou le premier
+    `decisions` (qui ne livre rien tant que la recopie échoue). Un effet non
+    rendu visible peut ainsi devenir durable (ticket créé, unité de fenêtre
+    consommée) : le noyau, qui n'a pas eu de réponse, réessaie et reçoit la
+    réponse idempotente (EX-7.20) ; jamais l'inverse (un effet visible perdu,
+    relecture C, R-C-2).
+23. **Effacement des arguments** (EX-7.24 : « effacés au passage en
+    `consomme`, `clos` ou `abandonne` »). Lecture : l'effacement vaut pour
+    toute copie sur disque, pas seulement le document courant ; les arguments
+    sont donc tenus hors du journal en ajout seul, dans un fichier par ticket
+    supprimé au passage même (voir « Fichiers sur disque ») : aucune ligne
+    antérieure n'en garde copie (relecture C, R-C-7). Le document `ticket-v0`
+    est recomposé à la reprise de sa ligne et de son fichier.
+24. **Entrée sans effet** (EX-7.20 ; EX-7.23 : le service « relit ses
+    documents … et rien d'autre »). Lecture : une entrée qui ne change ni
+    ticket, ni fenêtre, ni version, ni état général (un `consommer` répété,
+    un tic sans minuteur échu, un `evaluer` `autorise` hors fenêtre) n'est pas
+    persistée ; l'instant de la dernière entrée est persisté avec tout
+    enregistrement, et une entrée sans effet ne laisse rien que la reprise
+    devrait relire (relecture C, R-C-10).
+25. **Lecture et confirmation datées** (EX-8.7 : « une lecture faite
+    **après** l'instant où la décision a été calculée » ; T8 : « d'instant ≥
+    l'entrée en `verification` »). Lecture : l'instant d'une lecture est celui
+    où elle commence (avant `eth_chainId`), pas celui où son résultat est
+    traité ; une lecture partie avant le calcul de la décision met à jour la
+    dernière confirmation mais ne déclenche pas T8, et une nouvelle lecture
+    suit (relecture C, R-C-1). Une hauteur de confirmation inférieure à la
+    hauteur de gel n'est pas refusée : EX-8.2 (« Le service croit le nœud
+    qu'il interroge ») et T8 n'en font pas une garde, et une lecture partie
+    après la décision part après la lecture de gel, la file des lectures étant
+    unique.
+26. **Lecture par jeu épinglé** (EX-7.7 : une entrée `jeu_lu` « vaut pour
+    chaque ticket en `ouvert`, `seuil_atteint` ou `verification` » ; EX-7.21 :
+    un changement de politique ne change pas « le jeu figés du ticket » ;
+    EX-8.1 : la lecture compare `S` au jeu épinglé `approver_set.set`).
+    Lecture : avec un seul jeu épinglé (traces de l'annexe A.6), une lecture
+    vaut pour chaque ticket ; quand les versions chargées épinglent des jeux
+    différents, le service lit chaque jeu épinglé (chaîne, registre, jeu) des
+    tickets en collecte et de la version en vigueur, et une lecture ne vaut
+    que pour les tickets dont la version épingle ce jeu, et pour le jeu de
+    repli si la version en vigueur l'épingle. La donnée de l'entrée reste
+    `{ status, jeu, cause }` ; le jeu visé passe à la machine hors de
+    l'entrée (relecture C, R-C-9).
+27. **Jetons distincts** (EX-12.4 : « jeton porteur distinct de celui du
+    noyau »). Lecture : distinct par sa valeur ; deux références (fichiers ou
+    variables) de même contenu sont refusées au chargement et au démarrage
+    (relecture C, R-C-8).
 
 ## Tests
 

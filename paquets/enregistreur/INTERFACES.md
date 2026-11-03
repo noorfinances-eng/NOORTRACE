@@ -229,9 +229,12 @@ coeur.brancherRetention({ retient(ticket) → booléen, decidee(ticket, evenemen
 coeur.brancherSante(() => ["serveur:<alias>", …])                                  // EX-4.18, EX-17.1
 ```
 
-`traiterRemises` passe `held: retient(ticket)` à `traiterRemise`
-(`acquitter.held`, EX-7.19) ; après une décision scellée (remise, ou
-expiration par le noyau seul), `decidee` est appelé sans être attendu ;
+`held` (`acquitter.held`, EX-7.19 pas 3) est établi au scellement de la
+décision, dans le même tour que la réclamation de la requête retenue :
+`retient(ticket)` puis `decidee(ticket, evenement)`, appelé aussitôt et non
+attendu ; vrai seulement pour une décision `approuve` retenue (relecture C) ;
+le `consommer` du relais attend la fin de l'`acquitter`. Après une
+expiration par le noyau seul, `decidee` est appelé sans être attendu ;
 `etatSante()` ajoute les raisons du frontal sans faire entrer le cœur en mode
 dégradé. `test/fixtures/enregistreur-coeur/outils.mjs` : `configurationDev`
 désactive `mcp.enabled` sauf `{ mcp: true }` (les serveurs de l'exemple de
@@ -504,20 +507,34 @@ bout).
 // côté démon (fait par ce lot)
 await coeur.evaluer(requete)                 // EX-7.4, EX-7.16 (validerReponseEvaluer)
 await coeur.traiterRemises({ wait_ms })      // message decisions + EX-7.19 pour chaque remise
-await coeur.traiterRemise(remise, { held })  // SG-1 à SG-7 (verifierRemise), décision, acquitter
-await coeur.expirerTickets()                 // EX-9.4, message expiration
+await coeur.traiterRemise(remise, { held? })  // SG-1 à SG-7 (verifierRemise), décision, acquitter ; held imposé, sinon établi au scellement
+await coeur.expirerTickets()                 // EX-9.4, message expiration (réessayé jusqu'à une réponse)
+// relecture C : remise et expiration d'un même ticket sérialisées (SG-3 revérifiée sous verrou) ;
+// ouvrir, charger, consommer, expiration réessayés jusqu'au succès (délai croissant ≤ 5 s) ;
+// consommer : CONCURRENCE_CONSOMMER (4) envois à la fois, au redémarrage seulement si approval.at + E court
+ecrivain.signalerPanneStockage(cause)        // panne hors écrivain (fichiers des approbations) : segment fermé, mode « stockage »
+coeur.approbations.rouvrir()                 // fichiers des approbations rouverts après un échec d'écriture (fait avant la ligne suivante)
+ligneRemise(remise) → ligne | null            // ligne `remise` d'EX-12.23, null si le message ne la forme pas (SG-1)
+E_MAX_MS                                      // 86 400 000 : borne de E quand la politique d'une version est introuvable
 // interface du service (à implémenter par le vrai service, CT-3 §12)
 class ServiceApprobation {
   charger(r); evaluer(r); ouvrir(r); decisions(r); acquitter(r); consommer(r); expiration(r)
 }
-new ClientServiceApprobation({ url, socket, jeton, timeout_ms })  // EX-7.14
+new ClientServiceApprobation({ url, socket, jeton, timeout_ms, peer_user, tailleMax })  // EX-7.14, EX-18.8
 ```
 
 ### Contrat
 
 - Les sept méthodes rendent l'objet de réponse de CT-3 §12, ou lèvent
   `ErreurServiceApprobation(code, data)` (`code` de CT-3 §12.8, ou
-  `indisponible`, `reponse_illisible`).
+  `indisponible`, `reponse_illisible` — `data.raison: "trop_grande"` au-delà
+  de `tailleMax`, 16 Mio par défaut —, ou `pair_non_verifie` : sur la prise
+  Unix, propriétaire de la prise différent de `peer_user` ou répertoire de
+  la prise inscriptible par d'autres que le compte 0 et `peer_user`,
+  EX-18.8, `data.raison` ; vérifié avant chaque message, LISEZMOI lecture
+  150). Un 401, et un 5xx `requete_invalide`, donnent `indisponible`
+  (`data.statut`, `data.code`) ; le délai `timeout_ms` borne la durée totale
+  de l'échange (relecture C).
 - Le moteur de politique (lot suivant) décide, d'après la classe, la liste
   des candidats (`coeur.susceptible`), la matrice de 14.2 et le mode
   d'attente, ce que le frontal rend ; il ajoute le mode observation
@@ -758,7 +775,10 @@ class MagasinBail {
   appelle `verifierApresEcriture()` après chaque fdatasync (EX-13.10 (2)) ;
   un bail perdu met le cœur en mode dégradé « bail » : il ne reprend
   qu'après un redémarrage (relecture d'EX-12.10, EX-13.6). Ce lot fournit le
-  magasin `file` d'un seul hôte (`MagasinBailFichier`) ; `postgresql`,
+  magasin `file` d'un seul hôte (`MagasinBailFichier` : `flock(2)` pris et
+  tenu par un auxiliaire `flock(1)` d'util-linux qui vit tant que le démon
+  vit ; `new MagasinBailFichier(chemin, { programme })` ; LISEZMOI, lecture
+  148) ; `postgresql`,
   `etcd`, l'attente du bail (`lease_standby`), la bascule (13.4) et
   `lease.fencing` sont au lot de haute disponibilité.
 
@@ -785,7 +805,9 @@ const coeur = await Coeur.demarrer({ config, secrets, worm, attendreBail: true, 
 await coeur.demarrage;           // avec attendreBail : la promesse se résout à la prise du bail
 await principalCtl(["worm", "gel", "poser", ...]);   // bin/noortrace-ctl ; aussi demander-levee, lever, reprendre, etat, et worm releve
 await principalCtl(["worm", "reconstruire", "--configuration", f, "--vers", rep]);   // EX-12.17, chemin B de CT-8 ; et worm restaurer <clé> --version <id>
-await reconstruireJournal({ config, operations, destination, registre });          // synthèse { fichiers, last_seq, last_hash, epoque_max, perdus, ... } ou ErreurRestauration
+await reconstruireJournal({ config, operations, destination, registre, clePublique });  // synthèse { fichiers, last_seq, last_hash, epoque_max, perdus, ... } ou ErreurRestauration
+// clePublique(keyId) : clé initiale du journal (défaut : signataire de classe D de la configuration ;
+// noortrace-ctl worm reconstruire --cles <cles.json>) ; les autres clés viennent des rotations de la chaîne
 await principalAttributs(["--racine", storageRoot, "--intervalle-s", "60"]);       // bin/noortrace-attributs (compte 0, CAP_LINUX_IMMUTABLE) ; et « sonde »
 ```
 
@@ -808,6 +830,12 @@ des versions, la lecture et l'écriture d'un objet lèvent `ErreurNonFixe`
 (LISEZMOI, lecture 84). Identifiants d'une référence de secret : JSON
 `{ "access_key_id", "secret_access_key", "session_token"? }` (S3) ou
 `{ "bearer_token" }` (Azure, GCS).
+
+Contrôles périodiques : `SupervisionWorm` ne fait plus que ceux propres au
+support (SHA-256 des copies de l'heure, balayage, rétention du support,
+registre des gels, relevé) ; manifeste, signature, continuité, signataire et
+relecture quotidienne des segments fermés sont faits par le cœur, avec ou
+sans WORM (`coeur.controles`, rubrique h).
 
 Contrat tenu envers l'écrivain : `ServiceCopiesWorm.copier({ cle, chemin,
 nature })` ne rejette jamais ; il consigne lui-même `worm_copy_failed` et
@@ -872,8 +900,16 @@ la fin, supprimé en cas d'échec) ; incidents rendus par `ErreurRestauration`
 (`incidents[].kind` : `copie_absente`, `copie_alteree`,
 `versions_multiples`, `segment_absent`, `entete_invalide`,
 `epoque_decroissante`, `version_non_inscrite`, `lecture_impossible`,
-`destination_existante`, `destination_originale`, `cle_refusee`) ; codes de
-`noortrace-ctl` : 0 fait, 1 incident, 2 usage ou destination, 4 support.
+`destination_existante`, `destination_originale`, `cle_refusee`,
+`cle_inconnue` ; `raison` précise `copie_alteree` : `signature`,
+`hash_different`, `chainage`, `chaine`, `manifeste_recalcule`,
+`signature_manifeste`, `continuite`, `serie_points`, `sha256_piece`,
+`fin_incomplete`… ; `copie_absente` : `signature_absente`, `serie_absente`)
+; le répertoire reconstruit est vérifié en entier par
+`verifierRepertoireJournal` (`src/verification.mjs` : signatures avec les
+clés de la chaîne, manifestes et leurs signatures, séries, pièces ; LISEZMOI,
+lecture 149) ; codes de `noortrace-ctl` : 0 fait, 1 incident, 2 usage ou
+destination, 4 support.
 Le démon n'a pas d'interface avec la reconstruction : il démarre sur le
 répertoire reconstruit et prend une époque plus grande que toutes celles des
 noms (13.4).
@@ -933,3 +969,96 @@ EX-11.19 ; CT-5 §8.
 
 `spec/vecteurs/ct-5/*` ; `spec/vecteurs/ct-1/points-de-controle/` (forme des
 séries).
+
+## h) Corrections de la relecture A (cœur, stockage, bail, WORM, haute disponibilité)
+
+Changements du cœur (tests : `test/enregistreur-coeur-reprise.test.js`,
+`-config`, `-approbations`, `-journal`, `test/enregistreur-worm-restauration.test.js` ;
+lectures 144 à 156 du LISEZMOI) :
+
+```js
+coeur.accepterHorloge()          // noortrace-ctl clock --accept (SIGUSR2) → { accepte } | { accepte: false, raison: "hors_mode_horloge" | "recul" }
+coeur.controles                  // SupervisionIntegrite (src/controles.mjs) : armer(), arreter(), tic(), horaire(t), quotidien(t)
+await verifierRepertoireJournal(rep, { org_id, journal_id, clePublique, dernierOuvert, signatureAbsenteAdmise })
+  // → { incidents, evenements, lastSeq, lastHash, cles } (src/verification.mjs)
+await principalCtlDemon(["reload" | "clock", "--accept", "--configuration", f])  // bin/noortrace-ctl, codes 0, 1, 2, 4
+```
+
+- Écrivain : au démarrage, fichiers `.tmp-*` supprimés, manifeste sans
+  signature signé sur ses octets s'il est celui que donne la chaîne (puis
+  remise à l'ancrage et copies WORM refaites) ; erreur de `write` ou de
+  `fdatasync` : segment tronqué à la longueur du dernier `fdatasync` rendu,
+  opérations non couvertes refusées, segment suivant ouvert après la
+  troncature ; intention et contexte en une seule écriture, retirées si leur
+  `fdatasync` échoue ; au tic, rien n'est clos ni pointé en mode « horloge »
+  ou quand le contrôle de saut d'EX-7.13 échoue
+  (`ControleurHorloge.controlerAvance(lu)`).
+- `relireJournal` rend `manifestesSansSignature` ; `relireSegment` tient une
+  ligne de clé inconnue pour une corruption (`cle_inconnue`).
+- `Coeur.demarrer` : vérification complète avant d'écrire d'un journal
+  reconstruit (segments, aucun `intentions/`) ; arrêt du démarrage après
+  `intention_corrompue` ou `intention_irreconstructible` (rien de plus
+  n'est écrit) ; reprise de l'attente idempotente (une ligne dont
+  l'événement est déjà dans la chaîne n'est pas scellée de nouveau,
+  `pending_already_sealed`).
+- `creerRepertoire` synchronise le parent de chaque répertoire créé ;
+  `nettoyerTemporaires(rep)` ; `PREFIXE_TEMPORAIRE`.
+- Règles du pas 3 (`reglesHorsSchema`) : serveurs stdio en production
+  (EX-3.5) ; canal du service d'approbation (EX-18.8, CT-3 EX-12.2 : erreur
+  dans tous les environnements, lecture 150) ; `controleWorm` compare
+  l'emplacement des références de secrets, sans `encoding`.
+- `src/cli.mjs` : `peer_user` remis au client du service ; SIGUSR2 →
+  `coeur.accepterHorloge()`.
+
+## i) Corrections de la relecture B (frontaux MCP, modèle et SDK)
+
+Changement du cœur (le plus petit qui permet EX-9.7 ; test :
+`test/enregistreur-mcp-exigences.test.js`, cas R-B-12 ; lecture 158) :
+
+```js
+const desabonner = journal.abonner((ligne) => {}); // JournalExploitation : appelé de façon synchrone pour chaque ligne consignée, erreurs ignorées
+```
+
+Contrats complétés des frontaux (tests : `test/enregistreur-mcp-exigences.test.js`,
+`-modele-exigences`, `-modele-miroir`, `-sdk-exigences`, blocs « relecture B » ;
+lectures 157 à 164 et 173) :
+
+```js
+// Frontal MCP (rubrique a)
+await frontal.recevoir(s, octets, { cadre, canal, compte: true }); // compte : octets déjà comptés par le transport
+canal.statutHttp                    // posé par le frontal pour ses propres erreurs : 404 (méthode inconnue), 400 (meta_requis)
+frontal.compterRecus(hote, n)       // octets reçus, comptés par le transport dès leur lecture (4.4 pas 1, EX-4.47)
+frontal.compterCapture(hote, ms)    // temps d'analyse d'un transport
+frontal.refusAvantAnalyse(hote)     // → texte -31013 (id null) si quota d'octets ou de temps atteint, sinon null
+cleIdJson(texte, noeud)             // clé d'un id JSON-RPC par valeur (annulation)
+
+// Prises locales (src/mcp/hote-stdio.mjs), employées aussi par sdk/prise.mjs et modele/miroir.mjs
+await ecouterPriseUnix(serveur, chemin, 0o660)   // mode posé dès la création (EX-18.1)
+preparerRepertoirePrise(socket)                   // crée (1770) ou refuse un répertoire où un pair renommerait la preuve d'un autre
+controlerRepertoirePrise(dir)                     // → raison | null
+verifierPreuveFichier(socket, defi, instantDefi)  // → { utilisateur } | { refus, detail? }
+PREFIXE_JOURNAL                                   // '{"noortrace_journal":' : ligne du démon vers la sortie d'erreur du connecteur
+
+// Streamable HTTP (src/mcp/hote-http.mjs)
+chargeurJwksHttps(uri, { requete, delaiMs, tailleMax })  // une lecture en vol, 10 s et 1 Mio par défaut
+decoderEnteteParametre(valeur)                           // sentinelle =?base64?…?= décodée, ou null
+
+// SDK (rubrique c)
+await frontal.recevoir(cx, octets, { compte: true }); frontal.compterRecus(hote, n)
+```
+
+`subscriptions/listen` d'un hôte moderne (lecture 173) : filtre sous
+`params.notifications`, premier message `notifications/subscriptions/acknowledged`
+(`{ notifications: { toolsListChanged }, _meta: { "io.modelcontextprotocol/subscriptionId": <id> } }`),
+puis `notifications/tools/list_changed` marquées du même id ; en HTTP, le
+transport passe la requête au frontal avec son `canal` (flux SSE).
+
+Client `noortrace-sdk` (`paquets/sdk-js/src/index.mjs`) : `_connexionVive()`
+fait une seule tentative ; `_ouvrirSession` compte les reprises, au plus
+`1 + reprises` connexions en tout (EX-6.13).
+
+Protocole de la prise des connecteurs : après `{"noortrace_identite":"acceptee"}`,
+le démon peut envoyer des lignes `{"noortrace_journal":<ligne>}` que le
+connecteur écrit sur sa sortie d'erreur (EX-9.7). Les échecs de jeton du
+Streamable HTTP, de la prise TCP des connecteurs et de la passerelle sont
+limités par `LimiteurEchecs` (`reason: "jeton_limite"`, EX-18.3).

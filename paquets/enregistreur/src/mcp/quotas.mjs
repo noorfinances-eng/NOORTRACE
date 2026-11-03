@@ -43,6 +43,20 @@ export class QuotasHote {
   }
 
   /**
+   * Quota atteint avant l'analyse de la requête (4.4 pas 1) : octets reçus
+   * ou temps de capture, les deux seuls qui ne dépendent pas de ce que la
+   * requête demande ; null sinon.
+   * @param {number} t
+   * @returns {object|null} `data` de -31013
+   */
+  depasseAvantAnalyse(t) {
+    const q = this.quota;
+    if (this.recus.total(t) > q.received_bytes_per_minute) return { limit_bytes: q.received_bytes_per_minute, direction: "quota" };
+    if (this.capture.total(t) >= q.redaction_ms_per_minute) return { limit_ms: q.redaction_ms_per_minute, direction: "quota" };
+    return null;
+  }
+
+  /**
    * Quota atteint au pas 1, ou null.
    * @param {number} t
    * @param {{appel: boolean}} o `appel` : la requête est un `tools/call`

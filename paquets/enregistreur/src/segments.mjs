@@ -173,10 +173,17 @@ export function relireSegment(octets, options = {}) {
     if (options.verifierSignatures) {
       const keyId = e.recorder_key_id;
       const pub = nouvellesCles.get(keyId) ?? options.clePublique?.(keyId) ?? null;
-      // Une clé dont la clé publique n'est pas connue (clé initiale que le
-      // signataire ne détient plus) n'est pas vérifiée ici ; la chaîne, elle,
-      // l'est (hash, seq, prev_hash).
-      if (keyId !== cleCourante || (pub && !verifierSignatureEvenement(e, pub))) {
+      // EX-12.10 pas 2 : une ligne n'est valide que si sa `sig` « vérifie sous
+      // la clé en vigueur ». Une clé dont la clé publique est inconnue ne
+      // permet pas de l'établir : la ligne n'est pas tenue pour valide. Ce
+      // n'est pas une écriture tronquée (la ligne est complète et son hash
+      // juste) : c'est une anomalie qui attend une intervention, jamais
+      // tronquée ni acceptée sans vérification (lecture du LISEZMOI).
+      if (keyId === cleCourante && !pub) {
+        resultat.corruption = { seq: e.seq, raison: "cle_inconnue", key_id: keyId };
+        return resultat;
+      }
+      if (keyId !== cleCourante || !verifierSignatureEvenement(e, pub)) {
         tronquerOuCorrompre(k, "signature", { seq: e.seq });
         return resultat;
       }

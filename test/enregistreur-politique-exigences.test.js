@@ -465,7 +465,9 @@ describe("enregistreur, moteur de politique : exigences (CT-2 §7.5, §14.2, §1
       await attendre(() => banc.frontal.retentions.has(ticket));
       await ticketOuvert(banc, ticket);
       const acq = await decider(banc, ticket, { decision: "refuse", reason: "Montant conteste" });
-      expect(acq).to.include({ result: "scelle", decision: "refuse", held: true });
+      // held : « vrai si et seulement si le noyau retient une requête de ce ticket et va la
+      // relayer » (CT-2 EX-7.19 pas 3) ; une décision refuse n'est jamais relayée (relecture C).
+      expect(acq).to.include({ result: "scelle", decision: "refuse", held: false });
       const rb = await b.reponse;
       expect(etatSignal(rb)).to.deep.equal({ ticket, state: "refuse" });
       const e = (await banc.evenements()).at(-1);

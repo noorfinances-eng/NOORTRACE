@@ -9,11 +9,16 @@
 // Identité de la connexion d'hôte (EX-4.39) :
 //   - prise de domaine Unix : l'utilisateur système du processus connecteur.
 //     Node.js n'expose pas SO_PEERCRED ; le démon le lit par une preuve de
-//     propriété de fichier (lecture consignée au LISEZMOI) : il envoie un
+//     propriété de fichier (LISEZMOI, lectures 31 et 157) : il envoie un
 //     défi aléatoire, le connecteur crée en exclusion
 //     `<répertoire de la prise>/.noortrace-defi-<défi>`, le démon lit le
-//     propriétaire de ce fichier (lstat : fichier ordinaire, un seul lien) et
-//     le supprime. Un processus ne peut créer qu'un fichier qui lui appartient ;
+//     propriétaire de ce fichier (lstat : fichier ordinaire, un seul lien,
+//     créé après le défi) et le supprime. Un processus ne peut créer qu'un
+//     fichier qui lui appartient ; la preuve n'est pas transférable parce que
+//     le répertoire de la prise et ses parents ne sont inscriptibles par
+//     d'autres que le démon (ou root) qu'avec le bit collant, qui interdit à
+//     un pair de renommer le fichier d'un autre : vérifié au démarrage et à
+//     chaque preuve ;
 //   - prise TCP, `client_auth: "jeton"` : la première ligne
 //     `{"noortrace_token": "<jeton>"}`, comparée en temps constant aux jetons
 //     statiques, puis retirée ; sur TLS si `connector_tcp.tls` est posé ;
@@ -22,18 +27,143 @@
 //     rattaché à l'entrée de `mcp.hosts` dont `match.peer_user` est son nom
 //     commun ; pas de ligne de jeton (LISEZMOI, lecture 134, même lecture que
 //     la 113 du SDK ; serveur commun `./prise-tcp.mjs`).
-// Une connexion sans entrée de `mcp.hosts` est refusée (EX-7.3).
+// Une connexion sans entrée de `mcp.hosts` est refusée (EX-7.3). Les échecs
+// de jeton de la prise TCP sont limités par identifiant de jeton présenté
+// (EX-18.3). Les octets reçus d'un connecteur sont comptés au quota de sa
+// connexion d'hôte dès leur lecture, ligne trop longue comprise (4.4 pas 1,
+// EX-4.47). Les lignes `warning` et `error` du journal d'exploitation qui
+// concernent la connexion d'un connecteur lui sont envoyées pour sa sortie
+// d'erreur (EX-9.7, lecture 158).
 
 import net from "node:net";
 import fs from "node:fs";
 import path from "node:path";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { lireComptes } from "./amont.mjs";
 import { reponseErreur } from "./messages.mjs";
 import { ecouterPriseTcp, identiteCertificat } from "./prise-tcp.mjs";
+import { LimiteurEchecs } from "../sdk/limiteur.mjs";
 
 /** Préfixe des fichiers de preuve d'identité. */
 export const PREFIXE_DEFI = ".noortrace-defi-";
+
+/**
+ * Préfixe d'une ligne du démon vers le connecteur qui porte une ligne du
+ * journal d'exploitation pour la sortie d'erreur du connecteur (EX-9.7) ; une
+ * réponse JSON-RPC du démon commence toujours par `{"jsonrpc"`.
+ */
+export const PREFIXE_JOURNAL = '{"noortrace_journal":';
+
+/** Mode d'une prise locale (EX-18.1) et d'un répertoire de prise créé par le démon (lecture 157). */
+export const MODE_PRISE = 0o660;
+export const MODE_REPERTOIRE_PRISE = 0o1770;
+
+/** Marge admise entre l'horloge des fichiers et celle du démon pour l'instant de création d'une preuve. */
+const MARGE_CREATION_MS = 1000;
+
+/** Connexion d'hôte dont une ligne du journal d'exploitation est consignée (EX-9.7). */
+export const CONTEXTE_CONNEXION = new AsyncLocalStorage();
+
+/**
+ * Met une prise de domaine Unix en écoute avec son mode dès la liaison : le
+ * masque du processus est posé le temps de l'appel synchrone qui crée le
+ * fichier, de sorte qu'il n'existe jamais avec un mode plus ouvert (EX-18.1).
+ * @param {net.Server} serveur
+ * @param {string} chemin
+ * @param {number} [mode]
+ */
+export async function ecouterPriseUnix(serveur, chemin, mode = MODE_PRISE) {
+  const pret = new Promise((res, rej) => {
+    serveur.once("error", rej);
+    serveur.once("listening", res);
+  });
+  const ancien = process.umask(0o777 & ~mode);
+  try {
+    serveur.listen(chemin);
+  } finally {
+    process.umask(ancien);
+  }
+  await pret;
+  if ((fs.statSync(chemin).mode & 0o777) !== mode) {
+    serveur.close();
+    throw new Error(`prise ${chemin} : mode ${(fs.statSync(chemin).mode & 0o777).toString(8)} au lieu de ${mode.toString(8)} (EX-18.1)`);
+  }
+}
+
+/**
+ * Le répertoire d'une prise et ses parents ne laissent-ils renommer un
+ * fichier de preuve que par son propriétaire (lecture 157) ? Chaque
+ * répertoire appartient au démon ou à root, et n'est inscriptible par le
+ * groupe ou les autres qu'avec le bit collant.
+ * @param {string} dir
+ * @returns {string|null} raison du refus, ou null
+ */
+export function controlerRepertoirePrise(dir) {
+  if (typeof process.getuid !== "function") return null;
+  const uid = process.getuid();
+  let d;
+  try {
+    d = fs.realpathSync(dir);
+  } catch {
+    return "repertoire_absent";
+  }
+  for (;;) {
+    let st;
+    try {
+      st = fs.lstatSync(d);
+    } catch {
+      return "repertoire_absent";
+    }
+    if (!st.isDirectory()) return "repertoire_non_dossier";
+    if (st.uid !== uid && st.uid !== 0) return "repertoire_proprietaire";
+    if ((st.mode & 0o022) !== 0 && (st.mode & 0o1000) === 0) return "repertoire_inscriptible";
+    const parent = path.dirname(d);
+    if (parent === d) return null;
+    d = parent;
+  }
+}
+
+/**
+ * Prépare le répertoire d'une prise au démarrage : créé avec le mode 1770 s'il
+ * n'existe pas ; refus de démarrer s'il laisse un pair renommer la preuve
+ * d'un autre (lecture 157).
+ * @param {string} socket chemin de la prise
+ */
+export function preparerRepertoirePrise(socket) {
+  const dir = path.dirname(socket);
+  if (fs.mkdirSync(dir, { recursive: true }) !== undefined) fs.chmodSync(dir, MODE_REPERTOIRE_PRISE);
+  const raison = controlerRepertoirePrise(dir);
+  if (raison) throw new Error(`répertoire de la prise ${dir} : ${raison} (inscriptible par d'autres que le démon sans bit collant, ou d'un autre propriétaire ; EX-4.39, lecture 157)`);
+}
+
+/**
+ * Vérifie la preuve par fichier d'un pair (lectures 31 et 157).
+ * @param {string} socket chemin de la prise
+ * @param {string} defi défi envoyé
+ * @param {number} instantDefi instant d'envoi du défi (ms UNIX)
+ * @returns {{utilisateur: string|null}|{refus: string, detail?: string}}
+ */
+export function verifierPreuveFichier(socket, defi, instantDefi) {
+  const dir = path.dirname(socket);
+  const fichier = path.join(dir, PREFIXE_DEFI + defi);
+  const r = controlerRepertoirePrise(dir);
+  if (r) {
+    fs.rmSync(fichier, { force: true });
+    return { refus: "repertoire_prise", detail: r };
+  }
+  let st;
+  try {
+    st = fs.lstatSync(fichier);
+    fs.rmSync(fichier, { force: true });
+  } catch {
+    return { refus: "preuve" };
+  }
+  if (!st.isFile() || st.nlink !== 1) return { refus: "preuve" };
+  // Un fichier antérieur au défi (renommé depuis un autre répertoire) ne prouve rien.
+  if (st.birthtimeMs > 0 && st.birthtimeMs < instantDefi - MARGE_CREATION_MS) return { refus: "preuve" };
+  return { utilisateur: lireComptes().parUid.get(st.uid) ?? null };
+}
 
 /**
  * Compare deux jetons en temps constant (EX-4.39).
@@ -105,6 +235,7 @@ export class ServeurConnecteurs {
     this.jetons = p.jetons ?? new Map();
     this.serveurs = [];
     this.connexions = new Set();
+    this.limiteur = new LimiteurEchecs({ monotone: () => this.frontal.monotone() });
   }
 
   get journal() {
@@ -113,17 +244,14 @@ export class ServeurConnecteurs {
 
   async ecouter() {
     if (this.socket) {
-      fs.mkdirSync(path.dirname(this.socket), { recursive: true });
+      preparerRepertoirePrise(this.socket);
       try {
         fs.rmSync(this.socket, { force: true });
       } catch {
         // prise absente
       }
       const s = net.createServer((c) => this._connexionUnix(c));
-      await new Promise((res, rej) => {
-        s.once("error", rej);
-        s.listen(this.socket, res);
-      });
+      await ecouterPriseUnix(s, this.socket);
       this.serveurs.push(s);
     }
     if (this.tcp) {
@@ -151,8 +279,8 @@ export class ServeurConnecteurs {
     if (this.socket) fs.rmSync(this.socket, { force: true });
   }
 
-  _refuser(c, raison) {
-    this.journal.consigner("warning", "frontal_mcp", "auth_failed", { transport: "stdio", ...(c.encrypted ? { tls: true } : {}), reason: raison });
+  _refuser(c, raison, detail = null) {
+    this.journal.consigner("warning", "frontal_mcp", "auth_failed", { transport: "stdio", ...(c.encrypted ? { tls: true } : {}), reason: raison, ...(detail ? { detail } : {}) });
     c.destroy();
   }
 
@@ -175,6 +303,7 @@ export class ServeurConnecteurs {
     c.on("close", () => this.connexions.delete(c));
     c.on("error", () => {});
     const defi = randomBytes(16).toString("hex");
+    const instantDefi = Date.now();
     c.write(JSON.stringify({ noortrace_defi: defi }) + "\n");
     let fini = false;
     const d = new DecoupeurLignes(4096, (l) => {
@@ -188,16 +317,9 @@ export class ServeurConnecteurs {
         preuve = null;
       }
       if (preuve !== defi) return this._refuser(c, "preuve");
-      const fichier = path.join(path.dirname(this.socket), PREFIXE_DEFI + defi);
-      let st;
-      try {
-        st = fs.lstatSync(fichier);
-        fs.rmSync(fichier, { force: true });
-      } catch {
-        return this._refuser(c, "preuve");
-      }
-      if (!st.isFile() || st.nlink !== 1) return this._refuser(c, "preuve");
-      const utilisateur = lireComptes().parUid.get(st.uid) ?? null;
+      const v = verifierPreuveFichier(this.socket, defi, instantDefi);
+      if (v.refus) return this._refuser(c, v.refus, v.detail);
+      const utilisateur = v.utilisateur;
       const hote = utilisateur === null ? null : this.frontal.hotePour({ peer_user: utilisateur });
       if (!hote) return this._refuser(c, "hote_inconnu");
       c.write(JSON.stringify({ noortrace_identite: "acceptee" }) + "\n");
@@ -223,10 +345,17 @@ export class ServeurConnecteurs {
       }
       if (typeof jeton !== "string") return this._refuser(c, "jeton");
       const recu = Buffer.from(jeton, "utf8");
+      // EX-18.3 : un identifiant de jeton qui a trop échoué est refusé 60 s,
+      // jamais une adresse source (une connexion ne porte qu'une tentative ; lecture 163).
+      const cle = this.limiteur.cleJeton(recu);
+      if (this.limiteur.bloque(cle)) return this._refuser(c, "jeton_limite");
       let id = null;
       for (const [k, v] of this.jetons) if (egauxTempsConstant(recu, v)) id = k;
       const hote = id === null ? null : this.frontal.hotePour({ static_token: id });
-      if (!hote) return this._refuser(c, "jeton");
+      if (!hote) {
+        this.limiteur.echec(cle);
+        return this._refuser(c, "jeton");
+      }
       c.write(JSON.stringify({ noortrace_identite: "acceptee" }) + "\n");
       this._servir(c, hote, { jeton: id });
     }, () => this._refuser(c, "jeton"));
@@ -239,6 +368,15 @@ export class ServeurConnecteurs {
       if (!c.destroyed && texte !== null && texte !== undefined && texte !== "") c.write(texte + "\n");
     };
     const session = f.ouvrirSession({ hote, identite, transport: "stdio", emettre: ecrire });
+    // EX-9.7 : les lignes warning et error consignées pour cette connexion
+    // (son hôte, dans le traitement de ses lignes) partent vers la sortie
+    // d'erreur du connecteur ; celles d'un autre hôte, d'un autre connecteur,
+    // d'un serveur d'outils ou du démon jamais.
+    const desabonner = f.journal.abonner?.((l) => {
+      if ((l.level === "warning" || l.level === "error") && l.host === hote.id && CONTEXTE_CONNEXION.getStore() === session && !c.destroyed) {
+        c.write(PREFIXE_JOURNAL + JSON.stringify(l) + "}\n");
+      }
+    });
     f.journal.consigner("info", "frontal_mcp", "host_connected", { transport: "stdio" }, { host: hote.id });
     const borne = f.config.limits.line_max_bytes;
     const d = new DecoupeurLignes(
@@ -250,7 +388,7 @@ export class ServeurConnecteurs {
           return;
         }
         if (ligne.length === 0) return;
-        f.recevoir(session, new Uint8Array(ligne), { cadre: "ligne" }).then(ecrire, (e) => {
+        f.recevoir(session, new Uint8Array(ligne), { cadre: "ligne", compte: true }).then(ecrire, (e) => {
           f.journal.consigner("error", "frontal_mcp", "internal_error", { message: String(e?.message ?? e).slice(0, 200) }, { host: hote.id });
           ecrire(reponseErreur(null, -32603));
         });
@@ -260,7 +398,15 @@ export class ServeurConnecteurs {
         ecrire(reponseErreur(null, -31013, { limit_bytes: borne, direction: "requete" }));
       },
     );
-    c.on("data", (x) => d.pousser(x));
-    c.on("close", () => f.fermerSession(session));
+    c.on("data", (x) => {
+      // 4.4 pas 1, EX-4.47 : octets comptés dès leur lecture, avant toute
+      // analyse, ligne refusée ou trop longue comprise.
+      f.compterRecus(hote, x.length);
+      CONTEXTE_CONNEXION.run(session, () => d.pousser(x));
+    });
+    c.on("close", () => {
+      desabonner?.();
+      f.fermerSession(session);
+    });
   }
 }

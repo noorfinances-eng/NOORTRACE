@@ -11,15 +11,16 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import http from "node:http";
+import { spawn } from "node:child_process";
 import { generateKeyPairSync, sign as signer } from "node:crypto";
 import * as N from "@noortrace/noyau";
 import {
   Coeur, HorlogeReglable, FrontalMcp, ServeurConnecteurs, ServeurHttpMcp, ConnexionHttp, validerConfiguration, reglesHorsSchema, lireEvenements,
   ErreurEnregistreur, analyserTexte, compacter, nombreRepresentable, ErreurTexteJson, decoderUtf8Strict, objetErreur, resultatEnregistreur,
-  verifierJwt, executerConnecteur, resoudreDelegation, QuotasHote, agreger,
+  verifierJwt, executerConnecteur, resoudreDelegation, QuotasHote, agreger, LecteurSse,
 } from "@noortrace/enregistreur";
 import { ServiceApprobationFactice } from "@noortrace/enregistreur/factice";
-import { repertoireTemporaire, secretsDev } from "./fixtures/enregistreur-coeur/outils.mjs";
+import { repertoireTemporaire, secretsDev, RACINE } from "./fixtures/enregistreur-coeur/outils.mjs";
 import { configurationMcp, hoteDemo, serveurStdio, reglageOutil, RedacteurTest, ServiceFixe, AUTORISE, EnfantFactice, laisserTourner } from "./fixtures/enregistreur-mcp/outils.mjs";
 
 const META = { "io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {} };
@@ -45,7 +46,7 @@ async function banc(o = {}) {
   if (o.ajuster) o.ajuster(brute);
   const v = validerConfiguration(new TextEncoder().encode(JSON.stringify(brute)));
   expect(v.erreurs, JSON.stringify(v.erreurs)).to.deep.equal([]);
-  const horloge = new HorlogeReglable(ms("2026-11-10T10:20:00.000Z"));
+  const horloge = o.horloge ?? new HorlogeReglable(ms("2026-11-10T10:20:00.000Z"));
   const service = o.service ?? new ServiceFixe(o.evaluer ?? (() => AUTORISE), o.candidats ?? []);
   const coeur = await Coeur.demarrer({ config: v.config, secrets: secretsDev(), horloge, service });
   const enfants = [];
@@ -219,8 +220,9 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
 
     it("EX-4.15, EX-4.16 : list_changed du serveur → relecture fusionnée, `charger`, notification à l'hôte qui écoute ; empreinte consignée", async function () {
       const b = await banc({ demarrer: true, tools: { list_changed_min_interval_ms: 50 } });
-      b.session.ecouteListe = true;
-      b.frontal.recevoir(b.session, ligne({ jsonrpc: "2.0", id: "ecoute", method: "subscriptions/listen", params: { toolsListChanged: true, _meta: META } }));
+      b.frontal.recevoir(b.session, ligne({ jsonrpc: "2.0", id: "ecoute", method: "subscriptions/listen", params: { notifications: { toolsListChanged: true }, _meta: META } }));
+      // Accusé, premier message du flux (révision 2026-07-28, lecture 173).
+      expect(b.emis[0]).to.equal('{"jsonrpc":"2.0","method":"notifications/subscriptions/acknowledged","params":{"notifications":{"toolsListChanged":true},"_meta":{"io.modelcontextprotocol/subscriptionId":"ecoute"}}}');
       const chargers = b.service.messages.filter((m) => m.methode === "charger").length;
       const enfant = b.enfants[0];
       OUTILS[0].description = "Lire, description changee";
@@ -234,7 +236,7 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       expect(b.ecrit.filter((l) => JSON.parse(l).method === "tools/list").length).to.equal(2);
       expect(b.coeur.journal.trouver("list_changed_merged")[0].data.count).to.equal(2);
       expect(b.service.messages.filter((m) => m.methode === "charger").length).to.equal(chargers + 1);
-      expect(b.emis).to.include('{"jsonrpc":"2.0","method":"notifications/tools/list_changed"}');
+      expect(b.emis).to.include('{"jsonrpc":"2.0","method":"notifications/tools/list_changed","params":{"_meta":{"io.modelcontextprotocol/subscriptionId":"ecoute"}}}');
       const d = b.coeur.journal.trouver("tool_definition_changed").at(-1);
       expect(d.data.tool_announced).to.equal("demo__claims.get");
       expect(d.data.old_sha256).to.not.equal(d.data.new_sha256);
@@ -347,7 +349,8 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
     it("EX-4.23 : annulation par l'hôte (stdio) relayée au serveur ; événement -31012 ; aucune réponse rendue", async function () {
       const b = await banc({ repondre: () => null });
       const p = b.frontal.recevoir(b.session, appel("a-1", "demo__slow.op", {}));
-      await laisserTourner(20);
+      // Annulation pendant le relais : attendre que l'appel soit parti vers le serveur (borné).
+      for (let k = 0; k < 500 && !b.ecrit.some((l) => JSON.parse(l).method === "tools/call"); k++) await laisserTourner(10);
       await b.recevoir(ligne({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: "a-1" } }));
       expect(await p).to.equal(null);
       const annul = JSON.parse(b.ecrit.at(-1));
@@ -508,7 +511,10 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       b.service.journal_id = b.config.recorder.journal_id;
       b.coeur.brancherRetention({ retient: (t) => b.frontal.retentions.has(t), decidee: (t, e) => b.frontal._decisionRetenue(t, e) });
       const p = b.frontal.recevoir(b.session, appel(1, "demo__payments.create", { claim_id: "7" }));
-      await laisserTourner(30);
+      // La retenue est scellée (fsync compris) avant la rétention : attendue, bornée, plutôt qu'un délai fixe.
+      // `ouvrir` part sans être attendu (EX-7.18) : attendre aussi que le service l'ait reçu.
+      const ouvert = () => [...b.frontal.retentions.keys()].some((t) => b.service.tickets.get(t)?.request);
+      for (let k = 0; k < 500 && !ouvert(); k++) await laisserTourner(10);
       const [ticket] = [...b.frontal.retentions.keys()];
       expect(ticket).to.match(/^apr-test-/);
       b.service.decider_ticket(ticket);
@@ -654,7 +660,10 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
           c.write(JSON.stringify({ noortrace_token: jeton }) + "\n");
         });
       const bon = await parler("jeton-secret", [appel(1, "demo__claims.get", { x: "z".repeat(3000) }), appel(2, "demo__claims.get", {})]);
-      const lignes = bon.trim().split("\n").map((x) => JSON.parse(x));
+      // Les lignes `noortrace_journal` vont à la sortie d'erreur du connecteur (EX-9.7, lecture 145).
+      const toutes = bon.trim().split("\n").map((x) => JSON.parse(x));
+      expect(toutes.filter((x) => x.noortrace_journal).map((x) => x.noortrace_journal.event)).to.deep.equal(["request_too_large"]);
+      const lignes = toutes.filter((x) => !x.noortrace_journal);
       expect(lignes[1].error).to.deep.equal({ code: -31013, message: "noortrace: taille maximale depassee", data: { limit_bytes: 2048, direction: "requete" } });
       expect(lignes[2].id).to.equal(2);
       expect(await parler("mauvais", [])).to.equal("");
@@ -841,6 +850,488 @@ describe("enregistreur, frontal MCP : exigences de §4, §7.2, §14 (réussite e
       expect(b.coeur.journal.trouver("approval_pending").length).to.equal(1);
       expect(JSON.stringify(b.coeur.journal.lignes)).to.not.match(/valeur-sensible/);
       await b.fermer();
+    });
+  });
+
+  // Défauts démontrés par la relecture adversariale B des frontaux : chaque
+  // essai de la relecture devient un cas de non-régression.
+  describe("relecture B : non-régression des transports et du relais MCP", function () {
+    const pause = (x) => new Promise((r) => setTimeout(r, x));
+    const httpCfg = (c) => (c.mcp.http = { listen: "127.0.0.1:0", path: "/mcp", allowed_origins: [], tls: null, oauth: null, static_tokens: [{ id: "poste", token: { env: "X" } }] });
+    const H = { "mcp-protocol-version": "2026-07-28", "mcp-method": "tools/call", "mcp-name": "demo__claims.get" };
+    const hoteHttp = (o = {}) => hoteDemo({ match: { static_token: "poste" }, ...o });
+
+    /** Serveur Streamable HTTP du banc et requêtes sur une connexion `keep-alive` unique (ou l'agent donné). */
+    async function serveurHttp(b, jeton = "jeton-http") {
+      const s = new ServeurHttpMcp({ frontal: b.frontal, jetons: new Map([["poste", N.utf8(jeton)]]) });
+      await s.ecouter();
+      const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+      const req = (corps, entetes = {}, o = {}) =>
+        new Promise((res) => {
+          const r = http.request(
+            { agent: o.agent ?? agent, host: "127.0.0.1", port: s.adresse().port, path: "/mcp", method: o.methode ?? "POST", headers: { authorization: `Bearer ${o.jeton ?? jeton}`, "content-type": "application/json", accept: "application/json, text/event-stream", ...entetes } },
+            (x) => {
+              const m = [];
+              x.on("data", (c) => m.push(c));
+              x.on("end", () => res({ statut: x.statusCode, entetes: x.headers, corps: Buffer.concat(m).toString() }));
+            },
+          );
+          r.on("error", () => res({ statut: null, corps: "" }));
+          r.end(corps);
+        });
+      return { s, req, agent, fermer: async () => (agent.destroy(), await s.fermer()) };
+    }
+
+    /** Connexion brute à la prise Unix : `fichier(chemin, défi)` crée la preuve ; rend vrai si l'identité est acceptée. */
+    const preuveBrute = (socket, fichier = (f) => fs.closeSync(fs.openSync(f, "wx", 0o600))) =>
+      new Promise((res) => {
+        const c = net.createConnection(socket);
+        let recu = "";
+        c.on("data", (d) => {
+          recu += d;
+          const m = JSON.parse(String(d).split("\n")[0]);
+          if (m.noortrace_defi) {
+            fichier(path.join(path.dirname(socket), `.noortrace-defi-${m.noortrace_defi}`), m.noortrace_defi);
+            c.write(JSON.stringify({ noortrace_preuve: m.noortrace_defi }) + "\n");
+          } else if (m.noortrace_identite) c.end();
+        });
+        c.on("error", () => {});
+        c.on("close", () => res(recu.includes("acceptee")));
+      });
+
+    it("R-B-1 (EX-4.35, EX-4.20, 4.4 pas 14) : statut HTTP décidé par le code que le frontal produit, jamais par le texte de la réponse", async function () {
+      const b = await banc({
+        hosts: [hoteHttp()],
+        ajuster: httpCfg,
+        repondre: (m) => (m.params.arguments.amont ? { error: { code: -32601, message: "Method not found" } } : { content: [{ type: "text", text: "ok" }], structuredContent: m.params.arguments, isError: false }),
+      });
+      const h = await serveurHttp(b);
+      // Résultat d'outil réussi dont le contenu structuré porte {"error":{"code":-32601,…}} : 200, événement executee.
+      const r = await h.req(appel(1, "demo__claims.get", { error: { code: -32601, message: "x" } }), H);
+      expect([r.statut, JSON.parse(r.corps).result.isError]).to.deep.equal([200, false]);
+      expect((await b.evenements()).at(-1).execution.status).to.equal("executee");
+      // Erreur -32601 d'un serveur d'outils, relayée (pas 14) : 200.
+      const amont = await h.req(appel(2, "demo__claims.get", { amont: true }), H);
+      expect([amont.statut, JSON.parse(amont.corps).error.code]).to.deep.equal([200, -32601]);
+      // Méthode inconnue du frontal : 404 ; _meta incomplet : 400 meta_requis.
+      const inconnue = await h.req(ligne({ jsonrpc: "2.0", id: 3, method: "inconnue/x", params: { _meta: META } }), { ...H, "mcp-method": "inconnue/x" });
+      expect([inconnue.statut, JSON.parse(inconnue.corps).error.code]).to.deep.equal([404, -32601]);
+      const incomplet = await h.req(ligne({ jsonrpc: "2.0", id: 4, method: "tools/list", params: { _meta: { "io.modelcontextprotocol/protocolVersion": "2026-07-28" } } }), { ...H, "mcp-method": "tools/list" });
+      expect([incomplet.statut, JSON.parse(incomplet.corps).error.data.reason]).to.deep.equal([400, "meta_requis"]);
+      await h.fermer();
+      await b.fermer();
+    });
+
+    it("R-B-2 (EX-4.39, EX-18.1) : répertoire de la prise inscriptible par d'autres sans bit collant refusé au démarrage et à chaque preuve ; fichier antérieur au défi refusé", async function () {
+      const moi = os.userInfo().username;
+      const b = await banc({ hosts: [hoteDemo({ match: { peer_user: moi } })] });
+      const dir = path.dirname(b.config.mcp.socket);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.chmodSync(dir, 0o777);
+      const s = new ServeurConnecteurs({ frontal: b.frontal, socket: b.config.mcp.socket });
+      let refus = null;
+      await s.ecouter().catch((e) => (refus = e));
+      expect(refus?.message).to.match(/répertoire de la prise.*repertoire_inscriptible/);
+      await s.fermer();
+      // Bit collant : admis ; un répertoire créé par le démon reçoit le mode 1770.
+      fs.chmodSync(dir, 0o1777);
+      const s2 = new ServeurConnecteurs({ frontal: b.frontal, socket: b.config.mcp.socket });
+      await s2.ecouter();
+      expect(await preuveBrute(b.config.mcp.socket)).to.equal(true);
+      // Le répertoire devient inscriptible sans bit collant après le démarrage : chaque preuve est refusée.
+      fs.chmodSync(dir, 0o770);
+      fs.chmodSync(dir, 0o777);
+      expect(await preuveBrute(b.config.mcp.socket)).to.equal(false);
+      expect(b.coeur.journal.trouver("auth_failed").at(-1).data).to.deep.include({ reason: "repertoire_prise", detail: "repertoire_inscriptible" });
+      fs.chmodSync(dir, 0o1777);
+      // Un fichier du bon propriétaire mais créé avant le défi, puis renommé : refusé (preuve non transférable).
+      const ancien = path.join(b.dir, "ancien");
+      fs.writeFileSync(ancien, "");
+      await pause(1200);
+      expect(await preuveBrute(b.config.mcp.socket, (f) => fs.renameSync(ancien, f))).to.equal(false);
+      expect(b.coeur.journal.trouver("auth_failed").at(-1).data.reason).to.equal("preuve");
+      expect(await preuveBrute(b.config.mcp.socket)).to.equal(true);
+      await s2.fermer();
+      await b.fermer();
+      // Répertoire absent : créé par le démon, mode 1770.
+      const c = await banc({ hosts: [hoteDemo({ match: { peer_user: moi } })] });
+      const s3 = new ServeurConnecteurs({ frontal: c.frontal, socket: c.config.mcp.socket });
+      await s3.ecouter();
+      expect(fs.statSync(path.dirname(c.config.mcp.socket)).mode & 0o7777).to.equal(0o1770);
+      await s3.fermer();
+      await c.fermer();
+    });
+
+    it("R-B-2 (EX-4.39, EX-7.3) : deux utilisateurs réels, répertoire à bit collant : un pair ne peut pas renommer la preuve d'un autre", async function () {
+      if (process.getuid?.() !== 0) this.skip();
+      const b = await banc({
+        hosts: [
+          hoteDemo({ id: "agent-alice", match: { peer_user: "nobody" }, launched_by: "${peer_user}" }),
+          hoteDemo({ id: "agent-mallory", match: { peer_user: "daemon" }, launched_by: "${peer_user}" }),
+        ],
+      });
+      const prise = b.config.mcp.socket;
+      const s = new ServeurConnecteurs({ frontal: b.frontal, socket: prise });
+      await s.ecouter();
+      fs.chmodSync(b.dir, 0o711);
+      fs.chmodSync(path.dirname(prise), 0o1777);
+      fs.chmodSync(prise, 0o666);
+      const client = (utilisateur, code) =>
+        new Promise((res) => {
+          const p = spawn("runuser", ["-u", utilisateur, "--", process.execPath, "-e", code, prise], { stdio: ["ignore", "pipe", "pipe"] });
+          let o = "";
+          p.stdout.on("data", (x) => (o += x));
+          p.stderr.on("data", (x) => (o += x));
+          p.on("close", () => res(o.trim()));
+        });
+      // Alice crée sa preuve et tarde à l'annoncer ; Mallory tente de renommer le fichier d'Alice sous le nom de son propre défi.
+      const alice = client("nobody", `
+const net=require("net"),fs=require("fs"),path=require("path");const s=process.argv[1];const c=net.createConnection(s);
+c.once("data",(d)=>{const defi=JSON.parse(String(d)).noortrace_defi;fs.closeSync(fs.openSync(path.join(path.dirname(s),".noortrace-defi-"+defi),"wx",0o600));
+setTimeout(()=>{c.write(JSON.stringify({noortrace_preuve:defi})+"\\n");},1500);});
+c.on("data",(d)=>{if(String(d).includes("acceptee")){console.log("alice: acceptee");c.end();}});setTimeout(()=>process.exit(0),2500);`);
+      await pause(400);
+      const mallory = client("daemon", `
+const net=require("net"),fs=require("fs"),path=require("path");const s=process.argv[1];const dir=path.dirname(s);const c=net.createConnection(s);
+c.on("data",(d)=>{const m=JSON.parse(String(d).split("\\n")[0]);
+ if(m.noortrace_defi){const autre=fs.readdirSync(dir).find((n)=>n.startsWith(".noortrace-defi-")&&!n.endsWith(m.noortrace_defi));
+  try{fs.renameSync(path.join(dir,autre),path.join(dir,".noortrace-defi-"+m.noortrace_defi));console.log("mallory: renomme");}catch(e){console.log("mallory: "+e.code);}
+  c.write(JSON.stringify({noortrace_preuve:m.noortrace_defi})+"\\n");}
+ else if(m.noortrace_identite){console.log("mallory: acceptee");c.end();}});
+c.on("close",()=>console.log("mallory: fermee"));`);
+      expect(await mallory).to.equal("mallory: EPERM\nmallory: fermee");
+      expect(await alice).to.equal("alice: acceptee");
+      const journal = b.coeur.journal.lignes.filter((l) => ["host_connected", "auth_failed"].includes(l.event)).map((l) => [l.event, l.host ?? null, l.data.reason ?? null]);
+      expect(journal).to.deep.equal([["auth_failed", null, "preuve"], ["host_connected", "agent-alice", null]]);
+      await s.fermer();
+      await b.fermer();
+    });
+
+    it("R-B-3 (EX-18.3) : échecs de jeton limités par identifiant de jeton et par connexion (prise TCP des connecteurs, Streamable HTTP) ; un jeton valide sur une autre connexion passe", async function () {
+      const b = await banc({ hosts: [hoteHttp()], ajuster: httpCfg });
+      const tcp = new ServeurConnecteurs({ frontal: b.frontal, tcp: { listen: "127.0.0.1:0", client_auth: "jeton", tls: null }, jetons: new Map([["poste", N.utf8("jeton-valide")]]) });
+      await tcp.ecouter();
+      const essai = (jeton) =>
+        new Promise((res) => {
+          const c = net.createConnection(tcp.adresseTcp().port, "127.0.0.1");
+          let r = "";
+          c.on("data", (d) => {
+            r += d;
+            if (r.includes("acceptee")) c.end();
+          });
+          c.on("error", () => {});
+          c.on("close", () => res(r.includes("acceptee")));
+          c.write(JSON.stringify({ noortrace_token: jeton }) + "\n");
+        });
+      for (let k = 0; k < 12; k++) expect(await essai("faux-jeton")).to.equal(false);
+      expect(await essai("jeton-valide")).to.equal(true);
+      const tcpRaisons = b.coeur.journal.trouver("auth_failed").map((l) => l.data.reason);
+      expect(tcpRaisons).to.deep.equal([...Array(10).fill("jeton"), "jeton_limite", "jeton_limite"]);
+      // Streamable HTTP : dix échecs sur une connexion keep-alive, puis refus de ce jeton et de cette connexion.
+      const h = await serveurHttp(b, "jeton-valide");
+      const statuts = [];
+      for (let k = 0; k < 11; k++) statuts.push((await h.req(appel(1, "demo__claims.get", {}), H, { jeton: "faux-jeton" })).statut);
+      expect(statuts).to.deep.equal(Array(11).fill(401));
+      expect((await h.req(appel(2, "demo__claims.get", {}), H)).statut, "même connexion : refusée 60 s").to.equal(401);
+      const autre = new http.Agent({ keepAlive: false });
+      expect((await h.req(appel(3, "demo__claims.get", {}), H, { agent: autre })).statut, "jeton valide, autre connexion").to.equal(200);
+      expect((await h.req(appel(4, "demo__claims.get", {}), H, { agent: autre, jeton: "faux-jeton" })).statut).to.equal(401);
+      const raisons = b.coeur.journal.trouver("auth_failed").filter((l) => l.data.transport === "http").map((l) => l.data.reason);
+      expect(raisons).to.deep.equal([...Array(10).fill("jeton_inconnu"), "jeton_limite", "jeton_limite", "jeton_limite"]);
+      await h.fermer();
+      await tcp.fermer();
+      await b.fermer();
+    });
+
+    it("R-B-6 (4.4 pas 1, EX-4.47) : quota contrôlé avant l'analyse ; corps refusés en HTTP, lignes trop longues et temps d'analyse des refus comptés", async function () {
+      const Q = { max_concurrent: 32, piece_bytes_per_minute: 268435456, received_bytes_per_minute: 2000, redaction_ms_per_minute: 30000 };
+      // (a) quota d'octets atteint : une requête invalide est refusée par -31013 sans être analysée (id inconnu : null).
+      const a = await banc({ hosts: [hoteDemo({ quota: Q })] });
+      expect((await a.recevoir(appel(1, "demo__claims.get", { x: "a".repeat(1500) }))).result.isError).to.equal(false);
+      const tronque = appel(2, "demo__claims.get", { x: "a".repeat(600) }).slice(0, -1);
+      expect(await a.recevoir(tronque)).to.deep.equal({ jsonrpc: "2.0", id: null, error: { code: -31013, message: "noortrace: taille maximale depassee", data: { limit_bytes: 2000, direction: "quota" } } });
+      await a.fermer();
+      // (d) le temps d'analyse d'une requête refusée est compté (horloge monotone qui avance à chaque lecture).
+      class HorlogeQuiAvance extends HorlogeReglable {
+        monotone() {
+          this.mono += 1;
+          return this.mono;
+        }
+      }
+      const d = await banc({ horloge: new HorlogeQuiAvance(ms("2026-11-10T10:20:00.000Z")) });
+      for (const x of ["{", "[1]", '{"jsonrpc":"1.0","id":1,"method":"x"}']) await d.recevoir(x);
+      expect(d.frontal.quotas.get("agent-demo").capture.total(d.frontal.monotone())).to.be.greaterThan(0);
+      await d.fermer();
+      // (b) corps refusés par le transport HTTP avant le frontal (400 -32020, 406, 400 meta_requis, 413) : comptés.
+      const b = await banc({ hosts: [hoteHttp({ quota: { ...Q, received_bytes_per_minute: 1000000 } })], ajuster: httpCfg, limits: { request_max_bytes: 100000 } });
+      const h = await serveurHttp(b);
+      const corps = appel(1, "demo__claims.get", { x: "a".repeat(5000) });
+      expect((await h.req(corps, { ...H, "mcp-method": "tools/list" })).statut).to.equal(400);
+      expect((await h.req(corps, { ...H, accept: "application/json" })).statut).to.equal(406);
+      expect((await h.req(ligne({ jsonrpc: "2.0", id: 2, method: "tools/list", params: { x: "a".repeat(5000) } }))).statut).to.equal(400);
+      expect((await h.req("a".repeat(150000), H)).statut).to.equal(413);
+      const recus = () => b.frontal.quotas.get("agent-demo").recus.total(b.frontal.monotone());
+      expect(recus()).to.be.at.least(3 * 5000 + 100000);
+      // Au-delà du quota, un corps invalide est refusé par -31013 avant toute analyse.
+      for (let k = 0; k < 9; k++) await h.req("a".repeat(99000), H);
+      const q = await h.req("{", H);
+      expect([q.statut, JSON.parse(q.corps)]).to.deep.equal([200, { jsonrpc: "2.0", id: null, error: { code: -31013, message: "noortrace: taille maximale depassee", data: { limit_bytes: 1000000, direction: "quota" } } }]);
+      await h.fermer();
+      await b.fermer();
+      // (c) lignes au-delà de line_max_bytes sur la prise des connecteurs : comptées.
+      const c = await banc({ hosts: [hoteHttp({ quota: { ...Q, received_bytes_per_minute: 200000 } })], limits: { line_max_bytes: 70000 }, ajuster: httpCfg });
+      const s = new ServeurConnecteurs({ frontal: c.frontal, tcp: { listen: "127.0.0.1:0", client_auth: "jeton", tls: null }, jetons: new Map([["poste", N.utf8("j")]]) });
+      await s.ecouter();
+      const recu = await new Promise((res) => {
+        const x = net.createConnection(s.adresseTcp().port, "127.0.0.1");
+        let r = "";
+        let envoye = false;
+        x.on("data", (z) => {
+          r += z;
+          if (!envoye && r.includes("acceptee")) {
+            envoye = true;
+            for (let k = 0; k < 5; k++) x.write("x".repeat(100000) + "\n");
+            x.write(appel(9, "demo__claims.get", {}) + "\n");
+            setTimeout(() => x.end(), 500);
+          }
+        });
+        x.on("close", () => res(r));
+        x.write(JSON.stringify({ noortrace_token: "j" }) + "\n");
+      });
+      const lignes = recu.trim().split("\n").slice(1).map((l) => JSON.parse(l));
+      expect(lignes.filter((l) => l.error?.data?.direction === "requete")).to.have.length(5);
+      expect(lignes.at(-1).error.data).to.deep.equal({ limit_bytes: 200000, direction: "quota" });
+      expect(c.frontal.quotas.get("agent-demo").recus.total(c.frontal.monotone())).to.be.at.least(500000);
+      await s.fermer();
+      await c.fermer();
+    });
+
+    it("R-B-8 (EX-4.23, EX-4.36) : en HTTP moderne, la fermeture du flux avant le relais empêche le relais", async function () {
+      const b = await banc({ evaluer: () => new Promise((r) => setTimeout(() => r(AUTORISE), 300)), hosts: [hoteHttp()], ajuster: httpCfg });
+      const h = await serveurHttp(b);
+      const r = http.request({ host: "127.0.0.1", port: h.s.adresse().port, path: "/mcp", method: "POST", headers: { authorization: "Bearer jeton-http", "content-type": "application/json", accept: "application/json, text/event-stream", ...H, "mcp-name": "demo__payments.create" } });
+      r.on("error", () => {});
+      r.end(appel(1, "demo__payments.create", { montant: "10.00" }));
+      await pause(80);
+      r.destroy();
+      await pause(700);
+      expect(b.ecrit.filter((l) => JSON.parse(l).method === "tools/call")).to.deep.equal([]);
+      expect(await b.evenements()).to.deep.equal([]);
+      await h.fermer();
+      await b.fermer();
+    });
+
+    it("R-B-9 (4.4 pas 5, EX-14.3) : une tentative refusée puis annulée par l'hôte est un événement refusee", async function () {
+      const REFUS = { rule: "interdit", decision: "refuse", ticket: null, ticket_state: null, approval: null, approver_set: null };
+      const b = await banc({ evaluer: () => new Promise((r) => setTimeout(() => r(REFUS), 200)) });
+      const p = b.recevoir(appel(2, "demo__payments.create", { montant: "99999.00" }));
+      await pause(50);
+      await b.recevoir(ligne({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 2 } }));
+      expect(await p).to.equal(null);
+      expect((await b.evenements()).map((e) => e.execution.status)).to.deep.equal(["refusee"]);
+      await b.fermer();
+    });
+
+    it("R-B-10 (EX-4.34) et sessions héritées : Mcp-Session-Id ignoré en ère moderne ; sessions héritées bornées par identité", async function () {
+      const b = await banc({ hosts: [hoteHttp()], ajuster: httpCfg });
+      const h = await serveurHttp(b);
+      expect((await h.req(appel(1, "demo__claims.get", {}), { ...H, "mcp-session-id": "abc" })).statut).to.equal(200);
+      expect((await h.req(undefined, { "mcp-session-id": "abc", "mcp-protocol-version": "2026-07-28" }, { methode: "GET" })).statut).to.equal(405);
+      expect((await h.req(ligne({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }), { "mcp-session-id": "abc" })).statut).to.equal(404);
+      const init = ligne({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "h", version: "1" } } });
+      const premiere = (await h.req(init)).entetes["mcp-session-id"];
+      const avant = b.frontal.sessions.size;
+      for (let k = 0; k < 100; k++) await h.req(init);
+      expect(h.s.heritees.size).to.equal(64);
+      expect(b.frontal.sessions.size).to.be.at.most(avant + 63);
+      // La plus ancienne a été terminée : 404, l'hôte réinitialise (EX-4.37).
+      expect((await h.req(ligne({ jsonrpc: "2.0", id: 3, method: "ping" }), { "mcp-session-id": premiere })).statut).to.equal(404);
+      await h.fermer();
+      await b.fermer();
+    });
+
+    it("R-B-11 (EX-18.1) : mcp.socket en mode 0660 dès sa création, quel que soit le masque du processus", async function () {
+      for (const masque of [0o022, 0o000]) {
+        const ancien = process.umask(masque);
+        try {
+          const b = await banc();
+          const s = new ServeurConnecteurs({ frontal: b.frontal, socket: b.config.mcp.socket });
+          await s.ecouter();
+          expect(fs.statSync(b.config.mcp.socket).mode & 0o777, `umask ${masque.toString(8)}`).to.equal(0o660);
+          await s.fermer();
+          await b.fermer();
+        } finally {
+          process.umask(ancien);
+        }
+      }
+    });
+
+    it("R-B-12 (EX-9.7) : les lignes warning et error de la connexion d'hôte d'un connecteur sont copiées sur sa sortie d'erreur, et elles seules", async function () {
+      const moi = os.userInfo().username;
+      const b = await banc({ hosts: [hoteDemo({ match: { peer_user: moi }, launched_by: "${peer_user}" })] });
+      const s = new ServeurConnecteurs({ frontal: b.frontal, socket: b.config.mcp.socket });
+      await s.ecouter();
+      const { PassThrough } = await import("node:stream");
+      const lancer = () => {
+        const x = { sortie: [], erreur: [], entree: new PassThrough() };
+        x.fin = executerConnecteur({ socket: b.config.mcp.socket, entree: x.entree, sortie: { write: (y) => x.sortie.push(String(y)) }, erreur: { write: (y) => x.erreur.push(String(y)) } });
+        return x;
+      };
+      const un = lancer();
+      const deux = lancer();
+      const attendre = async (f) => {
+        for (let k = 0; k < 1000 && !f(); k++) await pause(10);
+      };
+      // Les deux connecteurs identifiés (deux host_connected), puis la réponse rendue au premier.
+      await attendre(() => b.coeur.journal.trouver("host_connected").length === 2);
+      un.entree.write(appel(1, "demo__claims.get", {}, { ...META, "noortrace/delegation": { run_id: "a b" } }) + "\n");
+      await attendre(() => un.sortie.join("").includes('"id":1'));
+      // Une ligne du même hôte écrite hors de toute requête de ce connecteur, une ligne du démon : jamais copiées.
+      b.coeur.journal.consigner("warning", "frontal_mcp", "essai_hors_connexion", {}, { host: "agent-demo" });
+      b.coeur.journal.consigner("error", "noyau", "essai_demon", {});
+      await pause(50);
+      un.entree.end();
+      deux.entree.end();
+      await un.fin;
+      await deux.fin;
+      const copiees = un.erreur.join("").trim().split("\n").map((l) => JSON.parse(l));
+      expect(copiees.map((l) => [l.level, l.event, l.host])).to.deep.equal([["warning", "delegation_refused", "agent-demo"]]);
+      expect(copiees[0]).to.deep.equal(b.coeur.journal.trouver("delegation_refused")[0]);
+      expect(deux.erreur).to.deep.equal([]);
+      expect(un.sortie.join("").trim().split("\n").map((l) => JSON.parse(l).jsonrpc)).to.deep.equal(["2.0"]);
+      await s.fermer();
+      await b.fermer();
+    });
+
+    it("R-B-13 (EX-4.36, EX-4.32) : un CRLF coupé entre deux lectures SSE est une seule fin de ligne ; une ligne de stderr coupée est une ligne", async function () {
+      const flux = 'data: {"jsonrpc":"2.0","id":"e-000000000001",\r\ndata: "result":{"content":[],"isError":false}}\r\n\r\n';
+      for (const coupe of [null, flux.indexOf("\r") + 1, flux.lastIndexOf("\r")]) {
+        const recus = [];
+        const l = new LecteurSse((x) => recus.push(x));
+        if (coupe === null) l.pousser(flux);
+        else {
+          l.pousser(flux.slice(0, coupe));
+          l.pousser(flux.slice(coupe));
+        }
+        l.finir();
+        expect(recus.map((x) => JSON.parse(x).id), `coupe ${coupe}`).to.deep.equal(["e-000000000001"]);
+      }
+      const donnees = [];
+      const fin = new LecteurSse((x) => donnees.push(x));
+      fin.pousser("data: a\r");
+      fin.finir();
+      expect(donnees).to.deep.equal(["a"]);
+      // Sortie d'erreur d'un serveur stdio : ligne coupée en deux lectures.
+      const b = await banc();
+      await b.recevoir(appel(1, "demo__claims.get", {}));
+      const enfant = b.enfants[0];
+      enfant.stderr.emit("data", Buffer.from("premiere moi"));
+      enfant.stderr.emit("data", Buffer.from("tie\nseconde\n"));
+      const lignes = b.coeur.journal.trouver("child_stderr").map((l) => l.data.sha256);
+      expect(lignes).to.deep.equal([N.sha256Hex(N.utf8("premiere moitie")), N.sha256Hex(N.utf8("seconde"))]);
+      await b.fermer();
+    });
+
+    it("subscriptions/listen (EX-4.15 ; lot SDK Python) : accusé rendu ; client réel @langchain/mcp-adapters 2.0.1 en mode « auto », en Streamable HTTP et par le connecteur stdio", async function () {
+      const { MCPAdapter } = await import("@langchain/mcp-adapters");
+      const essayer = async (b, serveur) => {
+        const mcp = new MCPAdapter({ mcpServers: { nt: serveur }, prefixToolNameWithServerName: false });
+        try {
+          const outils = await mcp.listTools();
+          expect(outils.map((t) => t.name)).to.include("demo__claims.get");
+          expect(await outils.find((t) => t.name === "demo__claims.get").invoke({})).to.equal("ok claims.get");
+        } finally {
+          await mcp.close?.();
+        }
+        expect(b.coeur.journal.trouver("host_subscription_opened").at(-1).data).to.deep.equal({ tools_list_changed: true });
+      };
+      const b = await banc({ hosts: [hoteHttp()], ajuster: httpCfg });
+      const h = await serveurHttp(b);
+      await essayer(b, { url: `http://127.0.0.1:${h.s.adresse().port}/mcp`, mode: "auto", headers: { Authorization: "Bearer jeton-http" } });
+      // Paramètres sans `notifications` : -32602, jamais le silence.
+      const r = await h.req(ligne({ jsonrpc: "2.0", id: "l", method: "subscriptions/listen", params: { toolsListChanged: true, _meta: META } }), { ...H, "mcp-method": "subscriptions/listen" });
+      expect(JSON.parse(r.corps).error).to.deep.equal({ code: -32602, message: "Invalid params", data: { reason: "notifications_requis" } });
+      await h.fermer();
+      await b.fermer();
+      const c = await banc({ hosts: [hoteDemo({ match: { peer_user: os.userInfo().username } })] });
+      const s = new ServeurConnecteurs({ frontal: c.frontal, socket: c.config.mcp.socket });
+      await s.ecouter();
+      await essayer(c, { transport: "stdio", command: process.execPath, args: [path.join(RACINE, "paquets", "enregistreur", "bin", "noortrace-connecteur"), "--socket", c.config.mcp.socket], mode: "auto" });
+      await s.fermer();
+      await c.fermer();
+    });
+
+    it("soupçons : Mcp-Param-* décodé avant comparaison ; alg lié au type de clé ; JWKS borné ; continuations purgées ; journal non inondable ; id d'annulation comparé par valeur", async function () {
+      // Mcp-Param-* (EX-4.35) : la sentinelle base64 est décodée, puis comparée à la valeur de l'argument.
+      const outils = [{ name: "q", inputSchema: { type: "object", properties: { region: { type: "string", "x-mcp-header": "Region" } } }, annotations: { readOnlyHint: true } }];
+      const b = await banc({ hosts: [hoteHttp()], ajuster: httpCfg, outils });
+      const h = await serveurHttp(b);
+      const Hq = { ...H, "mcp-name": "demo__q" };
+      const b64 = (x) => `=?base64?${Buffer.from(x).toString("base64")}?=`;
+      expect((await h.req(appel(1, "demo__q", { region: "Paris" }), { ...Hq, "mcp-param-region": b64("Paris") })).statut).to.equal(200);
+      expect((await h.req(appel(2, "demo__q", { region: "Genève" }), { ...Hq, "mcp-param-region": b64("Genève") })).statut).to.equal(200);
+      expect((await h.req(appel(3, "demo__q", { region: "Paris" }), { ...Hq, "mcp-param-region": b64("Lyon") })).statut).to.equal(400);
+      expect((await h.req(appel(4, "demo__q", { region: "Paris" }), { ...Hq, "mcp-param-region": "Lyon" })).statut).to.equal(400);
+      // Journal non inondable par l'hôte : réponses et notifications consignées au plus 20 fois par seconde, le reste compté.
+      for (let k = 0; k < 100; k++) await b.recevoir(ligne({ jsonrpc: "2.0", id: k, result: {} }));
+      expect(b.coeur.journal.trouver("host_response_ignored")).to.have.length(20);
+      b.horloge.avancer(1000);
+      await b.recevoir(ligne({ jsonrpc: "2.0", id: 1, result: {} }));
+      expect(b.coeur.journal.trouver("host_lines_dropped").at(-1).data).to.deep.equal({ lines: 80 });
+      await h.fermer();
+      await b.fermer();
+      // alg lié au type de la clé (RFC 8725 §3.1) : un RS256 présenté comme ES256 est refusé.
+      const { publicKey, privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+      const jwk = { ...publicKey.export({ format: "jwk" }), kid: "r1" };
+      const enc = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+      const o = { jwks: { keys: [jwk] }, resource: "https://noortrace.local/mcp", issuers: ["https://as.local"], scopes: [], maintenant: Date.now() };
+      const charge = enc({ aud: o.resource, iss: "https://as.local", sub: "alice", exp: Math.floor(Date.now() / 1000) + 600 });
+      const signe = (alg) => {
+        const e = enc({ alg, kid: "r1" });
+        return `${e}.${charge}.${signer("sha256", Buffer.from(`${e}.${charge}`), privateKey).toString("base64url")}`;
+      };
+      expect(verifierJwt(signe("RS256"), o)).to.deep.equal({ sub: "alice" });
+      expect(() => verifierJwt(signe("ES256"), o)).to.throw("signature");
+      // JWKS : délai et taille bornés, une seule lecture en vol.
+      let lectures = 0;
+      const lent = http.createServer((req, res) => {
+        lectures++;
+        if (req.url === "/gros") res.end("x".repeat(2 * 1024 * 1024));
+        else if (req.url === "/ok") res.end(JSON.stringify({ keys: [] }));
+      });
+      await new Promise((r) => lent.listen(0, "127.0.0.1", r));
+      const base = `http://127.0.0.1:${lent.address().port}`;
+      const { chargeurJwksHttps } = await import("@noortrace/enregistreur");
+      const rejet = (p) => p.then(() => "resolu", (e) => e.message);
+      expect(await rejet(chargeurJwksHttps(`${base}/muet`, { requete: http.get, delaiMs: 200 })())).to.match(/délai/);
+      expect(await rejet(chargeurJwksHttps(`${base}/gros`, { requete: http.get })())).to.match(/taille/);
+      lectures = 0;
+      const charger = chargeurJwksHttps(`${base}/ok`, { requete: http.get });
+      expect(await Promise.all([charger(), charger(), charger()])).to.deep.equal([{ keys: [] }, { keys: [] }, { keys: [] }]);
+      expect(lectures).to.equal(1);
+      lent.closeAllConnections();
+      await new Promise((r) => lent.close(r));
+      // Continuations MRTR (EX-4.21) : une continuation servie est retirée ; celles d'une session fermée aussi.
+      let n = 0;
+      const m = await banc({ repondre: () => (++n % 2 === 1 ? { resultType: "input_required", inputRequests: {}, requestState: `etat-${n}` } : { content: [], isError: false }) });
+      await m.recevoir(appel(1, "demo__payments.create", { a: 1 }));
+      expect(m.frontal.continuations.size).to.equal(1);
+      await m.recevoir(appel(2, "demo__payments.create", { a: 1 }, META, { requestState: "etat-1", inputResponses: {} }));
+      expect(m.frontal.continuations.size).to.equal(0);
+      await m.recevoir(appel(3, "demo__payments.create", { a: 1 }));
+      expect(m.frontal.continuations.size).to.equal(1);
+      m.frontal.fermerSession(m.session);
+      expect(m.frontal.continuations.size).to.equal(0);
+      await m.fermer();
+      // Annulation : requestId comparé par valeur JSON (échappements, écriture du nombre).
+      const a = await banc({ repondre: () => null, reglages: { "slow.op": reglageOutil({ timeout_ms: 1000 }) } });
+      const p1 = a.frontal.recevoir(a.session, appel("a-1", "demo__slow.op", {}));
+      const p2 = a.frontal.recevoir(a.session, appel(7, "demo__slow.op", {}));
+      await laisserTourner(20);
+      await a.recevoir('{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"\\u0061-1"}}');
+      await a.recevoir('{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":7.0}}');
+      expect([await p1, await p2]).to.deep.equal([null, null]);
+      await a.fermer();
     });
   });
 });

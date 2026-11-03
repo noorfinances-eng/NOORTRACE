@@ -26,18 +26,34 @@ import { partielAppelOutil, partielDecision, partielEchange, partielPolitique, r
 import { evaluerEffets } from "./effets.mjs";
 import {
   FichiersApprobations, ErreurServiceApprobation, approvalExpiration, delaiExpiration, macRelais, validerReponseEvaluer,
-  verifierRelais, verifierRemise,
+  verifierRelais, verifierRemise, E_MAX_MS, ligneRemise,
 } from "./approbations.mjs";
 import { decisionPolitique, echeanceExpiration } from "./lui-meme.mjs";
 import { exporterDossier } from "./dossier.mjs";
-import { jcsIntegralOctets, analyserJsonIntegral } from "./jcs-integral.mjs";
+import { jcsIntegral, jcsIntegralOctets, analyserJsonIntegral } from "./jcs-integral.mjs";
 import { validerConfiguration, resoudreSecrets, differencesHorsPolitique } from "./configuration.mjs";
 import { MoteurPolitique } from "./politique/moteur.mjs";
+import { verifierRepertoireJournal } from "./verification.mjs";
+import { SupervisionIntegrite } from "./controles.mjs";
 
 /** Version du logiciel (`code.recorder`, `serverInfo`). */
 export const VERSION_ENREGISTREUR = "0.1.0";
 
 const sansPrefixe = (h) => h.slice(2);
+
+/** Envois `consommer` simultanés au plus (EX-7.20 : reprise sans rafale). */
+export const CONCURRENCE_CONSOMMER = 4;
+
+/**
+ * Raisons de CT-3 §12.8 émises par le service : une erreur qui porte l'une
+ * d'elles est une réponse ; toute autre (`indisponible`, réponse illisible,
+ * pair non vérifié…) est une absence de réponse, réessayée (CT-3 12.7).
+ */
+const RAISONS_SERVICE = new Set([
+  "requete_invalide", "non_pret", "politique_invalide", "politique_inconnue", "ticket_inconnu", "ticket_deja_ouvert",
+  "ticket_non_ouvert", "ticket_clos_aux_votes", "jeu_non_fige", "signature_invalide", "hors_jeu", "auto_approbation",
+  "recuse", "motif_trop_long", "plafond_atteint", "vote_identique", "retrait_non_autorise",
+]);
 
 export class Coeur {
   /**
@@ -130,6 +146,8 @@ export class Coeur {
     // WORM (INTERFACES.md, section f) : copies, registre, contrôles périodiques.
     this.passif = false;
     o.worm?.lier?.(this);
+    // Contrôles périodiques d'EX-17.5 qui ne dépendent pas d'un support WORM.
+    this.controles = new SupervisionIntegrite(this);
   }
 
   // ------------------------------------------------------------ démarrage
@@ -171,6 +189,11 @@ export class Coeur {
     this.pieces = new MagasinPieces(this.repertoire, { minOctetsLibres: cfg.storage.min_free_bytes });
     let etat;
     try {
+      // Journal reconstruit depuis les copies WORM (EX-12.17, CT-8 §11.4 chemin
+      // B : segments présents, journal d'intention jamais ouvert ici) : avant
+      // d'écrire, tout est relu et vérifié, segments fermés compris, avec les
+      // clés de la chaîne (signatures, manifestes, séries, pièces).
+      await this._verifierJournalReconstruit();
       etat = await relireJournal(this.repertoire, {
         clePublique: (id) => this.signataire.clePublique(id),
         journal: this.journal,
@@ -236,16 +259,30 @@ export class Coeur {
       if (octets) {
         try {
           this.politiquesParVersion.set(version, analyserJsonIntegral(octets));
+          continue;
         } catch {
           // pièce illisible : la version reste sans document
         }
       }
+      // Sans document, SG-4, SG-7 et RL-4 échouent pour les tickets de cette version
+      // et l'expiration par le noyau seul attend la borne de E (approbations.mjs).
+      this.journal.consigner("warning", "politique", "policy_piece_unavailable", { policy_version: version, policy_sha256: sha });
     }
 
     // EX-9.8 (2) : intentions restées ouvertes.
     await this._reprendreIntentions(etat);
+    if (this.intervention) {
+      // EX-12.22, EX-12.13 : intention corrompue ou irreconstructible → mode
+      // dégradé « stockage » jusqu'à intervention, comme EX-12.11 : rien de plus
+      // n'est écrit (ni attente, ni politique : l'ordre unique d'EX-9.8 ne peut
+      // pas être tenu sans le pas 2).
+      this.passif = false;
+      this.pret = true;
+      await this._servirSupervision();
+      return;
+    }
     // EX-9.8 (3) : événements en attente d'un arrêt précédent.
-    await this._reprendreAttente(epoque);
+    await this._reprendreAttente(epoque, etat);
     // EX-15.8 : pas d'entrée en mode observation avec un ticket ouvert.
     const refusObservation = this.politique.refusEntreeObservation(cfg.policy);
     if (refusObservation) throw new ErreurEnregistreur("politique", `${refusObservation} (EX-15.8)`, { code: 2 });
@@ -263,7 +300,12 @@ export class Coeur {
         const r = this.index.retenueSansDecision(ticket);
         if (r) this._ouvrir(r).catch(() => {});
       }
-      for (const [ticket, e] of this.index.premiersExecutes) this._consommer(ticket, e);
+      // EX-7.20 : `consommer` au redémarrage pour les seuls tickets dont le délai de
+      // reconnaissance (`approval.at + E`) court encore ; envois en concurrence bornée.
+      const maintenant = this.horlogeBrute.murale();
+      for (const [ticket, e] of this.index.premiersExecutes) {
+        if (this._reconnaissanceCourt(e, maintenant)) this._consommer(ticket, e);
+      }
     }
 
     // Pas 7 : startup, puis ouverture (supervision ; les frontaux sont des lots suivants).
@@ -293,6 +335,31 @@ export class Coeur {
    * sans, le démarrage est refusé.
    * @returns {Promise<number>} époque
    */
+  /**
+   * Premier démarrage sur un journal reconstruit (segments présents, aucun
+   * répertoire `intentions/` : l'écrivain le crée avant son premier segment,
+   * la reconstruction ne le restaure jamais, CT-8 §11.4) : vérification
+   * complète avant d'écrire (EX-12.10 « avant d'écrire » ; CT-8 EX-11.6 :
+   * fichiers identiques à ce que les copies désignent). Une anomalie lève
+   * ErreurRelecture : mode dégradé « stockage » jusqu'à intervention.
+   */
+  async _verifierJournalReconstruit() {
+    const segs = await fs.readdir(path.join(this.repertoire, "segments")).catch(() => []);
+    if (!segs.some((n) => n.startsWith("seg-")) || (await existe(path.join(this.repertoire, "intentions")))) return;
+    const v = await verifierRepertoireJournal(this.repertoire, {
+      org_id: this.org_id,
+      journal_id: this.journal_id,
+      clePublique: (id) => this.signataire.clePublique(id),
+      dernierOuvert: true,
+      signatureAbsenteAdmise: () => true,
+    });
+    this.journal.consigner(v.incidents.length ? "error" : "info", "stockage", "journal_reconstruit_verifie", { incidents: v.incidents, last_seq: v.lastSeq });
+    if (v.incidents.length) {
+      this.journal.consigner("error", "stockage", "segment_corrupted", { incidents: v.incidents });
+      throw new ErreurRelecture("segment_corrupted", { incidents: v.incidents });
+    }
+  }
+
   async _acquerirBail() {
     const cleMac = this.secrets.get("/storage/relay_mac_key") ?? null;
     let signale = false;
@@ -353,8 +420,29 @@ export class Coeur {
     planifier();
     // Boucle `decisions` (EX-7.19) : moteur de politique.
     this.politique.demarrerBoucle();
-    // Contrôles périodiques des copies WORM (EX-17.5 à EX-17.7).
+    // Contrôles périodiques d'EX-17.5 (période close, signataire, relecture
+    // quotidienne), avec ou sans WORM ; puis ceux des copies WORM (EX-17.5 à EX-17.7).
+    this.controles.armer();
     this.o.worm?.armer?.();
+  }
+
+  /**
+   * Confirmation de l'exploitant après un saut en avant de l'horloge murale
+   * (`noortrace-ctl clock --accept`, EX-7.13 ; consignée). Elle ne s'applique
+   * qu'au mode dégradé « horloge » d'un saut en avant : après un recul
+   * (EX-7.9), l'accepter daterait les événements au `ts` précédent, donc dans
+   * le futur de l'horloge, ce qu'EX-7.13 exclut ; le mode se lève quand
+   * l'horloge a rejoint le `ts` précédent.
+   * @returns {{accepte: boolean, raison?: string}}
+   */
+  accepterHorloge() {
+    if (!this.degrade.actif("horloge") || !this.horloge.saut) {
+      const raison = this.degrade.actif("horloge") ? "recul" : "hors_mode_horloge";
+      this.journal.consigner("warning", "noyau", "clock_accept_refused", { raison });
+      return { accepte: false, raison };
+    }
+    this.horloge.accepter();
+    return { accepte: true };
   }
 
   /**
@@ -380,6 +468,105 @@ export class Coeur {
   _decidee(ticket, e) {
     const r = this.retention;
     if (r?.decidee) setImmediate(() => Promise.resolve(r.decidee(ticket, e)).catch(() => {}));
+  }
+
+  /**
+   * `held` d'un `acquitter` `scelle` (EX-7.19 pas 3 : vrai si et seulement si
+   * le noyau retient une requête de ce ticket ET va la relayer), établi à
+   * l'instant même où la décision est remise à la rétention : la requête
+   * retenue est réclamée (`decidee`) dans le même tour, sans attente entre le
+   * constat et la réclamation, de sorte qu'une fin de rétention
+   * (`hold_timeout_ms`) ne puisse plus s'intercaler. Seule une décision
+   * `approuve` est relayée.
+   * @returns {boolean}
+   */
+  _reclamerRetention(ticket, e) {
+    const r = this.retention;
+    if (!r) return false;
+    let retenue = false;
+    try {
+      retenue = r.retient?.(ticket) === true;
+    } catch {
+      retenue = false;
+    }
+    if (r.decidee) {
+      try {
+        Promise.resolve(r.decidee(ticket, e)).catch(() => {});
+      } catch {
+        // la rétention ne bloque jamais le scellement
+      }
+    }
+    return retenue && e.approval.decision === "approuve";
+  }
+
+  /**
+   * Message réessayé jusqu'au succès (CT-3 §12.7, CT-2 EX-7.14 : `ouvrir`,
+   * `charger`, `consommer`, `expiration`) : délai croissant plafonné à 5 s,
+   * sans borne de nombre ; un seul envoi en cours par clé ; l'arrêt du démon
+   * met fin aux essais. `tache` rend vrai quand la réponse est finale.
+   * @param {string} cle
+   * @param {() => Promise<boolean>} tache
+   * @param {{attendreAvant?: boolean}} [o]
+   * @returns {Promise<void>}
+   */
+  _jusquAuSucces(cle, tache, o = {}) {
+    this._essais ??= new Map();
+    const enCours = this._essais.get(cle);
+    if (enCours) return enCours;
+    const dormir = (n) => new Promise((r) => {
+      const t = setTimeout(r, Math.min(50 * 2 ** Math.min(n, 7), 5000));
+      t.unref?.();
+    });
+    const p = (async () => {
+      for (let n = 0; ; n++) {
+        if (n > 0 || o.attendreAvant) await dormir(n);
+        if (this.arrete) return;
+        let fini = false;
+        try {
+          fini = await tache();
+        } catch {
+          fini = false;
+        }
+        if (fini || this.arrete) return;
+      }
+    })().finally(() => this._essais.delete(cle));
+    this._essais.set(cle, p);
+    return p;
+  }
+
+  /**
+   * Sérialise par ticket la vérification et le scellement d'une décision
+   * (remise, expiration par le noyau seul) : SG-3 est vérifiée sous ce verrou,
+   * après le scellement de toute décision concurrente du même ticket (CT-3 14.2,
+   * « le noyau est le seul scelleur »).
+   * @template T
+   * @param {string} ticket
+   * @param {() => Promise<T>} f
+   * @returns {Promise<T>}
+   */
+  async _sousVerrouTicket(ticket, f) {
+    this._verrous ??= new Map();
+    const avant = this._verrous.get(ticket) ?? Promise.resolve();
+    let liberer;
+    const tenu = new Promise((r) => (liberer = r));
+    const chaine = avant.then(() => tenu);
+    this._verrous.set(ticket, chaine);
+    await avant;
+    try {
+      return await f();
+    } finally {
+      liberer();
+      if (this._verrous.get(ticket) === chaine) this._verrous.delete(ticket);
+    }
+  }
+
+  /** Le délai de reconnaissance (`approval.at + E`, E de la version de la `retenue`) court-il encore ? */
+  _reconnaissanceCourt(executee, maintenant) {
+    const at = executee.approval?.at ? decoderHorodatage(executee.approval.at) : null;
+    if (at === null) return false;
+    const retenue = this.index.retenuesParHash.get(executee.approval.request_hash) ?? null;
+    const E = delaiExpiration(retenue ? (this.politiquesParVersion.get(retenue.code.policy_version) ?? null) : null) ?? E_MAX_MS;
+    return at + E > maintenant;
   }
 
   /** État de santé (EX-17.1). */
@@ -629,15 +816,33 @@ export class Coeur {
     void service;
     const outils = [...(this.outils ?? [])].sort((a, b) => (a.tool_announced < b.tool_announced ? -1 : a.tool_announced > b.tool_announced ? 1 : 0));
     const requesters = [...new Set([...(this.config.mcp.hosts ?? []), ...(this.config.sdk.hosts ?? [])].map((h) => h.launched_by).filter((l) => !l.includes("${")))].sort();
-    const p = this.service
-      .charger({ org_id: this.org_id, journal_id: this.journal_id, environment: this.config.recorder.environment, policy_version: emp.policy_version, policy_sha256: emp.policy_sha256, approval, tools: outils, requesters })
-      .then((r) => {
+    // Seule la réponse au dernier `charger` envoyé est adoptée : celle d'un
+    // `charger` remplacé (rechargement, nouvelle liste d'outils) arrive pour une
+    // version ou une liste qui n'est plus en vigueur et est ignorée (EX-7.4 ;
+    // CT-3 EX-12.5 : tant que le noyau n'a pas la liste, tout outil est susceptible).
+    const generation = (this._generationCharger = (this._generationCharger ?? 0) + 1);
+    const requete = { org_id: this.org_id, journal_id: this.journal_id, environment: this.config.recorder.environment, policy_version: emp.policy_version, policy_sha256: emp.policy_sha256, approval, tools: outils, requesters };
+    const essai = async () => {
+      if (generation !== this._generationCharger) return true;
+      try {
+        const r = await this.service.charger(requete);
+        if (generation !== this._generationCharger || this.config.policy.version !== emp.policy_version) return true;
         if (r.policy_version !== emp.policy_version || r.policy_sha256 !== emp.policy_sha256) throw new Error("charger : version ou empreinte différente");
         this.candidats = { envoyes: new Set(outils.map((t) => t.tool_announced)), liste: new Set(r.approval_candidates) };
         this.journal.consigner("info", "politique", "approval_candidates", { candidates: r.approval_candidates });
-      })
-      .catch((e) => this.journal.consigner("warning", "politique", "approval_service_unavailable", { message: "charger", code: e?.code ?? null }));
-    if (attendreReponse) await p;
+        return true;
+      } catch (e) {
+        if (generation !== this._generationCharger) return true;
+        this.journal.consigner("warning", "politique", "approval_service_unavailable", { message: "charger", code: e?.code ?? null });
+        // CT-3 12.7 : sans réponse, nouvel essai ; une erreur du service est une réponse (EX-7.15).
+        return e instanceof ErreurServiceApprobation && RAISONS_SERVICE.has(e.code);
+      }
+    };
+    const premier = essai();
+    premier.then((fini) => {
+      if (!fini) this._jusquAuSucces(`charger:${generation}`, essai, { attendreAvant: true });
+    });
+    if (attendreReponse) await premier;
   }
 
   /**
@@ -726,27 +931,34 @@ export class Coeur {
     return { evenement: e, signal: "en_attente" };
   }
 
+  /**
+   * `ouvrir` (EX-7.18) : réessayé jusqu'au succès ; `ticket_deja_ouvert` et
+   * `ticket_inconnu` sont consignés et mettent fin aux essais.
+   */
   async _ouvrir(retenue) {
     if (!this.service) return;
     const octets = await this.pieces.lire(retenue.execution.arguments.sha256);
-    for (let essai = 0; essai < 5; essai++) {
+    const requete = {
+      ticket: retenue.policy.ticket,
+      request_hash: retenue.hash,
+      request_seq: retenue.seq,
+      request_ts: retenue.ts,
+      request_event: retenue,
+      arguments_piece: octets ? encoderBase64(octets) : null,
+    };
+    return this._jusquAuSucces(`ouvrir:${retenue.hash}`, async () => {
       try {
-        const r = await this.service.ouvrir({
-          ticket: retenue.policy.ticket,
-          request_hash: retenue.hash,
-          request_seq: retenue.seq,
-          request_ts: retenue.ts,
-          request_event: retenue,
-          arguments_piece: octets ? encoderBase64(octets) : null,
-        });
-        this.journal.consigner("info", "politique", "approval_opened", { state: r.state ?? null }, { seq: retenue.seq });
-        return;
+        const r = await this.service.ouvrir(requete);
+        this.journal.consigner("info", "politique", "approval_opened", { state: r.state ?? null, deadline: r.deadline ?? null }, { seq: retenue.seq });
+        return true;
       } catch (e) {
-        if (e instanceof ErreurServiceApprobation && e.code === "ticket_deja_ouvert") return;
-        if (e instanceof ErreurServiceApprobation && e.code === "ticket_inconnu") return;
-        await new Promise((r) => setTimeout(r, 50 * (essai + 1)));
+        if (e instanceof ErreurServiceApprobation && (e.code === "ticket_deja_ouvert" || e.code === "ticket_inconnu")) {
+          this.journal.consigner("warning", "politique", "approval_open_refused", { code: e.code }, { seq: retenue.seq });
+          return true;
+        }
+        return false;
       }
-    }
+    });
   }
 
   /**
@@ -898,21 +1110,47 @@ export class Coeur {
     }
   }
 
+  /**
+   * `consommer` (EX-7.20) : réessayé jusqu'à une réponse finale (`consomme`,
+   * `clos`, `requete_invalide`, `ticket_inconnu`), au plus
+   * CONCURRENCE_CONSOMMER envois à la fois ; envoyé après l'`acquitter` de la
+   * décision quand celui-ci est en cours (la décision arrive au service avant sa
+   * consommation, CT-3 T11 puis T18).
+   */
   _consommer(ticket, e) {
     if (!this.service) return;
-    const essayer = async (n) => {
+    this._jusquAuSucces(`consommer:${ticket}`, async () => {
+      await this._acquittements?.get(ticket);
+      await this._prendreJeton();
       try {
         const r = await this.service.consommer({ ticket, seq: e.seq, hash: e.hash });
         this.journal.consigner("info", "politique", "approval_consume_final", { state: r.state }, { seq: e.seq });
+        return true;
       } catch (err) {
         if (err instanceof ErreurServiceApprobation && ["requete_invalide", "ticket_inconnu"].includes(err.code)) {
           this.journal.consigner("info", "politique", "approval_consume_final", { raison: err.code }, { seq: e.seq });
-          return;
+          return true;
         }
-        if (n < 5) setTimeout(() => essayer(n + 1), 200 * (n + 1)).unref?.();
+        return false;
+      } finally {
+        this._rendreJeton();
       }
-    };
-    essayer(0);
+    });
+  }
+
+  async _prendreJeton() {
+    this._jetons ??= { libres: CONCURRENCE_CONSOMMER, file: [] };
+    if (this._jetons.libres > 0) {
+      this._jetons.libres--;
+      return;
+    }
+    await new Promise((r) => this._jetons.file.push(r));
+  }
+
+  _rendreJeton() {
+    const suivant = this._jetons.file.shift();
+    if (suivant) suivant();
+    else this._jetons.libres++;
   }
 
   /**
@@ -926,17 +1164,26 @@ export class Coeur {
     if (!this.service) return [];
     const r = await this.service.decisions({ wait_ms: o.wait_ms ?? 0 });
     const sortie = [];
-    for (const remise of r.remises ?? []) sortie.push(await this.traiterRemise(remise, { held: this.retention?.retient?.(remise?.ticket) === true }));
+    // `held` est établi au scellement de chaque décision (_reclamerRetention), pas ici.
+    for (const remise of r.remises ?? []) sortie.push(await this.traiterRemise(remise));
     return sortie;
   }
 
   /**
    * Traite une remise (EX-7.19 pas 1 à 3).
    * @param {object} remise
-   * @param {{held?: boolean}} [o] le frontal retient une requête de ce ticket (EX-4.50)
+   * @param {{held?: boolean}} [o] valeur imposée de `held` ; par défaut, établie au
+   *   scellement par la rétention branchée (EX-4.50, `_reclamerRetention`)
    * @returns {Promise<object>} la requête `acquitter` envoyée
    */
   async traiterRemise(remise, o = {}) {
+    // Forme contrôlée avant tout usage : un message qui n'a pas les membres
+    // d'une remise n'est pas inscrit et SG-1 le refuse (EX-7.19, EX-9.11).
+    const ticket = ligneRemise(remise) ? remise.ticket : null;
+    return ticket === null ? this._traiterRemise(remise, o) : this._sousVerrouTicket(ticket, () => this._traiterRemise(remise, o));
+  }
+
+  async _traiterRemise(remise, o = {}) {
     const acq = { remise_id: remise?.remise_id ?? null, ticket: remise?.ticket ?? null, result: null, reason: null, seq: null, hash: null, at: null, decision: null, held: null, approval: null };
     const envoyer = async (x) => {
       try {
@@ -950,11 +1197,22 @@ export class Coeur {
       this.journal.consigner("warning", "politique", "approval_deferred", {});
       return envoyer({ ...acq, result: "temporaire", reason: "mode_degrade" });
     }
-    try {
-      await this.approbations.inscrireRemise(remise);
-    } catch {
-      this.degrade.entrer("stockage");
-      return envoyer({ ...acq, result: "temporaire", reason: "mode_degrade" });
+    if (ligneRemise(remise)) {
+      try {
+        await this.approbations.inscrireRemise(remise);
+      } catch (e) {
+        if (e instanceof ErreurEnregistreur && e.raison === "stockage") {
+          // EX-7.19 pas 2 : échec d'écriture du fichier des approbations → mode
+          // dégradé « stockage » ; le segment est fermé comme après toute panne de
+          // stockage (EX-12.8), pour que la sortie suive EX-14.11 (nouveau segment).
+          this.journal.consigner("error", "politique", "approval_files_unavailable", { errno: e.cause?.code ?? null });
+          await this.ecrivain.signalerPanneStockage(e.cause ?? e).catch(() => {});
+          if (!this.degrade.actif("stockage")) this.degrade.entrer("stockage");
+        } else {
+          this.journal.consigner("error", "politique", "approval_remise_unwritable", { message: e?.message ?? null });
+        }
+        return envoyer({ ...acq, result: "temporaire", reason: "mode_degrade" });
+      }
     }
     const politique = (v) => this.politiquesParVersion.get(v) ?? null;
     const v = verifierRemise(remise, { index: this.index, org_id: this.org_id, journal_id: this.journal_id, instant: this.horlogeBrute.murale(), politique });
@@ -968,6 +1226,9 @@ export class Coeur {
     if (!v.ok) return refuser(v.verification, v.raison, v.decision);
     const E = delaiExpiration(politique(v.retenue.code.policy_version));
     const motif = this.o.redaction?.redigerMotif ? await this.o.redaction.redigerMotif(remise.approval.reason) : remise.approval.reason;
+    // SG-3 de nouveau, juste avant le scellement (verrou du ticket tenu).
+    const deja = this.index.decisions.get(remise.ticket);
+    if (deja) return refuser("SG-3", "ticket_deja_decide", deja);
     let e;
     try {
       e = await this.ecrivain.sceller(
@@ -976,7 +1237,7 @@ export class Coeur {
           completer: (evt, tsIso) => {
             // SG-4 revérifiée à l'instant d'écriture, qui devient approval.at (EX-7.11).
             const d = remise.approval.decision;
-            if ((d === "approuve" || d === "refuse") && E !== null && !(decoderHorodatage(tsIso) < decoderHorodatage(v.retenue.ts) + E)) {
+            if ((d === "approuve" || d === "refuse") && (E === null || !(decoderHorodatage(tsIso) < decoderHorodatage(v.retenue.ts) + E))) {
               throw new ErreurConstruction("echeance_depassee", []);
             }
             evt.approval.at = tsIso;
@@ -988,9 +1249,18 @@ export class Coeur {
       if (err instanceof ErreurConstruction && err.message === "echeance_depassee") return refuser("SG-4", "echeance_depassee");
       return envoyer({ ...acq, result: "temporaire", reason: "mode_degrade" });
     }
-    const x = await envoyer({ ...acq, result: "scelle", seq: e.seq, hash: e.hash, at: e.approval.at, decision: e.approval.decision, held: o.held === true, approval: e.approval });
-    this._decidee(remise.ticket, e);
-    return x;
+    // `held` constaté et requête retenue réclamée dans le même tour (EX-7.19 pas 3) ;
+    // `consommer` du relais attend la fin de cet `acquitter`.
+    const held = typeof o.held === "boolean" ? o.held : this._reclamerRetention(remise.ticket, e);
+    if (typeof o.held === "boolean") this._decidee(remise.ticket, e);
+    this._acquittements ??= new Map();
+    const envoi = envoyer({ ...acq, result: "scelle", seq: e.seq, hash: e.hash, at: e.approval.at, decision: e.approval.decision, held, approval: e.approval });
+    this._acquittements.set(remise.ticket, envoi);
+    try {
+      return await envoi;
+    } finally {
+      if (this._acquittements.get(remise.ticket) === envoi) this._acquittements.delete(remise.ticket);
+    }
   }
 
   /**
@@ -1003,31 +1273,58 @@ export class Coeur {
     const maintenant = this.horlogeBrute.murale();
     const scellees = [];
     for (const [ticket] of this.index.retenues) {
-      const retenue = this.index.retenueSansDecision(ticket);
-      if (!retenue) continue;
-      const E = delaiExpiration(this.politiquesParVersion.get(retenue.code.policy_version) ?? null);
-      const echeance = echeanceExpiration(retenue, E, this.config.policy.approval.timeout_ms);
-      if (echeance === null || maintenant < echeance) continue;
-      const x = approvalExpiration(ticket, retenue, this.approbations);
-      if (!x) continue;
-      if (this.degrade.enModeDegrade) {
-        this.journal.consigner("warning", "politique", "approval_expired_deferred", {});
-        continue;
-      }
-      const e = await this.ecrivain.sceller(
-        partielDecision({ retenue, approval: x.approval, policy_version: this.versionPolitique, recorder: VERSION_ENREGISTREUR, org_id: this.org_id, journal_id: this.journal_id }),
-        {
-          completer: (evt, tsIso) => {
-            evt.approval.at = tsIso;
+      const echue = (retenue) => {
+        // E de la version de la `retenue` ; politique introuvable : borne de E (lui-meme.mjs).
+        const E = delaiExpiration(this.politiquesParVersion.get(retenue.code.policy_version) ?? null);
+        return maintenant >= echeanceExpiration(retenue, E, this.config.policy.approval.timeout_ms);
+      };
+      const r0 = this.index.retenueSansDecision(ticket);
+      if (!r0 || !echue(r0)) continue;
+      // SG-3 : vérifiée de nouveau sous le verrou du ticket, après toute remise en cours.
+      const e = await this._sousVerrouTicket(ticket, async () => {
+        const retenue = this.index.retenueSansDecision(ticket);
+        if (!retenue || !echue(retenue)) return null;
+        const x = approvalExpiration(ticket, retenue, this.approbations);
+        if (!x) return null;
+        if (this.degrade.enModeDegrade) {
+          this.journal.consigner("warning", "politique", "approval_expired_deferred", {});
+          return null;
+        }
+        return this.ecrivain.sceller(
+          partielDecision({ retenue, approval: x.approval, policy_version: this.versionPolitique, recorder: VERSION_ENREGISTREUR, org_id: this.org_id, journal_id: this.journal_id }),
+          {
+            completer: (evt, tsIso) => {
+              evt.approval.at = tsIso;
+            },
+            avantAjout: (evt) => this.approbations.inscrireDecision({ ticket, seq: evt.seq, hash: evt.hash, approver_set: x.approver_set }),
           },
-          avantAjout: (evt) => this.approbations.inscrireDecision({ ticket, seq: evt.seq, hash: evt.hash, approver_set: x.approver_set }),
-        },
-      );
+        );
+      });
+      if (!e) continue;
       scellees.push(e);
       this._decidee(ticket, e);
-      this.service?.expiration({ ticket, seq: e.seq, hash: e.hash, at: e.approval.at, approval: e.approval }).catch(() => {});
+      this._annoncerExpiration(ticket, e);
     }
     return scellees;
+  }
+
+  /** `expiration` (EX-9.4, CT-3 EX-12.11) : réessayé jusqu'à une réponse du service (CT-3 12.7). */
+  _annoncerExpiration(ticket, e) {
+    if (!this.service) return;
+    const requete = { ticket, seq: e.seq, hash: e.hash, at: e.approval.at, approval: e.approval };
+    this._jusquAuSucces(`expiration:${ticket}`, async () => {
+      try {
+        const r = await this.service.expiration(requete);
+        this.journal.consigner("info", "politique", "approval_expiration_sent", { state: r?.state ?? null }, { seq: e.seq });
+        return true;
+      } catch (err) {
+        if (err instanceof ErreurServiceApprobation && RAISONS_SERVICE.has(err.code)) {
+          this.journal.consigner("warning", "politique", "approval_expiration_refused", { code: err.code }, { seq: e.seq });
+          return true;
+        }
+        return false;
+      }
+    });
   }
 
   // ------------------------------------------------------------ rotation, clôture
@@ -1194,7 +1491,24 @@ export class Coeur {
     if (!this.attente.length) this.degrade.sortir("attente");
   }
 
-  async _reprendreAttente(epoque) {
+  /**
+   * Événements en attente d'un arrêt précédent (EX-9.8 pas 3, EX-14.10),
+   * scellés une seule fois. Le fichier d'attente n'est supprimé qu'après le
+   * scellement : un arrêt entre les deux, ou un événement déjà scellé depuis
+   * la file en mémoire (sortie du mode dégradé sans redémarrage, dont la ligne
+   * reste au fichier), laisse au fichier une ligne dont l'événement est déjà
+   * dans la chaîne. Chaque ligne est donc d'abord cherchée dans la chaîne
+   * durable (relecture d'EX-12.10) : l'événement scellé depuis l'attente porte
+   * les huit champs de l'événement partiel de la ligne (ou le résultat perdu
+   * d'EX-14.10) ; s'il a une intention, c'est l'événement que désigne sa
+   * levée, ou à défaut un événement de `ts` au moins égal à `written_at` ;
+   * sans intention, son `ts` vaut `max(captured_at, ts précédent)` (ou le
+   * début de période qui suit une clôture). Une ligne retrouvée n'est pas
+   * scellée de nouveau ; son intention est levée si elle ne l'est pas.
+   * @param {number} epoque
+   * @param {object} etat état relu (`evenements`)
+   */
+  async _reprendreAttente(epoque, etat = { evenements: [] }) {
     const dir = path.join(this.repertoire, "attente");
     let noms = [];
     try {
@@ -1215,18 +1529,52 @@ export class Coeur {
       }
     }
     lignes.sort((a, b) => decoderHorodatage(a.captured_at) - decoderHorodatage(b.captured_at));
+    const chaine = etat.evenements ?? [];
+    const parSeq = new Map(chaine.map((e) => [e.seq, e]));
+    const pris = new Set();
+    const intentions = this._intentionsRelues ?? { intentions: [], levees: new Map() };
+    const ecritesA = new Map(intentions.intentions.map((i) => [i.intention.intent_id, decoderHorodatage(i.intention.written_at)]));
+    const huit = (e) => jcsIntegral({ delegation: e.delegation, code: e.code, intent: e.intent, policy: e.policy, approval: e.approval, execution: e.execution, effects: e.effects, context: e.context });
+    let n = 0;
+    let deja = 0;
     for (const x of lignes) {
       let partiel = x.event;
       const presentes = await Promise.all((x.pieces ?? []).map((s) => existe(this.pieces.chemin(s))));
-      if (presentes.some((p) => !p)) {
-        const perdue = pieceAttentePerdue(x.pending_id);
-        await this.pieces.ecrire(perdue);
-        partiel = { ...partiel, execution: { ...partiel.execution, result: perdue.reference, is_error: true } };
+      const perdue = pieceAttentePerdue(x.pending_id);
+      const variante = { ...partiel, execution: { ...partiel.execution, result: perdue.reference, is_error: true } };
+      if (presentes.some((p) => !p)) partiel = variante;
+      const formes = new Set([huit(x.event), huit(variante)]);
+      const capture = decoderHorodatage(x.captured_at);
+      const conforme = (e) => !pris.has(e.seq) && formes.has(huit(e));
+      let trouve = null;
+      if (x.intent_id) {
+        const s = intentions.levees.get(x.intent_id);
+        if (typeof s === "number" && parSeq.get(s) && conforme(parSeq.get(s))) trouve = parSeq.get(s);
+        const designes = new Set(intentions.levees.values());
+        const ecrite = ecritesA.get(x.intent_id) ?? capture;
+        trouve ??= chaine.find((e) => !designes.has(e.seq) && conforme(e) && decoderHorodatage(e.ts) >= ecrite) ?? null;
+      } else {
+        trouve = chaine.find((e) => {
+          if (!conforme(e)) return false;
+          const ts = decoderHorodatage(e.ts);
+          const prec = parSeq.get(e.seq - 1);
+          const attendu = Math.max(capture, prec ? decoderHorodatage(prec.ts) : capture);
+          return ts === attendu || (ts > attendu && ts % 3600000 === 0);
+        }) ?? null;
       }
-      await this.ecrivain.sceller(partiel, { captureA: decoderHorodatage(x.captured_at), leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente" });
+      if (trouve) {
+        pris.add(trouve.seq);
+        deja++;
+        if (x.intent_id && intentions.levees.get(x.intent_id) !== trouve.seq) await this.ecrivain.lever(x.intent_id, trouve.seq);
+        this.journal.consigner("info", "noyau", "pending_already_sealed", { pending_id: x.pending_id }, { seq: trouve.seq });
+        continue;
+      }
+      if (partiel === variante) await this.pieces.ecrire(perdue);
+      await this.ecrivain.sceller(partiel, { captureA: capture, leverIntention: x.intent_id ?? undefined, sorteMetrique: "attente" });
+      n++;
     }
     for (const nom of noms) if (Number(nom.slice(8, 28)) < epoque) await fs.rm(path.join(dir, nom), { force: true });
-    if (lignes.length) this.journal.consigner("info", "noyau", "pending_flushed", { count: lignes.length });
+    if (n) this.journal.consigner("info", "noyau", "pending_flushed", { count: n });
   }
 
   // ------------------------------------------------------------ reprise des intentions
@@ -1310,6 +1658,7 @@ export class Coeur {
       }
       throw e;
     }
+    this._intentionsRelues = r;
     // Une intention dont l'événement complet est gardé dans un fichier
     // d'attente est scellée au pas 3, à la place d'un événement de reprise
     // (14.2, « Panne après relais », EX-4.46).
@@ -1378,6 +1727,7 @@ export class Coeur {
     this.arrete = true;
     this.reveilAttente?.();
     this.o.worm?.arreter?.();
+    this.controles?.arreter();
     this.politique?.arreter();
     for (const t of this.minuteurs) clearInterval(t);
     if (this.serveur) await new Promise((r) => this.serveur.close(() => r()));

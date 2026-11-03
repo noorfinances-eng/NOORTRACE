@@ -13,6 +13,7 @@ import { Annuaire } from "./annuaire.mjs";
 import { LecteurJeu } from "./lecteur-jeu.mjs";
 import { ServiceApprobation } from "./service.mjs";
 import { Ecoute } from "./transport.mjs";
+import { jetonsDistincts } from "./configuration.mjs";
 
 const RACINE_PAQUET = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -46,6 +47,8 @@ export function empreinteLogiciel() {
  */
 export async function demarrerService(p) {
   const c = p.config;
+  // EX-12.4 : jeton de la console distinct de celui du noyau, comparé par valeur.
+  if (!jetonsDistincts(p.secrets)) throw new Error("jeton de la console égal à celui du noyau (EX-12.4)");
   const base = p.base ?? process.cwd();
   const horloge = p.horloge ?? Date.now;
   fs.mkdirSync(c.state_dir, { recursive: true, mode: 0o700 });

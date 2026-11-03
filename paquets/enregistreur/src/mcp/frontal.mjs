@@ -31,6 +31,25 @@ import { resoudreDelegation } from "./delegation.mjs";
 
 const REFERENCES_SANS_KIND = (p) => p.referenceContexte("autre");
 
+/** Lignes d'exploitation qu'un hôte déclenche sans requête (réponses, notifications) : au plus tant par seconde (lecture 159). */
+export const LIGNES_HOTE_PAR_SECONDE = 20;
+/** Enregistrements de continuation MRTR gardés au plus (EX-4.21 ; lecture 159). */
+export const CONTINUATIONS_MAX = 10000;
+
+/**
+ * Clé d'un `id` JSON-RPC par sa valeur (un `requestId` d'annulation désigne
+ * la requête de même valeur, quelle que soit son écriture : échappements
+ * d'une chaîne, écriture d'un nombre).
+ * @param {string} texte
+ * @param {object} noeud noeud `chaine` ou `nombre`
+ * @returns {string}
+ */
+export function cleIdJson(texte, noeud) {
+  if (noeud.t === "chaine") return "s:" + noeud.valeur;
+  const brut = texte.slice(noeud.d, noeud.f);
+  return "n:" + (/^-?(0|[1-9][0-9]*)$/.test(brut) ? BigInt(brut).toString() : String(Number(brut)));
+}
+
 /** Session d'une connexion d'hôte (processus connecteur, identité HTTP, session héritée). */
 export class SessionHote {
   /**
@@ -49,9 +68,13 @@ export class SessionHote {
     this.liste = null;
     this.instantanes = new Map();
     this.compteurInstantane = 0;
-    /** Requêtes en cours : texte de l'id → contrôle. */
+    /** Requêtes en cours : clé de l'id (`cleIdJson`) → contrôle. */
     this.enCours = new Map();
+    /** Fenêtre des lignes d'exploitation déclenchées par l'hôte sans requête (lecture 159). */
+    this.lignesHote = { debut: -Infinity, n: 0, comptees: 0 };
     this.ecouteListe = false;
+    /** Flux `subscriptions/listen` ouvert par un hôte moderne (EX-4.15, lecture 173) : `{ id, emettre, filtre }`. */
+    this.ecoute = null;
     this.fermee = false;
   }
 
@@ -264,8 +287,43 @@ export class FrontalMcp {
   _notifierListeChangee() {
     for (const s of this.sessions) {
       if (s.fermee) continue;
-      if (s.ere === "heritee" || s.ecouteListe) s.emettre(notification("notifications/tools/list_changed", null));
+      // Hôte moderne : sur son flux subscriptions/listen, marqué de l'id de la souscription (lecture 173).
+      if (s.ecoute?.filtre.toolsListChanged) s.ecoute.emettre(notification("notifications/tools/list_changed", `{"_meta":{"io.modelcontextprotocol/subscriptionId":${s.ecoute.id}}}`));
+      else if (s.ere === "heritee" || s.ecouteListe) s.emettre(notification("notifications/tools/list_changed", null));
     }
+  }
+
+  /**
+   * `subscriptions/listen` d'un hôte moderne (EX-4.15 ; lecture 173) : le
+   * premier message du flux est `notifications/subscriptions/acknowledged`,
+   * qui porte les types de notification que le frontal honore (seul
+   * `toolsListChanged` : le frontal ne relaie ni ressources ni prompts,
+   * EX-4.25) et l'id de la requête ; le flux reste ouvert jusqu'à
+   * l'annulation par l'hôte (`notifications/cancelled`, fermeture du flux
+   * HTTP) ou la fin de la session. Des paramètres sans `notifications`
+   * rendent -32602, jamais le silence.
+   */
+  _ecouter(session, m) {
+    const filtre = membre(m.params, "notifications");
+    if (!filtre || filtre.t !== "objet") throw new Rendu(reponseErreur(m.idBrut, -32602, { reason: "notifications_requis" }));
+    const demande = valeurDe(filtre);
+    const honore = demande.toolsListChanged === true ? { toolsListChanged: true } : {};
+    const emettre = m.canal?.notifier ?? session.emettre;
+    const ecoute = { id: m.idBrut, emettre, filtre: honore };
+    session.ecoute = ecoute;
+    this.journal.consigner("info", "frontal_mcp", "host_subscription_opened", { tools_list_changed: honore.toolsListChanged === true }, { host: session.hote.id, request_id: m.idBrut });
+    emettre(notification("notifications/subscriptions/acknowledged", `{"notifications":${JSON.stringify(honore)},"_meta":{"io.modelcontextprotocol/subscriptionId":${m.idBrut}}}`));
+    return new Promise((resoudre) => {
+      const fin = () => {
+        if (session.ecoute === ecoute) session.ecoute = null;
+        if (session.enCours.get(m.cleId) === controle) session.enCours.delete(m.cleId);
+        resoudre(null);
+      };
+      const controle = { annuler: fin };
+      if (!session.enCours.has(m.cleId)) session.enCours.set(m.cleId, controle);
+      m.canal?.annulation?.then?.(fin);
+      ecoute.fin = fin;
+    });
   }
 
   /** `notifications/tools/list_changed` d'un serveur : relecture fusionnée (EX-4.15). */
@@ -330,6 +388,75 @@ export class FrontalMcp {
   fermerSession(s) {
     s.fermee = true;
     this.sessions.delete(s);
+    s.ecoute?.fin?.();
+    // Ses continuations MRTR ne peuvent plus servir (EX-4.21 : même connexion d'hôte).
+    for (const [k, c] of this.continuations) if (c.session === s) this.continuations.delete(k);
+  }
+
+  /** Quotas d'une connexion d'hôte (EX-4.47). */
+  quotasHote(hote) {
+    let q = this.quotas.get(hote.id);
+    if (!q) {
+      q = new QuotasHote(hote.quota);
+      this.quotas.set(hote.id, q);
+    }
+    return q;
+  }
+
+  /**
+   * Octets reçus d'une connexion d'hôte, comptés par son transport dès leur
+   * lecture, avant toute analyse (4.4 pas 1 : « les octets reçus sont comptés
+   * même pour une requête refusée » ; EX-4.47).
+   * @param {object} hote entrée de `mcp.hosts`
+   * @param {number} octets
+   */
+  compterRecus(hote, octets) {
+    this.quotasHote(hote).recevoir(this.monotone(), octets);
+  }
+
+  /** Temps d'analyse consommé par un transport pour une connexion d'hôte (EX-4.47). */
+  compterCapture(hote, ms) {
+    this.quotasHote(hote).tempsCapture(this.monotone(), ms);
+  }
+
+  /**
+   * Contrôle du quota avant l'analyse (4.4 pas 1, EX-4.47) : octets reçus ou
+   * temps de capture atteints → texte de la réponse -31013, `id: null` (la
+   * requête n'est pas analysée, son `id` n'est pas connu ; lecture 160),
+   * consigné ; null sinon. En mode observation (EX-14.16), rien n'est refusé ici : le
+   * contrôle qui suit l'analyse consigne le blocage évité.
+   * @param {object} hote
+   * @returns {string|null}
+   */
+  refusAvantAnalyse(hote) {
+    if (this.coeur.politique?.observation) return null;
+    const q = this.quotasHote(hote).depasseAvantAnalyse(this.monotone());
+    if (!q) return null;
+    this.journal.consigner("warning", "frontal_mcp", "call_blocked", { code: CODES.TAILLE, reason: "quota", ...q }, { host: hote.id });
+    this._compterBlocage(CODES.TAILLE, "quota", null);
+    return reponseErreur(null, CODES.TAILLE, q);
+  }
+
+  /**
+   * Ligne d'exploitation qu'un hôte déclenche sans requête (réponse ignorée,
+   * notification) : au plus LIGNES_HOTE_PAR_SECONDE par connexion, les autres
+   * comptées et consignées en une ligne (lecture 159).
+   */
+  _consignerParHote(session, niveau, evenement, data) {
+    const f = session.lignesHote;
+    const t = this.monotone();
+    if (t - f.debut >= 1000) {
+      if (f.comptees) this.journal.consigner("info", "frontal_mcp", "host_lines_dropped", { lines: f.comptees }, { host: session.hote.id });
+      f.debut = t;
+      f.n = 0;
+      f.comptees = 0;
+    }
+    if (f.n >= LIGNES_HOTE_PAR_SECONDE) {
+      f.comptees++;
+      return;
+    }
+    f.n++;
+    this.journal.consigner(niveau, "frontal_mcp", evenement, data, { host: session.hote.id });
   }
 
   /** Entrée de connexion d'hôte d'une identité (EX-7.3) ; null : refusée. */
@@ -353,10 +480,14 @@ export class FrontalMcp {
    * @returns {Promise<string|null>}
    */
   async recevoir(session, entree, o = {}) {
-    const t_recu = this.monotone();
     const octets = typeof entree === "string" ? utf8(entree) : entree;
-    const quotas = this.quotas.get(session.hote.id);
-    quotas.recevoir(t_recu, octets.length);
+    const quotas = this.quotasHote(session.hote);
+    // 4.4 pas 1 : octets comptés (par le transport, `compte`, ou ici), puis
+    // quota d'octets et de temps de capture contrôlé avant toute analyse.
+    if (!o.compte) quotas.recevoir(this.monotone(), octets.length);
+    const avant = this.refusAvantAnalyse(session.hote);
+    if (avant !== null) return avant;
+    const t_recu = this.monotone();
     if (o.cadre !== "corps" && octets.includes(13)) return reponseErreur(null, -32700, { reason: "cr_dans_la_ligne" });
     const lim = this.config.limits;
     if (octets.length > lim.request_max_bytes) {
@@ -371,10 +502,27 @@ export class FrontalMcp {
       noeud = analyserTexte(texte, { profondeurMax: lim.json_max_depth, membresMax: lim.json_max_members });
     } catch (e) {
       if (!(e instanceof ErreurTexteJson)) throw e;
+      // EX-4.47 : le temps d'analyse d'une requête refusée est compté.
+      quotas.tempsCapture(t_recu, this.monotone() - t_recu);
       if (e.raison === "non_canonisable") return reponseErreur(null, -32602, { reason: "arguments_non_canonisables" });
       return reponseErreur(null, -32700, { reason: e.raison === "syntaxe" ? "json_invalide" : e.raison });
     }
     const dureeAnalyse = this.monotone() - t_recu;
+    // Compté pour les requêtes suivantes, après le contrôle de quota de celle-ci
+    // quand elle y arrive, et même si elle est refusée avant (EX-4.47).
+    let analyseComptee = false;
+    const compterAnalyse = () => {
+      if (!analyseComptee) quotas.tempsCapture(t_recu, dureeAnalyse);
+      analyseComptee = true;
+    };
+    try {
+      return await this._recevoirAnalysee(session, o, { texte, noeud, t_recu, dureeAnalyse, quotas, compterAnalyse });
+    } finally {
+      compterAnalyse();
+    }
+  }
+
+  async _recevoirAnalysee(session, o, { texte, noeud, t_recu, dureeAnalyse, quotas, compterAnalyse }) {
     if (noeud.t === "tableau") return reponseErreur(null, -32600, { reason: "lot_non_pris_en_charge" });
     if (noeud.t !== "objet") return reponseErreur(null, -32600);
     const id = membre(noeud, "id");
@@ -385,13 +533,13 @@ export class FrontalMcp {
     if (jsonrpc?.t !== "chaine" || jsonrpc.valeur !== "2.0") return reponseErreur(idBrut, -32600);
     if (!methode) {
       // Réponse de l'hôte (aucune requête serveur→client n'est relayée) : ignorée.
-      this.journal.consigner("info", "frontal_mcp", "host_response_ignored", {}, { host: session.hote.id });
+      this._consignerParHote(session, "info", "host_response_ignored", {});
       return null;
     }
     if (methode.t !== "chaine" || (id && !idValide)) return reponseErreur(idBrut, -32600);
     const params = membre(noeud, "params");
     if (params && params.t !== "objet") return reponseErreur(idBrut, -32602);
-    const m = { texte, noeud, idBrut, methode: methode.valeur, params, t_recu, dureeAnalyse, cadre: o.cadre ?? "ligne", canal: o.canal ?? {} };
+    const m = { texte, noeud, idBrut, cleId: idValide ? cleIdJson(texte, id) : null, methode: methode.valeur, params, t_recu, dureeAnalyse, cadre: o.cadre ?? "ligne", canal: o.canal ?? {} };
     if (!idBrut) {
       this._notificationHote(session, m);
       return null;
@@ -406,7 +554,7 @@ export class FrontalMcp {
       this._compterBlocage(CODES.TAILLE, "quota", null);
       return reponseErreur(idBrut, CODES.TAILLE, q);
     }
-    quotas.tempsCapture(t_recu, dureeAnalyse);
+    compterAnalyse();
     try {
       return await this._requete(session, m);
     } catch (e) {
@@ -422,12 +570,11 @@ export class FrontalMcp {
     }
     if (m.methode === "notifications/cancelled") {
       const rid = membre(m.params, "requestId");
-      if (!rid) return;
-      const cle = m.texte.slice(rid.d, rid.f);
-      session.enCours.get(cle)?.annuler();
+      if (!rid || (rid.t !== "chaine" && rid.t !== "nombre")) return;
+      session.enCours.get(cleIdJson(m.texte, rid))?.annuler();
       return;
     }
-    this.journal.consigner("debug", "frontal_mcp", "host_notification", { method: m.methode }, { host: session.hote.id });
+    this._consignerParHote(session, "debug", "host_notification", { method: m.methode });
   }
 
   /**
@@ -442,7 +589,11 @@ export class FrontalMcp {
     const meta = membre(m.params, "_meta");
     const v = membre(meta, "io.modelcontextprotocol/protocolVersion");
     const caps = membre(meta, "io.modelcontextprotocol/clientCapabilities");
-    if (!v || v.t !== "chaine" || !caps || caps.t !== "objet") throw new Rendu(reponseErreur(m.idBrut, -32602, { reason: "meta_requis" }));
+    if (!v || v.t !== "chaine" || !caps || caps.t !== "objet") {
+      // Statut HTTP de ce refus (EX-4.37) : indiqué au transport, jamais lu dans le texte.
+      m.canal.statutHttp = 400;
+      throw new Rendu(reponseErreur(m.idBrut, -32602, { reason: "meta_requis" }));
+    }
     if (v.valeur !== VERSION_MODERNE) {
       throw new Rendu(reponseErreur(m.idBrut, -32022, { supported: [...VERSIONS_SUPPORTEES], requested: v.valeur }));
     }
@@ -464,9 +615,7 @@ export class FrontalMcp {
         );
       case "subscriptions/listen":
         if (!moderne) break;
-        if (valeurDe(m.params ?? { t: "objet", membres: [] }).toolsListChanged === true) session.ecouteListe = true;
-        // Le flux reste ouvert : aucune réponse avant la fermeture de la session.
-        return new Promise(() => {});
+        return this._ecouter(session, m);
       case "tools/list":
         return this._listerOutils(session, m, moderne);
       case "tools/call":
@@ -477,6 +626,8 @@ export class FrontalMcp {
     if (/^(resources|prompts|completion)\//.test(m.methode) || m.methode === "logging/setLevel") {
       this.journal.consigner("info", "frontal_mcp", "relay_out_of_chain_refused", { method: m.methode }, { host: session.hote.id, request_id: m.idBrut });
     }
+    // Méthode inconnue du frontal : 404 en HTTP (EX-4.35), indiqué au transport.
+    m.canal.statutHttp = 404;
     return reponseErreur(m.idBrut, -32601);
   }
 
@@ -729,8 +880,18 @@ export class FrontalMcp {
     const quotas = this.quotas.get(session.hote.id);
     quotas.enCours++;
     let annule = false;
-    const controle = { annuler: () => ctx.annulerAmont?.() ?? (annule = true) };
-    session.enCours.set(m.idBrut, controle);
+    const controle = {
+      annuler: () => {
+        annule = true;
+        ctx.annulerAmont?.();
+      },
+    };
+    // Un id déjà en cours garde son contrôle (« MUST NOT » réutiliser un id en cours, R1).
+    const proprietaire = !session.enCours.has(m.cleId);
+    if (proprietaire) session.enCours.set(m.cleId, controle);
+    // HTTP moderne : la fermeture du flux de réponse vaut annulation (EX-4.23,
+    // EX-4.36), dès sa survenue, avant comme pendant le relais.
+    m.canal?.annulation?.then?.(() => controle.annuler());
     try {
       return await this._appelPas(ctx, () => annule);
     } catch (e) {
@@ -738,7 +899,7 @@ export class FrontalMcp {
       throw e;
     } finally {
       quotas.enCours--;
-      session.enCours.delete(m.idBrut);
+      if (proprietaire && session.enCours.get(m.cleId) === controle) session.enCours.delete(m.cleId);
       if (ctx.progression) this.progressions.delete(ctx.progression);
     }
   }
@@ -822,6 +983,8 @@ export class FrontalMcp {
       if (c && !c.servie && c.session === session && c.tool === nom && c.mac === mac && c.policy.ticket === null) {
         c.servie = true;
         herite = c;
+        // Servie une fois : retirée (une ré-émission rejouée repasse par le pas 3).
+        this.continuations.delete(shaRs);
       }
       this.journal.consigner("info", "frontal_mcp", "mrtr_reemission", { request_state_sha256: shaRs, inherited: herite !== null }, { host: session.hote.id, request_id: m.idBrut });
     }
@@ -921,7 +1084,10 @@ export class FrontalMcp {
       code,
     };
     ctx.capture = capture;
-    if (estAnnule()) return null;
+    // Une annulation par l'hôte arrête l'appel avant tout relais ; un refus est
+    // tout de même scellé (4.4 pas 5 : « Chaque tentative refusée est un
+    // événement », EX-14.3), sans réponse rendue.
+    if (estAnnule() && reponse.decision !== "refuse") return null;
 
     // Pas 5 : refus.
     if (reponse.decision === "refuse") {
@@ -931,6 +1097,7 @@ export class FrontalMcp {
         if (e instanceof ErreurEnregistreur || e instanceof ErreurConstruction) throw this._bloque(ctx, e.raison ?? "stockage");
         throw e;
       }
+      if (estAnnule()) return null;
       if (reponse.ticket_state === null) return reponseResultat(m.idBrut, resultatEnregistreur({ moderne: ctx.moderne }));
       return this._signal(ctx, reponse.ticket, reponse.ticket_state);
     }
@@ -1171,6 +1338,8 @@ export class FrontalMcp {
       const rsNoeud = issue.issue === "reponse" && evenement ? membre(membre(issue.noeud, "result"), "requestState") : null;
       if (rsNoeud && evenement.policy.ticket === null) {
         const sha = sha256Hex(utf8(compacter(issue.texte, rsNoeud)));
+        if (this.continuations.size >= CONTINUATIONS_MAX) this.continuations.delete(this.continuations.keys().next().value);
+        this.continuations.delete(sha);
         this.continuations.set(sha, {
           session,
           tool: ctx.nom,

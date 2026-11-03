@@ -21,11 +21,14 @@ import * as N from "@noortrace/noyau";
 import { verifierRepertoireDossier } from "@noortrace/noyau/dossier-fichiers";
 import { ServiceApprobationFactice } from "@noortrace/enregistreur/factice";
 import { Coeur, validerConfiguration, resoudreSecrets, lireEvenements, lireRegistres, OperationsS3, identifiantsS3, principalCtl, requeteS3Copie } from "@noortrace/enregistreur";
+import { piecesReferencees } from "../paquets/enregistreur/src/worm/registre.mjs";
 import { RACINE, repertoireTemporaire } from "./fixtures/enregistreur-coeur/outils.mjs";
 import {
   IMAGES, dockerDisponible, demarrerS3, demarrerPostgresql, arreterTout, certificats, mandataireTls, creerBucketVerrouille, identifiantsRole, attendre, portLibre,
 } from "./fixtures/enregistreur-worm/outils.mjs";
 import { configurationHa, ClientMcpHttp, lancerDemon, sante } from "./fixtures/enregistreur-ha/outils.mjs";
+import { HorlogeReglable, pieceJson, reconstruireJournal, ErreurRestauration } from "@noortrace/enregistreur";
+import { configurationDev, graine, secretsDev } from "./fixtures/enregistreur-coeur/outils.mjs";
 
 const BIN_CTL = path.join(RACINE, "paquets", "enregistreur", "bin", "noortrace-ctl");
 
@@ -101,15 +104,40 @@ describe("reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 
     });
     const h = new ClientMcpHttp(A.config.mcp.http.listen);
     await h.ouvrir();
+    // Aucune clôture de période pendant les écritures et l'archive : une clôture
+    // copierait manifeste, signature, série et segment après l'archive.
+    const avantHeure = 3600000 - (Date.now() % 3600000);
+    if (avantHeure < 120000) await new Promise((r) => setTimeout(r, avantHeure + 15000));
     for (let k = 1; k <= 8; k++) expect((await h.appeler("demo__ecrire", { id: `R${k}`, montant: String(k) })).result.isError).to.equal(false);
-    await attendre(async () => (await lireRegistres(path.join(ev.repA, "worm"))).filter((x) => x.ligne.key.includes("/segments/")).length >= 2, 30000);
-    // Copie d'archive du registre des copies (chemin A), avant la perte.
+    // Copies terminées avant l'archive : au moins deux segments fermés copiés, et
+    // chaque pièce que référencent les segments copiés inscrite au registre. Avec
+    // copy_pieces, les pièces d'un segment sont copiées APRÈS l'inscription de la
+    // ligne du segment (src/worm/copies.mjs) ; une archive prise entre les deux
+    // serait plus ancienne que des copies faites par A, que la reconstruction
+    // restaure alors comme non inscrites (12.1 : le registre « ne fait foi de rien
+    // et se reconstruit depuis la liste des versions ») : c'était la course
+    // observée en intégration continue (10 fichiers pour 9 lignes archivées).
+    const copiesTerminees = async () => {
+      const lignes = (await lireRegistres(path.join(ev.repA, "worm"))).map((x) => x.ligne);
+      const cles = new Set(lignes.map((l) => l.key));
+      const segs = lignes.filter((l) => l.key.includes("/segments/"));
+      if (segs.length < 2) return false;
+      for (const l of segs) {
+        const evts = fs.readFileSync(path.join(ev.repA, l.key.slice(worm.prefix.length)), "utf8").split("\n").filter(Boolean).slice(1).map((x) => JSON.parse(x));
+        for (const s of piecesReferencees(evts)) {
+          const hx = s.slice(2);
+          if (fs.existsSync(path.join(ev.repA, "pieces", hx.slice(0, 2), hx)) && !cles.has(`${worm.prefix}pieces/${hx.slice(0, 2)}/${hx}`)) return false;
+        }
+      }
+      return true;
+    };
+    await attendre(copiesTerminees, 60000);
+    // 2. A est tué (aucune copie en cours), puis le registre est archivé (chemin A) et son stockage local détruit.
+    dA.kill("SIGKILL");
+    await dA.fin;
     ev.registreArchive = path.join(dir, "archive-worm");
     fs.cpSync(path.join(ev.repA, "worm"), ev.registreArchive, { recursive: true });
     ev.evtsA = await lireEvenements(ev.repA);
-    // 2. A est tué, son stockage local détruit.
-    dA.kill("SIGKILL");
-    await dA.fin;
     ev.epoqueA = dA.lignes().find((l) => l.event === "lease_acquired").data.epoch;
     fs.rmSync(A.config.storage.root, { recursive: true, force: true });
     ev.copies = (await lireRegistres(ev.registreArchive)).map((x) => x.ligne);
@@ -334,5 +362,179 @@ describe("reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 
       expect(dansOriginal.code).to.equal(2);
       expect((await ctl(["worm", "restaurer", seg.key, "--version", seg.version_id, "--configuration", ev.B.fichier, "--vers", d, "--registre-copies", ev.registreArchive])).code).to.equal(2);
     });
+  });
+});
+
+// Relecture adversariale A, R-A-6 (EX-12.10 pas 2, CT-8 EX-11.6, chemin B) :
+// sans registre des copies, la reconstruction acceptait un segment fermé
+// altéré puis rechaîné (hash recalculés, signatures d'origine) et une pièce
+// dont le contenu n'est pas celui de son nom ; le démon reprenait dessus.
+// Ces cas n'ont pas besoin de Docker : les copies sont servies en mémoire.
+describe("reconstruction depuis les copies : signatures, pièces, signatures de manifeste et séries vérifiées (R-A-6)", function () {
+  this.timeout(120000);
+  const ms = (t) => N.decoderHorodatage(t);
+  const delegation = { launched_by: "x", on_behalf_of: null, scope: "s", run_id: null };
+  async function echange(c, k) {
+    const p = pieceJson({ k });
+    await c.ecrirePiece(p);
+    return c.scellerEchange({ delegation, code: { model: null, prompt_version: null }, intent: null, requete: p.reference, reponse: p.reference, duration_ms: k, is_error: false });
+  }
+
+  /** Journal de deux périodes closes (une rotation de clé dans la première), copies de tous ses fichiers restaurables. */
+  async function journalEtCopies(nom) {
+    const dir = repertoireTemporaire(`noortrace-reconstruction-${nom}-`);
+    const { config } = configurationDev(dir, { journal_id: N.octetsVersHex(N.keccak256(N.utf8(`journal-reconstruction-${nom}`))) });
+    const h = new HorlogeReglable(ms("2026-11-10T10:14:00.000Z"));
+    let c = await Coeur.demarrer({ config, secrets: secretsDev(), horloge: h });
+    for (let k = 1; k <= 3; k++) {
+      h.avancer(1000);
+      await echange(c, k);
+    }
+    await c.tournerCle("rec-test-02");
+    await echange(c, 4);
+    h.aller(ms("2026-11-10T11:00:00.300Z"));
+    await c.tic();
+    h.aller(ms("2026-11-10T11:05:00.000Z"));
+    await echange(c, 5);
+    h.aller(ms("2026-11-10T12:00:00.300Z"));
+    await c.tic();
+    await c.arreter();
+    h.aller(ms("2026-11-10T12:06:00.000Z"));
+    c = await Coeur.demarrer({ config, secrets: secretsDev(), horloge: h });
+    await c.arreter();
+    const rep = c.repertoire;
+    const objets = new Map();
+    const parcourir = (d, rel = "") => {
+      for (const n of fs.readdirSync(d)) {
+        const p = path.join(d, n);
+        const r = rel ? `${rel}/${n}` : n;
+        if (fs.statSync(p).isDirectory()) parcourir(p, r);
+        else objets.set(`j/${r}`, fs.readFileSync(p));
+      }
+    };
+    parcourir(rep);
+    const operations = {
+      listerVersions: async () => ({ statut: 200, versions: [...objets.keys()].map((key) => ({ key, version_id: "v1", delete_marker: false })) }),
+      lire: async (key) => ({ statut: 200, corps: objets.get(key) }),
+    };
+    const configWorm = structuredClone(config);
+    configWorm.storage.seal.worm = { prefix: "j/" };
+    return { dir, config, configWorm, objets, operations };
+  }
+
+  const reconstruire = (j, nom, o = {}) => reconstruireJournal({ config: j.configWorm, operations: j.operations, destination: path.join(j.dir, nom), registre: null, ...o });
+  async function refus(j, nom, o) {
+    let err;
+    try {
+      await reconstruire(j, nom, o);
+    } catch (e) {
+      err = e;
+    }
+    expect(err, "reconstruction refusée").to.be.instanceOf(ErreurRestauration);
+    expect(fs.existsSync(path.join(j.dir, nom)), "rien n'est écrit").to.equal(false);
+    return err.incidents;
+  }
+
+  it("copies intactes (rotation de clé comprise) : acceptées, signatures vérifiées avec les clés de la chaîne", async function () {
+    const j = await journalEtCopies("intact");
+    const r = await reconstruire(j, "restaure");
+    expect(r.synthese.last_seq).to.be.greaterThan(5);
+  });
+
+  it("essai de la relecture : segment fermé altéré et rechaîné, manifeste recalculé, pièce falsifiée → refusée (signature, sha256 de la pièce)", async function () {
+    const j = await journalEtCopies("altere");
+    const segs = [...j.objets.keys()].filter((k) => k.startsWith("j/segments/")).sort();
+    let prev = null;
+    const nouveaux = new Map();
+    for (const k of segs) {
+      const lignes = j.objets.get(k).toString("utf8").split("\n").filter(Boolean);
+      const entete = JSON.parse(lignes[0]);
+      if (prev) entete.prev_hash = prev;
+      const evts = lignes.slice(1).map((l) => JSON.parse(l));
+      for (const e of evts) {
+        if (prev) e.prev_hash = prev;
+        if (e.seq === 3) e.execution.duration_ms = 999999;
+        e.hash = N.hacherEvenement(e);
+        prev = e.hash;
+        nouveaux.set(e.seq, e.hash);
+      }
+      j.objets.set(k, Buffer.from([entete, ...evts].map((o) => N.jcs(o)).join("\n") + "\n"));
+    }
+    for (const k of [...j.objets.keys()].filter((x) => /manifestes\/.*\.json$/.test(x))) {
+      const m = JSON.parse(j.objets.get(k).toString("utf8"));
+      const hs = [];
+      for (let q = m.first_seq; q <= m.last_seq; q++) hs.push(nouveaux.get(q));
+      j.objets.set(k, Buffer.from(JSON.stringify(N.construireManifeste({ ...m, hashes: hs }), null, 2) + "\n"));
+    }
+    const clePiece = [...j.objets.keys()].find((x) => x.includes("/pieces/"));
+    j.objets.set(clePiece, Buffer.from('{"falsifie":true}'));
+    const incidents = await refus(j, "restaure");
+    expect(incidents.map((i) => `${i.kind}:${i.raison ?? ""}`)).to.include.members(["copie_alteree:signature", "copie_alteree:sha256_piece"]);
+  });
+
+  it("pièce seule falsifiée (chaîne intacte) → refusée (sha256_piece)", async function () {
+    const j = await journalEtCopies("piece");
+    const clePiece = [...j.objets.keys()].find((x) => x.includes("/pieces/"));
+    j.objets.set(clePiece, Buffer.from('{"falsifie":true}'));
+    expect((await refus(j, "restaure")).map((i) => i.raison)).to.deep.equal(["sha256_piece"]);
+  });
+
+  it("signature de manifeste remplacée, série de points altérée → refusées (signature_manifeste, serie_points)", async function () {
+    const j = await journalEtCopies("sig");
+    const cleSig = [...j.objets.keys()].find((x) => x.endsWith(".sig"));
+    const s = JSON.parse(j.objets.get(cleSig).toString("utf8"));
+    s.sig = `0x${"11".repeat(64)}`;
+    j.objets.set(cleSig, Buffer.from(JSON.stringify(s, null, 2) + "\n"));
+    expect((await refus(j, "r1")).map((i) => i.raison)).to.deep.equal(["signature_manifeste"]);
+    const k = await journalEtCopies("serie");
+    const cleSerie = [...k.objets.keys()].find((x) => x.startsWith("j/points/"));
+    const lignes = k.objets.get(cleSerie).toString("utf8").trim().split("\n").map((l) => JSON.parse(l));
+    lignes[0].checkpoint_ts = "2026-11-10T10:59:59.999Z";
+    k.objets.set(cleSerie, Buffer.from(lignes.map((l) => JSON.stringify(l)).join("\n") + "\n"));
+    expect((await refus(k, "r2")).map((i) => i.raison)).to.deep.equal(["serie_points"]);
+  });
+
+  it("clé initiale inconnue (ni --cles, ni signataire de classe D) → refusée (cle_inconnue) ; donnée par cles.json → acceptée", async function () {
+    const j = await journalEtCopies("cles");
+    expect((await refus(j, "r1", { clePublique: async () => null })).map((i) => i.kind)).to.include("cle_inconnue");
+    const publique = N.octetsVersHex(N.clePubliqueEd25519(graine("rec-test-01")));
+    const r = await reconstruire(j, "r2", { clePublique: async (id) => (id === "rec-test-01" ? publique : null) });
+    expect(r.synthese.fichiers).to.be.greaterThan(5);
+  });
+
+  it("démon sur un journal reconstruit puis altéré (segment fermé rechaîné) : vérification complète avant d'écrire → segment_corrupted, intervention, rien n'est écrit", async function () {
+    const j = await journalEtCopies("demon");
+    const r = await reconstruire(j, "restaure");
+    const rep = path.join(r.synthese.destination, j.config.recorder.org_id.slice(2), j.config.recorder.journal_id.slice(2));
+    const premier = path.join(rep, "segments", fs.readdirSync(path.join(rep, "segments")).sort()[0]);
+    const lignes = fs.readFileSync(premier, "utf8").split("\n").filter(Boolean);
+    const e = JSON.parse(lignes[3]);
+    e.execution.duration_ms = 424242;
+    e.hash = N.hacherEvenement(e);
+    lignes[3] = N.jcs(e);
+    fs.writeFileSync(premier, lignes.join("\n") + "\n");
+    const avant = fs.readdirSync(path.join(rep, "segments")).length;
+    const config2 = structuredClone(j.config);
+    config2.storage.root = r.synthese.destination;
+    const c = await Coeur.demarrer({ config: config2, secrets: secretsDev(), horloge: new HorlogeReglable(ms("2026-11-10T12:10:00.000Z")) });
+    try {
+      expect(c.journal.trouver("segment_corrupted")).to.have.length(1);
+      expect(c.sante().corps.reasons).to.deep.equal(["stockage"]);
+      expect(fs.readdirSync(path.join(rep, "segments")).length, "aucun segment ouvert").to.equal(avant);
+    } finally {
+      await c.arreter();
+    }
+    // Sans altération, le démon reprend sur le journal reconstruit (vérification réussie consignée).
+    const k = await journalEtCopies("demon-ok");
+    const r2 = await reconstruire(k, "restaure");
+    const config3 = structuredClone(k.config);
+    config3.storage.root = r2.synthese.destination;
+    const c3 = await Coeur.demarrer({ config: config3, secrets: secretsDev(), horloge: new HorlogeReglable(ms("2026-11-10T12:10:00.000Z")) });
+    try {
+      expect(c3.journal.trouver("journal_reconstruit_verifie")[0].data.incidents).to.deep.equal([]);
+      expect(c3.sante().corps).to.deep.equal({ status: "ok" });
+    } finally {
+      await c3.arreter();
+    }
   });
 });

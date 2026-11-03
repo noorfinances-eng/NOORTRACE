@@ -1,0 +1,39 @@
+# SDK Python de NOORTRACE (CT-2 version 0.6, 6.4, 6.5, 6.6) : distribution
+# `noortrace-sdk`, module `noortrace_sdk` (EX-6.9), Python 3.10 ou plus
+# (EX-6.5). Aucune dépendance d'exécution : la bibliothèque standard suffit
+# (prises, fils, asyncio, ssl, json). Les cadres d'agents des adaptateurs
+# (6.6) ne sont pas des dépendances : l'agent les a déjà ; chaque module
+# `noortrace_sdk.adaptateurs.<cadre>` ne les importe qu'à son propre import.
+# Les versions de cadres essayées sont épinglées, avec empreintes, dans
+# `verrous/requirements-*.txt` (LISEZMOI, « Environnements d'essai »).
+
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "noortrace-sdk"
+version = "0.1.0"
+description = "SDK de langage Python de NOORTRACE : enveloppe les méthodes noortrace/sdk/* du démon noortrace (CT-2 6.2, 6.5) et adaptateurs de cadres d'agents (6.6)."
+readme = "LISEZMOI.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = []
+
+[project.optional-dependencies]
+# Versions exactes des environnements d'essai (les fichiers de verrou en
+# donnent les empreintes et les dépendances transitives).
+essais = ["pytest==9.1.1"]
+langchain = ["langchain[mcp]==1.4.7", "langchain-core==1.7.0", "langgraph==1.2.17", "langgraph-prebuilt==1.1.1"]
+crewai = ["crewai==1.15.30"]
+llamaindex = ["llama-index-core==0.14.25", "llama-index-tools-mcp==0.6.0"]
+openai-agents = ["openai-agents==0.24.0"]
+litellm = ["litellm==1.106.4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-p no:cacheprovider"

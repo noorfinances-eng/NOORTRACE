@@ -253,3 +253,62 @@ describe("enregistreur, cœur : journal produit, vérifié par le noyau et par l
     for (const id of [4, 5, 8]) expect(statuts[id]).to.deep.equal(["non_execute", "hors_perimetre_version"]);
   });
 });
+
+// Relecture adversariale A, R-A-11 (EX-17.5) : sans WORM, aucun contrôle
+// périodique ne tournait ; avec WORM, la relecture quotidienne ne vérifiait
+// que la clé courante (segments signés avant une rotation tenus pour faux).
+describe("enregistreur, cœur : contrôles périodiques d'EX-17.5 sans WORM, avec toutes les clés de la chaîne (R-A-11)", function () {
+  this.timeout(60000);
+  const delegation = { launched_by: "x", on_behalf_of: null, scope: "s", run_id: null };
+  async function echange(c, k) {
+    const p = pieceJson({ k });
+    await c.ecrirePiece(p);
+    return c.scellerEchange({ delegation, code: { model: null, prompt_version: null }, intent: null, requete: p.reference, reponse: p.reference, duration_ms: k, is_error: false });
+  }
+  async function journal() {
+    const dir = repertoireTemporaire("noortrace-controles-");
+    const { config } = configurationDev(dir);
+    const h = new HorlogeReglable(ms("2026-11-10T10:14:00.000Z"));
+    const c = await Coeur.demarrer({ config: validerConfiguration(new TextEncoder().encode(JSON.stringify(config))).config, secrets: secretsDev(), horloge: h });
+    await echange(c, 1);
+    h.aller(ms("2026-11-10T11:00:00.300Z"));
+    await c.tic();
+    await echange(c, 2);
+    await c.tournerCle("rec-test-02");
+    await echange(c, 3);
+    h.aller(ms("2026-11-10T12:00:00.300Z"));
+    await c.tic();
+    h.aller(ms("2026-11-10T12:00:20.000Z"));
+    return { c, h };
+  }
+  const checks = (c) => c.journal.trouver("integrity_check").map((l) => [l.data.check, l.data.ok]);
+
+  it("toutes les heures (manifeste, signature, continuité, signataire) et une fois par jour (relecture des segments fermés, clés d'avant et d'après la rotation) : en réussite, sans support WORM", async function () {
+    const { c } = await journal();
+    try {
+      expect(c.o.worm ?? null).to.equal(null);
+      await c.controles.tic();
+      const r = checks(c);
+      for (const k of ["manifeste", "signature", "continuite", "signataire", "relecture"]) expect(r, k).to.deep.include([k, true]);
+      expect(r.filter(([, ok]) => !ok)).to.deep.equal([]);
+      expect(c.journal.trouver("integrity_check").filter((l) => l.data.check === "relecture").map((l) => l.data.segment)).to.have.length(2);
+    } finally {
+      await c.arreter();
+    }
+  });
+
+  it("un segment fermé altéré est signalé par la relecture quotidienne (integrity_check en échec, métrique)", async function () {
+    const { c, h } = await journal();
+    try {
+      const seg = path.join(c.repertoire, "segments", fs.readdirSync(path.join(c.repertoire, "segments")).sort()[0]);
+      fs.writeFileSync(seg, fs.readFileSync(seg, "utf8").replace('"duration_ms":1,', '"duration_ms":7,'));
+      h.aller(ms("2026-11-11T00:00:20.000Z"));
+      await c.controles.quotidien(c.horlogeBrute.murale());
+      const echec = c.journal.trouver("integrity_check").find((l) => l.data.check === "relecture" && !l.data.ok);
+      expect(echec?.data.raison).to.equal("hash_different");
+      expect(c.metriques.exposer()).to.match(/noortrace_integrity_check_failures_total\{check="relecture"\} 1/);
+    } finally {
+      await c.arreter();
+    }
+  });
+});

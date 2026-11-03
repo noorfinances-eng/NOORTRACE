@@ -51,3 +51,25 @@ tirent des erreurs : `AppelNonAutorise.texte`, et les textes fixes d'EX-6.19
 pour `ErreurNoortraceDegrade`, `ErreurNoortraceIndisponible`,
 `ErreurNoortraceLimite`, `ErreurNoortraceEntreeInvalide`, et, après
 l'exécution, `ErreurNoortraceNonDurable` ou `ErreurNoortraceIndisponible`.
+
+## Adaptateurs de cadres (6.6)
+
+```ts
+import { intercepter, texteAvantExecution, nomDeclarable, valeurDeclaree, reglagesAdaptateur, etiquette,
+  TEXTE_DEGRADE, TEXTE_INJOIGNABLE, TEXTE_LIMITE, TEXTE_ENTREE_INVALIDE, TEXTE_NON_DURABLE } from "noortrace-sdk/adaptateurs";
+const issue = await intercepter(session, preparer, executer, declarer);
+// preparer() -> { nom, args, classe } ; executer() -> Promise<valeur> ; declarer(valeur) -> { resultat, isError }
+// issue.executee, issue.texte (texte d'EX-6.19 à rendre au modèle, ou null), issue.valeur
+
+import { middlewareNoortrace, GestionnaireEchangesNoortrace } from "noortrace-sdk/adaptateurs/langchain";
+const mw = middlewareNoortrace(session, { classes: { preparer_paiement: "ecriture" }, modele: "passerelle", ignorer: [] });
+createAgent({ model, tools, middleware: [..., mw] });          // en dernier ; mw.rappels avec modele: "declarer"
+
+import { adaptateurAgentsOpenAI, ProcesseurEchangesNoortrace, argumentsDeclares } from "noortrace-sdk/adaptateurs/openai-agents";
+const a = adaptateurAgentsOpenAI(session, { classes, modele, ignorer });
+tool({ name: "preparer_paiement", parameters, execute: a.envelopperExecution("preparer_paiement", execute) });
+addTraceProcessor(a.processeur);                                // modele: "declarer" seulement
+```
+
+`langchain` 1.5.19 et `@langchain/core` 1.3.0 sont des dépendances pairs
+facultatives : seul `noortrace-sdk/adaptateurs/langchain` les importe.

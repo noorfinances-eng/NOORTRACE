@@ -6,9 +6,11 @@
 //
 // Identité de la connexion (EX-6.1) :
 //   - prise Unix : l'utilisateur système du processus pair, lu comme pour le
-//     connecteur stdio du frontal MCP (LISEZMOI, lecture 31 : défi aléatoire,
-//     fichier créé en exclusion dans le répertoire de la prise par le pair,
-//     propriétaire relu par `lstat`) ;
+//     connecteur stdio du frontal MCP (LISEZMOI, lectures 31 et 157 : défi
+//     aléatoire, fichier créé en exclusion dans le répertoire de la prise par
+//     le pair après le défi, propriétaire relu par `lstat` ; répertoire de la
+//     prise et parents qu'aucun pair ne peut employer pour renommer la preuve
+//     d'un autre, vérifiés au démarrage et à chaque preuve) ;
 //   - prise TCP, `client_auth: "jeton"` : la première ligne
 //     `{"noortrace_token": "<jeton>"}`, comparée en temps constant aux jetons
 //     statiques (EX-4.39, EX-6.10), puis retirée ; sur TLS si `tls` est posé ;
@@ -24,13 +26,13 @@
 // L'identité acceptée est confirmée par `{"noortrace_identite":"acceptee"}` ;
 // une connexion sans entrée de `sdk.hosts` est refusée et consignée
 // (`auth_failed`, EX-7.3), et les échecs de jeton sont limités comme en EX-18.3.
+// Les octets reçus sont comptés au quota de la connexion d'hôte dès leur
+// lecture, ligne trop longue comprise (4.4 pas 1, EX-4.47).
 
 import net from "node:net";
 import fs from "node:fs";
-import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { lireComptes } from "../mcp/amont.mjs";
-import { DecoupeurLignes, PREFIXE_DEFI, egauxTempsConstant } from "../mcp/hote-stdio.mjs";
+import { DecoupeurLignes, egauxTempsConstant, preparerRepertoirePrise, ecouterPriseUnix, verifierPreuveFichier } from "../mcp/hote-stdio.mjs";
 import { reponseErreur } from "../mcp/messages.mjs";
 import { LimiteurEchecs } from "./limiteur.mjs";
 import { ecouterPriseTcp, identiteCertificat } from "../mcp/prise-tcp.mjs";
@@ -57,15 +59,11 @@ export class ServeurSdk {
 
   async ecouter() {
     if (this.socket) {
-      fs.mkdirSync(path.dirname(this.socket), { recursive: true });
+      preparerRepertoirePrise(this.socket);
       fs.rmSync(this.socket, { force: true });
       const s = net.createServer((c) => this._connexionUnix(c));
-      await new Promise((res, rej) => {
-        s.once("error", rej);
-        s.listen(this.socket, res);
-      });
-      // EX-18.1 : propriétaire = utilisateur du démon, mode 0660.
-      fs.chmodSync(this.socket, 0o660);
+      // EX-18.1 : propriétaire = utilisateur du démon, mode 0660 dès la création.
+      await ecouterPriseUnix(s, this.socket);
       this.serveurs.push(s);
     }
     if (this.tcp) {
@@ -93,9 +91,9 @@ export class ServeurSdk {
     if (this.socket) fs.rmSync(this.socket, { force: true });
   }
 
-  _refuser(c, raison, cle = null) {
+  _refuser(c, raison, cle = null, detail = null) {
     if (cle) this.limiteur.echec(cle);
-    this.journal.consigner("warning", "sdk", "auth_failed", { transport: c.encrypted ? "tls" : this.socket && !c.remoteAddress ? "unix" : "tcp", reason: raison });
+    this.journal.consigner("warning", "sdk", "auth_failed", { transport: c.encrypted ? "tls" : this.socket && !c.remoteAddress ? "unix" : "tcp", reason: raison, ...(detail ? { detail } : {}) });
     c.destroy();
   }
 
@@ -104,6 +102,7 @@ export class ServeurSdk {
     c.on("close", () => this.connexions.delete(c));
     c.on("error", () => {});
     const defi = randomBytes(16).toString("hex");
+    const instantDefi = Date.now();
     c.write(JSON.stringify({ noortrace_defi: defi }) + "\n");
     let fini = false;
     const d = new DecoupeurLignes(4096, (l) => {
@@ -117,16 +116,9 @@ export class ServeurSdk {
         preuve = null;
       }
       if (preuve !== defi) return this._refuser(c, "preuve");
-      const fichier = path.join(path.dirname(this.socket), PREFIXE_DEFI + defi);
-      let st;
-      try {
-        st = fs.lstatSync(fichier);
-        fs.rmSync(fichier, { force: true });
-      } catch {
-        return this._refuser(c, "preuve");
-      }
-      if (!st.isFile() || st.nlink !== 1) return this._refuser(c, "preuve");
-      const utilisateur = lireComptes().parUid.get(st.uid) ?? null;
+      const v = verifierPreuveFichier(this.socket, defi, instantDefi);
+      if (v.refus) return this._refuser(c, v.refus, null, v.detail);
+      const utilisateur = v.utilisateur;
       const hote = utilisateur === null ? null : this.frontal.hotePour({ peer_user: utilisateur });
       if (!hote) return this._refuser(c, "hote_inconnu");
       c.write(JSON.stringify({ noortrace_identite: "acceptee" }) + "\n");
@@ -195,7 +187,7 @@ export class ServeurSdk {
           ecrire(reponseErreur(null, -32700, { reason: "cadrage_non_admis" }));
           return;
         }
-        f.recevoir(cx, new Uint8Array(ligne)).then(ecrire, (e) => {
+        f.recevoir(cx, new Uint8Array(ligne), { compte: true }).then(ecrire, (e) => {
           f.journal.consigner("error", "sdk", "internal_error", { message: String(e?.message ?? e).slice(0, 200) }, { host: hote.id });
           ecrire(reponseErreur(null, -32603));
         });
@@ -205,7 +197,11 @@ export class ServeurSdk {
         ecrire(reponseErreur(null, -31013, { limit_bytes: borne, direction: "requete" }));
       },
     );
-    c.on("data", (x) => d.pousser(x));
+    c.on("data", (x) => {
+      // 4.4 pas 1, EX-4.47 : octets comptés dès leur lecture, ligne refusée ou trop longue comprise.
+      f.compterRecus(hote, x.length);
+      d.pousser(x);
+    });
     c.on("close", () => {
       f.journal.consigner("info", "sdk", "sdk_disconnected", {}, { host: hote.id });
       f.fermerConnexion(cx).catch(() => {});

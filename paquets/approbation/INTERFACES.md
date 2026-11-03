@@ -95,6 +95,14 @@ await inst.arreter()
   ticket, tool?, deadline?, approvers?, notify?, requester?, decision?,
   approver?, digest?, at?, link }` ; `kind` ∈ `ouverture`, `escalade`,
   `membres_ajoutes`, `vote_inscrit`.
+- **Persistance** (relecture C) : `MagasinEtat.ajouter` n'écrit pas les
+  arguments en clair dans le journal (fichiers `etat/arguments/`, effacés au
+  passage en état terminal, EX-7.24) ; après un échec d'écriture,
+  `magasin.enPanne` est vrai et seul `magasin.reprendre(machine.exporter())`
+  (état complet) rouvre les ajouts ; une entrée sans effet n'écrit rien.
+  `machine.entree({ kind: "jeu_lu", … }, { lecture: { debut, cible } })` :
+  instant du début de la lecture (EX-8.7) et jeu épinglé lu (EX-8.1) ; sans
+  `lecture`, comportement des traces de l'annexe A.6.
 - **Annuaire** : `Annuaire` est en lecture ; les opérations (13.6), leur
   persistance (EX-12.17) et la recopie des administrateurs (EX-13.37) sont à
   ajouter ; `controleCanal` sert déjà les cinq méthodes contrôlées.

@@ -278,6 +278,24 @@
           "apres": "774b63e24a648e21432ec7aa99a23444ca885c45b7d247fe8c0b6765a6654a4b"
         }
       ]
+    },
+    {
+      "id": "MC-11",
+      "date": "2026-11-03",
+      "etape": 4,
+      "motif": "Étape 4, SDK Python, adaptateurs de cadres et corrections de la relecture adversariale : deux fichiers de test ajoutés (enregistreur-sdk-python, enregistreur-sdk-adaptateurs) et tests de non-régression ajoutés aux fichiers existants ; empreintes de couverture CT-9 et recomptage régénérés.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "aca885c702dceb21d6206a1024fcd220e36f896b331452b2b16530057416e93d",
+          "apres": "13566802ad7fa170bd66b0f67bb822db4678ce52e0add8e0ee119a60e689058e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "774b63e24a648e21432ec7aa99a23444ca885c45b7d247fe8c0b6765a6654a4b",
+          "apres": "3532c44274ed7577489bcaf07a736f9f77f7f1fef0e86664367069e0433234ca"
+        }
+      ]
     }
   ]
 }

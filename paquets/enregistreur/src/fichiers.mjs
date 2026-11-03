@@ -80,11 +80,52 @@ export async function synchroniserRepertoire(repertoire) {
 
 /**
  * Crée un répertoire (et ses parents) avec des droits restreints, puis
- * synchronise son parent.
+ * synchronise le parent de chaque répertoire créé : l'entrée d'un répertoire
+ * neuf (par exemple `pieces/<xx>`) n'est durable qu'après le fsync de son
+ * parent (EX-12.5, « an explicit fsync() on a file descriptor for the
+ * directory is also needed »). Un répertoire déjà présent n'est pas touché.
  * @param {string} repertoire
  */
 export async function creerRepertoire(repertoire) {
-  await fs.mkdir(repertoire, { recursive: true, mode: 0o700 });
+  const premier = await fs.mkdir(repertoire, { recursive: true, mode: 0o700 });
+  if (premier === undefined) return;
+  // Répertoires créés : `premier`, puis chacun de ses descendants jusqu'à `repertoire`.
+  const crees = [];
+  for (let d = path.resolve(repertoire); ; d = path.dirname(d)) {
+    crees.push(d);
+    if (d === path.resolve(premier) || path.dirname(d) === d) break;
+  }
+  for (const d of crees.reverse()) await synchroniserRepertoire(path.dirname(d));
+}
+
+/** Préfixe des fichiers temporaires d'`ecrireAtomique`. */
+export const PREFIXE_TEMPORAIRE = ".tmp-";
+
+/**
+ * Supprime les fichiers temporaires d'`ecrireAtomique` (`.tmp-<nom>-<aléa>`)
+ * laissés dans un répertoire par un arrêt brutal entre leur création et leur
+ * renommage : ils ne portent rien de durable (le fichier n'existe sous son nom
+ * qu'après le renommage, EX-12.6). À n'appeler qu'au démarrage, avant toute
+ * écriture de l'écrivain. Un répertoire absent est ignoré.
+ * @param {string} repertoire
+ * @returns {Promise<number>} nombre de fichiers supprimés
+ */
+export async function nettoyerTemporaires(repertoire) {
+  let noms;
+  try {
+    noms = await fs.readdir(repertoire);
+  } catch (e) {
+    if (e.code === "ENOENT" || e.code === "ENOTDIR") return 0;
+    throw e;
+  }
+  let n = 0;
+  for (const nom of noms) {
+    if (!nom.startsWith(PREFIXE_TEMPORAIRE)) continue;
+    await fs.rm(path.join(repertoire, nom), { force: true });
+    n++;
+  }
+  if (n) await synchroniserRepertoire(repertoire);
+  return n;
 }
 
 /**
@@ -100,7 +141,7 @@ export async function creerRepertoire(repertoire) {
 export async function ecrireAtomique(chemin, octets, options = {}) {
   const dir = path.dirname(chemin);
   if (options.jamaisReecrire && (await existe(chemin))) return false;
-  const tmp = path.join(dir, `.tmp-${path.basename(chemin)}-${randomBytes(6).toString("hex")}`);
+  const tmp = path.join(dir, `${PREFIXE_TEMPORAIRE}${path.basename(chemin)}-${randomBytes(6).toString("hex")}`);
   const h = await fs.open(tmp, C.O_WRONLY | C.O_CREAT | C.O_EXCL, 0o600);
   try {
     let fait = 0;

@@ -23,6 +23,29 @@
 // déjà reflétées par l'instantané, sautées à la relecture (n ≤ n de
 // l'instantané). Les enregistrements portent des documents entiers : les
 // rejouer deux fois donne le même état.
+//
+// Arguments en clair (EX-7.24) : les membres `request.arguments`,
+// `request.retained_event`, `request.arguments_piece` et
+// `opening.scope.values` d'un ticket, et `scope.values` d'une fenêtre, ne
+// sont jamais écrits dans le journal ni dans l'instantané : ils vont, chiffrés,
+// dans un fichier par ticket ou par fenêtre, `etat/arguments/t-<ticket>` ou
+// `f-<ticket>` (écriture atomique : fichier temporaire, fsync, renommage,
+// fsync du répertoire), écrit AVANT la ligne qui rend l'état durable, et
+// supprimé (puis fsync du répertoire) APRÈS la ligne qui porte le passage en
+// `consomme`, `clos` ou `abandonne`, ou la fermeture de la fenêtre. L'effacement
+// est ainsi effectif au passage même (« effacés au passage en consomme, clos ou
+// abandonne », EX-7.24), sans copie dans les lignes antérieures. À la reprise,
+// le document `ticket-v0` est recomposé de sa ligne et de son fichier ; un
+// fichier d'un ticket terminé ou inconnu (arrêt entre la ligne et la
+// suppression) est supprimé.
+//
+// Échec d'écriture (EX-7.22) : un numéro d'enregistrement n'est jamais
+// réattribué ; après un échec de `write` ou de `fdatasync`, le magasin refuse
+// tout ajout (`enPanne`) jusqu'à `reprendre(état complet)`, qui écrit un
+// instantané de tout l'état en mémoire sous le dernier numéro attribué, recopie
+// les fichiers d'arguments et vide le journal par un nouveau descripteur :
+// aucune ligne n'est ajoutée derrière une ligne dont la durabilité n'est pas
+// établie, et aucun effet n'est rendu visible avant que tout l'état soit durable.
 
 import fs from "node:fs";
 import fsp from "node:fs/promises";
@@ -77,6 +100,38 @@ function processusVivant(pid) {
   }
 }
 
+const ETATS_TERMINAUX = ["consomme", "clos", "abandonne"];
+
+/** Erreur d'un magasin en panne : aucun ajout avant `reprendre`. */
+function erreurPanne() {
+  return Object.assign(new Error("magasin d'état en panne : reprise par l'état complet requise (EX-7.22)"), { code: "EPANNE" });
+}
+
+/**
+ * Sépare un ticket de ses arguments en clair (EX-7.24).
+ * @returns {{doc: object, secret: string|null}} `secret` : JSON des membres retirés, ou null s'ils sont tous nuls
+ */
+function separerTicket(t) {
+  const r = t.request ?? {};
+  const s = {
+    arguments: r.arguments ?? null,
+    retained_event: r.retained_event ?? null,
+    arguments_piece: r.arguments_piece ?? null,
+    scope_values: t.opening?.scope?.values ?? null,
+  };
+  if (s.arguments === null && s.retained_event === null && s.arguments_piece === null && s.scope_values === null) return { doc: t, secret: null };
+  const doc = { ...t, request: { ...r, arguments: null, retained_event: null, arguments_piece: null } };
+  if (t.opening) doc.opening = { ...t.opening, scope: { ...t.opening.scope, values: null } };
+  return { doc, secret: JSON.stringify(s) };
+}
+
+/** Sépare une fenêtre de la valeur de sa portée (EX-7.24). */
+function separerFenetre(w) {
+  const v = w.scope?.values ?? null;
+  if (v === null) return { doc: w, secret: null };
+  return { doc: { ...w, scope: { ...w.scope, values: null } }, secret: JSON.stringify(v) };
+}
+
 /** Magasin d'état chiffré, en ajout seul avec compactage. */
 export class MagasinEtat {
   /**
@@ -91,6 +146,14 @@ export class MagasinEtat {
     this.lignes = 0;
     this.fd = null;
     this.verrou = null;
+    /** Vrai après un échec d'écriture : aucun ajout avant `reprendre` (EX-7.22). */
+    this.enPanne = false;
+    /** Arguments en clair persistés à part (EX-7.24) : nom de fichier → JSON. */
+    this.secrets = new Map();
+  }
+
+  get dirArguments() {
+    return path.join(this.dir, "arguments");
   }
 
   get cheminJournal() {
@@ -180,8 +243,134 @@ export class MagasinEtat {
         debut = complete ? fin + 1 : octets.length;
       }
     }
+    // Arguments en clair (EX-7.24) : recomposition des documents, purge des fichiers
+    // de tickets terminés ou inconnus et de fenêtres fermées ; un état écrit avant
+    // cette disposition (arguments dans les lignes) est recopié aussitôt.
+    await fsp.mkdir(this.dirArguments, { recursive: true, mode: 0o700 });
+    const fichiers = new Map();
+    for (const nom of await fsp.readdir(this.dirArguments)) {
+      const chemin = path.join(this.dirArguments, nom);
+      if (!/^[tf]-apr-[0-9a-z-]+$/.test(nom)) {
+        await fsp.rm(chemin, { force: true });
+        continue;
+      }
+      const brut = (await fsp.readFile(chemin, "utf8")).trim();
+      const o = dechiffrer(this.cle, "arguments", 0, brut.slice(brut.indexOf(" ") + 1));
+      if (o.nom !== nom) throw new Error(`fichier d'arguments ${nom} : nom différent`);
+      fichiers.set(nom, o.secret);
+    }
+    let migrer = false;
+    const tickets = [...etat.tickets.values()];
+    for (const t of tickets) {
+      const nom = `t-${t.ticket}`;
+      const terminal = ETATS_TERMINAUX.includes(t.state);
+      if (separerTicket(t).secret !== null) migrer = true;
+      if (terminal || !fichiers.has(nom)) continue;
+      const x = JSON.parse(fichiers.get(nom));
+      t.request.arguments = x.arguments;
+      t.request.retained_event = x.retained_event;
+      t.request.arguments_piece = x.arguments_piece;
+      if (t.opening) t.opening.scope.values = x.scope_values;
+      this.secrets.set(nom, fichiers.get(nom));
+    }
+    for (const w of etat.fenetres ?? []) {
+      const nom = `f-${w.ticket}`;
+      if (separerFenetre(w).secret !== null) migrer = true;
+      if (!fichiers.has(nom)) continue;
+      w.scope.values = JSON.parse(fichiers.get(nom));
+      this.secrets.set(nom, fichiers.get(nom));
+    }
+    let purge = false;
+    for (const nom of fichiers.keys()) {
+      if (!this.secrets.has(nom)) {
+        await fsp.rm(path.join(this.dirArguments, nom), { force: true });
+        purge = true;
+      }
+    }
+    if (purge) await this.#synchroniserRepertoire(this.dirArguments);
     this.fd = await fsp.open(this.cheminJournal, "a", 0o600);
-    return { meta: etat.meta, versions: etat.versions, tickets: [...etat.tickets.values()], fenetres: etat.fenetres, tronque };
+    const docs = { meta: etat.meta, versions: etat.versions, tickets, fenetres: etat.fenetres };
+    if (migrer) await this.reprendre(docs);
+    return { ...docs, tronque };
+  }
+
+  async #synchroniserRepertoire(dir) {
+    const dfd = await fsp.open(dir, "r");
+    try {
+      await dfd.sync();
+    } finally {
+      await dfd.close();
+    }
+  }
+
+  /** Écrit le fichier d'arguments `nom` (atomique, EX-7.24). */
+  async #ecrireSecret(nom, secret) {
+    const chemin = path.join(this.dirArguments, nom);
+    const tmp = chemin + ".tmp";
+    const fd = await fsp.open(tmp, "w", 0o600);
+    try {
+      await fd.writeFile(`0 ${chiffrer(this.cle, "arguments", 0, { nom, secret })}\n`);
+      await fd.sync();
+    } finally {
+      await fd.close();
+    }
+    await fsp.rename(tmp, chemin);
+  }
+
+  /**
+   * Met les fichiers d'arguments dans l'état `cible` : écritures (ajouts et
+   * changements) puis suppressions, chacune suivie du fsync du répertoire.
+   * @param {Map<string, string>} cible
+   * @param {{ecrire: boolean, supprimer: boolean}} o
+   */
+  async #appliquerSecrets(cible, o) {
+    let change = false;
+    if (o.ecrire) {
+      for (const [nom, secret] of cible) {
+        if (this.secrets.get(nom) === secret) continue;
+        await this.#ecrireSecret(nom, secret);
+        this.secrets.set(nom, secret);
+        change = true;
+      }
+    }
+    if (change) await this.#synchroniserRepertoire(this.dirArguments);
+    change = false;
+    if (o.supprimer) {
+      for (const nom of [...this.secrets.keys()]) {
+        if (cible.has(nom)) continue;
+        await fsp.rm(path.join(this.dirArguments, nom), { force: true });
+        this.secrets.delete(nom);
+        change = true;
+      }
+    }
+    if (change) await this.#synchroniserRepertoire(this.dirArguments);
+  }
+
+  /**
+   * Sépare un enregistrement de ses arguments en clair (EX-7.24) ; rend
+   * l'enregistrement sans arguments et l'état des fichiers d'arguments après lui.
+   */
+  #separer(enr, complet) {
+    const cible = complet ? new Map() : new Map(this.secrets);
+    const clair = { ...enr };
+    if (enr.tickets) {
+      clair.tickets = enr.tickets.map((t) => {
+        const { doc, secret } = separerTicket(t);
+        const nom = `t-${t.ticket}`;
+        if (secret === null || ETATS_TERMINAUX.includes(t.state)) cible.delete(nom);
+        else cible.set(nom, secret);
+        return doc;
+      });
+    }
+    if (enr.fenetres) {
+      for (const nom of [...cible.keys()]) if (nom.startsWith("f-")) cible.delete(nom);
+      clair.fenetres = enr.fenetres.map((w) => {
+        const { doc, secret } = separerFenetre(w);
+        if (secret !== null) cible.set(`f-${w.ticket}`, secret);
+        return doc;
+      });
+    }
+    return { clair, cible };
   }
 
   /**
@@ -189,12 +378,68 @@ export class MagasinEtat {
    * @param {{meta?: object, versions?: object[], tickets?: object[], fenetres?: object[]}} enr
    */
   async ajouter(enr) {
-    const n = this.n + 1;
-    const ligne = `${n} ${chiffrer(this.cle, "ligne", n, enr)}\n`;
-    await this.fd.write(ligne);
-    await this.fd.datasync();
-    this.n = n;
-    this.lignes++;
+    if (this.enPanne) throw erreurPanne();
+    // Le numéro est attribué avant l'écriture et jamais réattribué, même après un échec.
+    const n = ++this.n;
+    try {
+      const { clair, cible } = this.#separer(enr, false);
+      await this.#appliquerSecrets(cible, { ecrire: true, supprimer: false });
+      await this.fd.write(`${n} ${chiffrer(this.cle, "ligne", n, clair)}\n`);
+      await this.fd.datasync();
+      this.lignes++;
+      await this.#appliquerSecrets(cible, { ecrire: false, supprimer: true });
+    } catch (e) {
+      this.enPanne = true;
+      throw e;
+    }
+  }
+
+  /**
+   * Reprise après un échec d'écriture (EX-7.22) : instantané de l'état complet
+   * sous le dernier numéro attribué, fichiers d'arguments recopiés, journal vidé
+   * par un nouveau descripteur. Le magasin accepte de nouveau les ajouts.
+   * @param {{meta: object, versions: object[], tickets: object[], fenetres: object[]}} etat
+   */
+  async reprendre(etat) {
+    this.enPanne = true;
+    await this.fd?.close().catch(() => {});
+    this.fd = null;
+    const { clair, cible } = this.#separer(etat, true);
+    // Ordre : arguments de l'état complet, instantané, journal vidé, puis seulement
+    // suppression des autres fichiers d'arguments ; un arrêt entre deux pas ne perd
+    // les arguments d'aucun ticket actif.
+    this.secrets = new Map();
+    await this.#appliquerSecrets(cible, { ecrire: true, supprimer: false });
+    await this.#ecrireInstantane(clair);
+    const vide = await fsp.open(this.cheminJournal, "w", 0o600);
+    try {
+      await vide.sync();
+    } finally {
+      await vide.close();
+    }
+    this.fd = await fsp.open(this.cheminJournal, "a", 0o600);
+    let supprime = false;
+    for (const nom of await fsp.readdir(this.dirArguments)) {
+      if (cible.has(nom)) continue;
+      await fsp.rm(path.join(this.dirArguments, nom), { force: true });
+      supprime = true;
+    }
+    if (supprime) await this.#synchroniserRepertoire(this.dirArguments);
+    this.lignes = 0;
+    this.enPanne = false;
+  }
+
+  async #ecrireInstantane(clair) {
+    const tmp = this.cheminInstantane + ".tmp";
+    const fd = await fsp.open(tmp, "w", 0o600);
+    try {
+      await fd.writeFile(`${this.n} ${chiffrer(this.cle, "instantane", this.n, clair)}\n`);
+      await fd.sync();
+    } finally {
+      await fd.close();
+    }
+    await fsp.rename(tmp, this.cheminInstantane);
+    await this.#synchroniserRepertoire(this.dir);
   }
 
   /** Faut-il compacter ? */
@@ -207,17 +452,15 @@ export class MagasinEtat {
    * @param {{meta: object, versions: object[], tickets: object[], fenetres: object[]}} etat
    */
   async compacter(etat) {
-    const tmp = this.cheminInstantane + ".tmp";
-    const fd = await fsp.open(tmp, "w", 0o600);
-    await fd.writeFile(`${this.n} ${chiffrer(this.cle, "instantane", this.n, etat)}\n`);
-    await fd.sync();
-    await fd.close();
-    await fsp.rename(tmp, this.cheminInstantane);
-    const dfd = await fsp.open(this.dir, "r");
-    await dfd.sync();
-    await dfd.close();
-    await this.fd.truncate(0);
-    await this.fd.sync();
+    if (this.enPanne) throw erreurPanne();
+    try {
+      await this.#ecrireInstantane(this.#separer(etat, true).clair);
+      await this.fd.truncate(0);
+      await this.fd.sync();
+    } catch (e) {
+      this.enPanne = true;
+      throw e;
+    }
     this.lignes = 0;
   }
 

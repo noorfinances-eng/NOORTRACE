@@ -309,7 +309,9 @@ describe("enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecte
         decider: (q) => (q.tool_announced === "demo__payments.create" ? { decision: "refuse", rule: "paiements suspendus" } : { decision: "autorise", rule: null }),
       });
       const serveurSvc = await svc.servir(0);
-      config.policy.approval.service = { ...config.policy.approval.service, url: `http://127.0.0.1:${serveurSvc.address().port}`, socket: null };
+      // EX-18.8 : en HTTP, le noyau s'authentifie auprès du service par un jeton.
+      config.policy.approval.service = { ...config.policy.approval.service, url: `http://127.0.0.1:${serveurSvc.address().port}`, socket: null, token: { env: "NOORTRACE_TEST_JETON_APPROBATION" } };
+      env.NOORTRACE_TEST_JETON_APPROBATION = "jeton-noyau-de-test";
       const chemin = path.join(d, "configuration.json");
       fs.writeFileSync(chemin, JSON.stringify(config, null, 2));
       const p = spawn(process.execPath, [BIN_NOORTRACE, "--config", chemin], { env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });

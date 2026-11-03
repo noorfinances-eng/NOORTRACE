@@ -12,19 +12,30 @@
 //
 // Contrôles de chaque objet relu : longueur et SHA-256 égaux à la ligne du
 // registre des copies (EX-12.29) quand un registre est donné ; puis, toujours,
-// la chaîne reconstruite : en-têtes (`org_id`, `journal_id` de la
-// configuration), `first_seq` qui se suivent, `prev_hash` d'un segment à
-// l'autre, chaque ligne (hash recalculé, chaînage, schéma ; les signatures
-// sont vérifiées par le démon à sa reprise, EX-12.10 pas 2),
-// époques non décroissantes, et chaque manifeste recalculé sur les
-// événements de sa période (CT-1 §10). Un écart refuse la reconstruction :
-// rien n'est laissé dans la destination.
+// le répertoire reconstruit en entier (`verifierRepertoireJournal`) : en-têtes
+// (`org_id`, `journal_id` de la configuration), `first_seq` qui se suivent,
+// `prev_hash` d'un segment à l'autre, chaque ligne (schéma, chaînage, hash
+// recalculé, signature sous la clé en vigueur, EX-12.10 pas 2), la chaîne
+// entière par le noyau (CT-1 E-1 à E-11, C-1 à C-3) avec les clés de la
+// chaîne (clé initiale : `--cles`, ou celle du signataire de classe D de la
+// configuration ; puis chaque clé annoncée par une rotation), époques non
+// décroissantes, chaque manifeste recalculé sur les événements de sa période
+// et sa signature (CT-1 §10.2, P-5), la continuité (§10.3), chaque série de
+// points (§10.5) et le SHA-256 de chaque pièce contre son nom (8.4). Sans
+// registre des copies, c'est ce qui prouve que les fichiers restaurés sont
+// « identiques octet pour octet » à ceux qu'a écrits l'écrivain (CT-8
+// EX-11.6) : une copie altérée et rechaînée garde des signatures qui ne
+// vérifient plus. Un écart refuse la reconstruction : rien n'est laissé dans
+// la destination.
 
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { construireManifeste, ecrireHorodatage, sha256Hex, egaliteJson } from "@noortrace/noyau";
-import { relireSegment, lireSegmentFerme } from "../segments.mjs";
+import { ecrireHorodatage, sha256Hex } from "@noortrace/noyau";
+import { lireSegmentFerme } from "../segments.mjs";
+import { verifierRepertoireJournal } from "../verification.mjs";
+import { SignataireFichier } from "../signataires.mjs";
+import { resoudreSecret } from "../secrets.mjs";
 import { lireRegistres, piecesReferencees } from "./registre.mjs";
 import { comparerCles } from "./perimetre.mjs";
 import { VERSION_ENREGISTREUR } from "../coeur.mjs";
@@ -68,68 +79,52 @@ export async function registreParCle(dirWorm) {
 }
 
 /**
- * Vérifie la chaîne d'un répertoire de journal reconstruit (sans clé publique :
- * hash, chaînage, schéma ; manifestes recalculés).
+ * Vérifie un répertoire de journal reconstruit (module commun
+ * `verification.mjs`) : chaîne, signatures avec les clés de la chaîne,
+ * manifestes, signatures des manifestes, continuité, séries de points,
+ * pièces.
  * @param {string} rep répertoire du journal
- * @param {{org_id: string, journal_id: string}} id
+ * @param {{org_id: string, journal_id: string, clePublique?: (keyId: string) => Promise<Uint8Array|string|null>}} id
  * @returns {Promise<{incidents: object[], lastSeq: number, lastHash: string|null, evenements: number}>}
  */
 export async function verifierChaineReconstruite(rep, id) {
-  const incidents = [];
-  const noms = (await fs.readdir(path.join(rep, "segments")).catch(() => [])).filter((n) => /^seg-[0-9]{16}-[0-9]{20}\.ndjson$/.test(n)).sort();
-  let attendu = 1;
-  let prev = null;
-  let epoque = 0;
-  const hashes = new Map();
-  for (const n of noms) {
-    const f = Number(n.slice(4, 20));
-    const e = Number(n.slice(21, 41));
-    if (e < epoque) incidents.push({ key: `segments/${n}`, kind: "epoque_decroissante" });
-    epoque = Math.max(epoque, e);
-    if (f !== attendu) {
-      incidents.push({ key: `segments/${n}`, kind: "segment_absent", attendu });
-      break;
-    }
-    const octets = new Uint8Array(await fs.readFile(path.join(rep, "segments", n)));
-    const r = relireSegment(octets, { firstSeqAttendu: attendu, prevHashAttendu: prev });
-    if (!r.entete || r.entete.org_id !== id.org_id || r.entete.journal_id !== id.journal_id) {
-      incidents.push({ key: `segments/${n}`, kind: "entete_invalide" });
-      break;
-    }
-    if (r.corruption || r.tronque) {
-      incidents.push({ key: `segments/${n}`, kind: "copie_alteree", raison: r.corruption?.raison ?? "fin_incomplete" });
-      break;
-    }
-    for (const ev of r.evenements) hashes.set(ev.seq, ev.hash);
-    if (r.evenements.length) {
-      attendu = r.evenements.at(-1).seq + 1;
-      prev = r.evenements.at(-1).hash;
-    } else {
-      prev = r.entete.prev_hash;
-    }
-  }
-  // Manifestes recalculés sur les événements restaurés (CT-1 §10).
-  for (const n of (await fs.readdir(path.join(rep, "manifestes")).catch(() => [])).filter((x) => x.endsWith(".json")).sort()) {
-    let m;
+  const v = await verifierRepertoireJournal(rep, { org_id: id.org_id, journal_id: id.journal_id, clePublique: id.clePublique, dernierOuvert: false });
+  return { incidents: v.incidents, lastSeq: v.lastSeq, lastHash: v.lastSeq ? v.lastHash : null, evenements: v.evenements.length };
+}
+
+/**
+ * Clé publique initiale d'un journal tirée de la configuration : signataire
+ * de classe D (`signer.backend.type: "file"`, développement), clés `key_id`
+ * et `next_key_id`. Les autres classes ne se lisent pas hors du démon :
+ * `--cles` (cles.json de CT-1 §11.2, comme l'outil de CT-8 EX-11.7) les donne.
+ * @param {object} config
+ * @param {{env?: object}} [o]
+ * @returns {(keyId: string) => Promise<Uint8Array|null>}
+ */
+export function clePubliqueDepuisConfiguration(config, o = {}) {
+  return async (keyId) => {
+    const s = config.signer;
+    if (s?.backend?.type !== "file" || config.recorder.environment === "production") return null;
     try {
-      m = JSON.parse(await fs.readFile(path.join(rep, "manifestes", n), "utf8"));
+      const phrase = s.backend.passphrase ? resoudreSecret(s.backend.passphrase, "/signer/backend/passphrase", { env: o.env ?? process.env }) : null;
+      const b = SignataireFichier.charger({ environment: config.recorder.environment, keyId: s.key_id, chemin: s.backend.path, nextKeyId: s.rotation?.next_key_id ?? null, phrase });
+      const p = await b.clePublique(keyId);
+      b.effacer?.();
+      return p;
     } catch {
-      incidents.push({ key: `manifestes/${n}`, kind: "copie_alteree" });
-      continue;
+      return null;
     }
-    const h = [];
-    for (let s = m.first_seq; s < m.first_seq + m.count; s++) {
-      if (!hashes.has(s)) break;
-      h.push(hashes.get(s));
-    }
-    if (h.length !== m.count) {
-      incidents.push({ key: `manifestes/${n}`, kind: "segment_absent", seq: m.first_seq + h.length });
-      continue;
-    }
-    const recalcule = construireManifeste({ ...m, hashes: h });
-    if (!egaliteJson(recalcule, m)) incidents.push({ key: `manifestes/${n}`, kind: "copie_alteree" });
-  }
-  return { incidents, lastSeq: attendu - 1, lastHash: prev, evenements: hashes.size };
+  };
+}
+
+/**
+ * Clés publiques d'un fichier `cles.json` (CT-1 §11.2).
+ * @param {object} cles
+ * @returns {(keyId: string) => Promise<string|null>}
+ */
+export function clePubliqueDepuisCles(cles) {
+  const parId = new Map((cles?.keys ?? []).map((k) => [k.key_id, k.public_key]));
+  return async (keyId) => parId.get(keyId) ?? null;
 }
 
 /**
@@ -142,6 +137,8 @@ export async function verifierChaineReconstruite(rep, id) {
  * @param {Map<string, object[]>|null} p.registre registre des copies relu, ou null (chemin B sans archive)
  * @param {() => number} [p.murale]
  * @param {(niveau: string, composant: string, evenement: string, data: object) => void} [p.consigner]
+ * @param {(keyId: string) => Promise<Uint8Array|string|null>} [p.clePublique] clé publique d'un `key_id`
+ *   que la chaîne n'annonce pas (clé initiale) ; défaut : signataire de classe D de la configuration
  * @returns {Promise<object>} synthèse
  */
 export async function reconstruireJournal(p) {
@@ -235,7 +232,7 @@ export async function reconstruireJournal(p) {
       `${JSON.stringify({ version: 0, org_id: org, journal_id: jid, created_at: creeLe, recorder: p.recorder ?? VERSION_ENREGISTREUR }, null, 2)}\n`,
       { mode: 0o600, flag: "wx" },
     );
-    const v = await verifierChaineReconstruite(rep, { org_id: org, journal_id: jid });
+    const v = await verifierChaineReconstruite(rep, { org_id: org, journal_id: jid, clePublique: p.clePublique ?? clePubliqueDepuisConfiguration(config) });
     if (v.incidents.length) throw new ErreurRestauration(v.incidents);
     // Pièces référencées sans copie (copy_pieces faux) : perdues (CT-8 §11.4).
     const piecesManquantes = [];

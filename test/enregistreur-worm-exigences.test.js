@@ -317,6 +317,10 @@ describe("lot WORM : exigences sur un S3 réel à Object Lock (EX-12.16 à EX-12
       try {
         const s = new SupervisionWorm(worm);
         await s.tic();
+        // Manifeste, signature, continuité, signataire et relecture : contrôles du cœur,
+        // avec ou sans WORM (src/controles.mjs, R-A-11) ; copies et rétention : lot WORM.
+        await c.controles.horaire(c.horlogeBrute.murale());
+        await c.controles.quotidien(c.horlogeBrute.murale());
         const checks = c.journal.trouver("integrity_check").map((x) => [x.data.check, x.data.ok]);
         for (const k of ["manifeste", "signature", "copie_worm", "signataire", "relecture", "configuration_worm"]) expect(checks, k).to.deep.include([k, true]);
         expect(checks.filter(([, ok]) => !ok)).to.deep.equal([]);

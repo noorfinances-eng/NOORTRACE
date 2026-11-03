@@ -15,6 +15,8 @@ import {
   ORG_ID, SESSIONS, adresse, clePrivee, signerVote, repertoireTemporaire, politiqueParcours, messageCharger, requeteEvaluer, retenue,
   ecrireConfiguration, appelConsole, requeteBrute, lancerService,
 } from "./fixtures/approbation-service/outils.mjs";
+import * as APPROBATION_RELECTURE from "@noortrace/approbation";
+import { ANNUAIRE_REFERENCE, JOURNAL_ID as JOURNAL_ID_RELECTURE } from "./fixtures/approbation-service/outils.mjs";
 
 const V1 = "parcours-1";
 const paiement = (montant, extra = {}) => ({ claim_id: "2026-90417", amount: montant, currency: "CHF", beneficiary_iban: "CH9300762011623852957", ...extra });
@@ -231,7 +233,11 @@ describe("service d'approbation : entrées hostiles", function () {
       const s = await service({ dir });
       const t = await ticketOuvert(s);
       s.horloge.decalage = 10 * 60000;
-      await s.inst.service.tic();
+      // Une entrée qui a un effet (vote refusé, inscrit dans la trace, EX-7.8) : son
+      // instant est persisté avec elle. Une entrée sans effet (un tic sans minuteur
+      // échu) n'est plus persistée (EX-7.20, relecture C, R-C-10) : EX-7.23 ne fait
+      // relire que les documents, où elle ne laisse rien.
+      await vote(s, t.ticket, 1, "approuve", "0x" + "11".repeat(65));
       const dernier = s.inst.service.machine.dernierAt;
       await s.inst.arreter();
       const s2 = await service({ dir });
@@ -362,5 +368,283 @@ describe("service d'approbation : entrées hostiles", function () {
         await svc.arreter();
       }
     });
+  });
+});
+
+// ------------------------------------------------------------------ relecture adversariale C (non-régression)
+//
+// Chaque essai de la relecture C (approbations de bout en bout) côté service,
+// transformé en test : il échouait avant la correction et passe après.
+
+describe("service d'approbation : non-régression de la relecture C", function () {
+  this.timeout(60000);
+  const A = APPROBATION_RELECTURE;
+  const REGISTRE = "0xff7a89fa58a8ffa1173eb70799d7c184bf4d7fe1";
+  const JEU = "0x35312352c0065a3fc46ce14dba05df3fcee9fbc2";
+  const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+  const politiqueRegistre = (set = JEU) =>
+    politiqueParcours({ approver_set: { source: "registre", chain_id: 2124, registry: REGISTRE, set, members: null, threshold: null } });
+  const lecture = (h, membres = [adresse(1), adresse(2), adresse(3)], required = 2) => ({
+    status: "lu",
+    cause: null,
+    jeu: {
+      chain_id: 2124, registry: REGISTRE, set: JEU, height: h, block_hash: N.sha256Hex(N.utf8(`bloc/${h}`)),
+      threshold: { required, size: membres.length }, members: [...membres].sort(),
+    },
+  });
+  function serviceEnMemoire(lecteur) {
+    const dir = repertoireTemporaire();
+    const config = { org_id: ORG_ID, journal_id: JOURNAL_ID_RELECTURE, set_poll_interval_ms: 30, remise_representation_ms: 30000, body_max_bytes: 1 << 24, administrators: [SESSIONS.admin] };
+    const machine = new A.Machine({ org_id: ORG_ID, journal_id: JOURNAL_ID_RELECTURE, identifiants: { mode: "compteur" }, administrators: config.administrators });
+    const supervision = new A.Supervision({ journal: path.join(dir, "j.ndjson"), notifications: path.join(dir, "n.ndjson") });
+    return new A.ServiceApprobation({ config, machine, magasin: null, supervision, lecteur, annuaire: A.Annuaire.lire(ANNUAIRE_REFERENCE) });
+  }
+  async function voter(s, t, i) {
+    const sig = signerVote(i, { decision: "approuve", ticket: t.ticket, request_hash: t.request.request_hash });
+    await s.console("voter", { ticket: t.ticket, approver: adresse(i), decision: "approuve", signature: sig, reason: null, session_identity: SESSIONS[i] });
+  }
+  async function serviceDemarre(dir = repertoireTemporaire()) {
+    const cfg = ecrireConfiguration(dir, { socket: false });
+    const cle = N.sha256(N.utf8(dir + "/k"));
+    const demarrer = () => demarrerService({ config: cfg.config, secrets: { cle, jetonNoyau: cfg.jetonNoyau, jetonConsole: cfg.jetonConsole }, base: dir });
+    return { dir, cfg, cle, demarrer, inst: await demarrer() };
+  }
+  /** Ticket ouvert, voté par 1 et 2, scellé `approuve` (held). */
+  async function ticketApprouve(s, args) {
+    const req = requeteEvaluer("sap__payments.create", args);
+    const r = await s.evaluer(req);
+    await s.ouvrir(retenue({ requete: req, rule: r.rule, ticket: r.ticket, seq: 5, ts: N.ecrireHorodatage(Date.now() - 1000) }).ouvrir);
+    const t = s.machine.tickets.get(r.ticket);
+    for (const i of [1, 2]) await voter(s, t, i);
+    const { remises } = await s.decisions({ wait_ms: 0 });
+    const at = N.ecrireHorodatage(Date.now());
+    await s.acquitter({ remise_id: remises[0].remise_id, ticket: t.ticket, result: "scelle", reason: null, seq: 6, hash: N.sha256Hex(N.utf8("e6")), at, decision: "approuve", held: true, approval: { ...remises[0].approval, at } });
+    return t;
+  }
+
+  it("R-C-1 : une lecture partie avant le calcul de la décision ne la confirme pas (EX-8.7, T8)", async function () {
+    const chaine = { hauteur: 100, membres: [adresse(1), adresse(2), adresse(3)] };
+    let liberer = null;
+    const lecteur = {
+      appels: [], changer: false, retenir: false,
+      async hauteur() { return chaine.hauteur; },
+      async changements() { return this.changer; },
+      async lire() {
+        const instantane = lecture(chaine.hauteur, chaine.membres);
+        this.appels.push({ t: Date.now(), h: chaine.hauteur });
+        if (this.retenir) await new Promise((r) => (liberer = r));
+        return instantane;
+      },
+    };
+    const s = serviceEnMemoire(lecteur);
+    try {
+      await s.charger(messageCharger({ policy_version: V1, rules: politiqueRegistre() }));
+      for (let k = 0; k < 100 && !s.etat().ready; k++) await pause(20);
+      const req = requeteEvaluer("sap__payments.create", paiement("7400.00"));
+      const r = await s.evaluer(req);
+      await s.ouvrir(retenue({ requete: req, rule: r.rule, ticket: r.ticket, seq: 5, ts: N.ecrireHorodatage(Date.now() - 1000) }).ouvrir);
+      const t = s.machine.tickets.get(r.ticket);
+      for (let k = 0; k < 100 && t.approver_set === null; k++) await pause(20);
+      // une lecture de surveillance part et reste en vol
+      const avant = lecteur.appels.length;
+      lecteur.retenir = true;
+      lecteur.changer = true;
+      for (let k = 0; k < 100 && lecteur.appels.length === avant; k++) await pause(10);
+      const enVol = lecteur.appels.at(-1);
+      lecteur.changer = false;
+      lecteur.retenir = false;
+      // le membre 2 est retiré sur la chaîne, puis 1 et 2 votent : décision calculée après le départ de la lecture
+      chaine.hauteur = enVol.h + 2;
+      chaine.membres = [adresse(1), adresse(3)];
+      await pause(20);
+      for (const i of [1, 2]) await voter(s, t, i);
+      expect(t.state).to.equal("verification");
+      expect(enVol.t).to.be.below(N.decoderHorodatage(t.computed_decision.at));
+      liberer();
+      // la lecture en vol revient : elle ne confirme pas ; la lecture suivante, partie après, voit le retrait
+      for (let k = 0; k < 100 && t.state === "verification"; k++) await pause(10);
+      expect(s.machine.remisesCourantes().filter((x) => x.remise.approval.decision === "approuve")).to.have.length(0);
+      expect(t.votes.filter((v) => v.status === "courant").map((v) => v.approver)).to.not.include(adresse(2));
+    } finally {
+      await s.arreter();
+    }
+  });
+
+  it("R-C-9 : un ticket d'une version précédente est lu avec son propre jeu épinglé (EX-7.21, EX-8.1)", async function () {
+    let h = 100;
+    const S2 = "0x" + "52".repeat(20);
+    const lecteur = {
+      lectures: [],
+      async hauteur() { return h; },
+      async changements() { return false; },
+      async lire(pol) {
+        h++;
+        this.lectures.push(pol.set);
+        if (pol.set !== JEU) return { status: "illisible", jeu: null, cause: "jeu_non_attendu" };
+        return lecture(h);
+      },
+    };
+    const s = serviceEnMemoire(lecteur);
+    try {
+      await s.charger(messageCharger({ policy_version: V1, rules: politiqueRegistre() }));
+      for (let k = 0; k < 100 && !s.etat().ready; k++) await pause(20);
+      const req = requeteEvaluer("sap__payments.create", paiement("7400.00"));
+      const r = await s.evaluer(req);
+      await s.ouvrir(retenue({ requete: req, rule: r.rule, ticket: r.ticket, seq: 5, ts: N.ecrireHorodatage(Date.now() - 1000) }).ouvrir);
+      const t = s.machine.tickets.get(r.ticket);
+      for (let k = 0; k < 100 && t.approver_set === null; k++) await pause(20);
+      // V2 épingle S2 ; le registre désigne encore S1 (jeu épinglé du ticket de V1)
+      await s.charger(messageCharger({ policy_version: "parcours-2", rules: politiqueRegistre(S2) }));
+      for (const i of [1, 2]) await voter(s, t, i);
+      for (let k = 0; k < 100 && t.state !== "a_remettre"; k++) await pause(10);
+      expect(t.state).to.equal("a_remettre");
+      expect(t.set_reassigned).to.equal(false);
+      expect(lecteur.lectures).to.include(S2); // le jeu de V2 est lu aussi, sans effet sur le ticket de V1
+    } finally {
+      await s.arreter();
+    }
+  });
+
+  it("R-C-2 : magasin : après un fdatasync en échec, aucun numéro n'est réutilisé ; reprise par l'état complet (EX-7.22, EX-7.23)", async function () {
+    const dir = repertoireTemporaire();
+    const cle = N.sha256(N.utf8("cle"));
+    const m = new A.MagasinEtat({ repertoire: dir, cle });
+    await m.ouvrir();
+    const vraie = m.fd.datasync.bind(m.fd);
+    let echec = true;
+    m.fd.datasync = async () => {
+      if (echec) {
+        echec = false;
+        throw Object.assign(new Error("EIO simulé"), { code: "EIO" });
+      }
+      return vraie();
+    };
+    const e1 = await rejet(m.ajouter({ meta: { premier: true } }));
+    expect(e1.code).to.equal("EIO");
+    expect(m.n).to.equal(1); // le numéro 1 est consommé, jamais réattribué
+    expect(m.enPanne).to.equal(true);
+    await rejet(m.ajouter({ meta: { second: true } })); // aucun ajout tant que l'état complet n'est pas recopié
+    await m.reprendre({ meta: { second: true }, versions: [], tickets: [], fenetres: [] });
+    await m.ajouter({ meta: { troisieme: true } });
+    expect(m.n).to.equal(2); // l'ajout refusé n'a consommé aucun numéro ; 1 ne revient jamais
+    await m.fermer();
+    const m2 = new A.MagasinEtat({ repertoire: dir, cle });
+    const docs = await m2.ouvrir();
+    await m2.fermer();
+    expect(docs.meta).to.deep.equal({ troisieme: true });
+  });
+
+  it("R-C-2 : service : une unité de fenêtre consommée (réponse autorise) reste consommée après un fdatasync en échec et un redémarrage (EX-6.5, EX-7.22)", async function () {
+    const x = await serviceDemarre();
+    let inst = x.inst;
+    try {
+      const s = inst.service;
+      await s.charger(messageCharger({ policy_version: V1, rules: politiqueParcours() }));
+      const args = { claim_id: "c", amount: "2500.00", currency: "CHF", beneficiary_iban: "CH9300762011623852957" };
+      await ticketApprouve(s, args);
+      expect(s.machine.fenetres[0].remaining).to.equal(2);
+      const fd = s.magasin.fd;
+      const vraie = fd.datasync.bind(fd);
+      let echec = true;
+      fd.datasync = async () => {
+        if (echec) {
+          echec = false;
+          throw Object.assign(new Error("EIO simulé"), { code: "EIO" });
+        }
+        return vraie();
+      };
+      // une entrée qui a un effet (nouveau ticket) échoue à l'écriture : aucune réponse
+      const e = await rejet(s.evaluer(requeteEvaluer("sap__payments.create", { ...args, claim_id: "c9", amount: "9000.00" })));
+      expect(e.code).to.equal("EIO");
+      // puis un appel couvert par la fenêtre : réponse autorise, unité consommée
+      const couvert = await s.evaluer(requeteEvaluer("sap__payments.create", { ...args, claim_id: "c2" }));
+      expect(couvert.decision).to.equal("autorise");
+      expect(s.machine.fenetres[0].remaining).to.equal(1);
+    } finally {
+      await inst.arreter();
+    }
+    inst = await x.demarrer();
+    const restant = inst.service.machine.fenetres[0]?.remaining;
+    await inst.arreter();
+    expect(restant).to.equal(1);
+  });
+
+  it("R-C-7 : les arguments d'un ticket consommé ne restent dans aucun fichier d'état (EX-7.24)", async function () {
+    const x = await serviceDemarre();
+    const s = x.inst.service;
+    const IBAN = "CH9300762011623852957";
+    const etatDir = path.join(x.cfg.config.state_dir, "etat");
+    // tous les fichiers chiffrés de l'état : journal, instantané, fichiers d'arguments (EX-7.24)
+    const portent = () => {
+      let n = 0;
+      const fichiers = fs.readdirSync(etatDir).map((nom) => [path.join(etatDir, nom), nom === "journal.ndjson" ? "ligne" : nom === "instantane.chiffre" ? "instantane" : null]);
+      const dirArgs = path.join(etatDir, "arguments");
+      if (fs.existsSync(dirArgs)) for (const nom of fs.readdirSync(dirArgs)) fichiers.push([path.join(dirArgs, nom), "arguments"]);
+      for (const [chemin, nature] of fichiers) {
+        if (nature === null) continue;
+        const brut = fs.readFileSync(chemin, "utf8");
+        for (const l of brut.trim().split("\n").filter(Boolean)) {
+          const k = l.indexOf(" ");
+          const clair = JSON.stringify(A.dechiffrer(x.cle, nature, Number(l.slice(0, k)), l.slice(k + 1)));
+          if (clair.includes(IBAN) || clair.includes("secret-claim-4242")) n++;
+        }
+      }
+      return n;
+    };
+    try {
+      await s.charger(messageCharger({ policy_version: V1, rules: politiqueParcours() }));
+      const t = await ticketApprouve(s, { claim_id: "secret-claim-4242", amount: "7400.00", currency: "CHF", beneficiary_iban: IBAN });
+      expect(portent()).to.be.above(0); // ticket actif : arguments chiffrés au repos
+      await s.consommer({ ticket: t.ticket, seq: 7, hash: N.sha256Hex(N.utf8("e7")) });
+      expect(t.state).to.equal("consomme");
+      expect(portent()).to.equal(0);
+    } finally {
+      await x.inst.arreter();
+    }
+    expect(portent()).to.equal(0);
+  });
+
+  it("R-C-7 : les arguments d'un ticket actif sont relus au redémarrage (clé de rapprochement, EX-7.23)", async function () {
+    const x = await serviceDemarre();
+    let s = x.inst.service;
+    const args = paiement("7400.00");
+    await s.charger(messageCharger({ policy_version: V1, rules: politiqueParcours() }));
+    const r = await s.evaluer(requeteEvaluer("sap__payments.create", args));
+    await x.inst.arreter();
+    const inst = await x.demarrer();
+    s = inst.service;
+    try {
+      expect(s.machine.tickets.get(r.ticket).request.arguments).to.deep.equal(args);
+      const again = await s.evaluer(requeteEvaluer("sap__payments.create", args));
+      expect(again).to.include({ ticket: r.ticket, ticket_state: "nouveau" });
+    } finally {
+      await inst.arreter();
+    }
+  });
+
+  it("R-C-8 : jetons du noyau et de la console de même valeur : configuration refusée (EX-12.4)", function () {
+    const dir = repertoireTemporaire();
+    const cfg = ecrireConfiguration(dir, { socket: false });
+    fs.writeFileSync(path.join(dir, "jeton-console"), cfg.jetonNoyau, { mode: 0o600 });
+    expect(() => A.chargerConfiguration(cfg.chemin)).to.throw(/distinct/);
+    fs.writeFileSync(path.join(dir, "jeton-console"), cfg.jetonConsole, { mode: 0o600 });
+    expect(A.chargerConfiguration(cfg.chemin).secrets.jetonConsole).to.equal(cfg.jetonConsole);
+  });
+
+  it("R-C-10 : un consommer répété, sans effet, n'est pas persisté (EX-7.20)", async function () {
+    const x = await serviceDemarre();
+    const s = x.inst.service;
+    try {
+      await s.charger(messageCharger({ policy_version: V1, rules: politiqueParcours() }));
+      const t = await ticketApprouve(s, paiement("7400.00"));
+      const c = { ticket: t.ticket, seq: 7, hash: N.sha256Hex(N.utf8("e7")) };
+      await s.consommer(c);
+      const n = s.magasin.n;
+      const rs = await Promise.all(Array.from({ length: 50 }, () => s.consommer(c)));
+      expect(rs.every((r) => r.state === "consomme")).to.equal(true);
+      expect(s.magasin.n).to.equal(n);
+    } finally {
+      await x.inst.arreter();
+    }
   });
 });

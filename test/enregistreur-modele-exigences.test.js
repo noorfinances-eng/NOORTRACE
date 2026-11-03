@@ -837,4 +837,69 @@ describe("enregistreur, frontal modèle : exigences (§5, EX-8.5 à EX-8.7, §13
       expect(coeur.metriques.valeur("noortrace_upstream_errors_total", { provider: "anthropic", kind: "http_5xx" })).to.be.greaterThan(0);
     });
   });
+
+  // Défauts démontrés par la relecture adversariale B des frontaux.
+  describe("relecture B : non-régression de la passerelle", function () {
+    /** Requêtes sur une connexion keep-alive unique (ou l'agent donné). */
+    const requete = (p, agent, cible, o = {}) =>
+      new Promise((res) => {
+        const q = http.request({ agent: o.agent ?? agent, host: "127.0.0.1", port: p.adresse().port, path: cible, method: "POST", headers: o.entetes ?? BASE }, (rep) => {
+          const m = [];
+          rep.on("data", (c) => m.push(c));
+          rep.on("end", () => res({ statut: rep.statusCode, texte: Buffer.concat(m).toString("utf8") }));
+        });
+        q.on("error", () => res({ statut: null, texte: "" }));
+        q.end(o.corps);
+      });
+
+    it("R-B-4 (EX-5.36, EX-9.6) : un segment de modèle refusé par un détecteur n'est jamais consigné, model_exchange_relayed porte null", async function () {
+      const sans = (n) => {
+        const r = reponseEntiere("gemini", GEM, n);
+        delete r.modelVersion;
+        return JSON.stringify(r);
+      };
+      fournisseur.prochaine({ statut: 200, entetes: { "content-type": "application/json" }, morceaux: [sans(14)] });
+      const r = await envoyer(principale, "/v1beta/models/m-4111111111111111:generateContent", { corps: GEM });
+      expect(r.echange.evenement.code.model).to.equal(null);
+      expect(derniere("model_exchange_relayed").data.model_segment).to.equal(null);
+      expect(JSON.stringify(ops())).to.not.include("4111111111111111");
+      fournisseur.prochaine({ statut: 200, entetes: { "content-type": "application/json" }, morceaux: [sans(13)] });
+      await envoyer(principale, "/v1beta/models/gemini-x:generateContent", { corps: GEM });
+      expect(derniere("model_exchange_relayed").data.model_segment).to.equal("gemini-x");
+    });
+
+    it("R-B-3 (EX-18.3) : échecs de jeton limités par identifiant de jeton et par connexion ; un jeton valide sur une autre connexion passe", async function () {
+      const p = await ouvrir();
+      const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+      const faux = { "content-type": "application/json", "x-noortrace-token": "jeton-faux" };
+      const statuts = [];
+      for (let k = 0; k < 11; k++) statuts.push((await requete(p, agent, "/v1/messages", { corps: "{", entetes: faux })).statut);
+      expect(statuts).to.deep.equal(Array(11).fill(401));
+      // La passerelle ferme la connexion après un refus d'authentification
+      // (Connection: close) : chaque tentative a sa connexion, et le jeton
+      // présenté porte la limitation ; un jeton valide n'est jamais refusé.
+      expect((await requete(p, agent, "/v1/messages", { corps: "{" })).statut, "jeton valide : authentifié").to.equal(400);
+      const autre = new http.Agent({ keepAlive: false });
+      expect((await requete(p, agent, "/v1/messages", { corps: "{", agent: autre, entetes: faux })).statut).to.equal(401);
+      const raisons = ops().filter((l) => l.event === "auth_failed" && l.data.transport === "passerelle").slice(-12).map((l) => l.data.reason);
+      expect(raisons).to.deep.equal([...Array(10).fill("hote_inconnu"), "jeton_limite", "jeton_limite"]);
+      agent.destroy();
+    });
+
+    it("R-B-6 (4.4 pas 1, EX-4.47) : quota contrôlé avant l'analyse du corps ; corps d'une requête refusée sur sa chaîne de requête compté", async function () {
+      const p = await ouvrir((c) => (c.model.hosts[0].quota = { ...c.model.hosts[0].quota, received_bytes_per_minute: 6000 }));
+      const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+      const q = () => p.moteur.quotasParHote.get("agent-modele").recus.total(p.monotone());
+      // Corps refusé sur sa chaîne de requête (EX-5.29) avant sa lecture : ses octets sont comptés.
+      const r = await requete(p, agent, "/v1beta/models/gemini-x:streamGenerateContent?alt=sse&x=1", { corps: "x".repeat(5000) });
+      expect(r.statut).to.equal(400);
+      expect(q()).to.be.at.least(5000);
+      // Quota d'octets atteint : un corps non analysable est refusé par le quota, sans analyse.
+      const n = await requete(p, agent, "/v1/messages", { corps: "x".repeat(2000) });
+      expect(n.statut).to.equal(503);
+      expect(derniere("call_blocked").data).to.include({ reason: "quota", class: "modele", limit_bytes: 6000 });
+      expect(ops().filter((l) => l.event === "model_request_refused").at(-1).data.raison).to.not.equal("corps_non_analysable");
+      agent.destroy();
+    });
+  });
 });

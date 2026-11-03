@@ -4,7 +4,10 @@
 // démon, sans clé, sans stockage, sans politique. Il rejette lui-même une
 // ligne qui contient un CR (-32700, EX-4.43) et un cadrage `Content-Length`
 // (EX-4.31), écrit son journal sur sa sortie d'erreur, et se termine à la
-// fermeture de son entrée standard ou de la prise.
+// fermeture de son entrée standard ou de la prise. Les lignes `warning` et
+// `error` du journal d'exploitation qui concernent sa connexion d'hôte lui
+// arrivent du démon préfixées de `{"noortrace_journal":` ; il les écrit sur sa
+// sortie d'erreur, jamais sur sa sortie standard (EX-9.7, lecture 158).
 //
 // Identité (EX-4.39) : sur une prise Unix, il répond au défi du démon par un
 // fichier créé en exclusion dans le répertoire de la prise ; sur une prise
@@ -19,9 +22,10 @@ import net from "node:net";
 import tls from "node:tls";
 import fs from "node:fs";
 import path from "node:path";
-import { DecoupeurLignes, PREFIXE_DEFI } from "./hote-stdio.mjs";
+import { DecoupeurLignes, PREFIXE_DEFI, PREFIXE_JOURNAL } from "./hote-stdio.mjs";
 
 const ERREUR_CR = '{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error","data":{"reason":"cr_dans_la_ligne"}}}';
+const JOURNAL = Buffer.from(PREFIXE_JOURNAL);
 
 /**
  * Exécute le connecteur.
@@ -104,6 +108,11 @@ export function executerConnecteur(o) {
         }
         erreur.write("noortrace-connecteur: reponse inattendue du demon\n");
         c.destroy();
+        return;
+      }
+      // EX-9.7 : ligne du journal d'exploitation de cette connexion → sortie d'erreur.
+      if (l.length > JOURNAL.length && l.subarray(0, JOURNAL.length).equals(JOURNAL) && l[l.length - 1] === 0x7d) {
+        erreur.write(Buffer.concat([l.subarray(JOURNAL.length, l.length - 1), Buffer.from("\n")]));
         return;
       }
       sortie.write(Buffer.concat([l, Buffer.from("\n")]));

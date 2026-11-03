@@ -7,7 +7,9 @@
 // ligne par erreur : pointeur JSON, règle, valeur sauf pour un secret) et
 // code de retour 2 ; le démon ne démarre pas (14.2, « Configuration invalide
 // au démarrage »). SIGTERM et SIGINT arrêtent proprement (code 0) ; SIGHUP
-// recharge la politique (EX-15.5).
+// recharge la politique (EX-15.5) ; SIGUSR2 porte la confirmation de
+// l'exploitant après un saut d'horloge (EX-7.13) : `noortrace-ctl reload` et
+// `noortrace-ctl clock --accept` les envoient (src/ctl-demon.mjs).
 
 import fs from "node:fs";
 import { validerConfiguration, resoudreSecrets, ligneRapport } from "./configuration.mjs";
@@ -101,6 +103,8 @@ export async function principal(argv, io = {}) {
       socket: svc.socket,
       jeton: jeton ? Buffer.from(jeton).toString("utf8") : null,
       timeout_ms: v.config.policy.approval.timeout_ms,
+      // EX-18.8 : identifiant d'utilisateur attendu du pair sur la prise Unix.
+      peer_user: svc.peer_user ?? null,
     });
   }
   let coeur;
@@ -226,10 +230,15 @@ export async function lancer() {
     await modele?.arreter().catch(() => {});
     await coeur.arreter().catch(() => {});
     await coeur.o.redaction?.fermer?.().catch?.(() => {});
-    for (const s of ["SIGTERM", "SIGINT", "SIGHUP"]) process.removeAllListeners(s);
+    for (const s of ["SIGTERM", "SIGINT", "SIGHUP", "SIGUSR2"]) process.removeAllListeners(s);
     lancer();
   }, 250);
   veille.unref?.();
+  // `noortrace-ctl clock --accept` (EX-7.13) : confirmation de l'exploitant, consignée par le cœur.
+  process.on("SIGUSR2", () => {
+    const r = coeur.accepterHorloge();
+    process.stderr.write(r.accepte ? "noortrace: horloge acceptee\n" : `noortrace: acceptation de l'horloge refusee (${r.raison})\n`);
+  });
   process.on("SIGHUP", async () => {
     const k = process.argv.indexOf("--config");
     try {

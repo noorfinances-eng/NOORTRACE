@@ -1,25 +1,26 @@
-// Contrôles périodiques de la supervision (CT-2 EX-17.5), relevé de
-// verrouillage (EX-17.6) et lecture du registre des gels (EX-17.7) :
-//   - toutes les heures, après la clôture : manifeste et signature de la
-//     période close, continuité de CT-1 §10.3, comparaison SHA-256 de chaque
-//     segment copié dans l'heure avec sa copie WORM (EX-12.17), `health()` du
-//     signataire, balayage des copies manquantes (EX-12.16) ;
-//   - une fois par jour : relecture et vérification complètes des segments
-//     copiés dans la journée (EX-12.10 pas 2), rétention par défaut du
-//     support (`worm_lock_config_check`), registre des gels et état de gel
-//     des versions des gels actifs ;
+// Contrôles périodiques de la supervision propres au support WORM (CT-2
+// EX-17.5), relevé de verrouillage (EX-17.6) et lecture du registre des gels
+// (EX-17.7) :
+//   - toutes les heures : comparaison SHA-256 de chaque segment copié dans
+//     l'heure avec sa copie WORM (EX-12.17), balayage des copies manquantes
+//     (EX-12.16) ;
+//   - une fois par jour : rétention par défaut du support
+//     (`worm_lock_config_check`), registre des gels et état de gel des
+//     versions des gels actifs ;
 //   - tous les `lock_audit_interval_days` jours (et au premier tour après le
 //     démarrage, aucun état mutable ne gardant l'instant du dernier relevé,
 //     EX-12.1) : le relevé de verrouillage.
+// Les contrôles d'EX-17.5 qui ne dépendent pas du support (manifeste,
+// signature et continuité de la période close, `health()` du signataire,
+// relecture quotidienne des segments fermés avec toutes les clés de la
+// chaîne) sont faits par le cœur, avec ou sans WORM (`src/controles.mjs`).
 // Résultats : `integrity_check` et `noortrace_integrity_check_failures_total`
 // ; lignes et jauges `worm_*` de 17.2 et 17.3. Ces contrôles n'écrivent
 // jamais sur le support et ne bloquent aucun appel (14.2).
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import { decoderHorodatage, ecrireHorodatage, hacherManifeste, verifierContinuite, verifierSignatureManifeste, hexVersOctets, sha256Hex } from "@noortrace/noyau";
-import { relireSegment } from "../segments.mjs";
-import { lireManifeste, nomsManifeste } from "../periodes.mjs";
+import { decoderHorodatage, ecrireHorodatage, sha256Hex } from "@noortrace/noyau";
 import { controlerVerrou, echeanceMinimale, lireEcheance } from "./verrou.mjs";
 import { lireRegistres, inscrireCopie, SOUS_PREFIXES_ECRIVAIN } from "./registre.mjs";
 import { verifierGarde, etatGel } from "./garde.mjs";
@@ -327,34 +328,10 @@ export class SupervisionWorm {
     return r;
   }
 
-  /** Contrôles horaires d'EX-17.5. */
+  /** Contrôles horaires d'EX-17.5 propres au support (copies). */
   async horaire(t) {
     const c = this.coeur;
     await this.copies.balayer().catch(() => {});
-    // Période close : manifeste, signature, continuité.
-    const P = Math.floor(t / 3600000) * 3600 - 3600;
-    const dir = path.join(c.repertoire, "manifestes");
-    const m = await lireManifeste(dir, P).catch(() => null);
-    const premier = !(await fs.stat(path.join(dir, nomsManifeste(P - 3600).manifeste)).then(() => true, () => false));
-    if (!m) {
-      // Aucune période close encore (journal plus jeune qu'une heure) : rien à contrôler.
-      const existe = (await fs.readdir(dir).catch(() => [])).some((n) => n.endsWith(".json") && Number(n.slice(8, 18)) < P);
-      if (existe) this._resultat("manifeste", false, { period_start: P });
-    } else {
-      let sig = false;
-      try {
-        const pub = await c.signataire.clePublique(m.manifeste.recorder_key_id);
-        sig = m.signature.period_hash === hacherManifeste(m.manifeste) && verifierSignatureManifeste(m.manifeste, m.signature.sig, pub instanceof Uint8Array ? pub : hexVersOctets(pub));
-      } catch {
-        sig = false;
-      }
-      this._resultat("manifeste", true, { period_start: P });
-      this._resultat("signature", sig, { period_start: P });
-      if (!premier) {
-        const p = await lireManifeste(dir, P - 3600).catch(() => null);
-        this._resultat("continuite", Boolean(p) && verifierContinuite(p.manifeste, m.manifeste).valide, { period_start: P });
-      }
-    }
     // Segments copiés dans l'heure : SHA-256 de la copie WORM (EX-12.17).
     const lignes = (await lireRegistres(path.join(c.repertoire, "worm"))).map((x) => x.ligne).filter((l) => l.copied_at && decoderHorodatage(l.copied_at) >= t - 3600000);
     for (const l of lignes.filter((x) => x.key.slice(this.copies.prefixe.length).startsWith("segments/"))) {
@@ -374,34 +351,12 @@ export class SupervisionWorm {
       }
       this._resultat("copie_worm", ok, { key: l.key, version_id: l.version_id });
     }
-    // Signataire.
-    let sante = "erreur";
-    try {
-      sante = await c.signataire.sante();
-    } catch {
-      sante = "erreur";
-    }
-    this._resultat("signataire", sante === "ok");
   }
 
-  /** Contrôles quotidiens d'EX-17.5 et d'EX-17.7. */
+  /** Contrôles quotidiens d'EX-17.5 (rétention du support) et d'EX-17.7. */
   async quotidien(t) {
     const c = this.coeur;
-    // Relecture complète des segments copiés dans la journée (EX-12.10 pas 2).
-    const lignes = (await lireRegistres(path.join(c.repertoire, "worm"))).map((x) => x.ligne).filter((l) => l.copied_at && decoderHorodatage(l.copied_at) >= t - JOUR_MS);
-    for (const l of lignes.filter((x) => x.key.slice(this.copies.prefixe.length).startsWith("segments/"))) {
-      const local = path.join(c.repertoire, l.key.slice(this.copies.prefixe.length));
-      let ok = false;
-      try {
-        const cles = new Map();
-        for (const id of [c.ecrivain.cleCourante]) cles.set(id, await c.signataire.clePublique(id));
-        const r = relireSegment(new Uint8Array(await fs.readFile(local)), { verifierSignatures: true, clePublique: (id) => cles.get(id) ?? null });
-        ok = r.corruption === null && !r.tronque;
-      } catch {
-        ok = false;
-      }
-      this._resultat("relecture", ok, { key: l.key });
-    }
+    void t;
     // Rétention par défaut du support.
     try {
       const v = await controlerConfigurationVerrou({ operations: this.copies.operations, worm: this.copies.worm, journal: c.journal });

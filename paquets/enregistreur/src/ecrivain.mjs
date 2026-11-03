@@ -10,12 +10,12 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import {
-  ZERO32, decoderHorodatage, ecrireHorodatage, hacherEvenement, hacherPoint, messageRotation,
-  messageSignatureEvenement, octetsVersHex, NOMS_RESERVES, referencesEvenement,
+  ZERO32, decoderHorodatage, ecrireHorodatage, hacherEvenement, hacherManifeste, hacherPoint, messageRotation,
+  messageSignatureEvenement, messageSignatureManifeste, octetsVersHex, NOMS_RESERVES, referencesEvenement,
 } from "@noortrace/noyau";
 import { envelopper, validerAvantSignature, partielRotation } from "./capture.mjs";
 import { ErreurConstruction, ErreurEnregistreur } from "./erreurs.mjs";
-import { FichierAjout, creerRepertoire, existe, ecrireAtomique } from "./fichiers.mjs";
+import { FichierAjout, creerRepertoire, existe, ecrireAtomique, nettoyerTemporaires, tronquer } from "./fichiers.mjs";
 import { enteteSegment, ligneSegment, listerSegments, nomSegment, relireSegment } from "./segments.mjs";
 import { idIntention, ligneIntention, nomFichierIntentions, objetContexte, objetIntention, empreinteIntention } from "./intentions.mjs";
 import { construireEtSignerManifeste, debutPeriode, nomsManifeste, octetsJsonLisible, nonceAleatoire } from "./periodes.mjs";
@@ -114,12 +114,23 @@ export class Ecrivain {
     await creerRepertoire(path.join(this.repertoire, "intentions"));
     await creerRepertoire(path.join(this.repertoire, "manifestes"));
     await creerRepertoire(path.join(this.repertoire, "points"));
+    // Fichiers temporaires d'écritures atomiques interrompues (EX-12.6) : rien
+    // de durable ; supprimés avant toute écriture de cette instance.
+    let temporaires = await nettoyerTemporaires(this.repertoire);
+    temporaires += await nettoyerTemporaires(path.join(this.repertoire, "manifestes"));
+    for (const xx of await fs.readdir(path.join(this.repertoire, "pieces")).catch(() => [])) {
+      temporaires += await nettoyerTemporaires(path.join(this.repertoire, "pieces", xx));
+    }
+    if (temporaires) this.journal.consigner("info", "stockage", "temporary_files_removed", { count: temporaires });
     if (etat.dernierSegment) {
       // Le dernier segment de l'instance précédente est fermé par sa seule
       // existence (EX-13.9) : il est copié comme un segment fermé (EX-12.16).
       this.segmentsFermes.push(etat.dernierSegment);
       this._copierWorm(`segments/${etat.dernierSegment}`, "segment");
     }
+    // Clôtures incomplètes (manifeste écrit, signature absente : arrêt brutal
+    // entre les deux écritures) : complétées avant toute nouvelle écriture.
+    for (const x of etat.manifestesSansSignature ?? []) await this._completerCloture(x.manifeste);
     await this._ouvrirSegment(this.lastSeq + 1);
     // EX-13.5 (1) : aucun fichier d'intention sous une époque supérieure présente (lot HA).
     await verifierEpoqueOuverture(this.repertoire, "intentions", epoque);
@@ -127,6 +138,50 @@ export class Ecrivain {
       creer: true,
       existantAdmis: true,
     });
+  }
+
+  /**
+   * Complète la clôture d'une période dont le manifeste a été écrit sans sa
+   * signature (CT-1 §10.2 ; contrôle P-5) : la signature est calculée sur les
+   * octets du manifeste présent, par la clé qu'il nomme, puis écrite ; la
+   * remise au composant d'ancrage (EX-12.27, CT-5 §8) et les copies WORM du
+   * manifeste, de la signature et de la série (EX-12.16) sont refaites, comme
+   * à la clôture. Le manifeste a été contrôlé contre la chaîne par la
+   * relecture (`relireJournal`).
+   * @param {object} manifeste
+   */
+  async _completerCloture(manifeste) {
+    const P = manifeste.period_start;
+    const noms = nomsManifeste(P);
+    const dir = path.join(this.repertoire, "manifestes");
+    this._verifierBail();
+    const sig = await this.signataire.signer(manifeste.recorder_key_id, messageSignatureManifeste(manifeste));
+    const periodHash = hacherManifeste(manifeste);
+    const signature = { version: 0, period_hash: periodHash, recorder_key_id: manifeste.recorder_key_id, sig: octetsVersHex(sig) };
+    await ecrireAtomique(path.join(dir, noms.signature), octetsJsonLisible(signature), { jamaisReecrire: true });
+    this.journal.consigner("warning", "cloture", "period_signature_restored", { period_start: P, period_hash: periodHash });
+    this._remettreCloture({ manifeste, signature, periodHash, P });
+    this._copierWorm(`manifestes/${noms.manifeste}`, "manifeste");
+    this._copierWorm(`manifestes/${noms.signature}`, "signature");
+    this._copierWorm(`points/${nomSerie(P)}`, "points");
+  }
+
+  /** Remise de la clôture au composant d'ancrage, sans attendre (EX-12.27, 14.2). */
+  _remettreCloture({ manifeste, signature, periodHash, P }) {
+    if (!this.ancrage) return;
+    const noms = nomsManifeste(P);
+    const dir = path.join(this.repertoire, "manifestes");
+    const remise = remiseCloture({
+      manifeste,
+      signature,
+      periodHash,
+      cheminManifeste: path.join(dir, noms.manifeste),
+      cheminSignature: path.join(dir, noms.signature),
+      cheminSerie: path.join(this.repertoire, "points", nomSerie(P)),
+    });
+    Promise.resolve()
+      .then(() => this.ancrage.remettreCloture(remise))
+      .catch((e) => this.journal.consigner("warning", "cloture", "anchor_pending", { period_start: P, erreur: String(e?.message ?? e) }));
   }
 
   async _ouvrirSegment(firstSeq) {
@@ -154,8 +209,25 @@ export class Ecrivain {
     const fichier = await FichierAjout.ouvrir(path.join(dir, nom), { creer: true });
     await fichier.ajouter(ligneSegment(entete));
     await fichier.synchroniser();
-    this.segment = { fichier, entete, nom, firstSeq, nb: 0 };
+    // `synchronise` : longueur couverte par le dernier fdatasync rendu (EX-12.8).
+    this.segment = { fichier, entete, nom, firstSeq, nb: 0, synchronise: fichier.taille };
+    this._noterDurable();
     this.metriques?.jauge("noortrace_segment_bytes", {}, fichier.taille);
+  }
+
+  /**
+   * État de l'écrivain à la fin du contenu durable (dernier fdatasync rendu) :
+   * c'est l'état auquel il revient quand une erreur d'écriture ou de
+   * fdatasync rend fatale la suite du segment (EX-12.8).
+   */
+  _noterDurable() {
+    this.durable = {
+      lastSeq: this.lastSeq,
+      lastHash: this.lastHash,
+      lastTs: this.lastTs,
+      cleCourante: this.cleCourante,
+      politiquesEcrites: new Set(this.politiquesEcrites ?? []),
+    };
   }
 
   async _fermerSegment() {
@@ -173,6 +245,11 @@ export class Ecrivain {
     Promise.resolve()
       .then(() => this.worm.copier({ cle: cleObjetWorm(this.prefixeWorm, relatif), chemin: path.join(this.repertoire, relatif), nature }))
       .catch((e) => this.journal.consigner("warning", "worm", "worm_copy_failed", { cle: relatif, erreur: String(e?.message ?? e) }));
+  }
+
+  /** Le fdatasync qui précède a échoué (EX-12.8) : rien ne s'écrit avant la sortie du mode « stockage ». */
+  _exigerSegment() {
+    if (!this.segment) throw new ErreurEnregistreur("stockage", "noortrace: enregistreur en mode degrade (stockage)");
   }
 
   _verifierBail() {
@@ -289,12 +366,12 @@ export class Ecrivain {
             op.res();
             break;
           case "reprise_stockage":
-            if (!this.segment) {
-              await this._ouvrirSegment(this.lastSeq + 1);
-              this.degrade.sortir("stockage");
-            }
+            if (!this.segment) await this._ouvrirApresPanne();
             op.res();
             break;
+          case "panne_stockage":
+            await this._synchroniser();
+            throw new ErreurEnregistreur("stockage", "noortrace: stockage indisponible", { cause: op.cause });
           default:
             await this._synchroniser();
             op.res();
@@ -311,10 +388,14 @@ export class Ecrivain {
     const liste = this.enAttenteSync;
     if (!liste.length) return;
     this.enAttenteSync = [];
+    let couvert = null;
     try {
       this._verifierBail();
       const t0 = performance.now();
+      couvert = this.segment.fichier.taille;
       await this.segment.fichier.synchroniser();
+      this.segment.synchronise = couvert;
+      this._noterDurable();
       this.metriques?.observer("noortrace_fsync_duration_ms", {}, performance.now() - t0);
       this.metriques?.observer("noortrace_fsync_group_size", {}, liste.length, [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 4096]);
       this.metriques?.jauge("noortrace_segment_bytes", {}, this.segment.fichier.taille);
@@ -340,33 +421,85 @@ export class Ecrivain {
   }
 
   /**
-   * Panne de stockage (EX-12.8) : le segment est fermé, relu depuis le début
-   * pour établir sa dernière ligne valide ; l'état revient à cette ligne et
-   * l'écrivain entre en mode dégradé « stockage ».
+   * Panne de stockage (EX-12.8) : erreur de `write` ou de `fdatasync`, fatale
+   * pour le segment. « Les lignes dont la durabilité n'est pas établie sont
+   * tenues pour perdues » : leurs appelants reçoivent un refus (`-31010`, ou
+   * `-31017` pour un appel déjà relayé, dont l'événement est gardé en
+   * attente, EX-4.46) ; elles ne doivent donc pas rester dans la chaîne. Le
+   * segment est fermé et tronqué à la fin du dernier fdatasync rendu (longueur
+   * connue de l'écrivain), puis relu depuis le début pour établir sa dernière
+   * ligne valide (12.4) ; l'état revient à cette ligne ; l'écrivain entre en
+   * mode dégradé « stockage ». Si la troncature échoue (le stockage est en
+   * panne), elle est retentée avant l'ouverture du segment suivant, qui
+   * n'a pas lieu sans elle.
    */
   async _panneStockage(e) {
     this.journal.consigner("error", "stockage", "storage_unavailable", { errno: e?.cause?.code ?? null });
     this.degrade.entrer("stockage");
+    // Lignes écrites, non couvertes par un fdatasync rendu : refusées ici, avant
+    // que l'ouverture d'un segment suivant ne puisse les couvrir.
+    const liste = this.enAttenteSync;
+    this.enAttenteSync = [];
+    for (const { op } of liste) op.rej(e);
     if (!this.segment) return;
-    const chemin = this.segment.fichier.chemin;
-    await this.segment.fichier.fermer();
-    try {
-      const r = relireSegment(new Uint8Array(await fs.readFile(chemin)), {});
-      const dernier = r.evenements[r.evenements.length - 1];
-      if (dernier) {
-        this.lastSeq = dernier.seq;
-        this.lastHash = dernier.hash;
-        this.lastTs = decoderHorodatage(dernier.ts);
-      } else if (r.entete) {
-        this.lastSeq = r.entete.first_seq - 1;
-        this.lastHash = r.entete.prev_hash;
-      }
-      if (this.periode) this.periode.evenements = this.periode.evenements.filter((x) => x.seq <= this.lastSeq);
-    } catch {
-      // relecture impossible : l'état reste celui de la dernière écriture.
-    }
-    this.segmentsFermes.push(this.segment.nom);
+    const s = this.segment;
     this.segment = null;
+    await s.fichier.fermer();
+    const d = this.durable;
+    this.lastSeq = d.lastSeq;
+    this.lastHash = d.lastHash;
+    this.lastTs = d.lastTs;
+    this.cleCourante = d.cleCourante;
+    this.politiquesEcrites = new Set(d.politiquesEcrites);
+    if (this.periode) this.periode.evenements = this.periode.evenements.filter((x) => x.seq <= this.lastSeq);
+    this.segmentsFermes.push(s.nom);
+    this.troncature = { chemin: s.fichier.chemin, nom: s.nom, longueur: s.synchronise };
+    await this._tronquerApresPanne();
+  }
+
+  /**
+   * Troncature du segment en panne à sa longueur durable, puis relecture
+   * (EX-12.8, EX-12.10 pas 2 et 3) ; rend vrai quand elle est faite.
+   */
+  async _tronquerApresPanne() {
+    const t = this.troncature;
+    if (!t) return true;
+    try {
+      const taille = (await fs.stat(t.chemin)).size;
+      if (taille > t.longueur) {
+        await tronquer(t.chemin, t.longueur);
+        this.journal.consigner("warning", "stockage", "segment_truncated", {
+          segment: t.nom,
+          removed_bytes: taille - t.longueur,
+          expected_seq: this.lastSeq + 1,
+          raison: "durabilite_non_etablie",
+        });
+      }
+      const r = relireSegment(new Uint8Array(await fs.readFile(t.chemin)), {});
+      const dernier = r.evenements[r.evenements.length - 1];
+      const seqRelu = dernier ? dernier.seq : r.entete ? r.entete.first_seq - 1 : null;
+      if (seqRelu !== null && seqRelu < this.lastSeq) {
+        // Moins de lignes valides que l'écrivain n'en a vu durables : la relecture fait foi.
+        this.lastSeq = seqRelu;
+        this.lastHash = dernier ? dernier.hash : r.entete.prev_hash;
+        if (dernier) this.lastTs = decoderHorodatage(dernier.ts);
+        if (this.periode) this.periode.evenements = this.periode.evenements.filter((x) => x.seq <= this.lastSeq);
+      }
+      this.troncature = null;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Ouverture d'un nouveau segment à la sortie du mode « stockage »
+   * (EX-12.8, EX-14.11), après la troncature du segment en panne.
+   */
+  async _ouvrirApresPanne() {
+    if (!(await this._tronquerApresPanne())) throw new ErreurEnregistreur("stockage", "noortrace: enregistreur en mode degrade (stockage)");
+    await this._ouvrirSegment(this.lastSeq + 1);
+    this.degrade.sortir("stockage");
   }
 
   /**
@@ -377,6 +510,18 @@ export class Ecrivain {
     return this._enfiler({ type: "reprise_stockage" });
   }
 
+  /**
+   * Panne de stockage constatée hors de l'écrivain (fichiers des approbations,
+   * EX-7.19 pas 2) : traitée dans la file comme une panne du segment (EX-12.8 ;
+   * segment fermé, mode dégradé « stockage »), de sorte que la sortie du mode
+   * suive EX-14.11 (ouverture et fdatasync d'un nouveau segment). La promesse
+   * rendue est rejetée avec l'erreur de panne.
+   * @param {unknown} cause
+   */
+  signalerPanneStockage(cause) {
+    return this._enfiler({ type: "panne_stockage", cause });
+  }
+
   // ------------------------------------------------------------ écriture
 
   async _ecrireEvenement(op) {
@@ -384,8 +529,7 @@ export class Ecrivain {
       // Sortie du mode « stockage » : nouveau segment ouvert et synchronisé
       // (EX-12.8, EX-14.11) ; une corruption attend une intervention.
       if (this.intervention) throw new ErreurEnregistreur("stockage", "noortrace: enregistreur en mode degrade (stockage)");
-      await this._ouvrirSegment(this.lastSeq + 1);
-      this.degrade.sortir("stockage");
+      await this._ouvrirApresPanne();
     }
     if (this.degrade.actif("cle") || this.degrade.actif("bail")) {
       // « clé » et « bail » bloquent tout (14.2, EX-14.4).
@@ -399,6 +543,7 @@ export class Ecrivain {
     // (EX-7.11 : un événement appartient à la période de son ts).
     if (this.periode && tsMs >= (this.periode.start + 3600) * 1000) {
       await this._synchroniser();
+      this._exigerSegment();
       await this._cloreJusqua(tsMs);
     }
     if (!this.periode) {
@@ -455,6 +600,7 @@ export class Ecrivain {
     const longueurEstimee = ligneSegment({ ...e, sig: "0x" + "00".repeat(64) }).length;
     if (this.segment.nb > 0 && this.segment.fichier.taille + longueurEstimee > this.segmentMax) {
       await this._synchroniser();
+      this._exigerSegment();
       await this._fermerSegment();
       await this._ouvrirSegment(this.lastSeq + 1);
     }
@@ -499,12 +645,29 @@ export class Ecrivain {
       arguments: p.arguments,
       ticket: p.ticket ?? null,
     });
+    // EX-12.13 : un arrêt entre la ligne intention et la ligne contexte est
+    // « impossible par construction » : les deux lignes partent dans une seule
+    // écriture (la boucle d'EX-12.5 ne la réitère que sur une écriture
+    // partielle, dont la fin incomplète est coupée à la relecture, EX-12.22).
+    const l1 = ligneIntention(intention);
+    const l2 = ligneIntention(objetContexte(intent_id, partiel));
+    const deux = new Uint8Array(l1.length + l2.length);
+    deux.set(l1);
+    deux.set(l2, l1.length);
+    const avant = this.intentions.taille;
     try {
-      await this.intentions.ajouter(ligneIntention(intention));
-      await this.intentions.ajouter(ligneIntention(objetContexte(intent_id, partiel)));
+      await this.intentions.ajouter(deux);
       this._verifierBail();
       await this.intentions.synchroniser();
     } catch (e) {
+      // Intention non durable : l'appel ne sera pas relayé (EX-12.12) ; ses
+      // lignes sont retirées pour qu'aucune reprise ne la tienne pour un relais
+      // en vol (EX-12.8 : les lignes dont la durabilité n'est pas établie sont
+      // tenues pour perdues). Au mieux : le stockage est en panne. Un écrivain
+      // qui a perdu son bail n'écrit plus rien, pas même cette troncature (EX-13.6).
+      if (!(e instanceof ErreurEnregistreur && e.raison === "bail")) {
+        await tronquer(this.intentions.chemin, avant).then(() => (this.intentions.taille = avant), () => {});
+      }
       if (e instanceof ErreurEnregistreur) throw e;
       throw new ErreurEnregistreur("stockage", "noortrace: stockage indisponible", { cause: e });
     }
@@ -515,7 +678,14 @@ export class Ecrivain {
 
   async _tic() {
     if (!this.periode || !this.segment) return;
+    // EX-7.13, EX-12.24 : l'instant d'un point ou d'une clôture est lu sur
+    // l'horloge de 7.4 ; en mode dégradé « horloge », ou quand la comparaison
+    // de l'avance murale à l'avance monotone révèle un saut en avant, rien
+    // n'est clos ni pointé (un point manqué n'est pas rattrapé) : clore des
+    // périodes futures daterait ensuite les événements dans le futur.
+    if (this.degrade.actif("horloge")) return;
     const maintenant = this.horloge.murale();
+    if (!this.horloge.controlerAvance(maintenant)) return;
     if (maintenant >= (this.periode.start + 3600) * 1000) await this._cloreJusqua(maintenant);
     const r = instantAligne(this.periode.start * 1000, this.intervalle, this.serie.prochainJ, maintenant);
     this.serie.prochainJ = r.prochainJ;
@@ -562,19 +732,7 @@ export class Ecrivain {
     this.prevPeriodHash = periodHash;
     this.plancher = (P.start + 3600) * 1000;
     const relatifSerie = `points/${nomSerie(P.start)}`;
-    if (this.ancrage) {
-      const remise = remiseCloture({
-        manifeste,
-        signature,
-        periodHash,
-        cheminManifeste: path.join(dir, noms.manifeste),
-        cheminSignature: path.join(dir, noms.signature),
-        cheminSerie: path.join(this.repertoire, relatifSerie),
-      });
-      Promise.resolve()
-        .then(() => this.ancrage.remettreCloture(remise))
-        .catch((e) => this.journal.consigner("warning", "cloture", "anchor_pending", { period_start: P.start, erreur: String(e?.message ?? e) }));
-    }
+    this._remettreCloture({ manifeste, signature, periodHash, P: P.start });
     // Segment aligné sur la période (EX-12.4 (a)).
     if (this.segment && this.segment.nb > 0) {
       await this._fermerSegment();

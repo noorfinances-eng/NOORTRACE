@@ -6,7 +6,7 @@
 //   noortrace-ctl worm gel reprendre        --configuration <fichier> --identifiants <référence> --identite <nom> --gel <gel_id> [--journal-exploitation <chemin>]
 //   noortrace-ctl worm gel etat             --configuration <fichier> --identifiants <référence> --gel <gel_id>
 //   noortrace-ctl worm releve               --configuration <fichier> [--journal-exploitation <chemin>]
-//   noortrace-ctl worm reconstruire         --configuration <fichier> --vers <répertoire> [--registre-copies <répertoire>] [--identifiants <référence>] [--journal-exploitation <chemin>]
+//   noortrace-ctl worm reconstruire         --configuration <fichier> --vers <répertoire> [--registre-copies <répertoire>] [--identifiants <référence>] [--cles <cles.json>] [--journal-exploitation <chemin>]
 //   noortrace-ctl worm restaurer <clé>      --version <id> --configuration <fichier> --vers <répertoire> [--registre-copies <répertoire>] [--identifiants <référence>]
 //
 // Les actions `worm gel` (CT-2 EX-12.36) s'exécutent hors du démon, sous
@@ -33,7 +33,9 @@ import { OutilGel, ArretOutil, CODES } from "./gel.mjs";
 import { lireRegistres } from "./registre.mjs";
 import { lireRegistreGels, releverVerrouillage } from "./controles.mjs";
 import { epoqueMaxNoms } from "../ha/cloture.mjs";
-import { reconstruireJournal, restaurerVersion, registreParCle, ErreurRestauration } from "./restauration.mjs";
+import {
+  reconstruireJournal, restaurerVersion, registreParCle, ErreurRestauration, clePubliqueDepuisConfiguration, clePubliqueDepuisCles,
+} from "./restauration.mjs";
 
 export const USAGE_CTL = [
   "usage : noortrace-ctl worm gel poser --configuration <fichier> --identifiants <référence> --identite <nom> --de <period_start> --a <period_start> --motif <texte> [--reference <texte>] [--registre-copies <répertoire>] [--journal-exploitation <chemin>]",
@@ -42,7 +44,7 @@ export const USAGE_CTL = [
   "        noortrace-ctl worm gel reprendre --configuration <fichier> --identifiants <référence> --identite <nom> --gel <gel_id> [--journal-exploitation <chemin>]",
   "        noortrace-ctl worm gel etat --configuration <fichier> --identifiants <référence> --gel <gel_id>",
   "        noortrace-ctl worm releve --configuration <fichier> [--journal-exploitation <chemin>]",
-  "        noortrace-ctl worm reconstruire --configuration <fichier> --vers <répertoire> [--registre-copies <répertoire>] [--identifiants <référence>] [--journal-exploitation <chemin>]",
+  "        noortrace-ctl worm reconstruire --configuration <fichier> --vers <répertoire> [--registre-copies <répertoire>] [--identifiants <référence>] [--cles <cles.json>] [--journal-exploitation <chemin>]",
   "        noortrace-ctl worm restaurer <clé> --version <id> --configuration <fichier> --vers <répertoire> [--registre-copies <répertoire>] [--identifiants <référence>]",
 ].join("\n");
 
@@ -53,7 +55,7 @@ const OPTIONS = {
   reprendre: { requises: ["configuration", "identifiants", "identite", "gel"], facultatives: ["journal-exploitation"] },
   etat: { requises: ["configuration", "identifiants", "gel"], facultatives: [] },
   releve: { requises: ["configuration"], facultatives: ["journal-exploitation"] },
-  reconstruire: { requises: ["configuration", "vers"], facultatives: ["registre-copies", "identifiants", "journal-exploitation"] },
+  reconstruire: { requises: ["configuration", "vers"], facultatives: ["registre-copies", "identifiants", "cles", "journal-exploitation"] },
   restaurer: { requises: ["configuration", "vers", "version"], facultatives: ["registre-copies", "identifiants", "journal-exploitation"] },
 };
 
@@ -314,7 +316,18 @@ async function restaurationCtl({ action, cle, o, config, worm, env, journal, std
   try {
     if (action === "reconstruire") {
       const registre = dirRegistre ? await registreParCle(dirRegistre) : null;
-      const { synthese } = await reconstruireJournal({ config, operations, destination: o.vers, registre, murale, consigner });
+      // Clé initiale du journal pour vérifier les signatures (CT-8 §11.4 pas 5 :
+      // `--cles <fichier>`) ; à défaut, le signataire de classe D de la configuration.
+      let clePublique = clePubliqueDepuisConfiguration(config, { env });
+      if (o.cles) {
+        try {
+          clePublique = clePubliqueDepuisCles(JSON.parse(fs.readFileSync(o.cles, "utf8")));
+        } catch {
+          stderr.write("--cles : fichier cles.json illisible\n");
+          return CODES.USAGE;
+        }
+      }
+      const { synthese } = await reconstruireJournal({ config, operations, destination: o.vers, registre, murale, consigner, clePublique });
       stdout.write(`${JSON.stringify(synthese)}\n`);
       return CODES.FAIT;
     }

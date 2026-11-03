@@ -389,7 +389,9 @@ export class MoteurEchanges {
         headers: { ...(etat.notes ?? {}), ...(etat.notesReponse ?? {}) },
         headers_removed: etat.retires ?? [],
         query_sha256: etat.requeteSha ?? null,
-        model_segment: etat.segment,
+        // EX-5.36, EX-9.6 : le segment admis par les détecteurs, sinon null (sa
+        // longueur est dans model_segment_refused) ; jamais le segment refusé.
+        model_segment: segment,
         pending_id: pendingId,
       },
       { seq: evenement?.seq ?? null, host: hote.id, request_id: etat.notesReponse?.["request-id"] ?? etat.notesReponse?.["x-request-id"] ?? null },

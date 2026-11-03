@@ -31,6 +31,7 @@ import { decoderHorodatage } from "@noortrace/noyau";
 import { normaliserCible, trouverRoute, hotePourAdresse, declarationsFournisseur } from "./formats.mjs";
 import { analyserCorpsJson } from "./extraction.mjs";
 import { MoteurEchanges } from "./echange.mjs";
+import { ecouterPriseUnix } from "../mcp/hote-stdio.mjs";
 
 /** Borne d'une ligne de la prise du miroir : corps en base64 et en-têtes. */
 function borneLigne(lim) {
@@ -96,11 +97,8 @@ export class RecepteurMiroir {
       // absente
     }
     this.serveur = net.createServer((s) => this._connexion(s));
-    await new Promise((res, rej) => {
-      this.serveur.once("error", rej);
-      this.serveur.listen(chemin, res);
-    });
-    fs.chmodSync(chemin, 0o660);
+    // EX-18.1 : mode 0660 dès la création de la prise, sans fenêtre plus ouverte.
+    await ecouterPriseUnix(this.serveur, chemin);
   }
 
   async arreter() {
